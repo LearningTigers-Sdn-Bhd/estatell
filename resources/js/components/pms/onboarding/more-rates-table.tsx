@@ -269,8 +269,8 @@ export function MoreRatesTable({
                 <Table>
                     <TableHeader className="max-md:hidden">
                         <TableRow>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Price</TableHead>
+                            <TableHead className="md:w-1/4">Name</TableHead>
+                            <TableHead className="md:w-[30%]">Price</TableHead>
                             <TableHead>Room types</TableHead>
                             <TableHead>
                                 <span className="sr-only">Actions</span>
