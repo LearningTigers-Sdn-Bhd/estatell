@@ -42,6 +42,8 @@ test('notification types define their delivery rules', function (
     'onboarding reminder' => [NotificationType::OnboardingReminder, ['mail', 'database'], ['mail' => true, 'database' => true], null],
     'dorm strategy changed' => [NotificationType::DormStrategyChanged, ['mail', 'database'], ['mail' => true, 'database' => true], null],
     'support access used' => [NotificationType::SupportAccessUsed, ['mail', 'database'], ['mail' => true, 'database' => false], null],
+    'go-live approved' => [NotificationType::GoLiveApproved, ['mail', 'database'], ['mail' => true, 'database' => false], null],
+    'go-live sent back' => [NotificationType::GoLiveRejected, ['mail', 'database'], ['mail' => true, 'database' => false], null],
 ]);
 
 test('notification enums expose labelled options', function () {
@@ -56,6 +58,8 @@ test('notification enums expose labelled options', function () {
         ['value' => 'onboarding_reminder', 'label' => 'Onboarding reminder'],
         ['value' => 'dorm_strategy_changed', 'label' => 'Dorm strategy changed'],
         ['value' => 'support_access_used', 'label' => 'Support access used'],
+        ['value' => 'go_live_approved', 'label' => 'Go-live approved'],
+        ['value' => 'go_live_rejected', 'label' => 'Go-live sent back'],
     ]);
 });
 

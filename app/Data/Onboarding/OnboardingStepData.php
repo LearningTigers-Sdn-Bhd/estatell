@@ -19,12 +19,13 @@ class OnboardingStepData extends Data
         public ?string $url,
         public ?string $blockedBy,
         public ?string $blockedByUrl,
+        public bool $flagged = false,
     ) {}
 
     /**
      * @param  array<string, StepState>  $states  Every step's state, keyed by the step value.
      */
-    public static function fromStep(OnboardingStep $step, Property $property, array $states, ?OnboardingStep $blockingStep): self
+    public static function fromStep(OnboardingStep $step, Property $property, array $states, ?OnboardingStep $blockingStep, bool $flagged = false): self
     {
         return new self(
             value: $step->value,
@@ -36,6 +37,7 @@ class OnboardingStepData extends Data
             url: $step->routeName() === null ? null : route($step->routeName(), ['property' => $property->code], absolute: false),
             blockedBy: $blockingStep?->label(),
             blockedByUrl: $blockingStep?->routeName() === null ? null : route($blockingStep->routeName(), ['property' => $property->code], absolute: false),
+            flagged: $flagged,
         );
     }
 }

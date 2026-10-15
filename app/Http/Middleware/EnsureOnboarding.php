@@ -9,12 +9,13 @@ use App\Services\Platform\Impersonation;
 use App\Services\Staff\AssignableRoles;
 use Closure;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Guards the onboarding routes (`onboarding.only`). A Live property goes to its dashboard. While a property is
  * Onboarding, only its owner and a support user viewing it as staff may set it up; other staff see the waiting page.
- * PendingApproval is not restricted here, so staff can still reach go-live.
+ * PendingApproval is not restricted here, so staff can still reach go-live, but every write except go-live is refused.
  */
 class EnsureOnboarding
 {
@@ -36,6 +37,12 @@ class EnsureOnboarding
 
         if ($property->status === PropertyStatus::Live) {
             return to_route('dashboard', ['property' => $property->code]);
+        }
+
+        if ($property->status === PropertyStatus::PendingApproval && ! $request->isMethodSafe() && ! $request->routeIs('onboarding.go-live.*')) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('Waiting for approval. Withdraw to make changes.')]);
+
+            return back();
         }
 
         if ($property->status !== PropertyStatus::Onboarding || $request->routeIs('onboarding.waiting')) {

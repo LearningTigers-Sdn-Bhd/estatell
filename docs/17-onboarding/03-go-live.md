@@ -40,7 +40,7 @@ go_live_review_flags   go_live_review_id, step (OnboardingStep)
 - Each submit is a new row, so a property sent back twice keeps both reviews.
 - `opening_date` is set on approval. A note is required for Rejected.
 - Only admins approve or send back, with `support.2fa`. Partners see their pending properties read-only.
-- Notifications: `GoLiveRequested` to admins (and the partner for its properties), `GoLiveApproved` and `GoLiveRejected` to the owner. To verify that the notification module can address admins, who are not property staff.
+- Notifications: `GoLiveRequested` goes to every active admin and the active users of the property's partner, by mail and in-app. Platform users have no property, so it is a plain notification that skips the preference matrix (`GoLiveRecipients` picks the users). `GoLiveApproved` and `GoLiveRejected` are `NotificationType` cases for the owner (in-app mandatory, mail can be switched off) and show in the owner's notification matrix.
 
 ### Owner side
 
@@ -52,7 +52,7 @@ go_live_review_flags   go_live_review_id, step (OnboardingStep)
 ### Admin side
 
 - The admin sidebar **Properties** item shows a count badge of pending requests. The properties list gets a **Waiting for approval** status tab (property, partner, sent, warnings count, **Review**). The admin property page shows a **Waiting for approval** banner with **Review**. The onboarding board gets the same tab when it is built.
-- Review page `GET /admin/properties/{code}/go-live` (admin layout): who sent it and when, **View as**, and the Review rows read-only with more detail (registration numbers, licences, tax rates and registration numbers, prices). Each row has a tick to flag it for the owner. Warnings show as on the owner side.
+- Review page `GET /admin/properties/{code}/go-live` (admin layout): who sent it and when, **View as**, and the Review rows read-only with more detail: Basics (registered name, registration number, TIN, licences), Taxes (rate and registration number) and Basic rate (weekday and weekend price per room type). Each row has a tick to flag it for the owner. Warnings show as a list without **Fix →**. The page redirects to the property when nothing is pending.
 - **Approve** opens an AlertDialog: opening date (today by default, or earlier, with "Only change this if the owner asked to add stays from before today."), and what happens (business date, sign-in details count, owner emailed).
 - **Send back** opens an AlertDialog with a required note and the flagged sections.
 
@@ -62,15 +62,15 @@ go_live_review_flags   go_live_review_id, step (OnboardingStep)
 
 ## Build status
 
-| Part                                                                                                            | Status                                                                                     |
-| --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `GoLive`, `GoLiveReadiness`, `EnsurePropertyIsLive`, the Review page (rows, warnings, sign-in info line)        | Built.                                                                                     |
-| Opening date: today in the property time zone. The owner field is gone                                          | Built. To change: `ApproveGoLive` takes an earlier date.                                   |
-| `PendingApproval` when `require_go_live_approval` is on. The business date opens and `went_live_at` stays empty | Built. To change: `RequestGoLive` opens nothing; the go-live steps run at `ApproveGoLive`. |
-| `RefreshPendingTemporaryPasswords` at go-live                                                                   | Built for staff. Company users join when the company portal users are built.               |
-| The You're live card, confetti, Recommended checklist                                                           | Built.                                                                                     |
-| Notifications switch-on at go-live                                                                              | Not built. No notification gate exists yet.                                                |
-| Go-live approval (`RequestGoLive`, `ApproveGoLive`, `RejectGoLive`, flags)                                      | Not built. Only the `PendingApproval` status and the setting exist.                        |
+| Part                                                                                                               | Status                                                                          |
+| ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| `GoLive`, `GoLiveReadiness`, `EnsurePropertyIsLive`, the Review page (rows, warnings, sign-in info line)           | Built.                                                                          |
+| Opening date: today in the property time zone. The owner field is gone                                             | Built. `ApproveGoLive` takes an earlier date, never a later one.                |
+| `PendingApproval` when `require_go_live_approval` is on. Nothing opens and `went_live_at` stays empty              | Built. `RequestGoLive` opens nothing; the go-live steps run at `ApproveGoLive`. |
+| `RefreshPendingTemporaryPasswords` at go-live                                                                      | Built for staff. Company users join when the company portal users are built.    |
+| The You're live card, confetti, Recommended checklist                                                              | Built.                                                                          |
+| Notifications switch-on at go-live                                                                                 | Not built. No notification gate exists yet.                                     |
+| Go-live approval (`RequestGoLive`, `ApproveGoLive`, `RejectGoLive`, `WithdrawGoLiveRequest`, flags, admin screens) | Built.                                                                          |
 
 Document numbering needs no start step. `NextDocumentNumber` creates a sequence row on first use.
 

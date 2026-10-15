@@ -28,7 +28,9 @@ export function OnboardingFooter({
     layout: OnboardingLayoutProps;
 }) {
     const { current, previous, next } = neighbours(progress, layout.step);
-    const preview = layout.footer === 'auto' && current?.state === 'locked';
+    const preview =
+        layout.footer === 'auto' &&
+        (current?.state === 'locked' || progress.awaitingApproval);
     const editing = layout.footer === 'auto' && !preview;
     const canSkip =
         editing &&

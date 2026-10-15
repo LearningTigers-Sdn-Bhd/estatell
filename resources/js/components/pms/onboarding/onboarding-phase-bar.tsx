@@ -118,6 +118,7 @@ function PhaseItem({
                     ...phase.steps[0],
                     label: phase.label,
                     state: phase.state,
+                    flagged: phase.steps.some((item) => item.flagged),
                 }}
                 current={current}
                 variant="segment"

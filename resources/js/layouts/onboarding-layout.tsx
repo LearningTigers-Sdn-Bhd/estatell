@@ -1,4 +1,6 @@
-import { usePage } from '@inertiajs/react';
+import { Fieldset } from '@base-ui/react/fieldset';
+import { Link, usePage } from '@inertiajs/react';
+import { Hourglass } from 'lucide-react';
 import { ImpersonationBanner } from '@/components/impersonation-banner';
 import { OnboardingFooter } from '@/components/pms/onboarding/onboarding-footer';
 import { OnboardingPhaseBar } from '@/components/pms/onboarding/onboarding-phase-bar';
@@ -7,6 +9,8 @@ import {
     widthClass,
 } from '@/components/pms/onboarding/onboarding-steps';
 import { OnboardingTopBar } from '@/components/pms/onboarding/onboarding-top-bar';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 /**
@@ -28,6 +32,12 @@ export default function OnboardingLayout({
         return <>{children}</>;
     }
 
+    const preview = onboarding.awaitingApproval && step !== 'review';
+    const reviewUrl =
+        onboarding.phases
+            .flatMap((phase) => phase.steps)
+            .find((item) => item.value === 'review')?.url ?? null;
+
     return (
         <div className="flex h-svh flex-col overflow-clip overscroll-none bg-background text-foreground">
             <ImpersonationBanner />
@@ -41,7 +51,35 @@ export default function OnboardingLayout({
                         widthClass[width ?? 'default'],
                     )}
                 >
-                    {children}
+                    {preview ? (
+                        <div className="flex flex-col gap-6">
+                            <Alert>
+                                <Hourglass />
+                                <AlertTitle>Waiting for approval</AlertTitle>
+                                <AlertDescription className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                                    <span>
+                                        Waiting for approval. Withdraw to make
+                                        changes.
+                                    </span>
+                                    {reviewUrl !== null && (
+                                        <Link
+                                            href={reviewUrl}
+                                            className={buttonVariants({
+                                                variant: 'link',
+                                                size: 'sm',
+                                                className: 'h-auto p-0',
+                                            })}
+                                        >
+                                            Go to Review →
+                                        </Link>
+                                    )}
+                                </AlertDescription>
+                            </Alert>
+                            <Fieldset.Root disabled>{children}</Fieldset.Root>
+                        </div>
+                    ) : (
+                        children
+                    )}
                 </div>
             </main>
             <OnboardingFooter

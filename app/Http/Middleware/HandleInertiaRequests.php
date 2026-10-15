@@ -16,6 +16,7 @@ use App\Navigation\AdminNavigation;
 use App\Navigation\PartnerNavigation;
 use App\Navigation\StaffNavigation;
 use App\Services\NightAudit\CurrentBusinessDate;
+use App\Services\Onboarding\GoLiveRequests;
 use App\Services\Onboarding\OnboardingProgress;
 use App\Services\Platform\Impersonation;
 use Illuminate\Http\Request;
@@ -84,7 +85,7 @@ class HandleInertiaRequests extends Middleware
     {
         $property = $this->resolveProperty($request);
 
-        return $property === null ? null : OnboardingProgressData::forProperty($property, app(OnboardingProgress::class));
+        return $property === null ? null : OnboardingProgressData::forProperty($property, app(OnboardingProgress::class), app(GoLiveRequests::class));
     }
 
     /**

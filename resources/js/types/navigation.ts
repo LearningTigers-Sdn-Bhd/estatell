@@ -13,4 +13,6 @@ export type NavItem = {
     isActive?: boolean;
     /** Opens a sheet instead of going to `href`. */
     action?: string | null;
+    /** A count shown beside the title. Left out when null. */
+    badge?: number | null;
 };

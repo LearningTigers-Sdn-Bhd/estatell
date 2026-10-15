@@ -52,6 +52,7 @@ class Impersonation
         'guests.documents.scan',
         'guests.documents.reveal',
         'onboarding.go-live.store',
+        'onboarding.go-live.withdraw',
     ];
 
     /**

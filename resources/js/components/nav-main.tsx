@@ -5,6 +5,7 @@ import {
     SidebarGroup,
     SidebarGroupLabel,
     SidebarMenu,
+    SidebarMenuBadge,
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
@@ -52,6 +53,12 @@ export function NavMain({
                                 {item.icon && <item.icon />}
                                 <span>{item.title}</span>
                             </SidebarMenuButton>
+                            {item.badge ? (
+                                <SidebarMenuBadge className="rounded-full bg-primary text-primary-foreground peer-hover/menu-button:text-primary-foreground peer-data-active/menu-button:text-primary-foreground">
+                                    {item.badge}
+                                    <span className="sr-only"> waiting</span>
+                                </SidebarMenuBadge>
+                            ) : null}
                         </SidebarMenuItem>
                     ),
                 )}

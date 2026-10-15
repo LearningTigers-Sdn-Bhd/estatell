@@ -852,6 +852,7 @@ icon: string,
 external: boolean,
 active: boolean,
 action: string | null,
+badge: number | null,
 };
 export type StaffNavigationData = {
 active: App.Enums.NavigationContext | null,
@@ -974,6 +975,11 @@ key: string,
 label: string,
 done: boolean,
 };
+export type GoLiveRequestData = {
+sentOn: string,
+note: string | null,
+reviewedOn: string | null,
+};
 export type GoLiveReviewData = {
 phases: App.Data.Onboarding.GoLiveReviewPhaseData[],
 warnings: App.Data.Onboarding.GoLiveWarningData[],
@@ -996,6 +1002,8 @@ skipped: boolean,
 summary: string,
 actionLabel: string,
 actionUrl: string,
+flagged: boolean,
+details: string[],
 };
 export type GoLiveWarningData = {
 step: string,
@@ -1141,6 +1149,7 @@ phases: App.Data.Onboarding.OnboardingPhaseData[],
 requiredDone: number,
 requiredTotal: number,
 remainingMinutes: number,
+awaitingApproval: boolean,
 };
 export type OnboardingRoleData = {
 value: string,
@@ -1163,6 +1172,7 @@ isSkippable: boolean,
 url: string | null,
 blockedBy: string | null,
 blockedByUrl: string | null,
+flagged: boolean,
 };
 export type OnboardingTaxData = {
 id: number,
@@ -1237,6 +1247,15 @@ namespace Platform {
 export type AcceptPartnerInvitationData = {
 name: string,
 password: string,
+};
+export type AdminGoLiveReviewData = {
+code: string,
+name: string,
+partnerName: string | null,
+submittedBy: string,
+sentOn: string,
+today: string,
+review: App.Data.Onboarding.GoLiveReviewData,
 };
 export type AdminOtaListRowData = {
 id: number,
@@ -1318,6 +1337,10 @@ verified: boolean,
 deactivated: boolean,
 canSendSetupLink: boolean,
 createdAt: string,
+};
+export type AdminWaitingPropertyData = {
+sentOn: string,
+warningsCount: number,
 };
 export type ImpersonationData = {
 supportUserName: string,
@@ -2904,6 +2927,7 @@ export type FolioRowTag = 'scheduled' | 'overridden' | 'reversed' | 'reversal' |
 export type FolioStatus = 'open' | 'closed' | 'voided';
 export type FolioType = 'master' | 'unit' | 'third_party';
 export type Gender = 'male' | 'female';
+export type GoLiveDecision = 'approved' | 'rejected' | 'withdrawn';
 export type GuestBulkAction = 'mark-vip' | 'unmark-vip' | 'blacklist' | 'unblacklist' | 'anonymize';
 export type GuestMatchReason = 'phone' | 'email' | 'id_number' | 'name_and_birth_date' | 'name';
 export type HousekeepingBulkAction = 'assign' | 'mark_clean' | 'mark_inspected' | 'set_priority' | 'clear_priority' | 'add_remark' | 'needs_maintenance';
@@ -2919,7 +2943,7 @@ export type MediaDisk = 'local' | 'r2';
 export type MissedArrivalPolicy = 'mark_no_show' | 'keep_as_late_arrival';
 export type NavigationContext = 'front-desk' | 'finance' | 'reports' | 'settings';
 export type NotificationChannel = 'mail' | 'database';
-export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions' | 'night_audit_failed' | 'registration_card_link' | 'onboarding_reminder' | 'dorm_strategy_changed' | 'support_access_used';
+export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions' | 'night_audit_failed' | 'registration_card_link' | 'onboarding_reminder' | 'dorm_strategy_changed' | 'support_access_used' | 'go_live_approved' | 'go_live_rejected';
 export type OnboardingPhase = 'property' | 'rooms' | 'finance' | 'prices' | 'channels' | 'review';
 export type OnboardingStep = 'basics' | 'check_in_essentials' | 'team' | 'room_types' | 'rooms' | 'taxes' | 'payment_methods' | 'companies' | 'basic_rate' | 'charge_items' | 'discounts' | 'channel_manager' | 'review';
 export type OtaCredentialStatus = 'pending' | 'processed';

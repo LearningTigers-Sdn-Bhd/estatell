@@ -1,5 +1,5 @@
 import { Form, Head, Link } from '@inertiajs/react';
-import { Info, Store, ToggleRight, Users } from 'lucide-react';
+import { Hourglass, Info, Store, ToggleRight, Users } from 'lucide-react';
 import { useState } from 'react';
 import { DetailLayout } from '@/components/pms/detail-layout';
 import type { EnumOption } from '@/components/pms/enum-select';
@@ -21,9 +21,11 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { dashboard } from '@/routes/admin';
+import { show as goLive } from '@/routes/admin/properties/go-live';
 import { show as viewAs } from '@/routes/view-as';
 import {
     features as featuresTab,
@@ -155,6 +157,27 @@ export default function PropertyShow({
                         </>
                     }
                 />
+
+                {property.status.value === 'pending_approval' && (
+                    <Alert>
+                        <Hourglass />
+                        <AlertTitle>Waiting for approval</AlertTitle>
+                        <AlertDescription className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                            <span>
+                                The owner sent this property for go-live review.
+                            </span>
+                            <Link
+                                href={goLive(property.code)}
+                                className={buttonVariants({
+                                    variant: 'outline',
+                                    size: 'sm',
+                                })}
+                            >
+                                Review
+                            </Link>
+                        </AlertDescription>
+                    </Alert>
+                )}
 
                 <DetailLayout
                     activeTab={tab}

@@ -11,6 +11,8 @@ enum NotificationType: string
     case OnboardingReminder = 'onboarding_reminder';
     case DormStrategyChanged = 'dorm_strategy_changed';
     case SupportAccessUsed = 'support_access_used';
+    case GoLiveApproved = 'go_live_approved';
+    case GoLiveRejected = 'go_live_rejected';
 
     public function label(): string
     {
@@ -22,6 +24,8 @@ enum NotificationType: string
             self::OnboardingReminder => __('Onboarding reminder'),
             self::DormStrategyChanged => __('Dorm strategy changed'),
             self::SupportAccessUsed => __('Support access used'),
+            self::GoLiveApproved => __('Go-live approved'),
+            self::GoLiveRejected => __('Go-live sent back'),
         };
     }
 
@@ -49,7 +53,7 @@ enum NotificationType: string
 
         return match ($this) {
             self::RegistrationCardLink => false,
-            self::NightAuditFailed, self::SupportAccessUsed => $channel === NotificationChannel::Mail,
+            self::NightAuditFailed, self::SupportAccessUsed, self::GoLiveApproved, self::GoLiveRejected => $channel === NotificationChannel::Mail,
             default => true,
         };
     }

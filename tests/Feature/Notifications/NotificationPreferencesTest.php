@@ -119,7 +119,7 @@ test('owners view and update the property notification matrix', function () {
     $this->actingAs($owner)->get($route)
         ->assertInertia(fn (Assert $page) => $page
             ->component('settings/notifications')
-            ->has('preferences', 7)
+            ->has('preferences', 9)
             ->where('preferences.0.type', 'night_audit_completed')
             ->where('preferences.0.channels.0', [
                 'channel' => 'mail',
@@ -157,7 +157,7 @@ test('verified staff manage only their own account preferences', function () {
     $this->actingAs($staff)->get(route('account.notifications.edit'))
         ->assertInertia(fn (Assert $page) => $page
             ->component('account/notifications')
-            ->has('preferences', 7)
+            ->has('preferences', 9)
             ->where('property.code', $staff->property->code));
 
     $this->put(route('account.notifications.update', ['night_audit_completed', 'database']), ['enabled' => false])

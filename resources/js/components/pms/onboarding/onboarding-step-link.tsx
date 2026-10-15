@@ -1,4 +1,5 @@
 import { Link } from '@inertiajs/react';
+import { Flag } from 'lucide-react';
 import { OnboardingStateIcon } from '@/components/pms/onboarding/onboarding-state-icon';
 import {
     type OnboardingStep,
@@ -53,8 +54,20 @@ export function OnboardingStepLink({
                 {variant === 'tab' && `${step.number}. `}
                 {step.label}
             </span>
+            {step.flagged && (
+                <Flag
+                    aria-hidden
+                    className={cn(
+                        'size-3.5 shrink-0 text-warning',
+                        variant === 'segment' &&
+                            current &&
+                            'text-primary-foreground',
+                    )}
+                />
+            )}
             <span className="sr-only">
                 {stateWord[step.state]}
+                {step.flagged ? ', flagged by support' : ''}
                 {locked ? ', preview' : ''}
             </span>
         </>

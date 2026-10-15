@@ -617,7 +617,7 @@ Not a table: two groups on one page. The registration card group is the same com
 
 - Layout: full width (`8xl`). One small card per phase in a two-column grid (one column on phone). Each card has a header row (phase icon and title) and a bordered list below it whose dividers touch the border. The Go live / Send for approval button is in the footer, on the right.
 - One row per section, grouped by phase, from `OnboardingProgress`: state, a one-line summary built on the server, and an action (**Edit**, **Finish →**, **Add**, or **Fix in {section} →** for a warning).
-- States: ✓ Done, ✗ required and not done, ○ optional and not started, – skipped, ⚠ Needs attention, ⚑ flagged by support (not built until go-live approval).
+- States: ✓ Done, ✗ required and not done, ○ optional and not started, – skipped, ⚠ Needs attention, ⚑ flagged by support.
 - `GoLiveReadiness::checks()` returns one `GoLiveCheckData` per required section, and `isReady()` needs every one Done. Warnings are a separate card above the phase cards and never block: a tax applied to no charge, no tax on rooms, a more-rates follower missing a room type.
 - Info line: how many staff get their sign-in details. Company users join when the company portal users are built.
 - No opening date field. The day you go live is the first business day.
@@ -730,7 +730,7 @@ property_ota_credentials  id, property_id, ota_channel_id, channel_name (only fo
 
 - Built: every section (1 to 12), `OnboardingProgress`, all `StepCheck` classes, the `onboarding_skips` table with the Skip and Unskip Actions, the step save rule (`OnboardingStepRequest`), both middlewares, the waiting page, the onboarding layout, the shared progress, and Review with `GoLive`, `GoLiveReadiness` (one check per required section) and the warnings.
 - Stub: `ReviewCheck` always returns NotStarted. Review has no data of its own.
-- Not yet: the Needs attention state (it needs a stored "was Done" marker, so no state is produced yet), and go-live approval.
+- Not yet: the Needs attention state (it needs a stored "was Done" marker, so no state is produced yet).
 
 ## Build order
 

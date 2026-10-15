@@ -155,7 +155,7 @@ test('the list runs a fixed number of queries', function () {
     }
 
     $propertyQueries = collect(DB::getQueryLog())->filter(fn (array $query) => str_contains($query['query'], '"properties"'));
-    expect($propertyQueries)->toHaveCount(2);
+    expect($propertyQueries)->toHaveCount(3);
 });
 
 test('the overview tab sends the property without tab data', function () {

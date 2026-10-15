@@ -195,6 +195,7 @@ export default function CommandPaletteDialog({
                   href: actionItem.href,
                   icon: actionItem.icon,
                   action: null,
+                  badge: null,
                   active: false,
                   external: false,
               },

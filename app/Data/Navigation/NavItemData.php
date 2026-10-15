@@ -11,6 +11,7 @@ class NavItemData extends Data
      * @param  bool  $external  Opens in a new tab outside the Inertia app.
      * @param  bool  $active  Set by the server from the route name.
      * @param  string|null  $action  Opens a sheet instead of going to `href`. `href` is then the URL the sheet loads.
+     * @param  int|null  $badge  A count shown beside the title. Left out when null or zero.
      */
     public function __construct(
         public string $title,
@@ -19,5 +20,6 @@ class NavItemData extends Data
         public bool $external = false,
         public bool $active = false,
         public ?string $action = null,
+        public ?int $badge = null,
     ) {}
 }

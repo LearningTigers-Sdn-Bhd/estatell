@@ -80,5 +80,6 @@ export function toNavItem(item: App.Data.Navigation.NavItemData): NavItem {
         icon: icons[item.icon],
         isActive: item.active,
         action: item.action,
+        badge: item.badge,
     };
 }

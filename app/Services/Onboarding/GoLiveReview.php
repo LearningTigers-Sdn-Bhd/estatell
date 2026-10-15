@@ -11,6 +11,7 @@ use App\Enums\OnboardingPhase;
 use App\Enums\OnboardingStep;
 use App\Enums\StepState;
 use App\Enums\SystemTransactionCode;
+use App\Enums\TaxRateType;
 use App\Models\OnboardingSkip;
 use App\Models\Property;
 use App\Services\Guests\CountryOptions;
@@ -31,10 +32,16 @@ class GoLiveReview
         private PendingSignInUsers $pendingSignInUsers,
         private PropertyToday $propertyToday,
         private CountryOptions $countryOptions,
+        private GoLiveRequests $requests,
+        private BasicRateRows $basicRateRows,
     ) {}
 
-    public function forProperty(Property $property): GoLiveReviewData
+    /**
+     * @param  bool  $withDetails  Add the extra lines an admin checks before approving.
+     */
+    public function forProperty(Property $property, bool $withDetails = false): GoLiveReviewData
     {
+        $flagged = $this->requests->flaggedSteps($property);
         $states = $this->progress->states($property);
         $skipped = OnboardingSkip::query()
             ->where('property_id', $property->id)
@@ -52,7 +59,7 @@ class GoLiveReview
                     continue;
                 }
 
-                $rows[] = $this->row($property, $step, $states, $skipped);
+                $rows[] = $this->row($property, $step, $states, $skipped, in_array($step->value, $flagged, true), $withDetails);
             }
 
             if ($rows !== []) {
@@ -80,7 +87,7 @@ class GoLiveReview
      * @param  array<string, StepState>  $states
      * @param  list<string>  $skipped
      */
-    private function row(Property $property, OnboardingStep $step, array $states, array $skipped): GoLiveReviewRowData
+    private function row(Property $property, OnboardingStep $step, array $states, array $skipped, bool $flagged, bool $withDetails): GoLiveReviewRowData
     {
         $state = $states[$step->value];
         $isSkipped = $state === StepState::Done && in_array($step->value, $skipped, true);
@@ -96,6 +103,10 @@ class GoLiveReview
             default => ['Finish →', $step],
         };
 
+        if ($flagged && $state === StepState::Done) {
+            $actionLabel = 'Fix →';
+        }
+
         return new GoLiveReviewRowData(
             value: $step->value,
             label: $step->label(),
@@ -105,7 +116,33 @@ class GoLiveReview
             summary: $this->summary($property, $step, $state, $isSkipped, $blocker),
             actionLabel: $actionLabel,
             actionUrl: route($target->routeName(), ['property' => $property->code], absolute: false),
+            flagged: $flagged,
+            details: $withDetails && ! $isSkipped ? $this->details($property, $step) : [],
         );
+    }
+
+    /**
+     * The lines only the admin review shows: registration numbers, licences, tax rates and prices.
+     *
+     * @return list<string>
+     */
+    private function details(Property $property, OnboardingStep $step): array
+    {
+        return match ($step) {
+            OnboardingStep::Basics => array_values(array_filter([
+                $property->legal_name !== null ? __('Registered name: :name', ['name' => $property->legal_name]) : null,
+                $property->registration_number !== null ? __('Registration number: :number', ['number' => $property->registration_number]) : null,
+                $property->tin !== null ? __('TIN: :tin', ['tin' => $property->tin]) : null,
+                ...$property->licences()->ordered()->get()->map(fn ($licence): string => __('Licence: :issuer :number', ['issuer' => $licence->issuer, 'number' => $licence->number]))->all(),
+            ])),
+            OnboardingStep::Taxes => $property->taxes()->where('enabled', true)->orderBy('name')->get()
+                ->map(fn ($tax): string => $tax->name.' '.($tax->rate_type === TaxRateType::Percent ? rtrim(rtrim((string) $tax->rate, '0'), '.').'%' : (string) $tax->rate).($tax->registration_number !== null ? ' · '.__('Reg. :number', ['number' => $tax->registration_number]) : ''))
+                ->all(),
+            OnboardingStep::BasicRate => $this->basicRateRows->forProperty($property)['rows']
+                ->map(fn ($row): string => __(':name: weekday :weekday, weekend :weekend', ['name' => $row->name, 'weekday' => $row->weekday ?? '-', 'weekend' => $row->weekend ?? '-']))
+                ->all(),
+            default => [],
+        };
     }
 
     private function summary(Property $property, OnboardingStep $step, StepState $state, bool $skipped, ?OnboardingStep $blocker): string

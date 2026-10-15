@@ -3,7 +3,9 @@
 namespace App\Data\Onboarding;
 
 use App\Enums\OnboardingPhase;
+use App\Enums\PropertyStatus;
 use App\Models\Property;
+use App\Services\Onboarding\GoLiveRequests;
 use App\Services\Onboarding\OnboardingProgress;
 use Spatie\LaravelData\Data;
 
@@ -21,10 +23,12 @@ class OnboardingProgressData extends Data
         public int $requiredDone,
         public int $requiredTotal,
         public int $remainingMinutes,
+        public bool $awaitingApproval = false,
     ) {}
 
-    public static function forProperty(Property $property, OnboardingProgress $progress): self
+    public static function forProperty(Property $property, OnboardingProgress $progress, GoLiveRequests $requests): self
     {
+        $flagged = $requests->flaggedSteps($property);
         $states = $progress->states($property);
         $phaseStates = $progress->phaseStates($property);
         $requiredCounts = $progress->requiredCounts($property);
@@ -44,6 +48,7 @@ class OnboardingProgressData extends Data
                     $property,
                     $states,
                     $progress->blockingStepIn($states, $step),
+                    in_array($step->value, $flagged, true),
                 );
             }
 
@@ -57,6 +62,7 @@ class OnboardingProgressData extends Data
             requiredDone: $requiredCounts['done'],
             requiredTotal: $requiredCounts['total'],
             remainingMinutes: $progress->remainingMinutes($property),
+            awaitingApproval: $property->status === PropertyStatus::PendingApproval,
         );
     }
 }

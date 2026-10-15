@@ -15,6 +15,7 @@ use App\Http\Requests\Admin\CreatePropertyForOwnerRequest;
 use App\Models\Property;
 use App\Models\User;
 use App\Services\Guests\CountryOptions;
+use App\Services\Onboarding\GoLiveRequests;
 use App\Services\Platform\PartnerDirectory;
 use App\Services\Platform\PropertyDirectory;
 use App\Services\Platform\PropertyOtaLists;
@@ -31,10 +32,15 @@ class PropertyController extends Controller
     /**
      * List every property with search, filters and sorting in the URL.
      */
-    public function index(Request $request, PropertyDirectory $propertyDirectory, PartnerDirectory $partnerDirectory): Response
+    public function index(Request $request, PropertyDirectory $propertyDirectory, PartnerDirectory $partnerDirectory, GoLiveRequests $goLiveRequests): Response
     {
+        $properties = $propertyDirectory->paginate($request);
+        $waitingTab = $request->string('filter.status')->toString() === PropertyStatus::PendingApproval->value;
+        $waiting = $waitingTab ? $goLiveRequests->waitingRows($properties->items()) : [];
+
         return Inertia::render('admin/properties/index', [
-            'properties' => AdminPropertyRowData::collect($propertyDirectory->paginate($request), PaginatedDataCollection::class),
+            'properties' => AdminPropertyRowData::collect($properties, PaginatedDataCollection::class),
+            'waiting' => $waiting,
             'filters' => [
                 'search' => $request->string('filter.search')->toString(),
                 'status' => $request->string('filter.status')->toString(),

@@ -120,7 +120,7 @@ test('the go live form has no opening date field', function () {
             ->missing('checks'));
 });
 
-test('the platform approval setting sends the property to PendingApproval but still opens the date', function () {
+test('with approval on, the owner button sends a request and opens nothing', function () {
     requireGoLiveApproval(true);
     $owner = readyOnboardingOwner();
     $property = $owner->property;
@@ -128,21 +128,29 @@ test('the platform approval setting sends the property to PendingApproval but st
     $this->actingAs($owner)
         ->post(route('onboarding.go-live.store', $property->code))
         ->assertRedirect(route('onboarding.go-live.show', $property->code))
-        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Submitted for approval.']);
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Sent for approval.']);
 
     expect($property->refresh()->status)->toBe(PropertyStatus::PendingApproval)
         ->and($property->went_live_at)->toBeNull()
-        ->and(app(CurrentBusinessDate::class)->date($property)->toDateString())->toBe('2026-10-10');
+        ->and($property->businessDates()->exists())->toBeFalse();
 
     $this->actingAs($owner)
         ->get(route('onboarding.go-live.show', $property->code))
         ->assertInertia(fn (Assert $page) => $page->component('onboarding/go-live')->where('awaitingApproval', true));
 });
 
+test('with approval on, going live directly is refused', function () {
+    requireGoLiveApproval(true);
+    $owner = readyOnboardingOwner();
+
+    expect(app(GoLive::class)($owner, $owner->property))->toBeFalse()
+        ->and($owner->property->refresh()->status)->toBe(PropertyStatus::Onboarding);
+});
+
 test('going live is refused twice and for a property that is not onboarding', function (PropertyStatus $status) {
     $owner = User::factory()->owner()->for(Property::factory()->state(['status' => $status]))->create();
 
-    expect(app(GoLive::class)($owner, $owner->property))->toBeNull()
+    expect(app(GoLive::class)($owner, $owner->property))->toBeFalse()
         ->and($owner->property->businessDates()->exists())->toBeFalse()
         ->and(Activity::query()->where('event', 'property.went-live')->exists())->toBeFalse();
 })->with([PropertyStatus::Live, PropertyStatus::PendingApproval]);

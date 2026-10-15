@@ -15,6 +15,7 @@ test('admin pages share the admin navigation', function () {
                 'external' => false,
                 'active' => false,
                 'action' => null,
+                'badge' => null,
             ])
         );
 });

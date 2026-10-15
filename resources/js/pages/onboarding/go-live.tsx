@@ -1,22 +1,10 @@
 import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
-import {
-    CircleCheck,
-    CircleX,
-    Circle,
-    Lock,
-    Minus,
-    Rocket,
-    Send,
-    TriangleAlert,
-} from 'lucide-react';
+import { Flag, Hourglass, Rocket, Send, TriangleAlert } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import GoLiveController from '@/actions/App/Http/Controllers/Onboarding/GoLiveController';
 import Heading from '@/components/heading';
-import {
-    phaseIcon,
-    stateWord,
-    type OnboardingLayoutProps,
-} from '@/components/pms/onboarding/onboarding-steps';
+import { ReviewPhaseCard } from '@/components/pms/onboarding/review-phase-card';
+import type { OnboardingLayoutProps } from '@/components/pms/onboarding/onboarding-steps';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
     AlertDialog,
@@ -33,8 +21,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { useIsImpersonating } from '@/hooks/use-is-impersonating';
 
 type Review = App.Data.Onboarding.GoLiveReviewData;
-type Phase = App.Data.Onboarding.GoLiveReviewPhaseData;
-type Row = App.Data.Onboarding.GoLiveReviewRowData;
+type Request = App.Data.Onboarding.GoLiveRequestData;
 
 const FORM_ID = 'go-live-form';
 
@@ -42,10 +29,14 @@ export default function GoLive({
     review,
     awaitingApproval,
     requiresApproval,
+    pendingRequest,
+    sentBack,
 }: {
     review: Review;
     awaitingApproval: boolean;
     requiresApproval: boolean;
+    pendingRequest: Request | null;
+    sentBack: Request | null;
 }) {
     const [confirming, setConfirming] = useState(false);
     const impersonating = useIsImpersonating();
@@ -93,14 +84,16 @@ export default function GoLive({
                     }
                 />
 
+                {sentBack && <SentBackAlert request={sentBack} />}
+
+                {awaitingApproval && <WaitingAlert request={pendingRequest} />}
+
                 {awaitingApproval ? (
-                    <Alert>
-                        <AlertTitle>Waiting for approval</AlertTitle>
-                        <AlertDescription>
-                            Your request was sent. You can use the pages that
-                            run the property once the team approves it.
-                        </AlertDescription>
-                    </Alert>
+                    <div className="grid gap-4 md:grid-cols-2">
+                        {review.phases.map((phase) => (
+                            <ReviewPhaseCard key={phase.value} phase={phase} />
+                        ))}
+                    </div>
                 ) : (
                     <Form
                         id={FORM_ID}
@@ -157,7 +150,7 @@ export default function GoLive({
 
                                 <div className="grid gap-4 md:grid-cols-2">
                                     {review.phases.map((phase) => (
-                                        <PhaseCard
+                                        <ReviewPhaseCard
                                             key={phase.value}
                                             phase={phase}
                                         />
@@ -224,103 +217,82 @@ export default function GoLive({
     );
 }
 
-function PhaseCard({ phase }: { phase: Phase }) {
-    const Icon = phaseIcon[phase.value];
+function SentBackAlert({ request }: { request: Request }) {
+    return (
+        <Alert>
+            <Flag />
+            <AlertTitle>Not approved yet</AlertTitle>
+            <AlertDescription className="flex flex-col gap-1">
+                {request.note && <p>{request.note}</p>}
+                <p>
+                    Reviewed by estatell support on {request.reviewedOn}. Fix
+                    the flagged sections, then send it again.
+                </p>
+            </AlertDescription>
+        </Alert>
+    );
+}
+
+function WaitingAlert({ request }: { request: Request | null }) {
+    const [withdrawing, setWithdrawing] = useState(false);
+    const impersonating = useIsImpersonating();
 
     return (
-        <Card size="sm" role="group" aria-labelledby={`phase-${phase.value}`}>
-            <div className="flex items-center gap-2 px-3">
-                {Icon && (
-                    <Icon
-                        aria-hidden
-                        className="size-4 shrink-0 text-muted-foreground"
-                    />
+        <Alert>
+            <Hourglass />
+            <AlertTitle>Waiting for approval</AlertTitle>
+            <AlertDescription className="flex flex-col gap-3">
+                <p>
+                    {request ? `Sent on ${request.sentOn}. ` : ''}We usually
+                    review within 1 working day. We'll email you when you're
+                    live.
+                </p>
+                {!impersonating && (
+                    <div>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setWithdrawing(true)}
+                        >
+                            Withdraw to make changes
+                        </Button>
+                    </div>
                 )}
-                <h2 id={`phase-${phase.value}`} className="font-medium">
-                    {phase.label}
-                </h2>
-            </div>
-            <div className="mx-3 rounded-lg border">
-                <ul className="divide-y">
-                    {phase.rows.map((row) => (
-                        <ReviewRow key={row.value} row={row} />
-                    ))}
-                </ul>
-            </div>
-        </Card>
+            </AlertDescription>
+            <AlertDialog open={withdrawing} onOpenChange={setWithdrawing}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>
+                            Withdraw your request?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Your sections open for editing again. Send the setup
+                            for approval when you are ready.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <Form
+                        {...GoLiveController.withdraw.form()}
+                        onSuccess={() => setWithdrawing(false)}
+                    >
+                        {({ processing }) => (
+                            <AlertDialogFooter>
+                                <AlertDialogCancel disabled={processing}>
+                                    Cancel
+                                </AlertDialogCancel>
+                                <Button
+                                    type="submit"
+                                    disabled={processing}
+                                    focusableWhenDisabled
+                                >
+                                    {processing && <Spinner />}
+                                    Withdraw
+                                </Button>
+                            </AlertDialogFooter>
+                        )}
+                    </Form>
+                </AlertDialogContent>
+            </AlertDialog>
+        </Alert>
     );
-}
-
-function ReviewRow({ row }: { row: Row }) {
-    const word = row.skipped ? 'Skipped' : (stateWord[row.state] ?? '');
-
-    return (
-        <li className="flex flex-col gap-2 px-3 py-3 md:grid md:grid-cols-[minmax(0,11rem)_minmax(0,1fr)_auto] md:items-center md:gap-4">
-            <div className="flex items-center gap-2">
-                <StateIcon row={row} />
-                <span className="font-medium">{row.label}</span>
-                <span className="sr-only">{word}</span>
-            </div>
-            <p className="text-sm text-pretty text-muted-foreground">
-                {row.summary !== '' && row.summary}
-            </p>
-            <Link
-                href={row.actionUrl}
-                className={buttonVariants({
-                    variant: row.actionLabel === 'Edit' ? 'ghost' : 'outline',
-                    size: 'sm',
-                })}
-            >
-                {row.actionLabel}
-                <span className="sr-only"> {row.label}</span>
-            </Link>
-        </li>
-    );
-}
-
-function StateIcon({ row }: { row: Row }) {
-    if (row.skipped) {
-        return (
-            <Minus
-                aria-hidden
-                className="size-4 shrink-0 text-muted-foreground"
-            />
-        );
-    }
-
-    switch (row.state) {
-        case 'done':
-            return (
-                <CircleCheck
-                    aria-hidden
-                    className="size-4 shrink-0 text-success"
-                />
-            );
-        case 'locked':
-            return (
-                <Lock
-                    aria-hidden
-                    className="size-4 shrink-0 text-muted-foreground"
-                />
-            );
-        case 'needs_attention':
-            return (
-                <TriangleAlert
-                    aria-hidden
-                    className="size-4 shrink-0 text-warning"
-                />
-            );
-        default:
-            return row.isRequired ? (
-                <CircleX
-                    aria-hidden
-                    className="size-4 shrink-0 text-destructive"
-                />
-            ) : (
-                <Circle
-                    aria-hidden
-                    className="size-4 shrink-0 text-muted-foreground"
-                />
-            );
-    }
 }

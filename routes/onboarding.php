@@ -72,5 +72,6 @@ Route::prefix('onboarding')->name('onboarding.')->group(function () {
     Route::middleware('can:'.PermissionEnum::SettingsManage->value)->group(function () {
         Route::get('go-live', [GoLiveController::class, 'show'])->name('go-live.show');
         Route::post('go-live', [GoLiveController::class, 'store'])->name('go-live.store');
+        Route::delete('go-live/request', [GoLiveController::class, 'withdraw'])->name('go-live.withdraw');
     });
 });
