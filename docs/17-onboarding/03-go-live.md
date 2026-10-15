@@ -64,12 +64,12 @@ go_live_review_flags   go_live_review_id, step (OnboardingStep)
 
 ## Build status
 
-| Part                                                                                                            | Status                                                                                                                                 |
-| --------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `GoLive`, `GoLiveReadiness` (empty list), `EnsurePropertyIsLive`, the Go live page and a link on Basics         | Built.                                                                                                                                 |
-| Opening date: today or earlier in the property time zone, so a stay month can be back-filled                    | Built. To change: the owner field goes; `GoLive` uses today, and only `ApproveGoLive` takes an earlier date.                           |
-| `PendingApproval` when `require_go_live_approval` is on. The business date opens and `went_live_at` stays empty | Built. To change: `RequestGoLive` opens nothing; the go-live steps run at `ApproveGoLive`.                                             |
-| The readiness list, notifications switch-on, confetti, Recommended checklist                                    | Not built. They come with Review and go live. `GoLiveReadiness` still returns no checks, so any onboarding property can go live today. |
+| Part                                                                                                            | Status                                                                                                                                                                                                                   |
+| --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GoLive`, `GoLiveReadiness` (empty list), `EnsurePropertyIsLive`, the Go live page and a link on Basics         | Built.                                                                                                                                                                                                                   |
+| Opening date: today or earlier in the property time zone, so a stay month can be back-filled                    | Built. To change: the owner field goes; `GoLive` uses today, and only `ApproveGoLive` takes an earlier date.                                                                                                             |
+| `PendingApproval` when `require_go_live_approval` is on. The business date opens and `went_live_at` stays empty | Built. To change: `RequestGoLive` opens nothing; the go-live steps run at `ApproveGoLive`.                                                                                                                               |
+| The readiness list, notifications switch-on, confetti, Recommended checklist                                    | Not built. The readiness list comes with Review and go live; confetti and the Recommended checklist follow in their own commit. `GoLiveReadiness` still returns no checks, so any onboarding property can go live today. |
 
 Document numbering needs no start step. `NextDocumentNumber` creates a sequence row on first use.
 

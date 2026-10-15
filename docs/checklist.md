@@ -102,7 +102,8 @@ Build in this order. Each item is one commit. Docs: [Wizard steps](17-onboarding
 
 **Go live**
 
-- [ ] `feat(onboarding): fill the review page and go live` — `GoLiveReadiness` from every required check (it returns none today, so any onboarding property can go live), Review rows from every check, warnings with **Fix →**, the sign-in info line; remove `TestDrive` from `OnboardingStep` (Review becomes 13) with `TestDriveCheck`; `GoLive` with today as the opening date (the owner field removed); `RefreshPendingTemporaryPasswords`; the **You're live!** screen with **Share sign-in details**; the dashboard Recommended checklist. Needs: every section. Docs: [Review page](17-onboarding/02-wizard-steps.md#review-page), [Go live](17-onboarding/03-go-live.md).
+- [ ] `feat(onboarding): fill the review page and go live` — `GoLiveReadiness` from every required check (it returns none today, so any onboarding property can go live), Review rows from every check, warnings with **Fix →**, the sign-in info line; remove `TestDrive` from `OnboardingStep` (Review becomes 13) with `TestDriveCheck`; `GoLive` with today as the opening date (the owner field removed); `RefreshPendingTemporaryPasswords`. Needs: every section. Docs: [Review page](17-onboarding/02-wizard-steps.md#review-page), [Go live](17-onboarding/03-go-live.md).
+- [ ] `feat(onboarding): add the you're live screen and recommended checklist` — the **You're live!** screen with **Share sign-in details** (reuses `TemporaryPasswordMessage` and `TemporaryPasswordFile`) and **Open dashboard**, the confetti, and the dashboard Recommended checklist. Needs: review page and go live. Docs: [After go-live](17-onboarding/03-go-live.md#after-go-live).
 - [ ] `feat(onboarding): add go-live approval` — `go_live_reviews`, `go_live_review_flags`, `GoLiveDecision`; `RequestGoLive` (opens nothing), `ApproveGoLive` (runs `GoLive`, admin opening date), `RejectGoLive` (note, flags), `WithdrawGoLiveRequest`; the waiting, sent-back and flag states for the owner; the admin **Waiting for approval** tab, sidebar badge, property banner and review page; `GoLiveRequested`, `GoLiveApproved`, `GoLiveRejected`; the platform setting help line. Needs: review page and go live. Docs: [Approval](17-onboarding/03-go-live.md#approval).
 - [ ] `feat(platform): add the demo properties` — `properties.is_demo`, `BuildDemoProperty` through the real Actions (Pearlside View Resort and Boreno Hotel, 14 days of history with `RunNightAudit`, fixed names, no boats), `RebuildDemoProperty` as a queued job with the nightly schedule, the guards (no outgoing email or SMS, no channel connection, `DueAudits` skips demos, hidden from admin and partner lists), the demo banner, and the admin **Demo** tab with **Rebuild**. Tests: build counts, a rebuild leaves no extra rows, no notifications, not in `DueAudits`. Needs: go-live approval. Docs: [Demo properties](01-platform/06-demo-properties.md).
 - [ ] `feat(platform): add the demo logins` — `users.is_demo` (account security read-only, no real property), one login per partner plus one direct, Owner on both demo properties, admin **Add login**, **Copy**, **Reset** and **Off** on the Demo tab, the partner **Demo access** card. To verify first: how the password stays readable. Tests: account lock, a partner sees only its own login, a turned-off login can't sign in. Needs: the demo properties. Docs: [Demo properties](01-platform/06-demo-properties.md#logins).
@@ -221,6 +222,21 @@ Topics on hold. Each one needs a planning session and its docs before it gets co
 
 | Commit     | Subject                                                                  |
 | ---------- | ------------------------------------------------------------------------ |
+| `a4c65984` | docs(onboarding): drop test drive and plan the demo properties           |
+| `5d09ab6e` | fix(property): lock the channel of saved OTA list rows                   |
+| `e915018e` | feat(property): manage OTA lists in settings                             |
+| `4ff064e5` | feat(platform): add the OTA lists tab to the admin property page         |
+| `7e9b9e2a` | feat(onboarding): add the channel manager section                        |
+| `689b925a` | feat(channels): add the OTA channels list                                |
+| `d1b7c8ec` | docs(onboarding): split the OTA lists admin tab into its own item        |
+| `72038c19` | docs(onboarding): spec OTA lists, managed channels and settings page     |
+| `94a53c25` | feat(onboarding): add the team section                                   |
+| `31fbb72c` | feat(onboarding): add the check-in essentials section                    |
+| `ea863804` | feat(ui): show the property logo in the staff navbar                     |
+| `1e7c7ca5` | style(pdf): tighten the letterhead logo spacing                          |
+| `b27f7106` | feat(ui): add the command palette                                        |
+| `e39b8170` | feat(onboarding): add the discounts section                              |
+| `bb2042af` | style(staff): float the bulk selection bar                               |
 | `df4955c`  | feat(guests): add bulk selection and guest actions                       |
 | `bb4895c`  | fix(guests): label anonymization as archive                              |
 | `74f7d24`  | style(property): tidy the profile settings layout                        |
