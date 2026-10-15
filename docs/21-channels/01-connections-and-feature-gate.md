@@ -23,15 +23,27 @@ channel_connections    id, property_id, provider (ChannelProvider), external_pro
 
 - `ChannelProvider`: Channex.
 - `ChannelConnectionStatus`: Pending, Active, Paused, Error.
-- `OtaChannel`: Hostelworld, BookingCom, Agoda, and others, with `supportsNativeDorm()`.
+- `OtaCredentialStatus`: Pending, Processed.
+
+`OtaChannel` is no longer an enum. Channels are rows in `ota_channels` (see [OTA channels](#ota-channels)). `supportsNativeDorm()` moves to the dorm work and is decided there.
 
 ## Rules
 
 - The Channex API key lives in platform config, not per property.
 - All properties use the platform Channex account. Owners do not need their own channel manager.
 - Owners hand over OTA extranet logins in [onboarding](../17-onboarding/02-wizard-steps.md#channel-manager-table). They are stored in `property_ota_credentials`, encrypted, with no feature gate, because nothing connects from that page.
-- Only admins read the logins: **Reveal** needs `support.2fa` and is logged. No code uses them. The team signs in to the OTA inside Channex by hand and marks the row Processed.
+- Only admins read the logins: **Reveal** is a POST returning JSON, needs `support.2fa` and is logged. No code uses them. The team signs in to the OTA inside Channex by hand and marks the row Processed.
 - `channel_connections` may link to a credential row later. The onboarding form does not change.
+
+## OTA channels
+
+```
+ota_channels   id, code (unique, lower), name, sort_order, is_active, is_other, timestamps
+```
+
+- Seeded: Agoda, Booking.com, Hostelworld, Expedia, Airbnb and **Other** (`is_other`, cannot be renamed or deactivated).
+- Admins manage the list on the admin **Channels** page: add, rename, reorder and deactivate. A channel used by a credential is never deleted. A deactivated channel stays on existing rows and leaves the owner's select.
+- Other keeps owners unblocked: the row asks for a **Channel name**. An admin can add a common one as a real channel later and move rows to it by hand.
 
 ## Driver design
 

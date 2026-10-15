@@ -31,7 +31,7 @@ The first release has two pages, Basics and Review (go live). Both use the onboa
 | 9   | Prices     | Basic rate: weekday and weekend price per room-sold room type, priced by room or by guest, plus optional more rates. See [Basic rate table](#basic-rate-table). | Yes      | Room types + Taxes |
 | 10  |            | Charge items: starter items and extras with price, unit and taxes. See [Charge items table](#charge-items-table).                                               | No       | Taxes              |
 | 11  |            | Discounts: the starter discount and more, with type, value and what they apply to. See [Discounts table](#discounts-table).                                     | No       | Basics             |
-| 12  | Channels   | Channel manager: OTA logins the estatell team connects after approval. See [Channel manager table](#channel-manager-table).                                     | No       | Basics             |
+| 12  | Channels   | Channel manager: OTA lists the estatell team connects after approval. See [Channel manager table](#channel-manager-table).                                      | No       | Basics             |
 | 13  | Test drive | Practice mode. See [Test drive](06-test-drive.md).                                                                                                              | No       | All required Done  |
 | 14  | Review     | Review: the readiness list, warnings and go live (or send for approval). See [Review page](#review-page).                                                       | –        | All required Done  |
 
@@ -54,7 +54,7 @@ Room revenue is not a separate section. Its taxes are the **Applies to rooms** c
 
 - **Next** follows the numbers. The phase bar lets the owner jump to any unlocked section.
 - Optional sections show **Skip** in the footer.
-- Not in onboarding: photos, packages and meals, and the live channel connection (mappings, rates and availability sync). They are in the Recommended checklist after go-live. Only the OTA logins are collected in onboarding.
+- Not in onboarding: photos, packages and meals, and the live channel connection (mappings, rates and availability sync). They are in the Recommended checklist after go-live. Only the OTA lists are collected in onboarding.
 
 ## Basics form
 
@@ -579,19 +579,21 @@ Not a table: two groups on one page. The registration card group is the same com
  │ Channel  │ Property ID │ Username │ Password │ Market manager │ Phone       │ Email         │    │
  ├──────────┼─────────────┼──────────┼──────────┼────────────────┼─────────────┼───────────────┼────┤
  │[Agoda  ▾]│[ 123456   ] │[me@x.com]│[••••••  ]│[ Aisha       ] │[ +60 12 … ] │[ aisha@ag… ]  │ 🗑 │
- │[Booking▾]│[ 789012   ] │[me@x.com]│ On file  │[              ]│[           ]│[             ]│ 🗑 │
+ │[Other  ▾]│[ 789012   ] │[me@x.com]│ On file  │[              ]│[           ]│[             ]│ 🗑 │
+ │ [e.g. Traveloka          ]  ← Channel name, shown only when Channel is Other                     │
  ├──────────┴─────────────┴──────────┴──────────┴────────────────┴─────────────┴───────────────┴────┤
- │ Total: 2                                                                      [+ Add OTA login]  │
+ │ Total: 2                                                                      [+ Add channel]    │
  └──────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-- Optional. No rows to start: the empty state says "No OTA logins yet. Leave this empty and continue if you don't sell through any OTA." An empty table with **Save and continue** counts as Skipped.
+- Optional. No rows to start: the empty state says "No channels yet. Leave this empty and continue if you don't sell through any OTA." The section is called **OTA lists**. The add button says **Add channel**. An empty table with **Save and continue** counts as Skipped.
 - There is no channel manager field. All properties use the platform Channex account (see [Connections](../21-channels/01-connections-and-feature-gate.md)). No feature gate applies, because onboarding only stores the logins.
-- Columns: **Channel** (`OtaChannel` select, with Other), Property ID (the property's own code on that channel), Username, Password, and the optional market manager name, phone and email. Channel is required. One row per channel per property, ignoring case. Errors show per row.
+- Columns: **Channel** (select of the active rows in `ota_channels`, managed by admins, see [OTA channels](../21-channels/01-connections-and-feature-gate.md#ota-channels)), Property ID (the property's own code on that channel), Username, Password, and the optional market manager name, phone and email. Channel is required. The seeded **Other** option shows a required **Channel name** field. One row per channel per property, and one Other row per name, ignoring case. Errors show per row.
 - **Password** is write-only. A new row has a password input. A saved row shows "On file". Typing replaces the saved value and leaving it blank keeps it. The page never receives a password as a prop.
 - Username and password are stored encrypted (`encrypted` cast). Removing a row with 🗑 deletes it, saved or not.
 - One submit, one transaction, through `SaveOtaCredentials`.
-- The admin property page has an **OTA logins** tab, read only. **Reveal** shows a password to admins with `support.2fa` and writes an activity log entry. **Mark processed** sets the row to Processed once the team has connected the channel. Nothing in code reads the stored logins.
+- The admin property page has an **OTA lists** tab, read only. **Reveal** is a POST that returns the password as JSON (never page props). It needs `support.2fa` and writes an activity log entry. **Mark processed** sets the row to Processed once the team has connected the channel. Nothing in code reads the stored logins. `support.2fa` does nothing while `SUPPORT_REQUIRE_2FA` is off, so set it to `true` in production before the first real OTA list is saved.
+- After go-live the owner manages the same table in **Settings → OTA lists** (`settings.ota-lists`, owner only), through the same Action. There is no Reveal. Changing a password sets the row back to Pending and writes an activity log entry. Removing a Processed row warns "Tell the estatell team to disconnect {channel}".
 - At phone width each row stacks into a card.
 - Check: optional, never blocks. Done with at least one row, or Skipped.
 
@@ -703,13 +705,14 @@ When a field is added to a settings form, decide in the same change whether the 
 
 ```
 onboarding_skips        property_id, step (OnboardingStep), skipped_by, skipped_at
-property_ota_credentials  id, property_id, channel (OtaChannel), property_code, username (encrypted),
-                          password (encrypted), market_manager_name, market_manager_phone,
-                          market_manager_email, status (OtaCredentialStatus: Pending, Processed),
-                          timestamps. Unique on property_id + lower(channel).
+property_ota_credentials  id, property_id, ota_channel_id, channel_name (only for Other), property_code,
+                          username (encrypted), password (encrypted), market_manager_name,
+                          market_manager_phone, market_manager_email,
+                          status (OtaCredentialStatus: Pending, Processed), timestamps.
+                          Unique on property_id + ota_channel_id + lower(coalesce(channel_name, '')).
 ```
 
-`onboarding_skips` stores skips of optional steps, and the **We don't charge tax** answer for Taxes, the one required step that accepts a "none" answer. `property_ota_credentials` outlives onboarding: the admin team reads it later, and owners can edit it in settings.
+`onboarding_skips` stores skips of optional steps, and the **We don't charge tax** answer for Taxes, the one required step that accepts a "none" answer. `property_ota_credentials` outlives onboarding: the admin team reads it later, and owners edit it in Settings → OTA lists after go-live.
 
 ## Enums and services
 

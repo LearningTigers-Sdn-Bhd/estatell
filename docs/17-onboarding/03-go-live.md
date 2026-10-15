@@ -93,7 +93,7 @@ Document numbering needs no start step. `NextDocumentNumber` creates a sequence 
 
 - A short celebration (`canvas-confetti`).
 - Onboarding URLs redirect to the dashboard. Setup data is edited in settings.
-- The dashboard shows the **Recommended checklist**: no-show and cancellation charges (Room revenue policy tabs), a card fee (payment surcharges), room groups, photos, packages and meals, discounts, negotiated company rates, custom roles, notification preferences, and the channel manager connection when its feature is active (OTA logins given in onboarding are already on file).
+- The dashboard shows the **Recommended checklist**: no-show and cancellation charges (Room revenue policy tabs), a card fee (payment surcharges), room groups, photos, packages and meals, discounts, negotiated company rates, custom roles, notification preferences, and the channel manager connection when its feature is active (OTA lists given in onboarding are already on file).
 
 ## Lessons from wastays
 
