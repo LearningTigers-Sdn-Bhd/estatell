@@ -108,6 +108,7 @@ export default function Basics({
         footer: 'auto',
         formId: FORM_ID,
         processing: form.processing,
+        wide: true,
     });
 
     const save = (onSuccess?: () => void) =>
@@ -137,76 +138,126 @@ export default function Basics({
                     save();
                 }}
             >
-                <div className="grid gap-5 md:grid-cols-2">
-                    <Field className="md:col-span-2">
-                        <FieldLabel htmlFor="name">Property name</FieldLabel>
-                        <Input
-                            id="name"
-                            value={form.data.name}
-                            onChange={(event) =>
-                                form.setData('name', event.target.value)
-                            }
-                            aria-invalid={!!form.errors.name}
-                        />
-                        <FieldError>{form.errors.name}</FieldError>
-                    </Field>
-                    <Field>
-                        <FieldLabel htmlFor="type">Property type</FieldLabel>
-                        <Select
-                            items={propertyTypes}
-                            value={form.data.type}
-                            onValueChange={(value) =>
-                                form.setData('type', value)
-                            }
+                <div className="grid items-start gap-8 lg:grid-cols-2 lg:gap-x-16">
+                    <section
+                        className="flex flex-col gap-5"
+                        aria-labelledby="property-details"
+                    >
+                        <h3
+                            id="property-details"
+                            className="text-base font-medium"
                         >
-                            <SelectTrigger
-                                id="type"
-                                aria-invalid={!!form.errors.type}
-                            >
-                                <SelectValue placeholder="Choose a type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectGroup>
-                                    {propertyTypes.map((option) => (
-                                        <SelectItem
-                                            key={option.value}
-                                            value={option.value}
-                                        >
-                                            {option.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectGroup>
-                            </SelectContent>
-                        </Select>
-                        <FieldError>{form.errors.type}</FieldError>
-                    </Field>
-                    {locked ? (
-                        <Field className="md:col-span-2">
-                            <FieldLabel>Country</FieldLabel>
-                            <p className="text-sm">
-                                {[
-                                    basics.countryName ?? basics.countryCode,
-                                    basics.currency,
-                                    basics.timeZone,
-                                ].join(' · ')}
-                            </p>
-                        </Field>
-                    ) : (
-                        <>
-                            <Field className="md:col-span-2">
-                                <FieldLabel htmlFor="country_code">
-                                    Country
+                            Property
+                        </h3>
+                        <div className="grid gap-5 md:grid-cols-2">
+                            <Field>
+                                <FieldLabel htmlFor="name">
+                                    Property name
                                 </FieldLabel>
-                                <CountrySelect
-                                    id="country_code"
-                                    value={form.data.country_code}
-                                    onValueChange={changeCountry}
-                                    options={countries}
-                                    invalid={!!errors.country_code}
+                                <Input
+                                    id="name"
+                                    value={form.data.name}
+                                    onChange={(event) =>
+                                        form.setData('name', event.target.value)
+                                    }
+                                    aria-invalid={!!form.errors.name}
                                 />
-                                <FieldError>{errors.country_code}</FieldError>
+                                <FieldError>{form.errors.name}</FieldError>
                             </Field>
-                            {!profile.fixedRegion && (
+                            <Field>
+                                <FieldLabel htmlFor="type">
+                                    Property type
+                                </FieldLabel>
+                                <Select
+                                    items={propertyTypes}
+                                    value={form.data.type}
+                                    onValueChange={(value) =>
+                                        form.setData('type', value)
+                                    }
+                                >
+                                    <SelectTrigger
+                                        id="type"
+                                        aria-invalid={!!form.errors.type}
+                                    >
+                                        <SelectValue placeholder="Choose a type" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectGroup>
+                                            {propertyTypes.map((option) => (
+                                                <SelectItem
+                                                    key={option.value}
+                                                    value={option.value}
+                                                >
+                                                    {option.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectGroup>
+                                    </SelectContent>
+                                </Select>
+                                <FieldError>{form.errors.type}</FieldError>
+                            </Field>
+                            {locked ? (
+                                <Field>
+                                    <FieldLabel>Country</FieldLabel>
+                                    <p className="text-sm">
+                                        {[
+                                            basics.countryName ??
+                                                basics.countryCode,
+                                            basics.currency,
+                                            basics.timeZone,
+                                        ].join(' · ')}
+                                    </p>
+                                </Field>
+                            ) : (
+                                <Field>
+                                    <FieldLabel htmlFor="country_code">
+                                        Country
+                                    </FieldLabel>
+                                    <CountrySelect
+                                        id="country_code"
+                                        value={form.data.country_code}
+                                        onValueChange={changeCountry}
+                                        options={countries}
+                                        invalid={!!errors.country_code}
+                                    />
+                                    <FieldError>
+                                        {errors.country_code}
+                                    </FieldError>
+                                </Field>
+                            )}
+                            <Field>
+                                <FieldLabel htmlFor="state_code">
+                                    State (optional)
+                                </FieldLabel>
+                                {form.data.country_code === 'MY' ? (
+                                    <EnumSelect
+                                        id="state_code"
+                                        options={malaysianStates}
+                                        allLabel="No state"
+                                        value={form.data.state_code}
+                                        onValueChange={(value) =>
+                                            form.setData('state_code', value)
+                                        }
+                                        placeholder="Choose a state"
+                                        className="w-full"
+                                        aria-invalid={!!errors.state_code}
+                                    />
+                                ) : (
+                                    <Input
+                                        id="state_code"
+                                        value={form.data.state_code}
+                                        onChange={(event) =>
+                                            form.setData(
+                                                'state_code',
+                                                event.target.value,
+                                            )
+                                        }
+                                        aria-invalid={!!errors.state_code}
+                                    />
+                                )}
+                                <FieldError>{errors.state_code}</FieldError>
+                            </Field>
+                            {!locked && !profile.fixedRegion && (
                                 <>
                                     <Field>
                                         <FieldLabel htmlFor="currency">
@@ -248,128 +299,109 @@ export default function Basics({
                                     </Field>
                                 </>
                             )}
-                        </>
-                    )}
-                    <Field>
-                        <FieldLabel htmlFor="city">City</FieldLabel>
-                        <Input
-                            id="city"
-                            value={form.data.city}
-                            onChange={(event) =>
-                                form.setData('city', event.target.value)
+                            <Field className="md:col-span-2">
+                                <FieldLabel htmlFor="address_line1">
+                                    Address line 1
+                                </FieldLabel>
+                                <Input
+                                    id="address_line1"
+                                    value={form.data.address_line1}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'address_line1',
+                                            event.target.value,
+                                        )
+                                    }
+                                    aria-invalid={!!form.errors.address_line1}
+                                />
+                                <FieldError>
+                                    {form.errors.address_line1}
+                                </FieldError>
+                            </Field>
+                            <Field className="md:col-span-2">
+                                <FieldLabel htmlFor="address_line2">
+                                    Address line 2 (optional)
+                                </FieldLabel>
+                                <Input
+                                    id="address_line2"
+                                    value={form.data.address_line2}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'address_line2',
+                                            event.target.value,
+                                        )
+                                    }
+                                    aria-invalid={!!form.errors.address_line2}
+                                />
+                                <FieldError>
+                                    {form.errors.address_line2}
+                                </FieldError>
+                            </Field>
+                            <Field>
+                                <FieldLabel htmlFor="city">City</FieldLabel>
+                                <Input
+                                    id="city"
+                                    value={form.data.city}
+                                    onChange={(event) =>
+                                        form.setData('city', event.target.value)
+                                    }
+                                    aria-invalid={!!form.errors.city}
+                                />
+                                <FieldError>{form.errors.city}</FieldError>
+                            </Field>
+                            <Field>
+                                <FieldLabel htmlFor="postal_code">
+                                    Postcode (optional)
+                                </FieldLabel>
+                                <Input
+                                    id="postal_code"
+                                    value={form.data.postal_code}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'postal_code',
+                                            event.target.value,
+                                        )
+                                    }
+                                    aria-invalid={!!form.errors.postal_code}
+                                />
+                                <FieldError>
+                                    {form.errors.postal_code}
+                                </FieldError>
+                            </Field>
+                        </div>
+                        <Alert
+                            className={
+                                profile.fixedRegion
+                                    ? undefined
+                                    : 'border-warning/40 bg-warning/10'
                             }
-                            aria-invalid={!!form.errors.city}
-                        />
-                        <FieldError>{form.errors.city}</FieldError>
-                    </Field>
-                    <Field className="md:col-span-2">
-                        <FieldLabel htmlFor="address_line1">
-                            Address line 1
-                        </FieldLabel>
-                        <Input
-                            id="address_line1"
-                            value={form.data.address_line1}
-                            onChange={(event) =>
-                                form.setData(
-                                    'address_line1',
-                                    event.target.value,
-                                )
-                            }
-                            aria-invalid={!!form.errors.address_line1}
-                        />
-                        <FieldError>{form.errors.address_line1}</FieldError>
-                    </Field>
-                    <Field className="md:col-span-2">
-                        <FieldLabel htmlFor="address_line2">
-                            Address line 2 (optional)
-                        </FieldLabel>
-                        <Input
-                            id="address_line2"
-                            value={form.data.address_line2}
-                            onChange={(event) =>
-                                form.setData(
-                                    'address_line2',
-                                    event.target.value,
-                                )
-                            }
-                            aria-invalid={!!form.errors.address_line2}
-                        />
-                        <FieldError>{form.errors.address_line2}</FieldError>
-                    </Field>
-                    <Field>
-                        <FieldLabel htmlFor="state_code">
-                            State (optional)
-                        </FieldLabel>
-                        {form.data.country_code === 'MY' ? (
-                            <EnumSelect
-                                id="state_code"
-                                options={malaysianStates}
-                                allLabel="No state"
-                                value={form.data.state_code}
-                                onValueChange={(value) =>
-                                    form.setData('state_code', value)
-                                }
-                                placeholder="Choose a state"
-                                className="w-full"
-                                aria-invalid={!!errors.state_code}
-                            />
-                        ) : (
-                            <Input
-                                id="state_code"
-                                value={form.data.state_code}
-                                onChange={(event) =>
-                                    form.setData(
-                                        'state_code',
-                                        event.target.value,
-                                    )
-                                }
-                                aria-invalid={!!errors.state_code}
-                            />
-                        )}
-                        <FieldError>{errors.state_code}</FieldError>
-                    </Field>
-                    <Field>
-                        <FieldLabel htmlFor="postal_code">
-                            Postcode (optional)
-                        </FieldLabel>
-                        <Input
-                            id="postal_code"
-                            value={form.data.postal_code}
-                            onChange={(event) =>
-                                form.setData('postal_code', event.target.value)
-                            }
-                            aria-invalid={!!form.errors.postal_code}
-                        />
-                        <FieldError>{form.errors.postal_code}</FieldError>
-                    </Field>
+                        >
+                            {profile.fixedRegion ? (
+                                <Info />
+                            ) : (
+                                <TriangleAlert className="text-warning" />
+                            )}
+                            <AlertDescription>
+                                {profile.notice}
+                            </AlertDescription>
+                        </Alert>
+                    </section>
+                    <BusinessDetailsFields
+                        values={{
+                            legal_name: form.data.legal_name,
+                            registration_number: form.data.registration_number,
+                            tin: form.data.tin,
+                            licences: form.data.licences,
+                        }}
+                        errors={errors}
+                        registrationNumberLabel={
+                            profile.registrationNumberLabel
+                        }
+                        tinLabel={profile.tinLabel}
+                        maxLicences={maxLicences}
+                        onChange={setBusiness}
+                    />
                 </div>
-                <Alert
-                    className={
-                        profile.fixedRegion
-                            ? undefined
-                            : 'border-warning/40 bg-warning/10'
-                    }
-                >
-                    {profile.fixedRegion ? (
-                        <Info />
-                    ) : (
-                        <TriangleAlert className="text-warning" />
-                    )}
-                    <AlertDescription>{profile.notice}</AlertDescription>
-                </Alert>
-                <BusinessDetailsFields
-                    values={{
-                        legal_name: form.data.legal_name,
-                        registration_number: form.data.registration_number,
-                        tin: form.data.tin,
-                        licences: form.data.licences,
-                    }}
-                    errors={errors}
-                    registrationNumberLabel={profile.registrationNumberLabel}
-                    tinLabel={profile.tinLabel}
-                    maxLicences={maxLicences}
-                    onChange={setBusiness}
-                />
             </StepForm>
             <UnsavedChangesDialog
                 guard={guard}

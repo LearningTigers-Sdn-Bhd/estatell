@@ -12,6 +12,8 @@ export type OnboardingLayoutProps = {
     footer: 'auto' | 'back';
     formId: string | null;
     processing: boolean;
+    /** Wide steps (two columns) use a wider content column. */
+    wide?: boolean;
 };
 
 /** Every listed step, in wizard order. */

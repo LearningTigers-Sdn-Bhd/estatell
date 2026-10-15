@@ -4,6 +4,7 @@ import { OnboardingFooter } from '@/components/pms/onboarding/onboarding-footer'
 import { OnboardingPhaseBar } from '@/components/pms/onboarding/onboarding-phase-bar';
 import type { OnboardingLayoutProps } from '@/components/pms/onboarding/onboarding-steps';
 import { OnboardingTopBar } from '@/components/pms/onboarding/onboarding-top-bar';
+import { cn } from '@/lib/utils';
 
 /**
  * The layout of the setup wizard. It replaces the PMS sidebar while a property is being set up. The content column
@@ -14,6 +15,7 @@ export default function OnboardingLayout({
     footer = 'auto',
     formId = null,
     processing = false,
+    wide = false,
     children,
 }: Partial<OnboardingLayoutProps> & { children: React.ReactNode }) {
     const { onboarding } = usePage().props;
@@ -28,7 +30,12 @@ export default function OnboardingLayout({
             <OnboardingTopBar progress={onboarding} />
             <OnboardingPhaseBar progress={onboarding} step={step} />
             <main className="min-h-0 flex-1 overflow-y-auto">
-                <div className="mx-auto w-full max-w-180 px-4 py-6 md:py-8">
+                <div
+                    className={cn(
+                        'mx-auto w-full px-4 py-6 md:py-8',
+                        wide ? 'max-w-none px-6 lg:px-12' : 'max-w-180',
+                    )}
+                >
                     {children}
                 </div>
             </main>

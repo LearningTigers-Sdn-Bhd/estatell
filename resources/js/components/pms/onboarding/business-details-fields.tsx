@@ -182,7 +182,7 @@ export function BusinessDetailsFields({
                             )}
                             {rows.map((row, index) => (
                                 <TableRow key={row.id ?? `new-${index}`}>
-                                    <TableCell className="min-w-56 align-top">
+                                    <TableCell className="min-w-44 align-top">
                                         <Input
                                             aria-label={`Issued by, licence ${index + 1}`}
                                             placeholder="e.g. Dewan Bandaraya Kota Kinabalu"
@@ -203,7 +203,7 @@ export function BusinessDetailsFields({
                                             {errors[`licences.${index}.issuer`]}
                                         </FieldError>
                                     </TableCell>
-                                    <TableCell className="min-w-40 align-top">
+                                    <TableCell className="min-w-32 align-top">
                                         <Input
                                             aria-label={`Licence number, licence ${index + 1}`}
                                             maxLength={50}
@@ -232,7 +232,7 @@ export function BusinessDetailsFields({
                                                 })
                                             }
                                             placeholder="No expiry"
-                                            className="w-40"
+                                            className="w-36"
                                             aria-invalid={
                                                 !!errors[
                                                     `licences.${index}.expires_on`
