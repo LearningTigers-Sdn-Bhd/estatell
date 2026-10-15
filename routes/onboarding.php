@@ -4,6 +4,7 @@ use App\Enums\PermissionEnum;
 use App\Http\Controllers\Onboarding\BasicRateController;
 use App\Http\Controllers\Onboarding\ChargeItemController;
 use App\Http\Controllers\Onboarding\CompanyController;
+use App\Http\Controllers\Onboarding\DiscountController;
 use App\Http\Controllers\Onboarding\GoLiveController;
 use App\Http\Controllers\Onboarding\OnboardingSkipController;
 use App\Http\Controllers\Onboarding\OnboardingWaitingController;
@@ -47,6 +48,9 @@ Route::prefix('onboarding')->name('onboarding.')->group(function () {
 
     Route::get('charge-items', [ChargeItemController::class, 'edit'])->name('charge-items.edit');
     Route::put('charge-items', [ChargeItemController::class, 'update'])->name('charge-items.update');
+
+    Route::get('discounts', [DiscountController::class, 'edit'])->name('discounts.edit');
+    Route::put('discounts', [DiscountController::class, 'update'])->name('discounts.update');
 
     Route::post('skips/{step}', [OnboardingSkipController::class, 'store'])->name('skips.store');
     Route::delete('skips/{step}', [OnboardingSkipController::class, 'destroy'])->name('skips.destroy');

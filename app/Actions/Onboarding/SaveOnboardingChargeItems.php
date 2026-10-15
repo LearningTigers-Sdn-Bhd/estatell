@@ -8,15 +8,15 @@ use App\Enums\ChargingUnit;
 use App\Enums\TransactionCategory;
 use App\Models\Property;
 use App\Models\User;
+use App\Services\Onboarding\DerivedTransactionCode;
 use Illuminate\Support\Facades\DB;
 
 class SaveOnboardingChargeItems
 {
-    private const CODE_LENGTH = 20;
-
     public function __construct(
         private CreateChargeItem $createChargeItem,
         private UpdateChargeItem $updateChargeItem,
+        private DerivedTransactionCode $derivedCode,
     ) {}
 
     /**
@@ -40,7 +40,7 @@ class SaveOnboardingChargeItems
                 if ($row['id'] === null) {
                     ($this->createChargeItem)($property, $actor, [
                         'name' => $row['name'],
-                        'code' => $this->derivedCode($property, $row['name']),
+                        'code' => $this->derivedCode->forName($property, $row['name'], 'CHARGE'),
                         'category' => $row['category'],
                         'description' => null,
                         'default_amount' => $row['default_amount'],
@@ -67,26 +67,5 @@ class SaveOnboardingChargeItems
                 ]);
             }
         });
-    }
-
-    /**
-     * The code of a new item: the name in capitals with underscores (Extra bed → EXTRA_BED), at most 20 characters,
-     * and a number when a transaction code of the property already has it. Settings can edit it later.
-     */
-    private function derivedCode(Property $property, string $name): string
-    {
-        $base = trim((string) preg_replace('/[^A-Z0-9]+/', '_', mb_strtoupper($name)), '_');
-        $base = $base === '' ? 'CHARGE' : $base;
-
-        for ($number = 1; ; $number++) {
-            $suffix = $number === 1 ? '' : "_{$number}";
-            $candidate = trim(substr($base, 0, self::CODE_LENGTH - strlen($suffix)), '_').$suffix;
-
-            $taken = $property->transactionCodes()->whereRaw('lower(code) = ?', [mb_strtolower($candidate)])->exists();
-
-            if (! $taken) {
-                return $candidate;
-            }
-        }
     }
 }

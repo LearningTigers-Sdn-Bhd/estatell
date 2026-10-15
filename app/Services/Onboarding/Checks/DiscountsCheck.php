@@ -6,13 +6,15 @@ use App\Enums\StepState;
 use App\Models\Property;
 
 /**
- * Stub: the real check is not built yet, so this always returns NotStarted. A later commit replaces it with the rule in
- * docs/17-onboarding/02-wizard-steps.md.
+ * Done when at least one discount is active. Optional, so it never blocks the wizard; "Skip" makes the step Done
+ * through OnboardingProgress.
  */
 class DiscountsCheck implements StepCheck
 {
     public function state(Property $property): StepState
     {
-        return StepState::NotStarted;
+        return $property->discounts()->active()->exists()
+            ? StepState::Done
+            : StepState::NotStarted;
     }
 }

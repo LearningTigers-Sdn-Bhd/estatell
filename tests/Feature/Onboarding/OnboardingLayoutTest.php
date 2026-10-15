@@ -32,9 +32,10 @@ test('onboarding pages share the progress of listed steps only', function () {
             ->where('onboarding.phases.2.steps.1.value', 'payment_methods')
             ->where('onboarding.phases.2.steps.2.value', 'companies')
             ->where('onboarding.phases.3.value', 'prices')
-            ->has('onboarding.phases.3.steps', 2)
+            ->has('onboarding.phases.3.steps', 3)
             ->where('onboarding.phases.3.steps.0.value', 'basic_rate')
             ->where('onboarding.phases.3.steps.1.value', 'charge_items')
+            ->where('onboarding.phases.3.steps.2.value', 'discounts')
             ->where('onboarding.phases.4.value', 'review')
             ->has('onboarding.phases.4.steps', 1)
             ->where('onboarding.phases.4.steps.0.value', 'review')
@@ -106,6 +107,7 @@ test('review opens go-live and is the last listed step', function () {
         ->and(OnboardingStep::PaymentMethods->nextListed())->toBe(OnboardingStep::Companies)
         ->and(OnboardingStep::Companies->nextListed())->toBe(OnboardingStep::BasicRate)
         ->and(OnboardingStep::BasicRate->nextListed())->toBe(OnboardingStep::ChargeItems)
-        ->and(OnboardingStep::ChargeItems->nextListed())->toBe(OnboardingStep::Review)
-        ->and(array_map(fn (OnboardingStep $step): OnboardingStep => $step, OnboardingStep::listed()))->toBe([OnboardingStep::Basics, OnboardingStep::RoomTypes, OnboardingStep::Rooms, OnboardingStep::Taxes, OnboardingStep::PaymentMethods, OnboardingStep::Companies, OnboardingStep::BasicRate, OnboardingStep::ChargeItems, OnboardingStep::Review]);
+        ->and(OnboardingStep::ChargeItems->nextListed())->toBe(OnboardingStep::Discounts)
+        ->and(OnboardingStep::Discounts->nextListed())->toBe(OnboardingStep::Review)
+        ->and(array_map(fn (OnboardingStep $step): OnboardingStep => $step, OnboardingStep::listed()))->toBe([OnboardingStep::Basics, OnboardingStep::RoomTypes, OnboardingStep::Rooms, OnboardingStep::Taxes, OnboardingStep::PaymentMethods, OnboardingStep::Companies, OnboardingStep::BasicRate, OnboardingStep::ChargeItems, OnboardingStep::Discounts, OnboardingStep::Review]);
 });

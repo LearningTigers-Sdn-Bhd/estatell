@@ -1023,6 +1023,19 @@ direction: string,
 unit: string,
 amount: string | null,
 roomTypeIds: number[],
+export type OnboardingDiscountData = {
+id: number,
+name: string,
+code: string,
+isStarter: boolean,
+type: App.Enums.DiscountType,
+value: string | null,
+allowOverride: boolean,
+scope: App.Enums.DiscountScope,
+active: boolean,
+roomCharges: boolean,
+transactionCodeIds: number[],
+};
 prices: App.Data.Onboarding.OnboardingBasicRateRowData[],
 };
 export type OnboardingMoreRateExampleData = {

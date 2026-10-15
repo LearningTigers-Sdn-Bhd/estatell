@@ -495,7 +495,7 @@ A rate plan has one pricing basis, so the rows map to one plan per basis used:
 - No example line: a discount applies to a folio, so a sample would mislead.
 - One submit, one transaction, through the discount Actions used by settings.
 - At phone width each row stacks into a card with ⌄ More options.
-- Check: optional, never blocks. Done when at least one discount is active, or Skipped. The starter is active, so this usually shows Done.
+- Check: optional, never blocks. Done when at least one discount is active, or Skipped. The starter is active, so this usually shows Done, and `SettingsLock::setupStarted` ignores this step like Payment methods.
 
 ## Check-in essentials form
 
