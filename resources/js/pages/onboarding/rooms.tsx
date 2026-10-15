@@ -397,6 +397,7 @@ export default function Rooms({
                                             }
                                         >
                                             <SelectTrigger
+                                                className="w-56 max-w-full"
                                                 aria-label={`Room type of range ${index + 1}`}
                                                 aria-invalid={
                                                     !!errors[
@@ -450,6 +451,7 @@ export default function Rooms({
                                                 }
                                             >
                                                 <SelectTrigger
+                                                    className="w-44 max-w-full"
                                                     aria-label={`Group of range ${index + 1}`}
                                                     aria-invalid={
                                                         !!errors[
