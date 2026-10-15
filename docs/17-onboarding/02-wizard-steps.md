@@ -321,7 +321,7 @@ Setup started (another section is no longer Not started):
 - Optional. No rows to start: the empty state offers **Add company** and **Import from file** (the existing `BulkCreateCompanies` import and template).
 - Columns from `CompanyRules`: name, type (new rows Corporate), contact email, **Direct bill** (new rows ticked), credit limit (property currency, empty = no limit), terms days.
 - ⌄ row details: BRN, TIN, SST no., contact phone, and the portal users. The billing address stays on the company Details tab.
-- Companies are never deleted. 🗑 only on unsaved rows. A saved company shows "Suspend in settings".
+- Before go-live a company can be removed while nothing refers to it (`DeleteOnboardingCompany`, `onboarding.companies.destroy`). 🗑 shows on every row. An unsaved row is removed in the browser. A saved row opens a confirm popover, and the server refuses with "{name} cannot be removed. Suspend it after you go live instead." when a reservation, folio, invoice or payment refers to the company (`CompanyReferences` tells the page which rows are blocked). A blocked row shows an info icon instead, with a tooltip that says so and that it can be suspended in Finance, under City ledger, after go-live. After go-live a company is never deleted: suspend it ([Companies](../15-city-ledger/01-companies.md)).
 - Saving a company with **Direct bill** turns on the City ledger payment method, with the toast "City ledger turned on in Payment methods".
 - Name is unique per property, ignoring case. Errors show per row.
 - One submit, one transaction, through `CreateCompany` and `UpdateCompany`.

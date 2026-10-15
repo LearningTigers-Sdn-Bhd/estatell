@@ -35,6 +35,7 @@ Route::prefix('onboarding')->name('onboarding.')->group(function () {
 
     Route::get('companies', [CompanyController::class, 'edit'])->name('companies.edit');
     Route::put('companies', [CompanyController::class, 'update'])->name('companies.update');
+    Route::delete('companies/{company}', [CompanyController::class, 'destroy'])->name('companies.destroy');
     Route::post('companies/import', [CompanyController::class, 'import'])->name('companies.import');
     Route::get('companies/import-template.{format}', [CompanyController::class, 'template'])->name('companies.template');
 

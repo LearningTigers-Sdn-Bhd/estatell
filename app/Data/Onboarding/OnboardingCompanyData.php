@@ -9,7 +9,7 @@ use Spatie\LaravelData\Data;
 
 /**
  * One saved company as a row of the onboarding Companies table. A suspended company shows as a read-only row: it is
- * reactivated in settings.
+ * reactivated in settings. A company that something refers to, or any company after go-live, cannot be removed.
  */
 class OnboardingCompanyData extends Data
 {
@@ -26,10 +26,11 @@ class OnboardingCompanyData extends Data
         public ?string $tin,
         public ?string $sstRegistrationNumber,
         public bool $isEditable,
+        public bool $isRemovable,
         public string $statusLabel,
     ) {}
 
-    public static function fromModel(Company $company): self
+    public static function fromModel(Company $company, bool $isRemovable): self
     {
         return new self(
             id: $company->id,
@@ -44,6 +45,7 @@ class OnboardingCompanyData extends Data
             tin: $company->tin,
             sstRegistrationNumber: $company->sst_registration_number,
             isEditable: $company->status === CompanyStatus::Active,
+            isRemovable: $isRemovable,
             statusLabel: $company->status->label(),
         );
     }

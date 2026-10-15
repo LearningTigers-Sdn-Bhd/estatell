@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Onboarding\DeleteOnboardingCompany;
 use App\Actions\Onboarding\SkipOnboardingStep;
 use App\Actions\Property\SeedPropertyDefaults;
 use App\Enums\CompanyStatus;
@@ -8,6 +9,7 @@ use App\Enums\OnboardingStep;
 use App\Enums\PaymentMethodType;
 use App\Enums\PropertyType;
 use App\Enums\StepState;
+use App\Models\ArInvoice;
 use App\Models\Company;
 use App\Models\OnboardingSkip;
 use App\Models\Property;
@@ -16,6 +18,7 @@ use App\Services\Onboarding\Checks\CompaniesCheck;
 use App\Services\Onboarding\OnboardingProgress;
 use Illuminate\Http\UploadedFile;
 use Inertia\Testing\AssertableInertia as Assert;
+use Spatie\Activitylog\Models\Activity;
 
 require_once __DIR__.'/../Support/OnboardingSetup.php';
 
@@ -253,4 +256,68 @@ test('the template downloads as csv', function () {
         ->get(route('onboarding.companies.template', ['property' => $this->property->code, 'format' => 'csv']))
         ->assertOk()
         ->assertDownload('companies.csv');
+});
+
+test('the page marks a company that a booking or invoice uses as not removable', function () {
+    $free = Company::factory()->for($this->property)->create(['name' => 'Free Co']);
+    $used = Company::factory()->for($this->property)->create(['name' => 'Used Co']);
+    ArInvoice::factory()->for($this->property)->create(['company_id' => $used->id]);
+
+    $this->actingAs($this->owner)
+        ->get(route('onboarding.companies.edit', $this->property->code))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('companies', fn ($companies) => collect($companies)->firstWhere('name', 'Free Co')['isRemovable'] === true
+                && collect($companies)->firstWhere('name', 'Used Co')['isRemovable'] === false));
+});
+
+test('removing a saved company deletes it and logs the change', function () {
+    $company = Company::factory()->for($this->property)->create(['name' => 'Free Co']);
+
+    $this->actingAs($this->owner)
+        ->delete(route('onboarding.companies.destroy', [$this->property->code, $company->id]))
+        ->assertRedirect()
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Free Co removed.']);
+
+    expect(Company::query()->whereKey($company->id)->exists())->toBeFalse()
+        ->and(Activity::query()->where('event', 'company.deleted')->count())->toBe(1);
+});
+
+test('a company that an invoice uses is refused and kept', function () {
+    $company = Company::factory()->for($this->property)->create(['name' => 'Used Co']);
+    ArInvoice::factory()->for($this->property)->create(['company_id' => $company->id]);
+
+    $this->actingAs($this->owner)
+        ->delete(route('onboarding.companies.destroy', [$this->property->code, $company->id]))
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'Used Co cannot be removed. Suspend it after you go live instead.']);
+
+    expect(Company::query()->whereKey($company->id)->exists())->toBeTrue()
+        ->and(Activity::query()->where('event', 'company.deleted')->count())->toBe(0);
+});
+
+test('a live property cannot remove a company', function () {
+    $company = Company::factory()->for($this->property)->create();
+    $this->property->forceFill(['went_live_at' => now()])->save();
+
+    expect(app(DeleteOnboardingCompany::class)($this->owner, $company))->toBeFalse()
+        ->and(Company::query()->whereKey($company->id)->exists())->toBeTrue();
+});
+
+test('removing a company of another property or a suspended one returns 404', function () {
+    $other = Company::factory()->create();
+    $suspended = Company::factory()->for($this->property)->suspended()->create();
+
+    $this->actingAs($this->owner)->delete(route('onboarding.companies.destroy', [$this->property->code, $other->id]))->assertNotFound();
+    $this->actingAs($this->owner)->delete(route('onboarding.companies.destroy', [$this->property->code, $suspended->id]))->assertNotFound();
+});
+
+test('removing a company is refused while Basics is not done', function () {
+    $property = Property::factory()->onboarding()->create();
+    $owner = User::factory()->owner()->for($property)->create();
+    $company = Company::factory()->for($property)->create();
+
+    $this->actingAs($owner)
+        ->delete(route('onboarding.companies.destroy', [$property->code, $company->id]))
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'Finish the earlier section first.']);
+
+    expect(Company::query()->whereKey($company->id)->exists())->toBeTrue();
 });

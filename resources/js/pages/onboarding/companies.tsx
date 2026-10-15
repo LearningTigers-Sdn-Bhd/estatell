@@ -1,8 +1,15 @@
-import { Head, setLayoutProps, useForm, useHttp } from '@inertiajs/react';
+import {
+    Head,
+    router,
+    setLayoutProps,
+    useForm,
+    useHttp,
+} from '@inertiajs/react';
 import {
     ChevronDown,
     ChevronUp,
     Download,
+    Info,
     Plus,
     Trash2,
     Upload,
@@ -29,6 +36,12 @@ import {
     InputGroupInput,
 } from '@/components/ui/input-group';
 import {
+    Popover,
+    PopoverContent,
+    PopoverDescription,
+    PopoverTrigger,
+} from '@/components/ui/popover';
+import {
     Select,
     SelectContent,
     SelectGroup,
@@ -45,6 +58,11 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 
 type Company = App.Data.Onboarding.OnboardingCompanyData;
@@ -62,8 +80,9 @@ type Row = {
     brn: string;
     tin: string;
     sst_registration_number: string;
+    is_removable: boolean;
 };
-type ImportedRow = Partial<Omit<Row, 'id' | 'key'>> & {
+type ImportedRow = Partial<Omit<Row, 'id' | 'key' | 'is_removable'>> & {
     problems: Record<string, string>;
 };
 
@@ -83,7 +102,27 @@ const newRow = (values: Partial<Row> = {}): Row => ({
     brn: '',
     tin: '',
     sst_registration_number: '',
+    is_removable: true,
     ...values,
+});
+
+const savedRow = (company: Company): Row => ({
+    id: company.id,
+    key: `saved-${company.id}`,
+    name: company.name,
+    type: company.type,
+    contact_email: company.contactEmail ?? '',
+    contact_phone: company.contactPhone ?? '',
+    credit_limit: company.creditLimit ?? '',
+    payment_terms_days:
+        company.paymentTermsDays === null
+            ? ''
+            : String(company.paymentTermsDays),
+    direct_bill_enabled: company.directBillEnabled,
+    brn: company.brn ?? '',
+    tin: company.tin ?? '',
+    sst_registration_number: company.sstRegistrationNumber ?? '',
+    is_removable: company.isRemovable,
 });
 
 export default function Companies({
@@ -104,23 +143,7 @@ export default function Companies({
     const editable = companies.filter((company) => company.isEditable);
     const suspended = companies.filter((company) => !company.isEditable);
     const form = useForm<{ rows: Row[] }>({
-        rows: editable.map((company) => ({
-            id: company.id,
-            key: `saved-${company.id}`,
-            name: company.name,
-            type: company.type,
-            contact_email: company.contactEmail ?? '',
-            contact_phone: company.contactPhone ?? '',
-            credit_limit: company.creditLimit ?? '',
-            payment_terms_days:
-                company.paymentTermsDays === null
-                    ? ''
-                    : String(company.paymentTermsDays),
-            direct_bill_enabled: company.directBillEnabled,
-            brn: company.brn ?? '',
-            tin: company.tin ?? '',
-            sst_registration_number: company.sstRegistrationNumber ?? '',
-        })),
+        rows: editable.map(savedRow),
     });
     const upload = useHttp<
         { file: File | null },
@@ -158,6 +181,22 @@ export default function Companies({
         );
         form.clearErrors();
     };
+
+    const removeSaved = (id: number) =>
+        router.delete(CompanyController.destroy.url({ company: id }), {
+            preserveScroll: true,
+            onSuccess: () => {
+                form.setData(
+                    'rows',
+                    form.data.rows.filter((row) => row.id !== id),
+                );
+                form.setDefaults({
+                    rows: editable
+                        .filter((company) => company.id !== id)
+                        .map(savedRow),
+                });
+            },
+        });
 
     const toggleOpen = (key: string) =>
         setOpen((current) =>
@@ -202,7 +241,9 @@ export default function Companies({
 
     const save = (onSuccess?: () => void) => {
         form.transform((data) => ({
-            rows: data.rows.map(({ key: _key, ...row }) => row),
+            rows: data.rows.map(
+                ({ key: _key, is_removable: _removable, ...row }) => row,
+            ),
         }));
         form.put(CompanyController.update.url(), {
             preserveScroll: true,
@@ -589,11 +630,73 @@ export default function Companies({
                                                             >
                                                                 <Trash2 />
                                                             </Button>
+                                                        ) : row.is_removable ? (
+                                                            <Popover>
+                                                                <PopoverTrigger
+                                                                    render={
+                                                                        <Button
+                                                                            type="button"
+                                                                            variant="ghost"
+                                                                            size="icon-sm"
+                                                                            aria-label={`Remove ${label}`}
+                                                                        />
+                                                                    }
+                                                                >
+                                                                    <Trash2 />
+                                                                </PopoverTrigger>
+                                                                <PopoverContent
+                                                                    align="end"
+                                                                    className="w-64"
+                                                                >
+                                                                    <PopoverDescription>
+                                                                        Remove{' '}
+                                                                        {label}?
+                                                                    </PopoverDescription>
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="destructive"
+                                                                        size="sm"
+                                                                        onClick={() =>
+                                                                            removeSaved(
+                                                                                row.id as number,
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        Remove
+                                                                    </Button>
+                                                                </PopoverContent>
+                                                            </Popover>
                                                         ) : (
-                                                            <span className="self-center text-xs text-muted-foreground">
-                                                                Suspend in
-                                                                settings
-                                                            </span>
+                                                            <Tooltip>
+                                                                <TooltipTrigger
+                                                                    render={
+                                                                        <Button
+                                                                            type="button"
+                                                                            variant="ghost"
+                                                                            size="icon-sm"
+                                                                            aria-label={`Why ${label} cannot be removed`}
+                                                                        />
+                                                                    }
+                                                                >
+                                                                    <Info />
+                                                                </TooltipTrigger>
+                                                                <TooltipContent className="max-w-64">
+                                                                    A booking,
+                                                                    invoice or
+                                                                    payment uses
+                                                                    this
+                                                                    company, so
+                                                                    it cannot be
+                                                                    removed.
+                                                                    After you go
+                                                                    live, you
+                                                                    can suspend
+                                                                    it in
+                                                                    Finance,
+                                                                    under City
+                                                                    ledger.
+                                                                </TooltipContent>
+                                                            </Tooltip>
                                                         )}
                                                     </div>
                                                 </TableCell>

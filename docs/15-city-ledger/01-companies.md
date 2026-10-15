@@ -36,7 +36,7 @@ company_users        see Company portal
 - `reservations.company_id` records the billed company.
 - `folios.payer_company_id` makes a company pay a folio.
 - The name is unique per property, ignoring case, so one company never splits into two ledgers.
-- Companies are never deleted. Invoices, folios and reservations point at them. Suspend instead.
+- Companies are never deleted. Invoices, folios and reservations point at them. Suspend instead. The one exception is onboarding: before go-live, an owner can remove a company that nothing refers to ([Companies table](../17-onboarding/02-wizard-steps.md#companies-table)).
 - A Suspended company cannot be picked on a new booking or set on a reservation. Existing reservations keep it.
 - Changing `reservations.company_id` moves the Master payer to the new company, **with its charges**. This is how staff fix a wrong company: the old company never had an invoice, so its charges simply go to the right one. It is refused only when the Master folio:
     - holds money (`master_has_payments`): the net of its Completed payments minus their refunds is above 0. "Refund the MYR 1,000.00 payment on the Master folio first, then change the company." The old company's money must not pay the new company's bill;

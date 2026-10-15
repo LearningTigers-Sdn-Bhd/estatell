@@ -976,6 +976,7 @@ brn: string | null,
 tin: string | null,
 sstRegistrationNumber: string | null,
 isEditable: boolean,
+isRemovable: boolean,
 statusLabel: string,
 };
 export type OnboardingPaymentMethodData = {

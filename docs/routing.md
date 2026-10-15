@@ -109,6 +109,7 @@ After login, an Owner of a non-live property is redirected to `/p/{their code}/o
 | `PUT /p/ES10142/onboarding/payment-methods`                        | `onboarding.payment-methods.update`   | Save the Payment methods table                  |
 | `GET /p/ES10142/onboarding/companies`                              | `onboarding.companies.edit`           | `pages/onboarding/companies.tsx`                |
 | `PUT /p/ES10142/onboarding/companies`                              | `onboarding.companies.update`         | Save the Companies table                        |
+| `DELETE /p/ES10142/onboarding/companies/{company}`                 | `onboarding.companies.destroy`        | Remove a company nothing refers to              |
 | `POST /p/ES10142/onboarding/companies/import`                      | `onboarding.companies.import`         | Read a CSV or XLSX file into rows (JSON)        |
 | `GET /p/ES10142/onboarding/companies/import-template.csv`          | `onboarding.companies.template`       | Download the empty Simple file                  |
 | `GET /admin`                                                       | `admin.dashboard`                     | `pages/admin/dashboard.tsx`                     |
