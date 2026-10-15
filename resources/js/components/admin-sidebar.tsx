@@ -31,7 +31,7 @@ export function AdminSidebar() {
                             size="lg"
                             render={<Link href={dashboard()} prefetch />}
                         >
-                            <AppLogo />
+                            <AppLogo withIcon />
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>

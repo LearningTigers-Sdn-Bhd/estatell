@@ -51,7 +51,8 @@ Part of the [design system](../design-system.md). Short contract: [DESIGN.md](..
 - The app and authentication layouts use **Estatell**, with a capital **E**, instead of the starter icon and app-name label.
 - `AppLogoIcon` uses the email's font stack: Arial Black, Arial Bold, Arial, sans-serif, with weight 900.
 - The `font-wordmark` and `tracking-wordmark` tokens keep the same font and proportional letter spacing at each size. No font download is needed.
-- Authentication headers use `text-4xl`. Navigation uses `text-2xl`. Collapsed sidebars show **E** in the same style.
+- Authentication headers use `text-4xl`. Navigation uses `text-2xl`.
+- Admin and partner sidebars use `AppLogo withIcon`: the existing house artwork from `/icon.png` beside the wordmark. Collapsed sidebars show only the house icon. Other layouts keep the text-only wordmark and compact **E**.
 - The wordmark uses the semantic `primary` color in both themes and has the accessible name **Estatell**.
 - Email branding, error-page artwork and favicons stay unchanged.
 

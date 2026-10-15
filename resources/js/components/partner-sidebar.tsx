@@ -31,7 +31,7 @@ export function PartnerSidebar() {
                             size="lg"
                             render={<Link href={index()} prefetch />}
                         >
-                            <AppLogo />
+                            <AppLogo withIcon />
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>
