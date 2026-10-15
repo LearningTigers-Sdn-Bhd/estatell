@@ -13,7 +13,7 @@ import {
 /**
  * Where to get help during setup. The support address is a placeholder until the team confirms the real one.
  */
-const SUPPORT_EMAIL = 'support@estatell.example';
+const SUPPORT_EMAIL = 'support@estatell.com';
 
 export function OnboardingHelp() {
     const { impersonation } = usePage().props;
