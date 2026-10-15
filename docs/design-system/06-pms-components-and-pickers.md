@@ -19,6 +19,16 @@ About 50 components, each built when the first page needs it. Before the reserva
 
 `FormActions` is built with the [booking form](../12-reservations/05-booking-form.md#implementation), the first full-page form.
 
+### Pagination
+
+`PaginationFooter` is shared by server-paginated tables and card lists. On desktop, the result count sits left and the controls sit right. On mobile, the controls use icons and the count sits centered below them.
+
+- First, Previous, Next and Last use outline links. First and Previous are disabled on the first page; Next and Last are disabled on the last page.
+- A page input replaces numbered page links. Press Enter to navigate. Typing and leaving the input do not navigate.
+- The input accepts whole numbers from 1 to the last page. Invalid input shows an error.
+- Navigation keeps the server URL's filters and sorting, plus the current scroll position.
+- A single page shows only the result count. An empty list hides the footer.
+
 Rules:
 
 - Components receive data and callbacks. No business logic inside.

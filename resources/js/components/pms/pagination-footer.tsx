@@ -1,7 +1,16 @@
-import { Link } from '@inertiajs/react';
-import type { ReactNode } from 'react';
+import { Link, router } from '@inertiajs/react';
+import {
+    ChevronFirst,
+    ChevronLast,
+    ChevronLeft,
+    ChevronRight,
+} from 'lucide-react';
+import { useId, useState } from 'react';
+import type { FormEvent, ReactNode } from 'react';
 import { buttonVariants } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { paginationPage, paginationUrl } from './pagination-navigation';
 
 export type PaginationData = {
     currentPage: number;
@@ -37,7 +46,7 @@ export function toPaginationData(meta: {
 }
 
 /**
- * "Showing 1–24 of 312" with Previous and Next links, for a server-paginated list. Shared by the data table and card grids.
+ * Shared navigation and page jump for server-paginated tables and card grids.
  */
 export function PaginationFooter({
     pagination,
@@ -51,38 +60,154 @@ export function PaginationFooter({
     return (
         <nav
             aria-label="Pagination"
-            className="flex items-center justify-between gap-3 text-sm text-muted-foreground"
+            className="flex flex-col-reverse items-center justify-between gap-3 text-sm text-muted-foreground md:flex-row"
         >
-            <p className="tabular-nums">
+            <p className="text-center tabular-nums">
                 Showing {pagination.from}–{pagination.to} of {pagination.total}
             </p>
             {pagination.lastPage > 1 && (
-                <div className="flex items-center gap-2">
-                    <PageLink href={pagination.prevUrl}>Previous</PageLink>
-                    <span className="tabular-nums">
-                        Page {pagination.currentPage} of {pagination.lastPage}
-                    </span>
-                    <PageLink href={pagination.nextUrl}>Next</PageLink>
-                </div>
+                <PaginationControls
+                    key={`${pagination.currentPage}-${pagination.lastPage}-${pagination.prevUrl}-${pagination.nextUrl}`}
+                    pagination={pagination}
+                />
             )}
         </nav>
     );
 }
 
+function PaginationControls({ pagination }: { pagination: PaginationData }) {
+    const inputId = useId();
+    const [page, setPage] = useState(String(pagination.currentPage));
+    const [error, setError] = useState(false);
+    const baseUrl = pagination.prevUrl ?? pagination.nextUrl;
+
+    function jumpToPage(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+        const target = paginationPage(page, pagination.lastPage);
+
+        if (target === null) {
+            setError(true);
+            return;
+        }
+
+        setError(false);
+
+        if (target !== pagination.currentPage && baseUrl) {
+            router.visit(paginationUrl(baseUrl, target), {
+                preserveScroll: true,
+                preserveState: true,
+            });
+        }
+    }
+
+    return (
+        <div className="flex flex-col items-center gap-2">
+            <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
+                    <PageLink
+                        href={
+                            pagination.prevUrl && baseUrl
+                                ? paginationUrl(baseUrl, 1)
+                                : null
+                        }
+                        label="First page"
+                    >
+                        <ChevronFirst data-icon="inline-start" />
+                        <span className="hidden md:inline">First</span>
+                    </PageLink>
+                    <PageLink
+                        href={pagination.prevUrl}
+                        label="Previous page"
+                        rel="prev"
+                    >
+                        <ChevronLeft data-icon="inline-start" />
+                        <span className="hidden md:inline">Previous</span>
+                    </PageLink>
+                </div>
+                <form
+                    onSubmit={jumpToPage}
+                    noValidate
+                    className="flex items-center gap-2 whitespace-nowrap tabular-nums"
+                >
+                    <label htmlFor={inputId} className="sr-only md:not-sr-only">
+                        Page
+                    </label>
+                    <Input
+                        id={inputId}
+                        name="page"
+                        aria-label="Page number"
+                        aria-invalid={error || undefined}
+                        aria-describedby={
+                            error ? `${inputId}-error` : `${inputId}-hint`
+                        }
+                        inputMode="numeric"
+                        enterKeyHint="go"
+                        autoComplete="off"
+                        value={page}
+                        onChange={(event) => {
+                            setPage(event.target.value);
+                            setError(false);
+                        }}
+                        className="w-12 text-center"
+                    />
+                    <span>of {pagination.lastPage}</span>
+                    <span id={`${inputId}-hint`} className="sr-only">
+                        Press Enter to go to this page.
+                    </span>
+                    <button type="submit" className="sr-only" tabIndex={-1}>
+                        Go to page
+                    </button>
+                </form>
+                <div className="flex items-center gap-1">
+                    <PageLink
+                        href={pagination.nextUrl}
+                        label="Next page"
+                        rel="next"
+                    >
+                        <span className="hidden md:inline">Next</span>
+                        <ChevronRight data-icon="inline-end" />
+                    </PageLink>
+                    <PageLink
+                        href={
+                            pagination.nextUrl && baseUrl
+                                ? paginationUrl(baseUrl, pagination.lastPage)
+                                : null
+                        }
+                        label="Last page"
+                    >
+                        <span className="hidden md:inline">Last</span>
+                        <ChevronLast data-icon="inline-end" />
+                    </PageLink>
+                </div>
+            </div>
+            {error && (
+                <p id={`${inputId}-error`} role="alert">
+                    Enter a whole number from 1 to {pagination.lastPage}.
+                </p>
+            )}
+        </div>
+    );
+}
+
 function PageLink({
     href,
+    label,
+    rel,
     children,
 }: {
     href: string | null;
+    label: string;
+    rel?: 'prev' | 'next';
     children: ReactNode;
 }) {
     if (!href) {
         return (
             <span
                 aria-disabled
+                aria-label={label}
                 className={cn(
-                    buttonVariants({ variant: 'outline', size: 'sm' }),
-                    'pointer-events-none opacity-50',
+                    buttonVariants({ variant: 'outline' }),
+                    'pointer-events-none size-8 opacity-50 md:w-auto',
                 )}
             >
                 {children}
@@ -93,9 +218,14 @@ function PageLink({
     return (
         <Link
             href={href}
+            aria-label={label}
+            rel={rel}
             preserveScroll
             preserveState
-            className={buttonVariants({ variant: 'outline', size: 'sm' })}
+            className={cn(
+                buttonVariants({ variant: 'outline' }),
+                'size-8 md:w-auto',
+            )}
         >
             {children}
         </Link>
