@@ -4,7 +4,7 @@
 
 The first page staff see after login: start the day's work in one click, see what is left to do, and read four figures. It is a place to act, not a report.
 
-Today `GET /p/{code}/dashboard` is the starter kit placeholder (`Route::inertia('dashboard', 'dashboard')` and `pages/dashboard.tsx` with grey boxes). This item replaces it.
+`GET /p/{code}/dashboard` uses `DashboardController::show` and `pages/dashboard.tsx`.
 
 ## Layout
 
@@ -25,10 +25,14 @@ Dashboard · Sandbay Resort                          Business date 12 Oct 2026
 │          MYR 1,700 not billed [Open folio]││ 5              ││ 3             │
 │ …                                         ││ to check in    ││ to check out  │
 │                     [See all arrivals]    ││ of 8           ││ of 5          │
-│                                           │└────────────────┘└───────────────┘
-│                                           │┌ October ────────────────────────┐
-│                                           ││ MYR 84,200 posted               │
-│                                           ││ 612 nights booked               │
+│                                           │└────────────────┴────────────────┘
+│                                           │┌ Housekeeping ───────────────────┐
+│                                           ││ 4 Dirty · 2 To inspect · 1 Blocked│
+└───────────────────────────────────────────┘└─────────────────────────────────┘
+┌ Recommended next · 1 of 7 done ────────────┐┌ October ────────────────────────┐
+│ Property logo                     [Add →] ││ MYR 84,200 posted               │
+│ No logo on invoices and receipts          ││ 612 nights booked               │
+│                              [Show all ▾]││                                 │
 └───────────────────────────────────────────┘└─────────────────────────────────┘
 ```
 
@@ -38,17 +42,34 @@ Everything uses the property **business date** (`CurrentBusinessDate`) and the p
 
 Below the quick actions the parts sit in a bento grid from `lg`:
 
-| Cell                     | Place                                      | Why                                       |
-| ------------------------ | ------------------------------------------ | ----------------------------------------- |
-| **To do today**          | Left, about 55% wide, the full grid height | Where staff act, so it gets the most room |
-| **Tonight**              | Right, top, full right-column width        | The 7-night bar needs width to read       |
-| **Arrivals, Departures** | Right, middle, side by side                | Two short counts                          |
-| **{Month}**              | Right, bottom, full right-column width     | Two figures with their labels             |
+| Cell                     | Place                                       | Why                                       |
+| ------------------------ | ------------------------------------------- | ----------------------------------------- |
+| **To do today**          | Left, about 55% wide, above recommendations | Where staff act, so it gets the most room |
+| **Tonight**              | Right, top, full right-column width         | The 7-night bar needs width to read       |
+| **Arrivals, Departures** | Right, middle, one card with a divider      | Two related counts                        |
+| **Housekeeping**         | Right, below arrivals and departures        | Rooms that need cleaning or inspection    |
+| **{Month}**              | Right, bottom, full right-column width      | Two figures with their labels             |
+| **Recommended next**     | Left, below To do                           | Setup guidance stays secondary            |
 
 - The grid height follows the right column. A long To do list scrolls inside its cell, so the right column never leaves a gap.
-- Each cell is one card with a rounded border. To do rows are plain rows, not cards in a card.
+- Borders separate work areas. To do and recommendation rows stay flat, without nested cards.
+- Every section heading has one small, muted Lucide icon. Recommended next uses `Sparkles`; housekeeping uses `Brush`.
+- Quick actions are compact buttons, not cards. Only New booking uses the primary style.
 - A cell the user may not see is left out and the others in its column grow to fill it. With no tile at all, To do takes the full width.
-- Below `lg` the parts stack: alert, quick actions, tiles (two by two), then the list.
+- Below `lg`, the parts stack: alert, quick actions, summary cards, To do, then Recommended next.
+
+### Recommended next
+
+The checklist is a bento cell, not a separate full-width section. It starts collapsed, with progress and the first incomplete item.
+**Show all** expands the remaining items inside the cell. The browser remembers this choice per property.
+Existing actions, completion rules, permissions and **Not needed** controls stay unchanged. The cell disappears when every item is complete or dismissed.
+The **You're live** card stays above quick actions when sign-in details still need sharing.
+
+### Housekeeping
+
+The cell requires `housekeeping.view`. It links to the room status board and shows Dirty, To inspect and Blocked counts.
+`HousekeepingSummary` counts the existing board rows for the business date. Clean rooms count as To inspect.
+Archived rooms stay out. A whole-room block replaces its underlying status, so a blocked dirty room does not count as Dirty.
 
 ## Night audit alert
 
@@ -104,11 +125,14 @@ One list of what is left to act on, with a button on each row.
 
 - A reservation with several units in the same state is **one row** ("2 rooms"). Its button opens **Check in all**, or links to the [group check-out](05-group-check-out.md) page for check-out.
 - The rows reuse the night audit readiness rules (`AuditReadiness`), so the dashboard and the audit never disagree. A day use shows its hours ("Day use · 10:00–14:00").
-- **Check in** and **Check out** open the reservation page's own Dialogs over the dashboard through `AuditDialogHost`, which loads what a Dialog needs only when the button is pressed. The dashboard is a page, so this is one overlay level. After the Dialog closes the list and the tiles reload (`only`).
+- **Check in** and **Check out** open the existing Dialogs through the shared `components/pms/audit-dialog-host.tsx`.
+- `GET /p/{code}/dashboard/reservations/{reservation}` (`dashboard.reservation`) loads dialog data on demand. It requires `reservations.view`, not `night-audit.run`.
+- The loader scopes reservations to the property. Existing submission routes still enforce check-in, check-out and payment permissions.
+- After a Dialog closes, the list, tiles, housekeeping and alert reload through `only`.
 - A user without `front-desk.check-in` or `front-desk.check-out` gets **Open** (the reservation page) instead. **Open folio** is a link and needs `reservations.view`.
 - The first 10 rows show, then **See all arrivals**. With no rows: "Nothing left for today. All arrivals are in and all departures are out."
 - With the Boats feature, a **No boat** row follows the arrivals: Confirmed units arriving today or tomorrow with no Boat in trip (see [Boat trips](../24-boats/02-boat-trips.md#dashboard)).
-- Rooms to clean join the list when the [room status board](../19-housekeeping/01-room-status-board.md) is built.
+- Rooms to clean appear in the separate Housekeeping cell, not as guest tasks.
 
 ## Not on the dashboard
 
@@ -123,7 +147,7 @@ One list of what is left to act on, with a button on each row.
 
 - **Archetype:** Dashboard (see [Page archetypes](../design-system/04-page-archetypes.md)).
 - `DashboardController::show` replaces the `Route::inertia` line. Read services in `app/Services/Dashboard/`: `DashboardAlert`, `DashboardTiles`, `DashboardTodo`.
-- The tiles and the list are **deferred props**, each with a skeleton, so the page opens at once and one slow part does not hold the others. The alert and the quick actions come with the page.
+- Tiles, To do and housekeeping use separate **deferred prop groups**, each with a skeleton. The alert and quick actions come with the page.
 - No polling at first. A reload or a finished Dialog refreshes it.
 - A fixed number of queries, however many units and room types (the reports and `AvailabilityService::nightsForRoomTypes()` read in grouped queries).
 

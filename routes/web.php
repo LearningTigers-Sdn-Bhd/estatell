@@ -43,6 +43,7 @@ Route::prefix('p/{property:code}')->where(['property' => '[A-Za-z]{2}[0-9]{5,}']
 
     Route::middleware('live')->group(function () {
         Route::get('dashboard', [DashboardController::class, 'show'])->name('dashboard');
+        Route::get('dashboard/reservations/{reservation}', [DashboardController::class, 'reservation'])->scopeBindings()->middleware('can:reservations.view')->name('dashboard.reservation');
         Route::get('logo', [PropertyLogoController::class, 'show'])->name('property.logo');
 
         require __DIR__.'/night-audit.php';

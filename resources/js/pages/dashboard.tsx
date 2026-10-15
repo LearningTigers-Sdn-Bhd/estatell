@@ -1,4 +1,4 @@
-import { Head, usePage } from '@inertiajs/react';
+import { Deferred, Head, router, usePage } from '@inertiajs/react';
 import confetti from 'canvas-confetti';
 import { useEffect, useState } from 'react';
 import { DashboardAlert } from '@/components/pms/dashboard/dashboard-alert';
@@ -7,6 +7,9 @@ import { QuickActions } from '@/components/pms/dashboard/quick-actions';
 import { RecommendedChecklistCard } from '@/components/pms/dashboard/recommended-checklist-card';
 import { YoureLiveCard } from '@/components/pms/dashboard/youre-live-card';
 import { NightAuditSheet } from '@/components/pms/night-audit/night-audit-sheet';
+import { AuditDialogHost } from '@/components/pms/audit-dialog-host';
+import { TodoCard, TodoSkeleton } from '@/components/pms/dashboard/todo-card';
+import { cn } from 'cn';
 import { useIsImpersonating } from '@/hooks/use-is-impersonating';
 import { dashboard } from '@/routes';
 
@@ -16,6 +19,8 @@ export default function Dashboard({
     tiles,
     youreLive,
     recommended,
+    todo,
+    housekeeping,
 }: {
     alert: App.Data.Dashboard.DashboardAlertData | null;
     can: App.Data.Dashboard.DashboardAccessData;
@@ -25,8 +30,23 @@ export default function Dashboard({
     youreLive: App.Data.Onboarding.YoureLiveData | null;
     /** Null for users without settings.manage, and when every item is done or dismissed. */
     recommended: App.Data.Onboarding.RecommendedChecklistData | null;
+    todo?: App.Data.Dashboard.DashboardTodoData | null;
+    housekeeping?: App.Data.Dashboard.HousekeepingTileData | null;
 }) {
     const [auditOpen, setAuditOpen] = useState(false);
+    const [action, setAction] =
+        useState<App.Data.NightAudit.ReadinessActionData | null>(null);
+    const [loadingKey, setLoadingKey] = useState<string | null>(null);
+    const page = usePage();
+    const hasLeft = todo !== null || recommended !== null;
+    const hasRight = tiles !== null || housekeeping !== null;
+    const refresh = () =>
+        router.reload({ only: ['todo', 'tiles', 'housekeeping', 'alert'] });
+    const closeAction = () => {
+        setAction(null);
+        setLoadingKey(null);
+        refresh();
+    };
     const isImpersonating = useIsImpersonating();
     const wentLive =
         (usePage().flash as { wentLive?: boolean } | undefined)?.wentLive ===
@@ -72,19 +92,83 @@ export default function Dashboard({
 
                 <QuickActions can={can} onRunAudit={() => setAuditOpen(true)} />
 
-                {recommended !== null && (
-                    <RecommendedChecklistCard
-                        checklist={recommended}
-                        canAct={!isImpersonating}
-                    />
-                )}
-
-                {tiles !== null && <DashboardTiles tiles={tiles} can={can} />}
+                <div
+                    className={cn(
+                        'grid items-stretch gap-4',
+                        hasLeft && hasRight && 'lg:grid-cols-9',
+                    )}
+                >
+                    {hasLeft && (
+                        <div
+                            className={cn(
+                                'order-2 flex min-w-0 flex-col gap-4 lg:order-1',
+                                hasRight && 'lg:col-span-5',
+                            )}
+                        >
+                            {todo !== null && (
+                                <Deferred
+                                    data="todo"
+                                    fallback={<TodoSkeleton />}
+                                >
+                                    {todo && (
+                                        <TodoCard
+                                            todo={todo}
+                                            loadingKey={loadingKey}
+                                            onAction={(row) => {
+                                                setLoadingKey(row.key);
+                                                setAction(row.action);
+                                            }}
+                                        />
+                                    )}
+                                </Deferred>
+                            )}
+                            {recommended !== null && (
+                                <RecommendedChecklistCard
+                                    key={page.props.property?.code}
+                                    storageKey={`estatell:dashboard:recommended:v1:${page.props.property?.code}`}
+                                    checklist={recommended}
+                                    canAct={!isImpersonating}
+                                />
+                            )}
+                        </div>
+                    )}
+                    {hasRight && (
+                        <div
+                            className={cn(
+                                'order-1 min-w-0 lg:order-2',
+                                hasLeft && 'lg:col-span-4',
+                            )}
+                        >
+                            <DashboardTiles
+                                tiles={tiles}
+                                can={can}
+                                housekeeping={housekeeping}
+                            />
+                        </div>
+                    )}
+                </div>
             </div>
 
             {can.canRunNightAudit && (
-                <NightAuditSheet open={auditOpen} onOpenChange={setAuditOpen} />
+                <NightAuditSheet
+                    open={auditOpen}
+                    onOpenChange={(open) => {
+                        setAuditOpen(open);
+                        if (!open) refresh();
+                    }}
+                />
             )}
+            <AuditDialogHost
+                action={action}
+                onLoaded={() => {
+                    setLoadingKey(null);
+                }}
+                onClose={closeAction}
+                onNavigate={() => {
+                    setAction(null);
+                    setLoadingKey(null);
+                }}
+            />
         </>
     );
 }

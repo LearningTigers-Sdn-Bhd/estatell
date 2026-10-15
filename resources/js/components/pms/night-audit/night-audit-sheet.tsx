@@ -21,7 +21,7 @@ import type { LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { DateText } from '@/components/pms/date-text';
 import { FormOverlay } from '@/components/pms/form-overlay';
-import { AuditDialogHost } from '@/components/pms/night-audit/audit-dialog-host';
+import { AuditDialogHost } from '@/components/pms/audit-dialog-host';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';

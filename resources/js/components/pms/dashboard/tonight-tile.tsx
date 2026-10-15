@@ -1,4 +1,5 @@
 import { Link } from '@inertiajs/react';
+import { Moon } from 'lucide-react';
 import { OccupancyChart } from '@/components/pms/dashboard/occupancy-chart';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -20,9 +21,13 @@ export function TonightTile({
     tile: App.Data.Dashboard.TonightTileData;
 }) {
     return (
-        <Card className="lg:col-span-2">
+        <Card>
             <CardHeader>
-                <CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                    <Moon
+                        aria-hidden
+                        className="size-4 text-muted-foreground"
+                    />
                     <Link
                         href={calendar.url()}
                         className="rounded-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"

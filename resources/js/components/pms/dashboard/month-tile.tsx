@@ -1,4 +1,5 @@
 import { MoneyText } from '@/components/pms/money-text';
+import { CalendarDays } from 'lucide-react';
 import { TileCard } from '@/components/pms/dashboard/tile-card';
 import {
     Tooltip,
@@ -28,10 +29,10 @@ export function MonthTile({
     return (
         <TileCard
             title={tile.month}
+            icon={CalendarDays}
             href={revenue.url(undefined, {
                 query: { from: tile.from, to: tile.to },
             })}
-            className="lg:col-span-2"
         >
             <Tooltip>
                 <TooltipTrigger

@@ -2,22 +2,23 @@ import { Deferred } from '@inertiajs/react';
 import { MonthTile } from '@/components/pms/dashboard/month-tile';
 import { TilesSkeleton } from '@/components/pms/dashboard/tiles-skeleton';
 import { TonightTile } from '@/components/pms/dashboard/tonight-tile';
-import { UnitCountTile } from '@/components/pms/dashboard/unit-count-tile';
-import { arrivals, departures } from '@/routes/reports';
+import { MovementCard } from '@/components/pms/dashboard/movement-card';
+import { HousekeepingTile } from '@/components/pms/dashboard/housekeeping-tile';
 
 /**
- * The tiles grid: two columns from `lg`, two by two below it. A tile the user may not see is null and leaves its
- * space to the others. The tiles are a deferred prop, so the page opens at once and the cells show skeletons.
+ * The summary column of the bento. Hidden cells leave no gap; deferred cells show skeletons.
  */
 export function DashboardTiles({
     tiles,
     can,
+    housekeeping,
 }: {
     tiles?: App.Data.Dashboard.DashboardTilesData | null;
     can: App.Data.Dashboard.DashboardAccessData;
+    housekeeping?: App.Data.Dashboard.HousekeepingTileData | null;
 }) {
     return (
-        <div className="grid grid-cols-2 items-stretch gap-4">
+        <div className="flex flex-col gap-4">
             <Deferred
                 data="tiles"
                 fallback={
@@ -30,30 +31,37 @@ export function DashboardTiles({
                 {tiles && (
                     <>
                         {tiles.tonight && <TonightTile tile={tiles.tonight} />}
-                        {tiles.arrivals && (
-                            <UnitCountTile
-                                title="Arrivals"
-                                action="to check in"
-                                tile={tiles.arrivals}
-                                href={arrivals.url(undefined, {
-                                    query: { from: tiles.date, to: tiles.date },
-                                })}
-                            />
+                        {(tiles.arrivals || tiles.departures) && (
+                            <MovementCard tiles={tiles} />
                         )}
-                        {tiles.departures && (
-                            <UnitCountTile
-                                title="Departures"
-                                action="to check out"
-                                tile={tiles.departures}
-                                href={departures.url(undefined, {
-                                    query: { from: tiles.date, to: tiles.date },
-                                })}
-                            />
+                        {housekeeping !== null && can.canViewHousekeeping && (
+                            <Deferred
+                                data="housekeeping"
+                                fallback={
+                                    <TilesSkeleton units={false} reports />
+                                }
+                            >
+                                {housekeeping && (
+                                    <HousekeepingTile tile={housekeeping} />
+                                )}
+                            </Deferred>
                         )}
                         {tiles.month && <MonthTile tile={tiles.month} />}
                     </>
                 )}
             </Deferred>
+            {tiles === null &&
+                housekeeping !== null &&
+                can.canViewHousekeeping && (
+                    <Deferred
+                        data="housekeeping"
+                        fallback={<TilesSkeleton units={false} reports />}
+                    >
+                        {housekeeping && (
+                            <HousekeepingTile tile={housekeeping} />
+                        )}
+                    </Deferred>
+                )}
         </div>
     );
 }

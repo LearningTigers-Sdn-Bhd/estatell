@@ -132,7 +132,9 @@ Going live redirects to the dashboard with a `wentLive` flash. There is no separ
 - A read-only Service builds the items from the property's data. Each item has a key, a label, a one-line summary, a done flag and a URL.
 - **Not needed** stores a row in `recommended_item_dismissals (property_id, item, dismissed_by, dismissed_at)`, unique on `(property_id, item)`. A skipped section uses the item key `skipped:{step}`.
 - Shown on the dashboard to users with `settings.manage` while any item is open. The card is gone when every item is done or dismissed. There is no hide for the whole card.
-- On desktop the order is fixed. At phone width open items come first.
+- The checklist sits inside the dashboard bento, below To do. Its heading uses the `Sparkles` icon.
+- It starts collapsed, with progress and the first incomplete item. **Show all** expands the remaining items inside the cell.
+- The browser remembers expansion per property. Item order and all actions stay unchanged.
 - Not on the list: photos (no feature yet), meal periods and packages, discounts (an onboarding section), custom roles, notification preferences, and company rates (later, with company users). The channel connection joins the list when it is built ([Channel connections](../21-channels/01-connections-and-feature-gate.md)).
 
 ## Lessons from wastays

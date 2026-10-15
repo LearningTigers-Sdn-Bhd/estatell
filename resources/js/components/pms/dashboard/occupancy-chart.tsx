@@ -37,7 +37,7 @@ export function OccupancyChart({
     return (
         <ChartContainer
             config={config}
-            className="aspect-auto h-40 w-full"
+            className="aspect-auto h-32 w-full"
             role="img"
             aria-label="Occupancy for the next seven nights"
         >

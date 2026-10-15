@@ -17,6 +17,7 @@ class DashboardAccessData extends Data
         public bool $canRunNightAudit,
         public bool $canViewReports,
         public bool $canManageSettings,
+        public bool $canViewHousekeeping,
     ) {}
 
     public static function forUser(User $user): self
@@ -27,6 +28,7 @@ class DashboardAccessData extends Data
             canRunNightAudit: $user->can(PermissionEnum::NightAuditRun->value),
             canViewReports: $user->can(PermissionEnum::ReportsView->value),
             canManageSettings: $user->can(PermissionEnum::SettingsManage->value),
+            canViewHousekeeping: $user->can(PermissionEnum::HousekeepingView->value),
         );
     }
 

@@ -11,12 +11,13 @@ import { CheckInAllDialog } from '@/components/pms/reservations/check-in-all-dia
 import { CheckInDialog } from '@/components/pms/reservations/check-in-dialog';
 import { CheckOutDialog } from '@/components/pms/reservations/check-out-dialog';
 import { show } from '@/routes/reservations';
+import { toast } from '@/components/ui/toast';
 
 type Action = App.Data.NightAudit.ReadinessActionData;
 type Data = App.Data.NightAudit.NightAuditReservationData;
 
 /**
- * Opens the check-in, check-in-all or check-out Dialog of the reservation page over the night audit sheet. The Dialog
+ * Opens the check-in, check-in-all or check-out Dialog over the dashboard or night audit sheet. The Dialog
  * loads its reservation, units and payment options from the sheet's own route when it opens, and the sheet reloads when
  * it closes. This is the one place a Dialog may open over another overlay. See docs/design-system/05-form-containers.md.
  */
@@ -54,7 +55,15 @@ function ReservationAuditDialogHost({
                 }
             },
         })
-            .catch(() => undefined)
+            .catch(() => {
+                if (current) {
+                    toast.add({
+                        title: 'The reservation could not be loaded. Try again.',
+                        type: 'error',
+                    });
+                    onClose();
+                }
+            })
             .finally(() => current && onLoaded());
 
         return () => {

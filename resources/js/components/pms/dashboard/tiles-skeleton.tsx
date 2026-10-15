@@ -27,12 +27,11 @@ export function TilesSkeleton({
         <>
             {units && (
                 <>
-                    {cell('tonight', 'lg:col-span-2')}
-                    {cell('arrivals')}
-                    {cell('departures')}
+                    {cell('tonight')}
+                    {cell('movements')}
                 </>
             )}
-            {reports && cell('month', 'lg:col-span-2')}
+            {reports && cell('month')}
         </>
     );
 }

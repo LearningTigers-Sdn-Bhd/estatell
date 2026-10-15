@@ -398,6 +398,7 @@ canViewReservations: boolean,
 canRunNightAudit: boolean,
 canViewReports: boolean,
 canManageSettings: boolean,
+canViewHousekeeping: boolean,
 };
 export type DashboardAlertData = {
 message: string,
@@ -408,6 +409,26 @@ arrivals: App.Data.Dashboard.UnitCountTileData | null,
 departures: App.Data.Dashboard.UnitCountTileData | null,
 tonight: App.Data.Dashboard.TonightTileData | null,
 month: App.Data.Dashboard.MonthTileData | null,
+};
+export type DashboardTodoData = {
+rows: App.Data.Dashboard.DashboardTodoRowData[],
+total: number,
+date: string,
+};
+export type DashboardTodoRowData = {
+key: string,
+kind: string,
+label: string,
+guest: string,
+reference: string,
+detail: string,
+time: string | null,
+action: App.Data.NightAudit.ReadinessActionData,
+};
+export type HousekeepingTileData = {
+dirty: number,
+toInspect: number,
+blocked: number,
 };
 export type MonthTileData = {
 month: string,
