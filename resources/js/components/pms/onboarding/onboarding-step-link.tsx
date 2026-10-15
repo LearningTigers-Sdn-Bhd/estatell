@@ -33,7 +33,7 @@ export function OnboardingStepLink({
     const locked = step.state === 'locked';
     const content = (
         <>
-            {variant === 'tab' ? (
+            {variant !== 'pill' ? (
                 step.state !== 'not_started' &&
                 step.state !== 'in_progress' && (
                     <OnboardingStateIcon
