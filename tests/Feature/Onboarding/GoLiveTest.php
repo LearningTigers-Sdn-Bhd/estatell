@@ -11,7 +11,6 @@ use App\Models\PlatformSetting;
 use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\RatePlan;
-use App\Models\RegistrationCardTerms;
 use App\Models\RoomType;
 use App\Models\Tax;
 use App\Models\User;
@@ -199,15 +198,11 @@ test('warnings name the section that fixes them and never block going live', fun
     $owner = readyOnboardingOwner();
     $property = $owner->property;
     Tax::factory()->for($property)->create(['name' => 'Service charge']);
-    PropertySetting::query()->where('property_id', $property->id)->update(['security_deposit_amount' => 0]);
-    RegistrationCardTerms::query()->update(['body' => 'A deposit is held on arrival.']);
 
     $warnings = app(GoLiveWarnings::class)->forProperty($property);
 
     expect(collect($warnings)->contains(fn ($warning): bool => $warning->step === OnboardingStep::ChargeItems->value
-        && $warning->message === 'Service charge is not applied to any charge item.'))->toBeTrue()
-        ->and(collect($warnings)->contains(fn ($warning): bool => $warning->step === OnboardingStep::CheckInEssentials->value
-            && $warning->message === 'The terms mention a deposit, but the security deposit is off.'))->toBeTrue();
+        && $warning->message === 'Service charge is not applied to any charge item.'))->toBeTrue();
 
     $this->actingAs($owner)
         ->post(route('onboarding.go-live.store', $property->code))

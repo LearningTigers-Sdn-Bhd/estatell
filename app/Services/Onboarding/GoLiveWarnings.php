@@ -8,7 +8,6 @@ use App\Enums\SystemTransactionCode;
 use App\Models\OnboardingSkip;
 use App\Models\Property;
 use App\Models\RatePlan;
-use App\Models\TermsDocument;
 
 /**
  * Problems that never block go-live: each one names the section that fixes it. Reads only.
@@ -24,7 +23,6 @@ class GoLiveWarnings
         return [
             ...$this->taxesNotOnChargeItems($property),
             ...$this->noTaxOnRooms($property),
-            ...$this->depositOffButTermsMentionIt($property),
             ...$this->followersMissingRoomTypes($property),
         ];
     }
@@ -74,29 +72,6 @@ class GoLiveWarnings
         return $appliesToRooms
             ? []
             : [$this->warning($property, OnboardingStep::Taxes, 'No tax is applied to rooms.')];
-    }
-
-    /**
-     * The security deposit is off (amount 0) while a terms version mentions a deposit.
-     *
-     * @return list<GoLiveWarningData>
-     */
-    private function depositOffButTermsMentionIt(Property $property): array
-    {
-        $settings = $property->settings;
-
-        if ($settings === null || (float) $settings->security_deposit_amount > 0) {
-            return [];
-        }
-
-        $termsMentionDeposit = TermsDocument::query()
-            ->where('property_id', $property->id)
-            ->whereHas('versions', fn ($query) => $query->where('body', 'ilike', '%deposit%'))
-            ->exists();
-
-        return $termsMentionDeposit
-            ? [$this->warning($property, OnboardingStep::CheckInEssentials, 'The terms mention a deposit, but the security deposit is off.')]
-            : [];
     }
 
     /**

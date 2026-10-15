@@ -617,7 +617,7 @@ Not a table: two groups on one page. The registration card group is the same com
 
 - One row per section, grouped by phase, from `OnboardingProgress`: state, a one-line summary built on the server, and an action (**Edit**, **Finish →**, **Add**, or **Fix in {section} →** for a warning).
 - States: ✓ Done, ✗ required and not done, ○ optional and not started, – skipped, ⚠ Needs attention, ⚑ flagged by support.
-- `GoLiveReadiness::checks()` returns one `GoLiveCheckData` per required section, and `isReady()` needs every one Done. Warnings are a separate list and never block: a tax applied to no charge, no tax on rooms, the deposit switch off while the terms mention a deposit, a more-rates follower missing a room type.
+- `GoLiveReadiness::checks()` returns one `GoLiveCheckData` per required section, and `isReady()` needs every one Done. Warnings are a separate list and never block: a tax applied to no charge, no tax on rooms, a more-rates follower missing a room type.
 - Info line: how many staff and company users get their sign-in details.
 - No opening date field. The day you go live is the first business day.
 - The button is disabled until ready (tooltip "Finish {sections} first"), hidden during view as, and reads **Send for approval** when approval is on. It opens an AlertDialog: "Go live today?" with the first business day, "Country, currency and time zone can't be changed after this." and the sign-in count.
