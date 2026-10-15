@@ -128,6 +128,7 @@ export function BusinessLicenceForm({
                             id="registration_number"
                             value={form.data.registration_number}
                             maxLength={100}
+                            placeholder="e.g. 202301012345"
                             onChange={(event) =>
                                 form.setData(
                                     'registration_number',
@@ -146,6 +147,7 @@ export function BusinessLicenceForm({
                             id="tin"
                             value={form.data.tin}
                             maxLength={50}
+                            placeholder="e.g. C1234567890"
                             onChange={(event) =>
                                 form.setData('tin', event.target.value)
                             }
@@ -222,6 +224,7 @@ export function BusinessLicenceForm({
                                         <TableCell className="align-top">
                                             <Input
                                                 aria-label={`Licence number, licence ${index + 1}`}
+                                                placeholder="e.g. LIC-2026-00123"
                                                 maxLength={50}
                                                 value={row.number}
                                                 onChange={(event) =>

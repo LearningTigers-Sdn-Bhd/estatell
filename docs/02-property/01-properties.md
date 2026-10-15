@@ -73,6 +73,7 @@ The property's identity, edited on the Details page, **Profile** tab (`/p/{code}
 ```
 
 - Fields: name, address and contact phone and email. The registered name, numbers and licences are on the [Business licence](#business-licence) tab. The name and address use the Basics rules (`SavePropertyBasicsRequest::identityRules()`).
+- The logo sits above the form. Fields are grouped into Property, Address and Contact. On desktop, postcode, city and state share one row; phone and email share another. Fields stack on mobile. One **Save profile** button saves all three groups.
 - Type and country are shown and locked. They seeded the currency, taxes and presets. Before Basics is complete, the tab links to Basics like the other tabs.
 - `UpdatePropertyProfile` (`app/Actions/Property/`) saves the fields and logs `property.updated` with the changed fields. A save that changes nothing is not logged. It does not change `document_prefix`.
 - Printed documents read these values through [Printing settings](05-printing-settings.md). Empty values show "Not set" there with a link back to this tab.

@@ -30,6 +30,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { FieldGroup, FieldLegend, FieldSet } from '@/components/ui/field';
 import { useIsImpersonating } from '@/hooks/use-is-impersonating';
 import { edit as basicsEdit } from '@/routes/onboarding/basics';
 import {
@@ -179,72 +180,90 @@ export default function PropertySettings({
                     ]}
                 >
                     {tab === 'profile' && profile && (
-                        <div className="flex flex-col gap-6">
+                        <div className="flex flex-col gap-4">
                             <PropertyLogoField logoUrl={profile.logoUrl} />
                             <SettingsSection
                                 form={PropertySettingsController.updateProfile.form()}
                                 title="Profile"
                                 description={`The name, address and contact details printed on receipts, invoices and reports. ${[profile.typeLabel, profile.countryName].filter(Boolean).join(' · ')}`}
                                 submitLabel="Save profile"
+                                contentClassName="flex flex-col gap-6"
                             >
                                 {(errors) => (
                                     <>
-                                        <div className="md:col-span-2">
+                                        <FieldSet>
+                                            <FieldLegend>Property</FieldLegend>
                                             <SettingsInput
                                                 name="name"
                                                 label="Property name"
                                                 value={profile.name}
                                                 error={errors.name}
                                             />
-                                        </div>
-                                        <div className="md:col-span-2">
-                                            <SettingsInput
-                                                name="address_line1"
-                                                label="Address line 1"
-                                                value={profile.addressLine1}
-                                                error={errors.address_line1}
-                                            />
-                                        </div>
-                                        <div className="md:col-span-2">
-                                            <SettingsInput
-                                                name="address_line2"
-                                                label="Address line 2 (optional)"
-                                                value={profile.addressLine2}
-                                                error={errors.address_line2}
-                                            />
-                                        </div>
-                                        <SettingsInput
-                                            name="postal_code"
-                                            label="Postcode (optional)"
-                                            value={profile.postalCode}
-                                            error={errors.postal_code}
-                                        />
-                                        <SettingsInput
-                                            name="city"
-                                            label="City"
-                                            value={profile.city}
-                                            error={errors.city}
-                                        />
-                                        <SettingsInput
-                                            name="state_code"
-                                            label="State (optional)"
-                                            value={profile.stateCode}
-                                            error={errors.state_code}
-                                        />
-                                        <SettingsInput
-                                            name="contact_phone"
-                                            label="Phone (optional)"
-                                            type="tel"
-                                            value={profile.contactPhone}
-                                            error={errors.contact_phone}
-                                        />
-                                        <SettingsInput
-                                            name="contact_email"
-                                            label="Email (optional)"
-                                            type="email"
-                                            value={profile.contactEmail}
-                                            error={errors.contact_email}
-                                        />
+                                        </FieldSet>
+                                        <FieldSet>
+                                            <FieldLegend>Address</FieldLegend>
+                                            <FieldGroup>
+                                                <SettingsInput
+                                                    name="address_line1"
+                                                    label="Address line 1"
+                                                    value={profile.addressLine1}
+                                                    error={errors.address_line1}
+                                                />
+                                                <SettingsInput
+                                                    name="address_line2"
+                                                    label="Address line 2 (optional)"
+                                                    value={profile.addressLine2}
+                                                    error={errors.address_line2}
+                                                />
+                                                <FieldGroup className="grid md:grid-cols-3">
+                                                    <SettingsInput
+                                                        name="postal_code"
+                                                        label="Postcode (optional)"
+                                                        value={
+                                                            profile.postalCode
+                                                        }
+                                                        error={
+                                                            errors.postal_code
+                                                        }
+                                                    />
+                                                    <SettingsInput
+                                                        name="city"
+                                                        label="City"
+                                                        value={profile.city}
+                                                        error={errors.city}
+                                                    />
+                                                    <SettingsInput
+                                                        name="state_code"
+                                                        label="State (optional)"
+                                                        value={
+                                                            profile.stateCode
+                                                        }
+                                                        error={
+                                                            errors.state_code
+                                                        }
+                                                    />
+                                                </FieldGroup>
+                                            </FieldGroup>
+                                        </FieldSet>
+                                        <FieldSet>
+                                            <FieldLegend>Contact</FieldLegend>
+                                            <FieldGroup className="grid md:grid-cols-2">
+                                                <SettingsInput
+                                                    name="contact_phone"
+                                                    label="Phone (optional)"
+                                                    type="tel"
+                                                    value={profile.contactPhone}
+                                                    error={errors.contact_phone}
+                                                />
+                                                <SettingsInput
+                                                    name="contact_email"
+                                                    label="Email (optional)"
+                                                    type="email"
+                                                    value={profile.contactEmail}
+                                                    error={errors.contact_email}
+                                                />
+                                            </FieldGroup>
+                                        </FieldSet>
                                     </>
                                 )}
                             </SettingsSection>
