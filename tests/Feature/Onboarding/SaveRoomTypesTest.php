@@ -41,7 +41,7 @@ test('new rows create room types sold by room in table order with guests include
     ($this->save)([
         roomTypeRow(' Standard Double ', ['max_adults' => 3, 'max_children' => 1]),
         roomTypeRow('Deluxe King'),
-    ])->assertSessionHasNoErrors()->assertRedirect(route('onboarding.go-live.show', $this->property->code));
+    ])->assertSessionHasNoErrors()->assertRedirect(route('onboarding.rooms.edit', $this->property->code));
 
     $types = $this->property->roomTypes()->ordered()->get();
 

@@ -212,7 +212,9 @@ Setup started (another section is no longer Not started):
 
 - One submit, one transaction: create the groups, then `GenerateRooms` (range mode) per row with its `room_group_id`.
 - At phone width each row stacks into a card, with the Group menu on its own line.
-- Check: Done when every room-sold room type has at least one room.
+- The save is `SaveOnboardingRooms`, called through `SaveRoomsRequest` (`use_groups`, `groups` with a row `key`, `id` and `name`, `ranges` with room type, `group_key`, prefix, from and to). Errors show per row (`ranges.{n}.from`, `groups.{n}.name`). A number that is taken (by a saved room or by another row) shows on the row. If a number is taken between the check and the save, the Action rolls back and the page shows an error toast.
+- Saved groups stay in the Groups table as read-only rows and cannot be removed here, so a property that has groups always uses groups. A saved room is removed with × and a confirm popover (`onboarding.rooms.destroy`, through `ArchiveRoom`). The "Reset practice first" block comes with [Test drive](06-test-drive.md).
+- Check: Done when every room-sold room type has at least one active room. In progress when some have rooms and some do not. Not started when none do, or when there is no room-sold room type.
 
 ## Taxes table
 

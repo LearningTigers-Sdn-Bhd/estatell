@@ -100,7 +100,7 @@ After login, an Owner of a non-live property is redirected to `/p/{their code}/o
 | `GET /p/ES10142/finance/city-ledger/companies`                     | `finance.city-ledger.companies.index` | `pages/finance/city-ledger/companies/index.tsx` |
 | `GET /p/ES10142/finance/city-ledger/aging`                         | `finance.city-ledger.aging`           | `pages/finance/city-ledger/aging.tsx`           |
 | `GET /p/ES10142/settings/room-types`                               | `settings.room-types.index`           | `pages/settings/room-types/index.tsx`           |
-| `GET /p/ES10142/onboarding/rooms`                                  | `onboarding.rooms`                    | Onboarding section (own form, same Actions)     |
+| `GET /p/ES10142/onboarding/rooms`                                  | `onboarding.rooms.edit`               | `pages/onboarding/rooms.tsx`                    |
 | `GET /admin`                                                       | `admin.dashboard`                     | `pages/admin/dashboard.tsx`                     |
 | `GET /admin/settings`                                              | `admin.settings.edit`                 | `pages/admin/settings/edit.tsx`                 |
 | `GET /admin/properties`                                            | `admin.properties.index`              | `pages/admin/properties/index.tsx`              |

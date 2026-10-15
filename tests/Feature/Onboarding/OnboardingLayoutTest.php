@@ -88,7 +88,8 @@ test('review opens go-live and is the last listed step', function () {
     expect(OnboardingStep::Review->routeName())->toBe('onboarding.go-live.show')
         ->and(OnboardingStep::Review->nextListed())->toBeNull()
         ->and(OnboardingStep::Basics->nextListed())->toBe(OnboardingStep::RoomTypes)
-        ->and(OnboardingStep::RoomTypes->nextListed())->toBe(OnboardingStep::Review)
+        ->and(OnboardingStep::RoomTypes->nextListed())->toBe(OnboardingStep::Rooms)
+        ->and(OnboardingStep::Rooms->nextListed())->toBe(OnboardingStep::Review)
         ->and(OnboardingStep::Companies->nextListed())->toBe(OnboardingStep::Review)
-        ->and(array_map(fn (OnboardingStep $step): OnboardingStep => $step, OnboardingStep::listed()))->toBe([OnboardingStep::Basics, OnboardingStep::RoomTypes, OnboardingStep::Review]);
+        ->and(array_map(fn (OnboardingStep $step): OnboardingStep => $step, OnboardingStep::listed()))->toBe([OnboardingStep::Basics, OnboardingStep::RoomTypes, OnboardingStep::Rooms, OnboardingStep::Review]);
 });

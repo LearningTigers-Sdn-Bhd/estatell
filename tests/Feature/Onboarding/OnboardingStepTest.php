@@ -62,10 +62,10 @@ test('every step belongs to exactly one phase, in phase order', function () {
         ->and(OnboardingPhase::Review->steps())->toBe([OnboardingStep::Review]);
 });
 
-test('basics, room types and review have pages today', function () {
+test('basics, room types, rooms and review have pages today', function () {
     expect(OnboardingStep::Basics->routeName())->toBe('onboarding.basics.edit')
         ->and(OnboardingStep::RoomTypes->routeName())->toBe('onboarding.room-types.edit')
-        ->and(OnboardingStep::Rooms->routeName())->toBeNull()
+        ->and(OnboardingStep::Rooms->routeName())->toBe('onboarding.rooms.edit')
         ->and(OnboardingStep::Review->routeName())->toBe('onboarding.go-live.show');
 });
 

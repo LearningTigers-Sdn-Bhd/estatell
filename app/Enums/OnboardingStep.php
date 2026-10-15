@@ -150,6 +150,7 @@ enum OnboardingStep: string
         return match ($this) {
             self::Basics => 'onboarding.basics.edit',
             self::RoomTypes => 'onboarding.room-types.edit',
+            self::Rooms => 'onboarding.rooms.edit',
             self::Review => 'onboarding.go-live.show',
             default => null,
         };
