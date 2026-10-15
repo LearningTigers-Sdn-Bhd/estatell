@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\PermissionEnum;
+use App\Http\Controllers\Onboarding\BasicRateController;
 use App\Http\Controllers\Onboarding\CompanyController;
 use App\Http\Controllers\Onboarding\GoLiveController;
 use App\Http\Controllers\Onboarding\OnboardingSkipController;
@@ -38,6 +39,10 @@ Route::prefix('onboarding')->name('onboarding.')->group(function () {
     Route::delete('companies/{company}', [CompanyController::class, 'destroy'])->name('companies.destroy');
     Route::post('companies/import', [CompanyController::class, 'import'])->name('companies.import');
     Route::get('companies/import-template.{format}', [CompanyController::class, 'template'])->name('companies.template');
+
+    Route::get('basic-rate', [BasicRateController::class, 'edit'])->name('basic-rate.edit');
+    Route::put('basic-rate', [BasicRateController::class, 'update'])->name('basic-rate.update');
+    Route::post('basic-rate/preview', [BasicRateController::class, 'preview'])->name('basic-rate.preview');
 
     Route::post('skips/{step}', [OnboardingSkipController::class, 'store'])->name('skips.store');
     Route::delete('skips/{step}', [OnboardingSkipController::class, 'destroy'])->name('skips.destroy');

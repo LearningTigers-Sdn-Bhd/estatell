@@ -16,7 +16,7 @@ beforeEach(function () {
 test('the owner skips an optional step and lands on the next listed step', function () {
     $this->actingAs($this->owner)
         ->post(route('onboarding.skips.store', [$this->property->code, OnboardingStep::Companies->value]))
-        ->assertRedirect(route('onboarding.go-live.show', $this->property->code))
+        ->assertRedirect(route('onboarding.basic-rate.edit', $this->property->code))
         ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Companies skipped.']);
 
     expect(OnboardingSkip::query()->where('property_id', $this->property->id)->where('step', OnboardingStep::Companies)->exists())->toBeTrue();

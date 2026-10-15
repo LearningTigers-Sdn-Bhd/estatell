@@ -99,7 +99,7 @@ test('saving adds a company with the fields of the row and turns City ledger on'
 
     ($this->save)([companyRow('Petronas Carigali', ['contact_phone' => '012-345 6789', 'brn' => '201901234567'])])
         ->assertSessionHasNoErrors()
-        ->assertRedirect(route('onboarding.go-live.show', $this->property->code))
+        ->assertRedirect(route('onboarding.basic-rate.edit', $this->property->code))
         ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Companies saved. City ledger turned on in Payment methods.']);
 
     $company = $this->property->companies()->sole();

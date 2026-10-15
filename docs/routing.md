@@ -112,6 +112,9 @@ After login, an Owner of a non-live property is redirected to `/p/{their code}/o
 | `DELETE /p/ES10142/onboarding/companies/{company}`                 | `onboarding.companies.destroy`        | Remove a company nothing refers to              |
 | `POST /p/ES10142/onboarding/companies/import`                      | `onboarding.companies.import`         | Read a CSV or XLSX file into rows (JSON)        |
 | `GET /p/ES10142/onboarding/companies/import-template.csv`          | `onboarding.companies.template`       | Download the empty Simple file                  |
+| `GET /p/ES10142/onboarding/basic-rate`                             | `onboarding.basic-rate.edit`          | `pages/onboarding/basic-rate.tsx`               |
+| `PUT /p/ES10142/onboarding/basic-rate`                             | `onboarding.basic-rate.update`        | Save the Basic rate table                       |
+| `POST /p/ES10142/onboarding/basic-rate/preview`                    | `onboarding.basic-rate.preview`       | What the guest pays for the rows (JSON)         |
 | `GET /admin`                                                       | `admin.dashboard`                     | `pages/admin/dashboard.tsx`                     |
 | `GET /admin/settings`                                              | `admin.settings.edit`                 | `pages/admin/settings/edit.tsx`                 |
 | `GET /admin/properties`                                            | `admin.properties.index`              | `pages/admin/properties/index.tsx`              |

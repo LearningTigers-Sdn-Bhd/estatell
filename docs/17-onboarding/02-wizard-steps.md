@@ -398,7 +398,7 @@ A rate plan has one pricing basis, so the rows map to one plan per basis used:
 - Switching the seeded plan's basis uses a new `ChangeRatePlanBasis`, allowed only before go-live. After go-live the basis is fixed, as today.
 - Switching a row with saved prices asks first (AlertDialog: "Switching Longhouse to per guest clears its prices.").
 - A plan left with no room types is archived.
-- Room types added later link to the seeded plan (Basic Rate / Room when mixed). To verify how `SeedRatePlans` finds that plan without a flag.
+- Room types added later link to the first active plan that fits (`ReconcileRoomTypeRatePlans`, by position), which is the seeded plan. A plan counts as a Basic Rate plan by its name (`Basic Rate`, `Basic Rate / Room`, `Basic Rate / Guest`), when it is active, follows no plan and prices per room or per guest (`BasicRatePlans`). There is no flag.
 
 **More rates**
 
@@ -406,7 +406,7 @@ A rate plan has one pricing basis, so the rows map to one plan per basis used:
 - **Price** menu: one "Follows {plan}" per Basic Rate plan ("Follows Basic rate" when there is one), or **Own prices**.
 - Follows: **More** or **Less**, an amount, **RM** or **%** (`CreateDerivedRatePlan`: direction, value, derivation). An amount is per unit of the parent basis ("per guest" on a Guest parent). An example column shows the result for the first room type's weekday price (server). Room types: only the parent's.
 - Own prices: `CreateRatePlan` and `SaveRates`, with a nested grid of the selected room types and the same **Price by** column. Mixed rows split the same way ("Long stay / Room", "Long stay / Guest").
-- **Room types** is a multi-select, All by default, select and deselect both ways, at least one ("Pick at least one room type"). Saved rows use `RatePlanRoomTypesRequest`. To verify whether `SaveRates` keeps a deselected room type's amounts for reselecting.
+- **Room types** is a multi-select, All by default, select and deselect both ways, at least one ("Pick at least one room type"). Saved rows use `RatePlanRoomTypesRequest`. `SaveRates` never deletes the amounts of a room type it is not given, so a deselected room type keeps its amounts for reselecting.
 - Saved rows: name, change and room types are editable (`SaveRatePlanDerivation`). Switching Own prices to Follows clears own amounts and asks first. 🗑 archives (`ArchiveRatePlan`).
 - When a follower's room type moves to the other basis, it drops off the follower and the row shows an error. Nothing moves silently.
 - A rate's name does not add breakfast to the bill. The hint: "After you go live, you can include meals in Settings, under Rate plans."
@@ -417,6 +417,13 @@ A rate plan has one pricing basis, so the rows map to one plan per basis used:
 - One submit, one transaction: plan bases and names, room type links, `SaveRates` per own-price plan from today to today + 364 (property time zone), then the more rates. Re-saving replaces the amounts in that range. That is safe before go-live, because the rate calendar is behind the fence.
 - At phone width each row stacks into a card.
 - Check: every room-sold room type has prices for the next 30 days on its Basic Rate plan. More rates never block.
+- The save is `SaveOnboardingBasicRate`, called through `SaveBasicRateRequest` (`weekend_nights`, `same_every_night`, and one row per room-sold room type with `price_by` `per_room` or `per_guest`, `weekday` and `weekend`). It writes `weekend_nights` through `UpdatePropertySettings`, then reuses an existing Basic Rate plan of each basis, switches a leftover plan with `ChangeRatePlanBasis`, or creates one with `CreateRatePlan`. Links are set in two passes (add, then remove) so a room type that moves is never without a plan, and a plan left empty is archived. A refused step rolls everything back and shows an error toast.
+- `ChangeRatePlanBasis` runs only while the property is onboarding, on a plan that follows no plan and has no followers. It deletes the plan's rates, and moves the child prices: a plan entering Per guest gets the starter ones, a plan leaving it loses them.
+- Prices are saved from today to today + 364 days in the property time zone. A Guest row saves the per-adult price as the rate amount, with no occupancy prices, so the price is the adult price times the adults.
+- The page reads the table back from the first 7 days of saved rates (`BasicRateRows`). **Same every night** starts selected when every saved row has one amount on all 7 nights.
+- The guest pays lines come from `OnboardingBasicRatePreview` (`onboarding.basic-rate.preview`): the room taxes for a local guest, and base occupancy times the price on a Guest row. A blank or half-typed price shows no line.
+- `BasicRateCheck`: Done when every room-sold room type has 30 days of prices on its Basic Rate plan, In progress when some do, Not started when none do.
+- **Built without More rates.** The More rates table comes in the next commit.
 
 ## Charge items table
 

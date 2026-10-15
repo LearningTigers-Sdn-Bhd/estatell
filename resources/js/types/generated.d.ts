@@ -963,6 +963,21 @@ email: string,
 password: string,
 propertyName: string,
 };
+export type OnboardingBasicRatePreviewData = {
+roomTypeId: number,
+adults: number,
+weekdayTotal: string | null,
+weekendTotal: string | null,
+};
+export type OnboardingBasicRateRowData = {
+roomTypeId: number,
+name: string,
+priceBy: App.Enums.PricingBasis,
+weekday: string | null,
+weekend: string | null,
+hasSavedPrices: boolean,
+baseOccupancy: number,
+};
 export type OnboardingCompanyData = {
 id: number,
 name: string,

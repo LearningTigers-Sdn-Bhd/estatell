@@ -17,7 +17,7 @@ test('onboarding pages share the progress of listed steps only', function () {
         ->get(route('onboarding.basics.edit', $this->property->code))
         ->assertInertia(fn (Assert $page) => $page
             ->component('onboarding/basics')
-            ->has('onboarding.phases', 4)
+            ->has('onboarding.phases', 5)
             ->where('onboarding.phases.0.value', 'property')
             ->where('onboarding.phases.0.state', 'in_progress')
             ->has('onboarding.phases.0.steps', 1)
@@ -31,10 +31,13 @@ test('onboarding pages share the progress of listed steps only', function () {
             ->where('onboarding.phases.2.steps.0.value', 'taxes')
             ->where('onboarding.phases.2.steps.1.value', 'payment_methods')
             ->where('onboarding.phases.2.steps.2.value', 'companies')
-            ->where('onboarding.phases.3.value', 'review')
+            ->where('onboarding.phases.3.value', 'prices')
             ->has('onboarding.phases.3.steps', 1)
-            ->where('onboarding.phases.3.steps.0.value', 'review')
-            ->where('onboarding.phases.3.steps.0.url', route('onboarding.go-live.show', $this->property->code, absolute: false))
+            ->where('onboarding.phases.3.steps.0.value', 'basic_rate')
+            ->where('onboarding.phases.4.value', 'review')
+            ->has('onboarding.phases.4.steps', 1)
+            ->where('onboarding.phases.4.steps.0.value', 'review')
+            ->where('onboarding.phases.4.steps.0.url', route('onboarding.go-live.show', $this->property->code, absolute: false))
             ->where('onboarding.requiredDone', 0)
             ->where('onboarding.requiredTotal', 7)
             ->where('onboarding.remainingMinutes', 13));
@@ -100,6 +103,7 @@ test('review opens go-live and is the last listed step', function () {
         ->and(OnboardingStep::Rooms->nextListed())->toBe(OnboardingStep::Taxes)
         ->and(OnboardingStep::Taxes->nextListed())->toBe(OnboardingStep::PaymentMethods)
         ->and(OnboardingStep::PaymentMethods->nextListed())->toBe(OnboardingStep::Companies)
-        ->and(OnboardingStep::Companies->nextListed())->toBe(OnboardingStep::Review)
-        ->and(array_map(fn (OnboardingStep $step): OnboardingStep => $step, OnboardingStep::listed()))->toBe([OnboardingStep::Basics, OnboardingStep::RoomTypes, OnboardingStep::Rooms, OnboardingStep::Taxes, OnboardingStep::PaymentMethods, OnboardingStep::Companies, OnboardingStep::Review]);
+        ->and(OnboardingStep::Companies->nextListed())->toBe(OnboardingStep::BasicRate)
+        ->and(OnboardingStep::BasicRate->nextListed())->toBe(OnboardingStep::Review)
+        ->and(array_map(fn (OnboardingStep $step): OnboardingStep => $step, OnboardingStep::listed()))->toBe([OnboardingStep::Basics, OnboardingStep::RoomTypes, OnboardingStep::Rooms, OnboardingStep::Taxes, OnboardingStep::PaymentMethods, OnboardingStep::Companies, OnboardingStep::BasicRate, OnboardingStep::Review]);
 });
