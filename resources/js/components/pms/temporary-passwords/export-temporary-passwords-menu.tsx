@@ -21,12 +21,14 @@ export function ExportTemporaryPasswordsMenu({
     userIds,
     formats,
     size = 'default',
+    side = 'bottom',
 }: {
     /** The route that sends the file, for example `exportMethod()` from the staff or partner temp password routes. */
     route: RouteDefinition<'post'>;
     userIds: number[];
     formats: EnumOption[];
     size?: 'default' | 'sm';
+    side?: 'top' | 'bottom';
 }) {
     const [busy, setBusy] = useState(false);
 
@@ -70,7 +72,7 @@ export function ExportTemporaryPasswordsMenu({
                 Export
                 <ChevronDown data-icon="inline-end" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent side={side} align="end">
                 {formats.map((format) => (
                     <DropdownMenuItem
                         key={format.value}

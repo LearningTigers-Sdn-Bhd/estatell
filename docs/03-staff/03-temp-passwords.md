@@ -55,10 +55,12 @@ Staff                                      [Add staff ▾]
 │☐ │ Ali Hassan   │ ali@hotel.com │ Front desk │ Temp password · 9d│
 │☐ │ Siti Aminah  │ siti@...      │ Housekeep. │ Active            │
 └──┴──────────────┴───────────────┴────────────┴───────────────────┘
-Selected (1): [Copy message] [Export ▾ CSV · XLSX · PDF] [Reset temp password]
+Floating bottom bar:
+1 selected   [Copy message] [Export ▾ CSV · XLSX · PDF] [Reset password] [×]
 ```
 
-- Rows can be selected only by users with `staff.manage`. A bar above the table shows **Selected (n)**, **Copy message**, **Export**, **Reset password** (one confirm for all) and **Clear**.
+- Rows can be selected only by users with `staff.manage`. The shared `BulkActionBar` floats at the bottom of the page content, below the table. It shows **n selected**, **Copy message**, **Export**, **Reset password** (one confirm for all) and a Clear icon.
+- On mobile, the count and Clear occupy the first row. Actions wrap below them. Export opens upwards. Esc clears the selection unless a menu or dialog is open.
 - The Status column shows **Temp password · Nd** (days left) or **Temp password expired**.
 - Copy and export use only selected rows with an unexpired temp password. Other rows are skipped and the toast names the count, for example "1 skipped: no temp password".
 - The page never receives temp passwords as props. Copy fetches the text from the message route; exports are downloads.

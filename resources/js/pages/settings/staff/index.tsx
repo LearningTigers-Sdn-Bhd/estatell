@@ -14,6 +14,7 @@ import {
     X,
 } from 'lucide-react';
 import { useState } from 'react';
+import { BulkActionBar } from '@/components/pms/bulk-action-bar';
 import { DateText } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
@@ -538,10 +539,7 @@ function SelectionBar({
     onClear: () => void;
 }) {
     return (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/50 px-3 py-2">
-            <span className="text-sm font-medium">
-                Selected ({selected.length})
-            </span>
+        <BulkActionBar count={selected.length} onClear={onClear} stackOnMobile>
             <Button
                 variant="outline"
                 size="sm"
@@ -554,6 +552,7 @@ function SelectionBar({
                 userIds={selected}
                 formats={exportFormats}
                 size="sm"
+                side="top"
             />
             <ResetTemporaryPassword
                 route={reset()}
@@ -566,15 +565,7 @@ function SelectionBar({
                     onClear();
                 }}
             />
-            <Button
-                variant="ghost"
-                size="sm"
-                className="ms-auto"
-                onClick={onClear}
-            >
-                Clear
-            </Button>
-        </div>
+        </BulkActionBar>
     );
 }
 
@@ -606,15 +597,7 @@ function ActiveStaff({
         );
 
     return (
-        <div className="flex flex-col gap-3">
-            {canManage && selected.length > 0 && (
-                <SelectionBar
-                    selected={selected}
-                    exportFormats={exportFormats}
-                    onShowMessage={onShowMessage}
-                    onClear={() => setSelected([])}
-                />
-            )}
+        <div className="flex flex-1 flex-col gap-3">
             <div className="overflow-hidden rounded-lg border">
                 <Table>
                     <TableHeader>
@@ -716,6 +699,14 @@ function ActiveStaff({
                     </TableBody>
                 </Table>
             </div>
+            {canManage && selected.length > 0 && (
+                <SelectionBar
+                    selected={selected}
+                    exportFormats={exportFormats}
+                    onShowMessage={onShowMessage}
+                    onClear={() => setSelected([])}
+                />
+            )}
         </div>
     );
 }
@@ -947,7 +938,8 @@ export default function StaffIndex({
                 <TabLinks
                     activeTab={tab}
                     panelWidth="full"
-                    className="gap-4"
+                    className="flex-1 gap-4"
+                    panelClassName="flex flex-1 flex-col"
                     tabs={[
                         {
                             value: 'active',

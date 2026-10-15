@@ -79,7 +79,7 @@ export function BulkActionBar({
                     className={cn(
                         'ml-auto flex items-center gap-2',
                         stackOnMobile &&
-                            'order-3 w-full justify-end sm:order-none sm:w-auto',
+                            'order-3 w-full flex-wrap justify-end sm:order-none sm:w-auto sm:flex-nowrap',
                     )}
                 >
                     {children}
