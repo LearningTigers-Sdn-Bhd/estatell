@@ -131,6 +131,7 @@ export function BusinessDetailsFields({
                     </FieldLabel>
                     <Input
                         id="registration_number"
+                        placeholder="e.g. 202301012345"
                         value={values.registration_number}
                         maxLength={100}
                         onChange={(event) =>
@@ -144,6 +145,7 @@ export function BusinessDetailsFields({
                     <FieldLabel htmlFor="tin">{tinLabel}</FieldLabel>
                     <Input
                         id="tin"
+                        placeholder="e.g. C1234567890"
                         value={values.tin}
                         maxLength={50}
                         onChange={(event) =>

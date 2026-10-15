@@ -156,6 +156,7 @@ export default function Basics({
                                 </FieldLabel>
                                 <Input
                                     id="name"
+                                    placeholder="e.g. Seaview Lodge"
                                     value={form.data.name}
                                     onChange={(event) =>
                                         form.setData('name', event.target.value)
@@ -245,6 +246,7 @@ export default function Basics({
                                 ) : (
                                     <Input
                                         id="state_code"
+                                        placeholder="e.g. Bali"
                                         value={form.data.state_code}
                                         onChange={(event) =>
                                             form.setData(
@@ -305,6 +307,7 @@ export default function Basics({
                                 </FieldLabel>
                                 <Input
                                     id="address_line1"
+                                    placeholder="e.g. 12 Jalan Pantai"
                                     value={form.data.address_line1}
                                     onChange={(event) =>
                                         form.setData(
@@ -324,6 +327,7 @@ export default function Basics({
                                 </FieldLabel>
                                 <Input
                                     id="address_line2"
+                                    placeholder="e.g. Unit, floor or building"
                                     value={form.data.address_line2}
                                     onChange={(event) =>
                                         form.setData(
@@ -341,6 +345,7 @@ export default function Basics({
                                 <FieldLabel htmlFor="city">City</FieldLabel>
                                 <Input
                                     id="city"
+                                    placeholder="e.g. Kota Kinabalu"
                                     value={form.data.city}
                                     onChange={(event) =>
                                         form.setData('city', event.target.value)
@@ -355,6 +360,7 @@ export default function Basics({
                                 </FieldLabel>
                                 <Input
                                     id="postal_code"
+                                    placeholder="e.g. 88000"
                                     value={form.data.postal_code}
                                     onChange={(event) =>
                                         form.setData(
