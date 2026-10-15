@@ -28,6 +28,7 @@ import {
     Users,
     User,
     Utensils,
+    Waypoints,
     Wallet,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -38,6 +39,7 @@ const icons: Record<string, LucideIcon> = {
     'layout-grid': LayoutGrid,
     building: Building2,
     handshake: Handshake,
+    waypoints: Waypoints,
     bed: Bed,
     'door-open': DoorOpen,
     'id-card': IdCard,

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\OtaChannelController;
 use App\Http\Controllers\Admin\OwnerSetupLinkController;
 use App\Http\Controllers\Admin\PartnerBulkAddController;
 use App\Http\Controllers\Admin\PartnerCanCreatePropertiesController;
@@ -44,6 +45,11 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
     Route::post('partners/invitations', [PartnerInvitationController::class, 'store'])->middleware('support.2fa')->name('partners.invitations.store');
     Route::post('partners/invitations/{partnerInvitation}/resend', [PartnerInvitationController::class, 'resend'])->middleware('support.2fa')->name('partners.invitations.resend');
     Route::delete('partners/invitations/{partnerInvitation}', [PartnerInvitationController::class, 'destroy'])->middleware('support.2fa')->name('partners.invitations.destroy');
+    Route::get('channels', [OtaChannelController::class, 'index'])->name('channels.index');
+    Route::post('channels', [OtaChannelController::class, 'store'])->middleware('support.2fa')->name('channels.store');
+    Route::put('channels/order', [OtaChannelController::class, 'reorder'])->middleware('support.2fa')->name('channels.reorder');
+    Route::put('channels/{channel}', [OtaChannelController::class, 'update'])->whereNumber('channel')->middleware('support.2fa')->name('channels.update');
+    Route::put('channels/{channel}/active', [OtaChannelController::class, 'active'])->whereNumber('channel')->middleware('support.2fa')->name('channels.active.update');
     Route::get('settings', [PlatformSettingsController::class, 'edit'])->name('settings.edit');
     Route::put('settings', [PlatformSettingsController::class, 'update'])->middleware('support.2fa')->name('settings.update');
     Route::get('settings/channels', [PlatformSettingsController::class, 'channels'])->name('settings.channels');

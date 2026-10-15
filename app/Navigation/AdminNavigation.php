@@ -19,6 +19,7 @@ class AdminNavigation
             new NavItemData(title: __('Properties'), href: route('admin.properties.index', absolute: false), icon: 'building'),
             new NavItemData(title: __('Partners'), href: route('admin.partners.index', absolute: false), icon: 'handshake'),
             new NavItemData(title: __('Settings'), href: route('admin.settings.edit', absolute: false), icon: 'settings', active: request()->routeIs('admin.settings.*')),
+            new NavItemData(title: __('Channels'), href: route('admin.channels.index', absolute: false), icon: 'waypoints', active: request()->routeIs('admin.channels.*')),
             new NavItemData(title: __('Horizon'), href: route('horizon.index', absolute: false), icon: 'activity', external: true),
         ];
     }

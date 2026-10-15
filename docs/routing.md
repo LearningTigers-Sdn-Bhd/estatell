@@ -127,6 +127,11 @@ Guest bulk actions use `POST /p/{code}/guests/bulk/{operation}`: `mark-vip`, `un
 | `GET /admin/partners`                                              | `admin.partners.index`                | `pages/admin/partners/index.tsx`                |
 | `GET /admin/partners/invited`                                      | `admin.partners.invited`              | `pages/admin/partners/index.tsx`                |
 | `GET /admin/partners/bulk`                                         | `admin.partners.bulk.create`          | `pages/admin/partners/bulk.tsx`                 |
+| `GET /admin/channels`                                              | `admin.channels.index`                | `pages/admin/channels/index.tsx`                |
+| `POST /admin/channels`                                             | `admin.channels.store`                | –                                               |
+| `PUT /admin/channels/order`                                        | `admin.channels.reorder`              | –                                               |
+| `PUT /admin/channels/3`                                            | `admin.channels.update`               | –                                               |
+| `PUT /admin/channels/3/active`                                     | `admin.channels.active.update`        | –                                               |
 | `GET /partner-invitations/{token}`                                 | `partner-invitations.show`            | `pages/partner-invitations/accept.tsx`          |
 | `GET /command-search?q=ah`                                         | `command-search`                      | – (JSON, grouped palette results)               |
 | `GET /view-as/ES10142`                                             | `view-as.show`                        | `pages/view-as/show.tsx`                        |

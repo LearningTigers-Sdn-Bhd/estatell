@@ -216,6 +216,16 @@ registrationNumber: string | null,
 enabled: boolean,
 };
 }
+namespace Channels {
+export type OtaChannelData = {
+id: number,
+code: string,
+name: string,
+sortOrder: number,
+isActive: boolean,
+isOther: boolean,
+};
+}
 namespace CityLedger {
 export type AgingReportData = {
 asAt: string,
