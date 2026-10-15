@@ -633,9 +633,9 @@ Editing an earlier section never resets a later one. A later section only shows 
 ┌──────────────────────────────────────────────────────────────────────┐
 │ estatell · Seaview Lodge                               [user menu ▾] │
 ├──────────────────────────────────────────────────────────────────────┤
-│ ✓ Property ▸ ✓ Rooms ▸ ● Finance ▸ 🔒 Prices ▸ Check-in ▸ Team ▸ …    │ phase bar
+│ ✓ Property ❯ ✓ Rooms ❯ ● Finance ❯ 🔒 Prices ❯ Check-in ❯ Team ❯ …   │ phase bar
 ├──────────────────────────────────────────────────────────────────────┤
-│ Finance:  ✓ Taxes · ● Payment methods · ○ Companies                  │ stepper
+│ ✓ 1. Taxes   2. Payment methods   3. Companies                       │ section tabs
 ├──────────────────────────────────────────────────────────────────────┤
 │ Payment methods                                           ~1 min     │
 │ ...section form...                                                   │ scrolls
@@ -646,7 +646,7 @@ Editing an earlier section never resets a later one. A later section only shows 
 
 - Its own onboarding layout (`layouts/onboarding-layout.tsx`). Pages set its footer and step with Inertia 3 `setLayoutProps`. No PMS sidebar, no ⌘K command palette, no business date, no notifications bell, and no links to settings, rates or the dashboard. The phase bar and stepper do the sidebar's job, and the full width fits the section tables.
 - **Top bar**: logo, property name and code (not a link), progress ("Setup 6 of 9 required · ~18 min" from `OnboardingProgress` and `estimatedMinutes()`), a **Help** Popover (short guide and support contact, and a note when support access is on), and the user menu (account pages and **Log out**, no property switcher). The impersonation banner sits above the top bar during view as.
-- The content column is centred with a max width close to a settings page.
+- The phase bar and the section tabs use the full viewport width. The phase bar is a row of equal-width arrow-shaped segments (done: light green, current: solid green, others: muted). The section tabs are numbered text tabs on a light band, with an underline on the current one. The form content column below is centred with a max width close to a settings page.
 - **Navigation**: the phase bar, the stepper and the phone section list link to every section. **Save & continue** saves and opens the next section in number order, even a locked one (as a preview). Leaving an edited section opens the dirty-form AlertDialog (**Cancel**, **Discard**, **Save**, see [Form containers](../design-system/05-form-containers.md)).
 - **Footer**: **Back**, **Skip** (optional sections only) and **Save & continue**. A preview has **Back** and **Next**. Go live shows **Back** only until every required section is Done.
 - **Phone width**: the top bar keeps the property name, Help and the user menu. The phase bar becomes one line ("Finance · 5 of 13") with a progress bar and **☰**, which opens a bottom Sheet listing every phase and section with its state. The footer shows **←** and the main button, and **Skip** where the step allows it.

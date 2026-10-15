@@ -18,19 +18,36 @@ import { cn } from 'cn';
 export function OnboardingStepLink({
     step,
     current = false,
+    variant = 'pill',
+    first = false,
     className,
     onNavigate,
 }: {
     step: OnboardingStep;
     current?: boolean;
+    variant?: 'pill' | 'segment' | 'tab';
+    first?: boolean;
     className?: string;
     onNavigate?: () => void;
 }) {
     const locked = step.state === 'locked';
     const content = (
         <>
-            <OnboardingStateIcon state={step.state} number={step.number} />
-            <span className="min-w-0 truncate">{step.label}</span>
+            {variant === 'tab' ? (
+                step.state !== 'not_started' &&
+                step.state !== 'in_progress' && (
+                    <OnboardingStateIcon
+                        state={step.state}
+                        number={step.number}
+                    />
+                )
+            ) : (
+                <OnboardingStateIcon state={step.state} number={step.number} />
+            )}
+            <span className="min-w-0 truncate">
+                {variant === 'tab' && `${step.number}. `}
+                {step.label}
+            </span>
             <span className="sr-only">
                 {stateWord[step.state]}
                 {locked ? ', preview' : ''}
@@ -38,10 +55,31 @@ export function OnboardingStepLink({
         </>
     );
     const classes = cn(
-        'flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-sm outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
-        current
-            ? 'bg-accent font-medium text-accent-foreground'
-            : 'text-foreground hover:bg-accent/60',
+        'flex min-w-0 items-center gap-2 text-sm outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
+        variant === 'pill' &&
+            cn(
+                'rounded-md px-2 py-1.5',
+                current
+                    ? 'bg-accent font-medium text-accent-foreground'
+                    : 'text-foreground hover:bg-accent/60',
+            ),
+        variant === 'segment' &&
+            cn(
+                'h-10 w-full justify-center px-5 font-medium focus-visible:ring-inset',
+                first ? 'chevron-first' : 'chevron',
+                current
+                    ? 'bg-primary text-primary-foreground'
+                    : step.state === 'done'
+                      ? 'bg-primary/10 text-foreground hover:bg-primary/20'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/70',
+            ),
+        variant === 'tab' &&
+            cn(
+                'h-11 border-b-2 px-4 focus-visible:ring-inset',
+                current
+                    ? 'border-primary font-medium text-foreground'
+                    : 'border-transparent text-muted-foreground hover:text-foreground',
+            ),
         className,
     );
 

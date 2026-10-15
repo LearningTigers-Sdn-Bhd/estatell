@@ -285,3 +285,25 @@
     --color-grid-today-soft: var(--grid-today-soft);
     --color-grid-muted-foreground: var(--grid-muted-foreground);
 }
+
+/* Arrow-shaped phase segments of the onboarding phase bar. */
+@utility chevron {
+    clip-path: polygon(
+        0 0,
+        calc(100% - 0.75rem) 0,
+        100% 50%,
+        calc(100% - 0.75rem) 100%,
+        0 100%,
+        0.75rem 50%
+    );
+}
+
+@utility chevron-first {
+    clip-path: polygon(
+        0 0,
+        calc(100% - 0.75rem) 0,
+        100% 50%,
+        calc(100% - 0.75rem) 100%,
+        0 100%
+    );
+}

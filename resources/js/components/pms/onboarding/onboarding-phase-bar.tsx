@@ -22,6 +22,7 @@ import {
     SheetTitle,
     SheetTrigger,
 } from '@/components/ui/sheet';
+import { cn } from 'cn';
 import { useState } from 'react';
 
 /**
@@ -47,18 +48,15 @@ export function OnboardingPhaseBar({
 
     return (
         <div className="shrink-0 border-b bg-background">
-            <div className="hidden px-4 md:block">
-                <nav
-                    aria-label="Phases"
-                    className="mx-auto max-w-180 overflow-x-auto"
-                >
-                    <ol className="flex items-center gap-1 py-2">
+            <div className="hidden md:block">
+                <nav aria-label="Phases" className="overflow-x-auto px-4 py-2">
+                    <ol className="flex items-center">
                         {progress.phases.map((item, index) => (
                             <PhaseItem
                                 key={item.value}
                                 phase={item}
                                 current={item.value === phase?.value}
-                                separator={index > 0}
+                                first={index === 0}
                             />
                         ))}
                     </ol>
@@ -66,14 +64,15 @@ export function OnboardingPhaseBar({
                 {phase !== null && (
                     <nav
                         aria-label={`${phase.label} sections`}
-                        className="mx-auto max-w-180 border-t pt-1 pb-1"
+                        className="border-t bg-muted/40 px-4"
                     >
-                        <ol className="flex flex-wrap items-center gap-x-1">
+                        <ol className="flex flex-wrap items-center">
                             {phase.steps.map((item) => (
                                 <li key={item.value}>
                                     <OnboardingStepLink
                                         step={item}
                                         current={item.value === step}
+                                        variant="tab"
                                     />
                                 </li>
                             ))}
@@ -106,28 +105,23 @@ export function OnboardingPhaseBar({
 function PhaseItem({
     phase,
     current,
-    separator,
+    first,
 }: {
     phase: OnboardingPhase;
     current: boolean;
-    separator: boolean;
+    first: boolean;
 }) {
-    const first = phase.steps[0];
-
     return (
-        <li className="flex items-center gap-1">
-            {separator && (
-                <span aria-hidden className="px-1 text-muted-foreground">
-                    ▸
-                </span>
-            )}
+        <li className={cn('min-w-0 flex-1', !first && '-ml-2')}>
             <OnboardingStepLink
                 step={{
-                    ...first,
+                    ...phase.steps[0],
                     label: phase.label,
                     state: phase.state,
                 }}
                 current={current}
+                variant="segment"
+                first={first}
             />
         </li>
     );
