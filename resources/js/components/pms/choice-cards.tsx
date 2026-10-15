@@ -9,6 +9,7 @@ import {
     FieldSet,
 } from '@/components/ui/field';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { cn } from '@/lib/utils';
 
 export type Choice = {
     value: string;
@@ -31,6 +32,7 @@ export function ChoiceCards({
     disabled,
     error,
     className,
+    radioPosition = 'left',
 }: {
     id: string;
     name?: string;
@@ -41,6 +43,7 @@ export function ChoiceCards({
     disabled?: boolean;
     error?: string;
     className?: string;
+    radioPosition?: 'left' | 'right';
 }) {
     return (
         <FieldSet className={className} data-invalid={!!error}>
@@ -62,7 +65,10 @@ export function ChoiceCards({
                                 id={`${id}-${choice.value}`}
                                 value={choice.value}
                                 aria-invalid={!!error}
-                                className="mt-0.5"
+                                className={cn(
+                                    'mt-0.5',
+                                    radioPosition === 'right' && 'order-last',
+                                )}
                             />
                             <FieldContent>
                                 <span className="flex items-center gap-2 text-sm font-medium">

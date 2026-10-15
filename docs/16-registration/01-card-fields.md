@@ -74,7 +74,15 @@ The Registration card page is its own Settings sidebar item (`settings.manage`),
 | Layout  | `…/registration-card/layout`           | The fields table and a live preview.                                                                                                                    |
 | Terms   | `…/registration-card/terms`            | The terms editor, with a language Select. See [Terms documents and presets](02-terms-documents-and-presets.md). Needs `registration-card.manage-terms`. |
 
-General opens first. The Layout tab is full width, in a three-column grid. The table takes two columns and the preview takes one:
+General opens first. It uses one vertical form:
+
+- **Who completes a card** uses radio cards with descriptions: Primary guest only (one card for the primary guest) or Every adult (each adult completes their own card).
+- **Require card before check-in** sits directly below the scope choice. Staff with override permission can bypass the requirement.
+- **ID document retention (days)** has the placeholder “e.g. 90”. Leaving it blank keeps ID photos; document numbers stay when photos are deleted.
+- **Security deposit** uses radio cards: Do not collect or Collect a deposit. Collect shows the amount input with the placeholder “e.g. 100.00”. Do not collect saves zero through the existing amount field. Switching between the choices keeps an unsaved amount until the page is left.
+- Radio cards place the radio indicator on the right. Cards sit side by side on larger screens and stack on mobile. **Save changes** saves the form. Layout and Terms are unchanged.
+
+The Layout tab is full width, in a three-column grid. The table takes two columns and the preview takes one:
 
 ```
 ┌───────────────────────────────────────┬───────────────────────┐

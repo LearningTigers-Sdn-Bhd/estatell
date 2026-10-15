@@ -1,16 +1,10 @@
 import { Head } from '@inertiajs/react';
 import { FileText, SlidersHorizontal, TableProperties } from 'lucide-react';
-import RegistrationCardController from '@/actions/App/Http/Controllers/Registration/RegistrationCardController';
 import Heading from '@/components/heading';
 import type { EnumOption } from '@/components/pms/enum-select';
+import { RegistrationCardGeneralForm } from '@/components/pms/registration-card/registration-card-general-form';
 import { RegistrationCardLayoutForm } from '@/components/pms/registration-card/registration-card-layout-form';
 import { RegistrationCardTermsForm } from '@/components/pms/registration-card/registration-card-terms-form';
-import { SettingsSection } from '@/components/pms/settings-section';
-import {
-    SettingsInput,
-    SettingsSelect,
-    SettingsSwitch,
-} from '@/components/pms/settings/form-fields';
 import { TabLinks } from '@/components/pms/tab-links';
 import { edit as settingsEdit } from '@/routes/settings';
 import { general, layout, terms } from '@/routes/settings/registration-card';
@@ -79,55 +73,10 @@ export default function RegistrationCard({
                     ]}
                 >
                     {tab === 'general' && (
-                        <SettingsSection
-                            form={RegistrationCardController.update.form()}
-                            title="General"
-                            description="Guest signature, ID document, and deposit rules."
-                        >
-                            {(errors) => (
-                                <>
-                                    <SettingsSelect
-                                        name="registration_card_scope"
-                                        label="Who completes a card"
-                                        value={settings.registrationCardScope}
-                                        options={registrationCardScopes}
-                                        error={errors.registration_card_scope}
-                                    />
-                                    <SettingsInput
-                                        name="id_document_retention_days"
-                                        label="ID document retention (days)"
-                                        type="number"
-                                        min={1}
-                                        max={3650}
-                                        value={settings.idDocumentRetentionDays}
-                                        error={
-                                            errors.id_document_retention_days
-                                        }
-                                        description="ID scans older than this many days are deleted every night. The number stays. Leave blank to keep scans."
-                                    />
-                                    <SettingsInput
-                                        name="security_deposit_amount"
-                                        label="Security deposit amount"
-                                        type="number"
-                                        min={0}
-                                        step="0.01"
-                                        value={settings.securityDepositAmount}
-                                        error={errors.security_deposit_amount}
-                                    />
-                                    <SettingsSwitch
-                                        name="card_required_for_check_in"
-                                        label="Require card before check-in"
-                                        description="On: a guest cannot check in until the registration card is complete. Off: staff can check guests in without a card."
-                                        checked={
-                                            settings.cardRequiredForCheckIn
-                                        }
-                                        error={
-                                            errors.card_required_for_check_in
-                                        }
-                                    />
-                                </>
-                            )}
-                        </SettingsSection>
+                        <RegistrationCardGeneralForm
+                            settings={settings}
+                            scopes={registrationCardScopes}
+                        />
                     )}
                     {tab === 'layout' && (
                         <RegistrationCardLayoutForm
