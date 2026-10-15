@@ -5,6 +5,7 @@ use App\Http\Controllers\HomeRedirectController;
 use App\Http\Controllers\Platform\CommandSearchController;
 use App\Http\Controllers\Platform\ImpersonationController;
 use App\Http\Controllers\Platform\ViewAsController;
+use App\Http\Controllers\Property\PropertyLogoController;
 use App\Http\Middleware\EnsurePropertyAccess;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -27,8 +28,8 @@ Route::get('_preview/errors/{status}', function (Request $request, int $status):
 Route::get('dashboard', HomeRedirectController::class)->middleware('auth')->name('home.redirect');
 
 Route::middleware('auth')->group(function () {
-    Route::get('view-as/{property:code}', [ViewAsController::class, 'show'])->where(['property' => '[A-Za-z]{2}[0-9]{5,}'])->name('view-as.show');
     Route::get('command-search', CommandSearchController::class)->middleware(['verified', 'throttle:120,1'])->name('command-search');
+    Route::get('view-as/{property:code}', [ViewAsController::class, 'show'])->where(['property' => '[A-Za-z]{2}[0-9]{5,}'])->name('view-as.show');
     Route::post('view-as/{property:code}', [ViewAsController::class, 'store'])->where(['property' => '[A-Za-z]{2}[0-9]{5,}'])->middleware('support.2fa')->name('view-as.store');
     Route::post('impersonation/stop', [ImpersonationController::class, 'stop'])->name('impersonation.stop');
 });
@@ -42,6 +43,7 @@ Route::prefix('p/{property:code}')->where(['property' => '[A-Za-z]{2}[0-9]{5,}']
 
     Route::middleware('live')->group(function () {
         Route::get('dashboard', [DashboardController::class, 'show'])->name('dashboard');
+        Route::get('logo', [PropertyLogoController::class, 'show'])->name('property.logo');
 
         require __DIR__.'/night-audit.php';
         require __DIR__.'/rates.php';

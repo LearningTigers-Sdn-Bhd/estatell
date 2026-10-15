@@ -3,6 +3,7 @@ import AppLogo from '@/components/app-logo';
 import { AppearanceToggle } from '@/components/appearance-toggle';
 import { NavUser } from '@/components/nav-user';
 import { CommandPalette } from '@/components/pms/command-palette';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useInitials } from '@/hooks/use-initials';
 import { cn } from '@/lib/utils';
@@ -41,9 +42,19 @@ export function AppNavbar({
             >
                 {property ? (
                     <>
-                        <div className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-md bg-primary text-xs font-semibold text-primary-foreground">
-                            {getInitials(property.name)}
-                        </div>
+                        <Avatar
+                            key={property.logoUrl}
+                            className="overflow-hidden rounded-md after:rounded-md"
+                        >
+                            <AvatarImage
+                                src={property.logoUrl ?? undefined}
+                                alt=""
+                                className="rounded-md object-contain"
+                            />
+                            <AvatarFallback className="rounded-md bg-primary text-xs font-semibold text-primary-foreground">
+                                {getInitials(property.name)}
+                            </AvatarFallback>
+                        </Avatar>
                         <div className="grid min-w-0 text-left text-sm leading-tight">
                             <span className="truncate font-semibold">
                                 {property.name}

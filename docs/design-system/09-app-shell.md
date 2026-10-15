@@ -41,6 +41,8 @@ The staff shell has three rows: the full-width navbar; the workspace label and b
 
 The navbar is 3.5 rem high. In the staff shell, the navbar and workspace row stay outside the scrolling content. The shell is `h-svh`; the document cannot scroll or overscroll while that shell is mounted. Content and sidebar navigation scroll separately with `overscroll-none`, so reaching an edge does not move the navbar. Fixed grid pages keep their own internal scroll regions. Other layouts keep their existing scroll behavior.
 
+The property icon fits the uploaded logo inside a rounded square without cropping. With no logo, or if loading fails, it shows initials from that property's name. The shared `property.logoUrl` uses the property-scoped read-only `property.logo` route; viewing it does not require settings permission. Uploading and removing a logo still require `settings.manage`.
+
 ### Staff workspace row
 
 - `StaffWorkspaceHeader` shows the active server-provided context: Front desk, Finance, Reports or Settings. Its icon and label are display only, not a link or dropdown.

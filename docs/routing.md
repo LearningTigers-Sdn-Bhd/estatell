@@ -84,7 +84,8 @@ After login, an Owner of a non-live property is redirected to `/p/{their code}/o
 - Personal notification preferences use `GET /account/notifications` and `PUT /account/notifications/{type}/{channel}` (`account.notifications.edit` and `.update`). Both require verified property staff; platform admins receive 404.
 - Platform settings use separate GET and PUT pairs for `/admin/settings` (General), `/admin/settings/channels` and `/admin/settings/storage`. Every write needs `support.2fa` and updates only its section. Saving returns to the same tab. See [Platform settings](01-platform/02-platform-settings.md#routes-and-page).
 - `EnsurePropertyAccess` redirects suspended staff to the suspension notice after checking property ownership. The notice redirects to the dashboard when the property is active again. Account routes stay available.
-- Shared prop `property` (`PropertySummaryData`: code, name, status): the property in the URL, or the staff user's own property on pages without one (account pages). Null for admins outside `/p`.
+- `GET /p/{code}/logo` (`property.logo`) streams the private property logo for the staff navbar. It uses property.access, verified and live, with no settings permission. Upload and removal remain on the settings routes with `settings.manage`.
+- Shared prop `property` (`PropertySummaryData`: code, name, status, logoUrl): the property in the URL, or the staff user's own property on pages without one (account pages). `logoUrl` is null without a logo and includes the media ID as a cache version otherwise. Null for admins outside `/p`.
 
 ## Examples
 
@@ -127,8 +128,8 @@ Guest bulk actions use `POST /p/{code}/guests/bulk/{operation}`: `mark-vip`, `un
 | `GET /admin/partners/invited`                                      | `admin.partners.invited`              | `pages/admin/partners/index.tsx`                |
 | `GET /admin/partners/bulk`                                         | `admin.partners.bulk.create`          | `pages/admin/partners/bulk.tsx`                 |
 | `GET /partner-invitations/{token}`                                 | `partner-invitations.show`            | `pages/partner-invitations/accept.tsx`          |
-| `GET /view-as/ES10142`                                             | `view-as.show`                        | `pages/view-as/show.tsx`                        |
 | `GET /command-search?q=ah`                                         | `command-search`                      | – (JSON, grouped palette results)               |
+| `GET /view-as/ES10142`                                             | `view-as.show`                        | `pages/view-as/show.tsx`                        |
 | `GET /partner`                                                     | `partner.properties.index`            | `pages/partner/properties/index.tsx`            |
 | `GET /join/K7Q2MX`                                                 | `join`                                | Redirects to `/register`                        |
 | `GET /g/cards/5821?expires=…&signature=…`                          | `guest.cards.show`                    | `pages/guest/cards/show.tsx`                    |

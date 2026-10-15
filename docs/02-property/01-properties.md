@@ -107,7 +107,7 @@ The legal details, on the Details page, **Business licence** tab (`/p/{code}/set
 - The logo uploads as soon as a file is picked. It is not part of Save.
 - `UploadPropertyLogo` replaces the file. `RemovePropertyLogo` deletes it. Each logs `property.updated` with `logo`.
 - `settings.logo` streams the file to staff with `settings.manage`, for the browser previews. PDFs embed the file as a data URI, read from its disk.
-- The app shell and the guest registration screen can show it later. See [App shell](../design-system/09-app-shell.md).
+- The staff navbar shows the uploaded logo in the square beside the property name. It falls back to the property's name initials when no logo exists or the image fails to load. `property.logo` streams the private logo to verified staff of that live property without requiring `settings.manage`. Upload and removal permissions stay unchanged. The guest registration screen can show it later. See [App shell](../design-system/09-app-shell.md).
 
 | Route                                    | Name                                            |
 | ---------------------------------------- | ----------------------------------------------- |

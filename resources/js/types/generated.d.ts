@@ -1023,16 +1023,6 @@ isEditable: boolean,
 isRemovable: boolean,
 statusLabel: string,
 };
-export type OnboardingMoreRateData = {
-key: string,
-planIds: number[],
-name: string,
-mode: string,
-parentBasis: App.Enums.PricingBasis | null,
-direction: string,
-unit: string,
-amount: string | null,
-roomTypeIds: number[],
 export type OnboardingDiscountData = {
 id: number,
 name: string,
@@ -1046,6 +1036,16 @@ active: boolean,
 roomCharges: boolean,
 transactionCodeIds: number[],
 };
+export type OnboardingMoreRateData = {
+key: string,
+planIds: number[],
+name: string,
+mode: string,
+parentBasis: App.Enums.PricingBasis | null,
+direction: string,
+unit: string,
+amount: string | null,
+roomTypeIds: number[],
 prices: App.Data.Onboarding.OnboardingBasicRateRowData[],
 };
 export type OnboardingMoreRateExampleData = {
@@ -1379,6 +1379,7 @@ export type PropertySummaryData = {
 code: string,
 name: string,
 status: App.Enums.PropertyStatus,
+logoUrl: string | null,
 };
 export type WeekendNightsOptionData = {
 value: string,
