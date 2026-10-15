@@ -44,6 +44,7 @@ class ResetTemporaryPassword
                 'temporary_password' => $temporaryPassword,
                 'temporary_password_expires_at' => now()->addDays(CreateStaffWithTemporaryPassword::VALID_DAYS),
                 'must_change_password' => true,
+                'temporary_password_shared_at' => null,
             ])->save();
 
             activity()

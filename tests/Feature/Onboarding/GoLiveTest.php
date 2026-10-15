@@ -78,6 +78,15 @@ test('going live is refused while a required step is not done', function () {
         ->and(Activity::query()->where('event', 'property.went-live')->exists())->toBeFalse();
 });
 
+test('going live flashes wentLive for the dashboard', function () {
+    $owner = readyOnboardingOwner();
+
+    $this->actingAs($owner)
+        ->post(route('onboarding.go-live.store', $owner->property->code))
+        ->assertRedirect(route('dashboard', $owner->property->code))
+        ->assertInertiaFlash('wentLive', true);
+});
+
 test('going live opens today in the property time zone and ignores any date the form sends', function () {
     $this->travelTo(CarbonImmutable::parse('2026-10-10 17:30:00', 'UTC'));
     $owner = readyOnboardingOwner();

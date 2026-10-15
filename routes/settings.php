@@ -11,6 +11,7 @@ use App\Http\Controllers\Catalogues\RoomRevenueDayUseController;
 use App\Http\Controllers\Catalogues\RoomRevenuePolicyController;
 use App\Http\Controllers\Catalogues\TaxController;
 use App\Http\Controllers\Meals\MealPeriodController;
+use App\Http\Controllers\Onboarding\RecommendedItemDismissalController;
 use App\Http\Controllers\Property\AgeGroupController;
 use App\Http\Controllers\Property\NotificationSettingController;
 use App\Http\Controllers\Property\OtaListSettingsController;
@@ -110,6 +111,10 @@ Route::prefix('settings')->name('settings.')->group(function () {
             Route::post('{room}/beds/{bed}/archive', [BedController::class, 'archive'])->name('beds.archive');
             Route::post('{room}/beds/{bed}/restore', [BedController::class, 'restore'])->name('beds.restore');
         });
+    });
+
+    Route::prefix('recommended-items')->name('recommended-items.')->middleware('can:'.PermissionEnum::SettingsManage->value)->group(function () {
+        Route::post('dismissals', [RecommendedItemDismissalController::class, 'store'])->name('dismissals.store');
     });
 
     Route::prefix('room-groups')->name('room-groups.')->middleware('can:'.PermissionEnum::RoomsManage->value)->scopeBindings()->group(function () {

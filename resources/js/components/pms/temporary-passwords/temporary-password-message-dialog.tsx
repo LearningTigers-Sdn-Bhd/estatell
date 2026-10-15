@@ -28,6 +28,7 @@ export function TemporaryPasswordMessageDialog({
     userIds,
     open,
     onOpenChange,
+    onCopied,
 }: {
     /** The route that returns the message, for example `message()` from the staff or partner temp password routes. */
     route: RouteDefinition<'post'>;
@@ -36,6 +37,8 @@ export function TemporaryPasswordMessageDialog({
     userIds: number[];
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    /** Called when the owner copies the message. */
+    onCopied?: () => void;
 }) {
     const http = useHttp<{ user_ids: number[] }, MessageData>(route, {
         user_ids: userIds,
@@ -113,7 +116,12 @@ export function TemporaryPasswordMessageDialog({
                         type="button"
                         disabled={answer === null || answer.count === 0}
                         focusableWhenDisabled
-                        onClick={() => answer && void copy(answer.text)}
+                        onClick={() => {
+                            if (answer) {
+                                void copy(answer.text);
+                                onCopied?.();
+                            }
+                        }}
                     >
                         {copied ? (
                             <Check data-icon="inline-start" />

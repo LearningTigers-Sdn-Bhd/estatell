@@ -26,6 +26,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property string $password
  * @property string|null $temporary_password
  * @property CarbonImmutable|null $temporary_password_expires_at
+ * @property CarbonImmutable|null $temporary_password_shared_at
  * @property bool $must_change_password
  * @property bool $is_admin
  * @property CarbonImmutable|null $deactivated_at
@@ -56,6 +57,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'password' => 'hashed',
             'temporary_password' => 'encrypted',
             'temporary_password_expires_at' => 'datetime',
+            'temporary_password_shared_at' => 'datetime',
             'must_change_password' => 'boolean',
             'is_admin' => 'boolean',
             'deactivated_at' => 'datetime',

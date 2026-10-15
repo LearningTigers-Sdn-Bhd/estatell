@@ -13,6 +13,7 @@ class ExportTemporaryPasswords
 {
     /**
      * Read the sign-in details of the given staff who still have an unexpired temp password, and log who took them.
+     * The users are marked as shared (`temporary_password_shared_at`), so the dashboard stops asking for them.
      * The log keeps the format and user ids, never a password.
      *
      * @param  Collection<int, User>  $users  with `roles` loaded for the property's permission team
@@ -27,6 +28,8 @@ class ExportTemporaryPasswords
             ->values();
 
         if ($usable->isNotEmpty()) {
+            User::query()->whereKey($usable->modelKeys())->update(['temporary_password_shared_at' => now()]);
+
             activity()
                 ->performedOn($property)
                 ->causedBy($actor)

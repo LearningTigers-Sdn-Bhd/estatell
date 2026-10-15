@@ -22,6 +22,7 @@ export function ExportTemporaryPasswordsMenu({
     formats,
     size = 'default',
     side = 'bottom',
+    onExported,
 }: {
     /** The route that sends the file, for example `exportMethod()` from the staff or partner temp password routes. */
     route: RouteDefinition<'post'>;
@@ -29,6 +30,8 @@ export function ExportTemporaryPasswordsMenu({
     formats: EnumOption[];
     size?: 'default' | 'sm';
     side?: 'top' | 'bottom';
+    /** Called once the file has been downloaded. */
+    onExported?: () => void;
 }) {
     const [busy, setBusy] = useState(false);
 
@@ -36,6 +39,8 @@ export function ExportTemporaryPasswordsMenu({
         setBusy(true);
         postDownload(route.url, { user_ids: userIds, format })
             .then((headers) => {
+                onExported?.();
+
                 const skipped = Number(headers.get('X-Skipped') ?? 0);
 
                 if (skipped > 0) {

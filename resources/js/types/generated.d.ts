@@ -1182,6 +1182,32 @@ name: string,
 email: string,
 propertyName: string,
 };
+export type RecommendedChecklistData = {
+done: number,
+total: number,
+items: App.Data.Onboarding.RecommendedItemData[],
+};
+export type RecommendedItemData = {
+key: string,
+label: string,
+summary: string,
+done: boolean,
+actionLabel: string,
+actionUrl: string,
+dismissible: boolean,
+};
+export type YoureLiveData = {
+propertyName: string,
+firstBusinessDate: string | null,
+pendingCount: number,
+notSharedCount: number,
+expiresOn: string | null,
+userIds: number[],
+exportFormats: {
+value: string,
+label: string,
+}[],
+};
 }
 namespace Payments {
 export type NewPaymentData = {

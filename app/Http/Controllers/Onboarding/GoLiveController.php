@@ -47,6 +47,7 @@ class GoLiveController extends Controller
         }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Your property is live.')]);
+        Inertia::flash('wentLive', true);
 
         return to_route('dashboard', ['property' => $property->code]);
     }
