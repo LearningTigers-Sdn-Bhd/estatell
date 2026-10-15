@@ -186,7 +186,7 @@ export default function BasicRate({
         footer: 'auto',
         formId: FORM_ID,
         processing: saving,
-        width: '5xl',
+        width: '8xl',
     });
 
     const setRow = (index: number, values: Partial<Row>) =>
