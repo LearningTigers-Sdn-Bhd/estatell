@@ -325,6 +325,10 @@ Setup started (another section is no longer Not started):
 - Name is unique per property, ignoring case. Errors show per row.
 - One submit, one transaction, through `CreateCompany` and `UpdateCompany`.
 - Check: Done with at least one company, or Skipped.
+- The save is `SaveOnboardingCompanies`, called through `SaveCompaniesRequest` (`rows` with the fields above and the tax numbers, bounded by `CompanyRules`). It creates new rows through `CreateCompany` and updates saved rows through `UpdateCompany`. Saved companies without a row are left alone. A company that manages its own profile keeps its tax numbers. Saving at least one row removes a Skip; saving no rows is valid.
+- A suspended company shows in a read-only Suspended list under the table: it cannot be edited here, and its name still counts for the unique-name check.
+- **Import from file** reads the file on the server (`onboarding.companies.import`, through `CompanyImportReader`) and adds the rows to the table. Nothing is saved until the owner saves the table. **Template** downloads the Simple CSV or XLSX (`onboarding.companies.template`).
+- **Built without portal users.** Portal users need `company_users` and `CreateCompanyUserWithTemporaryPassword`, which come with [Company portal](../23-company-portal/01-company-portal.md). The block and the Review line below are added in that commit.
 
 **Portal users**
 

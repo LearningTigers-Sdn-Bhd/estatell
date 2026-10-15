@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 import { Spinner } from '@/components/ui/spinner';
 
 /**
- * The fixed footer. A form step shows Back, Skip (optional steps only; Taxes has its own "We don't charge tax" answer) and Save & continue, which submits the form
+ * The fixed footer. A form step shows Back on the left, and Skip (optional steps only; Taxes has its own "We don't charge tax" answer) with Save & continue on the right. Save submits the form
  * named by `formId`. A locked step is a preview with Back and Next only. A page can ask for Back only.
  */
 export function OnboardingFooter({
@@ -51,32 +51,34 @@ export function OnboardingFooter({
                             <span className="max-md:sr-only">Back</span>
                         </Link>
                     )}
+                </div>
+
+                <div className="flex items-center gap-2">
                     {canSkip && current !== null && (
                         <Link
                             href={skip.url({ step: current.value })}
                             method="post"
                             as="button"
-                            className={buttonVariants({ variant: 'ghost' })}
+                            className={buttonVariants({ variant: 'outline' })}
                         >
                             Skip
                         </Link>
                     )}
+                    {editing && layout.formId !== null && (
+                        <Button
+                            type="submit"
+                            form={layout.formId}
+                            disabled={layout.processing}
+                            focusableWhenDisabled
+                        >
+                            {layout.processing && (
+                                <Spinner data-icon="inline-start" />
+                            )}
+                            Save & continue
+                            <ArrowRight data-icon="inline-end" />
+                        </Button>
+                    )}
                 </div>
-
-                {editing && layout.formId !== null && (
-                    <Button
-                        type="submit"
-                        form={layout.formId}
-                        disabled={layout.processing}
-                        focusableWhenDisabled
-                    >
-                        {layout.processing && (
-                            <Spinner data-icon="inline-start" />
-                        )}
-                        Save & continue
-                        <ArrowRight data-icon="inline-end" />
-                    </Button>
-                )}
 
                 {preview && next?.url && (
                     <Link href={next.url} className={buttonVariants()}>

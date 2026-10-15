@@ -2,17 +2,20 @@
 
 namespace App\Services\Onboarding\Checks;
 
+use App\Enums\CompanyStatus;
 use App\Enums\StepState;
 use App\Models\Property;
 
 /**
- * Stub: the real check is not built yet, so this always returns NotStarted. A later commit replaces it with the rule in
- * docs/17-onboarding/02-wizard-steps.md.
+ * Done when the property has at least one Active company. A skip is turned into Done by OnboardingProgress before this
+ * check runs.
  */
 class CompaniesCheck implements StepCheck
 {
     public function state(Property $property): StepState
     {
-        return StepState::NotStarted;
+        return $property->companies()->where('status', CompanyStatus::Active)->exists()
+            ? StepState::Done
+            : StepState::NotStarted;
     }
 }

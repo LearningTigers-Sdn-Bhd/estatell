@@ -97,7 +97,7 @@ test('saving turns a method off, renames it and keeps its code behaviour', funct
         ? [...$row, 'name' => 'Credit card', 'active' => false, 'requires_reference' => false]
         : $row, $rows);
 
-    ($this->save)($rows)->assertRedirect(route('onboarding.go-live.show', $this->property->code));
+    ($this->save)($rows)->assertRedirect(route('onboarding.companies.edit', $this->property->code));
 
     $card->refresh();
 

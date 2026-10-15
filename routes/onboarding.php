@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\PermissionEnum;
+use App\Http\Controllers\Onboarding\CompanyController;
 use App\Http\Controllers\Onboarding\GoLiveController;
 use App\Http\Controllers\Onboarding\OnboardingSkipController;
 use App\Http\Controllers\Onboarding\OnboardingWaitingController;
@@ -31,6 +32,11 @@ Route::prefix('onboarding')->name('onboarding.')->group(function () {
 
     Route::get('payment-methods', [PaymentMethodController::class, 'edit'])->name('payment-methods.edit');
     Route::put('payment-methods', [PaymentMethodController::class, 'update'])->name('payment-methods.update');
+
+    Route::get('companies', [CompanyController::class, 'edit'])->name('companies.edit');
+    Route::put('companies', [CompanyController::class, 'update'])->name('companies.update');
+    Route::post('companies/import', [CompanyController::class, 'import'])->name('companies.import');
+    Route::get('companies/import-template.{format}', [CompanyController::class, 'template'])->name('companies.template');
 
     Route::post('skips/{step}', [OnboardingSkipController::class, 'store'])->name('skips.store');
     Route::delete('skips/{step}', [OnboardingSkipController::class, 'destroy'])->name('skips.destroy');

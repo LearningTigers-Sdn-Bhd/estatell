@@ -963,6 +963,21 @@ email: string,
 password: string,
 propertyName: string,
 };
+export type OnboardingCompanyData = {
+id: number,
+name: string,
+type: App.Enums.CompanyType,
+contactEmail: string | null,
+contactPhone: string | null,
+creditLimit: string | null,
+paymentTermsDays: number | null,
+directBillEnabled: boolean,
+brn: string | null,
+tin: string | null,
+sstRegistrationNumber: string | null,
+isEditable: boolean,
+statusLabel: string,
+};
 export type OnboardingPaymentMethodData = {
 id: number,
 name: string,
