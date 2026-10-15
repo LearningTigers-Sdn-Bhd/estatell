@@ -105,6 +105,13 @@ test('only staff who manage settings can go live, and only on their own property
 
     $this->actingAs($staff)
         ->post(route('onboarding.go-live.store', $owner->property->code), ['opening_date' => '2026-10-10'])
+        ->assertRedirect(route('onboarding.waiting', $owner->property->code));
+
+    $pendingProperty = Property::factory()->state(['status' => PropertyStatus::PendingApproval])->create();
+    $plainStaff = User::factory()->for($pendingProperty)->create();
+
+    $this->actingAs($plainStaff)
+        ->post(route('onboarding.go-live.store', $pendingProperty->code), ['opening_date' => '2026-10-10'])
         ->assertForbidden();
 
     $this->actingAs($owner)
@@ -133,10 +140,10 @@ test('operational modules redirect a property that is not live', function (Prope
     'pending approval' => [PropertyStatus::PendingApproval, 'onboarding.go-live.show'],
 ]);
 
-test('settings, the dashboard and the business date stay open while onboarding', function () {
+test('settings, the dashboard and the business date send an onboarding property to its first step', function () {
     $owner = onboardingOwner();
 
-    $this->actingAs($owner)->get(route('dashboard', $owner->property->code))->assertOk();
-    $this->actingAs($owner)->get(route('settings.edit', $owner->property->code))->assertOk();
-    $this->actingAs($owner)->get(route('business-date.show', $owner->property->code))->assertOk();
+    $this->actingAs($owner)->get(route('dashboard', $owner->property->code))->assertRedirect(route('onboarding.basics.edit', $owner->property->code));
+    $this->actingAs($owner)->get(route('settings.edit', $owner->property->code))->assertRedirect(route('onboarding.basics.edit', $owner->property->code));
+    $this->actingAs($owner)->getJson(route('business-date.show', $owner->property->code))->assertRedirect(route('onboarding.basics.edit', $owner->property->code));
 });

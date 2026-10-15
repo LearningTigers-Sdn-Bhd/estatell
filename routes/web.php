@@ -33,14 +33,17 @@ Route::middleware('auth')->group(function () {
 
 Route::prefix('p/{property:code}')->where(['property' => '[A-Za-z]{2}[0-9]{5,}'])->middleware([EnsurePropertyAccess::class, 'verified'])->group(function () {
     Route::inertia('suspended', 'property/suspended')->name('property.suspended');
-    Route::get('dashboard', [DashboardController::class, 'show'])->name('dashboard');
 
-    require __DIR__.'/onboarding.php';
-    require __DIR__.'/night-audit.php';
-    require __DIR__.'/rates.php';
-    require __DIR__.'/settings.php';
+    Route::middleware('onboarding.only')->group(function () {
+        require __DIR__.'/onboarding.php';
+    });
 
     Route::middleware('live')->group(function () {
+        Route::get('dashboard', [DashboardController::class, 'show'])->name('dashboard');
+
+        require __DIR__.'/night-audit.php';
+        require __DIR__.'/rates.php';
+        require __DIR__.'/settings.php';
         require __DIR__.'/finance.php';
         require __DIR__.'/front-desk.php';
         require __DIR__.'/guests.php';

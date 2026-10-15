@@ -35,15 +35,13 @@ function generalInput(array $overrides = []): array
     ];
 }
 
-test('new owners see setup and saving basics creates defaults', function () {
+test('new owners are sent to setup, and saving basics creates defaults', function () {
     $owner = app(RegisterPropertyOwner::class)(new NewPropertyOwnerData(name: 'Aina', email: 'aina@example.com', password: 'password', propertyName: 'Seaview Guesthouse'));
     $owner->forceFill(['email_verified_at' => now()])->save();
     $property = $owner->property;
 
     $this->actingAs($owner)->get(route('settings.edit', $property->code))
-        ->assertInertia(fn (Assert $page) => $page->component('settings/edit')
-            ->where('settings', null)
-            ->where('navigation.contexts.3.href', '/p/'.$property->code.'/settings/profile'));
+        ->assertRedirect(route('onboarding.basics.edit', $property->code));
 
     $this->put(route('onboarding.basics.update', $property->code), basicsInput())
         ->assertRedirect(route('settings.edit', $property->code))
@@ -70,7 +68,7 @@ test('new owners see setup and saving basics creates defaults', function () {
 });
 
 test('saving basics again preserves edited settings', function () {
-    $staff = User::factory()->owner()->create();
+    $staff = User::factory()->owner()->for(Property::factory()->onboarding())->create();
     $property = $staff->property;
     $settings = PropertySetting::factory()->for($property)->create(['default_locale' => 'ms']);
 
@@ -132,23 +130,28 @@ test('each settings tab has its own url and sends only its options', function ()
 });
 
 test('invalid values and missing setup cannot update settings', function () {
-    $staff = User::factory()->owner()->for(Property::factory()->onboarding())->create();
+    $staff = User::factory()->owner()->for(Property::factory()->live())->create();
     $property = $staff->property;
 
     $this->actingAs($staff)->put(route('settings.update', [$property->code, 'support']), [])->assertNotFound();
     $settings = PropertySetting::factory()->for($property)->create();
+    $checkInTime = $settings->refresh()->check_in_time;
 
     $this->put(route('settings.update', [$property->code, 'general']), generalInput([
-        'currency' => 'KWD', 'time_zone' => 'Somewhere',
-    ]))->assertSessionHasErrors(['currency', 'time_zone']);
+        'check_in_time' => 'noon', 'arrival_grace_minutes' => -5,
+    ]))->assertSessionHasErrors(['check_in_time', 'arrival_grace_minutes']);
     $this->put(route('settings.registration-card.update', $property->code), [
         'registration_card_scope' => 'primary_only', 'security_deposit_amount' => '1.999',
     ])->assertSessionHasErrors(['security_deposit_amount']);
-    $this->put(route('onboarding.basics.update', $property->code), basicsInput(['type' => 'invalid']))
+
+    expect($settings->refresh()->check_in_time)->toBe($checkInTime);
+
+    $onboarding = User::factory()->owner()->for(Property::factory()->onboarding())->create();
+
+    $this->actingAs($onboarding)->put(route('onboarding.basics.update', $onboarding->property->code), basicsInput(['type' => 'invalid']))
         ->assertSessionHasErrors(['type']);
 
-    expect($settings->refresh()->currency->getCurrencyCode())->toBe('MYR')
-        ->and($property->refresh()->type)->toBe(PropertyType::Hotel);
+    expect($onboarding->property->refresh()->type)->toBe(PropertyType::Hotel);
 });
 
 test('staff cannot read or update another property', function () {

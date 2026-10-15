@@ -702,6 +702,13 @@ property_ota_credentials  id, property_id, channel (OtaChannel), property_code, 
 - `live` (`EnsurePropertyIsLive`) wraps every PMS route file, including the dashboard, settings, staff and rates. It redirects to the current section until the property is Live, with the practice exception.
 - `onboarding.only` (`EnsureOnboarding`) wraps `onboarding.php`. It redirects Live properties to the dashboard and other staff to the waiting page.
 
+### Status of the steps and fence commit
+
+- Built: the enums, `OnboardingProgress`, the Basics check, the `onboarding_skips` table with the Skip and Unskip Actions, the step save rule (`OnboardingStepRequest`), both middlewares and the waiting page.
+- Stubs: every other step's check returns NotStarted until its own commit replaces it.
+- Not yet: the Skip routes and UI, the onboarding layout, the practice exception, and the Needs attention state (it needs a stored "was Done" marker, so no state is produced yet).
+- Go-live readiness is unchanged. It still returns no checks until the sections are built.
+
 ## Build order
 
 The commits are listed in [Checklist: 17 Onboarding](../checklist.md#17-onboarding). In short:

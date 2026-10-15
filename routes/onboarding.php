@@ -2,10 +2,13 @@
 
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Onboarding\GoLiveController;
+use App\Http\Controllers\Onboarding\OnboardingWaitingController;
 use App\Http\Controllers\Onboarding\PropertyBasicsController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('onboarding')->name('onboarding.')->group(function () {
+    Route::get('waiting', OnboardingWaitingController::class)->name('waiting');
+
     Route::get('basics', [PropertyBasicsController::class, 'edit'])->name('basics.edit');
     Route::put('basics', [PropertyBasicsController::class, 'update'])->name('basics.update');
 

@@ -4,6 +4,7 @@ use App\Http\Middleware\BlockDuringImpersonation;
 use App\Http\Middleware\EndExpiredImpersonationSession;
 use App\Http\Middleware\EnsureBoatsIsActive;
 use App\Http\Middleware\EnsureEmailIsVerified;
+use App\Http\Middleware\EnsureOnboarding;
 use App\Http\Middleware\EnsurePasswordChanged;
 use App\Http\Middleware\EnsurePropertyAccess;
 use App\Http\Middleware\EnsurePropertyIsLive;
@@ -39,12 +40,14 @@ return Application::configure(basePath: dirname(__DIR__))
             'support.2fa' => RequireSupportTwoFactor::class,
             'boats' => EnsureBoatsIsActive::class,
             'live' => EnsurePropertyIsLive::class,
+            'onboarding.only' => EnsureOnboarding::class,
             'property.access' => EnsurePropertyAccess::class,
             'verified' => EnsureEmailIsVerified::class,
         ]);
 
         $middleware->appendToPriorityList(SubstituteBindings::class, EnsurePropertyAccess::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsurePropertyIsLive::class);
+        $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureOnboarding::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureBoatsIsActive::class);
 
         $middleware->web(append: [
