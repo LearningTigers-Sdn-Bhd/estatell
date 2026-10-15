@@ -30,12 +30,15 @@ class SettingsLock
     }
 
     /**
-     * Whether any section other than Basics is past Not started.
+     * Whether any section other than Basics is past Not started. Payment methods does not count: the seeded methods
+     * make it Done before the owner opens it.
      */
     public function setupStarted(Property $property): bool
     {
+        $ignored = [OnboardingStep::Basics->value, OnboardingStep::PaymentMethods->value];
+
         foreach ($this->progress->states($property) as $step => $state) {
-            if ($step !== OnboardingStep::Basics->value && ! in_array($state, [StepState::NotStarted, StepState::Locked], true)) {
+            if (! in_array($step, $ignored, true) && ! in_array($state, [StepState::NotStarted, StepState::Locked], true)) {
                 return true;
             }
         }

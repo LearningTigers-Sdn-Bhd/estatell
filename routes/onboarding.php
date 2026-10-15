@@ -4,6 +4,7 @@ use App\Enums\PermissionEnum;
 use App\Http\Controllers\Onboarding\GoLiveController;
 use App\Http\Controllers\Onboarding\OnboardingSkipController;
 use App\Http\Controllers\Onboarding\OnboardingWaitingController;
+use App\Http\Controllers\Onboarding\PaymentMethodController;
 use App\Http\Controllers\Onboarding\PropertyBasicsController;
 use App\Http\Controllers\Onboarding\RoomController;
 use App\Http\Controllers\Onboarding\RoomTypeController;
@@ -27,6 +28,9 @@ Route::prefix('onboarding')->name('onboarding.')->group(function () {
     Route::put('taxes', [TaxController::class, 'update'])->name('taxes.update');
     Route::post('taxes/preview', [TaxController::class, 'preview'])->name('taxes.preview');
     Route::delete('taxes/{tax}', [TaxController::class, 'destroy'])->name('taxes.destroy');
+
+    Route::get('payment-methods', [PaymentMethodController::class, 'edit'])->name('payment-methods.edit');
+    Route::put('payment-methods', [PaymentMethodController::class, 'update'])->name('payment-methods.update');
 
     Route::post('skips/{step}', [OnboardingSkipController::class, 'store'])->name('skips.store');
     Route::delete('skips/{step}', [OnboardingSkipController::class, 'destroy'])->name('skips.destroy');

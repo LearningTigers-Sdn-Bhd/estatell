@@ -291,6 +291,11 @@ Setup started (another section is no longer Not started):
 - Order is table order. New rows go last.
 - One submit, one transaction, through the payment method Actions used by settings.
 - Check: Done when at least one addable method is active. The seeded methods start active, so this shows Done before the owner opens it. **Next** still visits it, and Review lists the active methods.
+- The save is `SaveOnboardingPaymentMethods`, called through `SavePaymentMethodsRequest` (`rows` with `id`, `name`, `type`, `active`, `requires_reference`). It updates saved rows through `UpdatePaymentMethod` and creates new rows through `CreatePaymentMethod`. A saved method keeps its type, code and any surcharge. A new method gets a code derived from its name, at most 20 characters, with a number added when the code is taken.
+- **City ledger** keeps its name field but its On switch and reference box are read-only here, because Companies turns it on when a company is direct bill. The server ignores any value sent for them. OTA collected has no row and cannot be sent.
+- A save that leaves no addable method On is refused with "Keep at least one payment method on." Names must differ from the other rows and from every saved method without a row, ignoring case. A new row needs a type.
+- A new method takes the end of the active order, so after a save it sits above City ledger, which is off. Settings can reorder it.
+- The seeded Done state does not count as setup started for the country lock (`SettingsLock::setupStarted`), so Basics keeps its plain country fields until another section is saved.
 
 ## Companies table
 

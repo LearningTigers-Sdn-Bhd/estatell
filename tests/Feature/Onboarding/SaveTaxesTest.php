@@ -92,7 +92,7 @@ test('turning on presets and choosing rooms saves the taxes and the room revenue
             presetRow($this->sst, ['enabled' => true, 'registration_number' => ' w10-1808-32 ']),
             presetRow($this->tourism, ['enabled' => true, 'applies_to_rooms' => false]),
         ],
-    ])->assertSessionHasNoErrors()->assertRedirect(route('onboarding.go-live.show', $this->property->code));
+    ])->assertSessionHasNoErrors()->assertRedirect(route('onboarding.payment-methods.edit', $this->property->code));
 
     expect($this->sst->refresh()->enabled)->toBeTrue()
         ->and($this->sst->registration_number)->toBe('W10-1808-32')
@@ -158,7 +158,7 @@ test('we do not charge tax turns every tax off and skips the step', function () 
 
     ($this->save)(['no_tax' => true])
         ->assertSessionHasNoErrors()
-        ->assertRedirect(route('onboarding.go-live.show', $this->property->code));
+        ->assertRedirect(route('onboarding.payment-methods.edit', $this->property->code));
 
     expect($this->property->taxes()->where('enabled', true)->count())->toBe(0)
         ->and(OnboardingSkip::query()->where('property_id', $this->property->id)->where('step', OnboardingStep::Taxes)->count())->toBe(1)

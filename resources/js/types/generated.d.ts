@@ -963,6 +963,15 @@ email: string,
 password: string,
 propertyName: string,
 };
+export type OnboardingPaymentMethodData = {
+id: number,
+name: string,
+type: App.Enums.PaymentMethodType,
+typeLabel: string,
+active: boolean,
+requiresReference: boolean,
+isEditable: boolean,
+};
 export type OnboardingPhaseData = {
 value: string,
 label: string,

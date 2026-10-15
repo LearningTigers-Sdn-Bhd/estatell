@@ -41,7 +41,7 @@ A strategy class per country replaces the `$countryCode !== 'MY'` checks in the 
 | Another section started, before go-live                  | Basics shows them read-only with **Change country**           | Yes. An AlertDialog lists what is reset, with server-sent counts. |
 | Live                                                     | Not possible. Settings shows them read-only (`SettingsLock`). | –                                                                 |
 
-"Not started" comes from `OnboardingProgress`. There is no extra flag.
+"Not started" comes from `OnboardingProgress`. There is no extra flag. Payment methods does not count as started: the seeded methods make it Done before the owner opens it (`SettingsLock::setupStarted`).
 
 **UI on Basics once setup has started:**
 

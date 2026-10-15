@@ -105,6 +105,8 @@ After login, an Owner of a non-live property is redirected to `/p/{their code}/o
 | `POST /p/ES10142/onboarding/taxes/preview`                         | `onboarding.taxes.preview`            | Example night for the unsaved table (JSON)      |
 | `PUT /p/ES10142/onboarding/taxes`                                  | `onboarding.taxes.update`             | Save the Taxes table                            |
 | `DELETE /p/ES10142/onboarding/taxes/{tax}`                         | `onboarding.taxes.destroy`            | Remove a custom tax                             |
+| `GET /p/ES10142/onboarding/payment-methods`                        | `onboarding.payment-methods.edit`     | `pages/onboarding/payment-methods.tsx`          |
+| `PUT /p/ES10142/onboarding/payment-methods`                        | `onboarding.payment-methods.update`   | Save the Payment methods table                  |
 | `GET /admin`                                                       | `admin.dashboard`                     | `pages/admin/dashboard.tsx`                     |
 | `GET /admin/settings`                                              | `admin.settings.edit`                 | `pages/admin/settings/edit.tsx`                 |
 | `GET /admin/properties`                                            | `admin.properties.index`              | `pages/admin/properties/index.tsx`              |
