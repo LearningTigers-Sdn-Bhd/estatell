@@ -4,6 +4,10 @@ import BasicRateController from '@/actions/App/Http/Controllers/Onboarding/Basic
 import Heading from '@/components/heading';
 import { MoneyInput } from '@/components/pms/money-input';
 import type { OnboardingLayoutProps } from '@/components/pms/onboarding/onboarding-steps';
+import {
+    MoreRatesTable,
+    type MoreRate,
+} from '@/components/pms/onboarding/more-rates-table';
 import { StepForm } from '@/components/pms/onboarding/step-form';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
 import {
@@ -39,6 +43,9 @@ import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 type Option = { value: string; label: string };
 type SavedRow = App.Data.Onboarding.OnboardingBasicRateRowData;
 type Preview = App.Data.Onboarding.OnboardingBasicRatePreviewData;
+type Example = App.Data.Onboarding.OnboardingMoreRateExampleData;
+type Previews = { rows: Preview[]; followers: Example[] };
+type SavedMoreRate = App.Data.Onboarding.OnboardingMoreRateData;
 type Row = {
     room_type_id: number;
     name: string;
@@ -52,6 +59,7 @@ type Payload = {
     weekend_nights: string;
     same_every_night: boolean;
     rows: Row[];
+    more_rates: MoreRate[];
 };
 
 const FORM_ID = 'basic-rate-form';
@@ -66,6 +74,7 @@ export default function BasicRate({
     weekendNights,
     weekendNightsOptions,
     priceByOptions,
+    moreRates: savedMoreRates,
     preview: savedPreview,
     currency,
     locked,
@@ -76,12 +85,13 @@ export default function BasicRate({
     weekendNights: string;
     weekendNightsOptions: Option[];
     priceByOptions: Option[];
-    preview: Preview[];
+    moreRates: SavedMoreRate[];
+    preview: Previews;
     currency: App.Data.Property.CurrencyData | null;
     locked: boolean;
     blockedBy: { label: string; url: string | null } | null;
 }) {
-    const http = useHttp<Payload, Preview[]>({
+    const http = useHttp<Payload, Previews>({
         weekend_nights: weekendNights,
         same_every_night: sameEveryNight,
         rows: savedRows.map((row) => ({
@@ -93,6 +103,24 @@ export default function BasicRate({
             has_saved_prices: row.hasSavedPrices,
             base_occupancy: row.baseOccupancy,
         })),
+        more_rates: savedMoreRates.map((rate) => ({
+            key: rate.key,
+            plan_ids: rate.planIds,
+            name: rate.name,
+            mode: rate.mode as 'follows' | 'own',
+            parent_basis: rate.parentBasis ?? '',
+            direction: rate.direction,
+            unit: rate.unit,
+            amount: rate.amount ?? '',
+            room_type_ids: rate.roomTypeIds,
+            prices: rate.prices.map((line) => ({
+                room_type_id: line.roomTypeId,
+                name: line.name,
+                price_by: line.priceBy,
+                weekday: line.weekday ?? '',
+                weekend: line.weekend ?? '',
+            })),
+        })),
     });
     const guard = useUnsavedChanges(http.isDirty);
     const [previews, setPreviews] = useState(savedPreview);
@@ -102,7 +130,12 @@ export default function BasicRate({
         index: number;
         value: string;
     } | null>(null);
-    const { rows, same_every_night: same, weekend_nights: nights } = http.data;
+    const {
+        rows,
+        more_rates: moreRates,
+        same_every_night: same,
+        weekend_nights: nights,
+    } = http.data;
     const money = new Intl.NumberFormat(undefined, {
         style: 'currency',
         currency: currency?.code ?? 'MYR',
@@ -112,14 +145,24 @@ export default function BasicRate({
     const roomRows = rows.filter((row) => row.price_by === 'per_room');
     const mixed = guestRows.length > 0 && roomRows.length > 0;
 
-    const previewKey = JSON.stringify(
+    const previewKey = JSON.stringify([
         rows.map((row) => [
             row.room_type_id,
             row.price_by,
             row.weekday,
             same ? row.weekday : row.weekend,
         ]),
-    );
+        moreRates
+            .filter((rate) => rate.mode === 'follows')
+            .map((rate) => [
+                rate.key,
+                rate.parent_basis,
+                rate.direction,
+                rate.unit,
+                rate.amount,
+                rate.room_type_ids,
+            ]),
+    ]);
     const previewedKey = useRef(previewKey);
 
     useEffect(() => {
@@ -193,7 +236,11 @@ export default function BasicRate({
         });
 
     const totalOf = (roomTypeId: number) =>
-        previews.find((item) => item.roomTypeId === roomTypeId);
+        previews.rows.find((item) => item.roomTypeId === roomTypeId);
+    const ready =
+        !locked &&
+        rows.length > 0 &&
+        rows.every((row) => row.weekday !== '' && (same || row.weekend !== ''));
 
     const guestPays = (row: Row, total: string | null | undefined) => {
         if (!total) {
@@ -429,6 +476,22 @@ export default function BasicRate({
                         change this in Settings, under Rate plans.
                     </p>
                 )}
+                <MoreRatesTable
+                    rates={moreRates}
+                    onChange={(next) => http.setData('more_rates', next)}
+                    basicLines={rows.map((row) => ({
+                        room_type_id: row.room_type_id,
+                        name: row.name,
+                        price_by: row.price_by,
+                    }))}
+                    ready={ready}
+                    sameEveryNight={same}
+                    weekendDays={days}
+                    priceByOptions={priceByOptions}
+                    currency={currency}
+                    examples={previews.followers}
+                    errors={errors}
+                />
             </StepForm>
 
             <AlertDialog

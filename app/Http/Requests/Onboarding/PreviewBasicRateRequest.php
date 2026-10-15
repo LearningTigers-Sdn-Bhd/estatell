@@ -37,6 +37,15 @@ class PreviewBasicRateRequest extends FormRequest
             'rows.*.price_by' => ['required', Rule::enum(PricingBasis::class)->only([PricingBasis::PerRoom, PricingBasis::PerGuest])],
             'rows.*.weekday' => ['nullable', 'string', 'max:20'],
             'rows.*.weekend' => ['nullable', 'string', 'max:20'],
+            'more_rates' => ['nullable', 'array', 'max:'.SaveBasicRateRequest::MAX_MORE_RATES],
+            'more_rates.*.key' => ['required', 'string', 'max:50'],
+            'more_rates.*.mode' => ['required', Rule::in(['follows', 'own'])],
+            'more_rates.*.parent_basis' => ['nullable', Rule::enum(PricingBasis::class)->only([PricingBasis::PerRoom, PricingBasis::PerGuest])],
+            'more_rates.*.direction' => ['nullable', Rule::in(['up', 'down'])],
+            'more_rates.*.unit' => ['nullable', Rule::in(['amount', 'percent'])],
+            'more_rates.*.amount' => ['nullable', 'string', 'max:20'],
+            'more_rates.*.room_type_ids' => ['nullable', 'array'],
+            'more_rates.*.room_type_ids.*' => ['integer'],
         ];
     }
 
@@ -51,5 +60,27 @@ class PreviewBasicRateRequest extends FormRequest
             'weekday' => $row['weekday'] ?? null,
             'weekend' => $row['weekend'] ?? null,
         ], array_values($this->validated('rows')));
+    }
+
+    /**
+     * The Follows rows that name a Basic Rate basis and a change.
+     *
+     * @return list<array{key: string, parent_basis: PricingBasis, direction: string, unit: string, amount: string|null, room_type_ids: list<int>}>
+     */
+    public function followers(): array
+    {
+        $followers = array_filter(
+            array_values((array) $this->validated('more_rates', [])),
+            fn (array $row): bool => $row['mode'] === 'follows' && ! empty($row['parent_basis']) && ! empty($row['direction']) && ! empty($row['unit']),
+        );
+
+        return array_values(array_map(fn (array $row): array => [
+            'key' => $row['key'],
+            'parent_basis' => PricingBasis::from($row['parent_basis']),
+            'direction' => $row['direction'],
+            'unit' => $row['unit'],
+            'amount' => $row['amount'] ?? null,
+            'room_type_ids' => array_values(array_map(intval(...), $row['room_type_ids'] ?? [])),
+        ], $followers));
     }
 }

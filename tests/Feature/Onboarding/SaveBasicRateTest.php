@@ -19,6 +19,7 @@ use App\Services\Onboarding\Checks\BasicRateCheck;
 use Inertia\Testing\AssertableInertia as Assert;
 
 require_once __DIR__.'/../Support/OnboardingSetup.php';
+require_once __DIR__.'/../Support/BasicRateSetup.php';
 
 beforeEach(function () {
     $this->owner = User::factory()->owner()->for(Property::factory()->onboarding())->create();
@@ -34,26 +35,6 @@ beforeEach(function () {
         ->put(route('onboarding.basic-rate.update', $this->property->code), $payload);
     $this->plans = fn () => $this->property->ratePlans()->active()->ordered()->get();
 });
-
-function basicRatePayload(array $rows, array $overrides = []): array
-{
-    return [
-        'weekend_nights' => 'fri_sat',
-        'same_every_night' => false,
-        'rows' => $rows,
-        ...$overrides,
-    ];
-}
-
-function basicRateRow(RoomType $roomType, string $priceBy = 'per_room', string $weekday = '180.00', ?string $weekend = '220.00'): array
-{
-    return ['room_type_id' => $roomType->id, 'price_by' => $priceBy, 'weekday' => $weekday, 'weekend' => $weekend];
-}
-
-function rateOn(RatePlan $plan, RoomType $roomType, string $date): ?string
-{
-    return Rate::query()->where('rate_plan_id', $plan->id)->where('room_type_id', $roomType->id)->whereDate('date', $date)->value('amount');
-}
 
 test('room only rows price the seeded plan for 365 days with weekend prices', function () {
     ($this->save)(basicRatePayload([basicRateRow($this->chalet), basicRateRow($this->longhouse, 'per_room', '100.00', '130.00')]))
@@ -229,8 +210,9 @@ test('the page returns the saved rows, the weekend nights and the guest pays pre
             ->where('rows.0.weekend', '220.00')
             ->where('rows.1.priceBy', 'per_guest')
             ->where('rows.1.baseOccupancy', 3)
-            ->has('preview', 2)
-            ->where('preview.1.adults', 3));
+            ->has('preview.rows', 2)
+            ->where('preview.rows.1.adults', 3)
+            ->has('moreRates', 0));
 });
 
 test('same every night is preselected when all 7 nights match', function () {
@@ -249,8 +231,8 @@ test('the preview adds the room taxes and multiplies a guest price by the base o
         ]])
         ->assertOk();
 
-    $chalet = $response->json('0');
-    $longhouse = $response->json('1');
+    $chalet = $response->json('rows.0');
+    $longhouse = $response->json('rows.1');
 
     expect($chalet['adults'])->toBe(1)
         ->and((float) $chalet['weekdayTotal'])->toBeGreaterThanOrEqual(100.0)

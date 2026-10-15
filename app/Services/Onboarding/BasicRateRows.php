@@ -26,13 +26,25 @@ class BasicRateRows
      */
     public function forProperty(Property $property): array
     {
-        $weekendDays = $property->settings?->weekend_nights->isoWeekdays() ?? [5, 6];
         $roomTypes = $property->roomTypes()->active()->where('sell_unit', SellUnit::Room)->ordered()->with('ratePlans')->get();
-        $plans = $this->basicRatePlans->forProperty($property);
+
+        return $this->read($property, $this->basicRatePlans->forProperty($property), $roomTypes);
+    }
+
+    /**
+     * The same rows for any plans: each room type reads the prices of the given plan that sells it.
+     *
+     * @param  Collection<int, RatePlan>  $plans
+     * @param  Collection<int, RoomType>  $roomTypes  With `ratePlans` loaded.
+     * @return array{rows: Collection<int, OnboardingBasicRateRowData>, sameEveryNight: bool}
+     */
+    public function read(Property $property, Collection $plans, Collection $roomTypes): array
+    {
+        $weekendDays = $property->settings?->weekend_nights->isoWeekdays() ?? [5, 6];
         $from = now($property->settings->time_zone ?? config('app.timezone'))->startOfDay();
 
         $rates = Rate::query()
-            ->whereIn('room_type_id', $roomTypes->modelKeys())
+            ->whereIn('room_type_id', $roomTypes->pluck('id')->all())
             ->whereIn('rate_plan_id', $plans->pluck('id')->all())
             ->whereBetween('date', [$from->toDateString(), $from->addDays(6)->toDateString()])
             ->whereNotNull('amount')

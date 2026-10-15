@@ -994,6 +994,23 @@ isEditable: boolean,
 isRemovable: boolean,
 statusLabel: string,
 };
+export type OnboardingMoreRateData = {
+key: string,
+planIds: number[],
+name: string,
+mode: string,
+parentBasis: App.Enums.PricingBasis | null,
+direction: string,
+unit: string,
+amount: string | null,
+roomTypeIds: number[],
+prices: App.Data.Onboarding.OnboardingBasicRateRowData[],
+};
+export type OnboardingMoreRateExampleData = {
+key: string,
+parentAmount: string | null,
+result: string | null,
+};
 export type OnboardingPaymentMethodData = {
 id: number,
 name: string,

@@ -423,7 +423,11 @@ A rate plan has one pricing basis, so the rows map to one plan per basis used:
 - The page reads the table back from the first 7 days of saved rates (`BasicRateRows`). **Same every night** starts selected when every saved row has one amount on all 7 nights.
 - The guest pays lines come from `OnboardingBasicRatePreview` (`onboarding.basic-rate.preview`): the room taxes for a local guest, and base occupancy times the price on a Guest row. A blank or half-typed price shows no line.
 - `BasicRateCheck`: Done when every room-sold room type has 30 days of prices on its Basic Rate plan, In progress when some do, Not started when none do.
-- **Built without More rates.** The More rates table comes in the next commit.
+- **More rates** save in the same submit and the same transaction, as `more_rates` rows (`SaveBasicRateRequest`, at most 20). Each row has the saved `plan_ids` (empty for a new row), a name, and `mode` `follows` or `own`. Follows rows send `parent_basis` (`per_room` or `per_guest`, the Basic Rate plan of that basis), `direction` (`up` or `down`), `unit` (`amount` or `percent`), `amount` and `room_type_ids`. Own rows send `prices`, the same room type lines as the Basic rate table.
+- Order inside `SaveOnboardingBasicRate`: `ReleaseOnboardingMoreRates` first (a row that is gone, or changed from Follows to Own prices or back, archives its old plans; a follower gives up the room types its row dropped), then the Basic Rate plans (`SaveOnboardingPricedPlans`, shared with Own prices rows), then `SaveOnboardingMoreRates` (`CreateDerivedRatePlan`, or `SaveRatePlanDerivation` and `SyncRatePlanRoomTypes` on a saved follower). This lets a Basic Rate plan switch basis once its followers are released.
+- A rate with Own prices for room types on both bases becomes "{name} / Room" and "{name} / Guest", and the page reads the two plans back as one row (`MoreRatePlans`). Prices for a Guest line are per adult, like the Basic rate table.
+- Validation: a name cannot be a Basic Rate name, repeat in the table or belong to another active plan. A Follows row needs room types priced on its Basic Rate basis (no room type left on that basis gives an error on the Price menu, a room type moved to the other basis gives one on Room types). A decrease by percent must be below 100.
+- The example column comes from `OnboardingBasicRatePreview::followerExamples` through the same preview route, which now returns `{rows, followers}`. It uses the weekday price of the first room type the row sells, through `DerivedRateResolver`.
 
 ## Charge items table
 
