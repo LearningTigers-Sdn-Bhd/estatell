@@ -39,6 +39,14 @@ A full-width navbar on top, the sidebar below it on the left, the page to the ri
 
 Fixed at the top of the shell (it never scrolls), 3.5 rem high. Only the content area scrolls; the shell is `h-svh` and `SidebarInset` has `overflow-y-auto`. The breadcrumb bar is 2.5 rem high and scrolls with the page. On mobile the same navbar shows; the sidebar is an off-canvas sheet. Pages without a property (admin, account for admins) show the logo instead of the identity.
 
+### User menu variants
+
+`NavUser` uses a placement variant, not a role check:
+
+- **Navbar** (default): circular avatar only, for staff and all account pages. The menu opens below and aligns to the right.
+- **Sidebar**: admin and partner sidebar footers show a full-width row with the avatar, name, email and chevrons. The menu opens above and aligns to the left. Collapsed sidebars show only the avatar with a name tooltip; mobile drawers show the full row.
+- Both variants share the same Account and Log out actions. Long names and emails truncate.
+
 ### Sidebar rows
 
 | Row | Content                        | Behavior                                                                                                                                     |

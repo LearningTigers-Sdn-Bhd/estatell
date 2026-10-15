@@ -50,7 +50,7 @@ export function AdminSidebar() {
                     items={items.filter((item) => item.external).map(toNavItem)}
                     className="mt-auto"
                 />
-                <NavUser />
+                <NavUser variant="sidebar" />
             </SidebarFooter>
         </Sidebar>
     );
