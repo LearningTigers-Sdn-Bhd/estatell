@@ -45,7 +45,7 @@ class GoLive
             $today = $this->propertyToday->date($property);
             $openingDate ??= $today;
 
-            if ($openingDate->greaterThan($today) || ($this->openBusinessDate)($property, $openingDate, $actor) === null) {
+            if ($openingDate->toDateString() > $today->toDateString() || ($this->openBusinessDate)($property, $openingDate, $actor) === null) {
                 return false;
             }
 

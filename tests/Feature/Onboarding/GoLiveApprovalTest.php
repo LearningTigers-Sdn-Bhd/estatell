@@ -11,11 +11,13 @@ use App\Models\GoLiveReview;
 use App\Models\Partner;
 use App\Models\PlatformSetting;
 use App\Models\Property;
+use App\Models\PropertySetting;
 use App\Models\User;
 use App\Notifications\GoLiveApproved;
 use App\Notifications\GoLiveRejected;
 use App\Notifications\GoLiveRequested;
 use App\Services\Platform\PlatformSettings;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -142,6 +144,20 @@ test('approving opens today, sets the property live, records the decision and te
         ->and(Activity::query()->where('event', 'property.go-live-approved')->exists())->toBeTrue();
 
     Notification::assertSentTo($owner, GoLiveApproved::class);
+});
+
+test('approving opens today when the property time zone is ahead of the app time zone', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-10-15 17:30:00', 'UTC'));
+    $owner = ownerWithPendingRequest();
+    PropertySetting::query()->where('property_id', $owner->property->id)->update(['time_zone' => 'Asia/Kuala_Lumpur']);
+
+    $this->actingAs(approvalAdmin())
+        ->post(route('admin.properties.go-live.approve', $owner->property->code), ['opening_date' => '2026-10-16'])
+        ->assertSessionHasNoErrors()
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Approved. '.$owner->property->name.' is live.']);
+
+    expect($owner->property->refresh()->status)->toBe(PropertyStatus::Live)
+        ->and($owner->property->businessDates()->sole()->date->toDateString())->toBe('2026-10-16');
 });
 
 test('approving can open an earlier date but never a later one', function () {
