@@ -18,6 +18,12 @@ abstract class CountryProfile
     /** The currency prefilled for a new property. */
     abstract public function currency(): string;
 
+    /** The currency to prefill in the form, or null when the country has no offered currency. */
+    public function suggestedCurrency(): ?string
+    {
+        return $this->currency();
+    }
+
     /** The time zone prefilled for a new property. */
     abstract public function timeZone(): string;
 
@@ -29,6 +35,12 @@ abstract class CountryProfile
 
     /** The label of the tax identification number field. */
     abstract public function tinLabel(): string;
+
+    /** Whether currency and time zone are fixed by the country, so Basics does not ask for them. */
+    abstract public function hasFixedRegion(): bool;
+
+    /** The short note under the Basics form: what the presets for this country include. */
+    abstract public function basicsNotice(): string;
 
     /** Whether the terms templates keep their Malaysian items: the tourism tax line and the Personal Data Protection Act. */
     abstract public function usesMalaysianTermsItems(): bool;

@@ -34,6 +34,16 @@ class MalaysiaProfile extends CountryProfile
         return __('TIN (LHDN)');
     }
 
+    public function hasFixedRegion(): bool
+    {
+        return true;
+    }
+
+    public function basicsNotice(): string
+    {
+        return __('Malaysia: MYR · Asia/Kuala_Lumpur · SST, tourism tax and local payment presets');
+    }
+
     public function usesMalaysianTermsItems(): bool
     {
         return true;

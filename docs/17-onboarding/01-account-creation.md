@@ -6,12 +6,12 @@ Four ways to create a property. All end in the same place: an owner in the onboa
 
 ## Paths
 
-| Path            | Flow                                                                                                                                                                                                                                  |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Self sign-up    | Fortify register (name, email, password, property name) creates the property and owner > email verified > wizard                                                                                                                      |
-| Admin creates   | Admin enters property name, type, country (Malaysia by default; currency and time zone for other countries), owner name and email > chooses an emailed setup link or an initial password > owner verifies or completes setup > Basics |
-| Partner creates | Same form and Action as admin creates, from the partner portal. The property gets the partner's prefix and `partner_id`                                                                                                               |
-| Partner link    | Owner opens `/join/{signupCode}` > the same Fortify register page, with "Joining via {partner}" > property gets the partner's prefix and `partner_id` > email verified > wizard                                                       |
+| Path            | Flow                                                                                                                                                                                                                                                                                |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Self sign-up    | Fortify register (name, email, password, property name) creates the property and owner > email verified > wizard                                                                                                                                                                    |
+| Admin creates   | Admin enters property name, type, country (Malaysia by default; the country's currency and time zone are prefilled and the owner confirms them on Basics), owner name and email > chooses an emailed setup link or an initial password > owner verifies or completes setup > Basics |
+| Partner creates | Same form and Action as admin creates, from the partner portal. The property gets the partner's prefix and `partner_id`                                                                                                                                                             |
+| Partner link    | Owner opens `/join/{signupCode}` > the same Fortify register page, with "Joining via {partner}" > property gets the partner's prefix and `partner_id` > email verified > wizard                                                                                                     |
 
 ## Actions
 

@@ -955,6 +955,7 @@ ownerEmail: string,
 setupMethod: App.Enums.OwnerSetupMethod,
 password: string | null,
 verifyOwnerEmail: boolean,
+countryCode: string,
 };
 export type NewPropertyOwnerData = {
 name: string,
@@ -1140,6 +1141,12 @@ isOwner: boolean,
 };
 }
 namespace Property {
+export type CountryProfileData = {
+registrationNumberLabel: string,
+tinLabel: string,
+notice: string,
+fixedRegion: boolean,
+};
 export type CurrencyData = {
 code: string,
 name: string,
@@ -1191,6 +1198,15 @@ addressLine2: string | null,
 city: string | null,
 stateCode: string | null,
 postalCode: string | null,
+countryCode: string,
+countryName: string | null,
+currency: string,
+timeZone: string,
+locked: boolean,
+legalName: string | null,
+registrationNumber: string | null,
+tin: string | null,
+licences: App.Data.Property.PropertyLicenceData[],
 };
 export type PropertyBusinessData = {
 legalName: string | null,

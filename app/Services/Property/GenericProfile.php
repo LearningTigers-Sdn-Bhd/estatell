@@ -27,10 +27,15 @@ class GenericProfile extends CountryProfile
 
     public function currency(): string
     {
+        return $this->suggestedCurrency() ?? self::FALLBACK_CURRENCY;
+    }
+
+    public function suggestedCurrency(): ?string
+    {
         $code = (new NumberFormatter('en_'.$this->countryCode, NumberFormatter::CURRENCY))
             ->getTextAttribute(NumberFormatter::CURRENCY_CODE);
 
-        return in_array($code, CurrencyOptions::codes(), true) ? $code : self::FALLBACK_CURRENCY;
+        return in_array($code, CurrencyOptions::codes(), true) ? $code : null;
     }
 
     public function timeZone(): string
@@ -46,6 +51,16 @@ class GenericProfile extends CountryProfile
     public function tinLabel(): string
     {
         return __('Tax ID (TIN)');
+    }
+
+    public function hasFixedRegion(): bool
+    {
+        return false;
+    }
+
+    public function basicsNotice(): string
+    {
+        return __("Malaysian presets don't apply. You'll add your own taxes in Finance.");
     }
 
     public function usesMalaysianTermsItems(): bool

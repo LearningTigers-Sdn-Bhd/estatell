@@ -21,6 +21,7 @@ type Props = {
     canCreateProperties: boolean;
     properties: Illuminate.LengthAwarePaginator<number, Row>;
     types?: EnumOption[];
+    countries?: EnumOption[];
     setupMethods?: SetupMethod[];
     passwordRules?: string;
 };
@@ -76,6 +77,7 @@ export default function PartnerPropertiesIndex({
     canCreateProperties,
     properties,
     types = [],
+    countries = [],
     setupMethods = [],
     passwordRules = '',
 }: Props) {
@@ -97,6 +99,7 @@ export default function PartnerPropertiesIndex({
                                 form={store.form()}
                                 label="New property"
                                 types={types}
+                                countries={countries}
                                 setupMethods={setupMethods}
                                 passwordRules={passwordRules}
                             />

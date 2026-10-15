@@ -21,20 +21,7 @@ class SavePropertyBusinessRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $licences = $this->input('licences');
-
-        if (! is_array($licences)) {
-            return;
-        }
-
-        $this->merge(['licences' => array_map(
-            fn (mixed $licence): mixed => is_array($licence) ? [
-                ...$licence,
-                'issuer' => is_string($licence['issuer'] ?? null) ? trim($licence['issuer']) : ($licence['issuer'] ?? null),
-                'number' => is_string($licence['number'] ?? null) ? trim($licence['number']) : ($licence['number'] ?? null),
-            ] : $licence,
-            $licences,
-        )]);
+        $this->merge(['licences' => self::trimLicences($this->input('licences'))]);
     }
 
     /**
@@ -47,6 +34,16 @@ class SavePropertyBusinessRequest extends FormRequest
             throw new LogicException('The property route binding is missing.');
         }
 
+        return self::businessRules($property);
+    }
+
+    /**
+     * The registered name, numbers and licences rules, shared with the Basics step of onboarding.
+     *
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
+    public static function businessRules(Property $property): array
+    {
         return [
             'legal_name' => ['nullable', 'string', 'max:255'],
             'registration_number' => ['nullable', 'string', 'max:100'],
@@ -68,21 +65,42 @@ class SavePropertyBusinessRequest extends FormRequest
     }
 
     /**
+     * Trim the issuer and number of every licence row before validation.
+     */
+    public static function trimLicences(mixed $licences): mixed
+    {
+        if (! is_array($licences)) {
+            return $licences;
+        }
+
+        return array_map(
+            fn (mixed $licence): mixed => is_array($licence) ? [
+                ...$licence,
+                'issuer' => is_string($licence['issuer'] ?? null) ? trim($licence['issuer']) : ($licence['issuer'] ?? null),
+                'number' => is_string($licence['number'] ?? null) ? trim($licence['number']) : ($licence['number'] ?? null),
+            ] : $licence,
+            $licences,
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
      * @return array{legal_name: string|null, registration_number: string|null, tin: string|null}
      */
-    public function business(): array
+    public static function businessFrom(array $validated): array
     {
         return [
-            'legal_name' => $this->validated('legal_name'),
-            'registration_number' => $this->validated('registration_number'),
-            'tin' => $this->validated('tin'),
+            'legal_name' => $validated['legal_name'] ?? null,
+            'registration_number' => $validated['registration_number'] ?? null,
+            'tin' => $validated['tin'] ?? null,
         ];
     }
 
     /**
+     * @param  array<int, array<string, mixed>>  $licences  The validated licences rows.
      * @return list<array{id: int|null, issuer: string, number: string, expires_on: string|null, show_on_documents: bool}>
      */
-    public function licences(): array
+    public static function licencesFrom(array $licences): array
     {
         return array_map(
             fn (array $licence): array => [
@@ -92,7 +110,23 @@ class SavePropertyBusinessRequest extends FormRequest
                 'expires_on' => $licence['expires_on'] ?? null,
                 'show_on_documents' => (bool) ($licence['show_on_documents'] ?? false),
             ],
-            array_values($this->validated('licences')),
+            array_values($licences),
         );
+    }
+
+    /**
+     * @return array{legal_name: string|null, registration_number: string|null, tin: string|null}
+     */
+    public function business(): array
+    {
+        return self::businessFrom($this->validated());
+    }
+
+    /**
+     * @return list<array{id: int|null, issuer: string, number: string, expires_on: string|null, show_on_documents: bool}>
+     */
+    public function licences(): array
+    {
+        return self::licencesFrom($this->validated('licences'));
     }
 }

@@ -8,7 +8,7 @@ use Spatie\LaravelData\Data;
 
 /**
  * A property an admin or partner creates for an owner, with how the owner sets up the account. `password` is used only
- * with the InitialPassword setup method. `verifyOwnerEmail` is honored only with that method too. The password must
+ * with the InitialPassword setup method. `verifyOwnerEmail` is honored only with that method too. `countryCode` is an ISO 3166-1 alpha-2 code and defaults to Malaysia. The password must
  * never be logged or passed to an activity log.
  */
 class NewOwnerPropertyData extends Data
@@ -21,5 +21,6 @@ class NewOwnerPropertyData extends Data
         public OwnerSetupMethod $setupMethod,
         public ?string $password = null,
         public bool $verifyOwnerEmail = false,
+        public string $countryCode = 'MY',
     ) {}
 }

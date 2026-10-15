@@ -75,6 +75,19 @@ test('a partner with the switch on creates a property with their prefix', functi
     Notification::assertSentTo(User::query()->where('email', 'aisyah@pulau.my')->sole(), OwnerSetupNotification::class);
 });
 
+test('a partner picks the country of the new property and the form lists countries with Malaysia first', function () {
+    Notification::fake();
+    $this->partner->update(['can_create_properties' => true]);
+
+    $this->actingAs($this->user)
+        ->get(route('partner.properties.index'))
+        ->assertInertia(fn ($page) => $page->where('countries.0.value', 'MY')->has('countries'));
+
+    $this->post(route('partner.properties.store'), newPropertyInput(['country_code' => 'TH']))->assertRedirect();
+
+    expect(Property::query()->where('name', 'Pulau Inn')->sole()->country_code)->toBe('TH');
+});
+
 test('creating a property is a 403 while the switch is off', function () {
     $this->actingAs($this->user)
         ->post(route('partner.properties.store'), newPropertyInput())

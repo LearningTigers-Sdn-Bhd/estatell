@@ -2,6 +2,7 @@ import { Form } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import PasswordInput from '@/components/password-input';
+import { CountrySelect } from '@/components/pms/country-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { Button } from '@/components/ui/button';
 import {
@@ -46,6 +47,7 @@ export function CreatePropertySheet({
     form,
     label = 'Create property',
     types,
+    countries,
     setupMethods,
     passwordRules,
 }: {
@@ -53,10 +55,13 @@ export function CreatePropertySheet({
     /** The trigger button text. */
     label?: string;
     types: EnumOption[];
+    /** Country options with Malaysia first. Malaysia is preselected. */
+    countries: EnumOption[];
     setupMethods: SetupMethod[];
     passwordRules: string;
 }) {
     const [open, setOpen] = useState(false);
+    const [country, setCountry] = useState('MY');
     const [setupMethod, setSetupMethod] = useState(
         setupMethods[0]?.value ?? 'email_link',
     );
@@ -79,7 +84,10 @@ export function CreatePropertySheet({
                     {...form}
                     className="flex min-h-0 flex-1 flex-col"
                     resetOnSuccess
-                    onSuccess={() => setOpen(false)}
+                    onSuccess={() => {
+                        setOpen(false);
+                        setCountry('MY');
+                    }}
                 >
                     {({ processing, errors }) => (
                         <>
@@ -126,6 +134,32 @@ export function CreatePropertySheet({
                                         </SelectContent>
                                     </Select>
                                     <FieldError>{errors.type}</FieldError>
+                                </Field>
+
+                                <Field data-invalid={!!errors.country_code}>
+                                    <FieldLabel htmlFor="country_code">
+                                        Country
+                                    </FieldLabel>
+                                    <CountrySelect
+                                        id="country_code"
+                                        value={country}
+                                        onValueChange={setCountry}
+                                        options={countries}
+                                        invalid={!!errors.country_code}
+                                    />
+                                    <input
+                                        type="hidden"
+                                        name="country_code"
+                                        value={country}
+                                    />
+                                    <FieldDescription>
+                                        The owner confirms currency and time
+                                        zone for countries other than Malaysia
+                                        in the setup wizard.
+                                    </FieldDescription>
+                                    <FieldError>
+                                        {errors.country_code}
+                                    </FieldError>
                                 </Field>
 
                                 <Field data-invalid={!!errors.owner_name}>

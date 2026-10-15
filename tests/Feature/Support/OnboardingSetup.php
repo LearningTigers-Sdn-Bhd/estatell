@@ -20,8 +20,10 @@ function basicsInput(array $overrides = []): array
     return [
         'name' => 'Seaview Guesthouse',
         'type' => PropertyType::Homestay->value,
+        'country_code' => 'MY',
         'address_line1' => '12 Jalan Pantai',
         'city' => 'Kuching',
+        'licences' => [],
         ...$overrides,
     ];
 }

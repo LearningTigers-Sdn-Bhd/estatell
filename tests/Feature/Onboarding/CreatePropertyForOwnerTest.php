@@ -144,6 +144,7 @@ test('the create endpoint redirects to the new property and exposes form options
         ->get(route('admin.properties.index'))
         ->assertInertia(fn (Assert $page) => $page
             ->has('types', 5)
+            ->where('countries.0.value', 'MY')
             ->has('setupMethods', 2)
             ->where('setupMethods.0.value', 'email_link')
             ->has('passwordRules'));
@@ -187,4 +188,30 @@ test('owner setup mail escapes owner and property names', function () {
 
     expect($html)->not->toContain('<script>')
         ->and($html)->toContain('&lt;script&gt;');
+});
+
+test('the create endpoint takes a country, defaults to Malaysia and rejects an unknown code', function () {
+    config(['estatell.support_require_two_factor' => false]);
+    $payload = [
+        'property_name' => 'Bali Villas',
+        'type' => PropertyType::Resort->value,
+        'owner_name' => 'Aina Rahman',
+        'owner_email' => 'aina@example.com',
+        'setup_method' => OwnerSetupMethod::EmailLink->value,
+    ];
+
+    $this->actingAs($this->admin)->post(route('admin.properties.store'), [...$payload, 'country_code' => 'XX'])
+        ->assertSessionHasErrors('country_code');
+
+    $this->post(route('admin.properties.store'), [...$payload, 'country_code' => 'id'])->assertRedirect();
+    $bali = Property::query()->where('name', 'Bali Villas')->sole();
+
+    expect($bali->country_code)->toBe('ID')
+        ->and($bali->settings->currency->getCurrencyCode())->toBe('IDR')
+        ->and($bali->settings->time_zone)->toBe('Asia/Jakarta')
+        ->and($bali->taxes()->count())->toBe(0);
+
+    $this->post(route('admin.properties.store'), [...$payload, 'property_name' => 'Default Inn', 'owner_email' => 'other@example.com'])->assertRedirect();
+
+    expect(Property::query()->where('name', 'Default Inn')->sole()->country_code)->toBe('MY');
 });

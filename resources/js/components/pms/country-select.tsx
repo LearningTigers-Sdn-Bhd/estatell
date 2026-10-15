@@ -17,10 +17,14 @@ type Props = {
     /** Country options from `CountryOptions::options()`. */
     options: EnumOption[];
     invalid?: boolean;
+    /** Input placeholder. Defaults to "Search countries". */
+    placeholder?: string;
+    /** Text when the search matches nothing. Defaults to "No matching countries." */
+    emptyText?: string;
 };
 
 /**
- * A searchable country picker. Type to filter the list; the clear button unsets the country.
+ * A searchable picker for a short code list such as countries (or currencies, with `placeholder`). Type to filter the list; the clear button unsets the country.
  */
 export function CountrySelect({
     id,
@@ -29,6 +33,8 @@ export function CountrySelect({
     onValueChange,
     options,
     invalid,
+    placeholder = 'Search countries',
+    emptyText = 'No matching countries.',
 }: Props) {
     const selected = options.find((option) => option.value === value) ?? null;
 
@@ -45,13 +51,13 @@ export function CountrySelect({
         >
             <ComboboxInput
                 id={id}
-                placeholder="Search countries"
+                placeholder={placeholder}
                 showClear
                 aria-invalid={invalid}
                 className="w-full"
             />
             <ComboboxContent>
-                <ComboboxEmpty>No matching countries.</ComboboxEmpty>
+                <ComboboxEmpty>{emptyText}</ComboboxEmpty>
                 <ComboboxList>
                     {(item: EnumOption) => (
                         <ComboboxItem key={item.value} value={item}>

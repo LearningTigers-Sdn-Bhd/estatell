@@ -13,6 +13,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Partner\StorePartnerPropertyRequest;
 use App\Models\Property;
 use App\Models\User;
+use App\Services\Guests\CountryOptions;
 use App\Services\Platform\PartnerProperties;
 use App\Services\Staff\PropertyOwners;
 use Illuminate\Http\RedirectResponse;
@@ -39,6 +40,7 @@ class PartnerPropertyController extends Controller
             'properties' => PartnerPropertyRowData::collect($partnerProperties->paginate($partner), PaginatedDataCollection::class),
             ...($partner->can_create_properties ? [
                 'types' => PropertyType::options(),
+                'countries' => app(CountryOptions::class)->optionsWithMalaysiaFirst(),
                 'setupMethods' => OwnerSetupMethod::options(),
                 'passwordRules' => Password::defaults()->toPasswordRulesString(),
             ] : []),

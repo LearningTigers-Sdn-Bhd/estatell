@@ -14,6 +14,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\CreatePropertyForOwnerRequest;
 use App\Models\Property;
 use App\Models\User;
+use App\Services\Guests\CountryOptions;
 use App\Services\Platform\PartnerDirectory;
 use App\Services\Platform\PropertyDirectory;
 use App\Services\Staff\PropertyOwners;
@@ -42,6 +43,7 @@ class PropertyController extends Controller
             'sort' => $request->string('sort', '-created_at')->toString(),
             'statuses' => PropertyStatus::options(),
             'types' => PropertyType::options(),
+            'countries' => app(CountryOptions::class)->optionsWithMalaysiaFirst(),
             'partners' => $partnerDirectory->filterOptions(),
             'setupMethods' => OwnerSetupMethod::options(),
             'passwordRules' => Password::defaults()->toPasswordRulesString(),

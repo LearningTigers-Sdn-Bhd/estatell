@@ -14,7 +14,7 @@ Get a property from sign-up to its first booking in about 15 minutes, without co
 6. Each section has its **own onboarding form** (guided copy, suggested defaults, one decision per screen). It saves through the **same Actions and Data classes** as settings.
 7. The owner stays inside onboarding until the property is Live (see [The fence](#the-fence)).
 
-The first release has two pages, Basics and Review (go live). Both use the onboarding layout. Basics currently accepts Malaysia only. `SeedPropertyDefaults` already seeds the [country profiles](../02-property/03-seed-property-defaults.md#country-profiles) for other countries, but the Basics form does not offer them yet.
+The first release has two pages, Basics and Review (go live). Both use the onboarding layout. Basics offers any country. `SeedPropertyDefaults` seeds the [country profiles](../02-property/03-seed-property-defaults.md#country-profiles) for it.
 
 ## Phases and sections
 
@@ -109,7 +109,7 @@ Setup started (another section is no longer Not started):
 | Type                                       | Required `PropertyType`, five cards                                                                                                                                    |
 | Name, address line 1 and 2, city, postcode | `SavePropertyBasicsRequest::identityRules()`                                                                                                                           |
 | Country                                    | Required, from `CountryOptions`, searchable, Malaysia first and prefilled                                                                                              |
-| State                                      | Malaysia: the Malaysian state list. Others: free text                                                                                                                  |
+| State                                      | Malaysia: the Malaysian state list (`MalaysianStates`, the name is stored in `state_code`). Others: free text                                                          |
 | Currency                                   | Malaysia: not shown, MYR. Others: required, from `CurrencyOptions`, prefilled from the country (ICU). Empty when the country's currency is left out (for example KWD). |
 | Time zone                                  | Malaysia: not shown, `Asia/Kuala_Lumpur`. Others: required, one of the country's zones (`DateTimeZone::PER_COUNTRY`), prefilled when there is one                      |
 
@@ -125,13 +125,13 @@ Setup started (another section is no longer Not started):
 
 **Changing country**
 
-- While every other section is Not started, country, currency and time zone are plain fields. Saving a change reseeds the untouched presets.
-- After that they are read-only with **Change country**, which unlocks them in place with a warning. **Save & continue** opens an AlertDialog with the counts of what resets. Room types, rooms and team stay. Full rules: [Changing country](../02-property/03-seed-property-defaults.md#changing-country).
+- While every other section is Not started, country, currency and time zone are plain fields. Saving a change runs `ChangePropertyCountry`, which reseeds the untouched presets.
+- After that they are read-only (`SettingsLock::locksCountry`, sent as `basics.locked`) and the page shows "Country · currency · time zone" as plain text. **Change country**, which unlocks them in place with a warning, is a later item (see the checklist). Until then the server ignores country, currency and time zone in a Basics save once they are locked, and `ChangePropertyCountry` refuses. **Save & continue** opens an AlertDialog with the counts of what resets. Room types, rooms and team stay. Full rules: [Changing country](../02-property/03-seed-property-defaults.md#changing-country).
 - After go-live they are fixed.
 
 **Save and check**
 
-- `SavePropertyBasics` saves the property and runs `SeedPropertyDefaults` with the country profile in one transaction ([Seed property defaults](../02-property/03-seed-property-defaults.md)). Saving again only updates type, name and address.
+- `SavePropertyBasics` saves the property and runs `SeedPropertyDefaults` with the country profile in one transaction ([Seed property defaults](../02-property/03-seed-property-defaults.md)). Saving again only updates type, name, address and business details, and country, currency and time zone while they are not locked.
 - At phone width the type cards wrap into two columns and the fields stack.
 - Check: Done when the property has a type, name, address line 1, city, country and a `property_settings` row.
 
@@ -705,7 +705,7 @@ property_ota_credentials  id, property_id, channel (OtaChannel), property_code, 
 
 ### Status
 
-- Built: the enums, `OnboardingProgress`, the Basics check, the `onboarding_skips` table with the Skip and Unskip Actions and their routes (`POST` and `DELETE onboarding/skips/{step}`), the step save rule (`OnboardingStepRequest`), both middlewares, the waiting page, the onboarding layout and the shared progress.
+- Built: Basics with country, currency, time zone, state list and the Business details group (`SavePropertyBasics`, `ChangePropertyCountry` while setup has not started, `SettingsLock::locksCountry`), the enums, `OnboardingProgress`, the Basics check, the `onboarding_skips` table with the Skip and Unskip Actions and their routes (`POST` and `DELETE onboarding/skips/{step}`), the step save rule (`OnboardingStepRequest`), both middlewares, the waiting page, the onboarding layout and the shared progress.
 - Stubs: every other step's check returns NotStarted until its own commit replaces it.
 - Not yet: the practice exception, and the Needs attention state (it needs a stored "was Done" marker, so no state is produced yet).
 - Go-live readiness is unchanged. It still returns no checks until the sections are built.

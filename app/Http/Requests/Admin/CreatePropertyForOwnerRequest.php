@@ -7,6 +7,7 @@ use App\Data\Onboarding\NewOwnerPropertyData;
 use App\Enums\OwnerSetupMethod;
 use App\Enums\PropertyType;
 use App\Models\User;
+use App\Services\Guests\CountryOptions;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -27,6 +28,7 @@ class CreatePropertyForOwnerRequest extends FormRequest
         $this->merge([
             'owner_email' => Str::lower(trim((string) $this->input('owner_email'))),
             'verify_owner_email' => $this->boolean('verify_owner_email'),
+            'country_code' => $this->filled('country_code') ? mb_strtoupper(trim((string) $this->input('country_code'))) : 'MY',
         ]);
     }
 
@@ -45,6 +47,7 @@ class CreatePropertyForOwnerRequest extends FormRequest
             setupMethod: OwnerSetupMethod::from($this->string('setup_method')->toString()),
             password: isset($validated['password']) ? (string) $validated['password'] : null,
             verifyOwnerEmail: (bool) ($validated['verify_owner_email'] ?? false),
+            countryCode: (string) $validated['country_code'],
         );
     }
 
@@ -58,6 +61,7 @@ class CreatePropertyForOwnerRequest extends FormRequest
         return [
             'property_name' => ['required', 'string', 'max:255'],
             'type' => ['required', Rule::enum(PropertyType::class)],
+            'country_code' => ['required', 'string', Rule::in(app(CountryOptions::class)->codes())],
             'owner_name' => ['required', 'string', 'max:255'],
             'owner_email' => [
                 'required',

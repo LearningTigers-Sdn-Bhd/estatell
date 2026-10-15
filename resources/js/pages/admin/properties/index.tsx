@@ -29,6 +29,7 @@ type Props = {
     sort: string;
     statuses: EnumOption[];
     types: EnumOption[];
+    countries: EnumOption[];
     partners: EnumOption[];
     setupMethods: SetupMethod[];
     passwordRules: string;
@@ -96,6 +97,7 @@ export default function PropertiesIndex({
     sort,
     statuses,
     types,
+    countries,
     partners,
     setupMethods,
     passwordRules,
@@ -140,6 +142,7 @@ export default function PropertiesIndex({
                         <CreatePropertySheet
                             form={store.form()}
                             types={types}
+                            countries={countries}
                             setupMethods={setupMethods}
                             passwordRules={passwordRules}
                         />

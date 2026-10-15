@@ -2,15 +2,44 @@
 
 namespace App\Services\Property;
 
+use App\Enums\OnboardingStep;
+use App\Enums\StepState;
 use App\Models\Property;
+use App\Services\Onboarding\OnboardingProgress;
 
 /**
- * Settings that stay fixed once a property has gone live, because money and business dates depend on them.
+ * Settings that stay fixed once a property has gone live, because money and business dates depend on them, and the
+ * country, which also stays fixed once setup has started.
  */
 class SettingsLock
 {
+    public function __construct(private OnboardingProgress $progress) {}
+
     public function locksCurrencyAndTimeZone(Property $property): bool
     {
         return $property->went_live_at !== null;
+    }
+
+    /**
+     * Country, currency and time zone are plain fields on Basics only while the property is not live and every other
+     * onboarding section is Not started (or Locked behind Basics). After that, Change country (a later item) is the way.
+     */
+    public function locksCountry(Property $property): bool
+    {
+        return $this->locksCurrencyAndTimeZone($property) || $this->setupStarted($property);
+    }
+
+    /**
+     * Whether any section other than Basics is past Not started.
+     */
+    public function setupStarted(Property $property): bool
+    {
+        foreach ($this->progress->states($property) as $step => $state) {
+            if ($step !== OnboardingStep::Basics->value && ! in_array($state, [StepState::NotStarted, StepState::Locked], true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

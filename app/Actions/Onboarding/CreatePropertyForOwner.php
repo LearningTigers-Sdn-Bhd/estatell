@@ -45,7 +45,7 @@ class CreatePropertyForOwner
                 'name' => $data->propertyName,
                 'type' => $type,
                 'status' => PropertyStatus::Onboarding,
-                'country_code' => 'MY',
+                'country_code' => $data->countryCode,
                 'onboarding_started_at' => now(),
             ]);
             $property->save();
@@ -64,7 +64,7 @@ class CreatePropertyForOwner
                 $owner->markEmailAsVerified();
             }
 
-            ($this->seedPropertyDefaults)($property, $type, 'MY');
+            ($this->seedPropertyDefaults)($property, $type, $data->countryCode);
             ($this->assignOwnerRole)($property, $owner);
 
             activity()
@@ -73,7 +73,7 @@ class CreatePropertyForOwner
                 ->event('property.created')
                 ->withProperties([
                     'type' => $type->value,
-                    'country' => 'MY',
+                    'country' => $data->countryCode,
                     'owner_email' => $owner->email,
                     'owner_email_verified' => $verifyOwnerEmail,
                     'setup_method' => $setupMethod->value,

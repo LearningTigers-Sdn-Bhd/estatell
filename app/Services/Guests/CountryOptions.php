@@ -35,6 +35,21 @@ class CountryOptions
     }
 
     /**
+     * The same options with Malaysia first, for the property pickers.
+     *
+     * @return list<array{value: string, label: string}>
+     */
+    public function optionsWithMalaysiaFirst(): array
+    {
+        $options = $this->options();
+
+        return [
+            ...array_values(array_filter($options, fn (array $option): bool => $option['value'] === 'MY')),
+            ...array_values(array_filter($options, fn (array $option): bool => $option['value'] !== 'MY')),
+        ];
+    }
+
+    /**
      * The country name for a code, or null when the code is empty.
      */
     public function name(?string $code): ?string
