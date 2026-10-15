@@ -155,6 +155,41 @@ test('staff upload, replace, view and remove the logo', function () {
         ->and(Activity::query()->where('event', 'property.updated')->count())->toBe(3);
 });
 
+test('staff without settings permission see their property logo in the shared identity', function () {
+    $staff = User::factory()->withPermissions([])->create();
+    $property = $staff->property;
+    $logo = $property->addMedia(UploadedFile::fake()->image('logo.png'))->toMediaCollection(Property::LOGO);
+
+    $this->actingAs($staff)
+        ->get(route('dashboard', $property->code))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('property.logoUrl', route('property.logo', ['property' => $property->code, 'v' => $logo->id], absolute: false)));
+
+    $this->get(route('property.logo', $property->code))
+        ->assertOk()
+        ->assertHeader('content-type', 'image/png');
+
+    $this->post(route('settings.logo.store', $property->code), ['logo' => UploadedFile::fake()->image('replacement.png')])
+        ->assertForbidden();
+    $this->delete(route('settings.logo.destroy', $property->code))->assertForbidden();
+});
+
+test('the staff logo endpoint refuses another property and guests', function () {
+    $staff = User::factory()->create();
+    $otherProperty = Property::factory()->create();
+    $otherProperty->addMedia(UploadedFile::fake()->image('logo.png'))->toMediaCollection(Property::LOGO);
+    $url = route('property.logo', $otherProperty->code);
+
+    $this->get($url)->assertRedirect(route('login'));
+    $this->actingAs($staff)->get($url)->assertNotFound();
+});
+
+test('the staff logo endpoint returns not found when the property has no logo', function () {
+    $staff = User::factory()->create();
+
+    $this->actingAs($staff)->get(route('property.logo', $staff->property->code))->assertNotFound();
+});
+
 test('the logo must be a PNG or JPEG up to 1 MB', function () {
     [$owner, $property] = printingProperty();
 

@@ -77,6 +77,7 @@ The font style sets a heading font (the property name, the document title and se
 
 - The logo is part of the property profile, not a print setting. It is uploaded on the Details page, Profile tab. See [Properties](01-properties.md#profile).
 - PDFs embed the file as a data URI, read from its disk. The browser preview reads it from `settings.logo`.
+- The PDF logo keeps its proportions within 72 pt wide and 48 pt tall. Its column fits the image, with a 12 pt gap before the property details.
 - With no logo, the Show logo switch is disabled with a "No logo" link to the Profile tab, and the header starts with the property name.
 
 ## Tax numbers

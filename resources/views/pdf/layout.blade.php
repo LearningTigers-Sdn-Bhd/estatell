@@ -52,7 +52,7 @@
         .letterhead .heading { margin-bottom: 4pt; }
         .letterhead .property-details { padding-right: 16pt; }
         .letterhead .document-heading { width: 40%; text-align: right; white-space: normal; }
-        .letterhead .logo { width: 72pt; padding-right: 12pt; }
+        .letterhead .logo { width: 1pt; padding-right: 12pt; white-space: nowrap; }
         .letterhead .logo img { max-width: 72pt; max-height: 48pt; }
         .page-footer { position: fixed; left: 0; right: 0; bottom: -48pt; text-align: center; font-size: {{ $body - 1 }}pt; line-height: 1.3; color: #6b6b6b; }
     </style>
