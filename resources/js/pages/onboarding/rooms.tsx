@@ -116,7 +116,7 @@ export default function Rooms({
         footer: 'auto',
         formId: FORM_ID,
         processing: form.processing,
-        width: '5xl',
+        width: '7xl',
     });
 
     const groupName = (key: string) =>

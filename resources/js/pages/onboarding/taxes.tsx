@@ -13,6 +13,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupInput,
+} from '@/components/ui/input-group';
+import {
     Popover,
     PopoverContent,
     PopoverDescription,
@@ -178,7 +183,7 @@ export default function Taxes({
         footer: 'auto',
         formId: FORM_ID,
         processing: saving,
-        width: '5xl',
+        width: '7xl',
     });
 
     const setRow = (index: number, values: Partial<Row>) =>
@@ -258,7 +263,7 @@ export default function Taxes({
                                 <TableHead>Name</TableHead>
                                 <TableHead>Rate</TableHead>
                                 <TableHead>In price</TableHead>
-                                <TableHead>
+                                <TableHead className="text-center">
                                     <Tooltip>
                                         <TooltipTrigger
                                             render={<span tabIndex={0} />}
@@ -332,15 +337,15 @@ export default function Taxes({
                                                 <span className="mb-1 block text-xs text-muted-foreground md:hidden">
                                                     Rate
                                                 </span>
-                                                <div className="flex items-start gap-2">
-                                                    <Input
+                                                <InputGroup className="w-36">
+                                                    <InputGroupInput
                                                         aria-label={`Rate of tax ${index + 1}`}
                                                         type="number"
                                                         min={0}
                                                         step="0.01"
                                                         inputMode="decimal"
                                                         placeholder="e.g. 8"
-                                                        className="w-24 tabular-nums"
+                                                        className="tabular-nums"
                                                         value={row.rate}
                                                         onChange={(event) =>
                                                             setRow(index, {
@@ -353,46 +358,52 @@ export default function Taxes({
                                                             !!fieldError('rate')
                                                         }
                                                     />
-                                                    <Select
-                                                        items={rateItems}
-                                                        value={row.rate_type}
-                                                        onValueChange={(
-                                                            value,
-                                                        ) =>
-                                                            setRow(index, {
-                                                                rate_type:
-                                                                    value as string,
-                                                            })
-                                                        }
-                                                    >
-                                                        <SelectTrigger
-                                                            aria-label={`Rate type of tax ${index + 1}`}
-                                                            className="w-20"
+                                                    <InputGroupAddon align="inline-end">
+                                                        <Select
+                                                            items={rateItems}
+                                                            value={
+                                                                row.rate_type
+                                                            }
+                                                            onValueChange={(
+                                                                value,
+                                                            ) =>
+                                                                setRow(index, {
+                                                                    rate_type:
+                                                                        value as string,
+                                                                })
+                                                            }
                                                         >
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectGroup>
-                                                                {rateItems.map(
-                                                                    (item) => (
-                                                                        <SelectItem
-                                                                            key={
-                                                                                item.value
-                                                                            }
-                                                                            value={
-                                                                                item.value
-                                                                            }
-                                                                        >
-                                                                            {
-                                                                                item.label
-                                                                            }
-                                                                        </SelectItem>
-                                                                    ),
-                                                                )}
-                                                            </SelectGroup>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
+                                                            <SelectTrigger
+                                                                aria-label={`Rate type of tax ${index + 1}`}
+                                                                className="h-6 w-auto border-0 bg-transparent pr-1 pl-1.5 shadow-none focus-visible:ring-0 dark:bg-transparent dark:hover:bg-transparent"
+                                                            >
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectGroup>
+                                                                    {rateItems.map(
+                                                                        (
+                                                                            item,
+                                                                        ) => (
+                                                                            <SelectItem
+                                                                                key={
+                                                                                    item.value
+                                                                                }
+                                                                                value={
+                                                                                    item.value
+                                                                                }
+                                                                            >
+                                                                                {
+                                                                                    item.label
+                                                                                }
+                                                                            </SelectItem>
+                                                                        ),
+                                                                    )}
+                                                                </SelectGroup>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </InputGroupAddon>
+                                                </InputGroup>
                                                 <FieldError>
                                                     {fieldError('rate')}
                                                 </FieldError>
@@ -442,7 +453,10 @@ export default function Taxes({
                                                 </Select>
                                             </TableCell>
                                             <TableCell className="align-top max-md:col-span-2 max-md:p-0">
-                                                <Field orientation="horizontal">
+                                                <Field
+                                                    orientation="horizontal"
+                                                    className="md:justify-center md:pt-2"
+                                                >
                                                     <Checkbox
                                                         id={`applies-${row.key}`}
                                                         checked={
