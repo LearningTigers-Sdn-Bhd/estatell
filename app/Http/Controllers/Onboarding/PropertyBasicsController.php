@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Onboarding;
 
 use App\Actions\Onboarding\SavePropertyBasics;
 use App\Data\Property\PropertyBasicsData;
+use App\Enums\OnboardingStep;
 use App\Enums\PropertyType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Onboarding\SavePropertyBasicsRequest;
@@ -28,6 +29,10 @@ class PropertyBasicsController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Property basics saved.')]);
 
-        return to_route('settings.edit', ['property' => $property->code]);
+        $next = OnboardingStep::Basics->nextListed();
+
+        return $next === null
+            ? back()
+            : to_route($next->routeName(), ['property' => $property->code]);
     }
 }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\PropertyType;
 use App\Models\Property;
 use App\Models\PropertySetting;
 
@@ -12,4 +13,15 @@ function completeOnboardingBasics(Property $property): void
     $property->update(['address_line1' => '12 Jalan Pantai']);
 
     PropertySetting::factory()->for($property)->create();
+}
+
+function basicsInput(array $overrides = []): array
+{
+    return [
+        'name' => 'Seaview Guesthouse',
+        'type' => PropertyType::Homestay->value,
+        'address_line1' => '12 Jalan Pantai',
+        'city' => 'Kuching',
+        ...$overrides,
+    ];
 }

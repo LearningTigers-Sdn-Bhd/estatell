@@ -1,0 +1,90 @@
+<?php
+
+use App\Enums\OnboardingStep;
+use App\Models\Property;
+use App\Models\User;
+use Inertia\Testing\AssertableInertia as Assert;
+
+require_once __DIR__.'/../Support/OnboardingSetup.php';
+
+beforeEach(function () {
+    $this->owner = User::factory()->owner()->for(Property::factory()->onboarding())->create();
+    $this->property = $this->owner->property;
+});
+
+test('onboarding pages share the progress of listed steps only', function () {
+    $this->actingAs($this->owner)
+        ->get(route('onboarding.basics.edit', $this->property->code))
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('onboarding/basics')
+            ->has('onboarding.phases', 2)
+            ->where('onboarding.phases.0.value', 'property')
+            ->where('onboarding.phases.0.state', 'in_progress')
+            ->has('onboarding.phases.0.steps', 1)
+            ->where('onboarding.phases.0.steps.0.value', 'basics')
+            ->where('onboarding.phases.0.steps.0.url', route('onboarding.basics.edit', $this->property->code, absolute: false))
+            ->where('onboarding.phases.0.steps.0.blockedBy', null)
+            ->where('onboarding.phases.1.value', 'review')
+            ->has('onboarding.phases.1.steps', 1)
+            ->where('onboarding.phases.1.steps.0.value', 'review')
+            ->where('onboarding.phases.1.steps.0.url', route('onboarding.go-live.show', $this->property->code, absolute: false))
+            ->where('onboarding.requiredDone', 0)
+            ->where('onboarding.requiredTotal', 7)
+            ->where('onboarding.remainingMinutes', 13));
+});
+
+test('a locked listed step names the step it waits for', function () {
+    $this->actingAs($this->owner)
+        ->get(route('onboarding.basics.edit', $this->property->code))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('onboarding.phases.1.steps.0.state', 'locked')
+            ->where('onboarding.phases.1.steps.0.blockedBy', 'Basics')
+            ->where('onboarding.phases.1.steps.0.blockedByUrl', route('onboarding.basics.edit', $this->property->code, absolute: false)));
+});
+
+test('completed basics count as done in the progress', function () {
+    completeOnboardingBasics($this->property);
+
+    $this->actingAs($this->owner)
+        ->get(route('onboarding.go-live.show', $this->property->code))
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('onboarding/go-live')
+            ->where('onboarding.requiredDone', 1)
+            ->where('onboarding.phases.0.state', 'done')
+            ->where('onboarding.phases.0.steps.0.state', 'done')
+            ->where('onboarding.phases.1.steps.0.state', 'locked'));
+});
+
+test('the progress is not shared on a normal PMS page', function () {
+    $property = Property::factory()->live()->create();
+    $owner = User::factory()->owner()->for($property)->create();
+
+    $this->actingAs($owner)
+        ->get(route('settings.edit', $property->code))
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('settings/edit')
+            ->missing('onboarding'));
+});
+
+test('the progress is not shared on the waiting page, which uses the auth layout', function () {
+    $staff = User::factory()->for($this->property)->create();
+
+    $this->actingAs($staff)
+        ->get(route('onboarding.waiting', $this->property->code))
+        ->assertInertia(fn (Assert $page) => $page->missing('onboarding'));
+});
+
+test('saving basics opens the next listed step, which is go-live', function () {
+    $this->actingAs($this->owner)
+        ->put(route('onboarding.basics.update', $this->property->code), basicsInput())
+        ->assertRedirect(route('onboarding.go-live.show', $this->property->code))
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Property basics saved.']);
+});
+
+test('review opens go-live and is the last listed step', function () {
+    expect(OnboardingStep::Review->routeName())->toBe('onboarding.go-live.show')
+        ->and(OnboardingStep::Review->nextListed())->toBeNull()
+        ->and(OnboardingStep::Basics->nextListed())->toBe(OnboardingStep::Review)
+        ->and(OnboardingStep::Companies->nextListed())->toBe(OnboardingStep::Review)
+        ->and(array_map(fn (OnboardingStep $step): OnboardingStep => $step, OnboardingStep::listed()))->toBe([OnboardingStep::Basics, OnboardingStep::Review]);
+});

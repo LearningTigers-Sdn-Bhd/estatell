@@ -47,8 +47,16 @@ class OnboardingProgress
      */
     public function blockingStep(Property $property, OnboardingStep $step): ?OnboardingStep
     {
-        $states = $this->states($property);
+        return $this->blockingStepIn($this->states($property), $step);
+    }
 
+    /**
+     * The same as blockingStep(), for states that are already calculated.
+     *
+     * @param  array<string, StepState>  $states
+     */
+    public function blockingStepIn(array $states, OnboardingStep $step): ?OnboardingStep
+    {
         foreach ($step->dependsOn() as $dependency) {
             if ($states[$dependency->value] !== StepState::Done) {
                 return $dependency;

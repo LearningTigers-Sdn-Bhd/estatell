@@ -10,16 +10,7 @@ use App\Models\PropertySetting;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
 
-function basicsInput(array $overrides = []): array
-{
-    return [
-        'name' => 'Seaview Guesthouse',
-        'type' => PropertyType::Homestay->value,
-        'address_line1' => '12 Jalan Pantai',
-        'city' => 'Kuching',
-        ...$overrides,
-    ];
-}
+require_once __DIR__.'/../Support/OnboardingSetup.php';
 
 function generalInput(array $overrides = []): array
 {
@@ -44,7 +35,7 @@ test('new owners are sent to setup, and saving basics creates defaults', functio
         ->assertRedirect(route('onboarding.basics.edit', $property->code));
 
     $this->put(route('onboarding.basics.update', $property->code), basicsInput())
-        ->assertRedirect(route('settings.edit', $property->code))
+        ->assertRedirect(route('onboarding.go-live.show', $property->code))
         ->assertSessionHasNoErrors();
 
     $settings = $property->refresh()->settings;

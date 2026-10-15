@@ -962,6 +962,29 @@ email: string,
 password: string,
 propertyName: string,
 };
+export type OnboardingPhaseData = {
+value: string,
+label: string,
+state: App.Enums.StepState,
+steps: App.Data.Onboarding.OnboardingStepData[],
+};
+export type OnboardingProgressData = {
+phases: App.Data.Onboarding.OnboardingPhaseData[],
+requiredDone: number,
+requiredTotal: number,
+remainingMinutes: number,
+};
+export type OnboardingStepData = {
+value: string,
+label: string,
+number: number,
+state: App.Enums.StepState,
+isRequired: boolean,
+isSkippable: boolean,
+url: string | null,
+blockedBy: string | null,
+blockedByUrl: string | null,
+};
 export type OwnerSetupData = {
 name: string,
 email: string,

@@ -14,7 +14,7 @@ Get a property from sign-up to its first booking in about 15 minutes, without co
 6. Each section has its **own onboarding form** (guided copy, suggested defaults, one decision per screen). It saves through the **same Actions and Data classes** as settings.
 7. The owner stays inside onboarding until the property is Live (see [The fence](#the-fence)).
 
-The first release has only the Basics page. It uses the current staff layout. Basics currently accepts Malaysia only. `SeedPropertyDefaults` already seeds the [country profiles](../02-property/03-seed-property-defaults.md#country-profiles) for other countries, but the Basics form does not offer them yet.
+The first release has two pages, Basics and Review (go live). Both use the onboarding layout. Basics currently accepts Malaysia only. `SeedPropertyDefaults` already seeds the [country profiles](../02-property/03-seed-property-defaults.md#country-profiles) for other countries, but the Basics form does not offer them yet.
 
 ## Phases and sections
 
@@ -644,12 +644,13 @@ Editing an earlier section never resets a later one. A later section only shows 
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-- Its own onboarding layout, set with Inertia 3 `useLayoutProps`. No PMS sidebar, no ⌘K command palette, no business date, no notifications bell, and no links to settings, rates or the dashboard. The phase bar and stepper do the sidebar's job, and the full width fits the section tables.
+- Its own onboarding layout (`layouts/onboarding-layout.tsx`). Pages set its footer and step with Inertia 3 `setLayoutProps`. No PMS sidebar, no ⌘K command palette, no business date, no notifications bell, and no links to settings, rates or the dashboard. The phase bar and stepper do the sidebar's job, and the full width fits the section tables.
 - **Top bar**: logo, property name and code (not a link), progress ("Setup 6 of 9 required · ~18 min" from `OnboardingProgress` and `estimatedMinutes()`), a **Help** Popover (short guide and support contact, and a note when support access is on), and the user menu (account pages and **Log out**, no property switcher). The impersonation banner sits above the top bar during view as.
 - The content column is centred with a max width close to a settings page.
 - **Navigation**: the phase bar, the stepper and the phone section list link to every section. **Save & continue** saves and opens the next section in number order, even a locked one (as a preview). Leaving an edited section opens the dirty-form AlertDialog (**Cancel**, **Discard**, **Save**, see [Form containers](../design-system/05-form-containers.md)).
-- **Footer**: **Back**, **Skip** (optional sections only) and **Save & continue**. A preview has **Back** and **Next**.
-- **Phone width**: the top bar keeps the property name, Help and the user menu. The phase bar becomes one line ("Finance · 5 of 13") with a progress bar and **☰**, which opens a bottom Sheet listing every phase and section with its state. The footer shows **←** and the main button.
+- **Footer**: **Back**, **Skip** (optional sections only) and **Save & continue**. A preview has **Back** and **Next**. Go live shows **Back** only until every required section is Done.
+- **Phone width**: the top bar keeps the property name, Help and the user menu. The phase bar becomes one line ("Finance · 5 of 13") with a progress bar and **☰**, which opens a bottom Sheet listing every phase and section with its state. The footer shows **←** and the main button, and **Skip** where the step allows it.
+- **Progress data**: the server shares `onboarding` (`OnboardingProgressData`) on `onboarding.*` routes, except the waiting page. It lists only steps that have a page, so the phase bar and stepper have no dead links. A phase with no listed step is left out. Other PMS pages do not get the prop.
 - The phase bar shows state by icon (check, lock, warning, number), never by colour alone, with the state word for assistive tech.
 - The footer is a flex sibling of the scroll area, so it never covers the last field.
 - In an editable table the add button sits at the end (right) of the `TableFooter` (`justify-between`). A summary such as "Total: 10" goes at the start (left). With a second action, such as **Import from file**, the add button stays last. See [Form containers](../design-system/05-form-containers.md#editable-tables).
@@ -702,11 +703,11 @@ property_ota_credentials  id, property_id, channel (OtaChannel), property_code, 
 - `live` (`EnsurePropertyIsLive`) wraps every PMS route file, including the dashboard, settings, staff and rates. It redirects to the current section until the property is Live, with the practice exception.
 - `onboarding.only` (`EnsureOnboarding`) wraps `onboarding.php`. It redirects Live properties to the dashboard and other staff to the waiting page.
 
-### Status of the steps and fence commit
+### Status
 
-- Built: the enums, `OnboardingProgress`, the Basics check, the `onboarding_skips` table with the Skip and Unskip Actions, the step save rule (`OnboardingStepRequest`), both middlewares and the waiting page.
+- Built: the enums, `OnboardingProgress`, the Basics check, the `onboarding_skips` table with the Skip and Unskip Actions and their routes (`POST` and `DELETE onboarding/skips/{step}`), the step save rule (`OnboardingStepRequest`), both middlewares, the waiting page, the onboarding layout and the shared progress.
 - Stubs: every other step's check returns NotStarted until its own commit replaces it.
-- Not yet: the Skip routes and UI, the onboarding layout, the practice exception, and the Needs attention state (it needs a stored "was Done" marker, so no state is produced yet).
+- Not yet: the practice exception, and the Needs attention state (it needs a stored "was Done" marker, so no state is produced yet).
 - Go-live readiness is unchanged. It still returns no checks until the sections are built.
 
 ## Build order

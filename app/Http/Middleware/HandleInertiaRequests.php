@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Data\Navigation\StaffNavigationData;
 use App\Data\NightAudit\BusinessDateData;
+use App\Data\Onboarding\OnboardingProgressData;
 use App\Data\Platform\ImpersonationData;
 use App\Data\Property\PropertySummaryData;
 use App\Enums\PropertyStatus;
@@ -12,6 +13,7 @@ use App\Navigation\AdminNavigation;
 use App\Navigation\PartnerNavigation;
 use App\Navigation\StaffNavigation;
 use App\Services\NightAudit\CurrentBusinessDate;
+use App\Services\Onboarding\OnboardingProgress;
 use App\Services\Platform\Impersonation;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -61,7 +63,23 @@ class HandleInertiaRequests extends Middleware
             'navigation' => fn () => $this->staffNavigation($request),
             'csrfToken' => fn () => csrf_token(),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            ...($this->isOnboardingPage($request) ? ['onboarding' => fn () => $this->onboardingProgress($request)] : []),
         ];
+    }
+
+    /**
+     * The wizard pages share their progress. The waiting page uses the auth layout and needs none.
+     */
+    private function isOnboardingPage(Request $request): bool
+    {
+        return $request->routeIs('onboarding.*') && ! $request->routeIs('onboarding.waiting');
+    }
+
+    private function onboardingProgress(Request $request): ?OnboardingProgressData
+    {
+        $property = $this->resolveProperty($request);
+
+        return $property === null ? null : OnboardingProgressData::forProperty($property, app(OnboardingProgress::class));
     }
 
     /**

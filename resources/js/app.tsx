@@ -6,6 +6,7 @@ import AdminLayout from '@/layouts/admin-layout';
 import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import GuestLayout from '@/layouts/guest-layout';
+import OnboardingLayout from '@/layouts/onboarding-layout';
 import PartnerLayout from '@/layouts/partner-layout';
 import AccountLayout from '@/layouts/account/layout';
 import { setUrlDefaults } from '@/wayfinder';
@@ -22,7 +23,10 @@ void createInertiaApp({
             case name.startsWith('auth/'):
             case name.startsWith('invitations/'):
             case name === 'property/suspended':
+            case name === 'onboarding/waiting':
                 return AuthLayout;
+            case name.startsWith('onboarding/'):
+                return OnboardingLayout;
             case name === 'registration/guest':
             case name === 'registration/done':
                 return GuestLayout;

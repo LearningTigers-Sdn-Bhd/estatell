@@ -149,8 +149,36 @@ enum OnboardingStep: string
     {
         return match ($this) {
             self::Basics => 'onboarding.basics.edit',
+            self::Review => 'onboarding.go-live.show',
             default => null,
         };
+    }
+
+    /**
+     * The steps that have a page, in wizard order. The browser lists only these, so it has no dead links.
+     *
+     * @return list<OnboardingStep>
+     */
+    public static function listed(): array
+    {
+        return array_values(array_filter(
+            self::cases(),
+            fn (self $step): bool => $step->routeName() !== null,
+        ));
+    }
+
+    /**
+     * The next listed step after this one in wizard order, or null when this is the last listed step.
+     */
+    public function nextListed(): ?self
+    {
+        foreach (self::listed() as $step) {
+            if ($step->number() > $this->number()) {
+                return $step;
+            }
+        }
+
+        return null;
     }
 
     public function check(): StepCheck

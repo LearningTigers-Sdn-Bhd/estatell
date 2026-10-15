@@ -1,4 +1,4 @@
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, setLayoutProps } from '@inertiajs/react';
 import { CircleCheck, Circle } from 'lucide-react';
 import { useState } from 'react';
 import GoLiveController from '@/actions/App/Http/Controllers/Onboarding/GoLiveController';
@@ -17,7 +17,7 @@ import {
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Spinner } from '@/components/ui/spinner';
 import { useIsImpersonating } from '@/hooks/use-is-impersonating';
-import { show as goLiveShow } from '@/routes/onboarding/go-live';
+import type { OnboardingLayoutProps } from '@/components/pms/onboarding/onboarding-steps';
 
 export default function GoLive({
     checks,
@@ -35,10 +35,18 @@ export default function GoLive({
     const [openingDate, setOpeningDate] = useState(today);
     const impersonating = useIsImpersonating();
 
+    // Until every required section is Done, this page is a preview: the readiness list is the to-do list.
+    setLayoutProps<OnboardingLayoutProps>({
+        step: 'review',
+        footer: 'back',
+        formId: null,
+        processing: false,
+    });
+
     return (
         <>
             <Head title="Go live" />
-            <div className="flex flex-col gap-6 p-4">
+            <div className="flex flex-col gap-6">
                 <Heading
                     title="Go live"
                     description="Start taking real bookings. This opens your first business date and cannot be undone."
@@ -140,7 +148,3 @@ export default function GoLive({
         </>
     );
 }
-
-GoLive.layout = {
-    breadcrumbs: [{ title: 'Go live', href: goLiveShow() }],
-};

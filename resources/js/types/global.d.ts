@@ -19,6 +19,7 @@ declare module '@inertiajs/core' {
             partnerNavigation: App.Data.Navigation.NavItemData[] | null;
             navigation: App.Data.Navigation.StaffNavigationData | null;
             sidebarOpen: boolean;
+            onboarding?: App.Data.Onboarding.OnboardingProgressData | null;
             csrfToken: string;
             [key: string]: unknown;
         };

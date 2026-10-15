@@ -62,10 +62,10 @@ test('every step belongs to exactly one phase, in phase order', function () {
         ->and(OnboardingPhase::Review->steps())->toBe([OnboardingStep::Review]);
 });
 
-test('only the basics step has a page today', function () {
+test('basics and review have pages today', function () {
     expect(OnboardingStep::Basics->routeName())->toBe('onboarding.basics.edit')
         ->and(OnboardingStep::RoomTypes->routeName())->toBeNull()
-        ->and(OnboardingStep::Review->routeName())->toBeNull();
+        ->and(OnboardingStep::Review->routeName())->toBe('onboarding.go-live.show');
 });
 
 test('step states have a tone that matches their meaning', function (StepState $state, Tone $tone) {
