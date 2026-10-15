@@ -46,6 +46,7 @@ export function RoomRevenueTabs({
         <TabLinks
             activeTab={activeTab}
             panelWidth="full"
+            scrollable
             className="flex flex-col gap-6"
             tabs={[
                 {

@@ -7,11 +7,14 @@ use Spatie\LaravelData\Data;
 /** One case of the policy preview. A free case has no amounts. A null total means the taxes could not be calculated. */
 class RoomRevenuePolicyPreviewLineData extends Data
 {
+    /** @param list<string> $steps */
     public function __construct(
         public string $label,
         public bool $free,
         public ?string $net,
         public ?string $localTotal,
         public ?string $foreignTotal,
+        public array $steps = [],
+        public ?RoomRevenuePreviewData $taxBreakdown = null,
     ) {}
 }

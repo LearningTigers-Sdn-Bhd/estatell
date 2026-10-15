@@ -74,18 +74,25 @@ room_revenue_policies   id, property_id, code (SystemTransactionCode), charge_mo
 
 The tabs are at `/p/{code}/settings/room-revenue` (Taxes) and `/no-show`, `/cancellation`, `/early-departure` and `/late-checkout` under it (`settings.room-revenue.policies.show`, saved by `PUT` to the same URL as `.update`, previewed by `POST …/{tab}/preview` as `.preview`). `PolicyTab` maps the URL segment to the system code. A tab with one allowed scope (early departure, late check-out) sets it on the server. The preview prices a sample stay of 3 nights at 100.00 with the taxes of the code. It uses the booked rate, so a Current rate policy shows the same figures. A cancellation with a free window shows one case at the window and one a day later.
 
-A form on the left and a preview on the right, like the Taxes tab. The preview posts the unsaved form to a preview route and shows the server's numbers for a sample room night and stay, with the taxes. Hidden fields: "Free until" outside Cancellation, "Applies to" for Late check-out. The text has an English and a Malay field. Saving needs `settings.manage`.
+A wider editor sits on the left, with a compact **Example** on the right. The editor holds the charge, taxes and guest-facing policy text. The preview posts the unsaved form to a preview route and shows the server's numbers, with taxes. Saving needs `settings.manage`.
+
+- Charge choices sit in one row on larger screens and stack on mobile. Free hides the charge details. Fixed amount shows one amount charged once, without a scope selector. Percentage shows the rate basis, with a scope selector only when there is a choice. Early departure explains that it covers unused nights; late check-out explains that it covers one night.
+- Cancellation shows the **Free cancellation window** for a paid policy. Other policies hide it.
+- Charge details use three columns on wide screens: Percent, Rate basis and Applies to. Free cancellation window follows when present. They use two columns at intermediate widths and stack on mobile. A single allowed scope appears as help under Percent. The current-rate explanation appears only when Current rate is selected.
+- The guest-facing policy keeps the language dropdown for English and Malay. The editor explains that changing the charge does not rewrite this text.
+- The **Example** title and sample-stay description sit inside one card. Cases have no nested cards or dividers. Each case explains the charge with server-provided arithmetic: unused nights for early departure, the percentage basis and multiplication, a fixed fee charged once, or why the charge is free. Paid cases show separate local and foreign breakdowns: charge excluding tax, each included or added tax, and the guest total. Included taxes are extracted before the breakdown, not added twice. A tax that does not apply says so. The browser formats the amounts but does not calculate them.
+- Pending edits show **Updating…** instead of old amounts. A failed preview shows a message instead of old amounts. Older responses cannot replace a newer example.
+- Mobile order: charge, taxes, example, guest-facing policy, save. The tab strip scrolls horizontally. The page uses the New booking fixed-footer pattern: the editor scrolls above `FormActions`, with the save status on the left and **Save policy** on the right. The action stays visible on desktop and mobile.
+- The editor resets when the property or policy URL changes. Preserved tab navigation must not carry another policy's form or example into the new tab. The existing unsaved-changes guard stays.
 
 ```
-┌ Cancellation ──────────────────────┐ ┌ Preview ───────────────────┐
-│ Charge   (•) Free  ( ) Amount      │ │ Room night RM 280.00       │
-│          ( ) Percentage            │ │ Cancel 5 days before: Free │
-│ Percent  [ 100 ] % of [Booked ⌄]   │ │ Cancel 1 day before:       │
-│ Applies  [ First night ⌄ ]         │ │   RM 280.00 + tax          │
-│ Free until [ 2 ] days before       │ └────────────────────────────┘
-│ Policy text  [English] [Malay]     │
-│                        [ Save ]    │
-└────────────────────────────────────┘
+Cancellation                              Example
+Charge: Free / Fixed amount / Percentage  3 nights at MYR 100.00
+Percent / rate basis / scope              One case per cutoff
+Free cancellation window                  Charge before tax
+Taxes                                     Local / foreign totals
+Guest-facing policy [Language ⌄]
+Unsaved changes                           [Save policy]
 ```
 
 ### Day use tab
@@ -98,8 +105,8 @@ Both the Taxes tab and the policy tabs pick taxes with the same multiselect. Pos
 
 - `room_revenue_policies.own_taxes` (boolean, default false). `RoomRevenueTaxIds` reads the taxes of a code: ROOM for the Taxes tab and a policy that follows, the policy's own code otherwise. False means the policy follows the Taxes tab. True means its code keeps its own taxes.
 - The Taxes tab save links the chosen taxes to ROOM and to each policy whose `own_taxes` is false. It never touches a policy with its own taxes. A tax added later reaches every policy that still follows.
-- A policy tab has a **Taxes** section with a **Follow the Taxes tab** switch. On shows the Taxes tab selection in a disabled multiselect. Off makes the multiselect editable, saved with the policy. An empty choice is allowed, for example an untaxed no-show fee. Turning the switch back on links the code to the Taxes tab selection again. A short note says that a policy with its own taxes does not change when the Taxes tab changes.
-- Row 1 of a policy tab has three columns. **How it charges** spans two (the charge cards, then the charge form) and **Taxes** spans one. Row 2 holds **Policy text** and **Preview**. On narrow screens they stack.
+- A policy tab has a **Taxes** section with a **Use room revenue taxes** switch. On shows the inherited tax names as read-only text, including which taxes are off. Off reveals the editable multiselect, saved with the policy. An empty choice is allowed, for example an untaxed no-show fee. Turning the switch back on links the code to the Taxes tab selection again. A short note says that a policy with its own taxes does not change when the Taxes tab changes.
+- Taxes sit below the charge settings in the editor. The example sits beside the editor on larger screens. On narrow screens they stack.
 - The policy preview posts the unsaved tax choice, like the Taxes tab preview, so staff see the effect before saving.
 - Charges already posted keep the taxes they were posted with. The ledger is not changed.
 - Saving logs the change, with the tax ids and whether the policy follows.

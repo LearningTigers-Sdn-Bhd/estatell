@@ -4,6 +4,8 @@ namespace App\Services\Catalogues;
 
 use App\Data\Catalogues\RoomRevenuePolicyPreviewData;
 use App\Data\Catalogues\RoomRevenuePolicyPreviewLineData;
+use App\Data\Catalogues\RoomRevenuePreviewData;
+use App\Enums\PolicyChargeMode;
 use App\Enums\PolicyScope;
 use App\Enums\SystemTransactionCode;
 use App\Models\Property;
@@ -97,9 +99,10 @@ class RoomRevenuePolicyPreview
     private function line(Property $property, RoomRevenuePolicy $policy, Collection $taxes, string $label, bool $free, Money $base): RoomRevenuePolicyPreviewLineData
     {
         $amount = $free ? Money::zero($base->getCurrency()) : $this->calculator->amount($policy, $base);
+        $steps = $this->steps($policy, $base, $amount, $free);
 
         if ($amount->isZero()) {
-            return new RoomRevenuePolicyPreviewLineData($label, true, null, null, null);
+            return new RoomRevenuePolicyPreviewLineData($label, true, null, null, null, $steps);
         }
 
         $local = $this->taxCalculator->calculateWithTaxes($property, $taxes, $amount, '1', $property->country_code);
@@ -111,6 +114,37 @@ class RoomRevenuePolicyPreview
             (string) $amount->getAmount(),
             $local->isCalculated() ? (string) $local->grossAmount->getAmount() : null,
             $foreign->isCalculated() ? (string) $foreign->grossAmount->getAmount() : null,
+            $steps,
+            RoomRevenuePreviewData::fromCalculation(['sampleAmount' => $amount, 'localGuest' => $local, 'foreignGuest' => $foreign]),
         );
+    }
+
+    /** @return list<string> */
+    private function steps(RoomRevenuePolicy $policy, Money $base, Money $amount, bool $freeWindow): array
+    {
+        $currency = $base->getCurrency()->getCurrencyCode();
+        $steps = [];
+
+        if ($policy->code === SystemTransactionCode::EarlyDepartureRevenue) {
+            $steps[] = __(':booked booked nights − 1 night stayed = :unused unused nights.', ['booked' => self::SAMPLE_NIGHTS, 'unused' => self::SAMPLE_NIGHTS - 1]);
+        }
+
+        if ($freeWindow) {
+            $steps[] = __('Within the free cancellation window: :currency 0.00.', ['currency' => $currency]);
+        } elseif ($policy->charge_mode === PolicyChargeMode::Free) {
+            $steps[] = __('Free policy: :currency 0.00.', ['currency' => $currency]);
+        } elseif ($policy->charge_mode === PolicyChargeMode::FixedAmount) {
+            $steps[] = __('Fixed fee × 1 charge = :currency :amount.', ['currency' => $currency, 'amount' => (string) $amount->getAmount()]);
+        } else {
+            $nights = $this->nightsCovered($policy->applies_to);
+            $steps[] = __($nights === 1 ? ':nights night × :currency :night = :currency :base.' : ':nights nights × :currency :night = :currency :base.', ['nights' => $nights, 'currency' => $currency, 'night' => self::SAMPLE_AMOUNT, 'base' => (string) $base->getAmount()]);
+            $steps[] = __(':currency :base × :percent% = :currency :amount.', ['currency' => $currency, 'base' => (string) $base->getAmount(), 'percent' => $policy->percent, 'amount' => (string) $amount->getAmount()]);
+        }
+
+        if ($amount->isZero()) {
+            $steps[] = __('No charge, so no taxes are added.');
+        }
+
+        return $steps;
     }
 }

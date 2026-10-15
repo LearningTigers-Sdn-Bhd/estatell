@@ -78,6 +78,7 @@ test('the preview charges the sample stay with the code taxes and does not save'
     $this->actingAs($owner)->postJson($url, policyInput(['applies_to' => 'whole_stay', 'percent' => '100', 'free_until_days' => 2]))
         ->assertOk()
         ->assertJsonPath('lines.0.free', true)
+        ->assertJsonPath('lines.0.steps.0', 'Within the free cancellation window: MYR 0.00.')
         ->assertJsonPath('lines.1.free', false)
         ->assertJsonPath('lines.1.net', '300.00')
         ->assertJsonPath('lines.1.localTotal', '324.00')
@@ -91,10 +92,47 @@ test('the early departure preview charges the unused nights and a fixed amount i
     $property = policyProperty($owner);
 
     $this->actingAs($owner)->postJson(route('settings.room-revenue.policies.preview', [$property->code, 'early-departure']), policyInput())
-        ->assertJsonPath('lines.0.net', '100.00');
+        ->assertJsonPath('lines.0.net', '100.00')
+        ->assertJsonPath('lines.0.steps', [
+            '3 booked nights − 1 night stayed = 2 unused nights.',
+            '2 nights × MYR 100.00 = MYR 200.00.',
+            'MYR 200.00 × 50.00% = MYR 100.00.',
+        ])
+        ->assertJsonPath('lines.0.taxBreakdown.localNet', '100.00')
+        ->assertJsonPath('lines.0.taxBreakdown.lines.0.localAmount', '8.00')
+        ->assertJsonPath('lines.0.taxBreakdown.lines.0.inclusive', false)
+        ->assertJsonPath('lines.0.localTotal', '108.00');
 
     $this->postJson(route('settings.room-revenue.policies.preview', [$property->code, 'no-show']), ['own_taxes' => false, 'charge_mode' => 'fixed_amount', 'amount' => '40', 'applies_to' => 'whole_stay', 'text_en' => 'x', 'text_ms' => 'y'])
-        ->assertJsonPath('lines.0.net', '40.00');
+        ->assertJsonPath('lines.0.net', '40.00')
+        ->assertJsonPath('lines.0.steps.0', 'Fixed fee × 1 charge = MYR 40.00.');
+});
+
+test('a free policy explains why the example has no charge or tax', function () {
+    $owner = User::factory()->owner()->create();
+    $property = policyProperty($owner);
+
+    $this->actingAs($owner)->postJson(route('settings.room-revenue.policies.preview', [$property->code, 'early-departure']), policyInput(['charge_mode' => 'free']))
+        ->assertJsonPath('lines.0.free', true)
+        ->assertJsonPath('lines.0.steps', [
+            '3 booked nights − 1 night stayed = 2 unused nights.',
+            'Free policy: MYR 0.00.',
+            'No charge, so no taxes are added.',
+        ])
+        ->assertJsonPath('lines.0.taxBreakdown', null);
+});
+
+test('the example separates included taxes from the policy charge', function () {
+    $owner = User::factory()->owner()->create();
+    $property = policyProperty($owner);
+    $property->taxes()->where('code', 'SST')->update(['is_inclusive' => true]);
+
+    $this->actingAs($owner)->postJson(route('settings.room-revenue.policies.preview', [$property->code, 'no-show']), policyInput(['charge_mode' => 'fixed_amount', 'amount' => '108']))
+        ->assertJsonPath('lines.0.net', '108.00')
+        ->assertJsonPath('lines.0.taxBreakdown.localNet', '100.00')
+        ->assertJsonPath('lines.0.taxBreakdown.lines.0.inclusive', true)
+        ->assertJsonPath('lines.0.taxBreakdown.lines.0.localAmount', '8.00')
+        ->assertJsonPath('lines.0.localTotal', '108.00');
 });
 
 test('saving a policy stores it, flashes and redirects to its tab', function () {
@@ -236,5 +274,7 @@ test('the preview uses the unsaved own taxes', function () {
         ->assertOk()
         ->assertJsonPath('lines.0.net', '300.00')
         ->assertJsonPath('lines.0.localTotal', '300.00')
-        ->assertJsonPath('lines.0.foreignTotal', '310.00');
+        ->assertJsonPath('lines.0.foreignTotal', '310.00')
+        ->assertJsonPath('lines.0.taxBreakdown.lines.0.localAmount', null)
+        ->assertJsonPath('lines.0.taxBreakdown.lines.0.foreignAmount', '10.00');
 });

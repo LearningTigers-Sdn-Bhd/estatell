@@ -166,6 +166,8 @@ free: boolean,
 net: string | null,
 localTotal: string | null,
 foreignTotal: string | null,
+steps: string[],
+taxBreakdown: App.Data.Catalogues.RoomRevenuePreviewData | null,
 };
 export type RoomRevenuePreviewData = {
 sampleAmount: string,
