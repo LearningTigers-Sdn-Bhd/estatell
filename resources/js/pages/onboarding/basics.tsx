@@ -108,7 +108,7 @@ export default function Basics({
         footer: 'auto',
         formId: FORM_ID,
         processing: form.processing,
-        wide: true,
+        width: '8xl',
     });
 
     const save = (onSuccess?: () => void) =>

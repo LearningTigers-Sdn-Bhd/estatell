@@ -5,8 +5,10 @@ import {
     type OnboardingLayoutProps,
     type OnboardingProgress,
     neighbours,
+    widthClass,
 } from '@/components/pms/onboarding/onboarding-steps';
 import { Button, buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { Spinner } from '@/components/ui/spinner';
 
 /**
@@ -31,7 +33,12 @@ export function OnboardingFooter({
 
     return (
         <footer className="shrink-0 border-t bg-background px-4 py-3">
-            <div className="mx-auto flex w-full max-w-180 items-center justify-between gap-3">
+            <div
+                className={cn(
+                    'mx-auto flex w-full items-center justify-between gap-3',
+                    widthClass[layout.width ?? 'default'],
+                )}
+            >
                 <div className="flex items-center gap-2">
                     {previous?.url && (
                         <Link

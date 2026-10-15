@@ -12,8 +12,18 @@ export type OnboardingLayoutProps = {
     footer: 'auto' | 'back';
     formId: string | null;
     processing: boolean;
-    /** Wide steps (two columns) use a wider content column. */
-    wide?: boolean;
+    /** The content column width. Omitted is the narrow default (45rem). */
+    width?: OnboardingWidth;
+};
+
+export type OnboardingWidth = '5xl' | '7xl' | '8xl';
+
+/** Full class names, so Tailwind can see them. The footer uses the same width as the content. */
+export const widthClass: Record<OnboardingWidth | 'default', string> = {
+    default: 'max-w-180',
+    '5xl': 'max-w-5xl',
+    '7xl': 'max-w-7xl',
+    '8xl': 'max-w-8xl',
 };
 
 /** Every listed step, in wizard order. */

@@ -2,7 +2,10 @@ import { usePage } from '@inertiajs/react';
 import { ImpersonationBanner } from '@/components/impersonation-banner';
 import { OnboardingFooter } from '@/components/pms/onboarding/onboarding-footer';
 import { OnboardingPhaseBar } from '@/components/pms/onboarding/onboarding-phase-bar';
-import type { OnboardingLayoutProps } from '@/components/pms/onboarding/onboarding-steps';
+import {
+    type OnboardingLayoutProps,
+    widthClass,
+} from '@/components/pms/onboarding/onboarding-steps';
 import { OnboardingTopBar } from '@/components/pms/onboarding/onboarding-top-bar';
 import { cn } from '@/lib/utils';
 
@@ -15,7 +18,7 @@ export default function OnboardingLayout({
     footer = 'auto',
     formId = null,
     processing = false,
-    wide = false,
+    width,
     children,
 }: Partial<OnboardingLayoutProps> & { children: React.ReactNode }) {
     const { onboarding } = usePage().props;
@@ -33,7 +36,8 @@ export default function OnboardingLayout({
                 <div
                     className={cn(
                         'mx-auto w-full px-4 py-6 md:py-8',
-                        wide ? 'max-w-none px-6 lg:px-12' : 'max-w-180',
+                        width && 'lg:px-8',
+                        widthClass[width ?? 'default'],
                     )}
                 >
                     {children}
@@ -41,7 +45,7 @@ export default function OnboardingLayout({
             </main>
             <OnboardingFooter
                 progress={onboarding}
-                layout={{ step, footer, formId, processing }}
+                layout={{ step, footer, formId, processing, width }}
             />
         </div>
     );

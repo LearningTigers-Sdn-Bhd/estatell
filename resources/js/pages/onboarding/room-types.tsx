@@ -80,6 +80,7 @@ export default function RoomTypes({
         footer: 'auto',
         formId: FORM_ID,
         processing: form.processing,
+        width: '5xl',
     });
 
     const setRow = (index: number, values: Partial<Row>) =>
