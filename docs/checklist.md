@@ -143,7 +143,7 @@ Brief for every item: read `AGENTS.md`, `.ai/rules/index.md`, the matching rule 
 - [ ] `feat(reports): add the activity log page` — the Audit item in the Reports sidebar, reading the existing activity log, scoped by property. Review closely. Docs: [App shell](design-system/09-app-shell.md).
 - [ ] `feat(ui): add the command palette` — ⌘K search across contexts; admin search by code, name, city, with "View as owner" and "View as owner and open" on a property result (`PropertyPolicy::viewAs`, same view-as page and POST). Review the view-as part closely. Docs: [Search patterns](design-system/07-search-patterns.md), [Impersonation](01-platform/04-impersonation.md#entry-points).
 - [ ] `style(ui): add the estatell favicon and app icons` — replace `favicon.ico`, `favicon.svg`, `icon.png` and `apple-touch-icon.png` in `public/`. Needs: the logo file from the user.
-- [ ] `chore(ui): block search indexing` — `Disallow: /` in `robots.txt` and a `noindex` meta tag in `app.blade.php`.
+- [x] `chore(ui): block search indexing` — `Disallow: /` in `robots.txt` and a `noindex` meta tag in `app.blade.php`.
 - [ ] `style(housekeeping): mobile pass on the room status board` — the board, bulk bar and status dropdown at 375px wide. Layout only; the board works the same. Docs: [Print, export and layout](19-housekeeping/02-print-and-layout.md).
 
 ## Later
