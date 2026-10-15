@@ -9,6 +9,7 @@ namespace App\Enums;
 enum PermissionEnum: string
 {
     case SettingsManage = 'settings.manage';
+    case SettingsOtaLists = 'settings.ota-lists';
     case StaffView = 'staff.view';
     case StaffManage = 'staff.manage';
     case RolesManage = 'roles.manage';
@@ -67,6 +68,7 @@ enum PermissionEnum: string
     {
         return match ($this) {
             self::SettingsManage => __('Manage property settings'),
+            self::SettingsOtaLists => __('Manage OTA lists'),
             self::StaffView => __('View staff'),
             self::StaffManage => __('Manage staff'),
             self::RolesManage => __('Manage roles'),
@@ -129,7 +131,7 @@ enum PermissionEnum: string
     public function group(): string
     {
         return match ($this) {
-            self::SettingsManage => __('Property'),
+            self::SettingsManage, self::SettingsOtaLists => __('Property'),
             self::StaffView, self::StaffManage, self::RolesManage => __('Team'),
             self::RoomsView, self::RoomsManage, self::RoomsBlock => __('Rooms'),
             self::NotificationManage => __('System'),

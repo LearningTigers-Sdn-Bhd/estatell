@@ -24,11 +24,14 @@ class SaveOtaCredentials
      * row, so the old channel slot is free first. New rows are Pending. An empty table counts as Skipped, and saving
      * at least one row removes a Skip.
      *
+     * From Settings ($fromSettings) the skip is never touched, because onboarding is over. A new password sets its
+     * saved row back to Pending and writes a log entry that never holds the password.
+     *
      * @param  list<OnboardingOtaCredentialData>  $rows
      */
-    public function __invoke(Property $property, User $actor, array $rows): void
+    public function __invoke(Property $property, User $actor, array $rows, bool $fromSettings = false): void
     {
-        DB::transaction(function () use ($property, $actor, $rows): void {
+        DB::transaction(function () use ($property, $actor, $rows, $fromSettings): void {
             Property::query()->lockForUpdate()->findOrFail($property->id);
 
             $saved = $property->otaCredentials()->get()->keyBy('id');
@@ -58,7 +61,18 @@ class SaveOtaCredentials
                 ];
 
                 if ($credential !== null && $this->keepsSlot($credential, $row)) {
-                    $credential->update($row->password === null ? $attributes : [...$attributes, 'password' => $row->password]);
+                    $passwordChanged = $fromSettings && $row->password !== null;
+                    $changes = $row->password === null ? $attributes : [...$attributes, 'password' => $row->password];
+
+                    if ($passwordChanged) {
+                        $changes['status'] = OtaCredentialStatus::Pending;
+                    }
+
+                    $credential->update($changes);
+
+                    if ($passwordChanged) {
+                        $this->logPasswordChanged($property, $actor, $credential);
+                    }
 
                     continue;
                 }
@@ -68,6 +82,10 @@ class SaveOtaCredentials
                     'password' => $row->password ?? $credential?->password,
                     'status' => OtaCredentialStatus::Pending,
                 ]);
+            }
+
+            if ($fromSettings) {
+                return;
             }
 
             if ($rows === []) {
@@ -86,5 +104,20 @@ class SaveOtaCredentials
     {
         return $credential->ota_channel_id === $row->otaChannelId
             && Str::lower((string) $credential->channel_name) === Str::lower((string) $row->channelName);
+    }
+
+    /**
+     * The log names the channel and never holds the password.
+     */
+    private function logPasswordChanged(Property $property, User $actor, PropertyOtaCredential $credential): void
+    {
+        $channel = $credential->channel_name ?? $credential->loadMissing('channel')->channel->name;
+
+        activity()
+            ->performedOn($property)
+            ->causedBy($actor)
+            ->event('ota_credential.password-changed')
+            ->withProperties(['credential_id' => $credential->id, 'channel' => $channel])
+            ->log("OTA password changed for {$channel}");
     }
 }

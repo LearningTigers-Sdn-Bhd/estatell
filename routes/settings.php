@@ -13,6 +13,7 @@ use App\Http\Controllers\Catalogues\TaxController;
 use App\Http\Controllers\Meals\MealPeriodController;
 use App\Http\Controllers\Property\AgeGroupController;
 use App\Http\Controllers\Property\NotificationSettingController;
+use App\Http\Controllers\Property\OtaListSettingsController;
 use App\Http\Controllers\Property\PrintSettingsController;
 use App\Http\Controllers\Property\PropertyLogoController;
 use App\Http\Controllers\Property\PropertySettingsController;
@@ -164,6 +165,11 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::post('/', [PaymentMethodController::class, 'store'])->name('store');
         Route::put('order', [PaymentMethodController::class, 'reorder'])->name('reorder');
         Route::put('{paymentMethod}', [PaymentMethodController::class, 'update'])->name('update');
+    });
+
+    Route::prefix('ota-lists')->name('ota-lists.')->middleware('can:'.PermissionEnum::SettingsOtaLists->value)->group(function () {
+        Route::get('/', [OtaListSettingsController::class, 'edit'])->name('edit');
+        Route::put('/', [OtaListSettingsController::class, 'update'])->name('update');
     });
 
     Route::prefix('discounts')->name('discounts.')->middleware('can:'.PermissionEnum::SettingsManage->value)->scopeBindings()->group(function () {

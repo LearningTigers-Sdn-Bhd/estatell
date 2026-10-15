@@ -41,6 +41,12 @@ class SettingsNavigation
                     icon: 'printer',
                     active: request()->routeIs('settings.printing.*'),
                 ) : null,
+                $user->can(PermissionEnum::SettingsOtaLists->value) ? new NavItemData(
+                    title: __('OTA lists'),
+                    href: route('settings.ota-lists.edit', ['property' => $property->code], absolute: false),
+                    icon: 'waypoints',
+                    active: request()->routeIs('settings.ota-lists.*'),
+                ) : null,
                 $user->can(PermissionEnum::SettingsManage->value) && Feature::for($property)->active(Boats::class) ? new NavItemData(
                     title: __('Boats'),
                     href: route('settings.boats', ['property' => $property->code], absolute: false),

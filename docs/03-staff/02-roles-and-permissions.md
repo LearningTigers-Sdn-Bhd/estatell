@@ -33,6 +33,7 @@ roles    spatie columns + property_id (NOT NULL, FK) + default_role (nullable)
 | Permission                         | Guards                                                                      | Owner | Manager | Front desk, Housekeeping, Finance |
 | ---------------------------------- | --------------------------------------------------------------------------- | ----- | ------- | --------------------------------- |
 | `settings.manage`                  | Property settings pages                                                     | ✓     | ✓       | –                                 |
+| `settings.ota-lists`               | Settings → OTA lists: add, change and remove OTA logins                     | ✓     | –       | –                                 |
 | `staff.view`                       | Staff list                                                                  | ✓     | ✓       | –                                 |
 | `staff.manage`                     | Invite, deactivate, reactivate, assign roles                                | ✓     | ✓       | –                                 |
 | `roles.manage`                     | Create roles, edit role permissions                                         | ✓     | –       | –                                 |
