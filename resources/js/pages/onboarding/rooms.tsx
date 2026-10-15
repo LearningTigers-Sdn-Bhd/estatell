@@ -57,6 +57,87 @@ const countOf = (row: RangeRow) => {
     return Math.max(0, Number(row.to) - Number(row.from) + 1);
 };
 
+const MAX_LIVE_NUMBERS = 1000;
+
+/** The room numbers a row would create, as the server builds them: prefix, then the number padded to the width of From. */
+const numbersOf = (row: RangeRow): string[] => {
+    const count = countOf(row);
+
+    if (count === 0 || count > MAX_LIVE_NUMBERS) {
+        return [];
+    }
+
+    return Array.from(
+        { length: count },
+        (_, offset) =>
+            `${row.prefix}${String(Number(row.from) + offset).padStart(row.from.length, '0')}`,
+    );
+};
+
+const summary = (numbers: string[]) =>
+    `${[...new Set(numbers)].slice(0, 3).join(', ')}${numbers.length > 3 ? ' …' : ''}`;
+
+/**
+ * Live hints for the range rows while the owner types. This only shows what the server will also refuse, so the
+ * message appears before saving. The server stays the judge: it also checks the maximum and numbers it holds that this
+ * page does not list.
+ */
+const liveRangeErrors = (
+    ranges: RangeRow[],
+    savedNumbers: string[],
+): Record<number, { from?: string; to?: string }> => {
+    const saved = new Set(savedNumbers.map((number) => number.toLowerCase()));
+    const firstSeen = new Map<string, number>();
+    const result: Record<number, { from?: string; to?: string }> = {};
+
+    ranges.forEach((row, index) => {
+        if (isBlank(row)) {
+            return;
+        }
+
+        const valid = /^\d{1,6}$/.test(row.from) && /^\d{1,6}$/.test(row.to);
+
+        if (valid && Number(row.to) < Number(row.from)) {
+            result[index] = {
+                to: 'The last number must not be lower than the first.',
+            };
+
+            return;
+        }
+
+        const numbers = numbersOf(row);
+        const repeated: string[] = [];
+        const taken: string[] = [];
+
+        numbers.forEach((number) => {
+            const key = number.toLowerCase();
+            const seenAt = firstSeen.get(key);
+
+            if (seenAt !== undefined && seenAt !== index) {
+                repeated.push(number);
+            }
+
+            if (saved.has(key)) {
+                taken.push(number);
+            }
+
+            if (seenAt === undefined) {
+                firstSeen.set(key, index);
+            }
+        });
+
+        if (repeated.length > 0) {
+            result[index] = {
+                from: `Also in another row: ${summary(repeated)}.`,
+            };
+        } else if (taken.length > 0) {
+            result[index] = { from: `Already in use: ${summary(taken)}.` };
+        }
+    });
+
+    return result;
+};
+
 const isBlank = (row: RangeRow) => !row.prefix && !row.from && !row.to;
 
 export default function Rooms({
@@ -200,6 +281,10 @@ export default function Rooms({
     };
 
     const filled = ranges.filter((row) => !isBlank(row));
+    const live = liveRangeErrors(
+        ranges,
+        rooms.map((room) => room.number),
+    );
     const total = filled.reduce((sum, row) => sum + countOf(row), 0);
     const onlyRange = ranges.length === 1 && !hasRooms;
     const lastGroup = groupRows.length === 1;
@@ -536,11 +621,17 @@ export default function Rooms({
                                                 })
                                             }
                                             aria-invalid={
-                                                !!errors[`ranges.${index}.from`]
+                                                !!(
+                                                    live[index]?.from ??
+                                                    errors[
+                                                        `ranges.${index}.from`
+                                                    ]
+                                                )
                                             }
                                         />
                                         <FieldError>
-                                            {errors[`ranges.${index}.from`]}
+                                            {live[index]?.from ??
+                                                errors[`ranges.${index}.from`]}
                                         </FieldError>
                                     </TableCell>
                                     <TableCell className="align-top max-md:p-0">
@@ -562,11 +653,15 @@ export default function Rooms({
                                                 })
                                             }
                                             aria-invalid={
-                                                !!errors[`ranges.${index}.to`]
+                                                !!(
+                                                    live[index]?.to ??
+                                                    errors[`ranges.${index}.to`]
+                                                )
                                             }
                                         />
                                         <FieldError>
-                                            {errors[`ranges.${index}.to`]}
+                                            {live[index]?.to ??
+                                                errors[`ranges.${index}.to`]}
                                         </FieldError>
                                     </TableCell>
                                     <TableCell className="text-right align-top tabular-nums max-md:p-0 max-md:text-left">
