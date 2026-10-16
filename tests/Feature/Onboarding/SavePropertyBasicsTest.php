@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\PropertyStatus;
+use App\Models\GoLiveReview;
 use App\Models\OnboardingSkip;
 use App\Models\Property;
 use App\Models\PropertyLicence;
@@ -140,16 +142,16 @@ test('before setup starts the owner can change country and the old presets go', 
         ->and($property->paymentMethods()->count())->toBe(4);
 });
 
-test('once another section has started, country currency and time zone stay as saved', function () {
+test('once another section has started, a country name save keeps the country and needs no confirmation', function () {
     ($this->save)()->assertSessionHasNoErrors();
     OnboardingSkip::factory()->for($this->property)->create(['step' => 'companies', 'skipped_by' => $this->owner->id]);
 
     $this->actingAs($this->owner)
         ->get(route('onboarding.basics.edit', $this->property->code))
-        ->assertInertia(fn (Assert $page) => $page->where('basics.locked', true));
+        ->assertInertia(fn (Assert $page) => $page->where('basics.locked', true)->where('basics.canChangeCountry', true)
+            ->where('basics.countryChange.taxes', 2)->where('basics.countryChange.paymentMethods', 6)->where('basics.countryChange.skippedSteps', 0));
 
-    ($this->save)(['name' => 'Renamed Lodge', 'country_code' => 'ID', 'currency' => 'IDR', 'time_zone' => 'Asia/Jakarta'])
-        ->assertSessionHasNoErrors();
+    ($this->save)(['name' => 'Renamed Lodge'])->assertSessionHasNoErrors();
 
     $property = $this->property->refresh();
 
@@ -157,6 +159,43 @@ test('once another section has started, country currency and time zone stay as s
         ->and($property->country_code)->toBe('MY')
         ->and($property->settings->currency->getCurrencyCode())->toBe('MYR')
         ->and($property->taxes()->count())->toBe(2);
+});
+
+test('once another section has started, a changed country needs the confirmation and then resets', function () {
+    ($this->save)()->assertSessionHasNoErrors();
+    OnboardingSkip::factory()->for($this->property)->create(['step' => 'companies', 'skipped_by' => $this->owner->id]);
+    $change = ['country_code' => 'ID', 'currency' => 'IDR', 'time_zone' => 'Asia/Jakarta'];
+
+    ($this->save)($change)->assertSessionHasErrors('confirm_country_change');
+
+    expect($this->property->refresh()->country_code)->toBe('MY')
+        ->and($this->property->taxes()->count())->toBe(2);
+
+    ($this->save)([...$change, 'confirm_country_change' => true])->assertSessionHasNoErrors();
+
+    $property = $this->property->refresh();
+
+    expect($property->country_code)->toBe('ID')
+        ->and($property->settings->currency->getCurrencyCode())->toBe('IDR')
+        ->and($property->taxes()->count())->toBe(0)
+        ->and($property->paymentMethods()->count())->toBe(4);
+});
+
+test('after setup started a pending go-live request hides Change country and refuses the change', function () {
+    ($this->save)()->assertSessionHasNoErrors();
+    OnboardingSkip::factory()->for($this->property)->create(['step' => 'companies', 'skipped_by' => $this->owner->id]);
+    GoLiveReview::factory()->for($this->property)->create();
+    $this->property->forceFill(['status' => PropertyStatus::PendingApproval])->save();
+
+    $this->actingAs($this->owner)
+        ->get(route('onboarding.basics.edit', $this->property->code))
+        ->assertInertia(fn (Assert $page) => $page->where('basics.canChangeCountry', false)->where('basics.countryChange', null));
+
+    ($this->save)(['country_code' => 'ID', 'currency' => 'IDR', 'time_zone' => 'Asia/Jakarta', 'confirm_country_change' => true])
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'Waiting for approval. Withdraw to make changes.']);
+
+    expect($this->property->refresh()->country_code)->toBe('MY')
+        ->and($this->property->taxes()->count())->toBe(2);
 });
 
 test('a live property keeps its country', function () {

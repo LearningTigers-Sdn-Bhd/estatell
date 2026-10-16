@@ -3,17 +3,22 @@
 namespace App\Services\Property;
 
 use App\Enums\OnboardingStep;
+use App\Enums\PropertyStatus;
 use App\Enums\StepState;
 use App\Models\Property;
+use App\Services\Onboarding\GoLiveRequests;
 use App\Services\Onboarding\OnboardingProgress;
 
 /**
  * Settings that stay fixed once a property has gone live, because money and business dates depend on them, and the
- * country, which also stays fixed once setup has started.
+ * country, which stays fixed once setup has started unless the owner uses Change country.
  */
 class SettingsLock
 {
-    public function __construct(private OnboardingProgress $progress) {}
+    public function __construct(
+        private OnboardingProgress $progress,
+        private GoLiveRequests $goLiveRequests,
+    ) {}
 
     public function locksCurrencyAndTimeZone(Property $property): bool
     {
@@ -22,11 +27,23 @@ class SettingsLock
 
     /**
      * Country, currency and time zone are plain fields on Basics only while the property is not live and every other
-     * onboarding section is Not started (or Locked behind Basics). After that, Change country (a later item) is the way.
+     * onboarding section is Not started (or Locked behind Basics). Once setup started they show read-only, and Change
+     * country unlocks them (see canChangeCountry).
      */
     public function locksCountry(Property $property): bool
     {
         return $this->locksCurrencyAndTimeZone($property) || $this->setupStarted($property);
+    }
+
+    /**
+     * Whether the country can change: the property is still in onboarding and no go-live request is pending. Holds
+     * before setup starts (plain fields) and after it (Change country). Live, suspended and pending properties cannot.
+     */
+    public function canChangeCountry(Property $property): bool
+    {
+        return ! $this->locksCurrencyAndTimeZone($property)
+            && $property->status === PropertyStatus::Onboarding
+            && $this->goLiveRequests->pending($property) === null;
     }
 
     /**

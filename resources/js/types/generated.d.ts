@@ -1414,6 +1414,16 @@ isOwner: boolean,
 };
 }
 namespace Property {
+export type CountryChangeCountsData = {
+taxes: number,
+paymentMethods: number,
+chargeItems: number,
+discounts: number,
+prices: number,
+inclusions: number,
+termsDocuments: number,
+skippedSteps: number,
+};
 export type CountryProfileData = {
 registrationNumberLabel: string,
 tinLabel: string,
@@ -1476,6 +1486,8 @@ countryName: string | null,
 currency: string,
 timeZone: string,
 locked: boolean,
+canChangeCountry: boolean,
+countryChange: App.Data.Property.CountryChangeCountsData | null,
 legalName: string | null,
 registrationNumber: string | null,
 tin: string | null,

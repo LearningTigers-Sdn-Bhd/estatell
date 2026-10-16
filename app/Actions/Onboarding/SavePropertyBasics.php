@@ -8,7 +8,6 @@ use App\Actions\Property\SeedPropertyDefaults;
 use App\Models\Property;
 use App\Models\User;
 use App\Services\Property\CountryProfiles;
-use App\Services\Property\SettingsLock;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
@@ -18,15 +17,15 @@ class SavePropertyBasics
         private SeedPropertyDefaults $seedPropertyDefaults,
         private ChangePropertyCountry $changePropertyCountry,
         private SavePropertyBusiness $savePropertyBusiness,
-        private SettingsLock $settingsLock,
     ) {}
 
     /**
      * Save the property identity and business details. The first save seeds the defaults of the chosen country. A later
-     * save only updates type, name, address and business details, and the country, currency and time zone while
-     * setup has not started (see ChangePropertyCountry).
+     * save only updates type, name, address and business details, and the country, currency and time zone when the
+     * request sends them (see SavePropertyBasicsRequest). A changed country goes through ChangePropertyCountry, which
+     * refuses a live or pending property.
      *
-     * Returns false, without writing, when a licence is not one of the property's or the country can no longer change.
+     * Returns false, without writing, when a licence is not one of the property's or the country change is refused.
      *
      * @param  array<string, mixed>  $attributes  Validated Basics fields. `country_code`, `currency` and `time_zone` are absent when they are locked.
      * @param  array{legal_name: string|null, registration_number: string|null, tin: string|null}  $business
@@ -40,10 +39,6 @@ class SavePropertyBasics
         $identity = array_diff_key($attributes, array_flip(['country_code', 'currency', 'time_zone']));
         $isFirstSave = $property->settings()->doesntExist();
         $changesCountry = ! $isFirstSave && isset($attributes['country_code']) && $attributes['country_code'] !== $property->country_code;
-
-        if ($changesCountry && $this->settingsLock->locksCountry($property)) {
-            return false;
-        }
 
         DB::beginTransaction();
 

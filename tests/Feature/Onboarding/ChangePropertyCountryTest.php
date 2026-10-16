@@ -3,6 +3,8 @@
 use App\Actions\Onboarding\SavePropertyBasics;
 use App\Actions\Property\ChangePropertyCountry;
 use App\Enums\OnboardingStep;
+use App\Enums\PropertyStatus;
+use App\Models\GoLiveReview;
 use App\Models\OnboardingSkip;
 use App\Models\Property;
 use App\Models\User;
@@ -66,16 +68,16 @@ test('it keeps the identity and room data and logs the change', function () {
         ->toMatchArray(['from' => 'MY', 'to' => 'TH']);
 });
 
-test('it refuses, without writing, after another section started', function () {
+test('after another section started the country change resets the country-bound data', function () {
     OnboardingSkip::factory()->for($this->property)->create(['step' => OnboardingStep::Companies, 'skipped_by' => $this->owner->id]);
 
-    expect(app(ChangePropertyCountry::class)($this->owner, $this->property, 'TH', 'THB', 'Asia/Bangkok'))->toBeFalse();
+    expect(app(ChangePropertyCountry::class)($this->owner, $this->property, 'TH', 'THB', 'Asia/Bangkok'))->toBeTrue();
 
     $property = $this->property->refresh();
 
-    expect($property->country_code)->toBe('MY')
-        ->and($property->taxes()->count())->toBe(2)
-        ->and($property->settings->currency->getCurrencyCode())->toBe('MYR');
+    expect($property->country_code)->toBe('TH')
+        ->and($property->taxes()->count())->toBe(0)
+        ->and($property->settings->currency->getCurrencyCode())->toBe('THB');
 });
 
 test('it refuses after go-live', function () {
@@ -91,8 +93,10 @@ test('it refuses a property that has no settings yet', function () {
     expect(app(ChangePropertyCountry::class)($this->owner, $fresh, 'TH'))->toBeFalse();
 });
 
-test('saving the basics with a changed country after setup started returns false', function () {
+test('a pending go-live request refuses the Basics country change, and nothing is written', function () {
     OnboardingSkip::factory()->for($this->property)->create(['step' => OnboardingStep::Companies, 'skipped_by' => $this->owner->id]);
+    GoLiveReview::factory()->for($this->property)->create();
+    $this->property->forceFill(['status' => PropertyStatus::PendingApproval])->save();
 
     $saved = app(SavePropertyBasics::class)($this->owner, $this->property, [
         'type' => $this->property->type,
@@ -105,5 +109,6 @@ test('saving the basics with a changed country after setup started returns false
     ], ['legal_name' => null, 'registration_number' => null, 'tin' => null], []);
 
     expect($saved)->toBeFalse()
-        ->and($this->property->refresh()->name)->toBe('Seaview Guesthouse');
+        ->and($this->property->refresh()->name)->toBe('Seaview Guesthouse')
+        ->and($this->property->country_code)->toBe('MY');
 });

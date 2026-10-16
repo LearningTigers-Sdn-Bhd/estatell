@@ -37,10 +37,9 @@ class SavePropertyBasicsRequest extends FormRequest
     }
 
     /**
-     * Get the validation rules that apply to the request.
-     *
-     * Country, currency and time zone are left out once setup started or the property is live: the saved values stay.
-     * For Malaysia currency and time zone are left out too, because the profile fixes them.
+     * Country, currency and time zone are left out while the property is live. Once setup started they are only
+     * accepted when the owner unlocked them (Change country sends them), and a changed country then needs the
+     * confirmation. For Malaysia currency and time zone are left out too, because the profile fixes them.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
@@ -51,12 +50,15 @@ class SavePropertyBasicsRequest extends FormRequest
             throw new LogicException('The property route binding is missing.');
         }
 
-        $locked = $settingsLock->locksCountry($property);
-        $country = $locked ? $property->country_code : $this->input('country_code');
+        $setupStarted = $settingsLock->setupStarted($property);
+        $editable = ! $settingsLock->locksCurrencyAndTimeZone($property) && (! $setupStarted || $this->filled('country_code'));
+        $country = $editable ? $this->input('country_code') : $property->country_code;
+        $changesCountry = $editable && $setupStarted && $country !== $property->country_code;
 
         return [
             'type' => ['required', Rule::enum(PropertyType::class)],
-            ...$this->regionRules($locked),
+            ...$this->regionRules($editable),
+            ...($changesCountry ? ['confirm_country_change' => ['required', 'accepted']] : []),
             ...self::identityRules(),
             ...($country === 'MY' ? ['state_code' => ['nullable', 'string', Rule::in(MalaysianStates::names())]] : []),
             ...SavePropertyBusinessRequest::businessRules($property),
@@ -83,9 +85,9 @@ class SavePropertyBasicsRequest extends FormRequest
     /**
      * @return array<string, array<int, mixed>>
      */
-    private function regionRules(bool $locked): array
+    private function regionRules(bool $editable): array
     {
-        if ($locked) {
+        if (! $editable) {
             return [
                 'country_code' => ['exclude'],
                 'currency' => ['exclude'],
@@ -116,7 +118,7 @@ class SavePropertyBasicsRequest extends FormRequest
      */
     public function basics(): array
     {
-        return array_diff_key($this->validated(), array_flip(['legal_name', 'registration_number', 'tin', 'licences']));
+        return array_diff_key($this->validated(), array_flip(['legal_name', 'registration_number', 'tin', 'licences', 'confirm_country_change']));
     }
 
     /**

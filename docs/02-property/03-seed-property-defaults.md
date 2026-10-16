@@ -62,6 +62,17 @@ The fields stay on the page because Basics is their form, and an AlertDialog all
 | Check-in and check-out times, registration card fields | Security deposit amount, terms (room types lose a link to a reset terms document) |
 | Age groups and meal periods the owner edited           | Untouched age groups and meal periods                                             |
 
+**Built details beyond the table:**
+
+- Age groups and meal periods are not touched: their seeders have no country difference.
+- Rate plan inclusions are deleted, because they point at charge items that go. Plan extra amounts are set to 0. Amount-off stay discounts are deleted. Percent stay discounts stay, because they have no currency.
+- The security deposit amount is set to 0.00.
+- Everything in the Reset column goes, including rows the owner made. Their non-system transaction codes go with them.
+- The `onboarding_skips` rows of reset sections (Check-in essentials, Taxes, Payment methods, Basic rate, Charge items, Discounts) are removed, so "We don't charge tax" does not survive.
+- Only a changed country opens the AlertDialog and resets. Currency or time zone alone on the same country saves directly.
+- The change is refused for a Live property and while a go-live request is pending (`SettingsLock::canChangeCountry`).
+- The server sends the counts (`CountryChangeCounts`) and the save needs `confirm_country_change`.
+
 Guard test: after `ChangePropertyCountry` from Malaysia to another country, no Malaysian preset key, tax link or old-currency amount is left for the property.
 
 ## Currencies
