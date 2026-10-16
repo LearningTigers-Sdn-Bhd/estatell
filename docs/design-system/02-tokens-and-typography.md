@@ -5,7 +5,7 @@ Part of the [design system](../design-system.md). Short contract: [DESIGN.md](..
 ## Tokens
 
 - Use only the preset's **semantic tokens**: `background`, `foreground`, `card`, `popover`, `primary`, `secondary`, `muted`, `accent`, `destructive`, `border`, `input`, `ring`, the sidebar tokens and the chart tokens.
-- **Status tokens** are added in `resources/css/app.css`: `success`, `warning`, `info`, each with a `-foreground`, in light and dark.
+- **Status tokens** are added in `resources/css/app.css`: `success`, `warning`, `info`, each with a `-foreground`, in light and dark. `warning` also has `warning-text`, a readable amber for text on a soft warning tint.
 - **Auth accent**: `auth-accent` is a faint emerald tint for the auth shell's edge gradient, with separate light and dark values. It is decorative, not a text color. Tailwind exposes it through `--color-auth-accent`.
 - **Grid tokens** are added in `resources/css/app.css` for the date grid engine and the calendars built on it. They are named by role, so the hue can change without touching a component:
 
@@ -22,7 +22,7 @@ Part of the [design system](../design-system.md). Short contract: [DESIGN.md](..
 | `grid-muted-foreground`                 | Secondary text inside the grid                                               |
 
 - Use them as `bg-grid-header`, `text-grid-muted-foreground`, `border-grid-line`. Components inside a grid never use a palette class or a hue name.
-- Every text pair meets WCAG 2.2 AA (4.5:1) in light and dark, and icons meet 3:1. Check a new pair before you ship it. Status colors that fail on a tint get a filled pill (`bg-warning text-warning-foreground`) in place of colored text.
+- Every text pair meets WCAG 2.2 AA (4.5:1) in light and dark, and icons meet 3:1. Check a new pair before you ship it. Amber text on a tint uses `text-warning-text`. Other status colors that fail on a tint get a filled pill (`bg-warning text-warning-foreground`) in place of colored text.
 - `weekend` and `hover` are translucent so they lay over any row background. Grid lines are decoration, so they are not held to 3:1.
     - Success badges use a soft (tinted) style. The success color must be clearly different from the emerald primary, so a status never looks like a primary button.
 - **Enums drive status colors.** Every PMS enum has:

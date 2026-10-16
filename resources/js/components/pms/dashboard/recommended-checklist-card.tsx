@@ -59,13 +59,17 @@ export function RecommendedChecklistCard({
         <Collapsible
             open={expanded}
             onOpenChange={changeExpanded}
-            render={<Card />}
+            render={<Card className="relative" />}
         >
-            <CardHeader>
+            <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 bg-primary/5"
+            />
+            <CardHeader className="relative">
                 <CardTitle className="flex items-center gap-2">
                     <Sparkles
                         aria-hidden
-                        className="size-4 text-muted-foreground"
+                        className="size-5 text-muted-foreground"
                     />
                     Recommended next
                 </CardTitle>
@@ -84,7 +88,7 @@ export function RecommendedChecklistCard({
                 </CollapsibleTrigger>
             </CardHeader>
 
-            <CardContent>
+            <CardContent className="relative">
                 <ul className="flex flex-col gap-4">
                     {(next ? [next] : []).map((item) => (
                         <li
@@ -100,7 +104,7 @@ export function RecommendedChecklistCard({
                                 {item.done ? (
                                     <Check
                                         aria-label="Done"
-                                        className="mt-0.5 size-4 shrink-0 text-success"
+                                        className="mt-0.5 size-4 shrink-0 text-primary"
                                     />
                                 ) : (
                                     <Circle
@@ -129,7 +133,7 @@ export function RecommendedChecklistCard({
                                     <Link
                                         href={item.actionUrl}
                                         className={buttonVariants({
-                                            variant: 'outline',
+                                            variant: 'default',
                                             size: 'sm',
                                         })}
                                     >
@@ -163,7 +167,7 @@ export function RecommendedChecklistCard({
                                         {item.done ? (
                                             <Check
                                                 aria-label="Done"
-                                                className="mt-0.5 size-4 shrink-0 text-success"
+                                                className="mt-0.5 size-4 shrink-0 text-primary"
                                             />
                                         ) : (
                                             <Circle
@@ -191,7 +195,7 @@ export function RecommendedChecklistCard({
                                             <Link
                                                 href={item.actionUrl}
                                                 className={buttonVariants({
-                                                    variant: 'outline',
+                                                    variant: 'default',
                                                     size: 'sm',
                                                 })}
                                             >

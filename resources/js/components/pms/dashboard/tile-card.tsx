@@ -14,22 +14,38 @@ export function TileCard({
     children,
     className,
     icon: Icon,
+    tone = 'neutral',
 }: {
     title: string;
     href: NonNullable<InertiaLinkProps['href']>;
     children: ReactNode;
     className?: string;
     icon?: LucideIcon;
+    tone?: 'neutral' | 'primary' | 'soft-primary' | 'warning';
 }) {
     return (
-        <Card className={cn('relative', className)}>
+        <Card size="sm" className={cn('relative h-full min-w-0', className)}>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     {Icon && (
-                        <Icon
+                        <span
                             aria-hidden
-                            className="size-4 shrink-0 text-muted-foreground"
-                        />
+                            className={cn(
+                                'flex size-8 shrink-0 items-center justify-center rounded-lg',
+                                {
+                                    'bg-muted text-muted-foreground':
+                                        tone === 'neutral',
+                                    'bg-primary/10 text-primary':
+                                        tone === 'primary',
+                                    'bg-primary/5 text-primary':
+                                        tone === 'soft-primary',
+                                    'bg-warning/10 text-warning-text':
+                                        tone === 'warning',
+                                },
+                            )}
+                        >
+                            <Icon className="size-5" />
+                        </span>
                     )}
                     <Link
                         href={href}

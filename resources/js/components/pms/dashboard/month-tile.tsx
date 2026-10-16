@@ -30,6 +30,7 @@ export function MonthTile({
         <TileCard
             title={tile.month}
             icon={CalendarDays}
+            tone="soft-primary"
             href={revenue.url(undefined, {
                 query: { from: tile.from, to: tile.to },
             })}
@@ -39,7 +40,7 @@ export function MonthTile({
                     render={<p tabIndex={0} />}
                     className="relative w-fit rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                    <span className="font-heading text-2xl font-semibold">
+                    <span className="font-heading text-xl font-semibold">
                         <MoneyText
                             amount={tile.posted}
                             currency={tile.currency}
@@ -56,9 +57,7 @@ export function MonthTile({
                     render={<p tabIndex={0} />}
                     className="relative w-fit rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                    <span className="font-heading text-2xl font-semibold tabular-nums">
-                        {tile.bookedNights}
-                    </span>{' '}
+                    <span className="tabular-nums">{tile.bookedNights}</span>{' '}
                     <span className="text-sm">nights booked</span>
                 </TooltipTrigger>
                 <TooltipContent>

@@ -8,55 +8,72 @@ The first page staff see after login: start the day's work in one click, see wha
 
 ## Layout
 
+The dashboard uses the fixed-height app layout. Its content scrolls inside the available space, while the navbar and workspace header stay fixed.
+
 ```
 Dashboard · Sandbay Resort                          Business date 12 Oct 2026
 ┌ ⚠ Night audit for 11 Oct did not finish.                       [Open audit] ┐
 └─────────────────────────────────────────────────────────────────────────────┘
 [+ New booking]  [Walk-in]  [Find reservation]                 [Run night audit]
 
-┌ To do today ───────────────────── 8 items ┐┌ Tonight ────────────────────────┐
-│ Overdue  Room 104 · Lee Mei Ling          ││ 70%  occupied                   │
-│          was due 12:00       [Check out]  ││ 9 rooms free                    │
-│ 14:00    Tan Wei Ming · WA1-0142          ││                                 │
-│          2 rooms              [Check in]  ││ ▁▃▅▆▇▆▅                         │
-│ 15:00    Ahmad Faiz · WA1-0150            ││ Mon ─────────────────────── Sun │
-│          Deluxe Twin          [Check in]  │└─────────────────────────────────┘
-│ Folio    Master F-0031 · Acme Sdn Bhd     │┌ Arrivals ──────┐┌ Departures ───┐
-│          MYR 1,700 not billed [Open folio]││ 5              ││ 3             │
-│ …                                         ││ to check in    ││ to check out  │
-│                     [See all arrivals]    ││ of 8           ││ of 5          │
-│                                           │└────────────────┴────────────────┘
-│                                           │┌ Housekeeping ───────────────────┐
-│                                           ││ 4 Dirty · 2 To inspect · 1 Blocked│
-└───────────────────────────────────────────┘└─────────────────────────────────┘
-┌ Recommended next · 1 of 7 done ────────────┐┌ October ────────────────────────┐
-│ Property logo                     [Add →] ││ MYR 84,200 posted               │
-│ No logo on invoices and receipts          ││ 612 nights booked               │
-│                              [Show all ▾]││                                 │
-└───────────────────────────────────────────┘└─────────────────────────────────┘
+┌ Arrivals ──────┐┌ Departures ───┐┌ Housekeeping ────────┐┌ October ──────────────┐
+│ 5 of 8        ││ 3 of 5        ││ 4 dirty              ││ MYR 84,200 posted    │
+│ to check in   ││ to check out  ││ 2 to inspect · 1 blocked│ 612 nights booked   │
+└───────────────┘└───────────────┘└──────────────────────┘└─────────────────────┘
+┌ To do today · 12 Oct ─────────────────────── 8 items ┐┌ Tonight ────────────────┐
+│ Overdue    Lee Mei Ling   Room 104 · SAR-26100025    ││ 70% occupied            │
+│ Arrival    Tan Wei Ming   2 rooms · SAR-26100031     ││ 9 rooms free            │
+│ Departure  Ahmad Faiz     Deluxe · SAR-26100027      ││ 7-night chart           │
+│ Folio      Master F-0031  Acme · F-0031              ││                         │
+└──────────────────────────────────────────────────────┘└─────────────────────────┘
+┌ Recommended next ──────────────────────────────────────┐
+│ 1 of 7 done · Property logo                  [Add →]   │
+└────────────────────────────────────────────────────────┘
 ```
 
 Everything uses the property **business date** (`CurrentBusinessDate`) and the property time zone, never the calendar date.
 
 ### Bento grid
 
-Below the quick actions the parts sit in a bento grid from `lg`:
+Below the unchanged quick actions, four compact stat tiles form a strip.
+At `xl` (1280px), the strip has four equal columns. The main grid has three equal columns:
 
-| Cell                     | Place                                       | Why                                       |
-| ------------------------ | ------------------------------------------- | ----------------------------------------- |
-| **To do today**          | Left, about 55% wide, above recommendations | Where staff act, so it gets the most room |
-| **Tonight**              | Right, top, full right-column width         | The 7-night bar needs width to read       |
-| **Arrivals, Departures** | Right, middle, one card with a divider      | Two related counts                        |
-| **Housekeeping**         | Right, below arrivals and departures        | Rooms that need cleaning or inspection    |
-| **{Month}**              | Right, bottom, full right-column width      | Two figures with their labels             |
-| **Recommended next**     | Left, below To do                           | Setup guidance stays secondary            |
+| Cell                     | Place                               | Why                                    |
+| ------------------------ | ----------------------------------- | -------------------------------------- |
+| **Arrivals, Departures** | First and second tiles in the strip | Units left to act on and total units   |
+| **Housekeeping**         | Third tile in the strip             | Rooms that need cleaning or inspection |
+| **{Month}**              | Fourth tile in the strip            | Posted revenue and booked room nights  |
+| **To do today**          | Main grid, columns 1–2, top row     | Guest tasks get the most width         |
+| **Tonight**              | Main grid, column 3, top row        | Occupancy and the 7-night chart        |
+| **Recommended next**     | Columns 1–2, below To do            | Setup guidance stays secondary         |
 
-- The grid height follows the right column. A long To do list scrolls inside its cell, so the right column never leaves a gap.
+- To do and Tonight share the top row and end at the same height on desktop. A short To do list keeps its card height, and its empty state centers in the card.
+- Column 3 holds only Tonight. When Recommended next disappears, its row is left out and leaves no gap.
+- A long To do list scrolls inside its cell on desktop.
+- To do has no footer or See all arrivals link. Its business date sits below the heading as the section description.
+- The header centers the icon vertically beside the title and date column. Both text lines share the same left edge.
+- The item count uses an outline badge at the top-right. Task rows share one rounded border with edge-to-edge dividers.
+- Padding sits inside each task row, not around the list. The empty state centers in the available body space.
 - Borders separate work areas. To do and recommendation rows stay flat, without nested cards.
-- Every section heading has one small, muted Lucide icon. Recommended next uses `Sparkles`; housekeeping uses `Brush`.
+- Every section heading has one muted 20px Lucide icon. Recommended next uses `Sparkles`; housekeeping uses `Brush`.
 - Quick actions are compact buttons, not cards. Only New booking uses the primary style.
-- A cell the user may not see is left out and the others in its column grow to fill it. With no tile at all, To do takes the full width.
-- Below `lg`, the parts stack: alert, quick actions, summary cards, To do, then Recommended next.
+- Hidden cells leave no reserved gap. Without Tonight, To do and recommendations take the full width.
+- At 768–1279px, the strip is 2×2. To do spans the full width, followed by Tonight and Recommended next side by side.
+- Below 768px, the strip stays 2×2. The remaining cards stack: To do, Tonight, Recommended next.
+- Wide task rows place the type and time, guest, room and reservation code, and action beside each other. Narrow rows wrap.
+
+### Color
+
+- Stat tiles use a normal card and border. Only the small icon chip carries color. No left accents.
+- One green: the brand `primary` token, the same green as the buttons. `success` is an olive shade and is not used on the dashboard.
+- Arrivals use a primary chip. October uses a softer primary chip (`primary/5`). Departures use a warning chip. Housekeeping uses a neutral chip, and warning only when Dirty is above zero.
+- A positive Dirty count shows only the word "dirty" in `warning-text`. The number keeps the plain strong style.
+- Task badges use soft tints, never solid fills. Arrival uses a primary tint, Departure a warning tint with `warning-text`, and Overdue the danger tint.
+- Blocked and Overdue use the danger tint with a danger dot. The label keeps strong text.
+- Tonight uses the existing emerald `chart-3` token for its line and area fill. The chart is 84px high. The occupancy figure keeps strong text.
+- Recommended next has a subtle primary tint. Its action and completed checks use the primary style.
+- All colors use existing semantic tokens in both themes. There are no custom colors or theme overrides.
+- Amber text on a warning tint uses the `warning-text` token (dark amber in light mode, light amber in dark mode), not `warning`.
 
 ### Recommended next
 
@@ -94,14 +111,14 @@ A user with none of them sees no button row.
 
 ## Tiles
 
-Four tiles in the right column of the [bento grid](#bento-grid). Each is a link, and a tile the user may not see is left out.
+The stat strip and Tonight card use the existing data and links. A tile the user may not see is left out.
 
-| Tile           | Shows                                                                                                                                                                     | Link                       | Source                                                         | Permission          |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- | -------------------------------------------------------------- | ------------------- |
-| **Arrivals**   | "5 to check in" and "of 8": units arriving on the business date, and how many are still Confirmed                                                                         | Arrivals report, today     | `ArrivalsReport`                                               | `reservations.view` |
-| **Departures** | "3 to check out" and "of 5": units departing on the business date, and how many are still CheckedIn                                                                       | Departures report, today   | `DeparturesReport`                                             | `reservations.view` |
-| **Tonight**    | Occupancy % and rooms free tonight (beds as well for a property with dorms), then a 7-night mini bar. Tapping or hovering opens a popover by room type: sold, total, left | Rate calendar              | `AvailabilityService::nightsForRoomTypes()` for all room types | `reservations.view` |
-| **{Month}**    | "MYR 84,200 posted" and "612 nights booked" for the month of the business date                                                                                            | Revenue report, this month | `DailyRevenueQuery`, `unit_nights`                             | `reports.view`      |
+| Tile           | Shows                                                                                                                                                                       | Link                       | Source                                                         | Permission          |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- | -------------------------------------------------------------- | ------------------- |
+| **Arrivals**   | "5 of 8" and "to check in": units arriving on the business date, and how many are still Confirmed                                                                           | Arrivals report, today     | `ArrivalsReport`                                               | `reservations.view` |
+| **Departures** | "3 of 5" and "to check out": units departing on the business date, and how many are still CheckedIn                                                                         | Departures report, today   | `DeparturesReport`                                             | `reservations.view` |
+| **Tonight**    | Occupancy % and rooms free tonight (beds as well for a property with dorms), then a 7-night area chart. Tapping or hovering opens a popover by room type: sold, total, left | Rate calendar              | `AvailabilityService::nightsForRoomTypes()` for all room types | `reservations.view` |
+| **{Month}**    | "MYR 84,200 posted" and "612 nights booked" for the month of the business date                                                                                              | Revenue report, this month | `DailyRevenueQuery`, `unit_nights`                             | `reports.view`      |
 
 **The month tile counts two different things, and says so.**
 
@@ -130,7 +147,7 @@ One list of what is left to act on, with a button on each row.
 - The loader scopes reservations to the property. Existing submission routes still enforce check-in, check-out and payment permissions.
 - After a Dialog closes, the list, tiles, housekeeping and alert reload through `only`.
 - A user without `front-desk.check-in` or `front-desk.check-out` gets **Open** (the reservation page) instead. **Open folio** is a link and needs `reservations.view`.
-- The first 10 rows show, then **See all arrivals**. With no rows: "Nothing left for today. All arrivals are in and all departures are out."
+- The first 10 rows show. The outline badge shows the total item count. With no rows: "Nothing left for today. All arrivals are in and all departures are out."
 - With the Boats feature, a **No boat** row follows the arrivals: Confirmed units arriving today or tomorrow with no Boat in trip (see [Boat trips](../24-boats/02-boat-trips.md#dashboard)).
 - Rooms to clean appear in the separate Housekeeping cell, not as guest tasks.
 

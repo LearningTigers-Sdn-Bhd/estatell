@@ -21,12 +21,12 @@ export function TonightTile({
     tile: App.Data.Dashboard.TonightTileData;
 }) {
     return (
-        <Card>
+        <Card className="flex-1">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <Moon
                         aria-hidden
-                        className="size-4 text-muted-foreground"
+                        className="size-5 text-muted-foreground"
                     />
                     <Link
                         href={calendar.url()}
@@ -42,7 +42,7 @@ export function TonightTile({
                         openOnHover
                         className="flex w-full flex-col rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
-                        <span className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
+                        <span className="flex flex-col gap-1">
                             <span>
                                 <span className="font-heading text-3xl font-semibold tabular-nums">
                                     {tile.occupancy}%

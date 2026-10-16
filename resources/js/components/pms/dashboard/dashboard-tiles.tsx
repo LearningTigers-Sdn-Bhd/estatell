@@ -1,12 +1,11 @@
 import { Deferred } from '@inertiajs/react';
 import { MonthTile } from '@/components/pms/dashboard/month-tile';
 import { TilesSkeleton } from '@/components/pms/dashboard/tiles-skeleton';
-import { TonightTile } from '@/components/pms/dashboard/tonight-tile';
 import { MovementCard } from '@/components/pms/dashboard/movement-card';
 import { HousekeepingTile } from '@/components/pms/dashboard/housekeeping-tile';
 
 /**
- * The summary column of the bento. Hidden cells leave no gap; deferred cells show skeletons.
+ * The stat strip. Hidden cells leave no gap; each deferred group loads independently.
  */
 export function DashboardTiles({
     tiles,
@@ -18,7 +17,7 @@ export function DashboardTiles({
     housekeeping?: App.Data.Dashboard.HousekeepingTileData | null;
 }) {
     return (
-        <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-2 items-stretch gap-4 xl:auto-cols-fr xl:grid-flow-col xl:grid-cols-none">
             <Deferred
                 data="tiles"
                 fallback={
@@ -30,29 +29,19 @@ export function DashboardTiles({
             >
                 {tiles && (
                     <>
-                        {tiles.tonight && <TonightTile tile={tiles.tonight} />}
                         {(tiles.arrivals || tiles.departures) && (
                             <MovementCard tiles={tiles} />
                         )}
-                        {housekeeping !== null && can.canViewHousekeeping && (
-                            <Deferred
-                                data="housekeeping"
-                                fallback={
-                                    <TilesSkeleton units={false} reports />
-                                }
-                            >
-                                {housekeeping && (
-                                    <HousekeepingTile tile={housekeeping} />
-                                )}
-                            </Deferred>
+                        {tiles.month && (
+                            <div className="order-4 min-w-0">
+                                <MonthTile tile={tiles.month} />
+                            </div>
                         )}
-                        {tiles.month && <MonthTile tile={tiles.month} />}
                     </>
                 )}
             </Deferred>
-            {tiles === null &&
-                housekeeping !== null &&
-                can.canViewHousekeeping && (
+            {housekeeping !== null && can.canViewHousekeeping && (
+                <div className="order-3 min-w-0">
                     <Deferred
                         data="housekeeping"
                         fallback={<TilesSkeleton units={false} reports />}
@@ -61,7 +50,8 @@ export function DashboardTiles({
                             <HousekeepingTile tile={housekeeping} />
                         )}
                     </Deferred>
-                )}
+                </div>
+            )}
         </div>
     );
 }

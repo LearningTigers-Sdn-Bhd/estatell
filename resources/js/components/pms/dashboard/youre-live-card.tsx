@@ -81,7 +81,7 @@ export function YoureLiveCard({
                             </span>{' '}
                             <span className="text-muted-foreground">
                                 {sharedOn !== null ? (
-                                    <span className="inline-flex items-center gap-1 text-success">
+                                    <span className="inline-flex items-center gap-1 text-primary">
                                         <Check className="size-4" />
                                         Shared <DateText date={sharedOn} />
                                     </span>
