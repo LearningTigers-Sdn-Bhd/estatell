@@ -12,7 +12,7 @@ class DismissRecommendedItem
 {
     /**
      * Mark a Recommended next item as Not needed, so the checklist stops showing it. Returns false, and writes and logs
-     * nothing, for a key that cannot be dismissed (the logo, or an unknown key) or an item already dismissed.
+     * nothing, for a key that cannot be dismissed (an unknown key or a required section) or an item already dismissed.
      */
     public function __invoke(Property $property, User $actor, string $item): bool
     {

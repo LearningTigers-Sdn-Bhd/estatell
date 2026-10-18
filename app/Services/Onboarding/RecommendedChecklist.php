@@ -40,7 +40,7 @@ class RecommendedChecklist
      */
     public static function isDismissibleKey(string $item): bool
     {
-        if (in_array($item, [self::ROOM_REVENUE, self::MISSED_ARRIVALS, self::PAYMENT_SURCHARGES, self::ROOM_GROUPS], true)) {
+        if (in_array($item, [self::LOGO, self::ROOM_REVENUE, self::MISSED_ARRIVALS, self::PAYMENT_SURCHARGES, self::ROOM_GROUPS], true)) {
             return true;
         }
 
@@ -115,9 +115,9 @@ class RecommendedChecklist
             label: __('Property logo'),
             summary: $done ? __('Shown on invoices and receipts') : __('No logo on invoices and receipts'),
             done: $done,
-            actionLabel: __('Add'),
+            actionLabel: __('Add logo'),
             actionUrl: route('settings.profile', $property),
-            dismissible: false,
+            dismissible: true,
         );
     }
 
@@ -134,7 +134,7 @@ class RecommendedChecklist
             label: __('No-show and cancellation charges'),
             summary: $done ? __('Charged on some no-shows or cancellations') : __('All policies are Free'),
             done: $done,
-            actionLabel: __('Set up'),
+            actionLabel: __('Set up charges'),
             actionUrl: route('settings.room-revenue.index', $property),
             dismissible: true,
         );
@@ -147,7 +147,7 @@ class RecommendedChecklist
             label: __('Missed arrivals and overdue departures'),
             summary: __('Using the defaults'),
             done: false,
-            actionLabel: __('Review'),
+            actionLabel: __('Review rules'),
             actionUrl: route('settings.operations', $property),
             dismissible: true,
         );
@@ -159,10 +159,10 @@ class RecommendedChecklist
 
         return new RecommendedItemData(
             key: self::SKIPPED_PREFIX.$step->value,
-            label: __('Skipped: :section', ['section' => $step->label()]),
-            summary: $done ? __('Set up') : __('Not set up yet'),
+            label: __('Set up :section', ['section' => $step->label()]),
+            summary: $done ? __('Set up after onboarding') : __('You skipped this during onboarding'),
             done: $done,
-            actionLabel: __('Open'),
+            actionLabel: __('Set up'),
             actionUrl: route($this->sectionRoute($step), $property),
             dismissible: true,
         );
@@ -180,7 +180,7 @@ class RecommendedChecklist
             label: __('Payment surcharges'),
             summary: $done ? __('A surcharge is set on a payment method') : __('No surcharge on any payment method'),
             done: $done,
-            actionLabel: __('Set up'),
+            actionLabel: __('Set up surcharges'),
             actionUrl: route('settings.payment-methods.index', $property),
             dismissible: true,
         );
@@ -201,7 +201,7 @@ class RecommendedChecklist
             label: __('Room groups'),
             summary: $done ? implode(', ', $names) : __('No room groups yet'),
             done: $done,
-            actionLabel: __('Set up'),
+            actionLabel: __('Add groups'),
             actionUrl: route('settings.rooms.index', $property),
             dismissible: true,
         );

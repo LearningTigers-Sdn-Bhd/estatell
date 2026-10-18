@@ -104,37 +104,37 @@ Going live redirects to the dashboard with a `wentLive` flash. There is no separ
 ### Recommended checklist
 
 ```
- ┌─ Recommended next ─────────────────────────────────────── 1 of 6 done ─┐
- │ ○ Property logo                            [Add →]                     │
- │   No logo on invoices and receipts                                     │
- │ ○ No-show and cancellation charges         [Set up →]   [Not needed]   │
- │   All policies are Free                                                │
- │ ○ Missed arrivals and overdue departures   [Review →]   [Not needed]   │
- │   Using the defaults                                                   │
- │ ○ Skipped sections                         [Open →]     [Not needed]   │
- │   Charge items, Discounts                                              │
- │ ○ Payment surcharges                       [Set up →]   [Not needed]   │
- │   No surcharge on any payment method                                   │
- │ ✓ Room groups                                                          │
- │   Sea view, Garden                                                     │
- └────────────────────────────────────────────────────────────────────────┘
+Card under Tonight                    See all steps → Sheet
+┌ ✨ Recommended next      1 of 6 ┐   Recommended next                    ✕
+│ ▓▓░░░░░░░░░░░░░░░░░░░░░░░░░░░░ │   1 of 6 done
+│ Property logo                   │   ▓▓░░░░░░░░░░░░░░░░░░░░░░░░
+│ No logo on invoices and receipts│   Property logo
+│ [Add logo →]   ✕ Not needed     │   No logo on invoices and receipts
+│ ─────────────────────────────── │   [Add logo →]
+│ Then: No-show and cancellation  │   ──────────────────────────────
+│ charges, Missed arrivals, +2    │   Set up Charge items
+│ See all steps →                 │   You skipped this during onboarding
+└─────────────────────────────────┘   [Set up →]   ✕ Not needed
+                                      ──────────────────────────────
+                                      ✓ Room groups               Done
+                                        Sea view, Garden
 ```
 
-| Item                                   | Done when                                                                                            | Opens                        | Not needed       |
-| -------------------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------- | ---------------- |
-| Property logo                          | The property has a logo (`Property::LOGO` media)                                                     | Settings → Profile           | No               |
-| No-show and cancellation charges       | A room revenue policy has a charge mode other than Free                                              | Settings → Room revenue      | Yes              |
-| Missed arrivals and overdue departures | Only by Not needed: the defaults are valid, the owner confirms them                                  | Settings → Operations        | Yes              |
-| Skipped sections                       | One line per skipped optional section (`onboarding_skips`); a line is done when the section has data | That section's settings page | Yes, per section |
-| Payment surcharges                     | A payment method has a surcharge other than None                                                     | Settings → Payment methods   | Yes              |
-| Room groups                            | The property has a room group                                                                        | Settings → Room groups       | Yes              |
+| Item                                   | Done when                                                                                            | Opens                         | Not needed       |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------- | ----------------------------- | ---------------- |
+| Property logo                          | The property has a logo (`Property::LOGO` media)                                                     | Settings → Profile (Add logo) | Yes              |
+| No-show and cancellation charges       | A room revenue policy has a charge mode other than Free                                              | Settings → Room revenue       | Yes              |
+| Missed arrivals and overdue departures | Only by Not needed: the defaults are valid, the owner confirms them                                  | Settings → Operations         | Yes              |
+| Set up {section}                       | One line per skipped optional section (`onboarding_skips`); a line is done when the section has data | That section's settings page  | Yes, per section |
+| Payment surcharges                     | A payment method has a surcharge other than None                                                     | Settings → Payment methods    | Yes              |
+| Room groups                            | The property has a room group                                                                        | Settings → Room groups        | Yes              |
 
 - A read-only Service builds the items from the property's data. Each item has a key, a label, a one-line summary, a done flag and a URL.
 - **Not needed** stores a row in `recommended_item_dismissals (property_id, item, dismissed_by, dismissed_at)`, unique on `(property_id, item)`. A skipped section uses the item key `skipped:{step}`.
 - Shown on the dashboard to users with `settings.manage` while any item is open. The card is gone when every item is done or dismissed. There is no hide for the whole card.
-- The checklist sits inside the dashboard bento, below To do. Its heading uses the `Sparkles` icon.
-- It starts collapsed, with progress and the first incomplete item. **Show all** expands the remaining items inside the cell.
-- The browser remembers expansion per property. Item order and all actions stay unchanged.
+- The checklist is a compact card in the dashboard's right column, under Tonight. Its heading uses the `Sparkles` icon. It shows a progress bar and only the next open item; **See all steps →** opens every item in a Sheet. See [Dashboard](../18-front-desk/04-dashboard.md#recommended-next).
+- Every item has **Not needed**, the logo included: a property without a logo prints invoices without one, and the card must be able to finish.
+- Action labels say what happens: Add logo, Set up charges, Review rules, Set up (a skipped section), Set up surcharges, Add groups. A skipped section reads "Set up {section}" with "You skipped this during onboarding" until it has data.
 - Not on the list: photos (no feature yet), meal periods and packages, discounts (an onboarding section), custom roles, notification preferences, and company rates (later, with company users). The channel connection joins the list when it is built ([Channel connections](../21-channels/01-connections-and-feature-gate.md)).
 
 ## Lessons from wastays

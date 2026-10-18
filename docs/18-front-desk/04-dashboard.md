@@ -32,11 +32,13 @@ Today's front desk work and how the property is doing.
 │ Overdue    Lee Mei Ling   Room 104 · SAR-26100025    ││ 70% occupied            │
 │ Arrival    Tan Wei Ming   2 rooms · SAR-26100031     ││ 9 rooms free            │
 │ Departure  Ahmad Faiz     Deluxe · SAR-26100027      ││ 7-night chart           │
-│ Folio      Master F-0031  Acme · F-0031              ││                         │
+│ Folio      Master F-0031  Acme · F-0031              │└─────────────────────────┘
+│                                                      │┌ Recommended next  1 of 7┐
+│                                                      ││ ▓▓░░░░░░░░░░░░░░░░░░░░  │
+│                                                      ││ Property logo           │
+│                                                      ││ [Add logo →] ✕ Not needed│
+│                                                      ││ See all steps →         │
 └──────────────────────────────────────────────────────┘└─────────────────────────┘
-┌ Recommended next ──────────────────────────────────────┐
-│ 1 of 7 done · Property logo                  [Add →]   │
-└────────────────────────────────────────────────────────┘
 ```
 
 Everything uses the property **business date** (`CurrentBusinessDate`) and the property time zone, never the calendar date.
@@ -52,12 +54,12 @@ At `xl` (1280px), the strip has four equal columns. The main grid has three equa
 | **Housekeeping**         | Third tile in the strip             | Rooms that need cleaning or inspection |
 | **{Month}**              | Fourth tile in the strip            | Posted revenue and booked room nights  |
 | **To do today**          | Main grid, columns 1–2, top row     | Guest tasks get the most width         |
-| **Tonight**              | Main grid, column 3, top row        | Occupancy and the 7-night chart        |
-| **Recommended next**     | Columns 1–2, below To do            | Setup guidance stays secondary         |
+| **Tonight**              | Main grid, column 3, on top         | Occupancy and the 7-night chart        |
+| **Recommended next**     | Column 3, under Tonight             | Setup guidance stays secondary         |
 
 - To do and Tonight share the top row and end at the same height on desktop. A short To do list keeps its card height, and its empty state centers in the card.
-- Column 3 holds only Tonight. When Recommended next disappears, its row is left out and leaves no gap.
-- At `xl`, the To do and Tonight row fills the rest of the page height, so the page has no blank area below the cards. The Tonight chart grows with its card. When Recommended next shows, the rows keep their natural height.
+- Column 3 stacks Tonight and Recommended next. When Recommended next disappears, Tonight takes the whole column.
+- At `xl`, the To do and Tonight row fills the rest of the page height, so the page has no blank area below the cards. The Tonight chart grows with its card. Recommended next keeps its natural height under Tonight, so the row fills the page either way.
 - A long To do list scrolls inside its cell on desktop.
 - To do has no footer or See all arrivals link. Its business date sits below the heading as the section description.
 - The header centers the icon vertically beside the title and date column. Both text lines share the same left edge.
@@ -82,15 +84,15 @@ At `xl` (1280px), the strip has four equal columns. The main grid has three equa
 - Task badges use soft tints, never solid fills. Arrival uses a primary tint, Departure a warning tint with `warning-text`, and Overdue the danger tint.
 - Blocked and Overdue use the danger tint with a danger dot. The label keeps strong text.
 - Tonight uses the existing emerald `chart-3` token for its line and area fill. The chart is at least 84px high and grows with the card. The occupancy figure keeps strong text.
-- Recommended next has a subtle primary tint. Its action and completed checks use the primary style.
+- Recommended next is a normal card. Its only color is the `primary` progress bar and the primary action button.
 - All colors use existing semantic tokens in both themes. There are no custom colors or theme overrides.
 - Amber text on a warning tint uses the `warning-text` token (dark amber in light mode, light amber in dark mode), not `warning`.
 
 ### Recommended next
 
-The checklist is a bento cell, not a separate full-width section. It starts collapsed, with progress and the first incomplete item.
-**Show all** expands the remaining items inside the cell. The browser remembers this choice per property.
-Existing actions, completion rules, permissions and **Not needed** controls stay unchanged. The cell disappears when every item is complete or dismissed.
+The checklist is a compact card under Tonight, not a row of its own. It shows "1 of 7" in the header, a thin progress bar, and only the next open item in two columns: title and summary on the left, the action button and a ghost **Not needed** (`X` icon) on the right. The buttons wrap under the text when the column is narrow and stay right-aligned. Sheet rows use the same two columns in a 512px Sheet, each with a status icon (open circle or green check) so titles line up. Only the next step has the solid primary button; the other open items use outline buttons.
+Below a divider, a muted line names the next two open items and a count of the rest ("Then: No-show and cancellation charges, Missed arrivals and overdue departures, +4"). **See all steps →** opens a right Sheet with every item: open items first with their actions, then done items with a check and "Done". An action link closes the Sheet as it leaves. The card never grows, and nothing is kept in browser storage.
+Completion rules, permissions and **Not needed** stay unchanged. The card disappears when every item is complete or dismissed.
 The **You're live** card stays above quick actions when sign-in details still need sharing.
 
 ### Housekeeping

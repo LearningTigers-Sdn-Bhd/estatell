@@ -23,7 +23,7 @@ test('a settings manager marks an item as not needed, and it is logged', functio
     expect(Activity::query()->where('event', 'onboarding.recommended-item-dismissed')->count())->toBe(1);
 });
 
-test('the logo, an unknown key and a required section are refused and write nothing', function (string $item) {
+test('an unknown key and a required section are refused and write nothing', function (string $item) {
     $owner = User::factory()->owner()->for(Property::factory()->live())->create();
 
     $this->actingAs($owner)
@@ -32,7 +32,17 @@ test('the logo, an unknown key and a required section are refused and write noth
 
     expect(RecommendedItemDismissal::query()->count())->toBe(0)
         ->and(Activity::query()->count())->toBe(0);
-})->with(['logo', 'bogus', 'skipped:rooms']);
+})->with(['bogus', 'skipped:rooms']);
+
+test('a property without a logo can mark the logo as not needed', function () {
+    $owner = User::factory()->owner()->for(Property::factory()->live())->create();
+
+    $this->actingAs($owner)
+        ->post(route('settings.recommended-items.dismissals.store', $owner->property->code), ['item' => 'logo'])
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Marked as not needed.']);
+
+    expect(RecommendedItemDismissal::query()->sole()->item)->toBe('logo');
+});
 
 test('marking the same item twice writes once', function () {
     $owner = User::factory()->owner()->for(Property::factory()->live())->create();

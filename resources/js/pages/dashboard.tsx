@@ -57,8 +57,8 @@ export default function Dashboard({
     const hasTonight =
         can.canViewReservations && tiles !== null && tiles?.tonight !== null;
     const hasStats = tiles !== null || housekeeping !== null;
-    /** To do and Tonight share the top row on wide screens; Recommended next sits under To do. Without it the row fills the page height. */
-    const threeColumns = hasTodo && hasTonight;
+    /** The side column beside To do: Tonight, then Recommended next. On wide screens the row fills the page height. */
+    const hasSide = hasTonight || recommended !== null;
     const code = page.props.property?.code ?? '';
     const refresh = () =>
         router.reload({
@@ -108,19 +108,15 @@ export default function Dashboard({
 
                 <div
                     className={cn(
-                        'grid gap-3',
-                        recommended === null && 'xl:flex-1',
-                        hasTonight && 'md:grid-cols-2',
-                        threeColumns && 'xl:grid-cols-3',
+                        'grid gap-3 xl:flex-1',
+                        hasTodo && hasSide && 'xl:grid-cols-3',
                     )}
                 >
                     {hasTodo && (
                         <div
                             className={cn(
                                 'flex min-w-0 flex-col',
-                                hasTonight && 'md:col-span-2',
-                                threeColumns &&
-                                    'xl:col-span-2 xl:col-start-1 xl:row-start-1',
+                                hasSide && 'xl:col-span-2',
                             )}
                         >
                             <Deferred data="todo" fallback={<TodoSkeleton />}>
@@ -137,41 +133,39 @@ export default function Dashboard({
                             </Deferred>
                         </div>
                     )}
-                    {hasTonight && (
+                    {hasSide && (
                         <div
                             className={cn(
-                                'flex min-w-0 flex-col',
-                                recommended === null && 'md:col-span-2',
-                                threeColumns &&
-                                    'xl:col-span-1 xl:col-start-3 xl:row-start-1',
+                                'grid min-w-0 gap-3 xl:flex xl:flex-col',
+                                hasTonight &&
+                                    recommended !== null &&
+                                    'md:grid-cols-2',
                             )}
                         >
-                            <Deferred
-                                data="tiles"
-                                fallback={
-                                    <TilesSkeleton units={false} reports />
-                                }
-                            >
-                                {tiles?.tonight && (
-                                    <TonightTile tile={tiles.tonight} />
-                                )}
-                            </Deferred>
-                        </div>
-                    )}
-                    {recommended !== null && (
-                        <div
-                            className={cn(
-                                'flex min-w-0 flex-col',
-                                threeColumns &&
-                                    'xl:col-span-2 xl:col-start-1 xl:row-start-2',
+                            {hasTonight && (
+                                <div className="flex min-w-0 flex-col xl:flex-1">
+                                    <Deferred
+                                        data="tiles"
+                                        fallback={
+                                            <TilesSkeleton
+                                                units={false}
+                                                reports
+                                            />
+                                        }
+                                    >
+                                        {tiles?.tonight && (
+                                            <TonightTile tile={tiles.tonight} />
+                                        )}
+                                    </Deferred>
+                                </div>
                             )}
-                        >
-                            <RecommendedChecklistCard
-                                key={page.props.property?.code}
-                                storageKey={`estatell:dashboard:recommended:v1:${page.props.property?.code}`}
-                                checklist={recommended}
-                                canAct={!isImpersonating}
-                            />
+                            {recommended !== null && (
+                                <RecommendedChecklistCard
+                                    key={page.props.property?.code}
+                                    checklist={recommended}
+                                    canAct={!isImpersonating}
+                                />
+                            )}
                         </div>
                     )}
                 </div>

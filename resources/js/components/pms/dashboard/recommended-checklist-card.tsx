@@ -1,71 +1,124 @@
 import { Link, router } from '@inertiajs/react';
-import { ArrowRight, Check, ChevronDown, Circle, Sparkles } from 'lucide-react';
+import { ArrowRight, Circle, CircleCheck, Sparkles, X } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from 'cn';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
     Card,
+    CardAction,
     CardContent,
-    CardDescription,
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { store } from '@/routes/settings/recommended-items/dismissals';
 import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+} from '@/components/ui/sheet';
+import { store } from '@/routes/settings/recommended-items/dismissals';
 
 type Item = App.Data.Onboarding.RecommendedItemData;
+type Checklist = App.Data.Onboarding.RecommendedChecklistData;
+
+function Progress({ checklist }: { checklist: Checklist }) {
+    return (
+        <div
+            role="progressbar"
+            aria-label="Recommended steps done"
+            aria-valuemin={0}
+            aria-valuemax={checklist.total}
+            aria-valuenow={checklist.done}
+            className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
+        >
+            <div
+                className="h-full rounded-full bg-primary transition-all"
+                style={{
+                    width: `${(checklist.done / checklist.total) * 100}%`,
+                }}
+            />
+        </div>
+    );
+}
 
 /**
- * A compact bento cell with the next open item. Show all reveals the rest; the browser remembers expansion.
+ * The item's action link and, when the item allows it, Not needed. Support access sees no Not needed, because the
+ * server blocks the write. Only the next step gets the solid primary button; the rest are outline.
+ */
+function ItemActions({
+    item,
+    canAct,
+    primary = true,
+    onLeave,
+}: {
+    item: Item;
+    canAct: boolean;
+    primary?: boolean;
+    onLeave?: () => void;
+}) {
+    return (
+        <div className="ms-auto flex flex-wrap items-center justify-end gap-2">
+            <Link
+                href={item.actionUrl}
+                onClick={onLeave}
+                className={buttonVariants({
+                    size: 'sm',
+                    variant: primary ? 'default' : 'outline',
+                })}
+            >
+                {item.actionLabel}
+                <ArrowRight data-icon="inline-end" />
+            </Link>
+            {item.dismissible && canAct && (
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground"
+                    onClick={() =>
+                        router.post(
+                            store.url(),
+                            { item: item.key },
+                            { preserveScroll: true },
+                        )
+                    }
+                >
+                    <X data-icon="inline-start" />
+                    Not needed
+                </Button>
+            )}
+        </div>
+    );
+}
+
+/** The next two open items by name, then a count of the rest. */
+function laterLine(later: Item[]): string {
+    const names = later.slice(0, 2).map((item) => item.label);
+    const rest = later.length - names.length;
+
+    return `Then: ${[...names, ...(rest > 0 ? [`+${rest}`] : [])].join(', ')}`;
+}
+
+/**
+ * Setup steps left after going live, under Tonight. The card shows only the next open item and its actions, with a
+ * progress bar; See all steps opens every item in a Sheet, so the card never grows.
  */
 export function RecommendedChecklistCard({
     checklist,
     canAct,
-    storageKey,
 }: {
-    checklist: App.Data.Onboarding.RecommendedChecklistData;
+    checklist: Checklist;
     /** False during support access, where the server blocks the write. */
     canAct: boolean;
-    storageKey: string;
 }) {
-    const [expanded, setExpanded] = useState(() => {
-        try {
-            return (
-                typeof window !== 'undefined' &&
-                window.localStorage.getItem(storageKey) === '1'
-            );
-        } catch {
-            return false;
-        }
-    });
-    const next = checklist.items.find((item) => !item.done);
-    const changeExpanded = (open: boolean) => {
-        setExpanded(open);
-        try {
-            window.localStorage.setItem(storageKey, open ? '1' : '0');
-        } catch {
-            // The checklist still works when browser storage is unavailable.
-        }
-    };
-    const dismiss = (item: Item) => {
-        router.post(store.url(), { item: item.key }, { preserveScroll: true });
-    };
+    const [open, setOpen] = useState(false);
+    const openItems = checklist.items.filter((item) => !item.done);
+    const doneItems = checklist.items.filter((item) => item.done);
+    const [next, ...later] = openItems;
 
     return (
-        <Collapsible
-            open={expanded}
-            onOpenChange={changeExpanded}
-            render={<Card className="relative" />}
-        >
-            <div
-                aria-hidden
-                className="pointer-events-none absolute inset-0 bg-primary/5"
-            />
-            <CardHeader className="relative">
+        <Card size="sm">
+            <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <Sparkles
                         aria-hidden
@@ -73,153 +126,103 @@ export function RecommendedChecklistCard({
                     />
                     Recommended next
                 </CardTitle>
-                <CardDescription className="tabular-nums">
-                    {checklist.done} of {checklist.total} done
-                </CardDescription>
-                <CollapsibleTrigger
-                    render={<Button variant="ghost" size="sm" />}
-                    className="justify-self-start"
-                >
-                    {expanded ? 'Show less' : 'Show all'}
-                    <ChevronDown
-                        data-icon="inline-end"
-                        className={cn(expanded && 'rotate-180')}
-                    />
-                </CollapsibleTrigger>
+                <CardAction className="text-sm text-muted-foreground tabular-nums">
+                    {checklist.done} of {checklist.total}
+                </CardAction>
             </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+                <Progress checklist={checklist} />
+                {next && (
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex min-w-0 flex-1 basis-48 flex-col">
+                            <p className="font-medium">{next.label}</p>
+                            <p className="text-sm text-muted-foreground">
+                                {next.summary}
+                            </p>
+                        </div>
+                        <ItemActions item={next} canAct={canAct} />
+                    </div>
+                )}
+                <div className="flex flex-col items-start gap-1 border-t pt-3">
+                    {later.length > 0 && (
+                        <p className="text-sm text-muted-foreground">
+                            {laterLine(later)}
+                        </p>
+                    )}
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="-ms-2"
+                        onClick={() => setOpen(true)}
+                    >
+                        See all steps
+                        <ArrowRight data-icon="inline-end" />
+                    </Button>
+                </div>
+            </CardContent>
 
-            <CardContent className="relative">
-                <ul className="flex flex-col gap-4">
-                    {(next ? [next] : []).map((item) => (
-                        <li
-                            key={item.key}
-                            className={cn(
-                                'flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4',
-                                item.done
-                                    ? 'max-sm:order-last'
-                                    : 'max-sm:order-first',
-                            )}
-                        >
-                            <div className="flex min-w-0 items-start gap-3">
-                                {item.done ? (
-                                    <Check
-                                        aria-label="Done"
-                                        className="mt-0.5 size-4 shrink-0 text-primary"
-                                    />
-                                ) : (
-                                    <Circle
-                                        aria-hidden
-                                        className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+            <Sheet open={open} onOpenChange={setOpen}>
+                <SheetContent className="data-[side=right]:sm:max-w-lg">
+                    <SheetHeader className="gap-1">
+                        <SheetTitle>Recommended next</SheetTitle>
+                        <SheetDescription className="tabular-nums">
+                            {checklist.done} of {checklist.total} done
+                        </SheetDescription>
+                        <div className="mt-2">
+                            <Progress checklist={checklist} />
+                        </div>
+                    </SheetHeader>
+                    <ul className="flex min-h-0 flex-1 flex-col divide-y overflow-y-auto border-t">
+                        {[...openItems, ...doneItems].map((item) => (
+                            <li
+                                key={item.key}
+                                className="flex flex-wrap items-center justify-between gap-3 p-4"
+                            >
+                                <div className="flex min-w-0 flex-1 basis-48 items-start gap-2">
+                                    {item.done ? (
+                                        <CircleCheck
+                                            aria-label="Done"
+                                            className="mt-0.5 size-4 shrink-0 text-primary"
+                                        />
+                                    ) : (
+                                        <Circle
+                                            aria-hidden
+                                            className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+                                        />
+                                    )}
+                                    <div className="flex min-w-0 flex-1 flex-col">
+                                        <p
+                                            className={cn(
+                                                'font-medium',
+                                                item.done &&
+                                                    'text-muted-foreground',
+                                            )}
+                                        >
+                                            {item.label}
+                                        </p>
+                                        <p className="text-sm text-muted-foreground">
+                                            {item.summary}
+                                        </p>
+                                    </div>
+                                    {item.done && (
+                                        <span className="text-sm text-muted-foreground">
+                                            Done
+                                        </span>
+                                    )}
+                                </div>
+                                {!item.done && (
+                                    <ItemActions
+                                        item={item}
+                                        canAct={canAct}
+                                        primary={item.key === next?.key}
+                                        onLeave={() => setOpen(false)}
                                     />
                                 )}
-                                <div className="flex min-w-0 flex-col">
-                                    <p
-                                        className={cn(
-                                            'font-medium',
-                                            item.done &&
-                                                'text-muted-foreground',
-                                        )}
-                                    >
-                                        {item.label}
-                                    </p>
-                                    <p className="text-sm text-muted-foreground">
-                                        {item.summary}
-                                    </p>
-                                </div>
-                            </div>
-
-                            {!item.done && (
-                                <div className="flex flex-col gap-2 sm:flex-row">
-                                    <Link
-                                        href={item.actionUrl}
-                                        className={buttonVariants({
-                                            variant: 'default',
-                                            size: 'sm',
-                                        })}
-                                    >
-                                        {item.actionLabel}
-                                        <ArrowRight data-icon="inline-end" />
-                                    </Link>
-                                    {item.dismissible && canAct && (
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => dismiss(item)}
-                                        >
-                                            Not needed
-                                        </Button>
-                                    )}
-                                </div>
-                            )}
-                        </li>
-                    ))}
-                </ul>
-                <CollapsibleContent>
-                    <ul className="mt-4 flex flex-col gap-4">
-                        {checklist.items
-                            .filter((item) => item.key !== next?.key)
-                            .map((item) => (
-                                <li
-                                    key={item.key}
-                                    className="flex flex-wrap items-start justify-between gap-3 border-t pt-4"
-                                >
-                                    <div className="flex min-w-0 flex-1 items-start gap-3">
-                                        {item.done ? (
-                                            <Check
-                                                aria-label="Done"
-                                                className="mt-0.5 size-4 shrink-0 text-primary"
-                                            />
-                                        ) : (
-                                            <Circle
-                                                aria-hidden
-                                                className="mt-0.5 size-4 shrink-0 text-muted-foreground"
-                                            />
-                                        )}
-                                        <div className="flex min-w-0 flex-col">
-                                            <p
-                                                className={cn(
-                                                    'font-medium',
-                                                    item.done &&
-                                                        'text-muted-foreground',
-                                                )}
-                                            >
-                                                {item.label}
-                                            </p>
-                                            <p className="text-sm text-muted-foreground">
-                                                {item.summary}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    {!item.done && (
-                                        <div className="flex flex-wrap gap-2">
-                                            <Link
-                                                href={item.actionUrl}
-                                                className={buttonVariants({
-                                                    variant: 'default',
-                                                    size: 'sm',
-                                                })}
-                                            >
-                                                {item.actionLabel}
-                                                <ArrowRight data-icon="inline-end" />
-                                            </Link>
-                                            {item.dismissible && canAct && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() =>
-                                                        dismiss(item)
-                                                    }
-                                                >
-                                                    Not needed
-                                                </Button>
-                                            )}
-                                        </div>
-                                    )}
-                                </li>
-                            ))}
+                            </li>
+                        ))}
                     </ul>
-                </CollapsibleContent>
-            </CardContent>
-        </Collapsible>
+                </SheetContent>
+            </Sheet>
+        </Card>
     );
 }

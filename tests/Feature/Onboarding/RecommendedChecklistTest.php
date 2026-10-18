@@ -53,7 +53,7 @@ test('the property logo is done once a logo is uploaded', function () {
     $this->property->addMedia(UploadedFile::fake()->image('logo.png'))->toMediaCollection(Property::LOGO);
 
     expect(recommendedItem($this->property, 'logo')->done)->toBeTrue()
-        ->and(recommendedItem($this->property, 'logo')->dismissible)->toBeFalse();
+        ->and(recommendedItem($this->property, 'logo')->dismissible)->toBeTrue();
 });
 
 test('no-show and cancellation charges are done only when a policy is not Free', function () {
@@ -133,7 +133,7 @@ test('the checklist is gone when every item is done or dismissed', function () {
 test('only the dismissable keys can be marked as not needed', function (string $key, bool $expected) {
     expect(RecommendedChecklist::isDismissibleKey($key))->toBe($expected);
 })->with([
-    'logo' => ['logo', false],
+    'logo' => ['logo', true],
     'room groups' => ['room_groups', true],
     'missed arrivals' => ['missed_arrivals', true],
     'an optional section' => ['skipped:companies', true],
