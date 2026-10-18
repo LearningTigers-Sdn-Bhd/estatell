@@ -4,6 +4,7 @@ import { DateText } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
 import { PageHeader } from '@/components/pms/page-header';
 import { Button, buttonVariants } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { index } from '@/routes/portal';
 import { show } from '@/routes/portal/bookings';
@@ -111,51 +112,61 @@ export default function PortalIndex({
                     description="Invitations and upcoming arrivals across your properties."
                 />
 
-                <section className="flex max-w-3xl flex-col gap-3">
-                    <h2 className="flex items-center gap-2 text-base font-medium">
-                        <Mail className="size-4" />
-                        Invitations
-                    </h2>
-                    {invitations.length === 0 ? (
-                        <EmptyState
-                            icon={Mail}
-                            title="No invitations"
-                            description="When a property links your login to a company, the invitation appears here."
-                        />
-                    ) : (
-                        <ul className="flex flex-col gap-3">
-                            {invitations.map((invitation) => (
-                                <InvitationRow
-                                    key={invitation.linkId}
-                                    invitation={invitation}
+                <div className="grid flex-1 gap-4 lg:grid-cols-2">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Mail className="size-4" />
+                                Invitations
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {invitations.length === 0 ? (
+                                <EmptyState
+                                    icon={Mail}
+                                    title="No invitations"
+                                    description="When a property links your login to a company, the invitation appears here."
                                 />
-                            ))}
-                        </ul>
-                    )}
-                </section>
+                            ) : (
+                                <ul className="flex flex-col gap-3">
+                                    {invitations.map((invitation) => (
+                                        <InvitationRow
+                                            key={invitation.linkId}
+                                            invitation={invitation}
+                                        />
+                                    ))}
+                                </ul>
+                            )}
+                        </CardContent>
+                    </Card>
 
-                <section className="flex max-w-3xl flex-col gap-3">
-                    <h2 className="flex items-center gap-2 text-base font-medium">
-                        <CalendarDays className="size-4" />
-                        Upcoming arrivals
-                    </h2>
-                    {arrivals.length === 0 ? (
-                        <EmptyState
-                            icon={CalendarDays}
-                            title="No arrivals coming up"
-                            description={`Confirmed stays arriving in the next ${arrivalDays} days appear here.`}
-                        />
-                    ) : (
-                        <ul className="flex flex-col gap-3">
-                            {arrivals.map((arrival) => (
-                                <ArrivalRow
-                                    key={arrival.reservationId}
-                                    arrival={arrival}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <CalendarDays className="size-4" />
+                                Upcoming arrivals
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {arrivals.length === 0 ? (
+                                <EmptyState
+                                    icon={CalendarDays}
+                                    title="No arrivals coming up"
+                                    description={`Confirmed stays arriving in the next ${arrivalDays} days appear here.`}
                                 />
-                            ))}
-                        </ul>
-                    )}
-                </section>
+                            ) : (
+                                <ul className="flex flex-col gap-3">
+                                    {arrivals.map((arrival) => (
+                                        <ArrivalRow
+                                            key={arrival.reservationId}
+                                            arrival={arrival}
+                                        />
+                                    ))}
+                                </ul>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         </>
     );
