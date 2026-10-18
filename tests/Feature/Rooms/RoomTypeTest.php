@@ -9,6 +9,7 @@ use App\Models\Property;
 use App\Models\Room;
 use App\Models\RoomGroup;
 use App\Models\RoomType;
+use App\Models\UnitDayUse;
 use App\Models\UnitNight;
 use App\Models\User;
 use Illuminate\Database\QueryException;
@@ -416,6 +417,27 @@ test('stays on a bed of the room also block the move', function () {
     $this->actingAs($owner)
         ->put(route('settings.room-types.rooms.update', [$property->code, $target]), roomRows([[$dorm, null]]))
         ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'D1 has stays assigned from 14 Oct. Move them first.']);
+});
+
+test('an unreleased day use from the business date blocks the move', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    BusinessDate::factory()->create(['property_id' => $property->id, 'date' => '2026-10-14']);
+    $roomType = RoomType::factory()->for($property)->create();
+    $room = Room::factory()->for($property)->create(['room_type_id' => RoomType::factory()->for($property)->create()->id, 'number' => '305']);
+    UnitDayUse::factory()->create(['room_id' => $room->id, 'date' => '2026-10-13']);
+    UnitDayUse::factory()->create(['room_id' => $room->id, 'date' => '2026-10-15', 'released_at' => now()]);
+    $blocking = UnitDayUse::factory()->create(['room_id' => $room->id, 'date' => '2026-10-16']);
+    $url = route('settings.room-types.rooms.update', [$property->code, $roomType]);
+
+    $this->actingAs($owner)
+        ->put($url, roomRows([[$room, null]]))
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => '305 has stays assigned from 16 Oct. Move them first.']);
+
+    $blocking->update(['released_at' => now()]);
+
+    $this->put($url, roomRows([[$room, null]]))
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Rooms saved.']);
 });
 
 test('an archived room type refuses the Rooms tab save', function () {

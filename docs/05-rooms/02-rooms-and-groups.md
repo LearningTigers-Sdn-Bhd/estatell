@@ -34,7 +34,7 @@ A room changes type in two places: the room edit on Settings > Rooms (`UpdateRoo
 
 - The new room type is active.
 - A room with beds cannot move into a type that sells rooms.
-- A room cannot change type while it, or one of its beds, has assigned unit nights on or after the business date (`CurrentBusinessDate`). Move those stays first. Without this guard a booking for one type would sit in a room of another type.
+- A room cannot change type while it, or one of its beds, has assigned unit nights, or an unreleased day use block (`unit_day_uses`), on or after the business date (`CurrentBusinessDate`). Move those stays first. Without this guard a booking for one type would sit in a room of another type.
 
 One read-only Service holds the assigned-nights check, and both paths call it.
 

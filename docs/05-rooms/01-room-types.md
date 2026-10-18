@@ -87,15 +87,15 @@ The Action returns a refusal message for rules 2, 4, 5 and 6, and the page shows
 
 `PUT settings.room-types.rooms.update` sends `[{room_id, room_group_id}]` to `AssignRoomTypeRooms`. It saves all rows in one transaction, or none:
 
-| #   | Rule                                                                                                                                                                       | Message                                                       |
-| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| 1   | Each room is active and in this property. Each group is in this property, or null.                                                                                         | Validation                                                    |
-| 2   | Every room now in this type is still in the list.                                                                                                                          | "Rooms can't be removed here. Add them on another room type." |
-| 3   | A room from another type moves here (`room_type_id` changes).                                                                                                              | –                                                             |
-| 4   | A room with beds cannot move into a type that sells rooms.                                                                                                                 | "305 has beds. Choose a room type that sells beds."           |
-| 5   | A room cannot change type while it, or one of its beds, has assigned unit nights on or after the business date. See [Rooms](02-rooms-and-groups.md#changing-a-rooms-type). | "305 has stays assigned from 20 Oct. Move them first."        |
-| 6   | An archived room type is refused.                                                                                                                                          | ":name is archived. Restore it before editing."               |
-| 7   | Rooms are locked; only rooms that differ change; each changed room logs one `room.updated` activity with the changed fields.                                               | Toast "Rooms saved."                                          |
+| #   | Rule                                                                                                                                                                                                  | Message                                                       |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| 1   | Each room is active and in this property. Each group is in this property, or null.                                                                                                                    | Validation                                                    |
+| 2   | Every room now in this type is still in the list.                                                                                                                                                     | "Rooms can't be removed here. Add them on another room type." |
+| 3   | A room from another type moves here (`room_type_id` changes).                                                                                                                                         | –                                                             |
+| 4   | A room with beds cannot move into a type that sells rooms.                                                                                                                                            | "305 has beds. Choose a room type that sells beds."           |
+| 5   | A room cannot change type while it, or one of its beds, has assigned unit nights, or an unreleased day use, on or after the business date. See [Rooms](02-rooms-and-groups.md#changing-a-rooms-type). | "305 has stays assigned from 20 Oct. Move them first."        |
+| 6   | An archived room type is refused.                                                                                                                                                                     | ":name is archived. Restore it before editing."               |
+| 7   | Rooms are locked; only rooms that differ change; each changed room logs one `room.updated` activity with the changed fields.                                                                          | Toast "Rooms saved."                                          |
 
 ## Lessons from wastays
 
