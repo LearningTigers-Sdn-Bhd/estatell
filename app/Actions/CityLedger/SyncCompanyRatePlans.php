@@ -5,14 +5,19 @@ namespace App\Actions\CityLedger;
 use App\Models\Company;
 use App\Models\RatePlan;
 use App\Models\User;
+use App\Services\Portal\PortalRatePlans;
 use Illuminate\Support\Facades\DB;
 
 class SyncCompanyRatePlans
 {
+    public function __construct(private PortalRatePlans $portalRatePlans) {}
+
     /**
      * Replace the derived plans linked to the company. Every id must be an active derived plan of the property,
      * otherwise nothing is written and false comes back. Links to archived plans are left alone, so restoring a plan
-     * brings its link back. Nothing is logged when nothing changed. See docs/15-city-ledger/01-companies.md.
+     * brings its link back. A save that takes the last company away from a plan that is Selected for the portal is
+     * refused too (the controller names that reason with `PortalRatePlans::wouldEmptySelectedPlan()`). Nothing is
+     * logged when nothing changed. See docs/15-city-ledger/01-companies.md.
      *
      * @param  list<int>  $ratePlanIds
      */
@@ -30,7 +35,7 @@ class SyncCompanyRatePlans
                 ->pluck('id')
                 ->all();
 
-            if (array_diff($wanted, $managed) !== []) {
+            if (array_diff($wanted, $managed) !== [] || $this->portalRatePlans->wouldEmptySelectedPlan($company, $wanted)) {
                 return false;
             }
 

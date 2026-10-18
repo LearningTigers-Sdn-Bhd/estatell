@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\EarlyDeparturePolicy;
 use App\Enums\PackageUnit;
+use App\Enums\PortalAccess;
 use App\Enums\PricingBasis;
 use App\Enums\RateDerivation;
 use Carbon\CarbonImmutable;
@@ -37,6 +38,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $day_use_from
  * @property string|null $day_use_until
  * @property EarlyDeparturePolicy $early_departure_policy
+ * @property PortalAccess $portal_access
  * @property bool $needs_child_price_review
  * @property int $position
  * @property CarbonImmutable|null $archived_at
@@ -66,6 +68,7 @@ class RatePlan extends Model
             'derivation' => RateDerivation::class,
             'derivation_value' => 'decimal:2',
             'early_departure_policy' => EarlyDeparturePolicy::class,
+            'portal_access' => PortalAccess::class,
             'extra_adult_amount' => 'decimal:2',
             'extra_child_amount' => 'decimal:2',
             'single_supplement' => 'decimal:2',

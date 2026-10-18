@@ -13,6 +13,9 @@ enum NotificationType: string
     case SupportAccessUsed = 'support_access_used';
     case GoLiveApproved = 'go_live_approved';
     case GoLiveRejected = 'go_live_rejected';
+    case PortalBookingCreated = 'portal_booking_created';
+    case PortalBookingCancelled = 'portal_booking_cancelled';
+    case PortalCancellationRequested = 'portal_cancellation_requested';
 
     public function label(): string
     {
@@ -26,6 +29,9 @@ enum NotificationType: string
             self::SupportAccessUsed => __('Support access used'),
             self::GoLiveApproved => __('Go-live approved'),
             self::GoLiveRejected => __('Go-live sent back'),
+            self::PortalBookingCreated => __('Company portal booking'),
+            self::PortalBookingCancelled => __('Company portal cancellation'),
+            self::PortalCancellationRequested => __('Company cancellation request'),
         };
     }
 
@@ -53,7 +59,7 @@ enum NotificationType: string
 
         return match ($this) {
             self::RegistrationCardLink => false,
-            self::NightAuditFailed, self::SupportAccessUsed, self::GoLiveApproved, self::GoLiveRejected => $channel === NotificationChannel::Mail,
+            self::NightAuditFailed, self::SupportAccessUsed, self::GoLiveApproved, self::GoLiveRejected, self::PortalCancellationRequested => $channel === NotificationChannel::Mail,
             default => true,
         };
     }
@@ -63,6 +69,7 @@ enum NotificationType: string
         return match ($this) {
             self::NightAuditCompleted, self::NightAuditExceptions => 'night-audit.receive-report',
             self::NightAuditFailed => 'night-audit.run',
+            self::PortalBookingCreated, self::PortalBookingCancelled, self::PortalCancellationRequested => 'reservations.manage',
             default => null,
         };
     }

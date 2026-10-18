@@ -284,7 +284,7 @@ Each form uses `FormOverlay` and the container from [Form containers](../design-
 - **Routes.** `reservations.cancel` and `reservations.cancel-preview` sit on the reservation (the unit routes are `reservations.units.cancel`). The request sends `unit_ids`, `expected_fees` keyed by unit id, `do_not_charge`, `reason` and `remove_add_ons`.
 - **Preview.** `UnitActionPreview::cancelAll()` returns one row per unit with the fee before and after tax, the net money held (folios that are not Voided, without the city ledger line) and the portal request. The Dialog works out the "owes" and "to refund" line from those figures.
 - **Page.** The `canCancelReservation` prop (`reservations.manage` and at least one Confirmed unit) shows **⋯ More › Cancel reservation**.
-- **Portal request.** `CancelUnits` clears `cancellation_requested_at` and `cancellation_requested_by` and says so in the log. The company portal's own request action comes with module 23.
+- **Portal request.** `CancelUnits` clears `cancellation_requested_at` and `cancellation_requested_by` and says so in the log. The company portal's own request action is `RequestPortalCancellation` (module 23).
 
 ### Built: check in, check out and late check-out
 

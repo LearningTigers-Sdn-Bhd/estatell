@@ -127,7 +127,7 @@ Build in this order. Each item is one commit. Docs: [Wizard steps](17-onboarding
 
 - [x] `feat(portal): add the company portal login` — `is_company_user` in `users_one_kind_check`, `company_users` with its two partial unique indexes, drop `companies.portal_enabled`, `SetCompanyPortalLogin`, the Portal section on the Add company Sheet and the Details tab (status, Copy message, Reset password, Resend), `portal_email` and `cancel_days` in Bulk add and the template, the portal login in the onboarding Companies table, `CompanyLinkInvitation`, company users in `RefreshPendingTemporaryPasswords`. Docs: [Company portal](23-company-portal/01-company-portal.md#portal-login).
 - [x] `feat(portal): add the portal property list and invitations` — `/portal`, accept and decline, `portal` middleware, home redirect. Docs: [Company portal](23-company-portal/01-company-portal.md#pages).
-- [ ] `feat(portal): let company users book and manage stays` — `portal_access`, `reservations.cancellation_requested_by`, booking checks, the auto-add charge items added by the server (see [Add-ons](12-reservations/04-add-ons.md#added-automatically)), cancel and request. Docs: [Company portal](23-company-portal/01-company-portal.md#rules).
+- [x] `feat(portal): let company users book and manage stays` — `rate_plans.portal_access` and `PortalAccess`, the Portal tab on the rate plan editor and the Selected refusal in `SyncCompanyRatePlans`, `PortalRatePlans` (visible plans), `PortalBookingQuote` (offers on the staff quote), the book page with offers and `CreatePortalReservation` (checks, new guests, server-side auto-add items, price check), the bookings list and detail (`PortalBookings`), `UpdatePortalReservationGuests`, `CancelPortalReservation`, `RequestPortalCancellation`, and the `PortalBookingCreated`, `PortalBookingCancelled` and `PortalCancellationRequested` notifications. Docs: [Company portal](23-company-portal/01-company-portal.md#booking), [Rate plans](08-rates/01-rate-plans.md), [Notification types](04-notifications/01-notification-types.md).
 - [x] `feat(portal): show company statements and details` — read-only invoices, payments and statement PDF; the Company page with `UpdatePortalCompanyDetails` and the "Only we manage our tax and billing details" tick. Docs: [Company portal](23-company-portal/01-company-portal.md#pages), [Company details](23-company-portal/01-company-portal.md#company-details).
 
 ## Next
@@ -251,6 +251,10 @@ Topics on hold. Each one needs a planning session and its docs before it gets co
 
 | Commit     | Subject                                                                  |
 | ---------- | ------------------------------------------------------------------------ |
+| `2684bce2` | feat(portal): show company statements and details                        |
+| `98476000` | feat(portal): add the booking and statement routes                       |
+| `471ba96b` | feat(portal): add the portal property list and invitations               |
+| `0050f6c3` | fix(portal): verify the email of a property-made login                   |
 | `be98d40c` | feat(portal): add the company portal login                               |
 | `c3c81c59` | feat(reservations): show the booking source badge                        |
 | `27061cf9` | feat(onboarding): add OTA lists to booking sources                       |

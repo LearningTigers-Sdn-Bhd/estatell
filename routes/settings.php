@@ -213,6 +213,8 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::put('{ratePlan}/inclusions', [RatePlanController::class, 'updateInclusions'])->name('inclusions.update');
         Route::get('{ratePlan}/discounts', [RatePlanController::class, 'editDiscounts'])->name('discounts.edit');
         Route::put('{ratePlan}/discounts', [RatePlanController::class, 'updateDiscounts'])->name('discounts.update');
+        Route::get('{ratePlan}/portal', [RatePlanController::class, 'editPortal'])->name('portal.edit');
+        Route::put('{ratePlan}/portal', [RatePlanController::class, 'updatePortal'])->name('portal.update');
         Route::post('{ratePlan}/discounts/copy', [RatePlanController::class, 'copyDiscounts'])->name('discounts.copy');
         Route::post('{ratePlan}/discounts/preview', [RatePlanController::class, 'previewDiscounts'])->name('discounts.preview');
         Route::get('{ratePlan}/pricing', [RatePlanController::class, 'editPricing'])->name('pricing.edit');

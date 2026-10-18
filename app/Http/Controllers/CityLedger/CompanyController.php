@@ -26,6 +26,7 @@ use App\Services\CityLedger\CompanyPortalState;
 use App\Services\CityLedger\CreditExposure;
 use App\Services\CityLedger\StatementBuilder;
 use App\Services\Guests\CountryOptions;
+use App\Services\Portal\PortalRatePlans;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -119,8 +120,14 @@ class CompanyController extends Controller
         ]);
     }
 
-    public function updateRates(UpdateCompanyRatePlansRequest $request, Property $property, Company $company, SyncCompanyRatePlans $syncCompanyRatePlans): RedirectResponse
+    public function updateRates(UpdateCompanyRatePlansRequest $request, Property $property, Company $company, SyncCompanyRatePlans $syncCompanyRatePlans, PortalRatePlans $portalRatePlans): RedirectResponse
     {
+        if ($portalRatePlans->wouldEmptySelectedPlan($company, $request->ratePlanIds())) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('This plan is Selected for the portal and needs a company.')]);
+
+            return to_route('finance.city-ledger.companies.rates', ['property' => $property, 'company' => $company]);
+        }
+
         Inertia::flash('toast', $syncCompanyRatePlans($request->user(), $company, $request->ratePlanIds())
             ? ['type' => 'success', 'message' => __('Rates saved.')]
             : ['type' => 'error', 'message' => __('The rate plans changed. Reload the page and try again.')]);

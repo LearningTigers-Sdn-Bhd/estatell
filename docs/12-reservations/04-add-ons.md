@@ -76,14 +76,14 @@ No UI in this item. The Add-ons tab on the [reservation page](06-reservation-pag
 
 An item with **Add to every new booking** (`charge_items.auto_add`) is added to each new room as an ordinary add-on. `AutoAddOns` (service, `app/Services/Reservations/`) returns the active auto-add items as `NewAddOnData` for a unit.
 
-| Where a room is added                | Auto-add                                                                                              |
-| ------------------------------------ | ----------------------------------------------------------------------------------------------------- |
-| Booking form and walk-in             | Prefilled in each room's Add-ons with an **Added automatically** tag and **×** to remove it           |
-| **Add unit** on the reservation page | Added by the server (the Sheet has no add-ons); the toast names them: "Unit added with Cleaning fee." |
-| Company portal booking               | Added by the server; the company user cannot remove them (comes with the portal item; not built yet)  |
-| Channel booking                      | Not added. The OTA price and terms decide what the guest pays                                         |
-| Reinstate                            | Not added again. The unit's old add-ons come back as they were                                        |
-| Day use unit                         | PerStay, PerGuest and PerItem items only; nightly items have no nights                                |
+| Where a room is added                | Auto-add                                                                                                                           |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Booking form and walk-in             | Prefilled in each room's Add-ons with an **Added automatically** tag and **×** to remove it                                        |
+| **Add unit** on the reservation page | Added by the server (the Sheet has no add-ons); the toast names them: "Unit added with Cleaning fee."                              |
+| Company portal booking               | Added by the server (`CreatePortalReservation`); the company user cannot remove them, and the total shown at Confirm includes them |
+| Channel booking                      | Not added. The OTA price and terms decide what the guest pays                                                                      |
+| Reinstate                            | Not added again. The unit's old add-ons come back as they were                                                                     |
+| Day use unit                         | PerStay, PerGuest and PerItem items only; nightly items have no nights                                                             |
 
 - An auto-added add-on posts, prices and follows stay changes like any add-on.
 - Removing one on the booking form is logged on the reservation: "Cleaning fee was not added (removed on the booking form)." The form sends the removed item ids as `declined_auto_add_ons`.

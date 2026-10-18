@@ -1,13 +1,16 @@
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { MoneyText } from '@/components/pms/money-text';
 import { PageHeader } from '@/components/pms/page-header';
-import { index } from '@/routes/portal';
+import { buttonVariants } from '@/components/ui/button';
+import { book, index } from '@/routes/portal';
+import { index as bookings } from '@/routes/portal/bookings';
 
 export default function PortalShow({
     companyName,
     companyStatus,
     companySuspended,
     propertyName,
+    propertyCode,
     openBalance,
     currency,
 }: {
@@ -15,6 +18,7 @@ export default function PortalShow({
     companyStatus: string;
     companySuspended: boolean;
     propertyName: string;
+    propertyCode: string;
     openBalance: string;
     currency: App.Data.Property.CurrencyData | null;
 }) {
@@ -49,11 +53,27 @@ export default function PortalShow({
                     </div>
                 </dl>
 
-                <p className="text-sm text-muted-foreground">
-                    {companySuspended
-                        ? 'This company is suspended. You can read its details but not book.'
-                        : 'Booking opens soon.'}
-                </p>
+                {companySuspended ? (
+                    <p className="text-sm text-muted-foreground">
+                        This company is suspended. You can read its details but
+                        not book.
+                    </p>
+                ) : (
+                    <div className="flex flex-wrap gap-2">
+                        <Link
+                            href={book({ property: propertyCode })}
+                            className={buttonVariants()}
+                        >
+                            Book a stay
+                        </Link>
+                        <Link
+                            href={bookings({ property: propertyCode })}
+                            className={buttonVariants({ variant: 'outline' })}
+                        >
+                            Your bookings
+                        </Link>
+                    </div>
+                )}
             </div>
         </>
     );

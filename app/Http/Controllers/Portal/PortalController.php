@@ -40,6 +40,7 @@ class PortalController extends Controller
             'companyStatus' => $link->company->status->label(),
             'companySuspended' => $link->company->status->value === 'suspended',
             'propertyName' => $property->name,
+            'propertyCode' => $property->code,
             'openBalance' => $portalProperties->openBalance($link->company_id),
             'currency' => CurrencyData::forProperty($property),
         ]);

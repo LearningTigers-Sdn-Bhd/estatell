@@ -44,6 +44,9 @@ test('notification types define their delivery rules', function (
     'support access used' => [NotificationType::SupportAccessUsed, ['mail', 'database'], ['mail' => true, 'database' => false], null],
     'go-live approved' => [NotificationType::GoLiveApproved, ['mail', 'database'], ['mail' => true, 'database' => false], null],
     'go-live sent back' => [NotificationType::GoLiveRejected, ['mail', 'database'], ['mail' => true, 'database' => false], null],
+    'portal booking created' => [NotificationType::PortalBookingCreated, ['mail', 'database'], ['mail' => true, 'database' => true], 'reservations.manage'],
+    'portal booking cancelled' => [NotificationType::PortalBookingCancelled, ['mail', 'database'], ['mail' => true, 'database' => true], 'reservations.manage'],
+    'portal cancellation requested' => [NotificationType::PortalCancellationRequested, ['mail', 'database'], ['mail' => true, 'database' => false], 'reservations.manage'],
 ]);
 
 test('notification enums expose labelled options', function () {
@@ -60,6 +63,9 @@ test('notification enums expose labelled options', function () {
         ['value' => 'support_access_used', 'label' => 'Support access used'],
         ['value' => 'go_live_approved', 'label' => 'Go-live approved'],
         ['value' => 'go_live_rejected', 'label' => 'Go-live sent back'],
+        ['value' => 'portal_booking_created', 'label' => 'Company portal booking'],
+        ['value' => 'portal_booking_cancelled', 'label' => 'Company portal cancellation'],
+        ['value' => 'portal_cancellation_requested', 'label' => 'Company cancellation request'],
     ]);
 });
 

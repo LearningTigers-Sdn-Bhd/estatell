@@ -2,36 +2,90 @@
 
 namespace App\Http\Controllers\Portal;
 
+use App\Actions\Portal\CreatePortalReservation;
+use App\Data\Portal\PortalRoomTypeData;
+use App\Data\Property\CurrencyData;
+use App\Enums\CompanyStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Portal\PortalOffersRequest;
+use App\Http\Requests\Portal\StorePortalBookingRequest;
+use App\Models\ChargeItem;
+use App\Models\CompanyUser;
+use App\Models\Property;
+use App\Services\Portal\PortalBookingMessages;
+use App\Services\Portal\PortalBookingQuote;
+use App\Services\Portal\PortalBookingRules;
+use App\Services\Portal\PortalRatePlans;
+use App\Services\Reservations\AutoAddOns;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 /**
- * Book a stay: the book page, the offers for a search and the new booking.
- *
- * Placeholder: the routes exist so both portal items can be built at the same time. `feat(portal): let company users book and manage stays` fills in the methods.
+ * Book a stay: the book page, the offers for a search and the new booking. The company always comes from the
+ * `portalLink` the middleware set, never from the request.
  */
 class PortalBookController extends Controller
 {
     /**
-     * The book page.
+     * The book page. A Suspended company gets the page without the form.
      */
-    public function create(): never
+    public function create(Request $request, Property $property, PortalRatePlans $portalRatePlans, PortalBookingRules $rules, AutoAddOns $autoAddOns): Response
     {
-        abort(404);
+        $link = $this->link($request);
+        $property->loadMissing('settings');
+        $suspended = $link->company->status === CompanyStatus::Suspended;
+
+        return Inertia::render('portal/book', [
+            'propertyName' => $property->name,
+            'propertyCode' => $property->code,
+            'companyName' => $link->company->name,
+            'companySuspended' => $suspended,
+            'today' => $rules->businessDate($property)->toDateString(),
+            'cancelCutoffDays' => $link->company->portal_cancel_cutoff_days,
+            'roomTypes' => $suspended ? [] : $portalRatePlans->roomTypesFor($link->company)->get()
+                ->map(fn ($roomType): PortalRoomTypeData => PortalRoomTypeData::fromModel($roomType))->all(),
+            'autoAddOns' => array_map(fn (ChargeItem $item): string => $item->name, $autoAddOns->items($property)),
+            'currency' => CurrencyData::forProperty($property),
+        ]);
     }
 
     /**
-     * The offers for a search, as JSON.
+     * The offers for a search, as JSON: each line's visible plans with their price or the reason they are blocked.
      */
-    public function offers(): never
+    public function offers(PortalOffersRequest $request, Property $property, PortalBookingQuote $bookingQuote): JsonResponse
     {
-        abort(404);
+        $link = $this->link($request);
+
+        abort_if($link->company->status === CompanyStatus::Suspended, 403);
+
+        return response()->json(['lines' => $bookingQuote->offers($property, $link->company, $request->arrival(), $request->departure(), $request->lines())]);
     }
 
     /**
-     * Create the booking.
+     * Create the booking. A refusal goes back to the page as errors keyed by line, and nothing is saved.
      */
-    public function store(): never
+    public function store(StorePortalBookingRequest $request, Property $property, CreatePortalReservation $createPortalReservation, PortalBookingMessages $messages): RedirectResponse
     {
-        abort(404);
+        $result = $createPortalReservation($request->user(), $this->link($request), $request->toBookingData());
+
+        if ($result->isRefused()) {
+            return back(fallback: route('portal.book', ['property' => $property]))->withErrors($messages->errors($result));
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Booking :reference confirmed.', ['reference' => $result->reservation->reference])]);
+
+        return to_route('portal.bookings.show', ['property' => $property, 'reservation' => $result->reservation->id]);
+    }
+
+    private function link(Request $request): CompanyUser
+    {
+        $link = $request->attributes->get('portalLink');
+
+        abort_unless($link instanceof CompanyUser, 404);
+
+        return $link;
     }
 }

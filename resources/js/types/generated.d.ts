@@ -1508,6 +1508,73 @@ isOwner: boolean,
 };
 }
 namespace Portal {
+export type NewPortalBookingData = {
+arrivalDate: string,
+departureDate: string,
+lines: App.Data.Portal.NewPortalLineData[],
+groupName: string | null,
+externalReference: string | null,
+expectedTotal: string,
+};
+export type NewPortalLineData = {
+roomTypeId: number,
+adults: number,
+childAges: number[],
+beds: number,
+ratePlanId: number | null,
+guestName: string | null,
+guestPhone: string | null,
+};
+export type PortalBookingAddOnData = {
+name: string,
+quantity: number,
+unitAmount: string,
+total: string,
+serviceDate: string | null,
+};
+export type PortalBookingData = {
+id: number,
+reference: string,
+externalReference: string | null,
+title: string,
+bookerName: string,
+firstArrival: string,
+lastDeparture: string,
+total: string,
+status: App.Data.Shared.BadgeData,
+units: App.Data.Portal.PortalBookingUnitData[],
+guests: App.Data.Portal.PortalGuestData[],
+canEditGuests: boolean,
+cancelMode: App.Enums.PortalCancelMode,
+freeUntil: string | null,
+cancellationRequested: boolean,
+cancellationRequestedAt: string | null,
+};
+export type PortalBookingRowData = {
+id: number,
+reference: string,
+externalReference: string | null,
+title: string,
+firstArrival: string,
+lastDeparture: string,
+rooms: number,
+total: string,
+status: App.Data.Shared.BadgeData,
+};
+export type PortalBookingUnitData = {
+id: number,
+roomType: string,
+ratePlan: string,
+arrivalDate: string,
+departureDate: string,
+nights: number,
+adults: number,
+children: number,
+status: App.Data.Shared.BadgeData,
+guestNames: string[],
+addOns: App.Data.Portal.PortalBookingAddOnData[],
+total: string,
+};
 export type PortalCompanyData = {
 name: string,
 typeLabel: string,
@@ -1525,10 +1592,27 @@ billingStateCode: string | null,
 billingPostalCode: string | null,
 billingCountryCode: string | null,
 };
+export type PortalGuestData = {
+guestId: number,
+fullName: string,
+phone: string | null,
+idType: string | null,
+idTypeLabel: string | null,
+};
 export type PortalInvitationData = {
 linkId: number,
 propertyName: string,
 companyName: string,
+};
+export type PortalLineOffersData = {
+offers: App.Data.Portal.PortalOfferData[],
+lineError: string | null,
+};
+export type PortalOfferData = {
+ratePlanId: number,
+ratePlanName: string,
+total: string | null,
+reason: string | null,
 };
 export type PortalPaymentRowData = {
 id: number,
@@ -1548,6 +1632,14 @@ stateLabel: string,
 openBalance: string,
 currency: App.Data.Property.CurrencyData | null,
 arrivals: number,
+};
+export type PortalRoomTypeData = {
+id: number,
+name: string,
+description: string | null,
+sellUnit: App.Enums.SellUnit,
+maxAdults: number,
+maxChildren: number,
 };
 }
 namespace Property {
@@ -1865,6 +1957,15 @@ parentName: string,
 export type RatePlanParentOptionData = {
 id: number,
 name: string,
+};
+export type RatePlanPortalCompanyData = {
+id: number,
+name: string,
+};
+export type RatePlanPortalData = {
+portalAccess: App.Enums.PortalAccess,
+isDerived: boolean,
+companies: App.Data.Rates.RatePlanPortalCompanyData[],
 };
 export type RatePlanRoomTypeChoiceData = {
 id: number,
@@ -3149,7 +3250,7 @@ export type MediaDisk = 'local' | 'r2';
 export type MissedArrivalPolicy = 'mark_no_show' | 'keep_as_late_arrival';
 export type NavigationContext = 'front-desk' | 'finance' | 'reports' | 'settings';
 export type NotificationChannel = 'mail' | 'database';
-export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions' | 'night_audit_failed' | 'registration_card_link' | 'onboarding_reminder' | 'dorm_strategy_changed' | 'support_access_used' | 'go_live_approved' | 'go_live_rejected';
+export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions' | 'night_audit_failed' | 'registration_card_link' | 'onboarding_reminder' | 'dorm_strategy_changed' | 'support_access_used' | 'go_live_approved' | 'go_live_rejected' | 'portal_booking_created' | 'portal_booking_cancelled' | 'portal_cancellation_requested';
 export type OnboardingPhase = 'property' | 'rooms' | 'finance' | 'prices' | 'channels' | 'review';
 export type OnboardingStep = 'basics' | 'check_in_essentials' | 'team' | 'room_types' | 'rooms' | 'taxes' | 'payment_methods' | 'companies' | 'basic_rate' | 'charge_items' | 'discounts' | 'channel_manager' | 'review';
 export type OtaCredentialStatus = 'pending' | 'processed';
@@ -3172,6 +3273,8 @@ export type PolicyChargeMode = 'free' | 'fixed_amount' | 'percentage';
 export type PolicyRateBasis = 'booked_rate' | 'current_rate';
 export type PolicyScope = 'first_night' | 'whole_stay' | 'unused_nights' | 'one_charge';
 export type PolicyTab = 'no-show' | 'cancellation' | 'early-departure' | 'late-checkout';
+export type PortalAccess = 'hidden' | 'all' | 'selected';
+export type PortalCancelMode = 'free' | 'request' | 'closed';
 export type PortalLoginOutcome = 'unchanged' | 'removed' | 'created' | 'invited' | 'refused';
 export type PortalLoginRefusal = 'other_kind_of_account' | 'taken_by_other_company' | 'not_available' | 'company_suspended';
 export type PricingBasis = 'per_room' | 'per_guest' | 'per_bed' | 'package' | 'day_use';
