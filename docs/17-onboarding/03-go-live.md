@@ -122,7 +122,7 @@ Going live redirects to the dashboard with a `wentLive` flash. There is no separ
 
 | Item                                   | Done when                                                                                            | Opens                        | Not needed       |
 | -------------------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------- | ---------------- |
-| Property logo                          | The property has a logo (`Property::LOGO` media)                                                     | Settings → Logo              | No               |
+| Property logo                          | The property has a logo (`Property::LOGO` media)                                                     | Settings → Profile           | No               |
 | No-show and cancellation charges       | A room revenue policy has a charge mode other than Free                                              | Settings → Room revenue      | Yes              |
 | Missed arrivals and overdue departures | Only by Not needed: the defaults are valid, the owner confirms them                                  | Settings → Operations        | Yes              |
 | Skipped sections                       | One line per skipped optional section (`onboarding_skips`); a line is done when the section has data | That section's settings page | Yes, per section |

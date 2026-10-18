@@ -116,7 +116,7 @@ class RecommendedChecklist
             summary: $done ? __('Shown on invoices and receipts') : __('No logo on invoices and receipts'),
             done: $done,
             actionLabel: __('Add'),
-            actionUrl: route('settings.logo', $property),
+            actionUrl: route('settings.profile', $property),
             dismissible: false,
         );
     }

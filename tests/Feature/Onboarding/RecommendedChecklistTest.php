@@ -45,7 +45,7 @@ test('a new property has the five open items in the doc order', function () {
         ->toBe(['logo', 'room_revenue', 'missed_arrivals', 'payment_surcharges', 'room_groups'])
         ->and($checklist->done)->toBe(0)
         ->and($checklist->total)->toBe(5)
-        ->and(recommendedItem($this->property, 'logo')->actionUrl)->toBe(route('settings.logo', $this->property))
+        ->and(recommendedItem($this->property, 'logo')->actionUrl)->toBe(route('settings.profile', $this->property))
         ->and(recommendedItem($this->property, 'missed_arrivals')->done)->toBeFalse();
 });
 
