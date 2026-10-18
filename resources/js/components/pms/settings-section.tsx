@@ -15,8 +15,14 @@ function focusFirstError(errors: Record<string, string>) {
 }
 
 /**
+ * Buttons for the section header. A function receives the form state, for example to disable a button while the form is dirty.
+ */
+type SectionActions = ReactNode | ((state: { isDirty: boolean }) => ReactNode);
+
+/**
  * One settings section = one form, saved on its own. Field ids must match field names so the first error gets focus.
  * `readOnly` hides the save button for users who may only view; disable the fields as well.
+ * `actions` sit on the right of the header, and wrap below the description on a phone.
  */
 export function SettingsSection({
     form,
@@ -26,6 +32,7 @@ export function SettingsSection({
     contentClassName = 'grid gap-5 md:grid-cols-2',
     readOnly = false,
     guardUnsavedChanges = false,
+    actions,
     children,
 }: {
     form: RouteFormDefinition<'post'>;
@@ -35,6 +42,7 @@ export function SettingsSection({
     contentClassName?: string;
     readOnly?: boolean;
     guardUnsavedChanges?: boolean;
+    actions?: SectionActions;
     children: (errors: Record<string, string>) => ReactNode;
 }) {
     const afterSave = useRef<(() => void) | null>(null);
@@ -58,6 +66,7 @@ export function SettingsSection({
                     contentClassName={contentClassName}
                     readOnly={readOnly}
                     guardUnsavedChanges={guardUnsavedChanges}
+                    actions={actions}
                     processing={processing}
                     isDirty={isDirty}
                     onSave={(onSaved) => {
@@ -79,6 +88,7 @@ function SettingsSectionContent({
     contentClassName,
     readOnly,
     guardUnsavedChanges,
+    actions,
     processing,
     isDirty,
     onSave,
@@ -90,6 +100,7 @@ function SettingsSectionContent({
     contentClassName: string;
     readOnly: boolean;
     guardUnsavedChanges: boolean;
+    actions?: SectionActions;
     processing: boolean;
     isDirty: boolean;
     onSave: (onSaved: () => void) => void;
@@ -101,10 +112,28 @@ function SettingsSectionContent({
 
     return (
         <section className="flex flex-col gap-5">
-            <header className="space-y-1">
-                <h3 className="text-base font-medium">{title}</h3>
-                <p className="text-sm text-muted-foreground">{description}</p>
-            </header>
+            {actions ? (
+                <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+                    <div className="min-w-0 space-y-1">
+                        <h3 className="text-base font-medium">{title}</h3>
+                        <p className="text-sm text-muted-foreground">
+                            {description}
+                        </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                        {typeof actions === 'function'
+                            ? actions({ isDirty })
+                            : actions}
+                    </div>
+                </header>
+            ) : (
+                <header className="space-y-1">
+                    <h3 className="text-base font-medium">{title}</h3>
+                    <p className="text-sm text-muted-foreground">
+                        {description}
+                    </p>
+                </header>
+            )}
             <div className={contentClassName}>{children}</div>
             {!readOnly && (
                 <footer className="flex justify-end">

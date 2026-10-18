@@ -95,14 +95,20 @@ export function GenerateRoomsSheet({
     roomTypes,
     roomGroups,
     limit,
+    roomType,
 }: {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     roomTypes: EnumOption[];
     roomGroups: EnumOption[];
     limit: number;
+    /** Fixes the room type and hides its select, for the Rooms tab of a room type. */
+    roomType?: { id: number; name: string };
 }) {
-    const http = useHttp<FormData, PreviewResponse>(initialData);
+    const http = useHttp<FormData, PreviewResponse>({
+        ...initialData,
+        room_type_id: roomType ? String(roomType.id) : '',
+    });
     const [rooms, setRooms] = useState<PreviewResponse['rooms']>([]);
     const [saving, setSaving] = useState(false);
     const { data, errors } = http;
@@ -159,7 +165,9 @@ export function GenerateRoomsSheet({
                 <SheetHeader>
                     <SheetTitle>Generate rooms</SheetTitle>
                     <SheetDescription>
-                        Create up to {limit} rooms of one room type at once.
+                        {roomType
+                            ? `Create up to ${limit} rooms of ${roomType.name} at once.`
+                            : `Create up to ${limit} rooms of one room type at once.`}
                     </SheetDescription>
                 </SheetHeader>
                 <form
@@ -178,21 +186,25 @@ export function GenerateRoomsSheet({
                                 <TabsTrigger value="floors">Floors</TabsTrigger>
                             </TabsList>
                         </Tabs>
-                        <Field>
-                            <FieldLabel htmlFor="generate-room_type_id">
-                                Room type
-                            </FieldLabel>
-                            <EnumSelect
-                                id="generate-room_type_id"
-                                options={roomTypes}
-                                value={data.room_type_id}
-                                onValueChange={(value) =>
-                                    set('room_type_id', value)
-                                }
-                                aria-invalid={!!errors.room_type_id}
-                            />
+                        {roomType ? (
                             <FieldError>{errors.room_type_id}</FieldError>
-                        </Field>
+                        ) : (
+                            <Field>
+                                <FieldLabel htmlFor="generate-room_type_id">
+                                    Room type
+                                </FieldLabel>
+                                <EnumSelect
+                                    id="generate-room_type_id"
+                                    options={roomTypes}
+                                    value={data.room_type_id}
+                                    onValueChange={(value) =>
+                                        set('room_type_id', value)
+                                    }
+                                    aria-invalid={!!errors.room_type_id}
+                                />
+                                <FieldError>{errors.room_type_id}</FieldError>
+                            </Field>
+                        )}
                         {floors ? (
                             <>
                                 <div className="grid grid-cols-2 gap-3">

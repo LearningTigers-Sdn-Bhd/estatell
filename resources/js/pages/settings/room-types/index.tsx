@@ -1,19 +1,11 @@
-import { Head, router, useForm } from '@inertiajs/react';
-import { ArrowDown, ArrowUp, BedDouble, Info, Plus } from 'lucide-react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
+import { ArrowDown, ArrowUp, BedDouble, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { PageHeader } from '@/components/pms/page-header';
-import {
-    AlertDialog,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+import { ArchiveRoomTypeButton } from '@/components/pms/rooms/archive-room-type-button';
+import { GuestsIncludedLabel } from '@/components/pms/rooms/room-type-details-form';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -45,17 +37,11 @@ import {
 } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
-} from '@/components/ui/tooltip';
-import {
-    archive,
+    edit,
     index,
     reorder,
     restore,
     store,
-    update,
 } from '@/routes/settings/room-types';
 
 type RoomType = App.Data.Rooms.RoomTypeData;
@@ -73,75 +59,34 @@ type FormData = {
     terms_document_id: string;
 };
 
-/**
- * Explains "Guests included" wherever the label appears.
- */
-function GuestsIncludedLabel() {
-    return (
-        <span className="inline-flex items-center gap-1">
-            Guests included
-            <Tooltip>
-                <TooltipTrigger
-                    render={
-                        <button
-                            type="button"
-                            className="text-muted-foreground hover:text-foreground"
-                            aria-label="What are guests included?"
-                        />
-                    }
-                >
-                    <Info className="size-3.5" />
-                </TooltipTrigger>
-                <TooltipContent>
-                    How many guests a per-room price covers.
-                </TooltipContent>
-            </Tooltip>
-        </span>
-    );
-}
-
-function formValues(roomType: RoomType | null): FormData {
-    return {
-        name: roomType?.name ?? '',
-        description: roomType?.description ?? '',
-        sell_unit: roomType?.sellUnit ?? 'room',
-        max_adults: String(roomType?.maxAdults ?? 2),
-        max_children: String(roomType?.maxChildren ?? 0),
-        base_occupancy: String(roomType?.baseOccupancy ?? 2),
-        smoking_allowed: roomType?.smokingAllowed ?? false,
-        pets_allowed: roomType?.petsAllowed ?? false,
-        terms_document_id: roomType?.termsDocumentId
-            ? String(roomType.termsDocumentId)
-            : '',
-    };
-}
+const emptyForm: FormData = {
+    name: '',
+    description: '',
+    sell_unit: 'room',
+    max_adults: '2',
+    max_children: '0',
+    base_occupancy: '2',
+    smoking_allowed: false,
+    pets_allowed: false,
+    terms_document_id: '',
+};
 
 /**
- * Create or edit form. Remounted (by key) for each room type, so its state always starts from that row.
+ * Create form. A room type is edited on its own page.
  */
 function RoomTypeForm({
-    roomType,
     sellUnits,
     termsDocuments,
-    onDone,
 }: {
-    roomType: RoomType | null;
     sellUnits: SellUnitOption[];
     termsDocuments: SellUnitOption[];
-    onDone: () => void;
 }) {
-    const form = useForm<FormData>(formValues(roomType));
+    const form = useForm<FormData>(emptyForm);
 
     const submit = (event: React.FormEvent) => {
         event.preventDefault();
 
-        const options = { preserveScroll: true, onSuccess: onDone };
-
-        if (roomType) {
-            form.put(update.url({ roomType: roomType.id }), options);
-        } else {
-            form.post(store.url(), options);
-        }
+        form.post(store.url(), { preserveScroll: true });
     };
 
     return (
@@ -156,6 +101,7 @@ function RoomTypeForm({
                         onChange={(event) =>
                             form.setData('name', event.target.value)
                         }
+                        placeholder="e.g. Deluxe King"
                         aria-invalid={!!form.errors.name}
                         autoFocus
                     />
@@ -168,6 +114,7 @@ function RoomTypeForm({
                     <Textarea
                         id="room-type-description"
                         maxLength={2000}
+                        placeholder="e.g. Sea view with a king bed and a balcony"
                         value={form.data.description}
                         onChange={(event) =>
                             form.setData('description', event.target.value)
@@ -208,6 +155,7 @@ function RoomTypeForm({
                             onChange={(event) =>
                                 form.setData('max_adults', event.target.value)
                             }
+                            placeholder="e.g. 2"
                             aria-invalid={!!form.errors.max_adults}
                         />
                         <FieldError>{form.errors.max_adults}</FieldError>
@@ -225,6 +173,7 @@ function RoomTypeForm({
                             onChange={(event) =>
                                 form.setData('max_children', event.target.value)
                             }
+                            placeholder="e.g. 1"
                             aria-invalid={!!form.errors.max_children}
                         />
                         <FieldError>{form.errors.max_children}</FieldError>
@@ -244,6 +193,7 @@ function RoomTypeForm({
                                     event.target.value,
                                 )
                             }
+                            placeholder="e.g. 2"
                             aria-invalid={!!form.errors.base_occupancy}
                         />
                         <FieldError>{form.errors.base_occupancy}</FieldError>
@@ -313,57 +263,10 @@ function RoomTypeForm({
                     focusableWhenDisabled
                 >
                     {form.processing && <Spinner data-icon="inline-start" />}
-                    {roomType ? 'Save changes' : 'Create room type'}
+                    Create room type
                 </Button>
             </SheetFooter>
         </form>
-    );
-}
-
-function ArchiveRoomType({ roomType }: { roomType: RoomType }) {
-    const [open, setOpen] = useState(false);
-    const [processing, setProcessing] = useState(false);
-
-    return (
-        <AlertDialog open={open} onOpenChange={setOpen}>
-            <AlertDialogTrigger render={<Button variant="ghost" size="sm" />}>
-                Archive
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>
-                        Archive {roomType.name}?
-                    </AlertDialogTitle>
-                    <AlertDialogDescription>
-                        It leaves the active list and cannot be used for new
-                        work. You can restore it later.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <Button
-                        variant="destructive"
-                        disabled={processing}
-                        focusableWhenDisabled
-                        onClick={() =>
-                            router.post(
-                                archive.url({ roomType: roomType.id }),
-                                {},
-                                {
-                                    preserveScroll: true,
-                                    onStart: () => setProcessing(true),
-                                    onFinish: () => setProcessing(false),
-                                    onSuccess: () => setOpen(false),
-                                },
-                            )
-                        }
-                    >
-                        {processing && <Spinner data-icon="inline-start" />}
-                        Archive
-                    </Button>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
     );
 }
 
@@ -376,10 +279,7 @@ export default function RoomTypesIndex({
     sellUnits: SellUnitOption[];
     termsDocuments: { value: number; label: string }[];
 }) {
-    // `undefined` = closed, `null` = creating, a room type = editing.
-    const [editing, setEditing] = useState<RoomType | null | undefined>(
-        undefined,
-    );
+    const [creating, setCreating] = useState(false);
     const active = roomTypes.filter((roomType) => !roomType.archived);
     const archived = roomTypes.filter((roomType) => roomType.archived);
     const sellUnitLabel = (value: string) =>
@@ -401,7 +301,7 @@ export default function RoomTypesIndex({
                     title="Room types"
                     description="What you sell: a room or a bed. Prices are set on rates, not here."
                     actions={
-                        <Button onClick={() => setEditing(null)}>
+                        <Button onClick={() => setCreating(true)}>
                             <Plus data-icon="inline-start" />
                             New room type
                         </Button>
@@ -414,7 +314,7 @@ export default function RoomTypesIndex({
                         title="No room types yet"
                         description="Add the first room type to start setting up rooms and rates."
                         action={
-                            <Button onClick={() => setEditing(null)}>
+                            <Button onClick={() => setCreating(true)}>
                                 <Plus data-icon="inline-start" />
                                 New room type
                             </Button>
@@ -442,7 +342,14 @@ export default function RoomTypesIndex({
                                 {active.map((roomType, position) => (
                                     <TableRow key={roomType.id}>
                                         <TableCell className="font-medium">
-                                            {roomType.name}
+                                            <Link
+                                                href={edit.url({
+                                                    roomType: roomType.id,
+                                                })}
+                                                className="hover:underline"
+                                            >
+                                                {roomType.name}
+                                            </Link>
                                         </TableCell>
                                         <TableCell>
                                             {sellUnitLabel(roomType.sellUnit)}
@@ -488,16 +395,7 @@ export default function RoomTypesIndex({
                                                 >
                                                     <ArrowDown />
                                                 </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() =>
-                                                        setEditing(roomType)
-                                                    }
-                                                >
-                                                    Edit
-                                                </Button>
-                                                <ArchiveRoomType
+                                                <ArchiveRoomTypeButton
                                                     roomType={roomType}
                                                 />
                                             </div>
@@ -520,7 +418,14 @@ export default function RoomTypesIndex({
                                     {archived.map((roomType) => (
                                         <TableRow key={roomType.id}>
                                             <TableCell className="font-medium">
-                                                {roomType.name}{' '}
+                                                <Link
+                                                    href={edit.url({
+                                                        roomType: roomType.id,
+                                                    })}
+                                                    className="hover:underline"
+                                                >
+                                                    {roomType.name}
+                                                </Link>{' '}
                                                 <Badge variant="secondary">
                                                     Archived
                                                 </Badge>
@@ -559,29 +464,21 @@ export default function RoomTypesIndex({
                 )}
             </div>
 
-            <Sheet
-                open={editing !== undefined}
-                onOpenChange={(open) => !open && setEditing(undefined)}
-            >
+            <Sheet open={creating} onOpenChange={setCreating}>
                 <SheetContent className="data-[side=right]:sm:max-w-xl">
                     <SheetHeader>
-                        <SheetTitle>
-                            {editing ? `Edit ${editing.name}` : 'New room type'}
-                        </SheetTitle>
+                        <SheetTitle>New room type</SheetTitle>
                         <SheetDescription>
                             Set what you sell and how many guests it fits.
                         </SheetDescription>
                     </SheetHeader>
-                    {editing !== undefined && (
+                    {creating && (
                         <RoomTypeForm
-                            key={editing?.id ?? 'new'}
-                            roomType={editing}
                             sellUnits={sellUnits}
                             termsDocuments={termsDocuments.map((document) => ({
                                 value: String(document.value),
                                 label: document.label,
                             }))}
-                            onDone={() => setEditing(undefined)}
                         />
                     )}
                 </SheetContent>

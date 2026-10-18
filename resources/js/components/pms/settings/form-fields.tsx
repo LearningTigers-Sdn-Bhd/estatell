@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import {
@@ -24,7 +25,7 @@ export function SettingsInput({
     placeholder,
 }: {
     name: string;
-    label: string;
+    label: ReactNode;
     value: string | number | null;
     error?: string;
     type?: React.HTMLInputTypeAttribute;
