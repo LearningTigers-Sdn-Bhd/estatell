@@ -158,6 +158,28 @@ test('archiving and restoring move a room type out of and back into the active l
         ->and($roomType->position)->toBe(3);
 });
 
+test('archive and restore return to the page they were sent from', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    $roomType = RoomType::factory()->for($property)->create();
+    $page = route('settings.room-types.edit', [$property->code, $roomType]);
+
+    $this->actingAs($owner)
+        ->from($page)
+        ->post(route('settings.room-types.archive', [$property->code, $roomType]))
+        ->assertRedirect($page);
+
+    $this->from($page)
+        ->post(route('settings.room-types.restore', [$property->code, $roomType]))
+        ->assertRedirect($page);
+
+    $list = route('settings.room-types.index', $property->code);
+
+    $this->from($list)
+        ->post(route('settings.room-types.archive', [$property->code, $roomType]))
+        ->assertRedirect($list);
+});
+
 test('a room type cannot be restored while an active one has its name', function () {
     $owner = User::factory()->owner()->create();
     $property = $owner->property;

@@ -83,7 +83,7 @@ Room    Group
 - **Generate rooms** opens `GenerateRoomsSheet` with this room type fixed and its select hidden. It is disabled while the form has unsaved changes, with the tooltip "Save or discard your changes first." Rooms are created without beds; **Generate beds** stays on Settings > Rooms.
 - An empty type shows "No rooms yet. Generate or add rooms." with no buttons of its own.
 
-The Action returns a refusal message for rules 2, 4, 5 and 6, and the page shows it as an error toast; the Form Request covers rule 1 only. Archive and Restore on the room type page return to the room types list.
+The Action returns a refusal message for rules 2, 4, 5 and 6, and the page shows it as an error toast; the Form Request covers rule 1 only. Archive and Restore return to the page they were sent from: the list, or the room type page, which then opens read-only or editable again.
 
 `PUT settings.room-types.rooms.update` sends `[{room_id, room_group_id}]` to `AssignRoomTypeRooms`. It saves all rows in one transaction, or none:
 

@@ -127,7 +127,7 @@ class RoomTypeController extends Controller
             ? ['type' => 'success', 'message' => __(':name archived.', ['name' => $roomType->name])]
             : ['type' => 'error', 'message' => __(':name is already archived.', ['name' => $roomType->name])]);
 
-        return to_route('settings.room-types.index', $property);
+        return back(fallback: route('settings.room-types.index', $property));
     }
 
     public function restore(Request $request, Property $property, RoomType $roomType, RestoreRoomType $restoreRoomType): RedirectResponse
@@ -136,7 +136,7 @@ class RoomTypeController extends Controller
             ? ['type' => 'success', 'message' => __(':name restored.', ['name' => $roomType->name])]
             : ['type' => 'error', 'message' => __(':name cannot be restored. Another room type uses the same name.', ['name' => $roomType->name])]);
 
-        return to_route('settings.room-types.index', $property);
+        return back(fallback: route('settings.room-types.index', $property));
     }
 
     /**

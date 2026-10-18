@@ -15,19 +15,21 @@ import { Spinner } from '@/components/ui/spinner';
 import { archive } from '@/routes/settings/room-types';
 
 /**
- * Asks before archiving a room type. Used on the room types list and in the room type page header.
+ * Asks before archiving a room type. Ghost in the room types list rows, outline in the room type page header.
  */
 export function ArchiveRoomTypeButton({
     roomType,
+    variant = 'ghost',
 }: {
     roomType: Pick<App.Data.Rooms.RoomTypeData, 'id' | 'name'>;
+    variant?: 'ghost' | 'outline';
 }) {
     const [open, setOpen] = useState(false);
     const [processing, setProcessing] = useState(false);
 
     return (
         <AlertDialog open={open} onOpenChange={setOpen}>
-            <AlertDialogTrigger render={<Button variant="ghost" size="sm" />}>
+            <AlertDialogTrigger render={<Button variant={variant} size="sm" />}>
                 Archive
             </AlertDialogTrigger>
             <AlertDialogContent>

@@ -87,7 +87,10 @@ export function RoomTypeShell({
                                 Restore
                             </Button>
                         ) : (
-                            <ArchiveRoomTypeButton roomType={roomType} />
+                            <ArchiveRoomTypeButton
+                                roomType={roomType}
+                                variant="outline"
+                            />
                         )
                     ) : undefined
                 }
