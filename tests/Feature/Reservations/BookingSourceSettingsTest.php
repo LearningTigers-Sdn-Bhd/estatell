@@ -57,7 +57,12 @@ test('the page runs the same queries however many sources there are', function (
         DB::flushQueryLog();
         DB::enableQueryLog();
         Model::preventLazyLoading();
-        $this->actingAs($this->owner)->get(($this->url)('index'))->assertOk();
+
+        try {
+            $this->actingAs($this->owner)->get(($this->url)('index'))->assertOk();
+        } finally {
+            Model::preventLazyLoading(false);
+        }
 
         return count(DB::getQueryLog());
     };

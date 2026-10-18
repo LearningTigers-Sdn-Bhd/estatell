@@ -402,7 +402,7 @@ class UnitActionPreview
             return CancelAllPreviewData::refused($this->refusals->message(UnitStayResult::REFUSAL_POLICY_NOT_FOUND));
         }
 
-        $units = $reservation->units()->with(['roomType', 'guests.guest', 'dayUse'])->withCount(['addOns as unposted_add_ons_count' => fn ($query) => $query->whereNull('folio_line_id')])->orderBy('id')->get();
+        $units = $reservation->units()->with(['roomType', 'guests.guest', 'dayUse', 'reservation.booker'])->withCount(['addOns as unposted_add_ons_count' => fn ($query) => $query->whereNull('folio_line_id')])->orderBy('id')->get();
         $stayLabel = app(StayLabel::class);
         $rows = [];
 

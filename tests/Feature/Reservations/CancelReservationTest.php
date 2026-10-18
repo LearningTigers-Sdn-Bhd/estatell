@@ -23,6 +23,7 @@ use App\Models\RoomType;
 use App\Models\Tax;
 use App\Models\TransactionCode;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\Models\Activity;
 
 beforeEach(function () {
@@ -190,6 +191,18 @@ test('cancelling resolves the company portal request and the log says so', funct
     expect($fresh->cancellation_requested_at)->toBeNull()
         ->and($fresh->cancellation_requested_by)->toBeNull()
         ->and(Activity::query()->where('event', 'reservation.cancelled')->sole()->properties['resolved_cancellation_request'])->toBeTrue();
+});
+
+test('the preview runs with lazy loading prevented', function () {
+    $setup = crSetup(2);
+
+    Model::preventLazyLoading();
+
+    try {
+        $this->actingAs($setup['user'])->postJson(crUrl($setup, 'cancel-preview'))->assertOk()->assertJsonPath('error', null);
+    } finally {
+        Model::preventLazyLoading(false);
+    }
 });
 
 test('the preview gives each fee with tax and the money held', function () {
