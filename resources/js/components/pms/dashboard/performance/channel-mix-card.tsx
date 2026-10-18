@@ -1,4 +1,4 @@
-import { ChartBarStacked, ChevronRight } from 'lucide-react';
+import { ChartBarStacked, ChevronRight, Globe, Shapes } from 'lucide-react';
 import { useState } from 'react';
 import {
     BookingSourceBadge,
@@ -108,8 +108,14 @@ export function ChannelMixCard({
                     }
                     aria-label="Channel mix view"
                 >
-                    <ToggleGroupItem value="source">Source</ToggleGroupItem>
-                    <ToggleGroupItem value="type">Type</ToggleGroupItem>
+                    <ToggleGroupItem value="source">
+                        <Globe data-icon="inline-start" />
+                        Source
+                    </ToggleGroupItem>
+                    <ToggleGroupItem value="type">
+                        <Shapes data-icon="inline-start" />
+                        Type
+                    </ToggleGroupItem>
                 </ToggleGroup>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">

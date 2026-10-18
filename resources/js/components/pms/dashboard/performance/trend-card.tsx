@@ -1,4 +1,5 @@
-import { ChartLine } from 'lucide-react';
+import { BedDouble, ChartLine, Coins, TrendingUp } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import {
     Bar,
@@ -32,10 +33,11 @@ import {
 
 type Metric = 'occupancy' | 'adr' | 'revpar';
 
-const metrics: { value: Metric; label: string }[] = [
-    { value: 'occupancy', label: 'Occupancy' },
-    { value: 'adr', label: 'ADR' },
-    { value: 'revpar', label: 'RevPAR' },
+/** The same icons as the KPI tiles. */
+const metrics: { value: Metric; label: string; icon: LucideIcon }[] = [
+    { value: 'occupancy', label: 'Occupancy', icon: BedDouble },
+    { value: 'adr', label: 'ADR', icon: Coins },
+    { value: 'revpar', label: 'RevPAR', icon: TrendingUp },
 ];
 
 const previousKeys = {
@@ -161,6 +163,7 @@ export function TrendCard({
                 >
                     {metrics.map((item) => (
                         <ToggleGroupItem key={item.value} value={item.value}>
+                            <item.icon data-icon="inline-start" />
                             {item.label}
                         </ToggleGroupItem>
                     ))}
