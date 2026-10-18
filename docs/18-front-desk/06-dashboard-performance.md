@@ -27,7 +27,7 @@ Dashboard · Sandbay Resort                          Business date 18 Oct 2026
 ## Layout
 
 ```
-[Last 7 days] [Last 30 days] [●This month] [Last month] [12 months] [Month ⌄]
+Period [Last 7 days] [Last 30 days] [●This month] [Last month] [12 months] [Month ⌄]
 1 Oct – 18 Oct 2026 · compared with 1 Sep – 18 Sep 2026
 
 ┌ Occupancy ─────┐┌ ADR ───────────┐┌ RevPAR ────────┐┌ Lead time ───────┐
@@ -62,7 +62,7 @@ Dashboard · Sandbay Resort                          Business date 18 Oct 2026
 - Tiles follow the Today stat tile style: a normal card, a soft primary icon chip (`primary/5`, like the month tile), strong figure. No left accents.
 - Every tile has a line under the figure: the comparison, or "Nothing to compare with" when the compared range has no figures.
 - Each card heading has one muted 20px Lucide icon: Trend `ChartLine`, Channel mix `ChartBarStacked`, Lead time `Hourglass`. The Lead time card is titled "How far ahead guests book", with the arrival range and "walk-ins not counted" as its description.
-- The period presets use the normal button size, like the Today quick actions. The month picker is hidden while there is no whole past month to pick.
+- A muted **Period** label sits left of the presets. The period presets are one outline toggle group at the normal size, like the Trend metric switch. Choosing one visits its URL. A picked month leaves no preset pressed. The month picker is hidden while there is no whole past month to pick.
 - The comparison line uses a soft tint: up is `primary`, down is `warning-text`. For lead time neither direction is good or bad, so it stays muted.
 - The trend chart uses `components/ui/chart.tsx`: `chart-3` bars with rounded tops for the current period, one per day (or month for 12 months), and a thin dashed muted line for the compared one. Bars, not a line, because the figures are separate days: no curve invents values between them.
 - Above the chart, a headline shows the chosen metric's period figure, its change chip and the compared range. It uses the same values as the tiles.

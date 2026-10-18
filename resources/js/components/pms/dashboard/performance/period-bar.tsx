@@ -1,5 +1,4 @@
-import { Link, router, usePage } from '@inertiajs/react';
-import { buttonVariants } from '@/components/ui/button';
+import { router, usePage } from '@inertiajs/react';
 import {
     Select,
     SelectContent,
@@ -8,7 +7,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { cn } from 'cn';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
     monthLabel,
     periodSentence,
@@ -19,8 +18,8 @@ import { dashboard } from '@/routes';
 const only = ['period', 'performance'];
 
 /**
- * The presets, the month picker and the line that states both ranges in words. Every choice is a link, so the period
- * is in the URL.
+ * The presets as one toggle group, the month picker and the line that states both ranges in words. Every choice visits
+ * a URL, so the period is in the URL. A picked month leaves no preset pressed; pressing the open preset again does nothing.
  */
 export function PeriodBar({
     period,
@@ -28,8 +27,12 @@ export function PeriodBar({
     period: App.Data.Dashboard.PerformancePeriodData;
 }) {
     const code = usePage().props.property?.code ?? '';
-    const href = (query: Record<string, string>) =>
-        dashboard.url(code, { query: { tab: 'performance', ...query } });
+    const visit = (query: Record<string, string>) =>
+        router.get(
+            dashboard.url(code, { query: { tab: 'performance', ...query } }),
+            {},
+            { only, preserveState: true, preserveScroll: true },
+        );
     const monthItems = period.months.map((month) => ({
         value: month,
         label: monthLabel(month),
@@ -38,44 +41,40 @@ export function PeriodBar({
     return (
         <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible">
-                {period.presets.map((preset) => (
-                    <Link
-                        key={preset.value}
-                        href={href({ period: preset.value })}
-                        only={only}
-                        preserveState
-                        preserveScroll
-                        aria-current={
-                            period.preset === preset.value ? 'true' : undefined
+                <span
+                    id="performance-period-label"
+                    className="shrink-0 text-sm text-muted-foreground"
+                >
+                    Period
+                </span>
+                <ToggleGroup
+                    variant="outline"
+                    spacing={0}
+                    value={period.preset === null ? [] : [period.preset]}
+                    onValueChange={(value) => {
+                        if (value[0]) {
+                            visit({ period: value[0] });
                         }
-                        className={cn(
-                            buttonVariants({
-                                variant:
-                                    period.preset === preset.value
-                                        ? 'default'
-                                        : 'outline',
-                            }),
-                            'shrink-0',
-                        )}
-                    >
-                        {preset.label}
-                    </Link>
-                ))}
+                    }}
+                    aria-labelledby="performance-period-label"
+                    className="shrink-0"
+                >
+                    {period.presets.map((preset) => (
+                        <ToggleGroupItem
+                            key={preset.value}
+                            value={preset.value}
+                        >
+                            {preset.label}
+                        </ToggleGroupItem>
+                    ))}
+                </ToggleGroup>
                 {monthItems.length > 0 && (
                     <Select
                         items={monthItems}
                         value={period.month}
                         onValueChange={(month) => {
                             if (month) {
-                                router.get(
-                                    href({ month }),
-                                    {},
-                                    {
-                                        only,
-                                        preserveState: true,
-                                        preserveScroll: true,
-                                    },
-                                );
+                                visit({ month });
                             }
                         }}
                     >
