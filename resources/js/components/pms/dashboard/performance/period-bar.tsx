@@ -54,7 +54,6 @@ export function PeriodBar({
                                     period.preset === preset.value
                                         ? 'default'
                                         : 'outline',
-                                size: 'sm',
                             }),
                             'shrink-0',
                         )}
@@ -62,41 +61,44 @@ export function PeriodBar({
                         {preset.label}
                     </Link>
                 ))}
-                <Select
-                    items={monthItems}
-                    value={period.month}
-                    disabled={monthItems.length === 0}
-                    onValueChange={(month) => {
-                        if (month) {
-                            router.get(
-                                href({ month }),
-                                {},
-                                {
-                                    only,
-                                    preserveState: true,
-                                    preserveScroll: true,
-                                },
-                            );
-                        }
-                    }}
-                >
-                    <SelectTrigger
-                        size="sm"
-                        className="w-36 shrink-0"
-                        aria-label="Pick a month"
+                {monthItems.length > 0 && (
+                    <Select
+                        items={monthItems}
+                        value={period.month}
+                        onValueChange={(month) => {
+                            if (month) {
+                                router.get(
+                                    href({ month }),
+                                    {},
+                                    {
+                                        only,
+                                        preserveState: true,
+                                        preserveScroll: true,
+                                    },
+                                );
+                            }
+                        }}
                     >
-                        <SelectValue placeholder="e.g. Sep 2026" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectGroup>
-                            {monthItems.map((item) => (
-                                <SelectItem key={item.value} value={item.value}>
-                                    {item.label}
-                                </SelectItem>
-                            ))}
-                        </SelectGroup>
-                    </SelectContent>
-                </Select>
+                        <SelectTrigger
+                            className="w-36 shrink-0"
+                            aria-label="Pick a month"
+                        >
+                            <SelectValue placeholder="e.g. Sep 2026" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectGroup>
+                                {monthItems.map((item) => (
+                                    <SelectItem
+                                        key={item.value}
+                                        value={item.value}
+                                    >
+                                        {item.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectGroup>
+                        </SelectContent>
+                    </Select>
+                )}
             </div>
             <p className="text-sm text-muted-foreground">
                 {periodSentence(period)}

@@ -1,10 +1,12 @@
 import { Deferred, Head, router, usePage } from '@inertiajs/react';
 import confetti from 'canvas-confetti';
-import { CalendarCheck, ChartLine } from 'lucide-react';
+import { CalendarCheck, ChartLine, Moon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { DashboardAlert } from '@/components/pms/dashboard/dashboard-alert';
 import { DashboardTiles } from '@/components/pms/dashboard/dashboard-tiles';
 import { QuickActions } from '@/components/pms/dashboard/quick-actions';
+import { PageHeader } from '@/components/pms/page-header';
+import { Button } from '@/components/ui/button';
 import { RecommendedChecklistCard } from '@/components/pms/dashboard/recommended-checklist-card';
 import { YoureLiveCard } from '@/components/pms/dashboard/youre-live-card';
 import { NightAuditSheet } from '@/components/pms/night-audit/night-audit-sheet';
@@ -55,7 +57,7 @@ export default function Dashboard({
     const hasTonight =
         can.canViewReservations && tiles !== null && tiles?.tonight !== null;
     const hasStats = tiles !== null || housekeeping !== null;
-    /** To do and Tonight share the top row on wide screens; Recommended next sits under To do. */
+    /** To do and Tonight share the top row on wide screens; Recommended next sits under To do. Without it the row fills the page height. */
     const threeColumns = hasTodo && hasTonight;
     const code = page.props.property?.code ?? '';
     const refresh = () =>
@@ -94,7 +96,7 @@ export default function Dashboard({
             <PerformanceTab period={period} performance={performance} />
         ) : (
             <>
-                <QuickActions can={can} onRunAudit={() => setAuditOpen(true)} />
+                <QuickActions can={can} />
 
                 {hasStats && (
                     <DashboardTiles
@@ -107,6 +109,7 @@ export default function Dashboard({
                 <div
                     className={cn(
                         'grid gap-4',
+                        recommended === null && 'xl:flex-1',
                         hasTonight && 'md:grid-cols-2',
                         threeColumns && 'xl:grid-cols-3',
                     )}
@@ -183,6 +186,22 @@ export default function Dashboard({
                 scroll-region
                 className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain p-4"
             >
+                <PageHeader
+                    title="Dashboard"
+                    description="Today's front desk work and how the property is doing."
+                    actions={
+                        can.canRunNightAudit && (
+                            <Button
+                                variant="outline"
+                                onClick={() => setAuditOpen(true)}
+                            >
+                                <Moon data-icon="inline-start" />
+                                Run night audit
+                            </Button>
+                        )
+                    }
+                />
+
                 {youreLive !== null && (
                     <YoureLiveCard
                         youreLive={youreLive}
@@ -205,9 +224,9 @@ export default function Dashboard({
                 {can.canViewReports ? (
                     <TabLinks
                         activeTab={tab}
-                        className="flex flex-col gap-4"
+                        className="flex flex-1 flex-col gap-4"
                         panelWidth="full"
-                        panelClassName="flex flex-col gap-4"
+                        panelClassName="flex flex-1 flex-col gap-4"
                         tabs={[
                             {
                                 value: 'today',

@@ -1,4 +1,11 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Hourglass } from 'lucide-react';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import { rangeLabel } from '@/components/pms/dashboard/performance/format';
 
 const labels: Record<string, string> = {
@@ -21,10 +28,19 @@ export function LeadTimeCard({
     return (
         <Card className="min-w-0">
             <CardHeader>
-                <CardTitle>
-                    Lead time · arrivals {rangeLabel(period.from, period.to)},
-                    walk-ins left out
-                </CardTitle>
+                <div className="flex items-center gap-2">
+                    <Hourglass
+                        aria-hidden
+                        className="size-5 shrink-0 text-muted-foreground"
+                    />
+                    <div className="flex min-w-0 flex-col gap-1">
+                        <CardTitle>How far ahead guests book</CardTitle>
+                        <CardDescription>
+                            Arrivals {rangeLabel(period.from, period.to)} ·
+                            walk-ins not counted
+                        </CardDescription>
+                    </div>
+                </div>
             </CardHeader>
             <CardContent className="flex flex-col gap-2">
                 {leadTime.units === 0 ? (

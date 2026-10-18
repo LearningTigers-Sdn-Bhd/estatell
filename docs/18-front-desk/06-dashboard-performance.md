@@ -21,7 +21,7 @@ Dashboard · Sandbay Resort                          Business date 18 Oct 2026
 - A user without `reports.view` sees no tab bar, only the Today content. A `?tab=performance` visit from that user shows Today.
 - The tab lives only in the URL: each tab is a link that sets `tab`. Today is the default, and a bad value shows Today. The browser does not remember the last tab; an owner who wants Performance first bookmarks it.
 - `DashboardTab` (Today, Performance) holds the values.
-- Above the Performance content, the **night audit alert** still shows, because a stuck audit changes the figures. Quick actions and the **You're live** card show on Today only.
+- Above the Performance content, the **night audit alert** still shows, because a stuck audit changes the figures. Quick actions and the **You're live** card show on Today only. The page header with **Run night audit** shows on both tabs.
 - Only the open tab's props are sent. Today's tiles, To do and housekeeping are not loaded on Performance, and the reverse.
 
 ## Layout
@@ -42,22 +42,28 @@ Dashboard · Sandbay Resort                          Business date 18 Oct 2026
 │ 30%│                                         ││ ● Company / TA  11%   67 n ›│
 │    └──────────────────────────────────       ││ ● Agoda          9%   55 n │
 │     1 Oct          9 Oct          18 Oct     ││ ● Walk-in        9%   55 n │
+│                                              │└────────────────────────────┘
+│                                              │┌ How far ahead guests book ─┐
+│                                              ││ Arrivals 1–18 Oct ·        │
+│                                              ││ walk-ins not counted       │
+│                                              ││ Same day  ███░░░░░░  12%   │
+│                                              ││ 1–7 days  ███████░░  31%   │
+│                                              ││ 8–30 days █████████  38%   │
+│                                              ││ 31+ days  ████░░░░░  19%   │
 └──────────────────────────────────────────────┘└────────────────────────────┘
-┌ Lead time · arrivals 1–18 Oct, walk-ins left out ────────────────────────┐
-│ Same day  ███░░░░░░░░░░░  12%                                            │
-│ 1–7 days  ███████░░░░░░░  31%                                            │
-│ 8–30 days █████████░░░░░  38%                                            │
-│ 31+ days  ████░░░░░░░░░░  19%                                            │
-└──────────────────────────────────────────────────────────────────────────┘
 ```
 
-| Width       | Layout                                                                                              |
-| ----------- | --------------------------------------------------------------------------------------------------- |
-| `xl` 1280px | Four tiles in one row. Trend takes two of three columns, Channel mix one. Lead time spans the width |
-| 768–1279px  | Tiles 2×2. Trend, Channel mix and Lead time stack at full width                                     |
-| Below 768px | Tiles 2×2. Cards stack. The period presets scroll sideways in one row                               |
+| Width       | Layout                                                                                                                                            |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `xl` 1280px | Four tiles in one row. Trend takes two of three columns; Channel mix and Lead time stack in the third. This row fills the rest of the page height |
+| 768–1279px  | Tiles 2×2. Trend, Channel mix and Lead time stack at full width                                                                                   |
+| Below 768px | Tiles 2×2. Cards stack. The period presets scroll sideways in one row                                                                             |
 
-- Tiles follow the Today stat tile style: a normal card, one muted 20px Lucide icon, strong figure. No left accents.
+- Tiles follow the Today stat tile style: a normal card, a soft primary icon chip (`primary/5`, like the month tile), strong figure. No left accents.
+- Every tile has a line under the figure: the comparison, or "Nothing to compare with" when the compared range has no figures.
+- Each card heading has one muted 20px Lucide icon: Trend `ChartLine`, Channel mix `ChartBarStacked`, Lead time `Hourglass`. The Lead time card is titled "How far ahead guests book", with the arrival range and "walk-ins not counted" as its description.
+- The period presets use the normal button size, like the Today quick actions. The month picker is hidden while there is no whole past month to pick.
+- The trend tooltip uses the axis format: whole percent for occupancy, whole amounts for ADR and RevPAR.
 - The comparison line uses a soft tint: up is `primary`, down is `warning-text`. For lead time neither direction is good or bad, so it stays muted.
 - The trend chart uses `components/ui/chart.tsx` with `chart-3` for the current period and a dashed muted line for the previous one.
 - Channel mix colors come from each source's badge `SwatchColor` (see [Booking sources](../12-reservations/11-booking-sources.md#badge)). By type, the four types use fixed chart tokens.
@@ -147,5 +153,5 @@ Dashboard · Sandbay Resort                          Business date 18 Oct 2026
 - Lead time leaves out walk-ins and cancelled units, uses the property time zone for `created_at`, and counts a negative result as 0.
 - Channel mix counts only live units' nights in the range, adds up to 100%, and puts a manual and a channel Booking.com booking in one source.
 - An empty range shows the empty text, not 0. A range with stays but no statistics shows "No night audit figures" for the three occupancy tiles only.
-- The alert shows on both tabs; quick actions and You're live only on Today.
+- The alert and the page header show on both tabs; quick actions and You're live only on Today.
 - The query count is the same for 7 days and 12 months.

@@ -1,24 +1,18 @@
 import { Link } from '@inertiajs/react';
-import { Moon, Plus, Search, UserRoundPlus } from 'lucide-react';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Plus, Search, UserRoundPlus } from 'lucide-react';
+import { buttonVariants } from '@/components/ui/button';
 import { index, newMethod, walkIn } from '@/routes/reservations';
 
 /**
  * The buttons that start the day's work. Each follows its permission, and a user with none sees no row.
- * Find reservation opens the reservations list until the command palette is built.
+ * Find reservation opens the reservations list until the command palette is built. Run night audit sits in the page header.
  */
 export function QuickActions({
     can,
-    onRunAudit,
 }: {
     can: App.Data.Dashboard.DashboardAccessData;
-    onRunAudit: () => void;
 }) {
-    if (
-        !can.canManageReservations &&
-        !can.canViewReservations &&
-        !can.canRunNightAudit
-    ) {
+    if (!can.canManageReservations && !can.canViewReservations) {
         return null;
     }
 
@@ -47,16 +41,6 @@ export function QuickActions({
                     <Search data-icon="inline-start" />
                     Find reservation
                 </Link>
-            )}
-            {can.canRunNightAudit && (
-                <Button
-                    variant="outline"
-                    className="sm:ml-auto"
-                    onClick={onRunAudit}
-                >
-                    <Moon data-icon="inline-start" />
-                    Run night audit
-                </Button>
             )}
         </div>
     );

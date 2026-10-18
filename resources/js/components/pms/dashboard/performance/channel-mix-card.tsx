@@ -1,4 +1,4 @@
-import { ChevronRight } from 'lucide-react';
+import { ChartBarStacked, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import {
     BookingSourceBadge,
@@ -89,9 +89,15 @@ export function ChannelMixCard({
     const rows = view === 'source' ? mix.bySource : mix.byType;
 
     return (
-        <Card className="min-w-0">
+        <Card className="min-w-0 flex-1">
             <CardHeader className="flex flex-wrap items-center justify-between gap-2">
-                <CardTitle>Channel mix</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                    <ChartBarStacked
+                        aria-hidden
+                        className="size-5 text-muted-foreground"
+                    />
+                    Channel mix
+                </CardTitle>
                 <ToggleGroup
                     variant="outline"
                     size="sm"

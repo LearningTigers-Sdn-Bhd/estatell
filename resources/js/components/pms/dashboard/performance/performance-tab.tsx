@@ -9,7 +9,8 @@ import { cn } from 'cn';
 
 /**
  * The Performance tab: the period bar comes with the page, the cards load as one deferred group. Inertia v3 shows no
- * fallback on a partial reload, so the cards dim while a new period loads.
+ * fallback on a partial reload, so the cards dim while a new period loads. On wide screens Trend sits beside Channel mix
+ * and Lead time, and that row fills the page height.
  */
 export function PerformanceTab({
     period,
@@ -19,37 +20,37 @@ export function PerformanceTab({
     performance?: App.Data.Dashboard.PerformanceSummaryData | null;
 }) {
     return (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-1 flex-col gap-4">
             <PeriodBar period={period} />
             <Deferred data="performance" fallback={<PerformanceSkeleton />}>
                 {({ reloading }) =>
                     performance && (
                         <div
                             className={cn(
-                                'flex flex-col gap-4 transition-opacity',
+                                'flex flex-1 flex-col gap-4 transition-opacity',
                                 reloading && 'opacity-50',
                             )}
                             aria-busy={reloading}
                         >
                             <KpiTiles summary={performance} />
-                            <div className="grid gap-4 xl:grid-cols-3">
-                                <div className="min-w-0 xl:col-span-2">
+                            <div className="grid gap-4 xl:flex-1 xl:grid-cols-3">
+                                <div className="flex min-w-0 flex-col xl:col-span-2">
                                     <TrendCard
                                         summary={performance}
                                         period={period}
                                     />
                                 </div>
-                                <div className="min-w-0">
+                                <div className="flex min-w-0 flex-col gap-4">
                                     <ChannelMixCard
                                         mix={performance.channelMix}
                                         currency={performance.currency}
                                     />
+                                    <LeadTimeCard
+                                        leadTime={performance.leadTime}
+                                        period={period}
+                                    />
                                 </div>
                             </div>
-                            <LeadTimeCard
-                                leadTime={performance.leadTime}
-                                period={period}
-                            />
                         </div>
                     )
                 }

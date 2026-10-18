@@ -36,7 +36,7 @@ export function TonightTile({
                     </Link>
                 </CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-col gap-3">
+            <CardContent className="flex flex-1 flex-col gap-3">
                 <Popover>
                     <PopoverTrigger
                         openOnHover

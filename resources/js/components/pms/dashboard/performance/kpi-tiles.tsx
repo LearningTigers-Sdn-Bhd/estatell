@@ -20,7 +20,11 @@ function ChangeLine({
     neutral?: boolean;
 }) {
     if (change === null) {
-        return null;
+        return (
+            <p className="text-xs text-muted-foreground">
+                Nothing to compare with
+            </p>
+        );
     }
 
     return (
@@ -60,7 +64,7 @@ function KpiTile({
                 <CardTitle className="flex items-center gap-2">
                     <span
                         aria-hidden
-                        className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"
+                        className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/5 text-primary"
                     >
                         <Icon className="size-5" />
                     </span>

@@ -1,3 +1,4 @@
+import { ChartLine } from 'lucide-react';
 import { useState } from 'react';
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -60,9 +61,15 @@ export function TrendCard({
     const empty = data.every((point) => point.current === null);
 
     return (
-        <Card className="min-w-0">
+        <Card className="min-w-0 flex-1">
             <CardHeader className="flex flex-wrap items-center justify-between gap-2">
-                <CardTitle>Trend</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                    <ChartLine
+                        aria-hidden
+                        className="size-5 text-muted-foreground"
+                    />
+                    Trend
+                </CardTitle>
                 <ToggleGroup
                     variant="outline"
                     size="sm"
@@ -80,9 +87,9 @@ export function TrendCard({
                     ))}
                 </ToggleGroup>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex flex-1 flex-col">
                 {empty ? (
-                    <p className="flex h-64 items-center justify-center text-sm text-muted-foreground">
+                    <p className="flex min-h-64 flex-1 items-center justify-center text-sm text-muted-foreground">
                         {summary.hasStays
                             ? 'No night audit figures for this period'
                             : 'No stays in this period'}
@@ -90,7 +97,7 @@ export function TrendCard({
                 ) : (
                     <ChartContainer
                         config={config}
-                        className="aspect-auto h-64 w-full"
+                        className="aspect-auto min-h-64 w-full flex-1"
                         role="img"
                         aria-label={`${metrics.find((item) => item.value === metric)?.label} trend`}
                     >
@@ -130,6 +137,9 @@ export function TrendCard({
                                             payload[0]
                                                 ? label(payload[0].payload.date)
                                                 : ''
+                                        }
+                                        formatter={(value, name) =>
+                                            `${config[name as keyof typeof config].label} ${format(Number(value))}`
                                         }
                                     />
                                 }

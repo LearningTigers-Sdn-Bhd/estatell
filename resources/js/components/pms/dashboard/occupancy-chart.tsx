@@ -28,6 +28,7 @@ const fullDay = (date: string) =>
 
 /**
  * Occupancy over the coming nights as an area chart: a 0 to 100% axis, light grid lines and a tooltip per night.
+ * It grows with the Tonight card when the dashboard row fills the page.
  */
 export function OccupancyChart({
     nights,
@@ -37,7 +38,7 @@ export function OccupancyChart({
     return (
         <ChartContainer
             config={config}
-            className="aspect-auto h-21 w-full"
+            className="aspect-auto min-h-21 w-full flex-1"
             role="img"
             aria-label="Occupancy for the next seven nights"
         >

@@ -12,11 +12,15 @@ This doc covers the **Today** tab. Users with `reports.view` also get a **Perfor
 
 The dashboard uses the fixed-height app layout. Its content scrolls inside the available space, while the navbar and workspace header stay fixed.
 
+A page header comes first on both tabs: the title **Dashboard**, the description "Today's front desk work and how the property is doing.", and **Run night audit** on the right for users with `night-audit.run`. The workspace header already shows the business date, so the page header does not repeat it.
+
 ```
-Dashboard · Sandbay Resort                          Business date 12 Oct 2026
+Dashboard                                                      [Run night audit]
+Today's front desk work and how the property is doing.
+[Today] [Performance]
 ┌ ⚠ Night audit for 11 Oct did not finish.                       [Open audit] ┐
 └─────────────────────────────────────────────────────────────────────────────┘
-[+ New booking]  [Walk-in]  [Find reservation]                 [Run night audit]
+[+ New booking]  [Walk-in]  [Find reservation]
 
 ┌ Arrivals ──────┐┌ Departures ───┐┌ Housekeeping ────────┐┌ October ──────────────┐
 │ 5 of 8        ││ 3 of 5        ││ 4 dirty              ││ MYR 84,200 posted    │
@@ -51,6 +55,7 @@ At `xl` (1280px), the strip has four equal columns. The main grid has three equa
 
 - To do and Tonight share the top row and end at the same height on desktop. A short To do list keeps its card height, and its empty state centers in the card.
 - Column 3 holds only Tonight. When Recommended next disappears, its row is left out and leaves no gap.
+- At `xl`, the To do and Tonight row fills the rest of the page height, so the page has no blank area below the cards. The Tonight chart grows with its card. When Recommended next shows, the rows keep their natural height.
 - A long To do list scrolls inside its cell on desktop.
 - To do has no footer or See all arrivals link. Its business date sits below the heading as the section description.
 - The header centers the icon vertically beside the title and date column. Both text lines share the same left edge.
@@ -72,7 +77,7 @@ At `xl` (1280px), the strip has four equal columns. The main grid has three equa
 - A positive Dirty count shows only the word "dirty" in `warning-text`. The number keeps the plain strong style.
 - Task badges use soft tints, never solid fills. Arrival uses a primary tint, Departure a warning tint with `warning-text`, and Overdue the danger tint.
 - Blocked and Overdue use the danger tint with a danger dot. The label keeps strong text.
-- Tonight uses the existing emerald `chart-3` token for its line and area fill. The chart is 84px high. The occupancy figure keeps strong text.
+- Tonight uses the existing emerald `chart-3` token for its line and area fill. The chart is at least 84px high and grows with the card. The occupancy figure keeps strong text.
 - Recommended next has a subtle primary tint. Its action and completed checks use the primary style.
 - All colors use existing semantic tokens in both themes. There are no custom colors or theme overrides.
 - Amber text on a warning tint uses the `warning-text` token (dark amber in light mode, light amber in dark mode), not `warning`.
@@ -107,9 +112,10 @@ Shown only when something is wrong, with **Open audit** (the Run Night Audit she
 | **+ New booking**    | Opens `reservations.new`                                                                                         | `reservations.manage` |
 | **Walk-in**          | Opens `reservations.walk-in`                                                                                     | `reservations.manage` |
 | **Find reservation** | Opens the reservations list with the search box focused. It becomes the command palette when that item is built. | `reservations.view`   |
-| **Run night audit**  | Opens the Run Night Audit sheet                                                                                  | `night-audit.run`     |
 
-A user with none of them sees no button row.
+A user with none of them sees no button row. **Run night audit** is not in this row: it sits in the page header on both tabs.
+
+Every button that is a `Link` uses `buttonVariants()`, which runs the classes through tailwind-merge like `<Button>` does, so outline links keep their border.
 
 ## Tiles
 
