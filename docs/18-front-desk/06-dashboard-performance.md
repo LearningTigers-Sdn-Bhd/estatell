@@ -35,11 +35,11 @@ Dashboard · Sandbay Resort                          Business date 18 Oct 2026
 │ ▲ 4 pt         ││ ▲ 3%           ││ ▲ 9%           ││ ▼ 2 days         │
 └────────────────┘└────────────────┘└────────────────┘└──────────────────┘
 ┌ Trend ────────────── [●Occupancy|ADR|RevPAR] ┐┌ Channel mix  [●Source|Type]┐
-│ 90%│                                         ││ ████████████████░░░░░░░░░░ │
-│    │        ╱‾‾╲      ╱‾╲                    ││ ● Booking.com   42%  257 n │
-│ 60%│   ╱‾‾‾╱    ╲____╱   ╲__╱‾‾              ││ ● Phone         15%   92 n │
-│    │__╱  - - - - - - - - - - - -  prev       ││ ● WhatsApp      14%   86 n │
-│ 30%│                                         ││ ● Company / TA  11%   67 n ›│
+│ 68%  ▲ 4 pt  vs 1 Sep – 18 Sep 2026          ││ ████████████████░░░░░░░░░░ │
+│100%│       ▆      ▇                          ││ ● Booking.com   42%  257 n │
+│ 75%│  ▅ ▆ █ ▇ ▅ ▆ █ ▇ ▆ ▅ ▆ ▇                ││ ● Phone         15%   92 n │
+│ 50%│- █-█-█-█-█-█-█-█-█-█-█-█- - prev        ││ ● WhatsApp      14%   86 n │
+│ 25%│  █ █ █ █ █ █ █ █ █ █ █ █                ││ ● Company / TA  11%   67 n ›│
 │    └──────────────────────────────────       ││ ● Agoda          9%   55 n │
 │     1 Oct          9 Oct          18 Oct     ││ ● Walk-in        9%   55 n │
 │                                              │└────────────────────────────┘
@@ -63,9 +63,14 @@ Dashboard · Sandbay Resort                          Business date 18 Oct 2026
 - Every tile has a line under the figure: the comparison, or "Nothing to compare with" when the compared range has no figures.
 - Each card heading has one muted 20px Lucide icon: Trend `ChartLine`, Channel mix `ChartBarStacked`, Lead time `Hourglass`. The Lead time card is titled "How far ahead guests book", with the arrival range and "walk-ins not counted" as its description.
 - The period presets use the normal button size, like the Today quick actions. The month picker is hidden while there is no whole past month to pick.
-- The trend tooltip uses the axis format: whole percent for occupancy, whole amounts for ADR and RevPAR.
 - The comparison line uses a soft tint: up is `primary`, down is `warning-text`. For lead time neither direction is good or bad, so it stays muted.
-- The trend chart uses `components/ui/chart.tsx` with `chart-3` for the current period and a dashed muted line for the previous one.
+- The trend chart uses `components/ui/chart.tsx`: `chart-3` bars with rounded tops for the current period, one per day (or month for 12 months), and a thin dashed muted line for the compared one. Bars, not a line, because the figures are separate days: no curve invents values between them.
+- Above the chart, a headline shows the chosen metric's period figure, its change chip and the compared range. It uses the same values as the tiles.
+- The occupancy axis rounds up to the next 25%, at least 0–25%. ADR and RevPAR ticks use compact money ("MYR 300", "MYR 1.2K").
+- A day with no figure has no bar. The tooltip names the reason: "No night audit", or for ADR "No rooms sold". Under the chart, muted notes show only when they apply: "No night audit figures before 7 Oct" and "Days without a bar had no rooms sold".
+- A solid zero baseline (`foreground` at 30%) sits under the bars. Revenue counts on its posting date (see [Statistics](../20-night-audit/05-statistics.md)), so a correction can take a day's ADR or RevPAR below zero. That bar hangs from the baseline in `warning`, rounded at the bottom; the figure is never clamped, so the chart matches the Occupancy report. Its tooltip says "Corrections reversed earlier nights", and a note under the chart explains bars below zero when the range has one.
+- The headline shows "vs {compared range}" only beside a real change chip. With nothing to compare, the chip reads "Nothing to compare with" alone.
+- The tooltip shows the date, then This period and Compared with their color marks: whole percent for occupancy, full money for ADR and RevPAR.
 - Channel mix colors come from each source's badge `SwatchColor` (see [Booking sources](../12-reservations/11-booking-sources.md#badge)). By type, the four types use fixed chart tokens.
 
 ## Period

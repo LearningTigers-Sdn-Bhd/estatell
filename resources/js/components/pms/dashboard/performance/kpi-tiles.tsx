@@ -12,7 +12,7 @@ import type { Change } from '@/components/pms/dashboard/performance/format';
 type Summary = App.Data.Dashboard.PerformanceSummaryData;
 type Kpi = App.Data.Dashboard.PerformanceKpiData;
 
-function ChangeLine({
+export function ChangeLine({
     change,
     neutral = false,
 }: {
