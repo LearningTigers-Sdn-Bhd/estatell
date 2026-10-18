@@ -1642,6 +1642,17 @@ openBalance: string,
 currency: App.Data.Property.CurrencyData | null,
 arrivals: number,
 };
+export type PortalRecentBookingData = {
+reservationId: number,
+propertyName: string,
+propertyCode: string,
+reference: string,
+externalReference: string | null,
+title: string,
+firstArrival: string,
+lastDeparture: string,
+status: App.Data.Shared.BadgeData,
+};
 export type PortalRoomTypeData = {
 id: number,
 name: string,

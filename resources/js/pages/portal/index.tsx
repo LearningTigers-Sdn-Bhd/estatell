@@ -1,17 +1,27 @@
 import { Form, Head, Link } from '@inertiajs/react';
-import { CalendarDays, Mail } from 'lucide-react';
+import { BedDouble, CalendarDays, Mail } from 'lucide-react';
 import { DateText } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
 import { PageHeader } from '@/components/pms/page-header';
+import { StatusBadge } from '@/components/pms/status-badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import { index } from '@/routes/portal';
 import { show } from '@/routes/portal/bookings';
 import { accept, decline } from '@/routes/portal/links';
 
 type Invitation = App.Data.Portal.PortalInvitationData;
 type Arrival = App.Data.Portal.PortalArrivalData;
+type RecentBooking = App.Data.Portal.PortalRecentBookingData;
 
 function InvitationRow({ invitation }: { invitation: Invitation }) {
     return (
@@ -96,10 +106,12 @@ function ArrivalRow({ arrival }: { arrival: Arrival }) {
 export default function PortalIndex({
     invitations,
     arrivals,
+    recentBookings,
     arrivalDays,
 }: {
     invitations: Invitation[];
     arrivals: Arrival[];
+    recentBookings: RecentBooking[];
     arrivalDays: number;
 }) {
     return (
@@ -167,6 +179,86 @@ export default function PortalIndex({
                         </CardContent>
                     </Card>
                 </div>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <BedDouble className="size-4" />
+                            Recent bookings
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {recentBookings.length === 0 ? (
+                            <EmptyState
+                                icon={BedDouble}
+                                title="No bookings yet"
+                                description="Stays booked for your company appear here."
+                            />
+                        ) : (
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Property</TableHead>
+                                        <TableHead>Our ref</TableHead>
+                                        <TableHead>Your ref</TableHead>
+                                        <TableHead>Booking</TableHead>
+                                        <TableHead>Stay</TableHead>
+                                        <TableHead>Status</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {recentBookings.map((booking) => (
+                                        <TableRow key={booking.reservationId}>
+                                            <TableCell>
+                                                {booking.propertyName}
+                                            </TableCell>
+                                            <TableCell>
+                                                <Link
+                                                    href={show({
+                                                        property:
+                                                            booking.propertyCode,
+                                                        reservation:
+                                                            booking.reservationId,
+                                                    })}
+                                                    className="font-medium tabular-nums underline-offset-4 hover:underline"
+                                                >
+                                                    {booking.reference}
+                                                </Link>
+                                            </TableCell>
+                                            <TableCell>
+                                                {booking.externalReference ??
+                                                    '—'}
+                                            </TableCell>
+                                            <TableCell>
+                                                {booking.title}
+                                            </TableCell>
+                                            <TableCell>
+                                                <span className="flex items-center gap-1">
+                                                    <DateText
+                                                        date={
+                                                            booking.firstArrival
+                                                        }
+                                                    />{' '}
+                                                    →{' '}
+                                                    <DateText
+                                                        date={
+                                                            booking.lastDeparture
+                                                        }
+                                                    />
+                                                </span>
+                                            </TableCell>
+                                            <TableCell>
+                                                <StatusBadge
+                                                    status={booking.status}
+                                                />
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        )}
+                    </CardContent>
+                </Card>
             </div>
         </>
     );

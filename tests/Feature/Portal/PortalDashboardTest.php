@@ -113,3 +113,23 @@ test('the dashboard takes the same number of queries for more properties', funct
 test('only company users open the dashboard', function () {
     $this->actingAs(User::factory()->owner()->create())->get(route('portal.index'))->assertNotFound();
 });
+
+test('the dashboard lists the 5 newest bookings of the user\'s own companies', function () {
+    $user = portalUser();
+    $property = Property::factory()->create();
+    BusinessDate::factory()->for($property)->create(['date' => '2026-10-14']);
+    [$company] = portalLinkFor($user, $property);
+    $mine = collect(range(1, 6))->map(fn () => portalArrival($property, $company, '2026-12-01'));
+
+    [$otherCompany] = portalLinkFor(portalUser(), $property, 'active', 'Someone Else');
+    portalArrival($property, $otherCompany, '2026-12-01');
+
+    $this->actingAs($user)
+        ->get(route('portal.index'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('recentBookings', 5)
+            ->where('recentBookings.0.reservationId', $mine->last()->id)
+            ->where('recentBookings.4.reservationId', $mine[1]->id)
+            ->where('recentBookings.0.propertyCode', $property->code)
+        );
+});
