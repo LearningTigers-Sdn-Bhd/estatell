@@ -123,18 +123,18 @@ Portal
 
 ## Actions
 
-| Action                              | Does                                                                                                                                                                                                         |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `SetCompanyPortalLogin`             | Runs the [Portal login](#portal-login) table for one company. Called by the add, edit, bulk and onboarding saves in their own transaction. Logs `company.portal-login-set` or `company.portal-login-removed` |
-| `AcceptCompanyLink`                 | The signed-in user activates their own Pending link. Logs `company-user.link-accepted`                                                                                                                       |
-| `DeclineCompanyLink`                | The user declines their own Pending link (sets Revoked)                                                                                                                                                      |
-| `ResendCompanyLinkInvitation`       | Sends a new in-app and mail notification for a Pending link. Sets `last_sent_at`                                                                                                                             |
-| `ResetCompanyUserTemporaryPassword` | A new temp password, within the reset rule above                                                                                                                                                             |
-| `CreatePortalReservation`           | Runs the checks above, then the shared reservation Actions from module 12                                                                                                                                    |
-| `CancelPortalReservation`           | Cancels before the cut-off                                                                                                                                                                                   |
-| `RequestPortalCancellation`         | Sets the request columns and notifies the property                                                                                                                                                           |
-| `UpdatePortalReservationGuests`     | Edits guest names, phone and ID before arrival                                                                                                                                                               |
-| `UpdatePortalCompanyDetails`        | Saves contact, tax numbers and billing address for the company of the property in the URL                                                                                                                    |
+| Action                              | Does                                                                                                                                                                                                                                                                             |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SetCompanyPortalLogin`             | Runs the [Portal login](#portal-login) table for one company. Called by the add, edit, bulk and onboarding saves in their own transaction. Logs `company.portal-login-set` or `company.portal-login-removed`                                                                     |
+| `AcceptCompanyLink`                 | The signed-in user activates their own Pending link. Refused when the company is Suspended or the property is not Live ("This property is not open yet."), or when the one-login rules no longer hold. Marks the invitation notification read. Logs `company-user.link-accepted` |
+| `DeclineCompanyLink`                | The user declines their own Pending link (sets Revoked). Marks the invitation notification read. Logs `company-user.link-declined`. The property can set the email again                                                                                                         |
+| `ResendCompanyLinkInvitation`       | Sends a new in-app and mail notification for a Pending link. Sets `last_sent_at`                                                                                                                                                                                                 |
+| `ResetCompanyUserTemporaryPassword` | A new temp password, within the reset rule above                                                                                                                                                                                                                                 |
+| `CreatePortalReservation`           | Runs the checks above, then the shared reservation Actions from module 12                                                                                                                                                                                                        |
+| `CancelPortalReservation`           | Cancels before the cut-off                                                                                                                                                                                                                                                       |
+| `RequestPortalCancellation`         | Sets the request columns and notifies the property                                                                                                                                                                                                                               |
+| `UpdatePortalReservationGuests`     | Edits guest names, phone and ID before arrival                                                                                                                                                                                                                                   |
+| `UpdatePortalCompanyDetails`        | Saves contact, tax numbers and billing address for the company of the property in the URL                                                                                                                                                                                        |
 
 ## Pages
 
@@ -158,6 +158,13 @@ Portal
  Invitations
   Tip Top Hostel     Borneo Travel                                       [Accept] [Decline]
 ```
+
+- Sign-in always lands on `/portal`, even with one property.
+- **Open balance** is the company's unpaid invoices at that property, the same figure as its statement. Stays not yet invoiced are left out.
+- **Arrivals** counts Confirmed reservations arriving in the next 7 days from the property's business date.
+- An Active link at a property that is not Live shows greyed out with "Not open yet", or "Suspended", and no **Open**.
+- Invitations show for every property. estatell has no notification bell yet, so the list and the email are where an invitation is seen.
+- `/portal/{code}` starts as a small dashboard: company, status, open balance. Later items add Book, Bookings, Statements and Company.
 
 ## Company details
 
