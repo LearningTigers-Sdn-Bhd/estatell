@@ -185,6 +185,8 @@ Brief for every item: read `AGENTS.md`, `.ai/rules/index.md`, the matching rule 
 - [x] `chore(ui): block search indexing` — `Disallow: /` in `robots.txt` and a `noindex` meta tag in `app.blade.php`.
 - [ ] `style(housekeeping): mobile pass on the room status board` — the board, bulk bar and status dropdown at 375px wide. Layout only; the board works the same. Docs: [Print, export and layout](19-housekeeping/02-print-and-layout.md).
 
+- [x] `style(ui): simplify the mobile staff breadcrumb row` — hide the workspace icon and label on mobile, keep breadcrumbs in a 40px row below the navbar with 16px horizontal padding, and leave desktop unchanged. Docs: [Staff workspace row](design-system/09-app-shell.md#staff-workspace-row).
+
 ## Later
 
 ### 21 Channels

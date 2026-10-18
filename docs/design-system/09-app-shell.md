@@ -48,7 +48,7 @@ The property icon fits the uploaded logo inside a rounded square without croppin
 - `StaffWorkspaceHeader` shows the active server-provided context: Front desk, Finance, Reports or Settings. Its icon and label are display only, not a link or dropdown.
 - On desktop, the row is 2.5 rem high. The label column uses the sidebar width tokens and follows its collapsed state. The full-height divider aligns with the sidebar divider. Collapsed mode shows only the icon, with the workspace name available to assistive technology and in a title tooltip.
 - Breadcrumbs sit to the right and stay fixed with this row. The sidebar starts below both header rows.
-- On mobile, the workspace label sits above the breadcrumbs. The sidebar remains a drawer. The property identity stays in the navbar.
+- On mobile, the workspace icon and label are hidden. Breadcrumbs sit directly below the navbar in a 2.5 rem row with 1 rem horizontal padding. The sidebar remains a drawer. The property identity stays in the navbar.
 - This three-row structure applies only to staff pages. Admin, partner and account layouts stay unchanged.
 - The staff navbar and workspace/breadcrumb row use the sidebar background, foreground and border tokens in both themes. Content keeps its own background.
 

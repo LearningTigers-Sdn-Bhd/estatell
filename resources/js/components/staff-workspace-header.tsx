@@ -20,11 +20,11 @@ export function StaffWorkspaceHeader({
     const Icon = current ? navIcon(current.icon) : undefined;
 
     return (
-        <div className="flex shrink-0 flex-col border-b border-sidebar-border bg-sidebar text-sidebar-foreground md:h-10 md:flex-row">
+        <div className="flex h-10 shrink-0 border-b border-sidebar-border bg-sidebar text-sidebar-foreground">
             <div
                 title={current?.label}
                 className={cn(
-                    'flex h-10 shrink-0 items-center gap-2 border-b border-sidebar-border px-4 text-sm font-medium transition-all duration-200 ease-linear md:border-r md:border-b-0',
+                    'hidden h-10 shrink-0 items-center gap-2 border-r border-sidebar-border px-4 text-sm font-medium transition-all duration-200 ease-linear md:flex',
                     state === 'collapsed'
                         ? 'md:w-(--sidebar-width-icon) md:justify-center md:px-0'
                         : 'md:w-(--sidebar-width)',
@@ -43,7 +43,7 @@ export function StaffWorkspaceHeader({
             <AppSidebarHeader
                 breadcrumbs={breadcrumbs}
                 showTrigger={false}
-                className="min-w-0 flex-1 border-b-0"
+                className="min-w-0 flex-1 border-b-0 px-4"
             />
         </div>
     );
