@@ -63,4 +63,4 @@ php artisan down && rm -rf storage/app/private/* && php artisan migrate:fresh --
 ## Rules
 
 - `DemoSeeder` is never called from `DatabaseSeeder`, so it can't run in production.
-- A Pest test runs `DemoSeeder`. A changed Action signature fails the test, not the nightly reset.
+- A Pest test runs `DemoSeeder` (`tests/Feature/Seeders/DemoSeederTest.php`). A changed Action signature fails the test, not the nightly reset.

@@ -32,7 +32,7 @@ From `routes/console.php`.
 | `CIPHERSWEET_KEY`                                                      | Encrypts ID numbers. Generate once with `php artisan ciphersweet:generate-key --show`. Never change or lose it. |
 | `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_ENDPOINT` | Optional. Without all four, media can only be stored on the server.                                             |
 | `SUPPORT_REQUIRE_2FA`                                                  | Keep `true` in production. See [Platform admins](../01-platform/01-platform-admins.md).                         |
-| `DEMO_URL`, `DEMO_EMAIL`, `DEMO_PASSWORD`                              | Shown on the partner **Demo access** card. Must match the demo environment.                                     |
+| `DEMO_URL`, `DEMO_PASSWORD`                                            | Shown on the partner **Demo access** card. Must match the demo environment.                                     |
 
 The `media` volume holds `storage/app/private` (media stored on "This server"). It is shared by all three services. Back it up.
 

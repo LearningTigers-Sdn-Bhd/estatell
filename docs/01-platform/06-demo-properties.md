@@ -18,60 +18,67 @@ Test drive was removed from onboarding on 2026-10-16. Two demo properties replac
 
 ## Properties
 
-| Property              | Type       | Shows                                                                   |
-| --------------------- | ---------- | ----------------------------------------------------------------------- |
-| Pearlside View Resort | Resort     | About 20 rooms (chalets, villas), packages and meals, tourism tax       |
-| Boreno Hotel          | City hotel | About 30 rooms (standard, deluxe, suite), corporate guests, city ledger |
+| Property              | Type       | Seeder            | Shows                                                                                                                                    |
+| --------------------- | ---------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Pearlside View Resort | Resort     | `PearlsideSeeder` | 30 rooms (garden, sea view, family suites, water villas), packages and meals, day use, a dive group, SST, tourism tax and service charge |
+| Boreno Hotel          | City hotel | `BorenoSeeder`    | 30 rooms (standard, deluxe, executive suites), corporate guests, a conference block, the city ledger                                     |
 
-The name is **Boreno**, not Borneo. Both are Live. Boats are not in the demo. `SandbaySeeder` stays the local development seeder.
+The name is **Boreno**, not Borneo. Both are Live. Boats are not in the demo.
+
+`PearlsideSeeder` extends `SandbaySeeder` and changes only the name, address and logins, so the dev seeder and the demo resort stay the same data. `SandbaySeeder` stays the local development seeder. The shared front desk and folio steps live in `Database\Seeders\Concerns\SeedsThroughActions`.
 
 ## Data
 
-`DemoSeeder` builds both properties through the real Actions only (no direct inserts), so the ledger, AR balances and reports add up. It runs at every [reset](../deployment/demo_environment.md#reset).
+`DemoSeeder` runs `OtaChannelSeeder`, `PearlsideSeeder` and `BorenoSeeder` through the real Actions only, so the ledger, AR balances and reports add up. It runs at every [reset](../deployment/demo_environment.md#reset) and takes about 3.5 s (measured locally).
 
-1. Setup: room types, rooms, taxes, payment methods, rates, charge items, discounts, companies.
+1. Setup: room types, rooms, taxes, rates, charge items, discounts, companies.
 2. Open the business date on today.
 3. Create today's state: bookings, check-ins, charges, payments, city ledger invoices.
 
-Fixed names and amounts, no random Faker data, so every reset looks the same and support can say "open the booking for Ahmad Razak". Dates are relative to today.
+Fixed names and amounts, no random Faker data (Faker is not in the production image), so every reset looks the same and support can say "open the booking for Ahmad Razak". Dates are relative to today.
 
-| Area         | Seeded on the business date                                                           |
-| ------------ | ------------------------------------------------------------------------------------- |
-| Reservations | Future bookings, a group booking, a cancelled booking, a no-show                      |
-| Front desk   | 3 arrivals, 2 in-house stays, 1 due out, 1 room to inspect                            |
-| Folio        | Room charges, F&B, a discount, a reversed line, a split folio with a routing rule     |
-| Payments     | Cash, card and bank transfer, one deposit                                             |
-| City ledger  | 2 companies (one near its credit limit), AR invoices (paid, part paid), 1 credit note |
-| Registration | Signed cards for the in-house guests                                                  |
-| Housekeeping | Mixed statuses, a remark, one room that needs maintenance                             |
-| Night audit  | No closed days yet. Visitors can run the audit by hand after midnight.                |
+| Area         | Pearlside View Resort                                                                  | Boreno Hotel                                                                                                        |
+| ------------ | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Reservations | 22: future bookings, a dive group (MasterPays), a day use, a no-show, a cancellation   | 18: future and company bookings, a conference block (MasterPays), a no-show, a cancellation                         |
+| Front desk   | Arrivals today, a walk-in and a water villa in house                                   | 2 arrivals today, 2 in house (Ahmad Razak, VIP, on the Sabah Energy account)                                        |
+| Folio        | Charges, a reversed line, a transfer to a third-party folio, routing, a closed invoice | Charges in house, company charges moved to company folios                                                           |
+| Payments     | Cash, card and bank transfer, an advance, a refund                                     | Card deposit, cash advance, bank transfers from companies                                                           |
+| City ledger  | None                                                                                   | 3 companies, 3 AR invoices: paid, part paid (the travel agent, near its RM 1,200 limit), and one with a credit note |
+| Housekeeping | Default statuses                                                                       | Dirty and inspected rooms, remarks, one room that needs maintenance                                                 |
+| Night audit  | No closed days. Room charges post at the first night audit.                            | Same                                                                                                                |
 
-Later: 14 days of history with closed night audits, overdue AR invoices and real report numbers. See [Checklist](../checklist.md#later).
+Later: 14 days of history with closed night audits, room charges, overdue AR invoices and real report numbers. See [Checklist](../checklist.md#demo).
 
-## Login
+## Logins
 
-- One shared login, `demo@estatell.com`, with the Owner role on both properties. The password comes from `DEMO_PASSWORD` on the demo environment.
-- The partner portal in production shows a **Demo access** card with the demo link and the login, and **Copy login**. Production reads `DEMO_URL`, `DEMO_EMAIL` and `DEMO_PASSWORD`. Partners can't change it.
+A user belongs to one property (`users.property_id`), so each demo property has its own logins. Every demo staff account uses `DEMO_PASSWORD`. `DemoSeeder` refuses to run without it (at least 8 characters).
+
+| Property              | Owner (the demo login)        | Other staff                                                                              |
+| --------------------- | ----------------------------- | ---------------------------------------------------------------------------------------- |
+| Pearlside View Resort | `pearlside@demo.estatell.com` | `pearlside.manager@`, `pearlside.frontdesk@`, `pearlside.housekeeping@demo.estatell.com` |
+| Boreno Hotel          | `boreno@demo.estatell.com`    | `boreno.manager@`, `boreno.frontdesk@`, `boreno.housekeeping@demo.estatell.com`          |
+
+- The partner portal in production shows a **Demo access** card with the demo link, both Owner logins and **Copy login**. Production reads `DEMO_URL` and `DEMO_PASSWORD`. Partners can't change it.
 - To change the password: set `DEMO_PASSWORD` on both environments, then reset the demo.
 
 ## Guards
 
 Only on the demo environment (`APP_ENV=demo`):
 
-| Guard                    | Effect                                                                                  |
-| ------------------------ | --------------------------------------------------------------------------------------- |
-| Banner                   | A fixed banner: "Demo · Resets every night · Don't enter real guest details."           |
-| No signup or invitations | Self-signup and partner invitations are off, so nobody creates a real account there.    |
-| Account security locked  | Email, password and two-factor pages are read-only, so no visitor locks the others out. |
+| Guard                   | Effect                                                                                                                 |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Banner                  | A fixed banner: "Demo · Resets every night · Don't enter real guest details."                                          |
+| No signup               | Fortify registration is off. The demo has no admins or partners, so no partner invitation or signup link exists there. |
+| Account security locked | Profile (email), password, two-factor and delete account can't be changed, so no visitor locks the others out.         |
 
 Everything else works as in production. Mail goes to the log, and the nightly reset undoes every change.
 
 ## Tests
 
-- `DemoSeeder` runs and produces the counts above (rooms, bookings, in-house stays, AR invoices). A changed Action signature breaks this test, not the demo.
-- With `APP_ENV=demo`: signup and partner invitations are refused, and account security can't be changed.
+- `DemoSeeder` runs and produces the counts above (rooms, bookings, in-house stays, AR invoices), both Owner logins use `DEMO_PASSWORD`, and it refuses to run without one (`tests/Feature/Seeders/DemoSeederTest.php`). A changed Action signature breaks this test, not the demo.
+- With `APP_ENV=demo`: signup is refused, and account security can't be changed.
 - With any other `APP_ENV`: the banner is hidden and the guards are off.
 
 ## Build status
 
-Not built. See [Checklist: 17 Onboarding](../checklist.md#17-onboarding).
+Seeders built. Guards, banner and the partner card are not built yet. See [Checklist: 17 Onboarding](../checklist.md#17-onboarding).

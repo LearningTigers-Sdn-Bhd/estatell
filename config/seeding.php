@@ -15,4 +15,16 @@ return [
     'admin_email' => env('ADMIN_SEED_EMAIL'),
     'admin_password' => env('ADMIN_SEED_PASSWORD'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Demo environment
+    |--------------------------------------------------------------------------
+    |
+    | The password of every demo staff account, set by `DemoSeeder` at the
+    | nightly reset. See docs/deployment/demo_environment.md.
+    |
+    */
+
+    'demo_password' => env('DEMO_PASSWORD'),
+
 ];

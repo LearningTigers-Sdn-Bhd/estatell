@@ -10,18 +10,15 @@ use App\Actions\Catalogues\UpdateTax;
 use App\Actions\Folio\CloseFolio;
 use App\Actions\Folio\CreateFolio;
 use App\Actions\Folio\CreateRoutingRule;
-use App\Actions\Folio\PostCharge;
 use App\Actions\Folio\ReverseLine;
 use App\Actions\Folio\TransferLines;
 use App\Actions\FrontDesk\CancelUnit;
-use App\Actions\FrontDesk\CheckInAllUnits;
 use App\Actions\FrontDesk\MarkNoShow;
 use App\Actions\FrontDesk\UnitStayResult;
 use App\Actions\Guests\BlacklistGuest;
 use App\Actions\Guests\CreateGuest;
 use App\Actions\Guests\SetVip;
 use App\Actions\NightAudit\OpenBusinessDate;
-use App\Actions\Payments\RecordPayment;
 use App\Actions\Payments\RefundPayment;
 use App\Actions\Property\GenerateDocumentPrefix;
 use App\Actions\Property\IssuePropertyCode;
@@ -33,14 +30,11 @@ use App\Actions\Rates\SaveRatePlanStayDiscounts;
 use App\Actions\Rates\SaveRates;
 use App\Actions\Rates\UpdateRatePlan;
 use App\Actions\Reservations\CreateBooking;
-use App\Actions\Reservations\SyncReservationStatus;
 use App\Actions\Rooms\CreateRoomType;
 use App\Actions\Rooms\GenerateRooms;
 use App\Actions\Staff\AssignOwnerRole;
 use App\Actions\Staff\AssignStaffRole;
 use App\Data\Catalogues\TaxInputData;
-use App\Data\Folio\NewChargeData;
-use App\Data\Payments\NewPaymentData;
 use App\Data\Reservations\NewAddOnData;
 use App\Data\Reservations\NewBookingData;
 use App\Data\Reservations\NewBookingGuestData;
@@ -90,9 +84,8 @@ use App\Services\Property\PropertyToday;
 use Brick\Math\BigDecimal;
 use Brick\Math\RoundingMode;
 use Carbon\CarbonImmutable;
-use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Database\Seeders\Concerns\SeedsThroughActions;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -103,12 +96,15 @@ use RuntimeException;
  * property's business date. It runs on demand (`php artisan db:seed --class=SandbaySeeder`), uses the production
  * Actions, and skips when a property named Sandbay Resort exists. Two in-house units have folios with manual
  * postings, a reversal, a transfer to a third-party folio, routing, payments, a refund and a closed folio. Room
- * charges are not seeded: the night audit does not post them yet. Check-in, no-show and cancellation go through
- * the front desk Actions. Check-out writes the status itself, because `CheckOutUnit` refuses a stay before its
- * departure date and the walk-in departs tomorrow.
+ * charges are not seeded: they post at the night audit, and the seeder runs none. Check-in, no-show and cancellation
+ * go through the front desk Actions. Check-out writes the status itself, because `CheckOutUnit` refuses a stay before
+ * its departure date and the walk-in departs tomorrow. `PearlsideSeeder` reuses it for the demo environment with
+ * another name, address and logins.
  */
 class SandbaySeeder extends Seeder
 {
+    use SeedsThroughActions;
+
     /**
      * The staff accounts created by this run, for the table printed at the end.
      *
@@ -116,7 +112,7 @@ class SandbaySeeder extends Seeder
      */
     private array $credentials = [];
 
-    private const string NAME = 'Sandbay Resort';
+    protected const string NAME = 'Sandbay Resort';
 
     /**
      * Shared by every Sandbay staff account. For local development only.
@@ -156,8 +152,8 @@ class SandbaySeeder extends Seeder
      */
     public function run(): void
     {
-        if (Property::query()->where('name', self::NAME)->exists()) {
-            $this->command?->warn(self::NAME.' already exists. Nothing was seeded.');
+        if (Property::query()->where('name', static::NAME)->exists()) {
+            $this->command?->warn(static::NAME.' already exists. Nothing was seeded.');
 
             return;
         }
@@ -183,7 +179,7 @@ class SandbaySeeder extends Seeder
         $reservations = $this->seedReservations($property, $owner, $roomTypes, $plans, $items, $discounts, $guests, $today);
         $this->seedFolios($property, $owner, $items, $reservations);
 
-        $this->command?->info(self::NAME.' seeded: '.Reservation::query()->where('property_id', $property->id)->count().' reservations, '.count($guests).' guests, '.$taxes.' taxes.');
+        $this->command?->info(static::NAME.' seeded: '.Reservation::query()->where('property_id', $property->id)->count().' reservations, '.count($guests).' guests, '.$taxes.' taxes.');
         $this->printMetrics($property, $startedAt);
         $this->printCredentials($property);
     }
@@ -237,16 +233,11 @@ class SandbaySeeder extends Seeder
         $property = DB::transaction(function (): Property {
             $property = (new Property)->forceFill([
                 'code' => app(IssuePropertyCode::class)(),
-                'name' => self::NAME,
+                'name' => static::NAME,
                 'type' => PropertyType::Resort,
                 'status' => PropertyStatus::Onboarding,
-                'address_line1' => 'Jalan Pantai Bakau',
-                'city' => 'Semporna',
-                'state_code' => 'Sabah',
-                'postal_code' => '91300',
+                ...$this->propertyDetails(),
                 'country_code' => 'MY',
-                'contact_email' => 'hello@sandbay.test',
-                'contact_phone' => '+6089781234',
                 'onboarding_started_at' => now()->subDays(14),
             ]);
             $property->save();
@@ -288,22 +279,61 @@ class SandbaySeeder extends Seeder
     private function createStaffUsers(Property $property): array
     {
         return [
-            DefaultRoleEnum::Owner->value => $this->createStaffUser($property, DefaultRoleEnum::Owner, 'Siti Aminah Owner', 'owner@sandbay.test'),
-            DefaultRoleEnum::Manager->value => $this->createStaffUser($property, DefaultRoleEnum::Manager, 'Jason Manager', 'manager@sandbay.test'),
-            DefaultRoleEnum::FrontDesk->value => $this->createStaffUser($property, DefaultRoleEnum::FrontDesk, 'Farah Front Desk', 'frontdesk@sandbay.test'),
-            DefaultRoleEnum::Housekeeping->value => $this->createStaffUser($property, DefaultRoleEnum::Housekeeping, 'Mary Housekeeping', 'housekeeping@sandbay.test'),
+            DefaultRoleEnum::Owner->value => $this->createStaffUser($property, DefaultRoleEnum::Owner, 'Siti Aminah Owner'),
+            DefaultRoleEnum::Manager->value => $this->createStaffUser($property, DefaultRoleEnum::Manager, 'Jason Manager'),
+            DefaultRoleEnum::FrontDesk->value => $this->createStaffUser($property, DefaultRoleEnum::FrontDesk, 'Farah Front Desk'),
+            DefaultRoleEnum::Housekeeping->value => $this->createStaffUser($property, DefaultRoleEnum::Housekeeping, 'Mary Housekeeping'),
         ];
     }
 
-    private function createStaffUser(Property $property, DefaultRoleEnum $role, string $name, string $email): User
+    private function createStaffUser(Property $property, DefaultRoleEnum $role, string $name): User
     {
-        $user = new User(['name' => $name, 'email' => $email, 'password' => self::STAFF_PASSWORD]);
+        $email = $this->staffEmail($role);
+        $user = new User(['name' => $name, 'email' => $email, 'password' => $this->staffPassword()]);
         $user->property_id = $property->id;
         $user->email_verified_at = now();
         $user->save();
-        $this->credentials[] = [$role->label(), $name, $email, self::STAFF_PASSWORD];
+        $this->credentials[] = [$role->label(), $name, $email, $this->printedPassword()];
 
         return $user;
+    }
+
+    /**
+     * The address and contact fields of the property.
+     *
+     * @return array{address_line1: string, city: string, state_code: string, postal_code: string, contact_email: string, contact_phone: string}
+     */
+    protected function propertyDetails(): array
+    {
+        return [
+            'address_line1' => 'Jalan Pantai Bakau',
+            'city' => 'Semporna',
+            'state_code' => 'Sabah',
+            'postal_code' => '91300',
+            'contact_email' => 'hello@sandbay.test',
+            'contact_phone' => '+6089781234',
+        ];
+    }
+
+    protected function staffEmail(DefaultRoleEnum $role): string
+    {
+        return str_replace('_', '', $role->value).'@sandbay.test';
+    }
+
+    /**
+     * The password of every staff account this run creates.
+     */
+    protected function staffPassword(): string
+    {
+        return self::STAFF_PASSWORD;
+    }
+
+    /**
+     * What the credentials table prints in the password column.
+     */
+    protected function printedPassword(): string
+    {
+        return $this->staffPassword();
     }
 
     /**
@@ -861,87 +891,5 @@ class SandbaySeeder extends Seeder
         }
 
         $this->pay($owner, $reservations['dive'], $clubFolio, $methods[PaymentMethodType::BankTransfer->value], PaymentPurpose::Advance, '1000.00');
-    }
-
-    /**
-     * Check in every unit of a reservation through `CheckInAllUnits`. A refused unit stops the run.
-     *
-     * @return EloquentCollection<int, ReservationUnit>
-     */
-    private function checkIn(User $owner, Reservation $reservation): Collection
-    {
-        $units = $reservation->units()->orderBy('id')->get();
-        $refusals = array_filter(app(CheckInAllUnits::class)($owner, $reservation, array_values(array_map(intval(...), $units->modelKeys()))));
-
-        if ($refusals !== []) {
-            throw new RuntimeException('Check-in was refused: '.implode(', ', $refusals).'.');
-        }
-
-        return $reservation->units()->orderBy('id')->get();
-    }
-
-    /**
-     * Run a front desk Action on each unit of a reservation. A refusal stops the run.
-     *
-     * @param  callable(ReservationUnit): UnitStayResult  $action
-     */
-    private function forEachUnit(Reservation $reservation, callable $action, string $label): void
-    {
-        foreach ($reservation->units()->orderBy('id')->get() as $unit) {
-            $result = $action($unit);
-
-            if ($result->isRefused()) {
-                throw new RuntimeException("{$label} was refused: {$result->refusal}.");
-            }
-        }
-    }
-
-    private function unitFolio(ReservationUnit $unit): Folio
-    {
-        return Folio::query()->where('reservation_unit_id', $unit->id)->firstOrFail();
-    }
-
-    private function checkOut(ReservationUnit $unit): void
-    {
-        $unit->forceFill(['status' => UnitStatus::CheckedOut, 'checked_out_at' => now()])->save();
-        app(SyncReservationStatus::class)($unit->reservation);
-    }
-
-    private function charge(User $owner, ReservationUnit $unit, ChargeItem $item, int $quantity = 1): FolioLine
-    {
-        $result = app(PostCharge::class)($owner, $unit, new NewChargeData(
-            chargeItemId: $item->id,
-            transactionCodeId: null,
-            description: null,
-            quantity: $quantity,
-            unitAmount: (string) $item->default_amount,
-            idempotencyKey: 'manual:'.Str::uuid(),
-        ));
-
-        if ($result->isRefused()) {
-            throw new RuntimeException("Posting {$item->name} was refused: {$result->refusal}.");
-        }
-
-        return $result->lines[0];
-    }
-
-    private function advance(User $owner, Reservation $reservation, ReservationUnit $unit, PaymentMethod $method, string $amount): void
-    {
-        $result = app(RecordPayment::class)($owner, $reservation, null, $unit, new NewPaymentData($method->id, PaymentPurpose::Advance, $amount, 'ADV-'.Str::upper(Str::random(6)), (string) Str::uuid()));
-
-        if ($result->isRefused()) {
-            throw new RuntimeException("The advance payment was refused: {$result->refusal}.");
-        }
-    }
-
-    private function pay(User $owner, Reservation $reservation, Folio $folio, PaymentMethod $method, PaymentPurpose $purpose, string $amount): Payment
-    {
-        $result = app(RecordPayment::class)($owner, $reservation, $folio, null, new NewPaymentData($method->id, $purpose, $amount, $method->requires_reference ? 'REF-'.Str::upper(Str::random(6)) : null, (string) Str::uuid()));
-
-        if ($result->isRefused()) {
-            throw new RuntimeException("The payment was refused: {$result->refusal}.");
-        }
-
-        return $result->payment;
     }
 }
