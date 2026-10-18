@@ -342,10 +342,10 @@ class PerformanceSummary
             ->whereIn('reservation_units.status', $this->liveStatuses())
             ->whereBetween('unit_nights.date', [$from->toDateString(), $to->toDateString()])
             ->groupBy('booking_sources.id', 'companies.id')
-            ->selectRaw('booking_sources.id as source_id, booking_sources.name as source_name, booking_sources.type as source_type, booking_sources.badge_icon, booking_sources.badge_letters, booking_sources.badge_color, companies.name as company_name, COUNT(*) as nights, COALESCE(SUM(unit_nights.amount), 0) as amount')
+            ->selectRaw('booking_sources.id as source_id, booking_sources.name as source_name, booking_sources.type as source_type, booking_sources.badge_icon, booking_sources.badge_letters, booking_sources.badge_color, companies.id as company_id, companies.name as company_name, COUNT(*) as nights, COALESCE(SUM(unit_nights.amount), 0) as amount')
             ->get();
 
-        /** @var array<int, array{row: array<string, mixed>, nights: int, amount: BigDecimal, companies: array<string, int>}> $sources */
+        /** @var array<int, array{row: array<string, mixed>, nights: int, amount: BigDecimal, companies: array<int, array{name: string, nights: int}>}> $sources */
         $sources = [];
 
         foreach ($rows as $row) {
@@ -355,9 +355,12 @@ class PerformanceSummary
             $source['nights'] += (int) $row['nights'];
             $source['amount'] = $source['amount']->plus((string) $row['amount']);
 
-            if ($row['company_name'] !== null && $row['source_type'] === BookingSourceType::Company->value) {
-                $company = (string) $row['company_name'];
-                $source['companies'][$company] = ($source['companies'][$company] ?? 0) + (int) $row['nights'];
+            if ($row['company_id'] !== null && $row['source_type'] === BookingSourceType::Company->value) {
+                $companyId = (int) $row['company_id'];
+                $source['companies'][$companyId] = [
+                    'name' => (string) $row['company_name'],
+                    'nights' => ($source['companies'][$companyId]['nights'] ?? 0) + (int) $row['nights'],
+                ];
             }
 
             $sources[$id] = $source;
@@ -394,8 +397,11 @@ class PerformanceSummary
             $entry['nights'] += $source['nights'];
             $entry['amount'] = $entry['amount']->plus($source['amount']);
 
-            foreach ($source['companies'] as $name => $nights) {
-                $entry['companies'][$name] = ($entry['companies'][$name] ?? 0) + $nights;
+            foreach ($source['companies'] as $companyId => $company) {
+                $entry['companies'][$companyId] = [
+                    'name' => $company['name'],
+                    'nights' => ($entry['companies'][$companyId]['nights'] ?? 0) + $company['nights'],
+                ];
             }
 
             $typeRows[$type->value] = $entry;
@@ -443,18 +449,14 @@ class PerformanceSummary
     }
 
     /**
-     * @param  array<string, int>  $nights  Company name => room nights.
+     * @param  array<int, array{name: string, nights: int}>  $companies  By company id, so two companies with one name stay apart.
      * @return list<ChannelMixCompanyData>
      */
-    private function companies(array $nights): array
+    private function companies(array $companies): array
     {
-        arsort($nights);
+        uasort($companies, fn (array $a, array $b): int => [$b['nights'], $a['name']] <=> [$a['nights'], $b['name']]);
 
-        return array_map(
-            fn (string $name, int $count): ChannelMixCompanyData => new ChannelMixCompanyData($name, $count),
-            array_map('strval', array_keys($nights)),
-            array_values($nights),
-        );
+        return array_values(array_map(fn (array $company): ChannelMixCompanyData => new ChannelMixCompanyData($company['name'], $company['nights']), $companies));
     }
 
     /**

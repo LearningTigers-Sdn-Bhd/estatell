@@ -1,5 +1,6 @@
 import { Deferred, Head, router, usePage } from '@inertiajs/react';
 import confetti from 'canvas-confetti';
+import { CalendarCheck, ChartLine } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { DashboardAlert } from '@/components/pms/dashboard/dashboard-alert';
 import { DashboardTiles } from '@/components/pms/dashboard/dashboard-tiles';
@@ -11,6 +12,8 @@ import { AuditDialogHost } from '@/components/pms/audit-dialog-host';
 import { TodoCard, TodoSkeleton } from '@/components/pms/dashboard/todo-card';
 import { TonightTile } from '@/components/pms/dashboard/tonight-tile';
 import { TilesSkeleton } from '@/components/pms/dashboard/tiles-skeleton';
+import { PerformanceTab } from '@/components/pms/dashboard/performance/performance-tab';
+import { TabLinks } from '@/components/pms/tab-links';
 import { cn } from 'cn';
 import { useIsImpersonating } from '@/hooks/use-is-impersonating';
 import { dashboard } from '@/routes';
@@ -23,7 +26,15 @@ export default function Dashboard({
     recommended,
     todo,
     housekeeping,
+    tab,
+    period,
+    performance,
 }: {
+    tab: App.Enums.DashboardTab;
+    /** Only on the Performance tab. */
+    period: App.Data.Dashboard.PerformancePeriodData | null;
+    /** Deferred, only on the Performance tab. */
+    performance?: App.Data.Dashboard.PerformanceSummaryData | null;
     alert: App.Data.Dashboard.DashboardAlertData | null;
     can: App.Data.Dashboard.DashboardAccessData;
     /** Deferred: absent on the first load, null when the user sees no tile. */
@@ -46,8 +57,14 @@ export default function Dashboard({
     const hasStats = tiles !== null || housekeeping !== null;
     /** To do and Tonight share the top row on wide screens; Recommended next sits under To do. */
     const threeColumns = hasTodo && hasTonight;
+    const code = page.props.property?.code ?? '';
     const refresh = () =>
-        router.reload({ only: ['todo', 'tiles', 'housekeeping', 'alert'] });
+        router.reload({
+            only:
+                tab === 'performance'
+                    ? ['performance', 'alert']
+                    : ['todo', 'tiles', 'housekeeping', 'alert'],
+        });
     const closeAction = () => {
         setAction(null);
         setLoadingKey(null);
@@ -72,33 +89,11 @@ export default function Dashboard({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    return (
-        <>
-            <Head title="Dashboard" />
-
-            <div
-                scroll-region
-                className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain p-4"
-            >
-                {youreLive !== null && (
-                    <YoureLiveCard
-                        youreLive={youreLive}
-                        wentLive={wentLive}
-                        canShare={!isImpersonating}
-                    />
-                )}
-
-                {alert && (
-                    <DashboardAlert
-                        alert={alert}
-                        onOpenAudit={
-                            can.canRunNightAudit
-                                ? () => setAuditOpen(true)
-                                : undefined
-                        }
-                    />
-                )}
-
+    const content =
+        tab === 'performance' && period ? (
+            <PerformanceTab period={period} performance={performance} />
+        ) : (
+            <>
                 <QuickActions can={can} onRunAudit={() => setAuditOpen(true)} />
 
                 {hasStats && (
@@ -177,6 +172,64 @@ export default function Dashboard({
                         </div>
                     )}
                 </div>
+            </>
+        );
+
+    return (
+        <>
+            <Head title="Dashboard" />
+
+            <div
+                scroll-region
+                className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain p-4"
+            >
+                {youreLive !== null && (
+                    <YoureLiveCard
+                        youreLive={youreLive}
+                        wentLive={wentLive}
+                        canShare={!isImpersonating}
+                    />
+                )}
+
+                {alert && (
+                    <DashboardAlert
+                        alert={alert}
+                        onOpenAudit={
+                            can.canRunNightAudit
+                                ? () => setAuditOpen(true)
+                                : undefined
+                        }
+                    />
+                )}
+
+                {can.canViewReports ? (
+                    <TabLinks
+                        activeTab={tab}
+                        className="flex flex-col gap-4"
+                        panelWidth="full"
+                        panelClassName="flex flex-col gap-4"
+                        tabs={[
+                            {
+                                value: 'today',
+                                label: 'Today',
+                                icon: CalendarCheck,
+                                href: dashboard.url(code),
+                            },
+                            {
+                                value: 'performance',
+                                label: 'Performance',
+                                icon: ChartLine,
+                                href: dashboard.url(code, {
+                                    query: { tab: 'performance' },
+                                }),
+                            },
+                        ]}
+                    >
+                        {content}
+                    </TabLinks>
+                ) : (
+                    content
+                )}
             </div>
 
             {can.canRunNightAudit && (

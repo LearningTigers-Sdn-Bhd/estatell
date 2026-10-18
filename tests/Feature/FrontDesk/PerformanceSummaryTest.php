@@ -186,6 +186,20 @@ test('channel mix counts only live units nights in the range, adds up to 100% an
         ->and($mix->bySource[0]->companies)->toBe([]);
 });
 
+test('two bookings of one company add up in one entry, and another company stays apart', function () {
+    $property = dashboardSetup()['property'];
+    $first = Company::factory()->create(['property_id' => $property->id, 'name' => 'Acme']);
+    $second = Company::factory()->create(['property_id' => $property->id, 'name' => 'Borneo']);
+    dashboardBookedUnit($property, Reservation::factory()->company($first)->create(['property_id' => $property->id]), '2026-10-02', '2026-10-04');
+    dashboardBookedUnit($property, Reservation::factory()->company($first)->create(['property_id' => $property->id]), '2026-10-05', '2026-10-06');
+    dashboardBookedUnit($property, Reservation::factory()->company($second)->create(['property_id' => $property->id]), '2026-10-02', '2026-10-03');
+
+    $mix = summaryFor($property)->channelMix;
+
+    expect(collect($mix->bySource[0]->companies)->map(fn ($company) => [$company->name, $company->nights])->all())->toBe([['Acme', 3], ['Borneo', 1]])
+        ->and(collect($mix->byType[0]->companies)->pluck('nights')->all())->toBe([3, 1]);
+});
+
 test('a company booking under a direct source stays in its own source', function () {
     $property = dashboardSetup()['property'];
     $company = Company::factory()->create(['property_id' => $property->id]);

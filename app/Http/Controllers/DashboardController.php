@@ -3,12 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Data\Dashboard\DashboardAccessData;
+use App\Data\Dashboard\DashboardAlertData;
+use App\Data\Dashboard\PerformancePeriodData;
 use App\Data\NightAudit\NightAuditReservationData;
+use App\Enums\DashboardTab;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Services\Dashboard\DashboardAlert;
 use App\Services\Dashboard\DashboardTiles;
 use App\Services\Dashboard\DashboardTodo;
+use App\Services\Dashboard\PerformancePeriod;
+use App\Services\Dashboard\PerformanceSummary;
 use App\Services\Housekeeping\HousekeepingSummary;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Onboarding\RecommendedChecklist;
@@ -37,16 +42,27 @@ class DashboardController extends Controller
         RecommendedChecklist $recommendedChecklist,
         DashboardTodo $todo,
         HousekeepingSummary $housekeeping,
+        PerformanceSummary $performance,
     ): Response {
         $businessDate = $currentBusinessDate->get($property);
         $access = DashboardAccessData::forUser($request->user());
         $date = $businessDate === null ? null : CarbonImmutable::parse($businessDate->date->toDateString());
 
+        $alertData = $alert->forBusinessDate($property, $businessDate);
+        $tab = $access->canViewReports ? DashboardTab::fromRequest($request->query('tab')) : DashboardTab::Today;
+
+        if ($tab === DashboardTab::Performance && $date !== null) {
+            return $this->performance($request, $property, $date, $alertData, $access, $performance);
+        }
+
         return Inertia::render('dashboard', [
-            'alert' => $alert->forBusinessDate($property, $businessDate),
+            'tab' => DashboardTab::Today,
+            'alert' => $alertData,
             'can' => $access,
             'youreLive' => $youreLive->forProperty($property, $request->user()),
             'recommended' => $access->canManageSettings ? $recommendedChecklist->forProperty($property) : null,
+            'period' => null,
+            'performance' => null,
             'tiles' => $date !== null && $access->hasTiles()
                 ? Inertia::defer(fn () => $tiles->forDate($property, $date, $access->canViewReservations, $access->canViewReports))
                 : null,
@@ -56,6 +72,28 @@ class DashboardController extends Controller
             'housekeeping' => $date !== null && $access->canViewHousekeeping
                 ? Inertia::defer(fn () => $housekeeping->forDate($property, $date), 'housekeeping')
                 : null,
+        ]);
+    }
+
+    /**
+     * The Performance tab: only its own props are sent. Today's tiles, To do, housekeeping and onboarding cards are null.
+     */
+    private function performance(Request $request, Property $property, CarbonImmutable $date, ?DashboardAlertData $alert, DashboardAccessData $access, PerformanceSummary $summary): Response
+    {
+        $earliest = $summary->earliestDate($property);
+        $period = PerformancePeriod::fromRequest($request->query('period'), $request->query('month'), $date, $earliest);
+
+        return Inertia::render('dashboard', [
+            'tab' => DashboardTab::Performance,
+            'alert' => $alert,
+            'can' => $access,
+            'youreLive' => null,
+            'recommended' => null,
+            'period' => PerformancePeriodData::fromPeriod($period, $date, $earliest),
+            'performance' => Inertia::defer(fn () => $summary->forPeriod($property, $period), 'performance'),
+            'tiles' => null,
+            'todo' => null,
+            'housekeeping' => null,
         ]);
     }
 
