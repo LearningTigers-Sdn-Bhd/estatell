@@ -106,6 +106,9 @@ Guest bulk actions use `POST /p/{code}/guests/bulk/{operation}`: `mark-vip`, `un
 | `GET /p/ES10142/finance/city-ledger/companies`                     | `finance.city-ledger.companies.index`  | `pages/finance/city-ledger/companies/index.tsx` |
 | `GET /p/ES10142/finance/city-ledger/aging`                         | `finance.city-ledger.aging`            | `pages/finance/city-ledger/aging.tsx`           |
 | `GET /p/ES10142/settings/room-types`                               | `settings.room-types.index`            | `pages/settings/room-types/index.tsx`           |
+| `GET /p/ES10142/settings/room-types/{roomType}`                    | `settings.room-types.edit`             | `pages/settings/room-types/edit.tsx`            |
+| `GET /p/ES10142/settings/room-types/{roomType}/rooms`              | `settings.room-types.rooms.edit`       | `pages/settings/room-types/rooms.tsx`           |
+| `PUT /p/ES10142/settings/room-types/{roomType}/rooms`              | `settings.room-types.rooms.update`     | Save the room type's rooms and groups           |
 | `GET /p/ES10142/settings/ota-lists`                                | `settings.ota-lists.edit`              | `pages/settings/ota-lists.tsx`                  |
 | `GET /p/ES10142/onboarding/rooms`                                  | `onboarding.rooms.edit`                | `pages/onboarding/rooms.tsx`                    |
 | `GET /p/ES10142/onboarding/taxes`                                  | `onboarding.taxes.edit`                | `pages/onboarding/taxes.tsx`                    |

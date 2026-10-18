@@ -28,6 +28,16 @@ rooms          id, property_id, room_type_id, room_group_id (nullable),
 - A new room needs an active room type. An existing room may keep an archived room type.
 - The `sell_unit` of a room type is locked once the room type has any room.
 
+## Changing a room's type
+
+A room changes type in two places: the room edit on Settings > Rooms (`UpdateRoom`), and the Rooms tab of the [room type page](01-room-types.md#rooms-tab) (`AssignRoomTypeRooms`). Both apply the same guards:
+
+- The new room type is active.
+- A room with beds cannot move into a type that sells rooms.
+- A room cannot change type while it, or one of its beds, has assigned unit nights on or after the business date (`CurrentBusinessDate`). Move those stays first. Without this guard a booking for one type would sit in a room of another type.
+
+One read-only Service holds the assigned-nights check, and both paths call it.
+
 ## Number generator
 
 `GenerateRooms` creates many rooms in one step. `RoomNumberGenerator` (a Service) turns the input into numbers. It never writes.
@@ -50,6 +60,7 @@ rooms          id, property_id, room_type_id, room_group_id (nullable),
 - `CreateRoomGroup`, `UpdateRoomGroup`, `ReorderRoomGroups`, `DeleteRoomGroup`
 - `CreateRoom`, `UpdateRoom`, `ArchiveRoom`, `RestoreRoom`
 - `GenerateRooms`
+- `AssignRoomTypeRooms` (the Rooms tab of a room type: groups, and rooms moved in from other types)
 
 ## Permissions
 
@@ -57,7 +68,7 @@ rooms          id, property_id, room_type_id, room_group_id (nullable),
 
 ## UI
 
-Settings > Rooms (`settings.rooms.index`) lists rooms under their group, with an "Ungrouped" section and an archived list. Buttons: New room, Generate rooms, New group. Up and down buttons reorder groups. Rooms are listed in creation order.
+Settings > Rooms (`settings.rooms.index`) lists rooms under their group, with an "Ungrouped" section and an archived list. Buttons: New room, Generate rooms, New group. Up and down buttons reorder groups. Rooms are listed in creation order. Generate rooms returns to the page it was opened from: Settings > Rooms, or the Rooms tab of a room type, where the room type is fixed.
 
 ## Lessons from wastays
 

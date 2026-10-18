@@ -35,11 +35,65 @@ room_types    id, property_id, name, description, sell_unit (SellUnit),
 
 ## Permissions
 
-`rooms.view` opens the list. `rooms.manage` creates, edits, reorders, archives and restores. The Manager default role has both.
+`rooms.view` opens the list and the room type page (read-only). `rooms.manage` creates, edits, reorders, archives, restores and assigns rooms. The Manager default role has both.
 
 ## UI
 
-Settings > Room types (`settings.room-types.index`) lists active room types with sell unit, guests included and capacity, with archived ones below. A right-side Sheet creates and edits. Up and down buttons reorder. The "N rate plans" link is not built yet; it needs the rate calendar. It has no price fields.
+Settings > Room types (`settings.room-types.index`) lists active room types with sell unit, guests included and capacity, with archived ones below. Up and down buttons reorder. The name opens the room type page. **New room type** opens a right-side Sheet; after create, the new room type's Details tab opens. The list has no edit Sheet. The "N rate plans" link is not built yet; it needs the rate calendar. It has no price fields.
+
+### Room type page
+
+The page copies the rate plan editor: a shell with a header and tab links. Each tab is its own URL and loads only its own data.
+
+| Tab     | Route                            | Page                                  |
+| ------- | -------------------------------- | ------------------------------------- |
+| Details | `settings.room-types.edit`       | `pages/settings/room-types/edit.tsx`  |
+| Rooms   | `settings.room-types.rooms.edit` | `pages/settings/room-types/rooms.tsx` |
+
+```
+Settings › Room types › Deluxe King
+Deluxe King                                      [Archive]
+[ Details ] [ Rooms (12) ]
+```
+
+- The header shows **Archive**, or **Restore** for an archived room type. An archived room type opens read-only.
+- Staff with only `rooms.view` see both tabs read-only: fields disabled, no Save and no header buttons.
+
+### Details tab
+
+The former Sheet form, in one `SettingsSection`: Name, Description, Sold by, Guests included, Max adults, Max children, Smoking, Pets and Terms document. The fields and rules do not change. `PUT settings.room-types.update` saves and returns to this tab.
+
+### Rooms tab
+
+```
+Rooms                                [Generate rooms] [+ Add rooms ⌄]
+Rooms of this type and their group.
+─────────────────────────────────────────────────────────────────────
+Room    Group
+101     [Floor 1      ⌄]
+201     [Ungrouped    ⌄]
+305     [Floor 3      ⌄]   From Standard Twin            [Undo]
+                                                            [Save]
+```
+
+- One `SettingsSection` with `guardUnsavedChanges`. **Generate rooms** and **+ Add rooms** sit in the section header (the `actions` slot). On a phone they wrap below the description.
+- Each active room of this type has a Group select: any group of the property, or Ungrouped.
+- **+ Add rooms** is a searchable list of active rooms in other types, shown as "305 · Standard Twin". A picked room joins the list marked "From Standard Twin", with **Undo**. Nothing moves until **Save**.
+- There is no Remove. A room always has a type, so it leaves this type only when it is added on another type's page.
+- **Generate rooms** opens `GenerateRoomsSheet` with this room type fixed and its select hidden. It is disabled while the form has unsaved changes, with the tooltip "Save or discard your changes first." Rooms are created without beds; **Generate beds** stays on Settings > Rooms.
+- An empty type shows "No rooms yet. Generate or add rooms." with no buttons of its own.
+
+`PUT settings.room-types.rooms.update` sends `[{room_id, room_group_id}]` to `AssignRoomTypeRooms`. It saves all rows in one transaction, or none:
+
+| #   | Rule                                                                                                                                                                       | Message                                                       |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| 1   | Each room is active and in this property. Each group is in this property, or null.                                                                                         | Validation                                                    |
+| 2   | Every room now in this type is still in the list.                                                                                                                          | "Rooms can't be removed here. Add them on another room type." |
+| 3   | A room from another type moves here (`room_type_id` changes).                                                                                                              | –                                                             |
+| 4   | A room with beds cannot move into a type that sells rooms.                                                                                                                 | "305 has beds. Choose a room type that sells beds."           |
+| 5   | A room cannot change type while it, or one of its beds, has assigned unit nights on or after the business date. See [Rooms](02-rooms-and-groups.md#changing-a-rooms-type). | "305 has stays assigned from 20 Oct. Move them first."        |
+| 6   | An archived room type is refused.                                                                                                                                          | ":name is archived. Restore it before editing."               |
+| 7   | Rooms are locked; only rooms that differ change; each changed room logs one `room.updated` activity with the changed fields.                                               | Toast "Rooms saved."                                          |
 
 ## Lessons from wastays
 
