@@ -53,17 +53,18 @@ class DashboardTodo
             $kind = $arrival ? 'arrival' : ($overdue ? 'overdue' : 'departure');
             $expected = $groupUnits->map(fn (ReservationUnit $unit): string => substr(($arrival ? $unit->arrival_time : $unit->departure_time) ?: ($arrival ? $property->settings?->check_in_time : $property->settings?->check_out_time) ?? '12:00:00', 0, 5))->sort()->first();
             $canAct = $user->can(($arrival ? PermissionEnum::FrontDeskCheckIn : PermissionEnum::FrontDeskCheckOut)->value);
-            $action = ReadinessActionData::link(__('Open'), route('reservations.show', ['property' => $property->code, 'reservation' => $first->reservationId], false));
+            $action = ReadinessActionData::link(__('View booking'), route('reservations.show', ['property' => $property->code, 'reservation' => $first->reservationId], false));
 
             if ($canAct) {
                 if (! $arrival && $group->count() > 1) {
-                    $action = ReadinessActionData::link(__('Check out'), route('reservations.check-out', ['property' => $property->code, 'reservation' => $first->reservationId], false));
+                    $action = ReadinessActionData::link(__('Check out'), route('reservations.check-out', ['property' => $property->code, 'reservation' => $first->reservationId], false), 'log-out');
                 } else {
                     $action = new ReadinessActionData(
                         kind: 'dialog', label: $arrival ? __('Check in') : __('Check out'),
                         url: route('dashboard.reservation', ['property' => $property->code, 'reservation' => $first->reservationId], false),
                         unitId: $group->count() === 1 ? $first->reservationUnitId : null,
                         dialog: $arrival ? ($group->count() > 1 ? 'check-in-all' : 'check-in') : 'check-out',
+                        icon: $arrival ? 'log-in' : 'log-out',
                     );
                 }
             }
@@ -84,7 +85,7 @@ class DashboardTodo
                 key: $item->check->value.':'.$item->reservationId.':'.($item->folioId ?? $item->reservationUnitId),
                 kind: 'folio', label: __('Folio'), guest: $item->guest ?? $item->reference, reference: $item->reference,
                 detail: $item->detail, time: null,
-                action: ReadinessActionData::link(__('Open folio'), route('reservations.folio', ['property' => $property->code, 'reservation' => $item->reservationId, ...($item->folioId === null ? [] : ['folio' => $item->folioId])], false)),
+                action: ReadinessActionData::link(__('Review folio'), route('reservations.folio', ['property' => $property->code, 'reservation' => $item->reservationId, ...($item->folioId === null ? [] : ['folio' => $item->folioId])], false), 'receipt'),
             );
         }
 
@@ -95,9 +96,10 @@ class DashboardTodo
                     key: 'boat:'.$reservationId, kind: 'boat', label: __('No boat'),
                     guest: $unit->reservation->booker->full_name ?? $unit->reservation->reference,
                     reference: $unit->reservation->reference,
-                    detail: ($unit->arrival_date->isSameDay($date) ? __('Today') : __('Tomorrow')).' · '.($group->count() > 1 ? __(':count rooms', ['count' => $group->count()]) : $unit->roomType->name),
+                    detail: $group->count() > 1 ? __(':count rooms', ['count' => $group->count()]) : $unit->roomType->name,
                     time: substr($unit->arrival_time, 0, 5),
-                    action: ReadinessActionData::link(__('Open'), route('reservations.show', ['property' => $property->code, 'reservation' => $reservationId], false)),
+                    action: ReadinessActionData::link(__('Set boats'), route('reservations.show', ['property' => $property->code, 'reservation' => $reservationId], false), 'ship'),
+                    when: $unit->arrival_date->isSameDay($date) ? __('Today') : __('Tomorrow'),
                 );
             }
         }
@@ -111,7 +113,7 @@ class DashboardTodo
     private function unitDetail(ReservationUnit $unit): string
     {
         if ($unit->dayUse !== null) {
-            return __('Day use · :start–:end', ['start' => substr($unit->dayUse->starts_at, 0, 5), 'end' => substr($unit->dayUse->ends_at, 0, 5)]);
+            return __('Day use :start–:end', ['start' => substr($unit->dayUse->starts_at, 0, 5), 'end' => substr($unit->dayUse->ends_at, 0, 5)]);
         }
 
         return $unit->roomType->name;

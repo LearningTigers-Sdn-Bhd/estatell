@@ -79,7 +79,7 @@ test('todo orders overdue arrivals and departures using the property clock and r
             ->where('todo.rows.0.action.dialog', 'check-out')->where('todo.rows.1.action.dialog', 'check-in')));
 });
 
-test('groups use check in all or the group check out page and viewers get Open', function () {
+test('groups use check in all or the group check out page and viewers get View booking', function () {
     [$property, $user] = todoProperty([PermissionEnum::ReservationsView, PermissionEnum::FrontDeskCheckIn, PermissionEnum::FrontDeskCheckOut]);
     $arrival = todoUnit($property);
     todoUnit($property, ['reservation_id' => $arrival->reservation_id]);
@@ -95,7 +95,7 @@ test('groups use check in all or the group check out page and viewers get Open',
 
     $viewer = User::factory()->for($property)->withPermissions([PermissionEnum::ReservationsView])->create();
     $viewRows = app(DashboardTodo::class)->forDate($property, CarbonImmutable::parse('2026-10-14'), $viewer)->rows;
-    expect($viewRows[0]->action->label)->toBe('Open')->and($viewRows[1]->action->kind)->toBe('link');
+    expect($viewRows[0]->action->label)->toBe('View booking')->and($viewRows[1]->action->kind)->toBe('link');
 });
 
 test('day use hours and folio warnings appear without duplicating audit rules', function () {
@@ -105,8 +105,8 @@ test('day use hours and folio warnings appear without duplicating audit rules', 
     Folio::factory()->for($property)->forUnit($departed)->create(['reservation_id' => $departed->reservation_id]);
 
     $rows = app(DashboardTodo::class)->forDate($property, CarbonImmutable::parse('2026-10-14'), $user)->rows;
-    expect($rows)->toHaveCount(2)->and($rows[0]->detail)->toBe('Day use · 10:00–14:00')
-        ->and($rows[1]->kind)->toBe('folio')->and($rows[1]->action->label)->toBe('Open folio');
+    expect($rows)->toHaveCount(2)->and($rows[0]->detail)->toBe('Day use 10:00–14:00')
+        ->and($rows[1]->kind)->toBe('folio')->and($rows[1]->action->label)->toBe('Review folio')->and($rows[1]->action->icon)->toBe('receipt');
 });
 
 test('a departure is overdue after midnight even while the business date is unchanged', function () {
@@ -134,7 +134,8 @@ test('no boat is feature gated and groups only confirmed arrivals today or tomor
     expect(collect(app(DashboardTodo::class)->forDate($property, CarbonImmutable::parse('2026-10-14'), $user)->rows)->where('kind', 'boat'))->toHaveCount(0);
     Feature::for($property)->activate(Boats::class);
     $rows = collect(app(DashboardTodo::class)->forDate($property, CarbonImmutable::parse('2026-10-14'), $user)->rows)->where('kind', 'boat')->values();
-    expect($rows)->toHaveCount(1)->and($rows[0]->detail)->toBe('Tomorrow · 2 rooms')->and($rows[0]->action->url)->toBe(route('reservations.show', [$property->code, $missing->reservation_id], false));
+    expect($rows)->toHaveCount(1)->and($rows[0]->detail)->toBe('2 rooms')->and($rows[0]->when)->toBe('Tomorrow')
+        ->and($rows[0]->action->label)->toBe('Set boats')->and($rows[0]->action->icon)->toBe('ship')->and($rows[0]->action->url)->toBe(route('reservations.show', [$property->code, $missing->reservation_id], false));
 });
 
 test('the dashboard dialog loader needs reservation access but not night audit access and scopes its reservation', function () {

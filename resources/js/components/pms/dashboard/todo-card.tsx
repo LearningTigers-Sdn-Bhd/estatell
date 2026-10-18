@@ -1,5 +1,13 @@
 import { Link } from '@inertiajs/react';
-import { CircleCheck, ClipboardList } from 'lucide-react';
+import {
+    BedDouble,
+    CalendarDays,
+    CircleCheck,
+    ClipboardList,
+    Clock,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { actionIcon } from '@/components/pms/action-icons';
 import { EmptyState } from '@/components/pms/empty-state';
 import { DateText } from '@/components/pms/date-text';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -43,6 +51,106 @@ export function TodoSkeleton() {
     );
 }
 
+type Row = App.Data.Dashboard.DashboardTodoRowData;
+
+const tones: Record<string, 'danger' | 'success' | 'warning' | 'neutral'> = {
+    overdue: 'danger',
+    arrival: 'success',
+    departure: 'warning',
+};
+
+function Part({
+    icon: Icon,
+    children,
+}: {
+    icon?: LucideIcon;
+    children: string;
+}) {
+    return (
+        <span className="flex items-center gap-1 whitespace-nowrap">
+            {Icon && <Icon aria-hidden className="size-3.5" />}
+            {children}
+        </span>
+    );
+}
+
+/**
+ * Line 1: the task badge and the guest. Line 2: time, day, room and reference as separate muted parts with icons.
+ * A folio note has no icon.
+ */
+function TodoRowText({ row }: { row: Row }) {
+    return (
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <div className="flex min-w-0 items-center gap-2">
+                <DashboardBadge
+                    label={row.label}
+                    tone={tones[row.kind] ?? 'neutral'}
+                />
+                <p className="min-w-0 truncate font-medium">{row.guest}</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground tabular-nums">
+                {row.time && <Part icon={Clock}>{row.time}</Part>}
+                {row.when && <Part icon={CalendarDays}>{row.when}</Part>}
+                <Part icon={row.kind === 'folio' ? undefined : BedDouble}>
+                    {row.detail}
+                </Part>
+                <Part>{row.reference}</Part>
+            </div>
+        </div>
+    );
+}
+
+/** The row's button. It stretches over the whole row, so a click anywhere on the row runs it. */
+function TodoRowAction({
+    row,
+    loadingKey,
+    onAction,
+}: {
+    row: Row;
+    loadingKey: string | null;
+    onAction: (row: Row) => void;
+}) {
+    const Icon = actionIcon(row.action.icon);
+
+    if (row.action.kind === 'dialog') {
+        return (
+            <Button
+                variant="outline"
+                size="sm"
+                className="after:absolute after:inset-0"
+                disabled={loadingKey !== null}
+                focusableWhenDisabled
+                onClick={() => onAction(row)}
+            >
+                {loadingKey === row.key ? (
+                    <Spinner data-icon="inline-start" />
+                ) : (
+                    <Icon data-icon="inline-start" />
+                )}
+                {row.action.label}
+            </Button>
+        );
+    }
+
+    return (
+        <Link
+            href={row.action.url}
+            className={buttonVariants({
+                variant: 'outline',
+                size: 'sm',
+                className: 'after:absolute after:inset-0',
+            })}
+        >
+            <Icon data-icon="inline-start" />
+            {row.action.label}
+        </Link>
+    );
+}
+
+/**
+ * Today's tasks as flat rows that run edge to edge inside the card. The row's action stretches over the whole row,
+ * so a click anywhere on the row opens it.
+ */
 export function TodoCard({
     todo,
     loadingKey,
@@ -73,9 +181,9 @@ export function TodoCard({
                     </Badge>
                 </CardAction>
             </CardHeader>
-            <CardContent className="flex min-h-0 flex-1 flex-col">
+            <CardContent className="flex min-h-0 flex-1 flex-col px-0">
                 {todo.rows.length === 0 ? (
-                    <div className="flex flex-1 items-center justify-center">
+                    <div className="flex flex-1 items-center justify-center px-(--card-spacing)">
                         <EmptyState
                             icon={CircleCheck}
                             title="Nothing left for today"
@@ -83,75 +191,21 @@ export function TodoCard({
                         />
                     </div>
                 ) : (
-                    <div className="overflow-hidden rounded-lg border">
-                        <ul className="divide-y xl:max-h-112 xl:overflow-y-auto">
-                            {todo.rows.map((row) => (
-                                <li key={row.key}>
-                                    <div className="flex flex-wrap items-center justify-between gap-3 p-4 md:flex-nowrap">
-                                        <div className="flex min-w-0 flex-1 flex-col gap-2 md:flex-row md:items-center md:gap-4">
-                                            <div className="flex shrink-0 items-center gap-2 md:w-28 md:flex-col md:items-start">
-                                                <DashboardBadge
-                                                    label={row.label}
-                                                    tone={
-                                                        row.kind === 'overdue'
-                                                            ? 'danger'
-                                                            : row.kind ===
-                                                                'arrival'
-                                                              ? 'success'
-                                                              : row.kind ===
-                                                                  'departure'
-                                                                ? 'warning'
-                                                                : 'neutral'
-                                                    }
-                                                />
-                                                {row.time && (
-                                                    <span className="text-xs text-muted-foreground tabular-nums">
-                                                        {row.time}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <p className="min-w-0 flex-1 truncate font-medium">
-                                                {row.guest}
-                                            </p>
-                                            <p className="flex min-w-0 items-baseline text-sm whitespace-nowrap text-muted-foreground tabular-nums md:max-w-64 md:justify-end">
-                                                <span className="min-w-0 truncate">
-                                                    {row.detail}
-                                                </span>
-                                                <span className="shrink-0">
-                                                    {' · '}
-                                                    {row.reference}
-                                                </span>
-                                            </p>
-                                        </div>
-                                        {row.action.kind === 'dialog' ? (
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                disabled={loadingKey !== null}
-                                                focusableWhenDisabled
-                                                onClick={() => onAction(row)}
-                                            >
-                                                {loadingKey === row.key && (
-                                                    <Spinner />
-                                                )}
-                                                {row.action.label}
-                                            </Button>
-                                        ) : (
-                                            <Link
-                                                href={row.action.url}
-                                                className={buttonVariants({
-                                                    variant: 'outline',
-                                                    size: 'sm',
-                                                })}
-                                            >
-                                                {row.action.label}
-                                            </Link>
-                                        )}
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
+                    <ul className="divide-y border-y xl:max-h-112 xl:overflow-y-auto">
+                        {todo.rows.map((row) => (
+                            <li
+                                key={row.key}
+                                className="relative flex items-center gap-3 px-(--card-spacing) py-3 transition-colors hover:bg-muted/50"
+                            >
+                                <TodoRowText row={row} />
+                                <TodoRowAction
+                                    row={row}
+                                    loadingKey={loadingKey}
+                                    onAction={onAction}
+                                />
+                            </li>
+                        ))}
+                    </ul>
                 )}
             </CardContent>
         </Card>

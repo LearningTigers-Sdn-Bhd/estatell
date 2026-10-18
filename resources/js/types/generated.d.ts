@@ -438,6 +438,7 @@ reference: string,
 detail: string,
 time: string | null,
 action: App.Data.NightAudit.ReadinessActionData,
+when: string | null,
 };
 export type HousekeepingTileData = {
 dirty: number,

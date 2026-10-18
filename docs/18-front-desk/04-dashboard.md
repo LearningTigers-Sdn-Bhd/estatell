@@ -59,15 +59,17 @@ At `xl` (1280px), the strip has four equal columns. The main grid has three equa
 - A long To do list scrolls inside its cell on desktop.
 - To do has no footer or See all arrivals link. Its business date sits below the heading as the section description.
 - The header centers the icon vertically beside the title and date column. Both text lines share the same left edge.
-- The item count uses an outline badge at the top-right. Task rows share one rounded border with edge-to-edge dividers.
-- Padding sits inside each task row, not around the list. The empty state centers in the available body space.
+- The item count uses an outline badge at the top-right. Task rows run edge to edge inside the card, with a border above, below and between them. There is no inner box.
+- Padding sits inside each task row, not around the list. Row text lines up with the card heading.
+- A row tints on hover. Its action stretches over the whole row, so a click anywhere on the row runs it; the button keeps the keyboard focus. The empty state centers in the available body space.
 - Borders separate work areas. To do and recommendation rows stay flat, without nested cards.
 - Every section heading has one muted 20px Lucide icon. Recommended next uses `Sparkles`; housekeeping uses `Brush`.
 - Quick actions are compact buttons, not cards. Only New booking uses the primary style.
 - Hidden cells leave no reserved gap. Without Tonight, To do and recommendations take the full width.
 - At 768–1279px, the strip is 2×2. To do spans the full width, followed by Tonight and Recommended next side by side.
 - Below 768px, the strip stays 2×2. The remaining cards stack: To do, Tonight, Recommended next.
-- Wide task rows place the type and time, guest, room and reservation code, and action beside each other. Narrow rows wrap.
+- A task row has two lines and the button on the right. Line 1: the task badge and the guest. Line 2: muted parts with 14px icons and space between them, no dots: time (`Clock`), Today or Tomorrow for a boat row (`CalendarDays`), room (`BedDouble`), then the reference. A folio note has no icon. The parts wrap on narrow screens, never mid-part.
+- Every button has an icon. The server sends its name in `ReadinessActionData::icon`, and `components/pms/action-icons.ts` maps it for both the dashboard and the night audit sheet.
 
 ### Color
 
@@ -141,22 +143,22 @@ Showing one revenue number without saying which date it uses was the wastays bug
 
 One list of what is left to act on, with a button on each row.
 
-| Order | Row           | When                                                                                                                     | Button         |
-| ----- | ------------- | ------------------------------------------------------------------------------------------------------------------------ | -------------- |
-| 1     | **Overdue**   | CheckedIn, departure before the business date, or on it and past its `departure_time` (else the property check-out time) | **Check out**  |
-| 2     | **Arrival**   | Confirmed, arriving on or before the business date, by expected `arrival_time`                                           | **Check in**   |
-| 3     | **Departure** | CheckedIn, departing on the business date and not yet due, by `departure_time`                                           | **Check out**  |
-| 4     | **Folio**     | The night audit's folio warnings: `MasterNotBilled`, `FolioOpenAfterCheckOut`, `MoneyHeldOnClosedBooking`                | **Open folio** |
+| Order | Row           | When                                                                                                                     | Button           |
+| ----- | ------------- | ------------------------------------------------------------------------------------------------------------------------ | ---------------- |
+| 1     | **Overdue**   | CheckedIn, departure before the business date, or on it and past its `departure_time` (else the property check-out time) | **Check out**    |
+| 2     | **Arrival**   | Confirmed, arriving on or before the business date, by expected `arrival_time`                                           | **Check in**     |
+| 3     | **Departure** | CheckedIn, departing on the business date and not yet due, by `departure_time`                                           | **Check out**    |
+| 4     | **Folio**     | The night audit's folio warnings: `MasterNotBilled`, `FolioOpenAfterCheckOut`, `MoneyHeldOnClosedBooking`                | **Review folio** |
 
 - A reservation with several units in the same state is **one row** ("2 rooms"). Its button opens **Check in all**, or links to the [group check-out](05-group-check-out.md) page for check-out.
-- The rows reuse the night audit readiness rules (`AuditReadiness`), so the dashboard and the audit never disagree. A day use shows its hours ("Day use · 10:00–14:00").
+- The rows reuse the night audit readiness rules (`AuditReadiness`), so the dashboard and the audit never disagree. A day use shows its hours ("Day use 10:00–14:00").
 - **Check in** and **Check out** open the existing Dialogs through the shared `components/pms/audit-dialog-host.tsx`.
 - `GET /p/{code}/dashboard/reservations/{reservation}` (`dashboard.reservation`) loads dialog data on demand. It requires `reservations.view`, not `night-audit.run`.
 - The loader scopes reservations to the property. Existing submission routes still enforce check-in, check-out and payment permissions.
 - After a Dialog closes, the list, tiles, housekeeping and alert reload through `only`.
-- A user without `front-desk.check-in` or `front-desk.check-out` gets **Open** (the reservation page) instead. **Open folio** is a link and needs `reservations.view`.
+- A user without `front-desk.check-in` or `front-desk.check-out` gets **View booking** (the reservation page) instead. **Review folio** is a link and needs `reservations.view`.
 - The first 10 rows show. The outline badge shows the total item count. With no rows: "Nothing left for today. All arrivals are in and all departures are out."
-- With the Boats feature, a **No boat** row follows the arrivals: Confirmed units arriving today or tomorrow with no Boat in trip (see [Boat trips](../24-boats/02-boat-trips.md#dashboard)).
+- With the Boats feature, a **No boat** row follows the arrivals: Confirmed units arriving today or tomorrow with no Boat in trip (see [Boat trips](../24-boats/02-boat-trips.md#dashboard)). Its button is **Set boats** (`Ship`), a link to the reservation page where the boats Dialog lives.
 - Rooms to clean appear in the separate Housekeeping cell, not as guest tasks.
 
 ## Not on the dashboard

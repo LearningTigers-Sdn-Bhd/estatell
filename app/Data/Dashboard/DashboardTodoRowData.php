@@ -5,6 +5,9 @@ namespace App\Data\Dashboard;
 use App\Data\NightAudit\ReadinessActionData;
 use Spatie\LaravelData\Data;
 
+/**
+ * One To do row. `detail` is the room, room count or folio note; `when` is Today or Tomorrow for a boat row.
+ */
 class DashboardTodoRowData extends Data
 {
     public function __construct(
@@ -16,5 +19,6 @@ class DashboardTodoRowData extends Data
         public string $detail,
         public ?string $time,
         public ReadinessActionData $action,
+        public ?string $when = null,
     ) {}
 }

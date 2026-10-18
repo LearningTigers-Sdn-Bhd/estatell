@@ -140,11 +140,11 @@ When the feature is on, kitchen counts use the unit times on the first and last 
 
 With the feature on, the [To do today](../18-front-desk/04-dashboard.md#to-do-today) list gets one more row type after Arrival:
 
-| Row         | When                                                                                  | Button   |
-| ----------- | ------------------------------------------------------------------------------------- | -------- |
-| **No boat** | A Confirmed unit arriving on the business date or the day after, with no Boat in trip | **Open** |
+| Row         | When                                                                                  | Button        |
+| ----------- | ------------------------------------------------------------------------------------- | ------------- |
+| **No boat** | A Confirmed unit arriving on the business date or the day after, with no Boat in trip | **Set boats** |
 
-One row per reservation ("2 rooms"). **Open** goes to the reservation page.
+One row per reservation ("2 rooms"). Today or Tomorrow shows as its own part of the row. **Set boats** goes to the reservation page, where the boats Dialog lives.
 
 ## Housekeeping
 

@@ -1,24 +1,15 @@
 import { Link, useHttp } from '@inertiajs/react';
 import {
-    ArrowUpRight,
-    CalendarPlus,
     ChevronRight,
     Circle,
     CircleAlert,
     CircleCheck,
     CircleX,
-    DoorOpen,
     FileText,
-    LogIn,
-    LogOut,
-    Receipt,
-    RotateCw,
     TriangleAlert,
-    UserX,
-    X,
 } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { actionIcon } from '@/components/pms/action-icons';
 import { DateText } from '@/components/pms/date-text';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { AuditDialogHost } from '@/components/pms/audit-dialog-host';
@@ -87,19 +78,6 @@ type FixHandlers = {
     onNavigate: () => void;
 };
 
-/** Icon names sent by `App\Data\NightAudit\ReadinessActionData`. */
-const icons: Record<string, LucideIcon> = {
-    'door-open': DoorOpen,
-    'user-x': UserX,
-    'calendar-plus': CalendarPlus,
-    'log-in': LogIn,
-    'log-out': LogOut,
-    receipt: Receipt,
-    'rotate-cw': RotateCw,
-    x: X,
-    'arrow-up-right': ArrowUpRight,
-};
-
 const actionKey = (action: Action) => `${action.url}:${action.unitId ?? 'all'}`;
 
 function ActionButton({
@@ -110,7 +88,7 @@ function ActionButton({
     handlers: FixHandlers;
 }) {
     const key = actionKey(action);
-    const Icon = icons[action.icon] ?? ArrowUpRight;
+    const Icon = actionIcon(action.icon);
 
     if (action.kind === 'link') {
         return (
