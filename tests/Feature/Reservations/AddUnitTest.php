@@ -7,7 +7,6 @@ use App\Enums\ChargingUnit;
 use App\Enums\DiscountScope;
 use App\Enums\PackageUnit;
 use App\Enums\PricingBasis;
-use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
 use App\Models\BusinessDate;
 use App\Models\ChargeItem;
@@ -41,7 +40,7 @@ use Spatie\Activitylog\Models\Activity;
  * @param  array<string, mixed>  $reservationAttributes
  * @return array{property: Property, plan: RatePlan, roomType: RoomType, reservation: Reservation, user: User, arrival: CarbonImmutable}
  */
-function unitSetup(int $rooms = 2, array $reservationAttributes = []): array
+function unitSetup(int $rooms = 2, array $reservationAttributes = [], bool $ota = false): array
 {
     $property = Property::factory()->create();
     PropertySetting::factory()->for($property)->create();
@@ -64,7 +63,7 @@ function unitSetup(int $rooms = 2, array $reservationAttributes = []): array
         'property' => $property,
         'plan' => $plan,
         'roomType' => $roomType,
-        'reservation' => Reservation::factory()->create(['property_id' => $property->id, ...$reservationAttributes]),
+        'reservation' => ($ota ? Reservation::factory()->ota() : Reservation::factory())->create(['property_id' => $property->id, ...$reservationAttributes]),
         'user' => User::factory()->for($property)->create(),
         'arrival' => $arrival,
     ];
@@ -235,7 +234,7 @@ test('it compares the arrival with the current business date', function () {
 });
 
 test('a channel booking may arrive in the past', function () {
-    $setup = unitSetup(reservationAttributes: ['source' => ReservationSource::Channel]);
+    $setup = unitSetup(ota: true);
     $arrival = now()->subDay();
     Rate::factory()->create(['rate_plan_id' => $setup['plan']->id, 'room_type_id' => $setup['roomType']->id, 'date' => $arrival->toDateString(), 'amount' => '100.00']);
 
@@ -340,7 +339,7 @@ test('a restriction override reason is ignored and not logged when nothing is vi
 });
 
 test('a channel booking skips the restriction check', function () {
-    $setup = unitSetup(reservationAttributes: ['source' => ReservationSource::Channel]);
+    $setup = unitSetup(ota: true);
     Rate::query()->where('date', $setup['arrival']->toDateString())->update(['stop_sell' => true, 'min_stay' => 9]);
 
     expect(addUnit($setup, unitData($setup, 2), fromChannel: true)->isRefused())->toBeFalse();
@@ -387,7 +386,7 @@ test('a blocked room is not available', function () {
 });
 
 test('a channel booking may overbook', function () {
-    $setup = unitSetup(rooms: 1, reservationAttributes: ['source' => ReservationSource::Channel]);
+    $setup = unitSetup(rooms: 1, ota: true);
 
     addUnit($setup, unitData($setup, 2), fromChannel: true);
 
@@ -396,7 +395,7 @@ test('a channel booking may overbook', function () {
 });
 
 test('a channel-source reservation gets every check when staff add a unit', function () {
-    $setup = unitSetup(rooms: 1, reservationAttributes: ['source' => ReservationSource::Channel]);
+    $setup = unitSetup(rooms: 1, ota: true);
     $yesterday = now()->subDay();
     $inPast = unitData($setup, 1, ['arrivalDate' => $yesterday->toDateString(), 'departureDate' => now()->toDateString()]);
     Rate::query()->where('date', $setup['arrival']->toDateString())->update(['stop_sell' => true]);

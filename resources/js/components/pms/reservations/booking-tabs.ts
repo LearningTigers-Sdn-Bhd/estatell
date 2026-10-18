@@ -6,7 +6,7 @@ const ORDER: BookingTab[] = ['rooms', 'discounts', 'add-ons', 'notes'];
 
 /**
  * Which tab each error belongs to. A discount or add-on error is for its own tab, a note error for Notes, and every
- * other error on a line or a guest is for Rooms & guests. Errors outside the tabs (dates, source, `form`) are not
+ * other error on a line or a guest is for Rooms & guests. Errors outside the tabs (dates, booking source, `form`) are not
  * counted.
  */
 export function errorTabs(errors: Errors): Record<BookingTab, boolean> {

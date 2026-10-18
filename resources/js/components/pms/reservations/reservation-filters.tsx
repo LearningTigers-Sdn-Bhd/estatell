@@ -6,6 +6,7 @@ import { FilterBar } from '@/components/pms/filter-bar';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { cn } from '@/lib/utils';
+import { sourceSelectOptions } from './booking-source-options';
 import { canResetFilters } from './reservation-query';
 import type { ReservationFilters, ReservationView } from './reservation-query';
 
@@ -27,7 +28,7 @@ export function ReservationFiltersBar({
     filters: ReservationFilters;
     sort: string;
     sorts: EnumOption[];
-    sources: EnumOption[];
+    sources: App.Data.Reservations.BookingSourceOptionData[];
     view: ReservationView;
     onChange: (changes: Partial<ReservationFilters>) => void;
     onSortChange: (sort: string) => void;
@@ -41,7 +42,7 @@ export function ReservationFiltersBar({
             searchPlaceholder="Search reservations by ref, guest, phone or email"
         >
             <EnumSelect
-                options={sources}
+                options={sourceSelectOptions(sources)}
                 value={filters.source}
                 onValueChange={(source) => onChange({ source })}
                 allLabel="All sources"

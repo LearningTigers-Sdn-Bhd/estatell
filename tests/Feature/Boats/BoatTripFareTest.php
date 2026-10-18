@@ -36,6 +36,7 @@ use App\Models\RoomType;
 use App\Models\UnitAddOn;
 use App\Models\UnitBoatTrip;
 use App\Models\User;
+use Database\Factories\BookingSourceFactory;
 use Illuminate\Support\Collection;
 use Illuminate\Testing\TestResponse;
 use Laravel\Pennant\Feature;
@@ -337,7 +338,7 @@ function fareBookingPost(array $setup): TestResponse
     return test()->actingAs($setup['user'])
         ->from(route('reservations.new', ['property' => $setup['property']->code]))
         ->post(route('reservations.store', ['property' => $setup['property']->code]), [
-            'source' => 'phone',
+            'booking_source_id' => BookingSourceFactory::directFor($setup['property']->id)->id,
             'arrival_date' => '2026-10-20',
             'departure_date' => '2026-10-22',
             'guests' => [['guest_id' => $setup['guest']->id]],

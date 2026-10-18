@@ -4,7 +4,7 @@
 
 Record where every booking came from, in the property's own words (Phone, WhatsApp, Booking.com), so the dashboard Channel mix is right even before the channel manager is on.
 
-**Status: planned.** It replaces the `ReservationSource` enum and `reservations.channel_name`. It lands before the dashboard Performance tab.
+**Status: commit 1 built** (the table, the enums, the seed, the backfill, the booking form and the reservation readers). The badge, the settings page and the OTA lists are planned. It replaced the `ReservationSource` enum and `reservations.channel_name`. It lands before the dashboard Performance tab.
 
 ## Data model
 
@@ -25,7 +25,7 @@ reservations      + booking_source_id (FK booking_sources, restrict, not null), 
 
 - Each property has its own list. A reservation points to one row, so renaming a source renames it on every booking.
 - The row's type carries the rules. Nothing else in the code branches on the name.
-- Company and Walk-in are one system row each. The code finds them by type alone.
+- Company and Walk-in are one system row each. The code finds them by type alone. System rows have `sort_order` 1000 and 1001, so they sit after the rows staff add (lists order by `is_system`, then `sort_order`).
 - An OTA row points to an [OTA channel](../21-channels/01-connections-and-feature-gate.md#ota-channels). Each real channel has at most one row per property. The **Other** channel can have many rows, one per name (for example Traveloka), so this rule lives in the Actions, not in an index.
 
 ## Enums
@@ -87,7 +87,7 @@ The reservation page header and summary card keep the source name as text.
 
 ## Defaults
 
-`SeedBookingSources` runs inside [`SeedPropertyDefaults`](../02-property/03-seed-property-defaults.md). It is idempotent: a repeat run restores missing system rows and keeps property changes.
+`SeedBookingSources` runs inside [`SeedPropertyDefaults`](../02-property/03-seed-property-defaults.md). It is idempotent: a repeat run restores a missing system row by type and keeps property changes. Phone, WhatsApp and Email are created only when the property has no booking source rows, so a source the owner deleted does not come back.
 
 | Name                   | Type    | System | Badge                     |
 | ---------------------- | ------- | ------ | ------------------------- |
@@ -194,16 +194,16 @@ One migration, with plain DB writes (no Actions), in this order:
 1. Create `booking_sources`. Insert the defaults for every property, with their badges, and one OTA row for each `property_ota_credentials` row (first letter, `forOtaChannelCode` color).
 2. Add `booking_source_id` as nullable and map the old values:
 
-| Old `source`               | New row                                                                                                                                                                                         |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `phone`                    | Phone                                                                                                                                                                                           |
-| `walk_in`                  | Walk-in                                                                                                                                                                                         |
-| `portal`                   | Company / Travel agent                                                                                                                                                                          |
-| `direct`                   | A Direct row named "Direct" (Globe icon, Indigo), created only in properties with such bookings. Staff can rename it (for example "Website") or turn it off. `company_id` is not used to guess. |
-| `channel` + `channel_name` | The OTA row of the channel whose name matches, ignoring case. No match: an OTA row on Other with that name. No name: an OTA row on Other named "OTA".                                           |
+| Old `source`               | New row                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `phone`                    | Phone                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `walk_in`                  | Walk-in                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `portal`                   | Company / Travel agent                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `direct`                   | A Direct row named "Direct" (Globe icon, Indigo), created only in properties with such bookings. Staff can rename it (for example "Website") or turn it off. `company_id` is not used to guess.                                                                                                                                                                                                                                                                                 |
+| `channel` + `channel_name` | In this order: (a) an existing OTA row of the property with that name, ignoring case; (b) a real `ota_channels` row with that name, ignoring case: a new OTA row on that channel, with the first letter and the `forOtaChannelCode` color; (c) an OTA row on Other with that name; (d) no name: an OTA row on Other named "OTA". An OTA row whose name another row of the property already uses gets " (OTA)" added. If `ota_channels` has no Other row, the migration adds it. |
 
 3. Make `booking_source_id` not null. Drop `source` and `channel_name`.
-4. `down()` maps back from the type, with the name as `channel_name` for OTA rows.
+4. `down()` maps back from the type: a Direct row named Phone gives `phone`, any other Direct row `direct`, Company gives `portal`, Walk-in `walk_in`, and an OTA row gives `channel` with the name as `channel_name`. It is lossy for other Direct names and for Company bookings that staff made.
 
 Before running it in production or demo, check `select source, channel_name, count(*) from reservations group by 1, 2`. On local data (2026-10-18): direct 54 (4 with a company), walk_in 1, phone 1, channel 1 ("Booking.com"), portal 0.
 
@@ -211,8 +211,8 @@ Before running it in production or demo, check `select source, channel_name, cou
 
 Four commits after the docs commit, as in the [checklist](../checklist.md#next):
 
-1. **Replace the reservation source with booking sources.** `BookingSourceType`, `BookingSourceIcon`, `SwatchColor` and the swatch tokens, `booking_sources`, `BookingSource` with its factory, `SeedBookingSources` and the backfill, with tests. `ReservationFactory` gets a source of the same property, with `walkIn()`, `ota()` and `company()` states. `NewReservationData` and `NewBookingData` take a `BookingSource` (no `source`, no `channelName`). `CreateReservation` checks that the source belongs to the property and logs its id and name. `StoreBookingRequest`, `ReservationBookingController` and the booking form. `ReservationData` (`sourceName`), `ReservationListItemData`, `ReservationDirectory`, the list filter, the subtitle and the reservation page. The seeders (Sandbay, Boreno, BookingScenarios). Delete `ReservationSource`. Regenerate Wayfinder and the TypeScript types. This commit drops `source` and `channel_name`, so every reader and writer changes in it.
-2. **Show the booking source badge.** `BookingSourceBadge` and `BookingSourceBadgeData` (`ReservationListItemData.source`) on the card and the List view.
+1. **Replace the reservation source with booking sources.** `BookingSourceType`, `BookingSourceIcon`, `SwatchColor` (the swatch tokens come with commit 2), `booking_sources`, `BookingSource` with its factory, `SeedBookingSources` and the backfill, with tests. `ReservationFactory` gets a source of the same property, with `walkIn()`, `ota()` and `company()` states. `NewReservationData` and `NewBookingData` take a `BookingSource` (no `source`, no `channelName`). `CreateReservation` checks that the source belongs to the property and logs its id and name. `StoreBookingRequest`, `ReservationBookingController` and the booking form. `ReservationData` (`sourceName`), `ReservationListItemData`, `ReservationDirectory`, the list filter, the subtitle and the reservation page. The seeders (Sandbay, Boreno, BookingScenarios). Delete `ReservationSource`. Regenerate Wayfinder and the TypeScript types. This commit drops `source` and `channel_name`, so every reader and writer changes in it.
+2. **Show the booking source badge.** The swatch tokens with a contrast check, `BookingSourceBadge` and `BookingSourceBadgeData` (`ReservationListItemData.source`) on the card and the List view. Until then the card shows a simple icon by type, and `ReservationListItemData` has `sourceName` and `sourceType`.
 3. **Manage booking sources.** The settings page and its Actions.
 4. **Add OTA lists to booking sources.** `EnsureOtaBookingSource` in `SaveOtaCredentials`.
 

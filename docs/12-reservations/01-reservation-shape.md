@@ -55,7 +55,7 @@ erDiagram
 - `ReservationStatus`: Confirmed, InHouse, Completed, Cancelled.
 - `UnitStatus`: Confirmed, CheckedIn, CheckedOut, Cancelled, NoShow (with `canTransitionTo()`).
 - `BillingMode`: MasterPays, MasterPaysAll, EachPays.
-- `BookingSourceType`: Direct, Ota, Company, WalkIn, on the property's [booking sources](11-booking-sources.md). It replaces `ReservationSource` (Direct, WalkIn, Phone, Channel, Portal) and `channel_name` (planned).
+- `BookingSourceType`: Direct, Ota, Company, WalkIn, on the property's [booking sources](11-booking-sources.md). It replaced `ReservationSource` (Direct, WalkIn, Phone, Channel, Portal) and `channel_name`.
 
 ### Unit transitions
 
@@ -112,7 +112,7 @@ It has no `canTransitionTo()` because nothing sets it by hand.
 | `notes` column, `AssignRoom`, `AssignBed`                                                     | Built, see [Booking form](05-booking-form.md#build-status)       |
 | Double-booking indexes on `unit_nights`                                                       | Room and bed assignment (module 18)                              |
 | Check-in, check-out, cancel, no-show, reinstate, move                                         | Front desk (module 18)                                           |
-| `booking_source_id` in place of `source` and `channel_name`                                   | Planned, see [Booking sources](11-booking-sources.md)            |
+| `booking_source_id` in place of `source` and `channel_name`                                   | Built, see [Booking sources](11-booking-sources.md)              |
 
 ## Lessons from wastays
 

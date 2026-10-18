@@ -17,7 +17,6 @@ use App\Enums\BoatDirection;
 use App\Enums\Gender;
 use App\Enums\Locale;
 use App\Enums\PermissionEnum;
-use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
 use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
@@ -43,6 +42,7 @@ use App\Services\FrontDesk\GroupCheckOutPreview;
 use App\Services\Guests\CountryOptions;
 use App\Services\Payments\PaymentReceipt;
 use App\Services\Platform\Impersonation;
+use App\Services\Reservations\BookingSourceOptions;
 use App\Services\Reservations\BookingSummary;
 use App\Services\Reservations\ReservationActivityLog;
 use App\Services\Reservations\ReservationBoatSetup;
@@ -65,7 +65,7 @@ class ReservationController extends Controller
     /**
      * List the property's reservations with status tabs, search, filters and sorting in the URL.
      */
-    public function index(Request $request, Property $property, ReservationDirectory $directory, ReservationRoomBox $roomBox, ReservationBoatSummary $boatSummary): Response
+    public function index(Request $request, Property $property, ReservationDirectory $directory, ReservationRoomBox $roomBox, ReservationBoatSummary $boatSummary, BookingSourceOptions $sourceOptions): Response
     {
         $reservations = $directory->paginate($property, $request);
         $page = $reservations->getCollection();
@@ -94,7 +94,7 @@ class ReservationController extends Controller
             ],
             'sort' => $request->string('sort', 'arrival')->toString(),
             'sorts' => $this->sortOptions(),
-            'sources' => ReservationSource::options(),
+            'sources' => $sourceOptions->forFilter($property),
             'currency' => $settings === null ? null : CurrencyData::fromCurrency($settings->currency),
             'hasReservations' => $property->reservations()->exists(),
             'canManage' => $request->user()->can(PermissionEnum::ReservationsManage->value),
@@ -281,7 +281,7 @@ class ReservationController extends Controller
     private function renderTab(User $user, Property $property, Reservation $reservation, string $tab, callable $tabProps): Response
     {
         $canViewGuest = $user->can(PermissionEnum::GuestsView->value);
-        $reservation->load(['booker', 'creator', 'company']);
+        $reservation->load(['booker', 'creator', 'company', 'bookingSource']);
         $overview = app(ReservationOverview::class)->build($reservation, $canViewGuest);
         $options = app(ReservationFormOptions::class);
         $hasBoats = Feature::for($property)->active(Boats::class);

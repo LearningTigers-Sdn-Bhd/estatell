@@ -17,7 +17,6 @@ use App\Enums\BillingMode;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
 use App\Enums\PaymentPurpose;
-use App\Enums\ReservationSource;
 use App\Enums\RoutingRuleSource;
 use App\Enums\TransactionCategory;
 use App\Enums\UnitStatus;
@@ -44,6 +43,7 @@ use App\Services\Folio\FolioRefusals;
 use App\Services\Folio\FolioRouter;
 use App\Services\Folio\RoutingRuleCheck;
 use Carbon\CarbonImmutable;
+use Database\Factories\BookingSourceFactory;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Models\Activity;
@@ -540,7 +540,7 @@ test('CreateReservation with 2 units creates the master folio and the rule', fun
 
     $result = app(CreateReservation::class)($setup['user'], $setup['property'], NewReservationData::from([
         'bookerGuestId' => $guest->id,
-        'source' => ReservationSource::Direct->value,
+        'bookingSource' => BookingSourceFactory::directFor($setup['property']->id),
         'billingMode' => BillingMode::MasterPaysAll->value,
         'units' => [$line, $line],
     ]));

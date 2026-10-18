@@ -52,10 +52,9 @@ class CreateBooking
 
                 $result = ($this->createReservation)($actor, $property, new NewReservationData(
                     bookerGuestId: $guestIds[0],
-                    source: $data->source,
+                    bookingSource: $data->bookingSource,
                     units: $data->units,
                     billingMode: $data->billingMode,
-                    channelName: $data->channelName,
                     externalReference: $data->externalReference,
                     companyId: $data->companyId,
                     creditOverrideReason: $data->creditOverrideReason,

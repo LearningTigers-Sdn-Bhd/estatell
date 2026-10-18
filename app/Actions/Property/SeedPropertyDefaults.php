@@ -12,6 +12,7 @@ use App\Actions\Meals\SeedMealPeriods;
 use App\Actions\Rates\SeedRatePlans;
 use App\Actions\Registration\SeedRegistrationCardFields;
 use App\Actions\Registration\SeedRegistrationTerms;
+use App\Actions\Reservations\SeedBookingSources;
 use App\Actions\Staff\SeedDefaultRoles;
 use App\Enums\MissedArrivalPolicy;
 use App\Enums\OverdueDeparturePolicy;
@@ -38,6 +39,7 @@ class SeedPropertyDefaults
         private SeedRatePlans $seedRatePlans,
         private SeedRegistrationCardFields $seedRegistrationCardFields,
         private SeedRegistrationTerms $seedRegistrationTerms,
+        private SeedBookingSources $seedBookingSources,
     ) {}
 
     /**
@@ -63,6 +65,7 @@ class SeedPropertyDefaults
             ($this->seedRatePlans)($property);
             ($this->seedRegistrationCardFields)($property);
             ($this->seedRegistrationTerms)($property, $type, $profile);
+            ($this->seedBookingSources)($property);
         });
     }
 

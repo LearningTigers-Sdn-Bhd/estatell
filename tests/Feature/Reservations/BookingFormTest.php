@@ -4,6 +4,7 @@ require_once __DIR__.'/../Support/BookingSetup.php';
 
 use App\Enums\DefaultRoleEnum;
 use App\Enums\DiscountScope;
+use App\Models\BookingSource;
 use App\Models\ChargeItem;
 use App\Models\Company;
 use App\Models\Discount;
@@ -32,7 +33,7 @@ beforeEach(function () {
 function bookingBody(array $setup, array $overrides = []): array
 {
     return [
-        'source' => 'phone',
+        'booking_source_id' => $setup['phone']->id,
         'arrival_date' => '2026-10-20',
         'departure_date' => '2026-10-22',
         'guests' => [['guest_id' => $setup['guest']->id]],
@@ -83,7 +84,7 @@ test('the new booking page sends the lists the form needs', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('reservations/create')
             ->where('isWalkIn', false)
-            ->where('sources', [['value' => 'direct', 'label' => 'Direct'], ['value' => 'phone', 'label' => 'Phone']])
+            ->where('sources', [['id' => $setup['phone']->id, 'name' => 'Phone', 'type' => 'direct', 'typeLabel' => 'Direct', 'isActive' => true], ['id' => $setup['ota']->id, 'name' => 'Booking.com', 'type' => 'ota', 'typeLabel' => 'OTA', 'isActive' => true]])
             ->where('today', '2026-10-10')
             ->where('checkInTime', '15:00')
             ->where('checkOutTime', '11:00')
@@ -109,7 +110,7 @@ test('the walk-in page fixes the source and the business date', function () {
         ->get(bookingFormUrl($setup, 'reservations.walk-in'))
         ->assertInertia(fn (Assert $page) => $page
             ->where('isWalkIn', true)
-            ->where('sources', [['value' => 'walk_in', 'label' => 'Walk-in']])
+            ->where('sources', [['id' => $setup['walkIn']->id, 'name' => 'Walk-in', 'type' => 'walk_in', 'typeLabel' => 'Walk-in', 'isActive' => true]])
             ->where('today', '2026-10-10'));
 });
 
@@ -163,7 +164,7 @@ test('a booking is saved and the user lands on the reservation page', function (
     expect($reservation->group_name)->toBe('Tan family trip')
         ->and($reservation->notes)->toBe('Needs a cot.')
         ->and($reservation->external_reference)->toBe('OTA-1')
-        ->and($reservation->source->value)->toBe('phone')
+        ->and($reservation->booking_source_id)->toBe($setup['phone']->id)
         ->and($reservation->booker_guest_id)->toBe($setup['guest']->id)
         ->and($units)->toHaveCount(3)
         ->and($units[0]->childAges()->pluck('age')->all())->toBe([4, 9])
@@ -236,14 +237,14 @@ test('a walk-in needs a room or bed for every unit', function () {
 
     $this->actingAs($setup['user'])
         ->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, [
-            'source' => 'walk_in',
+            'booking_source_id' => $setup['walkIn']->id,
             'lines' => [bookingFormLine($setup), ['room_type_id' => $setup['dorm']->id, 'rate_plan_id' => $setup['bedPlan']->id, 'adults' => 1, 'beds' => 2, 'bed_ids' => [$setup['beds'][0]->id]]],
         ]))
         ->assertSessionHasErrors(['lines.0.room_id' => 'Select a room.', 'lines.1.bed_ids.1' => 'Select a bed.']);
 
     expect(Reservation::query()->count())->toBe(0);
 
-    $this->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, ['source' => 'walk_in', 'arrival_date' => '2026-10-10', 'departure_date' => '2026-10-11', 'lines' => [bookingFormLine($setup, ['room_id' => $setup['rooms'][0]->id])]]))
+    $this->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, ['booking_source_id' => $setup['walkIn']->id, 'arrival_date' => '2026-10-10', 'departure_date' => '2026-10-11', 'lines' => [bookingFormLine($setup, ['room_id' => $setup['rooms'][0]->id])]]))
         ->assertSessionHasErrors('form');
 });
 
@@ -252,7 +253,11 @@ test('the booking form checks its shape', function (string $case) {
     [$overrides, $field] = match ($case) {
         'no booker' => [['guests' => []], 'guests'],
         'no lines' => [['lines' => []], 'lines'],
-        'a source that is not offered' => [['source' => 'channel'], 'source'],
+        'no booking source' => [['booking_source_id' => null], 'booking_source_id'],
+        'a booking source of another property' => [['booking_source_id' => BookingSource::factory()->create()->id], 'booking_source_id'],
+        'an inactive booking source' => [['booking_source_id' => BookingSource::factory()->inactive()->create(['property_id' => $setup['property']->id])->id], 'booking_source_id'],
+        'an OTA source without a booking number' => [['booking_source_id' => $setup['ota']->id], 'external_reference'],
+        'a company source without a company' => [['booking_source_id' => $setup['companySource']->id], 'company_id'],
         'a bad date' => [['arrival_date' => 'soon'], 'arrival_date'],
         'a child age left empty' => [['lines' => [bookingFormLine($setup, ['child_ages' => [null]])]], 'lines.0.child_ages.0'],
         'notes that are too long' => [['notes' => str_repeat('a', 2001)], 'notes'],
@@ -264,7 +269,7 @@ test('the booking form checks its shape', function (string $case) {
         ->assertSessionHasErrors($field);
 
     expect(Reservation::query()->count())->toBe(0);
-})->with(['no booker', 'no lines', 'a source that is not offered', 'a bad date', 'a child age left empty', 'notes that are too long', 'a bad override amount']);
+})->with(['no booker', 'no lines', 'no booking source', 'a booking source of another property', 'an inactive booking source', 'an OTA source without a booking number', 'a company source without a company', 'a bad date', 'a child age left empty', 'notes that are too long', 'a bad override amount']);
 
 test('the booking routes need reservations.manage and stay in their property', function () {
     $setup = bookingSetup();
@@ -426,7 +431,7 @@ test('a mode switch gets the walk-in props in a partial request', function () {
         ->get(bookingFormUrl($setup, 'reservations.walk-in'))
         ->assertOk()
         ->assertJsonPath('props.isWalkIn', true)
-        ->assertJsonPath('props.sources.0.value', 'walk_in')
+        ->assertJsonPath('props.sources.0.type', 'walk_in')
         ->assertJsonPath('props.nowTime', fn (string $time) => preg_match('/^\d{2}:\d{2}$/', $time) === 1)
         ->assertJsonMissingPath('props.addUnitOptions');
 });
@@ -505,4 +510,67 @@ test('the booking form options say which charge items are added automatically', 
     $this->actingAs($setup['user'])
         ->get(bookingFormUrl($setup, 'reservations.new'))
         ->assertInertia(fn (Assert $page) => $page->where('chargeItems.0.autoAdd', true));
+});
+
+test('an OTA booking with its booking number saves on the OTA source', function () {
+    $setup = bookingSetup();
+
+    $this->actingAs($setup['user'])
+        ->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, ['booking_source_id' => $setup['ota']->id, 'external_reference' => 'BK-12345']))
+        ->assertSessionHasNoErrors();
+
+    $reservation = Reservation::query()->sole();
+
+    expect($reservation->booking_source_id)->toBe($setup['ota']->id)
+        ->and($reservation->external_reference)->toBe('BK-12345');
+});
+
+test('the booking source errors say what is missing', function () {
+    $setup = bookingSetup();
+
+    $this->actingAs($setup['user'])
+        ->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, ['booking_source_id' => $setup['ota']->id]))
+        ->assertSessionHasErrors(['external_reference' => 'Enter the OTA booking number.']);
+
+    $this->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, ['booking_source_id' => $setup['companySource']->id]))
+        ->assertSessionHasErrors(['company_id' => 'Select the company.']);
+
+    $this->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, ['booking_source_id' => null]))
+        ->assertSessionHasErrors(['booking_source_id' => 'Pick a booking source.']);
+
+    expect(Reservation::query()->count())->toBe(0);
+});
+
+test('a Company / Travel agent booking saves with its company and needs company.view', function () {
+    $setup = bookingSetup();
+    $company = Company::factory()->for($setup['property'])->create();
+
+    $this->actingAs($setup['user'])
+        ->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, ['booking_source_id' => $setup['companySource']->id, 'company_id' => $company->id]))
+        ->assertSessionHasNoErrors();
+
+    expect(Reservation::query()->sole()->booking_source_id)->toBe($setup['companySource']->id);
+
+    actionsRoleWith($setup['user'], ['reservations.view', 'reservations.manage', 'guests.view']);
+
+    $this->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, ['booking_source_id' => $setup['companySource']->id, 'company_id' => $company->id]))
+        ->assertSessionHasErrors(['booking_source_id' => 'This booking source is not available. Pick another.']);
+
+    expect(Reservation::query()->count())->toBe(1);
+});
+
+test('the Source select offers the Company source only to staff with company.view and an Active company', function () {
+    $setup = bookingSetup();
+    $offered = fn () => collect($this->actingAs($setup['user'])->get(bookingFormUrl($setup, 'reservations.new'))->original->getData()['page']['props']['sources'])->pluck('name')->all();
+
+    expect($offered())->toBe(['Phone', 'Booking.com']);
+
+    Company::factory()->for($setup['property'])->create();
+    BookingSource::factory()->inactive()->create(['property_id' => $setup['property']->id, 'name' => 'Old desk']);
+
+    expect($offered())->toBe(['Phone', 'Booking.com', 'Company / Travel agent']);
+
+    actionsRoleWith($setup['user'], ['reservations.view', 'reservations.manage', 'guests.view']);
+
+    expect($offered())->toBe(['Phone', 'Booking.com']);
 });

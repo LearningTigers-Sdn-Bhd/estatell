@@ -42,7 +42,8 @@ export type BookingForm = {
     stay_type: 'overnight' | 'day_use';
     /** Day use only: the start of every block, `H:i`. */
     start_time: string;
-    source: string;
+    /** The id of the booking source, as text. */
+    booking_source_id: string;
     external_reference: string;
     arrival_date: string;
     departure_date: string;

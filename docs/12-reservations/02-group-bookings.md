@@ -30,7 +30,7 @@ This item also builds the backend that creates every reservation: single rooms, 
 
 | Class                | Fields                                                                                                                                                                                                                                                                                                                                      |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `NewReservationData` | `booker_guest_id`, `source`, `channel_name`, `external_reference`, `company_id`, `group_name`, `billing_mode`, `units` (list of `NewUnitData`)                                                                                                                                                                                              |
+| `NewReservationData` | `booker_guest_id`, `booking_source` (a `BookingSource` of the property), `external_reference`, `company_id`, `group_name`, `billing_mode`, `units` (list of `NewUnitData`)                                                                                                                                                                  |
 | `NewUnitData`        | `room_type_id`, `rate_plan_id`, `arrival_date`, `departure_date`, `adults`, `child_ages` (list of int), `beds` (default 1), `discount_id`, `late_arrival_expected`, `override_total`, `override_reason`, `restriction_override_reason`, `add_ons` (list of `NewAddOnData`, added by the [add-ons](04-add-ons.md#booking-with-add-ons) item) |
 
 In code the properties are camelCase (`roomTypeId`, `arrivalDate`). Dates are `Y-m-d` strings, and `overrideTotal` is a decimal string. The booker is an existing guest. Creating guests from the form tabs is in the booking form item. Both Actions take the acting `User $actor`, which becomes `created_by` and the activity log causer. How a channel booking, which has no staff user, fills `created_by` is decided in [booking ingestion](../21-channels/05-booking-ingestion.md).
@@ -59,7 +59,8 @@ Creates the reservation and its units in one transaction.
 - A `company_id` must be an Active company of the property, otherwise `company_not_available`. `fromChannel` and portal bookings follow the same rule.
 - Locks every room type of the request in id order before the first line, so two group bookings cannot deadlock. `AddUnit` locks the same rows again at no cost.
 - `reference` from `NextDocumentNumber` (`DocumentType::Reservation`).
-- Sets the booker, `source`, `channel_name`, `external_reference`, `company_id`, `group_name`, `billing_mode` and `created_by`.
+- Refuses a booking source of another property (`booking_source_not_available`). An inactive source of the property is accepted, so ingestion keeps working after staff turn a source off. The OTA and Company rules are checked by `StoreBookingRequest`, not here.
+- Sets the booker, `booking_source_id`, `external_reference`, `company_id`, `group_name`, `billing_mode` and `created_by`.
 - For each line, calls `AddUnit` once per bed (`beds`, Bed room types) or once (Room room types). A Room room type with `beds` above 1 is refused as `invalid_stay`.
 - When one line is refused, nothing is saved (the reference number is not used up) and the result names the line. Refusals write no activity.
 

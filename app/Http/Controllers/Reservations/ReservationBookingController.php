@@ -9,7 +9,6 @@ use App\Enums\BoatDirection;
 use App\Enums\Gender;
 use App\Enums\Locale;
 use App\Enums\PermissionEnum;
-use App\Enums\ReservationSource;
 use App\Features\Boats;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Reservations\BoatSeatsRequest;
@@ -30,6 +29,7 @@ use App\Services\Property\PropertyToday;
 use App\Services\Rates\DayUseOffers;
 use App\Services\Reservations\BookingErrorKeys;
 use App\Services\Reservations\BookingQuote;
+use App\Services\Reservations\BookingSourceOptions;
 use App\Services\Reservations\ReservationFormOptions;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -44,17 +44,17 @@ class ReservationBookingController extends Controller
     /**
      * The booking form for a new booking.
      */
-    public function new(Request $request, Property $property, ReservationFormOptions $options, CurrentBusinessDate $businessDate, PropertyToday $today): Response
+    public function new(Request $request, Property $property, ReservationFormOptions $options, CurrentBusinessDate $businessDate, PropertyToday $today, BookingSourceOptions $sourceOptions): Response
     {
-        return $this->form($request, $property, $options, $businessDate, $today, walkIn: false);
+        return $this->form($request, $property, $options, $businessDate, $today, $sourceOptions, walkIn: false);
     }
 
     /**
      * The same form as a walk-in: the source is fixed, the arrival is the business date and a room or bed is required.
      */
-    public function walkIn(Request $request, Property $property, ReservationFormOptions $options, CurrentBusinessDate $businessDate, PropertyToday $today): Response
+    public function walkIn(Request $request, Property $property, ReservationFormOptions $options, CurrentBusinessDate $businessDate, PropertyToday $today, BookingSourceOptions $sourceOptions): Response
     {
-        return $this->form($request, $property, $options, $businessDate, $today, walkIn: true);
+        return $this->form($request, $property, $options, $businessDate, $today, $sourceOptions, walkIn: true);
     }
 
     /**
@@ -168,14 +168,14 @@ class ReservationBookingController extends Controller
         return response()->json(['seats' => (object) $boatSeats->forDate($direction, $request->date('date', 'Y-m-d')->toImmutable(), $departureIds)]);
     }
 
-    private function form(Request $request, Property $property, ReservationFormOptions $options, CurrentBusinessDate $businessDate, PropertyToday $today, bool $walkIn): Response
+    private function form(Request $request, Property $property, ReservationFormOptions $options, CurrentBusinessDate $businessDate, PropertyToday $today, BookingSourceOptions $sourceOptions, bool $walkIn): Response
     {
         $canManageGuests = $request->user()->can(PermissionEnum::GuestsManage->value);
-        $sources = $walkIn ? [ReservationSource::WalkIn] : [ReservationSource::Direct, ReservationSource::Phone];
+        $companies = $request->user()->can(PermissionEnum::CompanyView->value) ? app(CompanyOptions::class)->active($property) : [];
 
         return Inertia::render('reservations/create', [
             'isWalkIn' => $walkIn,
-            'sources' => array_map(fn (ReservationSource $source): array => ['value' => $source->value, 'label' => $source->label()], $sources),
+            'sources' => $sourceOptions->forBooking($property, $walkIn, canUseCompany: $companies !== []),
             'today' => ($businessDate->date($property) ?? $today->date($property))->toDateString(),
             'checkInTime' => substr($property->settings->check_in_time ?? '15:00', 0, 5),
             'checkOutTime' => substr($property->settings->check_out_time ?? '11:00', 0, 5),
@@ -185,7 +185,7 @@ class ReservationBookingController extends Controller
             'discounts' => $options->roomDiscounts($property),
             'billingModes' => BillingMode::options(),
             'canOverrideCredit' => $request->user()->can(PermissionEnum::CompanyCreditOverride->value),
-            'companies' => $request->user()->can(PermissionEnum::CompanyView->value) ? app(CompanyOptions::class)->active($property) : [],
+            'companies' => $companies,
             'hasDayUse' => $property->ratePlans()->active()->dayUse()->exists(),
             'hasBoats' => Feature::for($property)->active(Boats::class),
             'boatDepartures' => Feature::for($property)->active(Boats::class) ? $options->boatDepartures($property) : [],

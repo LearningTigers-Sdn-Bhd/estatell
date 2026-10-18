@@ -13,6 +13,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
+import { sourceSelectOptions } from '@/components/pms/reservations/booking-source-options';
 import { FormActions } from '@/components/pms/form-actions';
 import { PageHeader } from '@/components/pms/page-header';
 import {
@@ -109,7 +110,7 @@ type Quote = App.Data.Reservations.BookingQuoteData;
 
 type Props = {
     isWalkIn: boolean;
-    sources: EnumOption[];
+    sources: App.Data.Reservations.BookingSourceOptionData[];
     /** The business date, `Y-m-d`. Not named `businessDate`: that is the shared prop the header indicator reads. */
     today: string;
     /** The property's check-in and check-out times, `H:i`: the defaults of the expected times. */
@@ -191,7 +192,7 @@ export default function ReservationCreate({
     const form = useForm<BookingForm>({
         stay_type: 'overnight',
         start_time: '',
-        source: sources[0]?.value ?? 'direct',
+        booking_source_id: String(sources[0]?.id ?? ''),
         external_reference: '',
         arrival_date: today,
         departure_date: '',
@@ -223,7 +224,7 @@ export default function ReservationCreate({
         lastMode.current = isWalkIn;
         form.setData((current) => ({
             ...current,
-            source: isWalkIn ? 'walk_in' : (sources[0]?.value ?? 'direct'),
+            booking_source_id: String(sources[0]?.id ?? ''),
             arrival_date: isWalkIn ? today : current.arrival_date,
             arrival_time: isWalkIn ? nowTime : current.arrival_time,
             start_time:
@@ -271,6 +272,9 @@ export default function ReservationCreate({
             only: ['isWalkIn', 'sources', 'nowTime'],
         });
     };
+    const sourceType = sources.find(
+        (source) => String(source.id) === data.booking_source_id,
+    )?.type;
     const isDayUse = data.stay_type === 'day_use';
     // A refusal of the start of a block can come back on the form or on a line.
     const startError =
@@ -765,25 +769,33 @@ export default function ReservationCreate({
                                             ) && 'lg:grid-cols-3',
                                         )}
                                     >
-                                        <Field data-invalid={!!errors.source}>
+                                        <Field
+                                            data-invalid={
+                                                !!errors.booking_source_id
+                                            }
+                                        >
                                             <FieldLabel htmlFor="booking-source">
                                                 Source
                                             </FieldLabel>
                                             <EnumSelect
                                                 id="booking-source"
-                                                options={sources}
-                                                value={data.source}
+                                                options={sourceSelectOptions(
+                                                    sources,
+                                                )}
+                                                value={data.booking_source_id}
                                                 onValueChange={(value) =>
                                                     form.setData(
-                                                        'source',
+                                                        'booking_source_id',
                                                         value,
                                                     )
                                                 }
                                                 disabled={sources.length === 1}
-                                                aria-invalid={!!errors.source}
+                                                aria-invalid={
+                                                    !!errors.booking_source_id
+                                                }
                                             />
                                             <FieldError>
-                                                {errors.source}
+                                                {errors.booking_source_id}
                                             </FieldError>
                                         </Field>
                                         <Field
@@ -793,6 +805,8 @@ export default function ReservationCreate({
                                         >
                                             <FieldLabel htmlFor="booking-external_reference">
                                                 External reference
+                                                {sourceType === 'ota' &&
+                                                    ' (required)'}
                                             </FieldLabel>
                                             <Input
                                                 id="booking-external_reference"
@@ -822,6 +836,8 @@ export default function ReservationCreate({
                                             >
                                                 <FieldLabel htmlFor="booking-company_id">
                                                     Company
+                                                    {sourceType === 'company' &&
+                                                        ' (required)'}
                                                 </FieldLabel>
                                                 <CompanySelect
                                                     id="booking-company_id"

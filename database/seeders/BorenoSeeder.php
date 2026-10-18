@@ -55,10 +55,10 @@ use App\Enums\PaymentPurpose;
 use App\Enums\PricingBasis;
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
-use App\Enums\ReservationSource;
 use App\Enums\SellUnit;
 use App\Enums\TransactionCategory;
 use App\Models\ArInvoice;
+use App\Models\BookingSource;
 use App\Models\ChargeItem;
 use App\Models\Company;
 use App\Models\Guest;
@@ -447,7 +447,7 @@ class BorenoSeeder extends Seeder
             $roomType = $roomTypes[$roomTypeName];
 
             $result = app(CreateBooking::class)($owner, $property, new NewBookingData(
-                source: $options['source'] ?? ReservationSource::Direct,
+                bookingSource: $this->bookingSource($property, $options['source'] ?? null),
                 units: [new NewUnitData(
                     roomTypeId: $roomType->id,
                     ratePlanId: $plans[$planName]->id,
@@ -475,7 +475,7 @@ class BorenoSeeder extends Seeder
         // Future bookings.
         $deposit = $book('Deluxe Room', 'Bed & Breakfast', 2, 3, 2, 8, ['notes' => 'Honeymoon. Late check-in around 23:00.']);
         $book('Standard Room', 'Room Only', 3, 2, 1, 2, ['company' => $energy, 'discount' => $corporate]);
-        $book('Standard Room', 'Bed & Breakfast', 4, 4, 2, 9, ['source' => ReservationSource::Phone]);
+        $book('Standard Room', 'Bed & Breakfast', 4, 4, 2, 9, ['source' => 'Phone']);
         $book('Executive Suite', 'Bed & Breakfast', 5, 2, 2, 13);
         $book('Standard Room', 'Room Only', 9, 1, 1, 6, ['company' => $companies['government']->id]);
         $book('Deluxe Room', 'Room Only', 12, 5, 2, 14, ['assign' => false]);
@@ -489,7 +489,7 @@ class BorenoSeeder extends Seeder
 
         // In house.
         $ahmad = $book('Executive Suite', 'Bed & Breakfast', 0, 3, 1, 0, ['company' => $energy, 'notes' => 'Regional manager. Prefers a high floor.']);
-        $leisure = $book('Standard Room', 'Room Only', 0, 2, 2, 4, ['source' => ReservationSource::WalkIn]);
+        $leisure = $book('Standard Room', 'Room Only', 0, 2, 2, 4, ['source' => 'Walk-in']);
 
         $noShow = $book('Standard Room', 'Room Only', 0, 1, 1, 5);
         $this->forEachUnit($noShow, fn (ReservationUnit $unit): UnitStayResult => app(MarkNoShow::class)($owner, $unit), 'The no-show');
@@ -528,7 +528,7 @@ class BorenoSeeder extends Seeder
         }
 
         $result = app(CreateBooking::class)($owner, $property, new NewBookingData(
-            source: ReservationSource::Direct,
+            bookingSource: $this->bookingSource($property),
             units: $units,
             guests: [
                 new NewBookingGuestData(guestId: $guests[1]->id, unitIndex: 0),
@@ -648,5 +648,18 @@ class BorenoSeeder extends Seeder
         app(SetRoomRemark::class)($owner, $rooms['308'], 'Extra pillows requested for the next guest.');
         app(SetNeedsMaintenance::class)($owner, $rooms['318'], true);
         app(SetRoomRemark::class)($owner, $rooms['318'], 'Air conditioner leaking. Technician booked.');
+    }
+
+    private int $sourceCursor = 0;
+
+    /**
+     * A booking source of the property by name. Without a name the default Direct sources take turns (Phone, WhatsApp,
+     * Email), so the sample list shows more than one source.
+     */
+    private function bookingSource(Property $property, ?string $name = null): BookingSource
+    {
+        $name ??= ['Phone', 'WhatsApp', 'Email'][$this->sourceCursor++ % 3];
+
+        return BookingSource::query()->where('property_id', $property->id)->where('name', $name)->firstOrFail();
     }
 }

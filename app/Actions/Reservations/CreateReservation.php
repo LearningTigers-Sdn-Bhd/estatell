@@ -53,6 +53,10 @@ class CreateReservation
             return ReservationResult::refused(ReservationResult::REFUSAL_COMPANY_NOT_AVAILABLE);
         }
 
+        if ($data->bookingSource->property_id !== $property->id) {
+            return ReservationResult::refused(ReservationResult::REFUSAL_BOOKING_SOURCE_NOT_AVAILABLE);
+        }
+
         $stayTypes = array_unique(array_map(fn (NewUnitData $line): string => $line->stayType->value, $data->units));
 
         if (count($stayTypes) > 1) {
@@ -78,13 +82,12 @@ class CreateReservation
                     'company_id' => $data->companyId,
                     'group_name' => $data->groupName,
                     'billing_mode' => $data->billingMode,
-                    'source' => $data->source,
-                    'channel_name' => $data->channelName,
                     'external_reference' => $data->externalReference,
                     'notes' => $data->notes === null || trim($data->notes) === '' ? null : trim($data->notes),
                 ]);
                 $reservation->forceFill([
                     'property_id' => $property->id,
+                    'booking_source_id' => $data->bookingSource->id,
                     'reference' => ($this->nextDocumentNumber)($property, DocumentType::Reservation)->reference,
                     'status' => ReservationStatus::Confirmed,
                     'created_by' => $actor->id,
@@ -111,7 +114,8 @@ class CreateReservation
                     ->withProperties([
                         'property_id' => $property->id,
                         'reference' => $reservation->reference,
-                        'source' => $reservation->source->value,
+                        'booking_source_id' => $data->bookingSource->id,
+                        'booking_source' => $data->bookingSource->name,
                         'units' => $reservation->units()->count(),
                         'has_notes' => $reservation->notes !== null,
                     ])

@@ -5,7 +5,6 @@ import {
     Globe,
     Info,
     Network,
-    Phone,
     RotateCw,
     Star,
     Users,
@@ -64,20 +63,19 @@ export function RoomTotalLabel() {
     );
 }
 
-const sourceIcons: Record<string, LucideIcon> = {
+const sourceIcons: Record<App.Enums.BookingSourceType, LucideIcon> = {
     direct: Globe,
+    ota: Network,
+    company: BriefcaseBusiness,
     walk_in: Footprints,
-    phone: Phone,
-    channel: Network,
-    portal: BriefcaseBusiness,
 };
 
 /** The booking source as an icon, with its label on hover. */
 export function SourceIcon({ reservation }: { reservation: Item }) {
     return (
         <IconWithTooltip
-            icon={sourceIcons[reservation.source] ?? Globe}
-            label={reservation.sourceLabel}
+            icon={sourceIcons[reservation.sourceType]}
+            label={reservation.sourceName}
             className="text-muted-foreground"
         />
     );
@@ -120,7 +118,7 @@ export function ReservationMarkers({ reservation }: { reservation: Item }) {
 }
 
 /**
- * The booker (groups only) and the reference. Channel bookings add the channel and its reference.
+ * The booker (groups only) and the reference. OTA bookings add the source name. The external reference follows when set.
  */
 export function reservationSubtitle(reservation: Item): string {
     return [
@@ -128,7 +126,7 @@ export function reservationSubtitle(reservation: Item): string {
             ? reservation.bookerName
             : null,
         reservation.reference,
-        reservation.channelName,
+        reservation.sourceType === 'ota' ? reservation.sourceName : null,
         reservation.externalReference,
     ]
         .filter(Boolean)

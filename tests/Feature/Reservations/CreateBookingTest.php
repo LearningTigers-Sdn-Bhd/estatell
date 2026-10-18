@@ -8,11 +8,11 @@ use App\Actions\Reservations\BookingResult;
 use App\Actions\Reservations\CreateBooking;
 use App\Actions\Reservations\ReservationResult;
 use App\Data\Reservations\NewBookingData;
-use App\Enums\ReservationSource;
 use App\Models\Guest;
 use App\Models\Reservation;
 use App\Models\UnitGuest;
 use App\Models\UnitNight;
+use Database\Factories\BookingSourceFactory;
 use Spatie\Activitylog\Models\Activity;
 
 beforeEach(function () {
@@ -43,7 +43,7 @@ function bookingBedLine(array $setup, int $beds, array $overrides = []): array
 function createBooking(array $setup, array $data): BookingResult
 {
     return app(CreateBooking::class)($setup['user'], $setup['property'], NewBookingData::from([
-        'source' => ReservationSource::Phone->value,
+        'bookingSource' => BookingSourceFactory::directFor($setup['property']->id),
         ...$data,
     ]));
 }

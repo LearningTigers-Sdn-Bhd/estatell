@@ -3,7 +3,7 @@
 namespace App\Data\Reservations;
 
 use App\Data\Shared\BadgeData;
-use App\Enums\ReservationSource;
+use App\Enums\BookingSourceType;
 use App\Enums\ReservationStatus;
 use App\Enums\StayType;
 use App\Enums\Tone;
@@ -37,9 +37,8 @@ class ReservationListItemData extends Data
         public bool $isRepeat,
         public bool $isCancelled,
         public BadgeData $status,
-        public string $source,
-        public string $sourceLabel,
-        public ?string $channelName,
+        public string $sourceName,
+        public BookingSourceType $sourceType,
         public ?string $externalReference,
         public int $unitCount,
         public int $adults,
@@ -87,9 +86,8 @@ class ReservationListItemData extends Data
             isRepeat: $isRepeat,
             isCancelled: $reservation->status === ReservationStatus::Cancelled,
             status: BadgeData::fromReservationStatus($reservation->status),
-            source: $reservation->source->value,
-            sourceLabel: $reservation->source->label(),
-            channelName: $reservation->source === ReservationSource::Channel ? $reservation->channel_name : null,
+            sourceName: $reservation->bookingSource->name,
+            sourceType: $reservation->bookingSource->type,
             externalReference: $reservation->external_reference,
             unitCount: $unitCount,
             adults: (int) $reservation->getAttribute('adults'),

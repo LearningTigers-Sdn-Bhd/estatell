@@ -14,7 +14,11 @@ test('each error goes to the tab it is shown on', () => {
 });
 
 test('errors outside the tabs do not mark one', () => {
-    const tabs = errorTabs({ arrival_date: 'x', form: 'x', source: 'x' });
+    const tabs = errorTabs({
+        arrival_date: 'x',
+        form: 'x',
+        booking_source_id: 'x',
+    });
 
     expect(tabs).toEqual({
         rooms: false,

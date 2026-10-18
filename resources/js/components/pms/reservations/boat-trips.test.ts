@@ -156,7 +156,7 @@ describe('the booking payload', () => {
     const base: BookingForm = {
         stay_type: 'overnight',
         start_time: '',
-        source: 'phone',
+        booking_source_id: '1',
         external_reference: '',
         arrival_date: '2026-10-20',
         departure_date: '2026-10-22',

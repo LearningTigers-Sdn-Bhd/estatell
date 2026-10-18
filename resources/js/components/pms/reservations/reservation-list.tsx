@@ -105,17 +105,13 @@ export function ReservationList({
                 header: 'Source',
                 cell: (info) => (
                     <span className="flex flex-col">
-                        <span>{info.row.original.sourceLabel}</span>
-                        {info.row.original.channelName && (
-                            <span className="text-xs text-muted-foreground">
-                                {[
-                                    info.row.original.channelName,
-                                    info.row.original.externalReference,
-                                ]
-                                    .filter(Boolean)
-                                    .join(' · ')}
-                            </span>
-                        )}
+                        <span>{info.row.original.sourceName}</span>
+                        {info.row.original.sourceType === 'ota' &&
+                            info.row.original.externalReference && (
+                                <span className="text-xs text-muted-foreground">
+                                    {info.row.original.externalReference}
+                                </span>
+                            )}
                     </span>
                 ),
             }),

@@ -42,7 +42,7 @@ type Props = {
     filters: ReservationFilters;
     sort: string;
     sorts: EnumOption[];
-    sources: EnumOption[];
+    sources: App.Data.Reservations.BookingSourceOptionData[];
     currency: App.Data.Property.CurrencyData | null;
     hasReservations: boolean;
     canManage: boolean;

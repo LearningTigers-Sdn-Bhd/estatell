@@ -12,10 +12,10 @@ use App\Enums\BillingMode;
 use App\Enums\BoatDirection;
 use App\Enums\BoatMode;
 use App\Enums\PermissionEnum;
-use App\Enums\ReservationSource;
 use App\Enums\SellUnit;
 use App\Enums\StayType;
 use App\Http\Requests\Guests\GuestProfileRules;
+use App\Models\BookingSource;
 use App\Models\Property;
 use App\Models\RoomType;
 use Carbon\CarbonImmutable;
@@ -23,6 +23,7 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
+use LogicException;
 
 class StoreBookingRequest extends FormRequest
 {
@@ -35,7 +36,7 @@ class StoreBookingRequest extends FormRequest
     }
 
     /**
-     * Only the shape is checked here, plus the walk-in rule that every unit needs a room or bed. `CreateBooking` and the
+     * Only the shape is checked here, plus the booking source rules (an OTA source needs the OTA booking number, a Company / Travel agent source needs a company) and the walk-in rule that every unit needs a room or bed. `CreateBooking` and the
      * Actions under it check the stay, restrictions, availability and prices, and refuse with a code.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
@@ -43,7 +44,7 @@ class StoreBookingRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'source' => ['required', Rule::in([ReservationSource::Direct->value, ReservationSource::Phone->value, ReservationSource::WalkIn->value])],
+            'booking_source_id' => ['required', 'integer', Rule::exists('booking_sources', 'id')->where('property_id', $this->property()->id)->where('is_active', true)],
             'external_reference' => ['nullable', 'string', 'max:100'],
             'arrival_date' => ['required', 'date_format:Y-m-d'],
             'stay_type' => ['nullable', Rule::enum(StayType::class)],
@@ -102,6 +103,9 @@ class StoreBookingRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'booking_source_id.required' => __('Pick a booking source.'),
+            'booking_source_id.integer' => __('This booking source is not available. Pick another.'),
+            'booking_source_id.exists' => __('This booking source is not available. Pick another.'),
             'lines.*.override_total.regex' => __('Enter an amount such as 840.00.'),
             'lines.*.add_ons.*.unit_amount.regex' => __('Enter an amount such as 25.00.'),
             'lines.*.child_ages.*.required' => __('Enter the age of every child.'),
@@ -117,8 +121,9 @@ class StoreBookingRequest extends FormRequest
     {
         return [function (Validator $validator): void {
             $this->checkGuests($validator);
+            $this->checkBookingSource($validator);
 
-            if ($validator->errors()->isNotEmpty() || $this->input('source') !== ReservationSource::WalkIn->value) {
+            if ($validator->errors()->isNotEmpty() || ! $this->bookingSource()?->type->isWalkIn()) {
                 return;
             }
 
@@ -191,7 +196,7 @@ class StoreBookingRequest extends FormRequest
         }
 
         return new NewBookingData(
-            source: ReservationSource::from($this->validated('source')),
+            bookingSource: $this->bookingSource() ?? throw new LogicException('The booking source was validated.'),
             units: $units,
             guests: $this->guestTabs(),
             picks: $picks,
@@ -202,6 +207,57 @@ class StoreBookingRequest extends FormRequest
             creditOverrideReason: $this->user()->can(PermissionEnum::CompanyCreditOverride->value) ? $this->validated('credit_override_reason') : null,
             notes: $this->validated('notes'),
         );
+    }
+
+    /**
+     * The booking source of the request, found in the property. Null until the id passed its rule.
+     */
+    private function bookingSource(): ?BookingSource
+    {
+        if (! $this->bookingSourceLoaded) {
+            $this->bookingSourceLoaded = true;
+            $this->bookingSource = $this->integer('booking_source_id') === 0 ? null : BookingSource::query()
+                ->where('property_id', $this->property()->id)
+                ->where('is_active', true)
+                ->find($this->integer('booking_source_id'));
+        }
+
+        return $this->bookingSource;
+    }
+
+    private ?BookingSource $bookingSource = null;
+
+    private bool $bookingSourceLoaded = false;
+
+    /**
+     * The type of the source sets the rules. The server checks the type and the staff member's permission, not the form
+     * mode, because both modes post to the same route.
+     */
+    private function checkBookingSource(Validator $validator): void
+    {
+        if ($validator->errors()->has('booking_source_id') || $this->bookingSource() === null) {
+            return;
+        }
+
+        $type = $this->bookingSource()->type;
+
+        if ($type->requiresCompany() && ! $this->user()->can(PermissionEnum::CompanyView->value)) {
+            $validator->errors()->add('booking_source_id', __('This booking source is not available. Pick another.'));
+        } elseif ($type->requiresCompany() && ! $this->filled('company_id')) {
+            $validator->errors()->add('company_id', __('Select the company.'));
+        }
+
+        if ($type->requiresExternalReference() && trim((string) $this->input('external_reference')) === '') {
+            $validator->errors()->add('external_reference', __('Enter the OTA booking number.'));
+        }
+    }
+
+    private function property(): Property
+    {
+        /** @var Property $property */
+        $property = $this->route('property');
+
+        return $property;
     }
 
     /**

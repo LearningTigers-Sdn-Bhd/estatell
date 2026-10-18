@@ -3,8 +3,9 @@
 namespace App\Data\Reservations;
 
 use App\Enums\BillingMode;
-use App\Enums\ReservationSource;
+use App\Models\BookingSource;
 use Spatie\LaravelData\Data;
+use Spatie\TypeScriptTransformer\Attributes\LiteralTypeScriptType;
 
 /**
  * What `CreateReservation` needs: the booker, where the booking came from and one line for each room type and plan.
@@ -17,10 +18,10 @@ class NewReservationData extends Data
      */
     public function __construct(
         public int $bookerGuestId,
-        public ReservationSource $source,
+        #[LiteralTypeScriptType('{ id: number, name: string }')]
+        public BookingSource $bookingSource,
         public array $units,
         public BillingMode $billingMode = BillingMode::MasterPays,
-        public ?string $channelName = null,
         public ?string $externalReference = null,
         public ?int $companyId = null,
         public ?string $groupName = null,

@@ -7,6 +7,7 @@ use App\Enums\StayType;
 use App\Models\Rate;
 use App\Models\Reservation;
 use App\Models\User;
+use Database\Factories\BookingSourceFactory;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
@@ -21,7 +22,7 @@ beforeEach(function () {
 function dayUseBody(array $setup, array $overrides = []): array
 {
     return [
-        'source' => 'phone',
+        'booking_source_id' => BookingSourceFactory::directFor($setup['property']->id)->id,
         'stay_type' => 'day_use',
         'arrival_date' => $setup['date']->toDateString(),
         'start_time' => '10:00',

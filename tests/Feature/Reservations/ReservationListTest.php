@@ -1,11 +1,11 @@
 <?php
 
 use App\Enums\DefaultRoleEnum;
-use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TransactionKind;
 use App\Models\Bed;
+use App\Models\BookingSource;
 use App\Models\BusinessDate;
 use App\Models\Folio;
 use App\Models\FolioLine;
@@ -123,7 +123,7 @@ test('only the property\'s own reservations are listed', function () {
 
 test('the list sends one item with its stay, units, occupancy, total and source', function () {
     [$user, $property] = listOwner();
-    $reservation = listReservation($property, ['source' => ReservationSource::Channel, 'channel_name' => 'Booking.com', 'external_reference' => 'BK-77', 'group_name' => 'Tan trip'], [
+    $reservation = listReservation($property, ['booking_source_id' => BookingSource::factory()->ota()->create(['property_id' => $property->id])->id, 'external_reference' => 'BK-77', 'group_name' => 'Tan trip'], [
         ['adults' => 2, 'children' => 1],
         ['arrival_date' => '2026-10-13', 'departure_date' => '2026-10-16', 'adults' => 1],
     ]);
@@ -141,8 +141,8 @@ test('the list sends one item with its stay, units, occupancy, total and source'
         ->where('reservations.data.0.lastDeparture', '2026-10-16')
         ->where('reservations.data.0.nights', 4)
         ->where('reservations.data.0.total', '600.00')
-        ->where('reservations.data.0.sourceLabel', 'Channel')
-        ->where('reservations.data.0.channelName', 'Booking.com')
+        ->where('reservations.data.0.sourceName', 'Booking.com')
+        ->where('reservations.data.0.sourceType', 'ota')
         ->where('reservations.data.0.externalReference', 'BK-77')
         ->where('reservations.data.0.status.label', 'Confirmed')
         ->where('reservations.data.0.bookedOn', now()->toDateString())
@@ -238,16 +238,29 @@ test('the status filter narrows the list and an unknown status is ignored', func
 test('the source filter narrows the list', function () {
     [$user, $property] = listOwner();
     listReservation($property);
-    $phone = listReservation($property, ['source' => ReservationSource::Phone]);
+    $phone = BookingSource::factory()->create(['property_id' => $property->id, 'name' => 'Phone']);
+    $inactive = BookingSource::factory()->inactive()->create(['property_id' => $property->id, 'name' => 'Old desk']);
+    $onPhone = listReservation($property, ['booking_source_id' => $phone->id]);
+    $onInactive = listReservation($property, ['booking_source_id' => $inactive->id]);
+    $foreign = BookingSource::factory()->create();
 
-    expect(listedReferences($user, $property, ['filter' => ['source' => 'phone']]))->toBe([$phone->reference]);
+    expect(listedReferences($user, $property, ['filter' => ['source' => (string) $phone->id]]))->toBe([$onPhone->reference])
+        ->and(listedReferences($user, $property, ['filter' => ['source' => (string) $inactive->id]]))->toBe([$onInactive->reference])
+        ->and(listedReferences($user, $property, ['filter' => ['source' => (string) $foreign->id]]))->toBe([])
+        ->and(listedReferences($user, $property, ['filter' => ['source' => 'phone']]))->toHaveCount(3);
+
+    $this->actingAs($user)->get(listUrl($property))->assertInertia(fn (Assert $page) => $page
+        ->has('sources', 3)
+        ->where('sources.2.isActive', false)
+        ->where('sources.2.typeLabel', 'Direct'));
 });
 
 test('the status counts follow every filter except the status', function () {
     [$user, $property] = listOwner();
-    listReservation($property, ['source' => ReservationSource::Phone]);
-    listReservation($property, ['source' => ReservationSource::Phone, 'status' => ReservationStatus::InHouse]);
-    listReservation($property, ['source' => ReservationSource::Phone, 'status' => ReservationStatus::Cancelled]);
+    $phone = BookingSource::factory()->create(['property_id' => $property->id, 'name' => 'Phone'])->id;
+    listReservation($property, ['booking_source_id' => $phone]);
+    listReservation($property, ['booking_source_id' => $phone, 'status' => ReservationStatus::InHouse]);
+    listReservation($property, ['booking_source_id' => $phone, 'status' => ReservationStatus::Cancelled]);
     listReservation($property, ['status' => ReservationStatus::InHouse]);
     listReservation($property, ['status' => ReservationStatus::Completed], [['arrival_date' => '2026-09-01', 'departure_date' => '2026-09-02']]);
 
@@ -256,7 +269,7 @@ test('the status counts follow every filter except the status', function () {
         ->all();
 
     expect($counts([]))->toBe(['' => 4, 'confirmed' => 1, 'in_house' => 2, 'completed' => 0, 'cancelled' => 1])
-        ->and($counts(['filter' => ['source' => 'phone', 'status' => 'cancelled']]))->toBe(['' => 3, 'confirmed' => 1, 'in_house' => 1, 'completed' => 0, 'cancelled' => 1])
+        ->and($counts(['filter' => ['source' => (string) $phone, 'status' => 'cancelled']]))->toBe(['' => 3, 'confirmed' => 1, 'in_house' => 1, 'completed' => 0, 'cancelled' => 1])
         ->and($counts(['filter' => ['stay' => 'all']]))->toBe(['' => 5, 'confirmed' => 1, 'in_house' => 2, 'completed' => 1, 'cancelled' => 1]);
 });
 

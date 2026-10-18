@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Enums\BillingMode;
-use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
 use Carbon\CarbonImmutable;
 use Database\Factories\ReservationFactory;
@@ -25,8 +24,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $company_id The billed company.
  * @property string|null $group_name
  * @property BillingMode $billing_mode
- * @property ReservationSource $source
- * @property string|null $channel_name
+ * @property int $booking_source_id
  * @property string|null $external_reference
  * @property string|null $notes
  * @property int $created_by
@@ -36,7 +34,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CarbonImmutable|null $updated_at
  */
 #[Fillable([
-    'booker_guest_id', 'company_id', 'group_name', 'billing_mode', 'source', 'channel_name', 'external_reference', 'notes',
+    'booker_guest_id', 'company_id', 'group_name', 'billing_mode', 'external_reference', 'notes',
 ])]
 class Reservation extends Model
 {
@@ -51,7 +49,6 @@ class Reservation extends Model
         return [
             'status' => ReservationStatus::class,
             'billing_mode' => BillingMode::class,
-            'source' => ReservationSource::class,
             'cancellation_requested_at' => 'datetime',
         ];
     }
@@ -62,6 +59,14 @@ class Reservation extends Model
     public function property(): BelongsTo
     {
         return $this->belongsTo(Property::class);
+    }
+
+    /**
+     * @return BelongsTo<BookingSource, $this>
+     */
+    public function bookingSource(): BelongsTo
+    {
+        return $this->belongsTo(BookingSource::class);
     }
 
     /**

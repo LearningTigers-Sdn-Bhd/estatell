@@ -23,7 +23,7 @@ class ReservationOverview
     public function __construct(private ReservationRoomBox $roomBox, private StayLabel $stayLabel) {}
 
     /**
-     * Expects `booker`, `creator` and `company` to be loaded.
+     * Expects `booker`, `creator`, `company` and `bookingSource` to be loaded.
      *
      * @return array{reservation: ReservationData, units: list<ReservationUnitOptionData>, models: EloquentCollection<int, ReservationUnit>}
      */

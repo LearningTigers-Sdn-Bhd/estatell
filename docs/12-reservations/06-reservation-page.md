@@ -177,7 +177,7 @@ Below `lg`, List view shows the cards, as wastays does.
 
 ### Build status
 
-Built: `reservations.index` with the status tabs, search, source and stay filters, sorts, Cards and List views, the card, the room box and the sidebar item **All reservations**. `ReservationDirectory` (`app/Services/Reservations/`) runs the query and the counts, and `ReservationRoomBox` builds the room box. The URL values are `filter[status]`, `filter[source]` (a `ReservationSource` value until [booking sources](11-booking-sources.md) ship, then the source id), `filter[search]`, `filter[stay]` (`all`, or `from_to` with either date empty) and `sort`. A card or row opens `reservations.show` (the card title is a stretched link, and the **⋯** menu has **Open reservation** and, with `guests.view`, **Open guest**). **New booking** is hidden until the booking form.
+Built: `reservations.index` with the status tabs, search, source and stay filters, sorts, Cards and List views, the card, the room box and the sidebar item **All reservations**. `ReservationDirectory` (`app/Services/Reservations/`) runs the query and the counts, and `ReservationRoomBox` builds the room box. The URL values are `filter[status]`, `filter[source]` (the [booking source](11-booking-sources.md) id; a value that is not a number is ignored, and an id of another property matches nothing), `filter[search]`, `filter[stay]` (`all`, or `from_to` with either date empty) and `sort`. A card or row opens `reservations.show` (the card title is a stretched link, and the **⋯** menu has **Open reservation** and, with `guests.view`, **Open guest**). **New booking** is hidden until the booking form.
 
 ## Reservation page (Detail archetype)
 

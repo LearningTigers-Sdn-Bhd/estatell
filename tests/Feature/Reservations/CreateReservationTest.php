@@ -4,8 +4,9 @@ use App\Actions\Reservations\CreateReservation;
 use App\Actions\Reservations\ReservationResult;
 use App\Data\Reservations\NewReservationData;
 use App\Enums\BillingMode;
-use App\Enums\ReservationSource;
+use App\Enums\BookingSourceType;
 use App\Models\Bed;
+use App\Models\BookingSource;
 use App\Models\ChargeItem;
 use App\Models\Company;
 use App\Models\Guest;
@@ -22,6 +23,7 @@ use App\Models\UnitNight;
 use App\Models\User;
 use App\Services\Availability\AvailabilityService;
 use Carbon\CarbonImmutable;
+use Database\Factories\BookingSourceFactory;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Models\Activity;
@@ -100,7 +102,7 @@ function createReservation(array $setup, array $lines, array $overrides = [], bo
 {
     return app(CreateReservation::class)($setup['user'], $setup['property'], NewReservationData::from([
         'bookerGuestId' => $setup['guest']->id,
-        'source' => ReservationSource::Direct->value,
+        'bookingSource' => BookingSourceFactory::directFor($setup['property']->id),
         'units' => $lines,
         ...$overrides,
     ]), $fromChannel);
@@ -157,7 +159,6 @@ test('it creates a single room reservation', function () {
     $company = Company::factory()->for($setup['property'])->create();
 
     $result = createReservation($setup, [roomLine($setup)], [
-        'channelName' => 'Phone desk',
         'externalReference' => 'EXT-1',
         'companyId' => $company->id,
         'billingMode' => BillingMode::EachPays->value,
@@ -169,10 +170,10 @@ test('it creates a single room reservation', function () {
         ->and($reservation->property_id)->toBe($setup['property']->id)
         ->and($reservation->booker_guest_id)->toBe($setup['guest']->id)
         ->and($reservation->created_by)->toBe($setup['user']->id)
-        ->and($reservation->source)->toBe(ReservationSource::Direct)
+        ->and($reservation->bookingSource->type)->toBe(BookingSourceType::Direct)
+        ->and($reservation->bookingSource->property_id)->toBe($setup['property']->id)
         ->and($reservation->billing_mode)->toBe(BillingMode::EachPays)
         ->and($reservation->status->value)->toBe('confirmed')
-        ->and($reservation->channel_name)->toBe('Phone desk')
         ->and($reservation->external_reference)->toBe('EXT-1')
         ->and($reservation->company_id)->toBe($company->id)
         ->and($reservation->group_name)->toBeNull()
@@ -342,17 +343,17 @@ test('a reservation created from a channel skips the restriction and availabilit
     $setup = createSetup(rooms: 1);
     Rate::query()->where('date', $setup['arrival']->toDateString())->update(['stop_sell' => true]);
 
-    $result = createReservation($setup, [roomLine($setup), roomLine($setup)], ['source' => ReservationSource::Channel->value], fromChannel: true);
+    $result = createReservation($setup, [roomLine($setup), roomLine($setup)], ['bookingSource' => BookingSourceFactory::otaFor($setup['property']->id)], fromChannel: true);
 
     expect($result->isRefused())->toBeFalse()
         ->and($result->reservation->units)->toHaveCount(2);
 });
 
-test('a Channel source without the channel flag gets every check', function () {
+test('an OTA source without the channel flag gets every check', function () {
     $setup = createSetup(rooms: 1);
     Rate::query()->where('date', $setup['arrival']->toDateString())->update(['stop_sell' => true]);
 
-    $result = createReservation($setup, [roomLine($setup)], ['source' => ReservationSource::Channel->value]);
+    $result = createReservation($setup, [roomLine($setup)], ['bookingSource' => BookingSourceFactory::otaFor($setup['property']->id)]);
 
     expect($result->refusal)->toBe(ReservationResult::REFUSAL_RESTRICTED);
     expectNothingCreated();
@@ -368,6 +369,35 @@ test('it logs the reservation once with its units', function () {
     expect($created->causer_id)->toBe($setup['user']->id)
         ->and($created->properties['units'])->toBe(3)
         ->and(Activity::query()->where('event', 'reservation.unit_added')->count())->toBe(3);
+});
+
+test('it logs the booking source id and name', function () {
+    $setup = createSetup();
+
+    $result = createReservation($setup, [roomLine($setup)]);
+
+    $created = Activity::query()->where('event', 'reservation.created')->sole();
+
+    expect($created->properties['booking_source_id'])->toBe($result->reservation->booking_source_id)
+        ->and($created->properties['booking_source'])->toBe('Direct')
+        ->and($result->reservation->bookingSource->property_id)->toBe($setup['property']->id);
+});
+
+test('it refuses a booking source of another property', function () {
+    $setup = createSetup();
+    $foreign = BookingSource::factory()->create();
+
+    $result = createReservation($setup, [roomLine($setup)], ['bookingSource' => $foreign]);
+
+    expect($result->refusal)->toBe(ReservationResult::REFUSAL_BOOKING_SOURCE_NOT_AVAILABLE);
+    expectNothingCreated();
+});
+
+test('it accepts an inactive booking source of the property', function () {
+    $setup = createSetup();
+    $inactive = BookingSource::factory()->inactive()->ota()->create(['property_id' => $setup['property']->id]);
+
+    expect(createReservation($setup, [roomLine($setup)], ['bookingSource' => $inactive])->isRefused())->toBeFalse();
 });
 
 test('each line keeps its own add-ons and a bed line gives every bed the same ones', function () {

@@ -2252,6 +2252,13 @@ supplement: string,
 discount: string,
 amount: string,
 };
+export type BookingSourceOptionData = {
+id: number,
+name: string,
+type: App.Enums.BookingSourceType,
+typeLabel: string,
+isActive: boolean,
+};
 export type CancelAllPreviewData = {
 rows: {
 unitId: number,
@@ -2424,12 +2431,11 @@ unitAmount: string | null,
 serviceDate: string | null,
 };
 export type NewBookingData = {
-source: App.Enums.ReservationSource,
+bookingSource: { id: number, name: string },
 units: App.Data.Reservations.NewUnitData[],
 guests: App.Data.Reservations.NewBookingGuestData[],
 picks: App.Data.Reservations.UnitPickData[],
 billingMode: App.Enums.BillingMode,
-channelName: string | null,
 externalReference: string | null,
 groupName: string | null,
 notes: string | null,
@@ -2444,10 +2450,9 @@ unitIndex: number | null,
 };
 export type NewReservationData = {
 bookerGuestId: number,
-source: App.Enums.ReservationSource,
+bookingSource: { id: number, name: string },
 units: App.Data.Reservations.NewUnitData[],
 billingMode: App.Enums.BillingMode,
-channelName: string | null,
 externalReference: string | null,
 companyId: number | null,
 groupName: string | null,
@@ -2554,9 +2559,7 @@ stayTotal: string,
 balance: string | null,
 billingMode: string,
 billingModeLabel: string,
-source: string,
-sourceLabel: string,
-channelName: string | null,
+sourceName: string,
 externalReference: string | null,
 notes: string | null,
 companyId: number | null,
@@ -2590,9 +2593,8 @@ isBlacklisted: boolean,
 isRepeat: boolean,
 isCancelled: boolean,
 status: App.Data.Shared.BadgeData,
-source: string,
-sourceLabel: string,
-channelName: string | null,
+sourceName: string,
+sourceType: App.Enums.BookingSourceType,
 externalReference: string | null,
 unitCount: number,
 adults: number,
@@ -2950,6 +2952,8 @@ export type AuditTrigger = 'scheduled' | 'manual';
 export type BillingMode = 'master_pays' | 'master_pays_all' | 'each_pays';
 export type BoatDirection = 'in' | 'out';
 export type BoatMode = 'scheduled' | 'charter' | 'own';
+export type BookingSourceIcon = 'phone' | 'message-circle' | 'mail' | 'globe' | 'users' | 'handshake' | 'briefcase-business' | 'building-2' | 'footprints' | 'ticket' | 'megaphone' | 'star';
+export type BookingSourceType = 'direct' | 'ota' | 'company' | 'walk_in';
 export type BusinessDateStatus = 'open' | 'auditing' | 'closed';
 export type ChargingUnit = 'per_item' | 'per_night' | 'per_stay' | 'per_guest_night' | 'per_guest';
 export type CheckInRoomState = 'assigned' | 'auto' | 'none';
@@ -3021,7 +3025,6 @@ export type ReportDatePreset = 'today' | 'yesterday' | 'tomorrow' | 'next-7-days
 export type ReportGroup = 'day' | 'month' | 'method' | 'staff';
 export type ReportKey = 'arrivals' | 'departures' | 'in-house' | 'occupancy' | 'revenue' | 'payments' | 'folio-ledger' | 'tax' | 'meal-counts' | 'night-audit-history' | 'outstanding-balance' | 'deposit-liability' | 'non-national-guests' | 'police-report' | 'housekeeping-tasks' | 'boat-manifest';
 export type ReservationRoomBoxState = 'assigned' | 'unassigned' | 'auto_assign' | 'cancelled' | 'no_show';
-export type ReservationSource = 'direct' | 'walk_in' | 'phone' | 'channel' | 'portal';
 export type ReservationStatus = 'confirmed' | 'in_house' | 'completed' | 'cancelled';
 export type RoomBlockReason = 'maintenance' | 'owner_use' | 'out_of_order' | 'other';
 export type RoutingRuleSource = 'billing_mode' | 'manual';
@@ -3031,6 +3034,7 @@ export type StayDiscountType = 'percent' | 'amount';
 export type StayType = 'overnight' | 'day_use';
 export type StepState = 'locked' | 'not_started' | 'in_progress' | 'done' | 'needs_attention';
 export type SurchargeType = 'none' | 'fixed' | 'percent';
+export type SwatchColor = 'gray' | 'red' | 'orange' | 'amber' | 'green' | 'teal' | 'blue' | 'indigo' | 'violet' | 'pink';
 export type SystemTransactionCode = 'room_revenue' | 'no_show_revenue' | 'cancellation_revenue' | 'late_checkout_revenue' | 'early_departure_revenue' | 'day_use_revenue' | 'food_and_beverage_revenue' | 'laundry_revenue' | 'minibar_revenue' | 'fee_revenue' | 'sst_tax' | 'tourism_tax' | 'cash_payment' | 'card_payment' | 'bank_transfer_payment' | 'ewallet_payment' | 'ota_collected_payment' | 'direct_bill_payment' | 'security_deposit' | 'refund' | 'adjustment' | 'discount';
 export type TaxRateType = 'percent' | 'flat';
 export type TemporaryPasswordExportFormat = 'message' | 'csv' | 'xlsx' | 'pdf';

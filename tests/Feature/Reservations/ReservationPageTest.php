@@ -460,7 +460,7 @@ test('the page needs a constant number of queries however many units it has', fu
         $few = $queries(2, $route);
         $many = $queries(7, $route);
 
-        expect($many)->toBe($few, "queries on {$route}")->and($many)->toBeLessThanOrEqual(46); // 25 for the page, 21 more for the summary card (`BookingSummary`)
+        expect($many)->toBe($few, "queries on {$route}")->and($many)->toBeLessThanOrEqual(48); // 25 for the page, 21 more for the summary card (`BookingSummary`), 2 for the booking source
     }
 });
 

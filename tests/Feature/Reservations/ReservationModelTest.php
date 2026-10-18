@@ -1,7 +1,7 @@
 <?php
 
 use App\Enums\BillingMode;
-use App\Enums\ReservationSource;
+use App\Enums\BookingSourceType;
 use App\Enums\ReservationStatus;
 use App\Enums\UnitStatus;
 use App\Models\Bed;
@@ -21,7 +21,9 @@ test('a reservation factory builds a confirmed direct reservation with a referen
 
     expect($reservation->status)->toBe(ReservationStatus::Confirmed)
         ->and($reservation->billing_mode)->toBe(BillingMode::MasterPays)
-        ->and($reservation->source)->toBe(ReservationSource::Direct)
+        ->and($reservation->bookingSource->type)->toBe(BookingSourceType::Direct)
+        ->and($reservation->bookingSource->property_id)->toBe($reservation->property_id)
+        ->and($second->booking_source_id)->toBe($reservation->booking_source_id)
         ->and($reservation->reference)->toMatch('/^[A-Z0-9]+-\d{2}1\d{5}$/')
         ->and($second->reference)->not->toBe($reservation->reference)
         ->and($reservation->booker->property_id)->toBe($reservation->property_id)
@@ -56,7 +58,7 @@ test('the database rejects invalid values', function (Closure $attempt) {
     expect($attempt)->toThrow(QueryException::class);
 })->with([
     'a reservation status outside the enum' => [fn () => DB::transaction(fn () => DB::table('reservations')->where('id', Reservation::factory()->create()->id)->update(['status' => 'open']))],
-    'the old agent source' => [fn () => DB::transaction(fn () => DB::table('reservations')->where('id', Reservation::factory()->create()->id)->update(['source' => 'agent']))],
+    'a reservation without a booking source' => [fn () => DB::transaction(fn () => DB::table('reservations')->where('id', Reservation::factory()->create()->id)->update(['booking_source_id' => null]))],
     'a billing mode outside the enum' => [fn () => DB::transaction(fn () => DB::table('reservations')->where('id', Reservation::factory()->create()->id)->update(['billing_mode' => 'nobody']))],
     'a blank group name' => [fn () => DB::transaction(fn () => Reservation::factory()->create(['group_name' => '  ']))],
     'a cancellation request without a user' => [fn () => DB::transaction(fn () => Reservation::factory()->create(['cancellation_requested_at' => now()]))],
@@ -67,8 +69,18 @@ test('the database rejects invalid values', function (Closure $attempt) {
     'a negative child age' => [fn () => DB::transaction(fn () => ReservationUnitChild::factory()->create(['age' => -1]))],
 ]);
 
-test('a reservation can come from the company portal', function () {
-    expect(Reservation::factory()->create(['source' => ReservationSource::Portal])->refresh()->source)->toBe(ReservationSource::Portal);
+test('the factory states pick a source of the same property', function () {
+    $walkIn = Reservation::factory()->walkIn()->create();
+    $ota = Reservation::factory()->ota()->create();
+    $company = Reservation::factory()->company()->create();
+
+    expect($walkIn->bookingSource->type)->toBe(BookingSourceType::WalkIn)
+        ->and($ota->bookingSource->type)->toBe(BookingSourceType::Ota)
+        ->and($ota->external_reference)->not->toBeNull()
+        ->and($company->bookingSource->type)->toBe(BookingSourceType::Company)
+        ->and($company->company->property_id)->toBe($company->property_id)
+        ->and($walkIn->bookingSource->property_id)->toBe($walkIn->property_id)
+        ->and($ota->bookingSource->property_id)->toBe($ota->property_id);
 });
 
 test('a cancellation request needs the time and the user together', function () {

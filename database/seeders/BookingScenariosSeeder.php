@@ -46,6 +46,7 @@ use App\Data\Reservations\NewUnitData;
 use App\Enums\AuditStepStatus;
 use App\Enums\AuditTrigger;
 use App\Enums\BillingMode;
+use App\Enums\BookingSourceType;
 use App\Enums\ChargingUnit;
 use App\Enums\CompanyType;
 use App\Enums\DefaultRoleEnum;
@@ -60,15 +61,17 @@ use App\Enums\PricingBasis;
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
 use App\Enums\RateDerivation;
-use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
 use App\Enums\SellUnit;
+use App\Enums\SwatchColor;
 use App\Enums\TransactionCategory;
+use App\Models\BookingSource;
 use App\Models\ChargeItem;
 use App\Models\Company;
 use App\Models\Folio;
 use App\Models\Guest;
 use App\Models\MealPeriod;
+use App\Models\OtaChannel;
 use App\Models\PaymentMethod;
 use App\Models\Property;
 use App\Models\Rate;
@@ -545,8 +548,7 @@ class BookingScenariosSeeder extends Seeder
         $this->book('S4', 'Price override with a remainder.', [$this->line('Standard Double', 'Room Only', 9, 12, 2, overrideTotal: '100.00', overrideReason: 'Long-stay regular, agreed price.')]);
         $this->book('S5', 'One night against a three-night minimum stay.', [$this->line('Standard Double', 'Room Only', 15, 16, 2, restrictionOverrideReason: 'Owner approved one night for a returning guest.')]);
         $this->book('S6', 'OTA booking. With S2, the Family Suites are sold out.', [$this->line('Family Suite', 'Room Only', 9, 12, 4)], [
-            'source' => ReservationSource::Channel,
-            'channelName' => 'Booking.com',
+            'source' => 'Booking.com',
             'externalReference' => 'BDC-4417829356',
             'fromChannel' => true,
         ]);
@@ -557,7 +559,7 @@ class BookingScenariosSeeder extends Seeder
         $this->book('S11', 'Departs today with a balance due.', [$this->line('Standard Double', 'Bed & Breakfast', 5, 7, 2)]);
         $this->book('S12', 'Cancelled, then reinstated.', [$this->line('Standard Double', 'Room Only', 20, 22, 2)]);
         $this->book('S13', 'No room assigned. Arrives today.', [$this->line('Standard Double', 'Room Only', 7, 9, 2)]);
-        $this->book('S14', 'Late arrival expected. Kept by the audit.', [$this->line('Standard Double', 'Room Only', 6, 8, 2, lateArrivalExpected: true)], ['source' => ReservationSource::Phone]);
+        $this->book('S14', 'Late arrival expected. Kept by the audit.', [$this->line('Standard Double', 'Room Only', 6, 8, 2, lateArrivalExpected: true)], ['source' => 'Phone']);
     }
 
     /**
@@ -639,7 +641,7 @@ class BookingScenariosSeeder extends Seeder
      * No room is picked: check-in assigns one (`auto_assign_rooms`).
      *
      * @param  list<NewUnitData>  $lines
-     * @param  array{source?: ReservationSource, billingMode?: BillingMode, groupName?: string, companyId?: int, channelName?: string, externalReference?: string, fromChannel?: bool}  $options
+     * @param  array{source?: string, billingMode?: BillingMode, groupName?: string, companyId?: int, externalReference?: string, fromChannel?: bool}  $options
      */
     private function book(string $code, string $note, array $lines, array $options = []): Reservation
     {
@@ -647,11 +649,10 @@ class BookingScenariosSeeder extends Seeder
         $guests = array_map(fn (int $index): NewBookingGuestData => new NewBookingGuestData(guestId: $this->nextGuest()->id, unitIndex: $index), range(0, $units - 1));
 
         $result = app(CreateBooking::class)($this->owner, $this->property, new NewBookingData(
-            source: $options['source'] ?? ReservationSource::Direct,
+            bookingSource: $this->bookingSource($options['source'] ?? null),
             units: $lines,
             guests: $guests,
             billingMode: $options['billingMode'] ?? BillingMode::MasterPays,
-            channelName: $options['channelName'] ?? null,
             externalReference: $options['externalReference'] ?? null,
             groupName: $options['groupName'] ?? null,
             notes: "[{$code}] {$note}",
@@ -962,5 +963,34 @@ class BookingScenariosSeeder extends Seeder
         $this->command?->newLine();
         $this->command?->info('Sign in at '.url('/login').' (staff URLs start with '.url('/p/'.$this->property->code).').');
         $this->command?->table(['Role', 'Name', 'Email', 'Password'], $this->credentials);
+    }
+
+    private int $sourceCursor = 0;
+
+    /**
+     * A booking source of the property by name. Without a name the default Direct sources take turns (Phone, WhatsApp,
+     * Email). "Booking.com" is the OTA source of the S6 scenario; it is made once with its channel.
+     */
+    private function bookingSource(?string $name = null): BookingSource
+    {
+        $name ??= ['Phone', 'WhatsApp', 'Email'][$this->sourceCursor++ % 3];
+
+        if ($name === 'Booking.com') {
+            (new OtaChannelSeeder)->run();
+
+            return BookingSource::query()->firstOrCreate(
+                ['property_id' => $this->property->id, 'name' => 'Booking.com'],
+                [
+                    'type' => BookingSourceType::Ota,
+                    'ota_channel_id' => OtaChannel::query()->where('code', 'booking_com')->firstOrFail()->id,
+                    'is_active' => true,
+                    'sort_order' => 10,
+                    'badge_letters' => 'B',
+                    'badge_color' => SwatchColor::Blue,
+                ],
+            );
+        }
+
+        return BookingSource::query()->where('property_id', $this->property->id)->where('name', $name)->firstOrFail();
     }
 }

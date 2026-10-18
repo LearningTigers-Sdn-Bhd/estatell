@@ -178,7 +178,7 @@ export function ReservationSummary({
                     </Row>
                 )}
                 <Row icon={Globe} label="Source">
-                    {reservation.sourceLabel}
+                    {reservation.sourceName}
                 </Row>
                 <Row icon={Building2} label="Company">
                     {reservation.companyId === null ? (

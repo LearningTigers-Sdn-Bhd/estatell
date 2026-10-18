@@ -4,6 +4,7 @@ import {
     SelectContent,
     SelectGroup,
     SelectItem,
+    SelectLabel,
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
@@ -13,6 +14,8 @@ export type EnumOption = {
     label: string;
     /** Shown but not pickable, for example a room already picked on another line. */
     disabled?: boolean;
+    /** A heading to list the option under. Options that share a group sit together, in the order they first appear. */
+    group?: string;
 };
 
 type Props = {
@@ -37,6 +40,25 @@ type Props = {
     className?: string;
 };
 
+/** Splits the options into groups by their `group`, keeping the order. Options without a group form one group. */
+function groupOptions(
+    items: EnumOption[],
+): { name?: string; options: EnumOption[] }[] {
+    const groups: { name?: string; options: EnumOption[] }[] = [];
+
+    for (const option of items) {
+        const group = groups.find((existing) => existing.name === option.group);
+
+        if (group) {
+            group.options.push(option);
+        } else {
+            groups.push({ name: option.group, options: [option] });
+        }
+    }
+
+    return groups;
+}
+
 /**
  * A Select filled from a PHP enum's `options()`.
  */
@@ -58,6 +80,7 @@ export function EnumSelect({
     const items = allLabel
         ? [{ value: '', label: allLabel }, ...options]
         : options;
+    const groups = groupOptions(items);
 
     return (
         <Select
@@ -96,18 +119,21 @@ export function EnumSelect({
                 alignItemWithTrigger={!icon}
                 className="max-h-72 w-max max-w-sm min-w-(--anchor-width)"
             >
-                <SelectGroup>
-                    {items.map((option) => (
-                        <SelectItem
-                            key={option.value}
-                            value={option.value}
-                            disabled={option.disabled}
-                            className="*:first:min-w-0 *:first:shrink"
-                        >
-                            <span className="truncate">{option.label}</span>
-                        </SelectItem>
-                    ))}
-                </SelectGroup>
+                {groups.map((group) => (
+                    <SelectGroup key={group.name ?? ''}>
+                        {group.name && <SelectLabel>{group.name}</SelectLabel>}
+                        {group.options.map((option) => (
+                            <SelectItem
+                                key={option.value}
+                                value={option.value}
+                                disabled={option.disabled}
+                                className="*:first:min-w-0 *:first:shrink"
+                            >
+                                <span className="truncate">{option.label}</span>
+                            </SelectItem>
+                        ))}
+                    </SelectGroup>
+                ))}
             </SelectContent>
         </Select>
     );

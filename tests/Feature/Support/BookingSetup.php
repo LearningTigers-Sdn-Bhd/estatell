@@ -1,7 +1,9 @@
 <?php
 
+use App\Enums\BookingSourceType;
 use App\Enums\DefaultRoleEnum;
 use App\Models\Bed;
+use App\Models\BookingSource;
 use App\Models\Guest;
 use App\Models\Property;
 use App\Models\PropertySetting;
@@ -11,13 +13,15 @@ use App\Models\Role;
 use App\Models\Room;
 use App\Models\RoomType;
 use App\Models\User;
+use Database\Factories\BookingSourceFactory;
 use Spatie\Permission\PermissionRegistrar;
 
 /**
  * A property with a Room room type of two rooms (101, 102) and a dorm of three beds, a plan for each priced for
- * 2026-10-20 to 2026-10-27, a user and an existing guest.
+ * 2026-10-20 to 2026-10-27, a user, an existing guest and the booking sources Phone, Walk-in, Company / Travel agent and
+ * Booking.com (OTA).
  *
- * @return array{user: User, property: Property, roomType: RoomType, rooms: list<Room>, plan: RatePlan, dorm: RoomType, beds: list<Bed>, bedPlan: RatePlan, guest: Guest}
+ * @return array{user: User, property: Property, roomType: RoomType, rooms: list<Room>, plan: RatePlan, dorm: RoomType, beds: list<Bed>, bedPlan: RatePlan, guest: Guest, phone: BookingSource, walkIn: BookingSource, companySource: BookingSource, ota: BookingSource}
  */
 function bookingSetup(): array
 {
@@ -53,6 +57,10 @@ function bookingSetup(): array
         'beds' => $beds,
         'bedPlan' => $bedPlan,
         'guest' => Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Tan Wei Ming', 'phone' => '+60123456789']),
+        'phone' => BookingSource::factory()->for($property)->create(['name' => 'Phone']),
+        'walkIn' => BookingSourceFactory::systemFor($property->id, BookingSourceType::WalkIn),
+        'companySource' => BookingSourceFactory::systemFor($property->id, BookingSourceType::Company),
+        'ota' => BookingSourceFactory::otaFor($property->id),
     ];
 }
 

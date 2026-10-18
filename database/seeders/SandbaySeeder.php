@@ -52,12 +52,12 @@ use App\Enums\PaymentPurpose;
 use App\Enums\PricingBasis;
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
-use App\Enums\ReservationSource;
 use App\Enums\SellUnit;
 use App\Enums\StayType;
 use App\Enums\TaxRateType;
 use App\Enums\TransactionCategory;
 use App\Enums\UnitStatus;
+use App\Models\BookingSource;
 use App\Models\ChargeItem;
 use App\Models\Discount;
 use App\Models\Folio;
@@ -697,7 +697,7 @@ class SandbaySeeder extends Seeder
             );
 
             $data = new NewBookingData(
-                source: $options['source'] ?? ReservationSource::Direct,
+                bookingSource: $this->bookingSource($property, $options['source'] ?? null),
                 units: [$unit],
                 guests: [new NewBookingGuestData(guestId: $guests[$guestIndex]->id, unitIndex: 0)],
                 picks: ($options['assign'] ?? true) ? [new UnitPickData(unitIndex: 0, roomId: $nextRoom($roomType))] : [],
@@ -731,7 +731,7 @@ class SandbaySeeder extends Seeder
         $book('Water Villa', 'Room Only', 40, 4, 2, 22, ['discount' => $discounts['EARLY_BIRD']->id]);
         $book('Sea View Room', 'Bed & Breakfast', 45, 6, 2, 23, ['assign' => false]);
 
-        $walkIn = $book('Garden Room', 'Room Only', 0, 1, 2, 24, ['source' => ReservationSource::WalkIn]);
+        $walkIn = $book('Garden Room', 'Room Only', 0, 1, 2, 24, ['source' => 'Walk-in']);
         $villa = $book('Water Villa', 'Half Board', 0, 3, 2, 6);
 
         $book('Garden Room', 'Bed & Breakfast', 0, 2, 2, 0, ['notes' => 'Arrives today. Left Confirmed to try check-in.']);
@@ -759,7 +759,7 @@ class SandbaySeeder extends Seeder
             ?? throw new RuntimeException('No Garden Room is free for the sample day use.');
 
         $result = app(CreateBooking::class)($owner, $property, new NewBookingData(
-            source: ReservationSource::Phone,
+            bookingSource: $this->bookingSource($property, 'Phone'),
             units: [new NewUnitData(
                 roomTypeId: $roomType->id,
                 ratePlanId: $plan->id,
@@ -806,7 +806,7 @@ class SandbaySeeder extends Seeder
         }
 
         $result = app(CreateBooking::class)($owner, $property, new NewBookingData(
-            source: ReservationSource::Direct,
+            bookingSource: $this->bookingSource($property),
             units: $units,
             guests: [
                 new NewBookingGuestData(guestId: $guests[10]->id, unitIndex: 0),
@@ -891,5 +891,18 @@ class SandbaySeeder extends Seeder
         }
 
         $this->pay($owner, $reservations['dive'], $clubFolio, $methods[PaymentMethodType::BankTransfer->value], PaymentPurpose::Advance, '1000.00');
+    }
+
+    private int $sourceCursor = 0;
+
+    /**
+     * A booking source of the property by name. Without a name the default Direct sources take turns (Phone, WhatsApp,
+     * Email), so the sample list shows more than one source.
+     */
+    private function bookingSource(Property $property, ?string $name = null): BookingSource
+    {
+        $name ??= ['Phone', 'WhatsApp', 'Email'][$this->sourceCursor++ % 3];
+
+        return BookingSource::query()->where('property_id', $property->id)->where('name', $name)->firstOrFail();
     }
 }

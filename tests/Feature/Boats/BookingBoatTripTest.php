@@ -16,6 +16,7 @@ use App\Models\Room;
 use App\Models\RoomType;
 use App\Models\UnitBoatTrip;
 use App\Models\User;
+use Database\Factories\BookingSourceFactory;
 use Illuminate\Database\Eloquent\Model;
 use Laravel\Pennant\Feature;
 use Spatie\Activitylog\Models\Activity;
@@ -76,7 +77,7 @@ function boatBookingLine(array $setup, array $overrides = []): array
 function boatBookingBody(array $setup, array $overrides = []): array
 {
     return [
-        'source' => 'phone',
+        'booking_source_id' => BookingSourceFactory::directFor($setup['property']->id)->id,
         'arrival_date' => '2026-10-20',
         'departure_date' => '2026-10-22',
         'guests' => [['guest_id' => $setup['guest']->id]],

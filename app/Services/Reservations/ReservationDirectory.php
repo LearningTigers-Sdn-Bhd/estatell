@@ -3,7 +3,6 @@
 namespace App\Services\Reservations;
 
 use App\Enums\FolioStatus;
-use App\Enums\ReservationSource;
 use App\Enums\ReservationStatus;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TransactionKind;
@@ -127,7 +126,7 @@ class ReservationDirectory
             ))
             ->defaultSort($this->sort('arrival'))
             ->orderBy('reservations.id')
-            ->with('booker')
+            ->with(['booker', 'bookingSource'])
             ->with(['units' => fn ($units) => $units->orderBy('id'), 'units.roomType', 'units.dayUse'])
             ->when(Feature::for($property)->active(Boats::class), fn (Builder $query) => $query->with('units.boatTrips'))
             ->paginate(self::PER_PAGE)
@@ -267,10 +266,8 @@ class ReservationDirectory
      */
     private function applySource(Builder $query, mixed $value): void
     {
-        $source = is_string($value) ? ReservationSource::tryFrom($value) : null;
-
-        if ($source !== null) {
-            $query->where('reservations.source', $source);
+        if (is_string($value) && ctype_digit($value) && strlen($value) < 19) {
+            $query->where('reservations.booking_source_id', (int) $value);
         }
     }
 

@@ -218,7 +218,7 @@ export default function ReservationShow({
                                 · {reservation.unitCount}{' '}
                                 {reservation.unitCount === 1 ? 'unit' : 'units'}
                             </span>
-                            <span>· {reservation.sourceLabel}</span>
+                            <span>· {reservation.sourceName}</span>
                             {reservation.externalReference && (
                                 <span>
                                     · Ext. ref {reservation.externalReference}

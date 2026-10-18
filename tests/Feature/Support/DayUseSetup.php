@@ -6,7 +6,6 @@ use App\Actions\Reservations\CreateReservation;
 use App\Actions\Reservations\ReservationResult;
 use App\Data\Reservations\NewReservationData;
 use App\Enums\DefaultRoleEnum;
-use App\Enums\ReservationSource;
 use App\Models\Guest;
 use App\Models\Property;
 use App\Models\PropertySetting;
@@ -17,6 +16,7 @@ use App\Models\RoomType;
 use App\Models\User;
 use App\Services\Property\CountryProfiles;
 use Carbon\CarbonImmutable;
+use Database\Factories\BookingSourceFactory;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
@@ -100,7 +100,7 @@ function createDayUseReservation(array $setup, array $lines, array $overrides = 
 {
     return app(CreateReservation::class)($setup['user'], $setup['property'], NewReservationData::from([
         'bookerGuestId' => $setup['guest']->id,
-        'source' => ReservationSource::Direct->value,
+        'bookingSource' => BookingSourceFactory::directFor($setup['property']->id),
         'units' => $lines,
         ...$overrides,
     ]), $fromChannel);

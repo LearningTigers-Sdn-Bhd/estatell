@@ -69,7 +69,7 @@ When the property has an active Day use plan, the Stay section starts with a **S
         - An OTA source makes External reference required (`external_reference` error "Enter the OTA booking number.").
         - Company / Travel agent makes Company required (`company_id` error "Select the company."). A Direct or OTA booking can still pick a company.
         - **Walk-in** fixes the source to Walk-in.
-        - `StoreBookingRequest` checks the same rules: the source must be active, of the property, and offered for the mode and the staff member. The walk-in room rule follows the Walk-in type.
+        - `StoreBookingRequest` checks the same rules: the source must be active, of the property, and its type must be allowed for the staff member (Company / Travel agent needs `company.view`). It checks the type and the permission, not the form mode, because both modes post to `reservations.store`. The walk-in room rule follows the Walk-in type.
 
         ```
         Source [Booking.com ▾]   External reference* [BK-12345 ]   Company [Search…   ▾]   Group name [____]
@@ -208,7 +208,7 @@ Without `guests.manage`, a row accepts only an existing guest, and **Update gues
 ## Saving and errors
 
 - `GET reservations/new`, `GET reservations/walk-in` and `POST reservations` (`reservations.store`) are in `ReservationBookingController`. `new` and `walk-in` share one private render method.
-- The page gets the lists it needs with the page, because they are bounded: room types and rate plans (`ReservationFormOptions::addUnit`), charge items, active RoomOnly discounts, the sources (`{id, name, type}`), the billing modes, `autoAssignRooms`, the currency, `canOverrideRestrictions` and `today`, the business date, which is the default arrival. The prop is not named `businessDate`, because the app shell shares a prop of that name for the header indicator.
+- The page gets the lists it needs with the page, because they are bounded: room types and rate plans (`ReservationFormOptions::addUnit`), charge items, active RoomOnly discounts, the sources (`BookingSourceOptionData`: `{id, name, type, typeLabel, isActive}`, from `BookingSourceOptions::forBooking`), the billing modes, `autoAssignRooms`, the currency, `canOverrideRestrictions` and `today`, the business date, which is the default arrival. The prop is not named `businessDate`, because the app shell shares a prop of that name for the header indicator.
 - `StoreBookingRequest` checks the shape and builds `NewBookingData`. It expands each line into units in the order `CreateReservation` adds them (a Bed line with N beds is N units), so the unit index of a pick is the running count. On a walk-in every unit needs a room or bed pick. From commit 3 the request has a `guests` array: for each tab `guest_id`, the profile fields, `update_profile` and `stays_in` (the unit index, or empty for a booker who does not stay). The first tab is the booker. `toBookingData()` builds one `NewBookingGuestData` for each tab. `booker_guest_id`, which commit 2 used, is gone.
 - A refusal comes back as errors keyed by position: `lines.{i}.room_type_id`, `lines.{i}.rate_plan_id`, `lines.{i}.child_ages`, `lines.{i}.room_id`, `lines.{i}.bed_ids.{n}` and so on, plus `arrival_date`, `departure_date`, `guests.{i}.guest_id`, `guests.{i}.full_name`, `guests.{i}.stays_in` and `form`. A guest refusal (`guest_not_found`, `already_attached`, `bed_unit_full`, `unit_not_found`, `guest_name_required`) names the tab through the guest index of the result; `bed_unit_full` and `already_attached` show on "Stays in". The key comes from `ReservationRefusals` (the field) and the line or unit index of the result. `restricted` shows the override reason field of the line for staff with `rates.override-restrictions`, and a `form` error for everyone else.
 - A `restricted` or other line-level refusal never saves anything: `CreateBooking` rolls back.
@@ -227,7 +227,7 @@ One checklist item per commit, in this order:
 7. **Discounts and add-ons tables:** the Discounts and Add-ons tabs become tables (a flat add-ons table with a Line column). UI only: the request, error keys and Actions do not change.
 8. **Fixed height:** the page uses the `fixed` layout variant (renamed from `grid-only`), with one scroll region and `FormActions` below it. UI only.
 9. **Reservation mode:** the field after Departure switches between New booking and Walk-in with a partial visit that keeps the form. UI only.
-10. **Booking sources:** the source select lists the property's booking sources, with the OTA and Company rules. See [Booking sources](11-booking-sources.md#build-order). Planned.
+10. **Booking sources:** the source select lists the property's booking sources, with the OTA and Company rules. See [Booking sources](11-booking-sources.md#build-order). Built.
 
 ## Build status
 
@@ -252,6 +252,8 @@ Built (commit 7, discounts and add-ons tables): `BookingDiscountsSection` is a t
 Built (commit 8, fixed height): the layout variant `grid-only` is renamed `fixed` (`PageLayoutVariant`, `AppSidebarLayout`, the rate calendar and its docs). `ReservationCreate.layout` returns `variant: 'fixed'`. The form is a flex column with one scroll region (`scroll-region`, `overflow-y-auto`) that holds the title row and the two columns, and `FormActions fixed` below it. The window does not scroll, the breadcrumb header stays on top and the footer is always visible. The rail's `sticky` works inside the scroll region.
 
 Built (commit 9, reservation mode): a **Reservation mode** select after Departure (New booking or Walk-in, from `lg` a 12rem column). Picking the other mode calls `guard.visitWithout`, a new function of `useUnsavedChanges` that visits without the unsaved-changes dialog, as a partial visit (`only: isWalkIn, sources, nowTime`) with `preserveState` and `preserveScroll`. The page stays mounted, so the dates, lines and guests are kept; an effect on `isWalkIn` then sets the source (WalkIn, or the first offered source) and, for Walk-in, the arrival date and time. A test checks that the walk-in page answers the partial request with only those props.
+
+Built (commit 10, booking sources): the form posts `booking_source_id`. `EnumSelect` takes an optional `group` on an option and shows a heading per group, so the Source select lists Direct, OTA and Company / Travel agent. `sourceSelectOptions` maps the options. An OTA source adds "(required)" to External reference and a Company / Travel agent source to Company, and the server enforces both (`external_reference` "Enter the OTA booking number.", `company_id` "Select the company."). A Company source without `company.view` is refused on `booking_source_id`. The mode switch sets the first offered source.
 
 The lines are one table-like grid from `lg` (`BookingLinesHeader` and `LINE_COLUMNS` in `booking-line-row.tsx`): a header row, then one row per line with Room type, Rate plan, Room / Bed, Ad, Ch, Rate and remove. A dorm line shows the Beds count in the Room / Bed cell and the bed pickers on a second line; children's ages, quote errors and "Only N free" also go on a second line. Below `lg` the cells stack and show their labels.
 

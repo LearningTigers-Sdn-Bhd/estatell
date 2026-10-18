@@ -32,6 +32,7 @@ test('each property type receives the Malaysia defaults', function (PropertyType
         ->and($property->roomRevenuePolicies()->count())->toBe(4)
         ->and($property->mealPeriods()->count())->toBe(3)
         ->and($property->ageGroups()->count())->toBe(2)
+        ->and($property->bookingSources()->count())->toBe(5)
         ->and($settings->currency->getCurrencyCode())->toBe('MYR')
         ->and($settings->time_zone)->toBe('Asia/Kuala_Lumpur')
         ->and($settings->default_locale)->toBe(Locale::English)

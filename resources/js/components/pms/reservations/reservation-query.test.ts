@@ -27,7 +27,7 @@ test('filters, sort and view are kept in the query', () => {
         ...clean,
         search: 'tan',
         status: 'confirmed',
-        source: 'phone',
+        source: '3',
         stay: { mode: 'custom', from: '2026-10-12', to: null },
     };
 
@@ -36,7 +36,7 @@ test('filters, sort and view are kept in the query', () => {
             filter: {
                 search: 'tan',
                 status: 'confirmed',
-                source: 'phone',
+                source: '3',
                 stay: '2026-10-12_',
             },
             sort: '-total',
@@ -58,7 +58,7 @@ test('reset keeps the status tab and clears everything else', () => {
     const filters: ReservationFilters = {
         search: 'tan',
         status: 'in_house',
-        source: 'phone',
+        source: '3',
         stay: { mode: 'all', from: null, to: null },
     };
 
@@ -74,7 +74,7 @@ test('reset is offered only when search, source or stay differ from the default'
     expect(canResetFilters(clean)).toBe(false);
     expect(canResetFilters({ ...clean, status: 'confirmed' })).toBe(false);
     expect(canResetFilters({ ...clean, search: 'tan' })).toBe(true);
-    expect(canResetFilters({ ...clean, source: 'phone' })).toBe(true);
+    expect(canResetFilters({ ...clean, source: '3' })).toBe(true);
     expect(
         canResetFilters({
             ...clean,
