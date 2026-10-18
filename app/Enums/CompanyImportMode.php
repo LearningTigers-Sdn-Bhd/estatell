@@ -24,6 +24,8 @@ enum CompanyImportMode: string
         'credit_limit' => 'credit_limit',
         'terms_days' => 'payment_terms_days',
         'direct_billing' => 'direct_bill_enabled',
+        'portal_email' => 'portal_email',
+        'cancel_days' => 'portal_cancel_cutoff_days',
     ];
 
     /**

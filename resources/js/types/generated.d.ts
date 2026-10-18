@@ -334,11 +334,23 @@ paymentTermsDays: number | null,
 directBillEnabled: boolean,
 status: App.Data.Shared.BadgeData,
 createdAt: string,
+portal: App.Data.CityLedger.CompanyPortalData | null,
 credit: App.Data.CityLedger.CreditExposureData | null,
 };
 export type CompanyOptionData = {
 id: number,
 name: string,
+};
+export type CompanyPortalData = {
+email: string | null,
+cancelDays: number | null,
+status: App.Data.Shared.BadgeData | null,
+hasTempPassword: boolean,
+tempPasswordExpired: boolean,
+tempPasswordDaysLeft: number | null,
+canResend: boolean,
+canReset: boolean,
+isDisabled: boolean,
 };
 export type CompanyRowData = {
 id: number,
@@ -1158,6 +1170,8 @@ directBillEnabled: boolean,
 brn: string | null,
 tin: string | null,
 sstRegistrationNumber: string | null,
+portalEmail: string | null,
+portalCancelDays: number | null,
 isEditable: boolean,
 isRemovable: boolean,
 statusLabel: string,
@@ -3061,6 +3075,7 @@ export type ColumnAlign = 'left' | 'center' | 'right';
 export type CompanyImportMode = 'simple' | 'detailed';
 export type CompanyStatus = 'active' | 'suspended';
 export type CompanyType = 'corporate' | 'travel_agent' | 'government';
+export type CompanyUserStatus = 'pending' | 'active' | 'revoked';
 export type DashboardTab = 'today' | 'performance';
 export type DefaultMealPeriod = 'breakfast' | 'lunch' | 'dinner';
 export type DefaultRoleEnum = 'owner' | 'manager' | 'front_desk' | 'housekeeping' | 'finance';
@@ -3113,6 +3128,8 @@ export type PolicyChargeMode = 'free' | 'fixed_amount' | 'percentage';
 export type PolicyRateBasis = 'booked_rate' | 'current_rate';
 export type PolicyScope = 'first_night' | 'whole_stay' | 'unused_nights' | 'one_charge';
 export type PolicyTab = 'no-show' | 'cancellation' | 'early-departure' | 'late-checkout';
+export type PortalLoginOutcome = 'unchanged' | 'removed' | 'created' | 'invited' | 'refused';
+export type PortalLoginRefusal = 'other_kind_of_account' | 'taken_by_other_company' | 'not_available' | 'company_suspended';
 export type PricingBasis = 'per_room' | 'per_guest' | 'per_bed' | 'package' | 'day_use';
 export type PropertyStatus = 'onboarding' | 'pending_approval' | 'live' | 'suspended';
 export type PropertyType = 'hotel' | 'hostel' | 'resort' | 'serviced_apartment' | 'homestay';
@@ -3127,7 +3144,6 @@ export type ReportDatePreset = 'today' | 'yesterday' | 'tomorrow' | 'next-7-days
 export type ReportGroup = 'day' | 'month' | 'method' | 'staff';
 export type ReportKey = 'arrivals' | 'departures' | 'in-house' | 'occupancy' | 'revenue' | 'payments' | 'folio-ledger' | 'tax' | 'meal-counts' | 'night-audit-history' | 'outstanding-balance' | 'deposit-liability' | 'non-national-guests' | 'police-report' | 'housekeeping-tasks' | 'boat-manifest';
 export type ReservationRoomBoxState = 'assigned' | 'unassigned' | 'auto_assign' | 'cancelled' | 'no_show';
-export type ReservationSource = 'direct' | 'walk_in' | 'phone' | 'channel' | 'portal';
 export type ReservationStatus = 'confirmed' | 'in_house' | 'completed' | 'cancelled';
 export type RoomBlockReason = 'maintenance' | 'owner_use' | 'out_of_order' | 'other';
 export type RoutingRuleSource = 'billing_mode' | 'manual';

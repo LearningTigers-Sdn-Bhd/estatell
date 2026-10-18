@@ -6,6 +6,8 @@ Owners add staff without email: one at a time, in bulk, or from a CSV or XLSX fi
 
 Use cases: properties where staff have no working email, and training institutions that create a class of accounts and print the sign-in slips.
 
+Company portal logins use the same temp password columns, generator and copy message. A company user's temp password is made when a property sets the company's portal login email (see [Portal login](../23-company-portal/01-company-portal.md#portal-login)). Sign-in details are shared from the company page and from Bulk add companies. The expired message says to ask the property that gave the login.
+
 Emailed invitations stay as they are. See [Staff and invitations](01-staff-and-invitations.md).
 
 ## Data model

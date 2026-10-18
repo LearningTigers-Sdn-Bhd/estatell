@@ -80,6 +80,8 @@ type Row = {
     brn: string;
     tin: string;
     sst_registration_number: string;
+    portal_email: string;
+    portal_cancel_cutoff_days: string;
     is_removable: boolean;
 };
 type ImportedRow = Partial<Omit<Row, 'id' | 'key' | 'is_removable'>> & {
@@ -102,6 +104,8 @@ const newRow = (values: Partial<Row> = {}): Row => ({
     brn: '',
     tin: '',
     sst_registration_number: '',
+    portal_email: '',
+    portal_cancel_cutoff_days: '',
     is_removable: true,
     ...values,
 });
@@ -122,6 +126,11 @@ const savedRow = (company: Company): Row => ({
     brn: company.brn ?? '',
     tin: company.tin ?? '',
     sst_registration_number: company.sstRegistrationNumber ?? '',
+    portal_email: company.portalEmail ?? '',
+    portal_cancel_cutoff_days:
+        company.portalCancelDays === null
+            ? ''
+            : String(company.portalCancelDays),
     is_removable: company.isRemovable,
 });
 
@@ -382,7 +391,17 @@ export default function Companies({
                                     </TableRow>
                                 )}
                                 {rows.map((row, index) => {
-                                    const expanded = open.includes(row.key);
+                                    const expanded =
+                                        open.includes(row.key) ||
+                                        [
+                                            'portal_email',
+                                            'portal_cancel_cutoff_days',
+                                        ].some(
+                                            (name) =>
+                                                !!errors[
+                                                    `rows.${index}.${name}`
+                                                ],
+                                        );
                                     const fieldError = (name: string) =>
                                         errors[`rows.${index}.${name}`] ??
                                         problems[row.key]?.[name];
@@ -803,6 +822,98 @@ export default function Companies({
                                                                     </div>
                                                                 ),
                                                             )}
+                                                        </div>
+                                                        <div className="mt-3 grid gap-3 md:grid-cols-4">
+                                                            <div className="flex flex-col gap-1 md:col-span-2">
+                                                                <span className="text-xs text-muted-foreground">
+                                                                    Portal login
+                                                                    email
+                                                                </span>
+                                                                <Input
+                                                                    type="email"
+                                                                    aria-label={`Portal login email of company ${index + 1}`}
+                                                                    placeholder="e.g. booking@borneotravel.my"
+                                                                    maxLength={
+                                                                        255
+                                                                    }
+                                                                    value={
+                                                                        row.portal_email
+                                                                    }
+                                                                    onChange={(
+                                                                        event,
+                                                                    ) =>
+                                                                        setRow(
+                                                                            index,
+                                                                            {
+                                                                                portal_email:
+                                                                                    event
+                                                                                        .target
+                                                                                        .value,
+                                                                            },
+                                                                        )
+                                                                    }
+                                                                    aria-invalid={
+                                                                        !!fieldError(
+                                                                            'portal_email',
+                                                                        )
+                                                                    }
+                                                                />
+                                                                <FieldError>
+                                                                    {fieldError(
+                                                                        'portal_email',
+                                                                    )}
+                                                                </FieldError>
+                                                                {row.portal_email !==
+                                                                    '' && (
+                                                                    <span className="text-xs text-muted-foreground">
+                                                                        Ready
+                                                                        after
+                                                                        go-live
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex flex-col gap-1">
+                                                                <span className="text-xs text-muted-foreground">
+                                                                    Free
+                                                                    cancellation
+                                                                    (days before
+                                                                    arrival)
+                                                                </span>
+                                                                <Input
+                                                                    inputMode="numeric"
+                                                                    aria-label={`Cancellation days of company ${index + 1}`}
+                                                                    placeholder="e.g. 7"
+                                                                    maxLength={
+                                                                        3
+                                                                    }
+                                                                    value={
+                                                                        row.portal_cancel_cutoff_days
+                                                                    }
+                                                                    onChange={(
+                                                                        event,
+                                                                    ) =>
+                                                                        setRow(
+                                                                            index,
+                                                                            {
+                                                                                portal_cancel_cutoff_days:
+                                                                                    event
+                                                                                        .target
+                                                                                        .value,
+                                                                            },
+                                                                        )
+                                                                    }
+                                                                    aria-invalid={
+                                                                        !!fieldError(
+                                                                            'portal_cancel_cutoff_days',
+                                                                        )
+                                                                    }
+                                                                />
+                                                                <FieldError>
+                                                                    {fieldError(
+                                                                        'portal_cancel_cutoff_days',
+                                                                    )}
+                                                                </FieldError>
+                                                            </div>
                                                         </div>
                                                     </TableCell>
                                                 </TableRow>

@@ -11,6 +11,7 @@ use App\Enums\PropertyType;
 use App\Enums\StepState;
 use App\Models\ArInvoice;
 use App\Models\Company;
+use App\Models\CompanyUser;
 use App\Models\OnboardingSkip;
 use App\Models\Property;
 use App\Models\User;
@@ -320,4 +321,43 @@ test('removing a company is refused while Basics is not done', function () {
         ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'Finish the earlier section first.']);
 
     expect(Company::query()->whereKey($company->id)->exists())->toBeTrue();
+});
+
+test('a row with a portal login email creates the login and a refused email shows on its row', function () {
+    ($this->save)([companyRow('Petronas', ['portal_email' => 'Booking@Petronas.my', 'portal_cancel_cutoff_days' => 7])])
+        ->assertSessionHasNoErrors();
+
+    $company = Company::query()->where('name', 'Petronas')->sole();
+    expect($company->portal_cancel_cutoff_days)->toBe(7)
+        ->and($company->portalLink->user->email)->toBe('booking@petronas.my')
+        ->and($company->portalLink->user->is_company_user)->toBeTrue();
+
+    User::factory()->for($this->property)->create(['email' => 'staff@hotel.my']);
+
+    ($this->save)([savedRow($company, ['portal_email' => 'staff@hotel.my']), companyRow('Other', ['portal_email' => 'x@y.my'])])
+        ->assertSessionHasErrors(['rows.0.portal_email']);
+
+    expect($company->refresh()->portalLink->user->email)->toBe('booking@petronas.my')
+        ->and(Company::query()->where('name', 'Other')->exists())->toBeFalse();
+});
+
+test('saving a row with an empty portal login email clears the login, and the page sends the saved login', function () {
+    ($this->save)([companyRow('Petronas', ['portal_email' => 'booking@petronas.my'])]);
+    $company = Company::query()->where('name', 'Petronas')->sole();
+
+    $this->actingAs($this->owner)
+        ->get(route('onboarding.companies.edit', $this->property->code))
+        ->assertInertia(fn (Assert $page) => $page->where('companies.0.portalEmail', 'booking@petronas.my'));
+
+    ($this->save)([savedRow($company, ['portal_email' => null])])->assertSessionHasNoErrors();
+
+    expect($company->refresh()->portalLink()->exists())->toBeFalse();
+});
+
+test('a company with a portal login can be removed before go-live', function () {
+    ($this->save)([companyRow('Petronas', ['portal_email' => 'booking@petronas.my'])]);
+    $company = Company::query()->where('name', 'Petronas')->sole();
+
+    expect(app(DeleteOnboardingCompany::class)($this->owner, $company))->toBeTrue()
+        ->and(CompanyUser::query()->count())->toBe(0);
 });

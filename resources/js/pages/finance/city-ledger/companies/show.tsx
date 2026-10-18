@@ -5,6 +5,7 @@ import { ChoiceCards } from '@/components/pms/choice-cards';
 import { billingChoices } from '@/components/pms/city-ledger/billing-choices';
 import { CompanyStatement } from '@/components/pms/city-ledger/company-statement';
 import { ArPaymentsTab } from '@/components/pms/city-ledger/ar-payments-tab';
+import { CompanyPortalSection } from '@/components/pms/city-ledger/company-portal-section';
 import { CompanyRatesForm } from '@/components/pms/city-ledger/company-rates-form';
 import { CountrySelect } from '@/components/pms/country-select';
 import type { EnumOption } from '@/components/pms/enum-select';
@@ -572,6 +573,12 @@ export default function CompanyShow({
                                 countries={countries}
                             />
                         ))}
+                    {tab === 'details' && (
+                        <CompanyPortalSection
+                            company={company}
+                            readOnly={readOnly}
+                        />
+                    )}
                     {tab === 'credit' && company.credit && (
                         <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                             <CreditFigure

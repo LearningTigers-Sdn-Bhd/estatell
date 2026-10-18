@@ -9,9 +9,9 @@ Platform admins run estatell itself. They create properties for owners, watch on
 Admins are rows in `users` with `is_admin = true`. There is no `admins` table and no `admin` guard.
 
 ```
-users    id, property_id (nullable), partner_id (nullable), is_admin (bool, default false), name, email, password, two_factor columns, timestamps
+users    id, property_id (nullable), partner_id (nullable), is_admin (bool, default false), is_company_user (bool, default false), name, email, password, two_factor columns, timestamps
 
-CHECK (num_nonnulls(property_id, partner_id) + is_admin::int = 1)
+CHECK (num_nonnulls(property_id, partner_id) + is_admin::int + is_company_user::int = 1)
 ```
 
 - A user is exactly one of: an admin, a staff user (`property_id`) or a partner user (`partner_id`, see [Partners](../17-onboarding/05-partners.md)). An admin never has a property. A staff user always has one.
@@ -19,7 +19,7 @@ CHECK (num_nonnulls(property_id, partner_id) + is_admin::int = 1)
 - `is_admin` is not fillable. Only `AdminSeeder` (reads `ADMIN_SEED_EMAIL` and `ADMIN_SEED_PASSWORD`) or a console command sets it. Fortify registration cannot.
 - Admins never belong to a property permission team.
 - Emails are unique across all users. An admin who also owns a property needs a second email.
-- Built: `is_admin`, `property_id` and `partner_id` (both restrict on delete) and the CHECK `users_one_kind_check` (it replaced `users_property_or_admin_check`). Registration creates the property and the owner together (see [Account creation](../17-onboarding/01-account-creation.md)).
+- Built: `is_admin`, `property_id` and `partner_id` (both restrict on delete) and the CHECK `users_one_kind_check` (it replaced `users_property_or_admin_check`). `is_company_user` joined the CHECK with the company portal login. Registration creates the property and the owner together (see [Account creation](../17-onboarding/01-account-creation.md)).
 
 ## Why one table
 

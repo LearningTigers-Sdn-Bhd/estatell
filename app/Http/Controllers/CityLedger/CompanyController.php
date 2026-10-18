@@ -22,6 +22,7 @@ use App\Models\Property;
 use App\Models\RatePlan;
 use App\Services\CityLedger\ArInvoiceDirectory;
 use App\Services\CityLedger\ArPaymentLedger;
+use App\Services\CityLedger\CompanyPortalState;
 use App\Services\CityLedger\CreditExposure;
 use App\Services\CityLedger\StatementBuilder;
 use App\Services\Guests\CountryOptions;
@@ -56,6 +57,7 @@ class CompanyController extends Controller
         $company = $createCompany($request->user(), $property, $request->companyAttributes());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __(':name added.', ['name' => $company->name])]);
+        Inertia::flash('portalLoginCreated', $this->newLoginWithTempPassword($company, []));
 
         return to_route('finance.city-ledger.companies.show', ['property' => $property, 'company' => $company]);
     }
@@ -128,11 +130,14 @@ class CompanyController extends Controller
 
     public function update(CompanyRequest $request, Property $property, Company $company, string $section, UpdateCompany $updateCompany): RedirectResponse
     {
+        $linksBefore = $company->companyUsers()->pluck('id')->all();
+
         $updateCompany($request->user(), $company, $request->companyAttributes());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __(':name saved.', ['name' => $company->refresh()->name])]);
+        Inertia::flash('portalLoginCreated', $this->newLoginWithTempPassword($company, $linksBefore));
 
-        return to_route($section === 'details' ? 'finance.city-ledger.companies.show' : "finance.city-ledger.companies.{$section}", ['property' => $property, 'company' => $company]);
+        return to_route(in_array($section, ['details', 'portal'], true) ? 'finance.city-ledger.companies.show' : "finance.city-ledger.companies.{$section}", ['property' => $property, 'company' => $company]);
     }
 
     /**
@@ -148,6 +153,19 @@ class CompanyController extends Controller
     }
 
     /**
+     * True when the save made a new login with a temp password, so the page can offer Copy message at once.
+     *
+     * @param  list<int>  $linksBefore  Ids of the company's links before the save.
+     */
+    private function newLoginWithTempPassword(Company $company, array $linksBefore): bool
+    {
+        return $company->companyUsers()->active()
+            ->whereNotIn('id', $linksBefore)
+            ->whereHas('user', fn ($query) => $query->whereNotNull('temporary_password'))
+            ->exists();
+    }
+
+    /**
      * Each tab has its own URL, so the open tab survives a refresh. Only the open tab's options are sent.
      * Staff without `company.manage` see the fields read-only.
      *
@@ -160,7 +178,11 @@ class CompanyController extends Controller
         $figures = $creditExposure->forCompany($company);
 
         return Inertia::render('finance/city-ledger/companies/show', [
-            'company' => CompanyData::fromModel($company, CreditExposureData::fromFigures($figures, $creditExposure->isOverLimit($figures))),
+            'company' => CompanyData::fromModel(
+                $company,
+                CreditExposureData::fromFigures($figures, $creditExposure->isOverLimit($figures)),
+                app(CompanyPortalState::class)->for($company),
+            ),
             'tab' => $tab,
             'currency' => CurrencyData::forProperty($property),
             'canManage' => $request->user()->can(PermissionEnum::CompanyManage->value),

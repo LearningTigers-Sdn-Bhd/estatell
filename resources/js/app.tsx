@@ -23,6 +23,7 @@ void createInertiaApp({
             case name.startsWith('auth/'):
             case name.startsWith('invitations/'):
             case name === 'property/suspended':
+            case name === 'portal/index':
             case name === 'onboarding/waiting':
                 return AuthLayout;
             case name.startsWith('onboarding/'):

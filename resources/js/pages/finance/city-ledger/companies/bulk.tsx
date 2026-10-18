@@ -2,6 +2,7 @@ import { Head, Link, useForm, useHttp } from '@inertiajs/react';
 import {
     Building2,
     ChevronDown,
+    Copy,
     Text,
     Download,
     Plus,
@@ -16,6 +17,8 @@ import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { FormActions } from '@/components/pms/form-actions';
 import { PageHeader } from '@/components/pms/page-header';
+import { ExportTemporaryPasswordsMenu } from '@/components/pms/temporary-passwords/export-temporary-passwords-menu';
+import { TemporaryPasswordMessageDialog } from '@/components/pms/temporary-passwords/temporary-password-message-dialog';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -48,6 +51,10 @@ import {
     create as bulkCreate,
     store as bulkStore,
 } from '@/routes/finance/city-ledger/companies/bulk';
+import {
+    exportMethod as exportLogins,
+    message as messageLogins,
+} from '@/routes/finance/city-ledger/companies/portal-logins';
 
 type Mode = 'simple' | 'detailed';
 
@@ -64,6 +71,8 @@ type Fields = {
     credit_limit: string;
     payment_terms_days: string;
     direct_bill_enabled: boolean;
+    portal_email: string;
+    portal_cancel_cutoff_days: string;
     brn: string;
     tin: string;
     sst_registration_number: string;
@@ -125,6 +134,18 @@ const SIMPLE_COLUMNS: Column[] = [
     {
         field: 'direct_bill_enabled',
         label: 'Direct billing',
+        width: 'min-w-24',
+    },
+    {
+        field: 'portal_email',
+        label: 'Portal login email',
+        placeholder: 'e.g. booking@borneotravel.my',
+        width: 'min-w-52',
+    },
+    {
+        field: 'portal_cancel_cutoff_days',
+        label: 'Cancel days',
+        placeholder: 'e.g. 7',
         width: 'min-w-24',
     },
 ];
@@ -198,6 +219,8 @@ function emptyRow(): Row {
         credit_limit: '',
         payment_terms_days: '',
         direct_bill_enabled: true,
+        portal_email: '',
+        portal_cancel_cutoff_days: '',
         brn: '',
         tin: '',
         sst_registration_number: '',
@@ -240,17 +263,79 @@ function writeMode(mode: Mode) {
     }
 }
 
+type AddedLogin = { id: number; name: string; email: string };
+
+function AddedResult({
+    added,
+    exportFormats,
+}: {
+    added: AddedLogin[];
+    exportFormats: EnumOption[];
+}) {
+    const [copying, setCopying] = useState(false);
+    const userIds = added.map((item) => item.id);
+
+    return (
+        <div className="flex flex-col gap-4">
+            <div className="overflow-hidden rounded-lg border">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Company</TableHead>
+                            <TableHead>Portal login email</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {added.map((item) => (
+                            <TableRow key={item.id}>
+                                <TableCell className="font-medium">
+                                    {item.name}
+                                </TableCell>
+                                <TableCell>{item.email}</TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
+            <div className="flex flex-wrap justify-end gap-2">
+                <Button variant="outline" onClick={() => setCopying(true)}>
+                    <Copy data-icon="inline-start" />
+                    Copy all
+                </Button>
+                <ExportTemporaryPasswordsMenu
+                    route={exportLogins()}
+                    userIds={userIds}
+                    formats={exportFormats}
+                />
+                <Link href={index()} className={buttonVariants()}>
+                    Done
+                </Link>
+            </div>
+            <TemporaryPasswordMessageDialog
+                route={messageLogins()}
+                who="company"
+                userIds={userIds}
+                open={copying}
+                onOpenChange={setCopying}
+            />
+        </div>
+    );
+}
+
 export default function CompaniesBulkAdd({
     types,
     countries,
     modes,
     maxRows,
+    exportFormats,
 }: {
     types: EnumOption[];
     countries: EnumOption[];
     modes: EnumOption[];
     maxRows: number;
+    exportFormats: EnumOption[];
 }) {
+    const [added, setAdded] = useState<AddedLogin[] | null>(null);
     const form = useForm<{ rows: Row[] }>({ rows: [emptyRow()] });
     const upload = useHttp<
         { file: File | null },
@@ -359,7 +444,18 @@ export default function CompaniesBulkAdd({
         }));
         form.post(bulkStore.url(), {
             preserveScroll: true,
-            onSuccess: () => onDone?.(),
+            onSuccess: (page) => {
+                const list = (
+                    page.flash as { bulkAdded?: AddedLogin[] } | undefined
+                )?.bulkAdded;
+
+                if (list && list.length > 0) {
+                    form.setData('rows', [emptyRow()]);
+                    setAdded(list);
+                }
+
+                onDone?.();
+            },
         });
     };
 
@@ -443,6 +539,22 @@ export default function CompaniesBulkAdd({
             />
         );
     };
+
+    if (added !== null) {
+        return (
+            <>
+                <Head title="Bulk add companies" />
+                <div className="flex flex-1 flex-col gap-6 p-4">
+                    <PageHeader
+                        title="Companies added"
+                        description={`${added.length} ${added.length === 1 ? 'company has' : 'companies have'} a new portal login with a temp password that works for 14 days. Copy the sign-in messages and pass them on.`}
+                        back={{ href: index(), label: 'Companies' }}
+                    />
+                    <AddedResult added={added} exportFormats={exportFormats} />
+                </div>
+            </>
+        );
+    }
 
     return (
         <>

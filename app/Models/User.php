@@ -29,6 +29,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property CarbonImmutable|null $temporary_password_shared_at
  * @property bool $must_change_password
  * @property bool $is_admin
+ * @property bool $is_company_user
  * @property CarbonImmutable|null $deactivated_at
  * @property string|null $two_factor_secret
  * @property string|null $two_factor_recovery_codes
@@ -60,6 +61,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'temporary_password_shared_at' => 'datetime',
             'must_change_password' => 'boolean',
             'is_admin' => 'boolean',
+            'is_company_user' => 'boolean',
             'deactivated_at' => 'datetime',
             'two_factor_confirmed_at' => 'datetime',
         ];
@@ -83,6 +85,16 @@ class User extends Authenticatable implements MustVerifyEmail
     public function partner(): BelongsTo
     {
         return $this->belongsTo(Partner::class);
+    }
+
+    /**
+     * The company links of a company user, at any property.
+     *
+     * @return HasMany<CompanyUser, $this>
+     */
+    public function companyUsers(): HasMany
+    {
+        return $this->hasMany(CompanyUser::class);
     }
 
     /** @return HasMany<UserNotificationPreference, $this> */

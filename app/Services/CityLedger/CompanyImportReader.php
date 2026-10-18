@@ -110,6 +110,7 @@ class CompanyImportReader
             ...$values,
             'type' => $type->value ?? '',
             'contact_email' => Str::lower($values['contact_email']),
+            'portal_email' => Str::lower($values['portal_email']),
             'direct_bill_enabled' => $directBill ?? true,
             'billing_country_code' => $country ?? '',
             'problems' => $problems,

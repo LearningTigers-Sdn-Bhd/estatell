@@ -6,9 +6,11 @@ use App\Actions\CityLedger\BulkCreateCompanies;
 use App\Enums\CompanyImportMode;
 use App\Enums\CompanyType;
 use App\Enums\SpreadsheetFormat;
+use App\Enums\TemporaryPasswordExportFormat;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CityLedger\BulkAddCompaniesRequest;
 use App\Http\Requests\CityLedger\ImportCompaniesRequest;
+use App\Models\CompanyUser;
 use App\Models\Property;
 use App\Services\CityLedger\CompanyImportReader;
 use App\Services\CityLedger\CompanyImportTemplate;
@@ -32,11 +34,12 @@ class CompanyBulkAddController extends Controller
             'countries' => app(CountryOptions::class)->options(),
             'modes' => CompanyImportMode::options(),
             'maxRows' => CompanyImportReader::MAX_ROWS,
+            'exportFormats' => TemporaryPasswordExportFormat::options(),
         ]);
     }
 
     /**
-     * Create every row, then go back to the list.
+     * Create every row. Back to the list, or, when some rows got a temp password login, back to this page to share them (flash `bulkAdded`).
      */
     public function store(BulkAddCompaniesRequest $request, Property $property, BulkCreateCompanies $bulkCreateCompanies): RedirectResponse
     {
@@ -44,7 +47,19 @@ class CompanyBulkAddController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => trans_choice(':count company added.|:count companies added.', $companies->count())]);
 
-        return to_route('finance.city-ledger.companies.index', $property);
+        $logins = CompanyUser::query()->active()
+            ->whereIn('company_id', $companies->pluck('id')->all())
+            ->whereHas('user', fn ($query) => $query->whereNotNull('temporary_password'))
+            ->with('company', 'user')
+            ->get();
+
+        if ($logins->isEmpty()) {
+            return to_route('finance.city-ledger.companies.index', $property);
+        }
+
+        Inertia::flash('bulkAdded', $logins->map(fn (CompanyUser $link): array => ['id' => $link->user_id, 'name' => $link->company->name, 'email' => $link->user->email])->values()->all());
+
+        return to_route('finance.city-ledger.companies.bulk.create', $property);
     }
 
     /**

@@ -73,9 +73,11 @@ class FortifyServiceProvider extends ServiceProvider
 
             if ($user->temporary_password_expires_at?->isPast()) {
                 throw ValidationException::withMessages([
-                    Fortify::username() => $user->partner_id !== null
-                        ? __('This temporary password has expired. Ask estatell support for a new one.')
-                        : __('This temporary password has expired. Ask your property owner for a new one.'),
+                    Fortify::username() => match (true) {
+                        $user->partner_id !== null => __('This temporary password has expired. Ask estatell support for a new one.'),
+                        $user->is_company_user => __('This temporary password has expired. Ask the property that gave you this login for a new one.'),
+                        default => __('This temporary password has expired. Ask your property owner for a new one.'),
+                    },
                 ]);
             }
 

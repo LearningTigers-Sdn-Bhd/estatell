@@ -113,6 +113,17 @@ class UserFactory extends Factory
     }
 
     /**
+     * Indicate that the user is a company user (a portal login): no property, no partner, linked to companies.
+     */
+    public function companyUser(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_company_user' => true,
+            'property_id' => null,
+        ]);
+    }
+
+    /**
      * Seed the property's default roles and give the user the Owner role.
      */
     public function owner(): static

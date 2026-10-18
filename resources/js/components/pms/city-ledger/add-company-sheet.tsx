@@ -35,6 +35,8 @@ function AddCompanyForm({ open, onOpenChange, types, currency }: Props) {
         credit_limit: '',
         payment_terms_days: '',
         direct_bill_enabled: true,
+        portal_email: '',
+        portal_cancel_cutoff_days: '',
     });
     const { data, errors } = form;
 
@@ -188,6 +190,61 @@ function AddCompanyForm({ open, onOpenChange, types, currency }: Props) {
                         </Field>
                     </>
                 )}
+            </FieldSet>
+
+            <FieldSeparator />
+
+            <FieldSet>
+                <FieldLegend>Portal</FieldLegend>
+                <FieldDescription>
+                    One login for the company portal. Leave it empty if the
+                    company does not need one.
+                </FieldDescription>
+                <Field data-invalid={!!errors.portal_email}>
+                    <FieldLabel htmlFor="add-company-portal_email">
+                        Portal login email
+                    </FieldLabel>
+                    <Input
+                        id="add-company-portal_email"
+                        type="email"
+                        value={data.portal_email}
+                        onChange={(event) =>
+                            form.setData('portal_email', event.target.value)
+                        }
+                        maxLength={255}
+                        placeholder="e.g. booking@borneotravel.my"
+                        autoComplete="off"
+                        aria-invalid={!!errors.portal_email}
+                    />
+                    <FieldDescription>
+                        A new email gets a temp password you can copy after
+                        saving.
+                    </FieldDescription>
+                    <FieldError>{errors.portal_email}</FieldError>
+                </Field>
+                <Field data-invalid={!!errors.portal_cancel_cutoff_days}>
+                    <FieldLabel htmlFor="add-company-portal_cancel_cutoff_days">
+                        Free cancellation until (days before arrival)
+                    </FieldLabel>
+                    <Input
+                        id="add-company-portal_cancel_cutoff_days"
+                        inputMode="numeric"
+                        className="tabular-nums"
+                        value={data.portal_cancel_cutoff_days}
+                        onChange={(event) =>
+                            form.setData(
+                                'portal_cancel_cutoff_days',
+                                event.target.value,
+                            )
+                        }
+                        placeholder="e.g. 7"
+                        aria-invalid={!!errors.portal_cancel_cutoff_days}
+                    />
+                    <FieldDescription>
+                        Empty means they can only request a cancellation.
+                    </FieldDescription>
+                    <FieldError>{errors.portal_cancel_cutoff_days}</FieldError>
+                </Field>
             </FieldSet>
         </FormOverlay>
     );

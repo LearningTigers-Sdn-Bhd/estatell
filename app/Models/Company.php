@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * A corporate, travel agent or government body that stays now and pays later through the city ledger.
@@ -36,7 +37,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $credit_limit
  * @property int|null $payment_terms_days
  * @property bool $direct_bill_enabled
- * @property bool $portal_enabled
  * @property int|null $portal_cancel_cutoff_days
  * @property bool $profile_managed_by_company Set by the company in the portal: hotel staff may no longer edit the tax numbers and billing address.
  * @property CompanyStatus $status
@@ -47,7 +47,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'name', 'type', 'brn', 'tin', 'sst_registration_number', 'contact_email', 'contact_phone',
     'billing_address_line1', 'billing_address_line2', 'billing_city', 'billing_state_code',
     'billing_postal_code', 'billing_country_code', 'credit_limit', 'payment_terms_days',
-    'direct_bill_enabled', 'status',
+    'direct_bill_enabled', 'portal_cancel_cutoff_days', 'status',
 ])]
 class Company extends Model
 {
@@ -63,7 +63,6 @@ class Company extends Model
             'credit_limit' => 'decimal:2',
             'payment_terms_days' => 'integer',
             'direct_bill_enabled' => 'boolean',
-            'portal_enabled' => 'boolean',
             'portal_cancel_cutoff_days' => 'integer',
             'profile_managed_by_company' => 'boolean',
         ];
@@ -83,6 +82,26 @@ class Company extends Model
     public function ratePlans(): BelongsToMany
     {
         return $this->belongsToMany(RatePlan::class, 'company_rate_plans')->withTimestamps();
+    }
+
+    /**
+     * Every portal login link the company had, newest first.
+     *
+     * @return HasMany<CompanyUser, $this>
+     */
+    public function companyUsers(): HasMany
+    {
+        return $this->hasMany(CompanyUser::class);
+    }
+
+    /**
+     * The company's open portal login link (Pending or Active), if any.
+     *
+     * @return HasOne<CompanyUser, $this>
+     */
+    public function portalLink(): HasOne
+    {
+        return $this->hasOne(CompanyUser::class)->open();
     }
 
     /**

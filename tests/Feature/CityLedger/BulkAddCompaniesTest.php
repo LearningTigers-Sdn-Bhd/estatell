@@ -211,11 +211,11 @@ test('the import template has the columns of the chosen mode', function (string 
     $headers = SimpleExcelReader::create($copy)->getHeaders();
 
     expect($headers)->toHaveCount($columns)
-        ->and(array_slice($headers, 0, 7))->toBe(['name', 'type', 'email', 'phone', 'credit_limit', 'terms_days', 'direct_billing']);
+        ->and(array_slice($headers, 0, 9))->toBe(['name', 'type', 'email', 'phone', 'credit_limit', 'terms_days', 'direct_billing', 'portal_email', 'cancel_days']);
 })->with([
-    ['csv', 'simple', 7],
-    ['xlsx', 'simple', 7],
-    ['csv', 'detailed', 16],
+    ['csv', 'simple', 9],
+    ['xlsx', 'simple', 9],
+    ['csv', 'detailed', 18],
 ]);
 
 test('the import template only comes as csv or xlsx', function () {

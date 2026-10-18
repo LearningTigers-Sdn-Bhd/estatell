@@ -5,6 +5,7 @@ namespace App\Http\Requests\Onboarding;
 use App\Enums\CompanyStatus;
 use App\Enums\OnboardingStep;
 use App\Http\Requests\CityLedger\CompanyRules;
+use App\Models\Company;
 use App\Models\Property;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -27,7 +28,7 @@ class SaveCompaniesRequest extends OnboardingStepRequest
      */
     private const array FIELDS = [
         'type', 'contact_email', 'contact_phone', 'credit_limit', 'payment_terms_days', 'direct_bill_enabled',
-        'brn', 'tin', 'sst_registration_number',
+        'brn', 'tin', 'sst_registration_number', 'portal_email', 'portal_cancel_cutoff_days',
     ];
 
     protected function step(): OnboardingStep
@@ -56,6 +57,7 @@ class SaveCompaniesRequest extends OnboardingStepRequest
                 ...$row,
                 'name' => trim((string) ($row['name'] ?? '')),
                 'contact_email' => filled($row['contact_email'] ?? null) ? mb_strtolower(trim((string) $row['contact_email'])) : null,
+                'portal_email' => filled($row['portal_email'] ?? null) ? mb_strtolower(trim((string) $row['portal_email'])) : null,
                 'direct_bill_enabled' => filter_var($row['direct_bill_enabled'] ?? false, FILTER_VALIDATE_BOOLEAN),
             ] : $row,
             array_values($rows),
@@ -95,6 +97,11 @@ class SaveCompaniesRequest extends OnboardingStepRequest
             $rules["rows.*.{$field}"] = $fieldRules[$field];
         }
 
+        $rules['rows.*.portal_email'] = [
+            'nullable', 'email:rfc', 'max:255', 'distinct:ignore_case',
+            fn (string $attribute, mixed $value, Closure $fail) => CompanyRules::portalEmailIsFree($property, $this->companyOfRow($property, $attribute))($attribute, $value, $fail),
+        ];
+
         return $rules;
     }
 
@@ -118,6 +125,16 @@ class SaveCompaniesRequest extends OnboardingStepRequest
                 'direct_bill_enabled' => (bool) $row['direct_bill_enabled'],
             ];
         }, array_values($this->validated('rows')));
+    }
+
+    /**
+     * The saved company of the row, or null for a new row.
+     */
+    private function companyOfRow(Property $property, string $attribute): ?Company
+    {
+        $id = data_get((array) $this->input('rows'), explode('.', $attribute)[1].'.id');
+
+        return filled($id) ? $property->companies()->find($id) : null;
     }
 
     /**

@@ -18,7 +18,7 @@ companies            id, property_id, name, type (CompanyType), brn, tin, sst_re
                      UNIQUE (property_id, lower(name))
                      CHECK name is not blank; CHECK credit_limit >= 0; CHECK payment_terms_days >= 0
 company_rate_plans   company_id, rate_plan_id
-company_users        see Company portal
+company_users        see Company portal (built: one open link per company)
 ```
 
 ## Enums
@@ -50,7 +50,7 @@ company_users        see Company portal
 - Only an active derived plan of the same property can be linked. `company_rate_plans` has a unique `(company_id, rate_plan_id)`; the company link cascades on delete and the plan link restricts. An archived plan is hidden everywhere but keeps its link, and restoring it brings the link back. A Suspended company keeps its links.
 - `AddUnit` refuses a linked plan unless the reservation's company is one of its companies: `rate_plan_not_linked_to_company`. The form filter is only a convenience. Channel ingestion skips this check.
 - `UpdateReservationCompany` refuses a change while a live unit uses a plan the new company cannot book: `company_plan_conflict`, "Units use plans only the old company can book."
-- `portal_cancel_cutoff_days` and the company's portal login (`company_users`) belong to the [Company portal](../23-company-portal/01-company-portal.md#portal-login). They are set in a Portal section on the Add company Sheet, the Details tab and Bulk add. `portal_enabled` is dropped when the portal is built: the portal is on while the company has an Active link.
+- `portal_cancel_cutoff_days` and the company's portal login (`company_users`) belong to the [Company portal](../23-company-portal/01-company-portal.md#portal-login). They are set in a Portal section on the Add company Sheet, the Details tab and Bulk add. `portal_enabled` is dropped: the portal is on while the company has an Active link. Built: the Portal section on the Add company Sheet and a Portal form on the Details tab (status, **Copy message**, **Reset password**, **Resend**), and the `portal_email` and `cancel_days` columns in Bulk add.
 
 ## Actions
 

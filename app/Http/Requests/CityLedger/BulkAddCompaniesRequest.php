@@ -36,6 +36,7 @@ class BulkAddCompaniesRequest extends FormRequest
                     ...array_map(fn (mixed $value): mixed => is_string($value) && trim($value) === '' ? null : (is_string($value) ? trim($value) : $value), $row),
                     'name' => trim((string) ($row['name'] ?? '')),
                     'contact_email' => filled($row['contact_email'] ?? null) ? mb_strtolower(trim((string) $row['contact_email'])) : null,
+                    'portal_email' => filled($row['portal_email'] ?? null) ? mb_strtolower(trim((string) $row['portal_email'])) : null,
                     'direct_bill_enabled' => filter_var($row['direct_bill_enabled'] ?? true, FILTER_VALIDATE_BOOLEAN),
                 ]
                 : $row,
@@ -51,7 +52,7 @@ class BulkAddCompaniesRequest extends FormRequest
         $rules = ['rows' => ['required', 'array', 'min:1', 'max:'.CompanyImportReader::MAX_ROWS]];
 
         foreach (CompanyRules::for($this->property()) as $field => $fieldRules) {
-            $rules["rows.*.{$field}"] = $field === 'name' ? [...$fieldRules, 'distinct:ignore_case'] : $fieldRules;
+            $rules["rows.*.{$field}"] = in_array($field, ['name', 'portal_email'], true) ? [...$fieldRules, 'distinct:ignore_case'] : $fieldRules;
         }
 
         return $rules;
@@ -65,6 +66,7 @@ class BulkAddCompaniesRequest extends FormRequest
         return [
             'rows.*.name.required' => __('Enter a name.'),
             'rows.*.name.distinct' => __('This name is in the list twice.'),
+            'rows.*.portal_email.distinct' => __('This portal login email is in the list twice.'),
             'rows.*.type.required' => __('Choose a type.'),
         ];
     }

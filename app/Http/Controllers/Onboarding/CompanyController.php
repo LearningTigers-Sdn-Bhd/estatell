@@ -39,7 +39,7 @@ class CompanyController extends Controller
         $referenced = $references->referencedIds($property);
 
         return Inertia::render('onboarding/companies', [
-            'companies' => $property->companies()->ordered()->get()
+            'companies' => $property->companies()->with('portalLink.user')->ordered()->get()
                 ->map(fn (Company $company): OnboardingCompanyData => OnboardingCompanyData::fromModel($company, ! in_array($company->id, $referenced, true))),
             'types' => CompanyType::options(),
             'currency' => CurrencyData::forProperty($property),

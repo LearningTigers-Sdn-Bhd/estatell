@@ -62,15 +62,15 @@ go_live_review_flags   go_live_review_id, step (OnboardingStep)
 
 ## Build status
 
-| Part                                                                                                               | Status                                                                          |
-| ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
-| `GoLive`, `GoLiveReadiness`, `EnsurePropertyIsLive`, the Review page (rows, warnings, sign-in info line)           | Built.                                                                          |
-| Opening date: today in the property time zone. The owner field is gone                                             | Built. `ApproveGoLive` takes an earlier date, never a later one.                |
-| `PendingApproval` when `require_go_live_approval` is on. Nothing opens and `went_live_at` stays empty              | Built. `RequestGoLive` opens nothing; the go-live steps run at `ApproveGoLive`. |
-| `RefreshPendingTemporaryPasswords` at go-live                                                                      | Built for staff. Company users join when the company portal users are built.    |
-| The You're live card, confetti, Recommended checklist                                                              | Built.                                                                          |
-| Notifications switch-on at go-live                                                                                 | Not built. No notification gate exists yet.                                     |
-| Go-live approval (`RequestGoLive`, `ApproveGoLive`, `RejectGoLive`, `WithdrawGoLiveRequest`, flags, admin screens) | Built.                                                                          |
+| Part                                                                                                               | Status                                                                                                                                                       |
+| ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GoLive`, `GoLiveReadiness`, `EnsurePropertyIsLive`, the Review page (rows, warnings, sign-in info line)           | Built.                                                                                                                                                       |
+| Opening date: today in the property time zone. The owner field is gone                                             | Built. `ApproveGoLive` takes an earlier date, never a later one.                                                                                             |
+| `PendingApproval` when `require_go_live_approval` is on. Nothing opens and `went_live_at` stays empty              | Built. `RequestGoLive` opens nothing; the go-live steps run at `ApproveGoLive`.                                                                              |
+| `RefreshPendingTemporaryPasswords` at go-live                                                                      | Built for staff and for company users with an Active link here (not those also linked at another property). The returned counts are `staff` and `companies`. |
+| The You're live card, confetti, Recommended checklist                                                              | Built.                                                                                                                                                       |
+| Notifications switch-on at go-live                                                                                 | Not built. No notification gate exists yet.                                                                                                                  |
+| Go-live approval (`RequestGoLive`, `ApproveGoLive`, `RejectGoLive`, `WithdrawGoLiveRequest`, flags, admin screens) | Built.                                                                                                                                                       |
 
 Document numbering needs no start step. `NextDocumentNumber` creates a sequence row on first use.
 
@@ -98,7 +98,7 @@ Going live redirects to the dashboard with a `wentLive` flash. There is no separ
 - After sharing, the row reads "✓ Team (3) Shared 16 Oct" with **Copy again**. The card is gone on the next visit once every pending user has a shared time.
 - With no pending staff, the card shows only the first line, once (on the `wentLive` flash).
 - A short celebration (`canvas-confetti`) runs once, on the `wentLive` flash, never on later loads.
-- Company users join this card with [Company portal](../23-company-portal/01-company-portal.md).
+- Company users join this card with [Company portal](../23-company-portal/01-company-portal.md). Not built yet: the card still counts staff only.
 - At phone width the rows stack and the buttons go full width.
 
 ### Recommended checklist

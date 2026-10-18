@@ -5,6 +5,7 @@ namespace App\Http\Requests\CityLedger;
 use App\Enums\CompanyType;
 use App\Models\Company;
 use App\Models\Property;
+use App\Services\CityLedger\PortalLoginCheck;
 use App\Services\Guests\CountryOptions;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
@@ -40,6 +41,8 @@ class CompanyRules
             'billing_state_code' => ['nullable', 'string', 'max:100'],
             'billing_postal_code' => ['nullable', 'string', 'max:20'],
             'billing_country_code' => ['nullable', Rule::in(app(CountryOptions::class)->codes())],
+            'portal_email' => ['nullable', 'email:rfc', 'max:255', self::portalEmailIsFree($property, $current)],
+            'portal_cancel_cutoff_days' => ['nullable', 'integer', 'min:0', 'max:365'],
         ];
     }
 
@@ -56,6 +59,21 @@ class CompanyRules
         }
 
         return $attributes;
+    }
+
+    /**
+     * The portal login email must be usable by this company: not another kind of account, not deactivated, not the
+     * login of another company at this property. The Action checks again when it saves.
+     */
+    public static function portalEmailIsFree(Property $property, ?Company $current): Closure
+    {
+        return function (string $attribute, mixed $value, Closure $fail) use ($property, $current): void {
+            $refusal = app(PortalLoginCheck::class)->refusal($property, $current, (string) $value);
+
+            if ($refusal !== null) {
+                $fail($refusal->message());
+            }
+        };
     }
 
     /**

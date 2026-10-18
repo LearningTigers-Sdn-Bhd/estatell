@@ -6,6 +6,7 @@ use App\Http\Controllers\CityLedger\ArInvoiceController;
 use App\Http\Controllers\CityLedger\CompanyBulkAddController;
 use App\Http\Controllers\CityLedger\CompanyController;
 use App\Http\Controllers\CityLedger\CompanyPaymentController;
+use App\Http\Controllers\CityLedger\CompanyPortalLoginController;
 use App\Http\Controllers\CityLedger\CompanyStatementController;
 use App\Http\Controllers\CityLedger\CompanyStatusController;
 use App\Http\Requests\CityLedger\CompanyRequest;
@@ -21,6 +22,8 @@ Route::prefix('finance')->name('finance.')->group(function () {
             Route::post('bulk', [CompanyBulkAddController::class, 'store'])->name('bulk.store');
             Route::post('import', [CompanyBulkAddController::class, 'import'])->name('import');
             Route::get('import-template.{format}', [CompanyBulkAddController::class, 'template'])->name('import-template');
+            Route::post('portal-logins/message', [CompanyPortalLoginController::class, 'messages'])->name('portal-logins.message');
+            Route::post('portal-logins/export', [CompanyPortalLoginController::class, 'export'])->name('portal-logins.export');
         });
 
         Route::scopeBindings()->prefix('{company}')->group(function () {
@@ -45,6 +48,9 @@ Route::prefix('finance')->name('finance.')->group(function () {
             Route::middleware('can:'.PermissionEnum::CompanyManage->value)->group(function () {
                 Route::put('billing', [CompanyController::class, 'updateBilling'])->name('billing.update');
                 Route::put('rates', [CompanyController::class, 'updateRates'])->name('rates.update');
+                Route::post('portal/message', [CompanyPortalLoginController::class, 'message'])->name('portal.message');
+                Route::post('portal/reset', [CompanyPortalLoginController::class, 'reset'])->name('portal.reset');
+                Route::post('portal/resend', [CompanyPortalLoginController::class, 'resend'])->name('portal.resend');
                 Route::put('{section}', [CompanyController::class, 'update'])->whereIn('section', CompanyRequest::SECTIONS)->name('update');
                 Route::post('suspend', [CompanyStatusController::class, 'suspend'])->name('suspend');
                 Route::post('reactivate', [CompanyStatusController::class, 'reactivate'])->name('reactivate');

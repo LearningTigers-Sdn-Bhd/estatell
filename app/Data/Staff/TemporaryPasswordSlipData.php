@@ -2,6 +2,7 @@
 
 namespace App\Data\Staff;
 
+use App\Models\Company;
 use App\Models\Property;
 use App\Models\User;
 use Spatie\LaravelData\Data;
@@ -34,6 +35,25 @@ class TemporaryPasswordSlipData extends Data
             role: null,
             temporaryPassword: (string) $user->temporary_password,
             expiresOn: $user->temporary_password_expires_at->setTimezone(config('app.timezone'))->format('j M Y'),
+            loginUrl: route('login'),
+        );
+    }
+
+    /**
+     * A company user's sign-in details. The company name takes the place of the property name. Expects an unexpired
+     * temp password.
+     */
+    public static function fromCompanyUser(User $user, Company $company, Property $property): self
+    {
+        $timeZone = $property->settings->time_zone ?? config('app.timezone');
+
+        return new self(
+            property: $company->name,
+            name: $user->name,
+            email: $user->email,
+            role: null,
+            temporaryPassword: (string) $user->temporary_password,
+            expiresOn: $user->temporary_password_expires_at->setTimezone($timeZone)->format('j M Y'),
             loginUrl: route('login'),
         );
     }

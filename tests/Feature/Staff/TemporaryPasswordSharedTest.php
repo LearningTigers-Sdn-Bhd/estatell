@@ -63,7 +63,7 @@ test('the go-live refresh clears the shared time of staff who have not signed in
         ->post(route('settings.staff.temp-passwords.message', $this->property->code), ['user_ids' => [$this->ali->id, $this->siti->id]])
         ->assertOk();
 
-    expect(app(RefreshPendingTemporaryPasswords::class)($this->property, $this->owner))->toBe(2)
+    expect(app(RefreshPendingTemporaryPasswords::class)($this->property, $this->owner))->toBe(['staff' => 2, 'companies' => 0])
         ->and($this->ali->refresh()->temporary_password_shared_at)->toBeNull()
         ->and($this->siti->refresh()->temporary_password_shared_at)->toBeNull();
 });

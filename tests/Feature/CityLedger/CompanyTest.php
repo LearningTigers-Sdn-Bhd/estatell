@@ -318,7 +318,7 @@ test('each tab has its own URL and sends only its options', function () {
             ->missing('types')
         );
 
-    $this->actingAs($user)->put(companiesUrl($property, "/{$company->id}/portal"), [])->assertNotFound();
+    $this->actingAs($user)->put(companiesUrl($property, "/{$company->id}/nope"), [])->assertNotFound();
 });
 
 test('saving a company without changes logs nothing', function () {

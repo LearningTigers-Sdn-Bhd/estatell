@@ -63,4 +63,5 @@ require __DIR__.'/account.php';
 require __DIR__.'/staff.php';
 require __DIR__.'/admin.php';
 require __DIR__.'/partner.php';
+require __DIR__.'/portal.php';
 require __DIR__.'/guest.php';
