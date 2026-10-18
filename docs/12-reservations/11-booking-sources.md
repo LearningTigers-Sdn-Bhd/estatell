@@ -4,7 +4,7 @@
 
 Record where every booking came from, in the property's own words (Phone, WhatsApp, Booking.com), so the dashboard Channel mix is right even before the channel manager is on.
 
-**Status: commit 1 built** (the table, the enums, the seed, the backfill, the booking form and the reservation readers). The badge, the settings page and the OTA lists are planned. It replaced the `ReservationSource` enum and `reservations.channel_name`. It lands before the dashboard Performance tab.
+**Status: commits 1 and 4 built** (the table, the enums, the seed, the backfill, the booking form and the reservation readers, and the OTA rows from the onboarding lists). The badge and the settings page are planned. It replaced the `ReservationSource` enum and `reservations.channel_name`. It lands before the dashboard Performance tab.
 
 ## Data model
 
@@ -174,16 +174,16 @@ All need `settings.manage` and use `scopeBindings`. The controller is `Reservati
 
 ## Actions and Services
 
-| Class                                 | Kind    | Does                                                                                                                                                                         |
-| ------------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Reservations/SeedBookingSources`     | Action  | The defaults above                                                                                                                                                           |
-| `Reservations/CreateBookingSource`    | Action  | Adds a Direct or OTA row at the end of the active list. Logs `booking_source.created`                                                                                        |
-| `Reservations/UpdateBookingSource`    | Action  | Name, Available and badge, and type or OTA channel while unused. On a system row only the badge changes; anything else returns false. Logs `booking_source.updated`          |
-| `Reservations/ReorderBookingSources`  | Action  | Like `ReorderChargeItems`: returns false unless the ids are exactly the active rows that are not system rows ("The booking sources changed. Reload the page and try again.") |
-| `Reservations/DeleteBookingSource`    | Action  | Returns false when the source is used or a system row. Logs `booking_source.deleted`                                                                                         |
-| `Reservations/EnsureOtaBookingSource` | Action  | `(Property, OtaChannel, ?name): BookingSource`. Finds or creates the OTA row under a lock. Used by `SaveOtaCredentials` and, later, `IngestChannelBooking`                   |
-| `Reservations/BookingSourceOptions`   | Service | The [booking form](05-booking-form.md#sections) list and the [list filter](06-reservation-page.md#controls) options                                                          |
-| `Reservations/BookingSourceUsage`     | Service | Reservations per source, for the Used column and the delete check                                                                                                            |
+| Class                                 | Kind    | Does                                                                                                                                                                                                |
+| ------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Reservations/SeedBookingSources`     | Action  | The defaults above                                                                                                                                                                                  |
+| `Reservations/CreateBookingSource`    | Action  | Adds a Direct or OTA row at the end of the active list. Logs `booking_source.created`                                                                                                               |
+| `Reservations/UpdateBookingSource`    | Action  | Name, Available and badge, and type or OTA channel while unused. On a system row only the badge changes; anything else returns false. Logs `booking_source.updated`                                 |
+| `Reservations/ReorderBookingSources`  | Action  | Like `ReorderChargeItems`: returns false unless the ids are exactly the active rows that are not system rows ("The booking sources changed. Reload the page and try again.")                        |
+| `Reservations/DeleteBookingSource`    | Action  | Returns false when the source is used or a system row. Logs `booking_source.deleted`                                                                                                                |
+| `Reservations/EnsureOtaBookingSource` | Action  | `(Property, OtaChannel, ?name): BookingSource`. Finds or creates the OTA row under a lock. Used by `SaveOtaCredentials` and, later, `IngestChannelBooking`. Logs `booking_source.created` on create |
+| `Reservations/BookingSourceOptions`   | Service | The [booking form](05-booking-form.md#sections) list and the [list filter](06-reservation-page.md#controls) options                                                                                 |
+| `Reservations/BookingSourceUsage`     | Service | Reservations per source, for the Used column and the delete check                                                                                                                                   |
 
 Expected refusals return false and the controller shows an error toast, as in `.ai/rules/actions.md`.
 

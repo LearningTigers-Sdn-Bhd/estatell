@@ -3,6 +3,7 @@
 use App\Enums\DefaultRoleEnum;
 use App\Enums\OnboardingStep;
 use App\Enums\OtaCredentialStatus;
+use App\Models\BookingSource;
 use App\Models\OnboardingSkip;
 use App\Models\OtaChannel;
 use App\Models\Property;
@@ -239,4 +240,22 @@ test('a saved Other row cannot change its channel name', function () {
         'channel_name' => 'traveloka',
         'password' => '',
     ])])->assertSessionHasNoErrors();
+});
+
+test('a row saved from settings creates its booking source', function () {
+    ($this->save)([($this->row)()])->assertSessionHasNoErrors();
+
+    expect(BookingSource::query()->where('property_id', $this->property->id)->sole())
+        ->name->toBe('Agoda')
+        ->ota_channel_id->toBe($this->agoda->id);
+});
+
+test('a password change keeps the same booking source', function () {
+    $saved = PropertyOtaCredential::factory()->for($this->property)->create(['ota_channel_id' => $this->agoda->id, 'password' => 'agoda-secret']);
+    ($this->save)([($this->row)(['id' => $saved->id, 'password' => ''])])->assertSessionHasNoErrors();
+    $source = BookingSource::query()->where('property_id', $this->property->id)->sole();
+
+    ($this->save)([($this->row)(['id' => $saved->id, 'password' => 'new-secret'])])->assertSessionHasNoErrors();
+
+    expect(BookingSource::query()->where('property_id', $this->property->id)->sole()->id)->toBe($source->id);
 });

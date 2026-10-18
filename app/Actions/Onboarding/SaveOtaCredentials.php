@@ -2,9 +2,11 @@
 
 namespace App\Actions\Onboarding;
 
+use App\Actions\Reservations\EnsureOtaBookingSource;
 use App\Data\Onboarding\OnboardingOtaCredentialData;
 use App\Enums\OnboardingStep;
 use App\Enums\OtaCredentialStatus;
+use App\Models\OtaChannel;
 use App\Models\Property;
 use App\Models\PropertyOtaCredential;
 use App\Models\User;
@@ -16,13 +18,15 @@ class SaveOtaCredentials
     public function __construct(
         private SkipOnboardingStep $skipStep,
         private UnskipOnboardingStep $unskipStep,
+        private EnsureOtaBookingSource $ensureBookingSource,
     ) {}
 
     /**
      * Save the OTA lists table in one transaction. Saved rows missing from the submit are deleted. A row keeps its
      * saved password when the password is null. A row whose channel or channel name changes is saved again as a new
      * row, so the old channel slot is free first. New rows are Pending. An empty table counts as Skipped, and saving
-     * at least one row removes a Skip.
+     * at least one row removes a Skip. Each saved row also gets its booking source (EnsureOtaBookingSource), so the
+     * channel can be picked on the booking form. Removing a row never removes its source.
      *
      * From Settings ($fromSettings) the skip is never touched, because onboarding is over. A new password sets its
      * saved row back to Pending and writes a log entry that never holds the password.
@@ -82,6 +86,19 @@ class SaveOtaCredentials
                     'password' => $row->password ?? $credential?->password,
                     'status' => OtaCredentialStatus::Pending,
                 ]);
+            }
+
+            $channels = OtaChannel::query()
+                ->whereIn('id', array_map(fn (OnboardingOtaCredentialData $row): int => $row->otaChannelId, $rows))
+                ->get()
+                ->keyBy('id');
+
+            foreach ($rows as $row) {
+                $channel = $channels->get($row->otaChannelId);
+
+                if ($channel instanceof OtaChannel) {
+                    ($this->ensureBookingSource)($property, $channel, $row->channelName);
+                }
             }
 
             if ($fromSettings) {

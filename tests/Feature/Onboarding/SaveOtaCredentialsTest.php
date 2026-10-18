@@ -3,6 +3,7 @@
 use App\Enums\OnboardingStep;
 use App\Enums\OtaCredentialStatus;
 use App\Enums\StepState;
+use App\Models\BookingSource;
 use App\Models\OnboardingSkip;
 use App\Models\OtaChannel;
 use App\Models\Property;
@@ -216,4 +217,66 @@ test('the channel manager step has its own page and is optional', function () {
     expect(OnboardingStep::ChannelManager->routeName())->toBe('onboarding.channel-manager.edit')
         ->and(OnboardingStep::ChannelManager->isRequired())->toBeFalse()
         ->and(OnboardingStep::ChannelManager->phase()->value)->toBe('channels');
+});
+
+test('saving a row creates its OTA booking source', function () {
+    ($this->save)([($this->row)()])->assertSessionHasNoErrors();
+
+    expect(BookingSource::query()->where('property_id', $this->property->id)->sole())
+        ->name->toBe('Agoda')
+        ->ota_channel_id->toBe($this->agoda->id)
+        ->badge_letters->toBe('A');
+});
+
+test('an Other row creates its source named by the typed channel name', function () {
+    ($this->save)([($this->row)(['ota_channel_id' => (string) $this->other->id, 'channel_name' => 'Traveloka'])])
+        ->assertSessionHasNoErrors();
+
+    expect(BookingSource::query()->where('property_id', $this->property->id)->sole())
+        ->name->toBe('Traveloka')
+        ->ota_channel_id->toBe($this->other->id);
+});
+
+test('a repeat save with the same row adds no source', function () {
+    ($this->save)([($this->row)()])->assertSessionHasNoErrors();
+    $saved = PropertyOtaCredential::query()->where('property_id', $this->property->id)->sole();
+
+    ($this->save)([($this->row)(['id' => $saved->id, 'password' => ''])])->assertSessionHasNoErrors();
+
+    expect(BookingSource::query()->where('property_id', $this->property->id)->count())->toBe(1);
+});
+
+test('removing a row keeps its source', function () {
+    ($this->save)([($this->row)()])->assertSessionHasNoErrors();
+
+    ($this->save)([])->assertSessionHasNoErrors();
+
+    expect(PropertyOtaCredential::query()->count())->toBe(0)
+        ->and(BookingSource::query()->where('property_id', $this->property->id)->where('name', 'Agoda')->exists())->toBeTrue();
+});
+
+test('a channel swap keeps the old channel source and adds the new one', function () {
+    ($this->save)([($this->row)()])->assertSessionHasNoErrors();
+    $saved = PropertyOtaCredential::query()->where('property_id', $this->property->id)->sole();
+
+    ($this->save)([($this->row)(['id' => $saved->id, 'ota_channel_id' => (string) $this->booking->id, 'password' => 'agoda-secret'])])
+        ->assertSessionHasNoErrors();
+
+    expect(BookingSource::query()->where('property_id', $this->property->id)->pluck('name')->sort()->values()->all())
+        ->toBe(['Agoda', 'Booking.com']);
+});
+
+test('a name taken by a direct source gets " (OTA)" on the saved row', function () {
+    BookingSource::factory()->for($this->property)->create(['name' => 'Agoda']);
+
+    ($this->save)([($this->row)()])->assertSessionHasNoErrors();
+
+    expect(BookingSource::query()->where('property_id', $this->property->id)->where('type', 'ota')->sole()->name)->toBe('Agoda (OTA)');
+});
+
+test('a refused save creates no booking source', function () {
+    ($this->save)([($this->row)(), ($this->row)(['password' => 'other-secret'])])
+        ->assertSessionHasErrors();
+
+    expect(BookingSource::query()->where('property_id', $this->property->id)->exists())->toBeFalse();
 });

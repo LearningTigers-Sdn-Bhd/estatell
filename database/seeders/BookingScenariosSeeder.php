@@ -32,6 +32,7 @@ use App\Actions\Rates\UpsertRates;
 use App\Actions\Reservations\AddUnit;
 use App\Actions\Reservations\AttachGuest;
 use App\Actions\Reservations\CreateBooking;
+use App\Actions\Reservations\EnsureOtaBookingSource;
 use App\Actions\Rooms\CreateRoomType;
 use App\Actions\Rooms\GenerateBeds;
 use App\Actions\Rooms\GenerateRooms;
@@ -46,7 +47,6 @@ use App\Data\Reservations\NewUnitData;
 use App\Enums\AuditStepStatus;
 use App\Enums\AuditTrigger;
 use App\Enums\BillingMode;
-use App\Enums\BookingSourceType;
 use App\Enums\ChargingUnit;
 use App\Enums\CompanyType;
 use App\Enums\DefaultRoleEnum;
@@ -63,7 +63,6 @@ use App\Enums\PropertyType;
 use App\Enums\RateDerivation;
 use App\Enums\ReservationStatus;
 use App\Enums\SellUnit;
-use App\Enums\SwatchColor;
 use App\Enums\TransactionCategory;
 use App\Models\BookingSource;
 use App\Models\ChargeItem;
@@ -978,16 +977,9 @@ class BookingScenariosSeeder extends Seeder
         if ($name === 'Booking.com') {
             (new OtaChannelSeeder)->run();
 
-            return BookingSource::query()->firstOrCreate(
-                ['property_id' => $this->property->id, 'name' => 'Booking.com'],
-                [
-                    'type' => BookingSourceType::Ota,
-                    'ota_channel_id' => OtaChannel::query()->where('code', 'booking_com')->firstOrFail()->id,
-                    'is_active' => true,
-                    'sort_order' => 10,
-                    'badge_letters' => 'B',
-                    'badge_color' => SwatchColor::Blue,
-                ],
+            return app(EnsureOtaBookingSource::class)(
+                $this->property,
+                OtaChannel::query()->where('code', 'booking_com')->firstOrFail(),
             );
         }
 
