@@ -49,7 +49,7 @@ The property icon fits the uploaded logo inside a rounded square without croppin
 - On desktop, the row is 2.5 rem high. The label column uses the sidebar width tokens and follows its collapsed state. The full-height divider aligns with the sidebar divider. Collapsed mode shows only the icon, with the workspace name available to assistive technology and in a title tooltip.
 - Breadcrumbs sit to the right and stay fixed with this row. The sidebar starts below both header rows.
 - On mobile, the workspace icon and label are hidden. Breadcrumbs sit directly below the navbar in a 2.5 rem row with 1 rem horizontal padding. The sidebar remains a drawer. The property identity stays in the navbar.
-- This three-row structure applies only to staff pages. Admin, partner and account layouts stay unchanged.
+- This three-row structure applies to staff pages and the [company portal](#company-portal-shell). Admin, partner and account layouts stay unchanged.
 - The staff navbar and workspace/breadcrumb row use the sidebar background, foreground and border tokens in both themes. Content keeps its own background.
 
 ### Theme shortcut
@@ -165,6 +165,22 @@ Front desk staff must always know which business date they are posting to. After
 - `App\Navigation\AccountNavigation` builds the items and active state on the server, shared as `accountNavigation` on account routes only. Security stays hidden during impersonation. The support-session banner stays visible.
 - The sidebar footer has **Back to workspace**. It opens the existing home redirect in the same tab, which chooses the staff, admin or partner home and respects onboarding redirects.
 - Account pages show no area links or business dates. Mobile uses the same account items in the sidebar drawer. The page forms and account URLs do not change.
+
+### Company portal shell
+
+Company portal pages (`layouts/portal-layout.tsx`) use the same three rows as staff, with these differences:
+
+- **Navbar:** `AppNavbar` with `identity="app"` and `palette={false}`: sidebar toggle, the estatell logo (links to `/portal`), `AppearanceToggle` and the avatar-only `NavUser`. There is no ⌘K palette, because it searches staff pages.
+- **Breadcrumb row:** `PortalBreadcrumbHeader`. It has the same height and tokens as the staff workspace row, with no workspace label column. The sidebar starts below both rows. On mobile the sidebar is a drawer and the row sits under the navbar.
+- **Sidebar:** `PortalSidebar` builds its items from `App\Navigation\PortalNavigation`. The footer has no user menu.
+
+| Where                  | Sidebar                                                                                                                                                                                                                           |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/portal`, `/portal/…` | Dashboard (`/portal`), Properties (`/portal/properties`)                                                                                                                                                                          |
+| `/portal/{code}/…`     | A property switcher at the top, then Dashboard, Bookings (also active on New booking and a booking), Statements and Company details. There is no Book item: **Book a stay** (dashboard) and **New booking** (Bookings) lead to it |
+
+- **Property switcher:** a `SidebarHeader` dropdown. The button shows the current property name with the company name under it. The menu lists the user's other Active links at Live properties, each with its company name, then a separator and **All properties** (`/portal/properties`). Properties that are not Live and pending invitations are not listed. A collapsed sidebar shows initials with a tooltip. The server shares the list as `portalSwitcher`, scoped to the user's Active links.
+- **Breadcrumbs:** `/portal` Dashboard; `/portal/properties` Properties; `/portal/{code}` Dashboard; Bookings; Bookings › New booking; Bookings › {our reference}; Statements; Company details.
 
 ## Other shell parts
 

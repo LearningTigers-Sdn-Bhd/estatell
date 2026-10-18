@@ -8,27 +8,27 @@ Terms follow the [Glossary](../overview.md#glossary): **company** is the organis
 
 ## Decisions
 
-| Area              | Decision                                                                                                                                                                  |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| One login         | A company has at most one portal login at a property. There is no list of portal users and no roles inside a company.                                                     |
-| Account           | The login is a `users` row with `is_company_user` and no `property_id`. Staff stay 1 user : 1 property.                                                                   |
-| Many properties   | One login can be linked at many properties, one company record at each. There is no global "agency".                                                                      |
-| Same organisation | Not enforced. Each property names its own record: "Borneo Travel" at one, "Borneo Travel Sdn Bhd" at another.                                                             |
-| Where it is set   | A **Portal login email** field on the company: the Add company Sheet, the company's Portal tab, Bulk add and the onboarding Companies table. No separate user management. |
-| New email         | Saving creates the login with a temp password. It takes the company name. The property shares the sign-in details with **Copy message**.                                  |
-| Existing login    | Saving creates a Pending link and an invitation (in-app and mail). The company accepts it in the portal.                                                                  |
-| Portal on or off  | The portal is on while the company has an Active link. Clearing the email turns it off. There is no separate switch.                                                      |
-| Login email       | Separate from the contact email. The contact email gets invoices (often accounts@…); the login is usually the booking person (booking@…).                                 |
-| Remove            | Clearing the email revokes the link. A property never deactivates the login itself, because other properties may use it. Only a platform admin can.                       |
-| Browsing          | One property at a time. `/portal` lists the linked properties; the user opens one to book. A search across properties is later work.                                      |
-| Plan access       | `rate_plans.portal_access`: Hidden, All or Selected. Selected uses `company_rate_plans`.                                                                                  |
-| Plans at the desk | A plan linked to any company is hidden at the desk until one of those companies is selected.                                                                              |
-| Booking           | Confirmed at once. There is no approval queue.                                                                                                                            |
-| Payment           | Billed to the company (folio payer), settled through the city ledger. No online payment. Statements are read-only; the property records payments.                         |
-| Company reference | The company's voucher or file number goes in `reservations.external_reference`.                                                                                           |
-| Cancel            | Free until the company's cut-off. After it, "Request cancellation" notifies the property.                                                                                 |
-| Changes           | Company users edit guest details only. Changes to dates or rooms go through the property.                                                                                 |
-| URL               | `/portal` (property list), then `/portal/{property:code}/...`.                                                                                                            |
+| Area              | Decision                                                                                                                                                                    |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| One login         | A company has at most one portal login at a property. There is no list of portal users and no roles inside a company.                                                       |
+| Account           | The login is a `users` row with `is_company_user` and no `property_id`. Staff stay 1 user : 1 property.                                                                     |
+| Many properties   | One login can be linked at many properties, one company record at each. There is no global "agency".                                                                        |
+| Same organisation | Not enforced. Each property names its own record: "Borneo Travel" at one, "Borneo Travel Sdn Bhd" at another.                                                               |
+| Where it is set   | A **Portal login email** field on the company: the Add company Sheet, the company's Portal tab, Bulk add and the onboarding Companies table. No separate user management.   |
+| New email         | Saving creates the login with a temp password. It takes the company name. The property shares the sign-in details with **Copy message**.                                    |
+| Existing login    | Saving creates a Pending link and an invitation (in-app and mail). The company accepts it in the portal.                                                                    |
+| Portal on or off  | The portal is on while the company has an Active link. Clearing the email turns it off. There is no separate switch.                                                        |
+| Login email       | Separate from the contact email. The contact email gets invoices (often accounts@…); the login is usually the booking person (booking@…).                                   |
+| Remove            | Clearing the email revokes the link. A property never deactivates the login itself, because other properties may use it. Only a platform admin can.                         |
+| Browsing          | One property at a time. `/portal/properties` lists the linked properties; the user opens one to book, or switches in the sidebar. A search across properties is later work. |
+| Plan access       | `rate_plans.portal_access`: Hidden, All or Selected. Selected uses `company_rate_plans`.                                                                                    |
+| Plans at the desk | A plan linked to any company is hidden at the desk until one of those companies is selected.                                                                                |
+| Booking           | Confirmed at once. There is no approval queue.                                                                                                                              |
+| Payment           | Billed to the company (folio payer), settled through the city ledger. No online payment. Statements are read-only; the property records payments.                           |
+| Company reference | The company's voucher or file number goes in `reservations.external_reference`.                                                                                             |
+| Cancel            | Free until the company's cut-off. After it, "Request cancellation" notifies the property.                                                                                   |
+| Changes           | Company users edit guest details only. Changes to dates or rooms go through the property.                                                                                   |
+| URL               | `/portal` (dashboard), `/portal/properties` (property cards), then `/portal/{property:code}/...`.                                                                           |
 
 ## Data model
 
@@ -113,7 +113,7 @@ Portal
 ### Booking
 
 ```
-/portal/{code}/book
+/portal/{code}/bookings/new
  Dates      [21 Oct] → [23 Oct]  2 nights
  Rooms      Line 1  Deluxe King   Adults [2] Children [1] Age [6 ▾]
             Line 2  Dorm (mixed)  Beds [8]  Adults [8]
@@ -196,35 +196,42 @@ Portal
 ## Pages
 
 ```
-/portal                                Properties: linked properties, open balance, upcoming arrivals,
-                                       pending invitations [Accept] [Decline]
+/portal                                Dashboard: pending invitations [Accept] [Decline], upcoming arrivals
+/portal/properties                     Properties: linked properties, open balance, arrivals next 7 days
 /portal/{code}                         Dashboard for one property
-/portal/{code}/book                    Dates → rooms (pax + child ages) → plan → guest names → confirm
-/portal/{code}/bookings                List (search by reference or company reference) and detail
-                                       Detail: [Edit guests] [Cancel] or [Request cancellation]
+/portal/{code}/bookings                List (search by reference or company reference) [New booking]
+/portal/{code}/bookings/new            Dates → rooms (pax + child ages) → plan → guest names → confirm
+/portal/{code}/bookings/{id}           Detail: [Edit guests] [Cancel] or [Request cancellation]
 /portal/{code}/statements              AR invoices, payments, statement PDF (read-only)
 /portal/{code}/company                 Company details: contact, tax numbers and billing address (see below)
 /account/...                           Profile, password, 2FA (shared account pages)
 ```
 
+The shell (navbar, breadcrumbs, sidebar and property switcher) is in [App shell](../design-system/09-app-shell.md#company-portal-shell).
+
 ```
 /portal
- Your properties
-  Sandbay Resort     Borneo Travel   Open balance RM 4,200   3 arrivals   [Open]
-  Kinabalu Lodge     Borneo Travel   Open balance RM 0       —            [Open]
  Invitations
   Tip Top Hostel     Borneo Travel                                       [Accept] [Decline]
+ Upcoming arrivals (next 7 days)
+  Sandbay Resort   SBR-1042  BT-2026-118  Tour BT-118   21 Oct   [View]
+
+/portal/properties
+ Sandbay Resort     Borneo Travel   Open balance RM 4,200   3 arrivals   [Open]
+ Kinabalu Lodge     Borneo Travel   Open balance RM 0       —            [Open]
 ```
 
-- Sign-in always lands on `/portal`, even with one property.
+- **Dashboard** has two sections, each with an empty state. **Arrivals** list Confirmed reservations of the user's Active links at Live properties, arriving in the next 7 days from each property's business date: property, our reference, company reference, guest or group name, arrival date and a link to the booking. They are scoped by each linked company and property. There is no total open balance, because currencies differ.
+- Sign-in always lands on `/portal` (the dashboard), even with one property.
 - **Open balance** is the company's unpaid invoices at that property, never below 0. Stays not yet invoiced are left out. A credit shows only on the statement.
-- **Arrivals** counts Confirmed reservations arriving in the next 7 days from the property's business date.
+- **Arrivals** on a property card counts Confirmed reservations arriving in the next 7 days from the property's business date.
 - An Active link at a property that is not Live shows greyed out with "Not open yet", or "Suspended", and no **Open**.
-- Invitations show for every property. estatell has no notification bell yet, so the list and the email are where an invitation is seen.
-- `/portal/{code}` starts as a small dashboard: company, status, open balance. Later items add Book, Bookings, Statements and Company.
+- Invitations show for every property, on the dashboard. estatell has no notification bell yet, so that list and the email are where an invitation is seen.
+- `/portal/{code}` starts as a small dashboard: company, status, open balance. Its **Book a stay** button opens `/portal/{code}/bookings/new`.
 - **Built:** the `/portal` list with Accept and Decline, the `portal` middleware (`EnsurePortalAccess`), the portal layout and sidebar (Properties; Dashboard inside a property), this small dashboard, the Statements page with its statement, invoice, payment and PDF views (`PortalStatements`), and the Company page with `UpdatePortalCompanyDetails` and the tick. Book and Bookings are built too (see below).
-- **Built (Book and Bookings):** `rate_plans.portal_access` (`PortalAccess`, CHECK), `PortalRatePlans` (the visible plans and room types), `PortalBookingQuote` (offers and totals on `BookingQuote` with the auto-add items), `CreatePortalReservation`, `PortalBookingMessages` (the message table above), `PortalBookings` (list and detail), `PortalBookingRules` (cut-off and edit window on the property's business date), `UpdatePortalReservationGuests`, `CancelPortalReservation`, `RequestPortalCancellation`, the three notifications and the pages `portal/book`, `portal/bookings/index` and `portal/bookings/show`.
-- **How it works:** the offers come from `POST /portal/{code}/book/offers` (JSON, throttled). A search shows every visible plan of a room type, a blocked one with its reason. Confirm sends the plan ids, the lead guest of each line and the total the page showed (`expected_total`); the server prices again and refuses `price_changed` when the total differs. A dorm line sends its beds and books one adult for each bed; its lead guest stays in the first bed. An ID typed in Edit guests (kind and number, no scan) replaces the number on the guest's first ID document or adds one; the number is never sent back to the browser.
+- **Built (Book and Bookings):** `rate_plans.portal_access` (`PortalAccess`, CHECK), `PortalRatePlans` (the visible plans and room types), `PortalBookingQuote` (offers and totals on `BookingQuote` with the auto-add items), `CreatePortalReservation`, `PortalBookingMessages` (the message table above), `PortalBookings` (list and detail), `PortalBookingRules` (cut-off and edit window on the property's business date), `UpdatePortalReservationGuests`, `CancelPortalReservation`, `RequestPortalCancellation`, the three notifications and the pages `portal/bookings/create`, `portal/bookings/index` and `portal/bookings/show`.
+- **Built (portal shell):** the three-row shell, `PortalNavigation` for both sidebars, the property switcher (`portalSwitcher`), the dashboard with `PortalArrivals`, `/portal/properties`, and the booking URLs under `/bookings`. The old `/book` URLs are gone (404).
+- **How it works:** the offers come from `POST /portal/{code}/bookings/offers` (JSON, throttled). A search shows every visible plan of a room type, a blocked one with its reason. Confirm sends the plan ids, the lead guest of each line and the total the page showed (`expected_total`); the server prices again and refuses `price_changed` when the total differs. A dorm line sends its beds and books one adult for each bed; its lead guest stays in the first bed. An ID typed in Edit guests (kind and number, no scan) replaces the number on the guest's first ID document or adds one; the number is never sent back to the browser.
 
 ## Company details
 

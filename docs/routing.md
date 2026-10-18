@@ -66,7 +66,7 @@ URL shape, route groups, names and middleware for estatell. Wayfinder generates 
 | Platform admin     | `/admin`                                                                      | `admin.`              | auth, can:admin                                                                          | `admin.php`        |
 | Partner portal     | `/partner`                                                                    | `partner.`            | auth, can:partner                                                                        | `partner.php`      |
 | Partner signup     | `/join/{signupCode}`                                                          | `join`                | guest                                                                                    | `web.php`          |
-| Company portal     | `/portal`, `/portal/{code}`                                                   | `portal.`             | auth, verified (+ portal under `/portal/{code}`)                                         | `portal.php`       |
+| Company portal     | `/portal`, `/portal/properties`, `/portal/{code}`                             | `portal.`             | auth, verified (+ portal under `/portal/{code}`)                                         | `portal.php`       |
 | Guest-facing       | `/g`                                                                          | `guest.`              | signed                                                                                   | `guest.php`        |
 | Webhooks           | `/webhooks`                                                                   | `webhooks.`           | no CSRF, provider signature check                                                        | `webhooks.php`     |
 
@@ -174,6 +174,21 @@ import { stayView } from '@/routes/front-desk';
 - Account pages have their own [account shell](design-system/09-app-shell.md#account-shell), not the staff, admin or partner sidebar. **Back to workspace** uses `home.redirect` to return to the appropriate home.
 - **Settings** always means the property, under `/p/{code}/settings`, and appears in the sidebar.
 - Account also has `GET` and `PUT /account/set-password` (`account.set-password.edit` and `.update`, `auth` only) for users with a temp password, and `DELETE /account/sessions` (`account.sessions.destroy`, auth and verified) for **Log out other devices**.
+
+## Company portal routes
+
+| URL                                   | Name                                   |
+| ------------------------------------- | -------------------------------------- |
+| `GET /portal`                         | `portal.index` (dashboard)             |
+| `GET /portal/properties`              | `portal.properties`                    |
+| `GET /portal/{code}`                  | `portal.show`                          |
+| `GET /portal/{code}/bookings`         | `portal.bookings.index`                |
+| `GET /portal/{code}/bookings/new`     | `portal.bookings.create`               |
+| `POST /portal/{code}/bookings/offers` | `portal.bookings.offers` (throttled)   |
+| `POST /portal/{code}/bookings`        | `portal.bookings.store` (throttled)    |
+| `GET /portal/{code}/bookings/{id}`    | `portal.bookings.show` (`whereNumber`) |
+
+`new` and `offers` do not clash with `{reservation}`, which only matches digits. The old `/portal/{code}/book` URLs return 404.
 
 ## Sessions
 
