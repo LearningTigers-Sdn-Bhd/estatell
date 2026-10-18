@@ -6,8 +6,8 @@ import { Skeleton } from '@/components/ui/skeleton';
  */
 export function PerformanceSkeleton() {
     return (
-        <div className="flex flex-1 flex-col gap-4" aria-busy="true">
-            <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+        <div className="flex flex-1 flex-col gap-3" aria-busy="true">
+            <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
                 {['occupancy', 'adr', 'revpar', 'lead'].map((key) => (
                     <Card key={key} size="sm">
                         <CardHeader>
@@ -20,7 +20,7 @@ export function PerformanceSkeleton() {
                     </Card>
                 ))}
             </div>
-            <div className="grid gap-4 xl:flex-1 xl:grid-cols-3">
+            <div className="grid gap-3 xl:flex-1 xl:grid-cols-3">
                 <Card className="xl:col-span-2">
                     <CardHeader>
                         <Skeleton className="h-5 w-24" />
@@ -29,7 +29,7 @@ export function PerformanceSkeleton() {
                         <Skeleton className="min-h-64 w-full flex-1" />
                     </CardContent>
                 </Card>
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-3">
                     <Card className="flex-1">
                         <CardHeader>
                             <Skeleton className="h-5 w-28" />

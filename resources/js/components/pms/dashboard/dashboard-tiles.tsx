@@ -17,7 +17,7 @@ export function DashboardTiles({
     housekeeping?: App.Data.Dashboard.HousekeepingTileData | null;
 }) {
     return (
-        <div className="grid grid-cols-2 items-stretch gap-4 xl:auto-cols-fr xl:grid-flow-col xl:grid-cols-none">
+        <div className="grid grid-cols-2 items-stretch gap-3 xl:auto-cols-fr xl:grid-flow-col xl:grid-cols-none">
             <Deferred
                 data="tiles"
                 fallback={

@@ -14,6 +14,8 @@ The dashboard uses the fixed-height app layout. Its content scrolls inside the a
 
 A page header comes first on both tabs: the title **Dashboard**, the description "Today's front desk work and how the property is doing.", and **Run night audit** on the right for users with `night-audit.run`. The workspace header already shows the business date, so the page header does not repeat it.
 
+On both tabs the header, rows and cards sit 12px apart (`gap-3`), tighter than the 16px page padding.
+
 ```
 Dashboard                                                      [Run night audit]
 Today's front desk work and how the property is doing.

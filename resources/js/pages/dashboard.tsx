@@ -108,7 +108,7 @@ export default function Dashboard({
 
                 <div
                     className={cn(
-                        'grid gap-4',
+                        'grid gap-3',
                         recommended === null && 'xl:flex-1',
                         hasTonight && 'md:grid-cols-2',
                         threeColumns && 'xl:grid-cols-3',
@@ -184,7 +184,7 @@ export default function Dashboard({
 
             <div
                 scroll-region
-                className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain p-4"
+                className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain p-4"
             >
                 <PageHeader
                     title="Dashboard"
@@ -224,9 +224,9 @@ export default function Dashboard({
                 {can.canViewReports ? (
                     <TabLinks
                         activeTab={tab}
-                        className="flex flex-1 flex-col gap-4"
+                        className="flex flex-1 flex-col gap-3"
                         panelWidth="full"
-                        panelClassName="flex flex-1 flex-col gap-4"
+                        panelClassName="flex flex-1 flex-col gap-3"
                         tabs={[
                             {
                                 value: 'today',

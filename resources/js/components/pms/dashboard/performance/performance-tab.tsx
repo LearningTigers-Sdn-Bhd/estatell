@@ -20,27 +20,27 @@ export function PerformanceTab({
     performance?: App.Data.Dashboard.PerformanceSummaryData | null;
 }) {
     return (
-        <div className="flex flex-1 flex-col gap-4">
+        <div className="flex flex-1 flex-col gap-3">
             <PeriodBar period={period} />
             <Deferred data="performance" fallback={<PerformanceSkeleton />}>
                 {({ reloading }) =>
                     performance && (
                         <div
                             className={cn(
-                                'flex flex-1 flex-col gap-4 transition-opacity',
+                                'flex flex-1 flex-col gap-3 transition-opacity',
                                 reloading && 'opacity-50',
                             )}
                             aria-busy={reloading}
                         >
                             <KpiTiles summary={performance} />
-                            <div className="grid gap-4 xl:flex-1 xl:grid-cols-3">
+                            <div className="grid gap-3 xl:flex-1 xl:grid-cols-3">
                                 <div className="flex min-w-0 flex-col xl:col-span-2">
                                     <TrendCard
                                         summary={performance}
                                         period={period}
                                     />
                                 </div>
-                                <div className="flex min-w-0 flex-col gap-4">
+                                <div className="flex min-w-0 flex-col gap-3">
                                     <ChannelMixCard
                                         mix={performance.channelMix}
                                         currency={performance.currency}

@@ -101,7 +101,7 @@ export function KpiTiles({ summary }: { summary: Summary }) {
     const days = lead.value === null ? null : Number(lead.value);
 
     return (
-        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
             <KpiTile
                 title="Occupancy"
                 icon={BedDouble}
