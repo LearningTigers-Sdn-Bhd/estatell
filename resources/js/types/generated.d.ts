@@ -1525,6 +1525,15 @@ ratePlanId: number | null,
 guestName: string | null,
 guestPhone: string | null,
 };
+export type PortalArrivalData = {
+reservationId: number,
+propertyName: string,
+propertyCode: string,
+reference: string,
+externalReference: string | null,
+title: string,
+arrivalDate: string,
+};
 export type PortalBookingAddOnData = {
 name: string,
 quantity: number,
@@ -1640,6 +1649,11 @@ description: string | null,
 sellUnit: App.Enums.SellUnit,
 maxAdults: number,
 maxChildren: number,
+};
+export type PortalSwitcherData = {
+propertyName: string,
+propertyCode: string,
+companyName: string,
 };
 }
 namespace Property {

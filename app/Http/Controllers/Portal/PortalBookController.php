@@ -24,13 +24,13 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Book a stay: the book page, the offers for a search and the new booking. The company always comes from the
+ * Book a stay: the new booking page, the offers for a search and the new booking. The company always comes from the
  * `portalLink` the middleware set, never from the request.
  */
 class PortalBookController extends Controller
 {
     /**
-     * The book page. A Suspended company gets the page without the form.
+     * The new booking page. A Suspended company gets the page without the form.
      */
     public function create(Request $request, Property $property, PortalRatePlans $portalRatePlans, PortalBookingRules $rules, AutoAddOns $autoAddOns): Response
     {
@@ -38,7 +38,7 @@ class PortalBookController extends Controller
         $property->loadMissing('settings');
         $suspended = $link->company->status === CompanyStatus::Suspended;
 
-        return Inertia::render('portal/book', [
+        return Inertia::render('portal/bookings/create', [
             'propertyName' => $property->name,
             'propertyCode' => $property->code,
             'companyName' => $link->company->name,
@@ -72,7 +72,7 @@ class PortalBookController extends Controller
         $result = $createPortalReservation($request->user(), $this->link($request), $request->toBookingData());
 
         if ($result->isRefused()) {
-            return back(fallback: route('portal.book', ['property' => $property]))->withErrors($messages->errors($result));
+            return back(fallback: route('portal.bookings.create', ['property' => $property]))->withErrors($messages->errors($result));
         }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Booking :reference confirmed.', ['reference' => $result->reservation->reference])]);

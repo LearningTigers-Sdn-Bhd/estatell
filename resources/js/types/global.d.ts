@@ -24,6 +24,7 @@ declare module '@inertiajs/core' {
                 propertyName: string;
                 propertyCode: string;
             } | null;
+            portalSwitcher: App.Data.Portal.PortalSwitcherData[] | null;
             accountNavigation: App.Data.Navigation.NavItemData[] | null;
             navigation: App.Data.Navigation.StaffNavigationData | null;
             commandShortcuts: App.Data.Navigation.NavItemData[];

@@ -15,8 +15,8 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Reads what `/portal` shows a company user: their Active links with the open balance and the arrivals of the next 7
- * days, and their Pending invitations. Four queries for the links and their relations, two for the balances (all
+ * Reads what `/portal/properties` and the `/portal` invitations show a company user: their Active links with the open
+ * balance and the arrivals of the next 7 days, and their Pending invitations. Four queries for the links and their relations, two for the balances (all
  * companies together, because the open balance does not depend on the property) and one for the arrivals (each
  * property's current business date comes from a join). The number of queries does not grow with the properties.
  */
@@ -30,39 +30,53 @@ class PortalProperties
     public function __construct(private CreditExposure $creditExposure) {}
 
     /**
-     * @return array{properties: list<PortalPropertyData>, invitations: list<PortalInvitationData>}
+     * The Active links as cards, by property name.
+     *
+     * @return list<PortalPropertyData>
      */
     public function for(User $user): array
     {
-        /** @var Collection<int, CompanyUser> $links */
-        $links = CompanyUser::query()
+        $active = $this->links($user)->where('status', CompanyUserStatus::Active)->values();
+        $companyIds = $active->pluck('company_id')->all();
+        $balances = $companyIds === [] ? [] : $this->creditExposure->openAr($companyIds);
+        $arrivals = $companyIds === [] ? [] : $this->arrivals($companyIds);
+
+        return $active
+            ->sortBy(fn (CompanyUser $link): string => mb_strtolower($link->property->name))
+            ->map(fn (CompanyUser $link): PortalPropertyData => PortalPropertyData::fromLink(
+                $link,
+                ...$this->state($link),
+                openBalance: $balances[$link->company_id],
+                arrivals: $arrivals[$link->company_id] ?? 0,
+            ))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * The Pending invitations, for the dashboard.
+     *
+     * @return list<PortalInvitationData>
+     */
+    public function invitations(User $user): array
+    {
+        return $this->links($user)->where('status', CompanyUserStatus::Pending)
+            ->map(fn (CompanyUser $link): PortalInvitationData => PortalInvitationData::fromLink($link))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return Collection<int, CompanyUser>
+     */
+    private function links(User $user): Collection
+    {
+        return CompanyUser::query()
             ->where('user_id', $user->id)
             ->open()
             ->with('company', 'property.settings')
             ->orderBy('id')
             ->get();
-
-        $active = $links->where('status', CompanyUserStatus::Active)->values();
-        $companyIds = $active->pluck('company_id')->all();
-        $balances = $companyIds === [] ? [] : $this->creditExposure->openAr($companyIds);
-        $arrivals = $companyIds === [] ? [] : $this->arrivals($companyIds);
-
-        return [
-            'properties' => $active
-                ->sortBy(fn (CompanyUser $link): string => mb_strtolower($link->property->name))
-                ->map(fn (CompanyUser $link): PortalPropertyData => PortalPropertyData::fromLink(
-                    $link,
-                    ...$this->state($link),
-                    openBalance: $balances[$link->company_id],
-                    arrivals: $arrivals[$link->company_id] ?? 0,
-                ))
-                ->values()
-                ->all(),
-            'invitations' => $links->where('status', CompanyUserStatus::Pending)
-                ->map(fn (CompanyUser $link): PortalInvitationData => PortalInvitationData::fromLink($link))
-                ->values()
-                ->all(),
-        ];
     }
 
     /**

@@ -25,12 +25,11 @@ test('a company user with an Active link at a Live property opens the dashboard'
             ->where('openBalance', '0.00')
             ->where('portalCompany.companyName', 'Borneo Travel')
             ->where('portalCompany.propertyCode', $this->property->code)
-            ->where('portalNavigation.1.title', 'Dashboard')
-            ->where('portalNavigation.1.active', true)
-            ->where('portalNavigation.2.title', 'Book')
-            ->where('portalNavigation.3.title', 'Bookings')
-            ->where('portalNavigation.4.title', 'Statements')
-            ->where('portalNavigation.5.title', 'Company')
+            ->where('portalNavigation.0.title', 'Dashboard')
+            ->where('portalNavigation.0.active', true)
+            ->where('portalNavigation.1.title', 'Bookings')
+            ->where('portalNavigation.2.title', 'Statements')
+            ->where('portalNavigation.3.title', 'Company details')
         );
 });
 

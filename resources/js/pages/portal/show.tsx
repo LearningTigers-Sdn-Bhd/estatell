@@ -2,8 +2,8 @@ import { Head, Link } from '@inertiajs/react';
 import { MoneyText } from '@/components/pms/money-text';
 import { PageHeader } from '@/components/pms/page-header';
 import { buttonVariants } from '@/components/ui/button';
-import { book, index } from '@/routes/portal';
-import { index as bookings } from '@/routes/portal/bookings';
+import { properties, show } from '@/routes/portal';
+import { create, index as bookings } from '@/routes/portal/bookings';
 
 export default function PortalShow({
     companyName,
@@ -30,7 +30,7 @@ export default function PortalShow({
                 <PageHeader
                     title={propertyName}
                     description={companyName}
-                    back={{ href: index(), label: 'Your properties' }}
+                    back={{ href: properties(), label: 'All properties' }}
                 />
 
                 <dl className="grid max-w-3xl gap-3 sm:grid-cols-2">
@@ -61,7 +61,7 @@ export default function PortalShow({
                 ) : (
                     <div className="flex flex-wrap gap-2">
                         <Link
-                            href={book({ property: propertyCode })}
+                            href={create({ property: propertyCode })}
                             className={buttonVariants()}
                         >
                             Book a stay
@@ -78,3 +78,9 @@ export default function PortalShow({
         </>
     );
 }
+
+PortalShow.layout = (props: { propertyCode: string }) => ({
+    breadcrumbs: [
+        { title: 'Dashboard', href: show({ property: props.propertyCode }) },
+    ],
+});

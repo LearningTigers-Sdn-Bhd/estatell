@@ -3,6 +3,7 @@ import { PageHeader } from '@/components/pms/page-header';
 import { PortalInvoicesTable } from '@/components/pms/portal/portal-invoices-table';
 import { PortalPaymentsTable } from '@/components/pms/portal/portal-payments-table';
 import { PortalStatementSection } from '@/components/pms/portal/portal-statement';
+import { statements } from '@/routes/portal';
 
 export default function PortalStatements({
     propertyCode,
@@ -60,3 +61,12 @@ export default function PortalStatements({
         </>
     );
 }
+
+PortalStatements.layout = (props: { propertyCode: string }) => ({
+    breadcrumbs: [
+        {
+            title: 'Statements',
+            href: statements({ property: props.propertyCode }),
+        },
+    ],
+});

@@ -15,7 +15,7 @@ require_once __DIR__.'/../Support/PortalBookingSetup.php';
  */
 function portalOffers(array $setup, array $lines, array $overrides = []): TestResponse
 {
-    return test()->actingAs($setup['portalUser'])->postJson(route('portal.book.offers', $setup['property']), [
+    return test()->actingAs($setup['portalUser'])->postJson(route('portal.bookings.offers', $setup['property']), [
         'arrival_date' => '2026-10-20',
         'departure_date' => '2026-10-22',
         'lines' => $lines,
@@ -28,9 +28,9 @@ test('the book page lists only room types that a visible plan sells', function (
     $setup['bedPlan']->forceFill(['portal_access' => PortalAccess::Hidden])->save();
 
     $this->actingAs($setup['portalUser'])
-        ->get(route('portal.book', $setup['property']))
+        ->get(route('portal.bookings.create', $setup['property']))
         ->assertInertia(fn ($page) => $page
-            ->component('portal/book')
+            ->component('portal/bookings/create')
             ->where('companySuspended', false)
             ->where('today', '2026-10-14')
             ->has('roomTypes', 1)
@@ -168,13 +168,13 @@ test('a Suspended company cannot search and sees the page without room types', f
     $setup['company']->forceFill(['status' => 'suspended'])->save();
 
     portalOffers($setup, [portalRoomLine($setup)])->assertForbidden();
-    $this->actingAs($setup['portalUser'])->get(route('portal.book', $setup['property']))
+    $this->actingAs($setup['portalUser'])->get(route('portal.bookings.create', $setup['property']))
         ->assertInertia(fn ($page) => $page->where('companySuspended', true)->has('roomTypes', 0));
 });
 
 test('staff and users without an Active link cannot search', function () {
     $setup = portalBookingSetup();
 
-    $this->actingAs($setup['user'])->postJson(route('portal.book.offers', $setup['property']), [])->assertNotFound();
-    $this->actingAs(User::factory()->companyUser()->create())->postJson(route('portal.book.offers', $setup['property']), [])->assertNotFound();
+    $this->actingAs($setup['user'])->postJson(route('portal.bookings.offers', $setup['property']), [])->assertNotFound();
+    $this->actingAs(User::factory()->companyUser()->create())->postJson(route('portal.bookings.offers', $setup['property']), [])->assertNotFound();
 });

@@ -217,8 +217,8 @@ test('staff and users of another property cannot book', function () {
     $setup = portalBookingSetup();
     $before = portalCounts();
 
-    $this->actingAs($setup['user'])->post(route('portal.book.store', $setup['property']), portalBookingBody($setup, [portalRoomLine($setup)]))->assertNotFound();
-    $this->actingAs(User::factory()->companyUser()->create())->post(route('portal.book.store', $setup['property']), portalBookingBody($setup, [portalRoomLine($setup)]))->assertNotFound();
+    $this->actingAs($setup['user'])->post(route('portal.bookings.store', $setup['property']), portalBookingBody($setup, [portalRoomLine($setup)]))->assertNotFound();
+    $this->actingAs(User::factory()->companyUser()->create())->post(route('portal.bookings.store', $setup['property']), portalBookingBody($setup, [portalRoomLine($setup)]))->assertNotFound();
 
     expect(portalCounts())->toBe($before);
 });

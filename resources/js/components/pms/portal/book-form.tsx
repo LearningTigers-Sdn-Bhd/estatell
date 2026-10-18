@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
-import { offers, store } from '@/routes/portal/book';
+import { offers, store } from '@/routes/portal/bookings';
 
 type RoomType = App.Data.Portal.PortalRoomTypeData;
 type LineOffers = App.Data.Portal.PortalLineOffersData;

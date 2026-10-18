@@ -15,8 +15,7 @@ import {
     InputGroupAddon,
     InputGroupInput,
 } from '@/components/ui/input-group';
-import { book } from '@/routes/portal';
-import { index, show } from '@/routes/portal/bookings';
+import { create, index, show } from '@/routes/portal/bookings';
 
 type Row = App.Data.Portal.PortalBookingRowData;
 
@@ -116,10 +115,10 @@ export default function PortalBookings({
                     actions={
                         companySuspended ? undefined : (
                             <Link
-                                href={book({ property: propertyCode })}
+                                href={create({ property: propertyCode })}
                                 className={buttonVariants()}
                             >
-                                Book a stay
+                                New booking
                             </Link>
                         )
                     }
@@ -171,3 +170,9 @@ export default function PortalBookings({
         </>
     );
 }
+
+PortalBookings.layout = (props: { propertyCode: string }) => ({
+    breadcrumbs: [
+        { title: 'Bookings', href: index({ property: props.propertyCode }) },
+    ],
+});

@@ -2,9 +2,9 @@ import { Head } from '@inertiajs/react';
 import { BookForm } from '@/components/pms/portal/book-form';
 import { PageHeader } from '@/components/pms/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { show } from '@/routes/portal';
+import { create, index } from '@/routes/portal/bookings';
 
-export default function PortalBook({
+export default function PortalBookingCreate({
     propertyName,
     propertyCode,
     companyName,
@@ -31,11 +31,11 @@ export default function PortalBook({
 
             <div className="flex flex-1 flex-col gap-6 p-4">
                 <PageHeader
-                    title="Book a stay"
+                    title="New booking"
                     description={`${propertyName}, billed to ${companyName}.`}
                     back={{
-                        href: show({ property: propertyCode }),
-                        label: propertyName,
+                        href: index({ property: propertyCode }),
+                        label: 'Bookings',
                     }}
                 />
 
@@ -68,3 +68,13 @@ export default function PortalBook({
         </>
     );
 }
+
+PortalBookingCreate.layout = (props: { propertyCode: string }) => ({
+    breadcrumbs: [
+        { title: 'Bookings', href: index({ property: props.propertyCode }) },
+        {
+            title: 'New booking',
+            href: create({ property: props.propertyCode }),
+        },
+    ],
+});

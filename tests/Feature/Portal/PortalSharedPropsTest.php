@@ -15,7 +15,7 @@ test('a company user gets the portal navigation and no staff props', function ()
     $this->actingAs($user)
         ->get(route('portal.show', $property->code))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('portalNavigation.0.title', 'Properties')
+            ->where('portalNavigation.0.title', 'Dashboard')
             ->where('property', null)
             ->where('navigation', null)
             ->where('businessDate', null)

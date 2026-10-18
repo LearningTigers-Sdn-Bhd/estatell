@@ -105,7 +105,7 @@ function portalAutoAddOn(Property $property, string $amount = '10.00'): ChargeIt
  */
 function portalBook(array $setup, array $body): TestResponse
 {
-    return test()->actingAs($setup['portalUser'])->from(route('portal.book', $setup['property']))->post(route('portal.book.store', $setup['property']), $body);
+    return test()->actingAs($setup['portalUser'])->from(route('portal.bookings.create', $setup['property']))->post(route('portal.bookings.store', $setup['property']), $body);
 }
 
 /**

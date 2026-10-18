@@ -68,6 +68,7 @@ class HandleInertiaRequests extends Middleware
             'adminNavigation' => fn () => $request->user()?->is_admin ? app(AdminNavigation::class)->items() : null,
             'portalNavigation' => fn () => $request->user()?->is_company_user ? app(PortalNavigation::class)->items($request) : null,
             'portalCompany' => fn () => $this->portalCompany($request),
+            'portalSwitcher' => fn () => $request->user()?->is_company_user ? app(PortalNavigation::class)->switcher($request, $request->user()) : null,
             'partnerNavigation' => fn () => $request->user()?->partner_id !== null ? app(PartnerNavigation::class)->items() : null,
             'accountNavigation' => fn () => $request->user() !== null && $request->routeIs('account.*') ? app(AccountNavigation::class)->items($request) : null,
             'navigation' => fn () => $this->staffNavigation($request),

@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->prefix('portal')->name('portal.')->group(function () {
     Route::get('/', [PortalController::class, 'index'])->name('index');
+    Route::get('properties', [PortalController::class, 'properties'])->name('properties');
 
     Route::middleware('throttle:20,1')->prefix('links/{companyUser}')->name('links.')->group(function () {
         Route::post('accept', [PortalLinkController::class, 'accept'])->name('accept');
@@ -19,17 +20,14 @@ Route::middleware(['auth', 'verified'])->prefix('portal')->name('portal.')->grou
     Route::middleware('portal')->prefix('{property:code}')->where(['property' => '[A-Za-z]{2}[0-9]{5,}'])->group(function () {
         Route::get('/', [PortalController::class, 'show'])->name('show');
 
-        Route::get('book', [PortalBookController::class, 'create'])->name('book');
-        Route::middleware('throttle:20,1')->group(function () {
-            Route::post('book/offers', [PortalBookController::class, 'offers'])->name('book.offers');
-            Route::post('book', [PortalBookController::class, 'store'])->name('book.store');
-        });
-
         Route::prefix('bookings')->name('bookings.')->group(function () {
             Route::get('/', [PortalBookingController::class, 'index'])->name('index');
+            Route::get('new', [PortalBookController::class, 'create'])->name('create');
             Route::get('{reservation}', [PortalBookingController::class, 'show'])->whereNumber('reservation')->name('show');
             Route::put('{reservation}/guests', [PortalBookingController::class, 'updateGuests'])->whereNumber('reservation')->name('guests.update');
             Route::middleware('throttle:20,1')->group(function () {
+                Route::post('offers', [PortalBookController::class, 'offers'])->name('offers');
+                Route::post('/', [PortalBookController::class, 'store'])->name('store');
                 Route::post('{reservation}/cancel', [PortalBookingController::class, 'cancel'])->whereNumber('reservation')->name('cancel');
                 Route::post('{reservation}/cancellation-request', [PortalBookingController::class, 'requestCancellation'])->whereNumber('reservation')->name('cancellation-request');
             });

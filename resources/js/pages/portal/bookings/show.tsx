@@ -9,7 +9,7 @@ import { PageHeader } from '@/components/pms/page-header';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { index } from '@/routes/portal/bookings';
+import { index, show } from '@/routes/portal/bookings';
 
 type Booking = App.Data.Portal.PortalBookingData;
 
@@ -208,3 +208,19 @@ function Fact({
         </div>
     );
 }
+
+PortalBookingShow.layout = (props: {
+    propertyCode: string;
+    booking: Booking;
+}) => ({
+    breadcrumbs: [
+        { title: 'Bookings', href: index({ property: props.propertyCode }) },
+        {
+            title: props.booking.reference,
+            href: show({
+                property: props.propertyCode,
+                reservation: props.booking.id,
+            }),
+        },
+    ],
+});

@@ -12,7 +12,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 
 require_once __DIR__.'/../Support/PortalSetup.php';
 
-test('the list shows Active links with the open balance and the arrivals of the next 7 days, and the invitations', function () {
+test('the list shows Active links with the open balance and the arrivals of the next 7 days', function () {
     $user = portalUser();
     $sandbay = Property::factory()->create(['name' => 'Sandbay Resort']);
     BusinessDate::factory()->for($sandbay)->create(['date' => '2026-10-14']);
@@ -31,9 +31,9 @@ test('the list shows Active links with the open balance and the arrivals of the 
     portalLinkFor($user, $other, 'pending', 'Borneo Travel Tip Top');
 
     $this->actingAs($user)
-        ->get(route('portal.index'))
+        ->get(route('portal.properties'))
         ->assertInertia(fn (Assert $page) => $page
-            ->component('portal/index')
+            ->component('portal/properties')
             ->has('properties', 1)
             ->where('properties.0.propertyName', 'Sandbay Resort')
             ->where('properties.0.propertyCode', $sandbay->code)
@@ -41,8 +41,6 @@ test('the list shows Active links with the open balance and the arrivals of the 
             ->where('properties.0.state', 'open')
             ->where('properties.0.openBalance', '380.00')
             ->where('properties.0.arrivals', 2)
-            ->has('invitations', 1)
-            ->where('invitations.0.propertyName', 'Tip Top Hostel')
         );
 });
 
@@ -53,8 +51,8 @@ test('links of other users and Revoked links are not listed', function () {
     portalLinkFor(portalUser(), $property, 'active', 'Someone Else');
 
     $this->actingAs($user)
-        ->get(route('portal.index'))
-        ->assertInertia(fn (Assert $page) => $page->has('properties', 0)->has('invitations', 0));
+        ->get(route('portal.properties'))
+        ->assertInertia(fn (Assert $page) => $page->has('properties', 0));
 });
 
 test('an Active link at a property that is not Live or is Suspended is greyed out', function () {
@@ -63,7 +61,7 @@ test('an Active link at a property that is not Live or is Suspended is greyed ou
     portalLinkFor($user, Property::factory()->suspended()->create(['name' => 'Beta Lodge']), 'active', 'B Co');
 
     $this->actingAs($user)
-        ->get(route('portal.index'))
+        ->get(route('portal.properties'))
         ->assertInertia(fn (Assert $page) => $page
             ->where('properties.0.state', 'not_open_yet')
             ->where('properties.0.stateLabel', 'Not open yet')
@@ -73,7 +71,7 @@ test('an Active link at a property that is not Live or is Suspended is greyed ou
 });
 
 test('only company users open the list', function () {
-    $this->actingAs(User::factory()->owner()->create())->get(route('portal.index'))->assertNotFound();
+    $this->actingAs(User::factory()->owner()->create())->get(route('portal.properties'))->assertNotFound();
 });
 
 test('the number of queries does not grow with the number of properties', function () {
@@ -87,10 +85,10 @@ test('the number of queries does not grow with the number of properties', functi
             ArInvoice::factory()->for($property)->create(['company_id' => $company->id]);
         }
 
-        $this->actingAs($user)->get(route('portal.index'));
+        $this->actingAs($user)->get(route('portal.properties'));
         DB::flushQueryLog();
         DB::enableQueryLog();
-        $this->actingAs($user)->get(route('portal.index'))->assertOk();
+        $this->actingAs($user)->get(route('portal.properties'))->assertOk();
         $count = count(DB::getQueryLog());
         DB::disableQueryLog();
 

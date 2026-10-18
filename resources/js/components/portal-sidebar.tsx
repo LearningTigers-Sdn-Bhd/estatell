@@ -1,57 +1,37 @@
-import { Link, usePage } from '@inertiajs/react';
-import AppLogo from '@/components/app-logo';
-import { NavFooter } from '@/components/nav-footer';
+import { usePage } from '@inertiajs/react';
 import { NavMain } from '@/components/nav-main';
-import { NavUser } from '@/components/nav-user';
+import { PortalPropertySwitcher } from '@/components/portal-property-switcher';
 import {
     Sidebar,
     SidebarContent,
-    SidebarFooter,
     SidebarHeader,
-    SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { toNavItem } from '@/lib/navigation';
-import { index } from '@/routes/portal';
 
 /**
- * Sidebar for company portal pages. Items come from `App\Navigation\PortalNavigation`.
+ * Sidebar for company portal pages, below the navbar and breadcrumb row. Items come from
+ * `App\Navigation\PortalNavigation`; inside a property the header is the property switcher.
+ * See docs/design-system/09-app-shell.md.
  */
 export function PortalSidebar() {
-    const { portalNavigation } = usePage().props;
+    const { portalNavigation, portalCompany } = usePage().props;
     const items = portalNavigation ?? [];
 
     return (
-        <Sidebar collapsible="icon" variant="sidebar">
-            <SidebarHeader>
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton
-                            size="lg"
-                            render={<Link href={index()} prefetch />}
-                        >
-                            <AppLogo withIcon />
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                </SidebarMenu>
-            </SidebarHeader>
+        <Sidebar
+            collapsible="icon"
+            variant="sidebar"
+            className="top-24 bottom-0 h-auto"
+        >
+            {portalCompany && (
+                <SidebarHeader>
+                    <PortalPropertySwitcher />
+                </SidebarHeader>
+            )}
 
-            <SidebarContent>
-                <NavMain
-                    items={items
-                        .filter((item) => !item.external)
-                        .map(toNavItem)}
-                />
+            <SidebarContent className="overscroll-none">
+                <NavMain label="" items={items.map(toNavItem)} />
             </SidebarContent>
-
-            <SidebarFooter>
-                <NavFooter
-                    items={items.filter((item) => item.external).map(toNavItem)}
-                    className="mt-auto"
-                />
-                <NavUser variant="sidebar" />
-            </SidebarFooter>
         </Sidebar>
     );
 }

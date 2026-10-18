@@ -6,6 +6,7 @@ use App\Data\Property\CurrencyData;
 use App\Http\Controllers\Controller;
 use App\Models\CompanyUser;
 use App\Models\Property;
+use App\Services\Portal\PortalArrivals;
 use App\Services\Portal\PortalProperties;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -14,14 +15,27 @@ use Inertia\Response;
 class PortalController extends Controller
 {
     /**
-     * The company user's linked properties with the open balance and the arrivals of the next 7 days, and their
-     * pending invitations.
+     * The dashboard: the pending invitations and the arrivals of the next 7 days across the linked properties.
      */
-    public function index(Request $request, PortalProperties $portalProperties): Response
+    public function index(Request $request, PortalProperties $portalProperties, PortalArrivals $portalArrivals): Response
     {
         abort_unless($request->user()->is_company_user, 404);
 
-        return Inertia::render('portal/index', $portalProperties->for($request->user()));
+        return Inertia::render('portal/index', [
+            'invitations' => $portalProperties->invitations($request->user()),
+            'arrivals' => $portalArrivals->for($request->user()),
+            'arrivalDays' => PortalProperties::ARRIVAL_DAYS,
+        ]);
+    }
+
+    /**
+     * The company user's linked properties with the open balance and the arrivals of the next 7 days.
+     */
+    public function properties(Request $request, PortalProperties $portalProperties): Response
+    {
+        abort_unless($request->user()->is_company_user, 404);
+
+        return Inertia::render('portal/properties', ['properties' => $portalProperties->for($request->user())]);
     }
 
     /**

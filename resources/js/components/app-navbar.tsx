@@ -11,15 +11,21 @@ import { dashboard } from '@/routes';
 import { redirect as homeRedirect } from '@/routes/home';
 
 /**
- * Staff navbar: sidebar toggle, property identity and the user menu.
+ * Navbar: sidebar toggle, property identity (or the app logo) and the user menu.
  * See docs/design-system/09-app-shell.md.
  */
 export function AppNavbar({
     identity = 'property',
     surface = 'default',
+    palette = true,
+    logoHref,
 }: {
     identity?: 'property' | 'app';
     surface?: 'default' | 'sidebar';
+    /** Pages whose users cannot reach staff pages (the company portal) hide the ⌘K palette. */
+    palette?: boolean;
+    /** Where the app logo links. Defaults to the home redirect. */
+    logoHref?: string;
 }) {
     const { property: currentProperty } = usePage().props;
     const property = identity === 'property' ? currentProperty : null;
@@ -36,7 +42,7 @@ export function AppNavbar({
         >
             <SidebarTrigger className="-ml-1" />
             <Link
-                href={property ? dashboard() : homeRedirect()}
+                href={property ? dashboard() : (logoHref ?? homeRedirect())}
                 prefetch
                 className="flex min-w-0 shrink-0 items-center gap-2 rounded-md p-1 outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
             >
@@ -69,9 +75,11 @@ export function AppNavbar({
                 )}
             </Link>
             <div className="flex min-w-0 flex-1 justify-center px-2">
-                <div className="w-auto sm:w-full sm:max-w-md">
-                    <CommandPalette />
-                </div>
+                {palette && (
+                    <div className="w-auto sm:w-full sm:max-w-md">
+                        <CommandPalette />
+                    </div>
+                )}
             </div>
             <div className="flex shrink-0 items-center gap-1">
                 <AppearanceToggle />
