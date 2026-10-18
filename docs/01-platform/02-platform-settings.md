@@ -64,4 +64,4 @@ Admins choose where new uploads (ID scans, signatures, photos, PDFs) are stored.
 - The storage card shows R2 as disabled with **Not set up** until its keys are set. `UpdatePlatformSettingsRequest` rejects an unconfigured disk with a validation error.
 - Media collections read the disk from `PlatformSettings` when a file is added. This wiring is built: the ID scans of [Identity documents](../11-guests/02-identity-documents.md) are the first media collection, and later collections do the same. Each `media` row stores its own disk, so switching affects only new uploads. Old files stay readable.
 - Both disks are private. Files are shown through temporary URLs: presigned URLs on R2, Laravel's `serve` option on `local`.
-- Production needs the `media` volume for `Local`. See [Deployment](../overview.md#deployment).
+- Production needs the `media` volume for `Local`. See [Production environment](../deployment/production_environment.md).

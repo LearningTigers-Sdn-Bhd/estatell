@@ -112,7 +112,7 @@ These are lessons from wastays. Each one caused real maintenance cost.
 - **Accounting before rooms in onboarding.** Ask in the owner's order: property, rooms, prices, payments, check-in.
 - **Blocking checks that need a person at 2 AM.** Resolve by policy and fix problems during the day.
 - **Strict step chains with invalidation.** Calculate progress from data instead.
-- **Review and training modes that need resets.** No practice mode. Owners try the product on shared demo properties that the platform rebuilds.
+- **Review and training modes that need resets.** No practice mode. Owners try the product on demo properties in a separate [demo environment](deployment/demo_environment.md), reset every night.
 
 ## jsonb allowlist
 
@@ -168,33 +168,10 @@ Not needed: `spatie/laravel-model-states` (native enums), `lorisleiva/laravel-ac
 
 ## Deployment
 
-Deployed with Coolify (Docker Compose build pack): `compose.yaml` builds the `Dockerfile` (`serversideup/php` FrankenPHP). PostgreSQL and Redis are external. Set env vars in the Coolify UI; give the domain to `web` on port 8080. Do not publish ports.
-
-| Service     | Command                 | Notes                                                                 |
-| ----------- | ----------------------- | --------------------------------------------------------------------- |
-| `web`       | FrankenPHP on `:8080`   | Runs migrations on start (`AUTORUN_ENABLED=true`).                    |
-| `horizon`   | `artisan horizon`       | Queue workers. Dashboard at `/horizon`.                               |
-| `scheduler` | `artisan schedule:work` | Runs `horizon:snapshot` every five minutes and future scheduled jobs. |
-
-Environment variables that need care:
-
-| Variable                                                               | Note                                                                                                            |
-| ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `CIPHERSWEET_KEY`                                                      | Encrypts ID numbers. Generate once with `php artisan ciphersweet:generate-key --show`. Never change or lose it. |
-| `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_ENDPOINT` | Optional. Without all four, media can only be stored on the server.                                             |
-
-The `media` volume holds `storage/app/private` (media stored on "This server"). It is shared by all three services. Back it up.
-
-Traffic: Cloudflare → Coolify proxy (Traefik) → `web`. `TRUSTED_PROXIES` (see `config/trustedproxy.php`) sets which hops Laravel trusts for the client IP. Production uses `*` because only Traefik can reach the app. `PRIVATE_SUBNETS,CLOUDFLARE` is the tighter option.
-
-Coolify's Traefik does not trust forwarded headers by default, so it replaces `X-Forwarded-For` with the Cloudflare edge IP. In Coolify → Servers → Proxy → Configuration, add to the Traefik `command` list (comma-separated Cloudflare ranges from `config/trustedproxy.php`):
-
-```yaml
-- '--entrypoints.http.forwardedHeaders.trustedIPs=173.245.48.0/20,...'
-- '--entrypoints.https.forwardedHeaders.trustedIPs=173.245.48.0/20,...'
-```
-
-Coolify keeps these custom commands when it regenerates the proxy config.
+| Environment         | Doc                                                            |
+| ------------------- | -------------------------------------------------------------- |
+| `app.estatell.com`  | [Production environment](deployment/production_environment.md) |
+| `demo.estatell.com` | [Demo environment](deployment/demo_environment.md)             |
 
 ## Glossary
 

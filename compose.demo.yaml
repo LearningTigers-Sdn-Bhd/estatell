@@ -1,0 +1,37 @@
+# demo.estatell.com: same image as production, reset every night. See docs/deployment/demo_environment.md.
+services:
+    web:
+        build:
+            context: .
+            dockerfile: Dockerfile
+            args:
+                VITE_APP_NAME: ${APP_NAME:-estatell}
+        image: estatell-app:demo
+        restart: unless-stopped
+        environment:
+            APP_NAME: ${APP_NAME:-estatell}
+            # Not "production": production prohibits migrate:fresh (AppServiceProvider::configureDefaults).
+            APP_ENV: demo
+            APP_DEBUG: 'false'
+            APP_KEY: ${APP_KEY}
+            APP_URL: ${APP_URL:-https://demo.estatell.com}
+            TRUSTED_PROXIES: ${TRUSTED_PROXIES:-*}
+            DB_CONNECTION: pgsql
+            DB_HOST: ${DB_HOST}
+            DB_PORT: ${DB_PORT:-5432}
+            DB_DATABASE: ${DB_DATABASE:-estatell_demo}
+            DB_USERNAME: ${DB_USERNAME:-estatell_demo}
+            DB_PASSWORD: ${DB_PASSWORD}
+            QUEUE_CONNECTION: sync
+            CACHE_STORE: database
+            SESSION_DRIVER: database
+            MAIL_MAILER: log
+            CIPHERSWEET_KEY: ${CIPHERSWEET_KEY}
+            DEMO_PASSWORD: ${DEMO_PASSWORD}
+            AUTORUN_ENABLED: 'true'
+        volumes:
+            # Uploads. The nightly reset clears this folder.
+            - demo-media:/var/www/html/storage/app/private
+
+volumes:
+    demo-media:
