@@ -72,9 +72,13 @@ One optional field, **Portal login email**, wherever a company is added or edite
 | New to estatell                                      | Creates the company user (named after the company) with a temp password and an Active link. |
 | An existing company user                             | Pending link. In-app and mail notification `CompanyLinkInvitation`.                         |
 | A staff, admin or partner account                    | Error: "This email belongs to another kind of estatell account."                            |
+| An open staff or partner invitation                  | The same error as a staff, admin or partner account.                                        |
+| A company user whose login an admin deactivated      | Error: "This login is not available."                                                       |
 | The portal login of another company at this property | Error: "This email is already the portal login of another company here."                    |
 
-- A changed email revokes the old link first, then follows the table.
+- A changed email is checked first. A refusal keeps the old link; otherwise the old link is revoked, then the table applies.
+- A Suspended company shows the Portal fields disabled and keeps its link.
+- The portal login email may be the same as the contact email.
 - The messages never name another property or company.
 - A property can reset the temp password only while the user still has `must_change_password` and has no Active link at another property.
 
@@ -94,7 +98,8 @@ Portal
 
 - **Add company** Sheet: a third section, Portal, with the same two fields.
 - **Bulk add**: `portal_email` and `cancel_days` columns, in both Simple and Detailed. After saving, the temp-password export lists only the rows that got a temp password.
-- **Onboarding Companies table**: the two fields in ⌄ row details (see [Companies table](../17-onboarding/02-wizard-steps.md#companies-table)).
+- **Onboarding Companies table**: the two fields in ⌄ row details (see [Companies table](../17-onboarding/02-wizard-steps.md#companies-table)). "Ready after go-live" shows only there; on the Details tab, Copy message and Reset password always work.
+- **Sign-in before the portal pages exist**: a company user lands on a plain `/portal` page ("The company portal is coming soon"). The home redirect, sign-in responses and shared page props handle a user with no property. The portal property list replaces the page.
 - Every save needs `company.manage`. No new permission.
 
 ## Rules
