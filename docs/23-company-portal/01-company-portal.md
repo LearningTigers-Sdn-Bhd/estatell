@@ -65,21 +65,22 @@ rate_plans         + portal_access (PortalAccess), default Hidden
 
 One optional field, **Portal login email**, wherever a company is added or edited. Next to it is **Free cancellation until [n] days before arrival** (`portal_cancel_cutoff_days`). Saving runs the same checks everywhere:
 
-| Email is…                                            | Result                                                                                      |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| Empty                                                | No portal. An open link is revoked.                                                         |
-| Unchanged                                            | Nothing happens.                                                                            |
-| New to estatell                                      | Creates the company user (named after the company) with a temp password and an Active link. |
-| An existing company user                             | Pending link. In-app and mail notification `CompanyLinkInvitation`.                         |
-| A staff, admin or partner account                    | Error: "This email belongs to another kind of estatell account."                            |
-| An open staff or partner invitation                  | The same error as a staff, admin or partner account.                                        |
-| A company user whose login an admin deactivated      | Error: "This login is not available."                                                       |
-| The portal login of another company at this property | Error: "This email is already the portal login of another company here."                    |
+| Email is…                                            | Result                                                                                                           |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Empty                                                | No portal. An open link is revoked.                                                                              |
+| Unchanged                                            | Nothing happens.                                                                                                 |
+| New to estatell                                      | Creates the company user (named after the company) with a temp password, an unverified email and an Active link. |
+| An existing company user                             | Pending link. In-app and mail notification `CompanyLinkInvitation`.                                              |
+| A staff, admin or partner account                    | Error: "This email belongs to another kind of estatell account."                                                 |
+| An open staff or partner invitation                  | The same error as a staff, admin or partner account.                                                             |
+| A company user whose login an admin deactivated      | Error: "This login is not available."                                                                            |
+| The portal login of another company at this property | Error: "This email is already the portal login of another company here."                                         |
 
 - A changed email is checked first. A refusal keeps the old link; otherwise the old link is revoked, then the table applies.
 - A Suspended company shows the Portal fields disabled and keeps its link.
 - The portal login email may be the same as the contact email.
 - The messages never name another property or company.
+- **Email verification.** A login made by a property starts with `email_verified_at` empty. At first sign-in, after setting their own password, the agent gets a verification email, and every `/portal` page waits until the email is verified. This stops property staff from creating a login for an email they don't own and then accepting another property's invitation with it. The real owner of the email can always take the login back with Forgot password.
 - A property can reset the temp password only while the user still has `must_change_password` and has no Active link at another property.
 
 **Company page → Details tab**, a **Portal** form under Details:
