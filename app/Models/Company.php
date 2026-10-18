@@ -47,7 +47,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'name', 'type', 'brn', 'tin', 'sst_registration_number', 'contact_email', 'contact_phone',
     'billing_address_line1', 'billing_address_line2', 'billing_city', 'billing_state_code',
     'billing_postal_code', 'billing_country_code', 'credit_limit', 'payment_terms_days',
-    'direct_bill_enabled', 'portal_cancel_cutoff_days', 'status',
+    'direct_bill_enabled', 'portal_cancel_cutoff_days', 'status', 'profile_managed_by_company',
 ])]
 class Company extends Model
 {

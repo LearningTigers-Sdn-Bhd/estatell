@@ -1508,10 +1508,35 @@ isOwner: boolean,
 };
 }
 namespace Portal {
+export type PortalCompanyData = {
+name: string,
+typeLabel: string,
+status: App.Data.Shared.BadgeData,
+profileManagedByCompany: boolean,
+contactEmail: string | null,
+contactPhone: string | null,
+brn: string | null,
+tin: string | null,
+sstRegistrationNumber: string | null,
+billingAddressLine1: string | null,
+billingAddressLine2: string | null,
+billingCity: string | null,
+billingStateCode: string | null,
+billingPostalCode: string | null,
+billingCountryCode: string | null,
+};
 export type PortalInvitationData = {
 linkId: number,
 propertyName: string,
 companyName: string,
+};
+export type PortalPaymentRowData = {
+id: number,
+receiptNumber: string,
+receivedOn: string,
+methodName: string,
+reference: string | null,
+amount: string,
 };
 export type PortalPropertyData = {
 linkId: number,

@@ -42,7 +42,8 @@ class ArInvoiceDirectory
     {
         $today = $this->today($property);
 
-        return QueryBuilder::for(ArInvoice::query()->where('ar_invoices.property_id', $property->id), $request)
+        $figures = $this->balanceFigureSubqueries();
+        $query = QueryBuilder::for(ArInvoice::query()->where('ar_invoices.property_id', $property->id), $request)
             ->allowedFilters(
                 AllowedFilter::callback('search', fn (Builder $query, string $search) => $query->where(fn (Builder $query) => $query
                     ->where('ar_invoices.number', 'ilike', '%'.$search.'%')
@@ -51,30 +52,49 @@ class ArInvoiceDirectory
                 AllowedFilter::callback('status', fn (Builder $query, string $status) => ArInvoiceStatus::tryFrom($status) === null ? $query : $query->where('ar_invoices.status', $status)),
             )
             ->allowedSorts('issued_on', 'due_on', 'amount', 'number')
-            ->defaultSort('-issued_on', '-id')
+            ->defaultSort('-issued_on', '-id');
+
+        return $query
             ->addSelect('ar_invoices.*')
-            ->selectSub(
-                ArInvoice::query()
-                    ->from('ar_invoices as credits')
-                    ->selectRaw('COALESCE(SUM(credits.amount), 0)')
-                    ->whereColumn('credits.credit_for_invoice_id', 'ar_invoices.id')
-                    ->where('credits.status', '<>', ArInvoiceStatus::Void->value),
-                'credited',
-            )
-            ->selectSub(
-                ArAllocation::query()
-                    ->selectRaw('COALESCE(SUM(ar_allocations.amount), 0)')
-                    ->whereColumn('ar_allocations.ar_invoice_id', 'ar_invoices.id')
-                    ->whereNull('ar_allocations.reversed_at'),
-                'allocated',
-            )
+            ->selectSub($figures['credited'], 'credited')
+            ->selectSub($figures['allocated'], 'allocated')
             ->with('company:id,name')
             ->paginate(self::PER_PAGE)
             ->withQueryString()
-            ->through(fn (ArInvoice $invoice): ArInvoiceRowData => ArInvoiceRowData::fromModel(
-                $invoice,
-                $this->arInvoiceBalance->fromFigures((string) $invoice->amount, (string) $invoice->getAttribute('credited'), (string) $invoice->getAttribute('allocated')),
-                $today,
-            ));
+            ->through(fn (ArInvoice $invoice): ArInvoiceRowData => $this->row($invoice, $today));
+    }
+
+    /**
+     * The two sub-selects an invoice's balance is built from: its non-void credit notes (`credited`) and its active
+     * allocations (`allocated`). Add them with `selectSub()` beside `ar_invoices.*`, so the list and the portal read
+     * every balance in the same query and never run one query per invoice.
+     *
+     * @return array{credited: Builder, allocated: Builder}
+     */
+    public function balanceFigureSubqueries(): array
+    {
+        return [
+            'credited' => ArInvoice::query()
+                ->from('ar_invoices as credits')
+                ->selectRaw('COALESCE(SUM(credits.amount), 0)')
+                ->whereColumn('credits.credit_for_invoice_id', 'ar_invoices.id')
+                ->where('credits.status', '<>', ArInvoiceStatus::Void->value),
+            'allocated' => ArAllocation::query()
+                ->selectRaw('COALESCE(SUM(ar_allocations.amount), 0)')
+                ->whereColumn('ar_allocations.ar_invoice_id', 'ar_invoices.id')
+                ->whereNull('ar_allocations.reversed_at'),
+        ];
+    }
+
+    /**
+     * One list row from an invoice that has the figures of `withBalanceFigures()` and its `company` loaded.
+     */
+    public function row(ArInvoice $invoice, string $today): ArInvoiceRowData
+    {
+        return ArInvoiceRowData::fromModel(
+            $invoice,
+            $this->arInvoiceBalance->fromFigures((string) $invoice->amount, (string) $invoice->getAttribute('credited'), (string) $invoice->getAttribute('allocated')),
+            $today,
+        );
     }
 }

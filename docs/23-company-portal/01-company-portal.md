@@ -222,7 +222,7 @@ Portal
 - An Active link at a property that is not Live shows greyed out with "Not open yet", or "Suspended", and no **Open**.
 - Invitations show for every property. estatell has no notification bell yet, so the list and the email are where an invitation is seen.
 - `/portal/{code}` starts as a small dashboard: company, status, open balance. Later items add Book, Bookings, Statements and Company.
-- **Built:** the `/portal` list with Accept and Decline, the `portal` middleware (`EnsurePortalAccess`), the portal layout and sidebar (Properties; Dashboard inside a property) and this small dashboard. The other `/portal/{code}` pages are not built yet.
+- **Built:** the `/portal` list with Accept and Decline, the `portal` middleware (`EnsurePortalAccess`), the portal layout and sidebar (Properties; Dashboard inside a property), this small dashboard, the Statements page with its statement, invoice, payment and PDF views (`PortalStatements`), and the Company page with `UpdatePortalCompanyDetails` and the tick. Book and Bookings are not built yet.
 
 ## Company details
 
