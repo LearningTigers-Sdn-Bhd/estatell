@@ -118,7 +118,6 @@ class SetCompanyPortalLogin
         $user = new User(['name' => $company->name, 'email' => $email, 'password' => $temporaryPassword]);
         $user->forceFill([
             'is_company_user' => true,
-            'email_verified_at' => now(),
             'temporary_password' => $temporaryPassword,
             'temporary_password_expires_at' => now()->addDays(CreateStaffWithTemporaryPassword::VALID_DAYS),
             'must_change_password' => true,

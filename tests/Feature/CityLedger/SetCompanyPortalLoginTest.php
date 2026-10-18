@@ -36,7 +36,7 @@ test('a new email creates the company user with a temp password and an Active li
         ->and($user->name)->toBe('Borneo Travel')
         ->and($user->must_change_password)->toBeTrue()
         ->and($user->temporary_password)->not->toBeNull()
-        ->and($user->email_verified_at)->not->toBeNull()
+        ->and($user->email_verified_at)->toBeNull()
         ->and($link->status)->toBe(CompanyUserStatus::Active)
         ->and($link->accepted_at)->not->toBeNull()
         ->and($link->property_id)->toBe($this->property->id)
