@@ -68,7 +68,14 @@ One read-only Service holds the assigned-nights check, and both paths call it.
 
 ## UI
 
-Settings > Rooms (`settings.rooms.index`) lists rooms under their group, with an "Ungrouped" section and an archived list. Buttons: New room, Generate rooms, New group. Up and down buttons reorder groups. Rooms are listed in creation order. Generate rooms returns to the page it was opened from: Settings > Rooms, or the Rooms tab of a room type, where the room type is fixed.
+Settings > Rooms (`settings.rooms.index`) lists rooms in one table. Buttons: New room, Generate rooms, New group. Rooms are listed in creation order.
+
+- Each group starts with a full-width group row: name, room count, up and down buttons to reorder, Rename and Delete. On a phone, Rename and Delete sit in a `⋯` menu.
+- Clicking a group name collapses or opens its rooms. Every group starts open except Archived. Nothing is remembered across reloads.
+- A group without rooms shows "No rooms in this group.", so it can still be renamed, deleted or moved.
+- Ungrouped comes after the groups, without controls, and only when it has rooms. A property without groups gets no group rows.
+- Archived comes last as a closed group row, with Restore on each room. The status filter shows or hides it; choosing Archived opens it.
+- The group filter shows one group, or Ungrouped. The room type filter hides other rooms, and hides groups left with none. Generate rooms returns to the page it was opened from: Settings > Rooms, or the Rooms tab of a room type, where the room type is fixed.
 
 ## Lessons from wastays
 

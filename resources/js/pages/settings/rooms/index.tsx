@@ -3,12 +3,15 @@ import {
     ArrowDown,
     ArrowUp,
     BedDouble,
+    ChevronDown,
+    ChevronRight,
     DoorOpen,
+    Ellipsis,
     FolderPlus,
     Plus,
     Wand2,
 } from 'lucide-react';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { PageHeader } from '@/components/pms/page-header';
@@ -39,6 +42,12 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
     Field,
     FieldError,
     FieldGroup,
@@ -54,6 +63,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { cn } from '@/lib/utils';
 import {
     archive,
     index,
@@ -248,27 +258,43 @@ function RoomGroupFormDialog({
 /**
  * Confirms a destructive room or group action, then posts (or deletes) to the given URL.
  */
+/**
+ * Asks before an archive or delete. Pass `open` and `onOpenChange` to open it from elsewhere (a menu item); it then
+ * renders no trigger of its own.
+ */
 function ConfirmAction({
     label,
     title,
     description,
     method,
     url,
+    open: controlledOpen,
+    onOpenChange,
 }: {
     label: string;
     title: string;
     description: string;
     method: 'post' | 'delete';
     url: string;
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
 }) {
-    const [open, setOpen] = useState(false);
+    const [ownOpen, setOwnOpen] = useState(false);
     const [processing, setProcessing] = useState(false);
+    const controlled = controlledOpen !== undefined;
+    const open = controlled ? controlledOpen : ownOpen;
+    const setOpen = (next: boolean) =>
+        controlled ? onOpenChange?.(next) : setOwnOpen(next);
 
     return (
         <AlertDialog open={open} onOpenChange={setOpen}>
-            <AlertDialogTrigger render={<Button variant="ghost" size="sm" />}>
-                {label}
-            </AlertDialogTrigger>
+            {!controlled && (
+                <AlertDialogTrigger
+                    render={<Button variant="ghost" size="sm" />}
+                >
+                    {label}
+                </AlertDialogTrigger>
+            )}
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>{title}</AlertDialogTitle>
@@ -304,18 +330,47 @@ function ConfirmAction({
     );
 }
 
+type RoomSection = {
+    key: string;
+    /** Null for the rooms of a property without groups: they get no group row. */
+    title: string | null;
+    rooms: Room[];
+    group?: RoomGroup;
+    position?: number;
+    archived?: boolean;
+};
+
+const COLUMNS = 4;
+
+/**
+ * Rooms in one table. Each group, then Ungrouped, then Archived, starts with a full-width group row that collapses it.
+ */
 function RoomTable({
-    rooms,
+    sections,
+    groupCount,
+    collapsed,
+    emptyMessage,
     typeName,
     sellsBeds,
     bedCount,
+    onToggle,
+    onMove,
+    onRename,
+    onDelete,
     onEdit,
     onBeds,
 }: {
-    rooms: Room[];
+    sections: RoomSection[];
+    groupCount: number;
+    collapsed: Set<string>;
+    emptyMessage: string | null;
     typeName: (id: number) => string;
     sellsBeds: (id: number) => boolean;
     bedCount: (roomId: number) => number;
+    onToggle: (key: string) => void;
+    onMove: (from: number, to: number) => void;
+    onRename: (group: RoomGroup) => void;
+    onDelete: (group: RoomGroup) => void;
     onEdit: (room: Room) => void;
     onBeds: (room: Room) => void;
 }) {
@@ -333,46 +388,258 @@ function RoomTable({
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {rooms.map((room) => (
-                        <TableRow key={room.id}>
-                            <TableCell className="font-medium">
-                                {room.number}
-                            </TableCell>
-                            <TableCell>{typeName(room.roomTypeId)}</TableCell>
-                            <TableCell>
-                                {sellsBeds(room.roomTypeId)
-                                    ? bedCount(room.id)
-                                    : '—'}
-                            </TableCell>
-                            <TableCell>
-                                <div className="flex justify-end gap-1">
-                                    {sellsBeds(room.roomTypeId) && (
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => onBeds(room)}
-                                        >
-                                            Beds
-                                        </Button>
-                                    )}
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => onEdit(room)}
-                                    >
-                                        Edit
-                                    </Button>
-                                    <ConfirmAction
-                                        label="Archive"
-                                        title={`Archive room ${room.number}?`}
-                                        description="It leaves the active list and cannot be used for new work. You can restore it later."
-                                        method="post"
-                                        url={archive.url({ room: room.id })}
-                                    />
-                                </div>
+                    {sections.length === 0 && emptyMessage !== null && (
+                        <TableRow>
+                            <TableCell
+                                colSpan={COLUMNS}
+                                className="h-24 text-center text-muted-foreground"
+                            >
+                                {emptyMessage}
                             </TableCell>
                         </TableRow>
-                    ))}
+                    )}
+                    {sections.map((section) => {
+                        const isCollapsed =
+                            section.title !== null &&
+                            collapsed.has(section.key);
+                        const { group, position } = section;
+
+                        return (
+                            <Fragment key={section.key}>
+                                {section.title !== null && (
+                                    <TableRow className="bg-muted/50 hover:bg-muted/50">
+                                        <TableCell colSpan={COLUMNS}>
+                                            <div className="flex items-center justify-between gap-2">
+                                                <button
+                                                    type="button"
+                                                    className="flex items-center gap-2 text-left font-medium"
+                                                    aria-expanded={!isCollapsed}
+                                                    onClick={() =>
+                                                        onToggle(section.key)
+                                                    }
+                                                >
+                                                    {isCollapsed ? (
+                                                        <ChevronRight />
+                                                    ) : (
+                                                        <ChevronDown />
+                                                    )}
+                                                    {section.title}
+                                                    <span className="font-normal text-muted-foreground">
+                                                        · {section.rooms.length}
+                                                    </span>
+                                                </button>
+                                                {group !== undefined &&
+                                                    position !== undefined && (
+                                                        <div className="flex items-center gap-1">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon-sm"
+                                                                aria-label={`Move ${group.name} up`}
+                                                                disabled={
+                                                                    position ===
+                                                                    0
+                                                                }
+                                                                onClick={() =>
+                                                                    onMove(
+                                                                        position,
+                                                                        position -
+                                                                            1,
+                                                                    )
+                                                                }
+                                                            >
+                                                                <ArrowUp />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon-sm"
+                                                                aria-label={`Move ${group.name} down`}
+                                                                disabled={
+                                                                    position ===
+                                                                    groupCount -
+                                                                        1
+                                                                }
+                                                                onClick={() =>
+                                                                    onMove(
+                                                                        position,
+                                                                        position +
+                                                                            1,
+                                                                    )
+                                                                }
+                                                            >
+                                                                <ArrowDown />
+                                                            </Button>
+                                                            <div className="hidden gap-1 sm:flex">
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={() =>
+                                                                        onRename(
+                                                                            group,
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    Rename
+                                                                </Button>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={() =>
+                                                                        onDelete(
+                                                                            group,
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    Delete
+                                                                </Button>
+                                                            </div>
+                                                            <DropdownMenu>
+                                                                <DropdownMenuTrigger
+                                                                    render={
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon-sm"
+                                                                            className="sm:hidden"
+                                                                            aria-label={`More for ${group.name}`}
+                                                                        />
+                                                                    }
+                                                                >
+                                                                    <Ellipsis />
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent align="end">
+                                                                    <DropdownMenuItem
+                                                                        onClick={() =>
+                                                                            onRename(
+                                                                                group,
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        Rename
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuItem
+                                                                        variant="destructive"
+                                                                        onClick={() =>
+                                                                            onDelete(
+                                                                                group,
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        Delete
+                                                                    </DropdownMenuItem>
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
+                                                        </div>
+                                                    )}
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                                {!isCollapsed && section.rooms.length === 0 && (
+                                    <TableRow>
+                                        <TableCell
+                                            colSpan={COLUMNS}
+                                            className="pl-9 text-muted-foreground"
+                                        >
+                                            No rooms in this group.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                                {!isCollapsed &&
+                                    section.rooms.map((room) => (
+                                        <TableRow key={room.id}>
+                                            <TableCell
+                                                className={cn(
+                                                    'font-medium',
+                                                    section.title !== null &&
+                                                        'pl-9',
+                                                )}
+                                            >
+                                                {room.number}
+                                                {section.archived && (
+                                                    <>
+                                                        {' '}
+                                                        <Badge variant="secondary">
+                                                            Archived
+                                                        </Badge>
+                                                    </>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                {typeName(room.roomTypeId)}
+                                            </TableCell>
+                                            <TableCell>
+                                                {!section.archived &&
+                                                sellsBeds(room.roomTypeId)
+                                                    ? bedCount(room.id)
+                                                    : '—'}
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex justify-end gap-1">
+                                                    {section.archived ? (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() =>
+                                                                router.post(
+                                                                    restore.url(
+                                                                        {
+                                                                            room: room.id,
+                                                                        },
+                                                                    ),
+                                                                    {},
+                                                                    {
+                                                                        preserveScroll: true,
+                                                                    },
+                                                                )
+                                                            }
+                                                        >
+                                                            Restore
+                                                        </Button>
+                                                    ) : (
+                                                        <>
+                                                            {sellsBeds(
+                                                                room.roomTypeId,
+                                                            ) && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={() =>
+                                                                        onBeds(
+                                                                            room,
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    Beds
+                                                                </Button>
+                                                            )}
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() =>
+                                                                    onEdit(room)
+                                                                }
+                                                            >
+                                                                Edit
+                                                            </Button>
+                                                            <ConfirmAction
+                                                                label="Archive"
+                                                                title={`Archive room ${room.number}?`}
+                                                                description="It leaves the active list and cannot be used for new work. You can restore it later."
+                                                                method="post"
+                                                                url={archive.url(
+                                                                    {
+                                                                        room: room.id,
+                                                                    },
+                                                                )}
+                                                            />
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                            </Fragment>
+                        );
+                    })}
                 </TableBody>
             </Table>
         </div>
@@ -403,6 +670,11 @@ export default function RoomsIndex({
     const [groupFilter, setGroupFilter] = useState('');
     // 'active' (default), 'archived', or '' for both.
     const [statusFilter, setStatusFilter] = useState('active');
+    // Group rows that are closed. Archived starts closed; nothing is remembered across reloads.
+    const [collapsed, setCollapsed] = useState<Set<string>>(
+        () => new Set(['archived']),
+    );
+    const [deletingGroup, setDeletingGroup] = useState<RoomGroup | null>(null);
 
     const activeTypes = roomTypes.filter((type) => !type.archived);
     const typeName = (id: number) =>
@@ -458,6 +730,78 @@ export default function RoomsIndex({
 
     const noTypes = activeTypes.length === 0;
     const noRooms = rooms.filter((room) => !room.archived).length === 0;
+    const showList = !noTypes && !(noRooms && roomGroups.length === 0);
+
+    const sections: RoomSection[] = [];
+
+    if (showActive) {
+        roomGroups.forEach((group, position) => {
+            const groupRooms = activeRooms.filter(
+                (room) => room.roomGroupId === group.id,
+            );
+
+            if (
+                (groupFilter !== '' && groupFilter !== String(group.id)) ||
+                (typeFilter !== '' && groupRooms.length === 0)
+            ) {
+                return;
+            }
+
+            sections.push({
+                key: `group-${group.id}`,
+                title: group.name,
+                rooms: groupRooms,
+                group,
+                position,
+            });
+        });
+
+        if (ungrouped.length > 0) {
+            sections.push({
+                key: 'ungrouped',
+                title: roomGroups.length > 0 ? 'Ungrouped' : null,
+                rooms: ungrouped,
+            });
+        }
+    }
+
+    if (showArchived && archivedRooms.length > 0) {
+        sections.push({
+            key: 'archived',
+            title: 'Archived',
+            rooms: archivedRooms,
+            archived: true,
+        });
+    }
+
+    // Without the list (no room types, or no rooms yet), only archived rooms can still be shown.
+    const tableSections = showList
+        ? sections
+        : sections.filter((section) => section.archived);
+
+    const toggle = (key: string) =>
+        setCollapsed((current) => {
+            const next = new Set(current);
+
+            if (!next.delete(key)) {
+                next.add(key);
+            }
+
+            return next;
+        });
+
+    const changeStatusFilter = (value: string) => {
+        setStatusFilter(value);
+
+        if (value === 'archived') {
+            setCollapsed((current) => {
+                const next = new Set(current);
+                next.delete('archived');
+
+                return next;
+            });
+        }
+    };
 
     return (
         <>
@@ -510,7 +854,7 @@ export default function RoomsIndex({
                         title="Add a room type first"
                         description="Every room belongs to a room type. Create one in Room types, then come back."
                     />
-                ) : noRooms && roomGroups.length === 0 ? (
+                ) : !showList ? (
                     <EmptyState
                         icon={DoorOpen}
                         title="No rooms yet"
@@ -523,198 +867,52 @@ export default function RoomsIndex({
                         }
                     />
                 ) : (
-                    <>
-                        <div className="flex flex-wrap justify-end gap-2">
-                            <EnumSelect
-                                aria-label="Filter by status"
-                                className="w-40"
-                                options={statusOptions}
-                                allLabel="All statuses"
-                                value={statusFilter}
-                                onValueChange={setStatusFilter}
-                            />
-                            <EnumSelect
-                                aria-label="Filter by room group"
-                                className="w-48"
-                                options={groupFilterOptions}
-                                allLabel="All groups"
-                                value={groupFilter}
-                                onValueChange={setGroupFilter}
-                            />
-                            <EnumSelect
-                                aria-label="Filter by room type"
-                                className="w-48"
-                                options={typeOptions}
-                                allLabel="All room types"
-                                value={typeFilter}
-                                onValueChange={setTypeFilter}
-                            />
-                        </div>
-
-                        {showActive &&
-                            roomGroups.map((group, position) => {
-                                if (
-                                    groupFilter !== '' &&
-                                    groupFilter !== String(group.id)
-                                ) {
-                                    return null;
-                                }
-
-                                const groupRooms = activeRooms.filter(
-                                    (room) => room.roomGroupId === group.id,
-                                );
-
-                                return (
-                                    <section
-                                        key={group.id}
-                                        className="flex flex-col gap-2"
-                                    >
-                                        <div className="flex flex-wrap items-center justify-between gap-2">
-                                            <h2 className="font-heading text-sm font-medium">
-                                                {group.name}{' '}
-                                                <span className="font-normal text-muted-foreground">
-                                                    · {groupRooms.length}
-                                                </span>
-                                            </h2>
-                                            <div className="flex gap-1">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon-sm"
-                                                    aria-label={`Move ${group.name} up`}
-                                                    disabled={position === 0}
-                                                    onClick={() =>
-                                                        move(
-                                                            position,
-                                                            position - 1,
-                                                        )
-                                                    }
-                                                >
-                                                    <ArrowUp />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon-sm"
-                                                    aria-label={`Move ${group.name} down`}
-                                                    disabled={
-                                                        position ===
-                                                        roomGroups.length - 1
-                                                    }
-                                                    onClick={() =>
-                                                        move(
-                                                            position,
-                                                            position + 1,
-                                                        )
-                                                    }
-                                                >
-                                                    <ArrowDown />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() =>
-                                                        setEditingGroup(group)
-                                                    }
-                                                >
-                                                    Rename
-                                                </Button>
-                                                <ConfirmAction
-                                                    label="Delete"
-                                                    title={`Delete ${group.name}?`}
-                                                    description="Only a group without active rooms can be deleted."
-                                                    method="delete"
-                                                    url={destroy.url({
-                                                        roomGroup: group.id,
-                                                    })}
-                                                />
-                                            </div>
-                                        </div>
-                                        {groupRooms.length === 0 ? (
-                                            <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-                                                No rooms in this group.
-                                            </p>
-                                        ) : (
-                                            <RoomTable
-                                                rooms={groupRooms}
-                                                typeName={typeName}
-                                                sellsBeds={sellsBeds}
-                                                bedCount={bedCount}
-                                                onEdit={setEditingRoom}
-                                                onBeds={setBedsRoom}
-                                            />
-                                        )}
-                                    </section>
-                                );
-                            })}
-
-                        {showActive &&
-                            (ungrouped.length > 0 ||
-                                roomGroups.length === 0) && (
-                                <section className="flex flex-col gap-2">
-                                    {roomGroups.length > 0 && (
-                                        <h2 className="font-heading text-sm font-medium">
-                                            Ungrouped{' '}
-                                            <span className="font-normal text-muted-foreground">
-                                                · {ungrouped.length}
-                                            </span>
-                                        </h2>
-                                    )}
-                                    <RoomTable
-                                        rooms={ungrouped}
-                                        typeName={typeName}
-                                        sellsBeds={sellsBeds}
-                                        bedCount={bedCount}
-                                        onEdit={setEditingRoom}
-                                        onBeds={setBedsRoom}
-                                    />
-                                </section>
-                            )}
-                    </>
+                    <div className="flex flex-wrap justify-end gap-2">
+                        <EnumSelect
+                            aria-label="Filter by status"
+                            className="w-40"
+                            options={statusOptions}
+                            allLabel="All statuses"
+                            value={statusFilter}
+                            onValueChange={changeStatusFilter}
+                        />
+                        <EnumSelect
+                            aria-label="Filter by room group"
+                            className="w-48"
+                            options={groupFilterOptions}
+                            allLabel="All groups"
+                            value={groupFilter}
+                            onValueChange={setGroupFilter}
+                        />
+                        <EnumSelect
+                            aria-label="Filter by room type"
+                            className="w-48"
+                            options={typeOptions}
+                            allLabel="All room types"
+                            value={typeFilter}
+                            onValueChange={setTypeFilter}
+                        />
+                    </div>
                 )}
 
-                {showArchived && archivedRooms.length > 0 && (
-                    <section className="flex flex-col gap-2">
-                        <h2 className="font-heading text-sm font-medium">
-                            Archived
-                        </h2>
-                        <div className="overflow-auto rounded-lg border">
-                            <Table>
-                                <TableBody>
-                                    {archivedRooms.map((room) => (
-                                        <TableRow key={room.id}>
-                                            <TableCell className="font-medium">
-                                                {room.number}{' '}
-                                                <Badge variant="secondary">
-                                                    Archived
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                {typeName(room.roomTypeId)}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() =>
-                                                        router.post(
-                                                            restore.url({
-                                                                room: room.id,
-                                                            }),
-                                                            {},
-                                                            {
-                                                                preserveScroll: true,
-                                                            },
-                                                        )
-                                                    }
-                                                >
-                                                    Restore
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </section>
+                {(showList || tableSections.length > 0) && (
+                    <RoomTable
+                        sections={tableSections}
+                        groupCount={roomGroups.length}
+                        collapsed={collapsed}
+                        emptyMessage={
+                            showList ? 'No rooms match these filters.' : null
+                        }
+                        typeName={typeName}
+                        sellsBeds={sellsBeds}
+                        bedCount={bedCount}
+                        onToggle={toggle}
+                        onMove={move}
+                        onRename={setEditingGroup}
+                        onDelete={setDeletingGroup}
+                        onEdit={setEditingRoom}
+                        onBeds={setBedsRoom}
+                    />
                 )}
             </div>
 
@@ -769,6 +967,20 @@ export default function RoomsIndex({
                     )}
                 </DialogContent>
             </Dialog>
+
+            <ConfirmAction
+                label="Delete"
+                title={`Delete ${deletingGroup?.name ?? 'group'}?`}
+                description="Only a group without active rooms can be deleted."
+                method="delete"
+                url={
+                    deletingGroup
+                        ? destroy.url({ roomGroup: deletingGroup.id })
+                        : ''
+                }
+                open={deletingGroup !== null}
+                onOpenChange={(open) => !open && setDeletingGroup(null)}
+            />
 
             <BedsSheet
                 room={bedsRoom}
