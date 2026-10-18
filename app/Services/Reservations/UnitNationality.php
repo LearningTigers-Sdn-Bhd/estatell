@@ -15,6 +15,7 @@ class UnitNationality
 {
     public function for(ReservationUnit $unit): ?string
     {
+        $unit->loadMissing('reservation.booker');
         $primary = $unit->guests()->where('is_primary', true)->with('guest')->first();
 
         return ($primary === null ? $unit->reservation->booker : $primary->guest)->nationality_code;

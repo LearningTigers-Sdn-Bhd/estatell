@@ -38,6 +38,7 @@ use App\Models\TransactionCode;
 use App\Models\UnitAddOn;
 use App\Models\UnitGuest;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
 
@@ -849,6 +850,21 @@ test('the check-out preview of an early departure shows the fee and the nights i
     $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-out-preview'))
         ->assertOk()
         ->assertJson(['balance' => '-100.00', 'early' => ['departure' => today()->addDays(2)->toDateString(), 'nightsRemoved' => 2, 'fee' => '40.00', 'feeTotal' => '40.00', 'withinFreeWindow' => false]]);
+});
+
+test('the check-in and early check-out previews run with lazy loading prevented', function () {
+    $checkIn = uaSetup();
+    uaCheckInSetup($checkIn);
+    $early = uaEarlySetup();
+
+    Model::preventLazyLoading();
+
+    try {
+        $this->actingAs($checkIn['user'])->postJson(uaUrl($checkIn, 'check-in-preview'))->assertOk();
+        $this->actingAs($early['user'])->postJson(uaUrl($early, 'check-out-preview'))->assertOk()->assertJsonPath('early.fee', '40.00');
+    } finally {
+        Model::preventLazyLoading(false);
+    }
 });
 
 test('a unit leaving on its departure date has no early block', function () {
