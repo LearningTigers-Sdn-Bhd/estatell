@@ -35,7 +35,7 @@ Period [Last 7 days] [Last 30 days] [●This month] [Last month] [12 months] [Mo
 │ ▲ 4 pt         ││ ▲ 3%           ││ ▲ 9%           ││ ▼ 2 days         │
 └────────────────┘└────────────────┘└────────────────┘└──────────────────┘
 ┌ Trend ────────────── [●Occupancy|ADR|RevPAR] ┐┌ Channel mix  [●Source|Type]┐
-│ 68%  ▲ 4 pt  vs 1 Sep – 18 Sep 2026          ││ ████████████████░░░░░░░░░░ │
+│ 68%  ▲ 4 pt  vs 1 Sep – 18 Sep 2026          ││      ╭─ 612 nights ─╮      │
 │100%│       ▆      ▇                          ││ ● Booking.com   42%  257 n │
 │ 75%│  ▅ ▆ █ ▇ ▅ ▆ █ ▇ ▆ ▅ ▆ ▇                ││ ● Phone         15%   92 n │
 │ 50%│- █-█-█-█-█-█-█-█-█-█-█-█- - prev        ││ ● WhatsApp      14%   86 n │
@@ -62,7 +62,7 @@ Period [Last 7 days] [Last 30 days] [●This month] [Last month] [12 months] [Mo
 - Tiles follow the Today stat tile style: a normal card, a soft primary icon chip (`primary/5`, like the month tile), strong figure. No left accents.
 - Every tile has a line under the figure: the comparison, or "Nothing to compare with" when the compared range has no figures.
 - The Trend and Channel mix switches show an icon before each label: Occupancy `BedDouble`, ADR `Coins`, RevPAR `TrendingUp` (the KPI tile icons), Source `Globe`, Type `Shapes`.
-- Each card heading has one muted 20px Lucide icon: Trend `ChartLine`, Channel mix `ChartBarStacked`, Lead time `Hourglass`. The Lead time card is titled "How far ahead guests book", with the arrival range and "walk-ins not counted" as its description.
+- Each card heading has one muted 20px Lucide icon: Trend `ChartLine`, Channel mix `ChartPie`, Lead time `Hourglass`. The Lead time card is titled "How far ahead guests book", with the arrival range and "walk-ins not counted" as its description.
 - A muted **Period** label sits left of the presets. The period presets are one outline toggle group at the normal size, like the Trend metric switch. Choosing one visits its URL. A picked month leaves no preset pressed. The month picker is hidden while there is no whole past month to pick.
 - The comparison line uses a soft tint: up is `primary`, down is `warning-text`. For lead time neither direction is good or bad, so it stays muted.
 - The trend chart uses `components/ui/chart.tsx`: `chart-3` bars with rounded tops for the current period, one per day (or month for 12 months), and a thin dashed muted line for the compared one. Bars, not a line, because the figures are separate days: no curve invents values between them.
@@ -72,6 +72,7 @@ Period [Last 7 days] [Last 30 days] [●This month] [Last month] [12 months] [Mo
 - A solid zero baseline (`foreground` at 30%) sits under the bars. Revenue counts on its posting date (see [Statistics](../20-night-audit/05-statistics.md)), so a correction can take a day's ADR or RevPAR below zero. That bar hangs from the baseline in `warning`, rounded at the bottom; the figure is never clamped, so the chart matches the Occupancy report. Its tooltip says "Corrections reversed earlier nights", and a note under the chart explains bars below zero when the range has one.
 - The headline shows "vs {compared range}" only beside a real change chip. With nothing to compare, the chip reads "Nothing to compare with" alone.
 - The tooltip shows the date, then This period and Compared with their color marks: whole percent for occupancy, full money for ADR and RevPAR.
+- Channel mix is a donut: room nights by source or type, with the total nights in the middle (at most 208px wide) and the list below it. Hovering a slice or a list row highlights both; the others fade. The slice tooltip shows the name and nights. List rows show the nights ("29 nights", muted) then the share at the right edge, each in a fixed right-aligned column. The chevron slot is kept only when a row of the view has companies. A donut, not the old stacked bar, because the card now fills the row height and the ring reads as a mix at a glance; the list still carries the exact figures.
 - Channel mix colors come from each source's badge `SwatchColor` (see [Booking sources](../12-reservations/11-booking-sources.md#badge)). By type, the four types use fixed chart tokens.
 
 ## Period

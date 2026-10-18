@@ -35,8 +35,8 @@ export function PerformanceSkeleton() {
                             <Skeleton className="h-5 w-28" />
                         </CardHeader>
                         <CardContent className="flex flex-col gap-2">
-                            <Skeleton className="h-3 w-full" />
-                            {[1, 2, 3, 4, 5].map((row) => (
+                            <Skeleton className="mx-auto mb-2 aspect-square w-full max-w-52 rounded-full" />
+                            {[1, 2, 3].map((row) => (
                                 <Skeleton key={row} className="h-5 w-full" />
                             ))}
                         </CardContent>
