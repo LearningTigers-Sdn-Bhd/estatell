@@ -19,7 +19,9 @@ Dashboard · Sandbay Resort                          Business date 18 Oct 2026
 | **Performance** | KPI tiles, Trend, Channel mix, Lead time | `reports.view`          |
 
 - A user without `reports.view` sees no tab bar, only the Today content. A `?tab=performance` visit from that user shows Today.
-- The tab is a link that sets `tab` in the URL. Today is the default. The browser remembers the last tab per property, like Recommended next. A URL with `tab` wins over the remembered tab.
+- The tab lives only in the URL: each tab is a link that sets `tab`. Today is the default, and a bad value shows Today. The browser does not remember the last tab; an owner who wants Performance first bookmarks it.
+- `DashboardTab` (Today, Performance) holds the values.
+- Above the Performance content, the **night audit alert** still shows, because a stuck audit changes the figures. Quick actions and the **You're live** card show on Today only.
 - Only the open tab's props are sent. Today's tiles, To do and housekeeping are not loaded on Performance, and the reverse.
 
 ## Layout
@@ -68,12 +70,14 @@ Dashboard · Sandbay Resort                          Business date 18 Oct 2026
 | Last 30 days             | 30 days ending on the business date                 | The 30 days before                           | Day      |
 | **This month** (default) | The 1st to the business date                        | The 1st to the same day number of last month | Day      |
 | Last month               | The whole previous month                            | The month before                             | Day      |
-| Last 12 months           | The 11 whole months before, plus this month to date | The 12 months before                         | Month    |
+| Last 12 months           | The 11 whole months before, plus this month to date | The same range one year earlier              | Month    |
 | Month picker             | Any whole past month                                | The month before                             | Day      |
 
 - Every range ends on or before the property **business date** (`CurrentBusinessDate`), never the calendar date. A future month is not offered.
 - When the day number does not exist in last month (31 Oct → September), the comparison ends on the last day of that month.
-- URL: `?tab=performance&period=7d|30d|month|last-month|12m`, or `&month=2026-09` for the picker. A bad value falls back to This month.
+- URL: `?tab=performance&period=7d|30d|month|last-month|12m`, or `&month=2026-09` for the picker. A bad value falls back to This month. `PerformancePreset` holds the five presets.
+- **Last 12 months** compares with the same range one year earlier (for 18 Oct 2026: 1 Nov 2024 – 18 Oct 2025), so a partial current month is never set against a whole one.
+- **Month picker** offers whole months from the **earliest month with data** to last month. The earliest date is the earlier of the first `daily_statistics.business_date` and the first `unit_nights.date` of a live unit. This also covers stays imported from a previous system later.
 - The line under the presets always states both ranges in words, so "This month" is never a guess.
 - The comparison is hidden when the previous range has no data (a new property).
 
@@ -88,12 +92,13 @@ Dashboard · Sandbay Resort                          Business date 18 Oct 2026
 | **Channel mix** | Share of room nights by booking source, or by source type    | `unit_nights` → `reservation_units` → `reservations.booking_source_id` → `booking_sources` |
 
 - **Occupancy, ADR and RevPAR** use the same sums as the Occupancy report totals (`HasTotals`), so the tab and the report never disagree for the same dates. They are overnight only; day use stays out, as in the report.
-- The comparison shows occupancy in points ("▲ 4 pt"), ADR and RevPAR in percent, and lead time in days.
+- The comparison shows occupancy in points ("▲ 4 pt"), ADR and RevPAR in percent, and lead time in days. Deltas are worked out from unrounded values, then rounded for display.
+- The occupancy, ADR and RevPAR comparison is hidden when the previous range has no available rooms.
 
 ### Lead time
 
 - Counts live units (Confirmed, CheckedIn, CheckedOut) with `arrival_date` in the range, overnight and day use.
-- Days = `arrival_date` − the booking's `created_at` converted to the property time zone, as a date. Same day is 0.
+- Days = `arrival_date` − the booking's `created_at` converted to the property time zone, as a date. Same day is 0. A negative result (a time zone edge) counts as 0.
 - **Walk-ins are left out** (units whose booking source has type Walk-in). They are always 0 and would pull the average down. They still count in Channel mix.
 - Buckets: Same day (0), 1–7 days, 8–30 days, 31+ days, as a share of the counted units.
 - The tile shows the average rounded to whole days.
@@ -110,32 +115,37 @@ Dashboard · Sandbay Resort                          Business date 18 Oct 2026
 ## Empty and loading
 
 - With no stays in the range, each figure shows "–" with "No stays in this period", never 0%. Lead time reads "No arrivals in this period".
-- The whole tab is one **deferred prop group** with a skeleton in the shape of the tiles and cards. Changing the period reloads only that prop.
+- When the range has stays but no night audit figures (dates before go-live, for example imported stays), Occupancy, ADR and RevPAR show "–" with "No night audit figures for this period". Channel mix and Lead time still show their figures.
+- The whole tab is one **deferred prop group**. The first load shows a skeleton in the shape of the tiles and cards.
+- Changing the period reloads only the period and `performance` props. Inertia v3 `<Deferred>` shows no fallback on a partial reload, so the cards dim (its `reloading` state) until the new figures arrive.
 
 ## Build shape
 
-| Part       | What                                                                                                                                                     |
-| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Service    | `app/Services/Dashboard/PerformanceSummary.php`: one period and its comparison, in grouped queries. The query count stays fixed for 7 days and 12 months |
-| Period     | `PerformancePeriod` (value object in the same folder): parses the URL value and builds the range and comparison from the business date                   |
-| Data       | `PerformanceSummaryData`, `PerformancePeriodData` in `app/Data/Dashboard/`, with generated TypeScript types                                              |
-| Controller | `DashboardController::show` reads `tab` and the period and sends the `performance` deferred prop only on that tab                                        |
-| Frontend   | The tab bar in `pages/dashboard.tsx`; the cards in `components/pms/dashboard/performance/`                                                               |
+| Part       | What                                                                                                                                                                                     |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Service    | `app/Services/Dashboard/PerformanceSummary.php`: one period and its comparison, in grouped queries. The query count stays fixed for 7 days and 12 months                                 |
+| Period     | `PerformancePeriod` (value object in the same folder): parses the URL value and builds the range and comparison from the business date                                                   |
+| Data       | `PerformanceSummaryData`, `PerformancePeriodData` and small nested Data classes (KPI, trend point, channel mix row, lead time) in `app/Data/Dashboard/`, with generated TypeScript types |
+| Enums      | `DashboardTab` and `PerformancePreset` in `app/Enums/`                                                                                                                                   |
+| Controller | `DashboardController::show` reads `tab` and the period and sends the `performance` deferred prop only on that tab                                                                        |
+| Frontend   | The tab bar in `pages/dashboard.tsx`; the cards in `components/pms/dashboard/performance/`                                                                                               |
 
 ## Later
 
-| Item                                                                      | Waits for                                                                                  |
-| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| Complaint Resolution Time and Housekeeping Request Fulfillment Time tiles | [Guest requests](../25-guest-requests/01-guest-requests.md#kpis) and `GuestRequestMetrics` |
-| Same month last year                                                      | A year of data                                                                             |
-| Next 30 days on the books                                                 | A decision on forward-looking figures                                                      |
+| Item                                                                      | Waits for                                                                                                               |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Complaint Resolution Time and Housekeeping Request Fulfillment Time tiles | [Guest requests](../25-guest-requests/01-guest-requests.md#kpis) and `GuestRequestMetrics`                              |
+| Same month last year                                                      | A year of data                                                                                                          |
+| Next 30 days on the books                                                 | A decision on forward-looking figures                                                                                   |
+| Lead time and occupancy for stays imported from a previous system         | A booking import with the original booking date (`booked_at`) and, optionally, daily history as `daily_statistics` rows |
 
 ## Tests
 
 - No tab bar and no `performance` prop without `reports.view`. `?tab=performance` from that user shows Today.
 - Occupancy, ADR and RevPAR equal the Occupancy report totals for the same range, with closed dates and the open date.
-- Each preset builds the right range and comparison from the business date, including 31 Oct → 30 Sep.
-- Lead time leaves out walk-ins and cancelled units and uses the property time zone for `created_at`.
+- Each preset builds the right range and comparison from the business date, including 31 Oct → 30 Sep and 12 months → one year earlier. The picker refuses months before the earliest data and after last month.
+- Lead time leaves out walk-ins and cancelled units, uses the property time zone for `created_at`, and counts a negative result as 0.
 - Channel mix counts only live units' nights in the range, adds up to 100%, and puts a manual and a channel Booking.com booking in one source.
-- An empty range shows the empty text, not 0.
+- An empty range shows the empty text, not 0. A range with stays but no statistics shows "No night audit figures" for the three occupancy tiles only.
+- The alert shows on both tabs; quick actions and You're live only on Today.
 - The query count is the same for 7 days and 12 months.
