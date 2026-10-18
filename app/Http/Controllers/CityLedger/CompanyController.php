@@ -58,9 +58,10 @@ class CompanyController extends Controller
         $company = $createCompany($request->user(), $property, $request->companyAttributes());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __(':name added.', ['name' => $company->name])]);
-        Inertia::flash('portalLoginCreated', $this->newLoginWithTempPassword($company, []));
+        $loginCreated = $this->newLoginWithTempPassword($company, []);
+        Inertia::flash('portalLoginCreated', $loginCreated);
 
-        return to_route('finance.city-ledger.companies.show', ['property' => $property, 'company' => $company]);
+        return to_route($loginCreated ? 'finance.city-ledger.companies.portal' : 'finance.city-ledger.companies.show', ['property' => $property, 'company' => $company]);
     }
 
     /**
@@ -92,6 +93,14 @@ class CompanyController extends Controller
                 ->map(fn (RatePlan $ratePlan): RatePlanData => RatePlanData::fromModel($ratePlan)),
             'linkedPlanIds' => $company->ratePlans()->pluck('rate_plans.id')->all(),
         ]);
+    }
+
+    /**
+     * Company page, Portal tab: the company's one portal login and its status.
+     */
+    public function portal(Request $request, Property $property, Company $company): Response
+    {
+        return $this->renderTab($request, $property, $company, 'portal');
     }
 
     /**
@@ -144,7 +153,7 @@ class CompanyController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __(':name saved.', ['name' => $company->refresh()->name])]);
         Inertia::flash('portalLoginCreated', $this->newLoginWithTempPassword($company, $linksBefore));
 
-        return to_route(in_array($section, ['details', 'portal'], true) ? 'finance.city-ledger.companies.show' : "finance.city-ledger.companies.{$section}", ['property' => $property, 'company' => $company]);
+        return to_route($section === 'details' ? 'finance.city-ledger.companies.show' : "finance.city-ledger.companies.{$section}", ['property' => $property, 'company' => $company]);
     }
 
     /**
@@ -176,7 +185,7 @@ class CompanyController extends Controller
      * Each tab has its own URL, so the open tab survives a refresh. Only the open tab's options are sent.
      * Staff without `company.manage` see the fields read-only.
      *
-     * @param  'details'|'credit'|'rates'|'payments'|'statement'  $tab
+     * @param  'details'|'credit'|'rates'|'portal'|'payments'|'statement'  $tab
      * @param  array<string, mixed>  $tabProps
      */
     private function renderTab(Request $request, Property $property, Company $company, string $tab, array $tabProps = []): Response
@@ -188,7 +197,7 @@ class CompanyController extends Controller
             'company' => CompanyData::fromModel(
                 $company,
                 CreditExposureData::fromFigures($figures, $creditExposure->isOverLimit($figures)),
-                app(CompanyPortalState::class)->for($company),
+                $tab === 'portal' ? app(CompanyPortalState::class)->for($company) : null,
             ),
             'tab' => $tab,
             'currency' => CurrencyData::forProperty($property),

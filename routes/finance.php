@@ -31,6 +31,7 @@ Route::prefix('finance')->name('finance.')->group(function () {
                 Route::get('/', [CompanyController::class, 'show'])->name('show');
                 Route::get('credit', [CompanyController::class, 'credit'])->name('credit');
                 Route::get('rates', [CompanyController::class, 'rates'])->name('rates');
+                Route::get('portal', [CompanyController::class, 'portal'])->name('portal');
                 Route::get('payments', [CompanyController::class, 'payments'])->name('payments');
                 Route::get('statement', [CompanyController::class, 'statement'])->name('statement');
                 Route::get('statement.pdf', [CompanyStatementController::class, 'pdf'])->name('statement.pdf');

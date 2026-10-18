@@ -1,5 +1,5 @@
 import { Form, Head } from '@inertiajs/react';
-import { CreditCard, FileText, Info, Tag, Wallet } from 'lucide-react';
+import { CreditCard, FileText, Globe, Info, Tag, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { ChoiceCards } from '@/components/pms/choice-cards';
 import { billingChoices } from '@/components/pms/city-ledger/billing-choices';
@@ -37,6 +37,7 @@ import {
     credit as creditTab,
     index,
     payments as paymentsTab,
+    portal as portalTab,
     rates as ratesTab,
     reactivate,
     statement as statementTab,
@@ -53,7 +54,7 @@ const overLimitBadge: App.Data.Shared.BadgeData = {
     label: 'Over limit',
     tone: 'danger',
 };
-type Tab = 'details' | 'credit' | 'rates' | 'payments' | 'statement';
+type Tab = 'details' | 'credit' | 'rates' | 'portal' | 'payments' | 'statement';
 
 /**
  * A value the company keeps up to date in the company portal. Shown, never sent with a form.
@@ -470,7 +471,9 @@ export default function CompanyShow({
                     className="flex flex-col gap-4"
                     panelClassName="flex flex-col gap-6"
                     panelWidth={
-                        tab === 'details' || tab === 'credit'
+                        tab === 'details' ||
+                        tab === 'credit' ||
+                        tab === 'portal'
                             ? 'default'
                             : 'full'
                     }
@@ -492,6 +495,12 @@ export default function CompanyShow({
                             label: 'Rates',
                             icon: Tag,
                             href: ratesTab({ company: company.id }),
+                        },
+                        {
+                            value: 'portal',
+                            label: 'Portal',
+                            icon: Globe,
+                            href: portalTab({ company: company.id }),
                         },
                         {
                             value: 'payments',
@@ -573,7 +582,7 @@ export default function CompanyShow({
                                 countries={countries}
                             />
                         ))}
-                    {tab === 'details' && (
+                    {tab === 'portal' && (
                         <CompanyPortalSection
                             company={company}
                             readOnly={readOnly}

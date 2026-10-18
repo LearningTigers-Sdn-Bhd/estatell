@@ -17,7 +17,7 @@ import {
 type Company = App.Data.CityLedger.CompanyData;
 
 /**
- * The company's one portal login on the Details tab: the email and the free cancellation days, then the login's status
+ * The company's one portal login on the Portal tab: the email and the free cancellation days, then the login's status
  * with Copy message, Reset password and Resend. The status row is a sibling of the form, because it has forms of its own.
  * After a save or a reset that makes a temp password, the server flashes `portalLoginCreated` and the message opens.
  */

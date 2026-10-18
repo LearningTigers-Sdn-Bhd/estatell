@@ -43,6 +43,7 @@ test('the add sheet creates the company and its login, and the message route sen
             'portal_cancel_cutoff_days' => 7,
         ])
         ->assertSessionHasNoErrors()
+        ->assertRedirect(portalCompanyUrl($this->property, '/'.Company::query()->sole()->id.'/portal'))
         ->assertInertiaFlash('portalLoginCreated', true);
 
     $company = Company::query()->sole();
@@ -77,12 +78,21 @@ test('a refused portal email saves nothing and shows the error on the field', fu
     expect(Company::query()->count())->toBe(0);
 });
 
-test('the company page sends the portal status and never a password', function () {
+test('the Portal tab sends the portal status and never a password, and Details sends none', function () {
     $company = portalCompanyWithLogin($this->owner);
 
     $this->actingAs($this->owner)
         ->get(portalCompanyUrl($this->property, "/{$company->id}"))
         ->assertInertia(fn (Assert $page) => $page
+            ->where('tab', 'details')
+            ->where('company.portal', null)
+        );
+
+    $this->actingAs($this->owner)
+        ->get(portalCompanyUrl($this->property, "/{$company->id}/portal"))
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('finance/city-ledger/companies/show')
+            ->where('tab', 'portal')
             ->where('company.portal.email', 'booking@borneotravel.my')
             ->where('company.portal.status.value', 'active')
             ->where('company.portal.hasTempPassword', true)
@@ -97,7 +107,7 @@ test('the Portal form sets, changes and clears the login and the cancel days', f
     $put = fn (array $data) => $this->actingAs($this->owner)->put(portalCompanyUrl($this->property, "/{$company->id}/portal"), $data);
 
     $put(['portal_email' => 'a@travel.my', 'portal_cancel_cutoff_days' => 5])
-        ->assertRedirect(portalCompanyUrl($this->property, "/{$company->id}"))
+        ->assertRedirect(portalCompanyUrl($this->property, "/{$company->id}/portal"))
         ->assertInertiaFlash('portalLoginCreated', true);
     expect($company->refresh()->portal_cancel_cutoff_days)->toBe(5)
         ->and($company->portalLink->user->email)->toBe('a@travel.my');
@@ -144,6 +154,7 @@ test('an existing company user is invited and the property can resend', function
 
     $this->actingAs($this->owner)
         ->post(portalCompanyUrl($this->property, "/{$company->id}/portal/resend"))
+        ->assertRedirect(portalCompanyUrl($this->property, "/{$company->id}/portal"))
         ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Invitation sent again.']);
 
     Notification::assertSentToTimes($existing, CompanyLinkInvitation::class, 2);
@@ -160,7 +171,8 @@ test('reset gives a new temp password only while the user has not set their own 
     $old = $user->temporary_password;
     $reset = fn () => $this->actingAs($this->owner)->post(portalCompanyUrl($this->property, "/{$company->id}/portal/reset"));
 
-    $reset()->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'New temp password made. Use Copy message to share it.']);
+    $reset()->assertRedirect(portalCompanyUrl($this->property, "/{$company->id}/portal"))
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'New temp password made. Use Copy message to share it.']);
     $user->refresh();
     expect($user->temporary_password)->not->toBe($old)
         ->and(Hash::check($user->temporary_password, $user->password))->toBeTrue()

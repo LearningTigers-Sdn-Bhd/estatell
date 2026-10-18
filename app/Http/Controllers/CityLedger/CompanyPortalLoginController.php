@@ -53,7 +53,7 @@ class CompanyPortalLoginController extends Controller
             Inertia::flash('toast', ['type' => 'error', 'message' => __('The temp password cannot be reset. The login already has its own password, or it also works at another property.')]);
         }
 
-        return to_route('finance.city-ledger.companies.show', ['property' => $property, 'company' => $company]);
+        return to_route('finance.city-ledger.companies.portal', ['property' => $property, 'company' => $company]);
     }
 
     /**
@@ -65,7 +65,7 @@ class CompanyPortalLoginController extends Controller
             ? ['type' => 'success', 'message' => __('Invitation sent again.')]
             : ['type' => 'error', 'message' => __('There is no invitation to send again.')]);
 
-        return to_route('finance.city-ledger.companies.show', ['property' => $property, 'company' => $company]);
+        return to_route('finance.city-ledger.companies.portal', ['property' => $property, 'company' => $company]);
     }
 
     /**
