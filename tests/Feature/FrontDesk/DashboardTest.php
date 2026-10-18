@@ -6,13 +6,8 @@ use App\Enums\PropertyStatus;
 use App\Enums\TransactionKind;
 use App\Models\Bed;
 use App\Models\BusinessDate;
-use App\Models\Folio;
-use App\Models\FolioLine;
 use App\Models\NightAudit;
 use App\Models\Property;
-use App\Models\PropertySetting;
-use App\Models\Reservation;
-use App\Models\ReservationUnit;
 use App\Models\Room;
 use App\Models\RoomType;
 use App\Models\TransactionCode;
@@ -25,6 +20,8 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\PermissionRegistrar;
+
+require_once __DIR__.'/../Support/DashboardSetup.php';
 
 test('staff open their own property dashboard with the property prop', function () {
     $staff = User::factory()->create();
@@ -130,52 +127,6 @@ test('pages without a property in the URL share the staff user\'s property', fun
         ->get(route('account.profile.edit'))
         ->assertInertia(fn (Assert $page) => $page->where('property', null));
 });
-
-/**
- * A live property trading on the business date, and a user who has only the given permissions.
- *
- * @param  list<PermissionEnum>  $permissions
- * @return array{property: Property, user: User}
- */
-function dashboardSetup(array $permissions = [PermissionEnum::ReservationsView, PermissionEnum::ReportsView], string $date = '2026-10-12', string $now = '2026-10-12 12:00'): array
-{
-    test()->travelTo(CarbonImmutable::parse($now));
-    $property = Property::factory()->live()->create();
-    PropertySetting::factory()->for($property)->create();
-    BusinessDate::factory()->create(['property_id' => $property->id, 'date' => $date]);
-    $user = User::factory()->for($property)->withPermissions($permissions)->create();
-
-    return ['property' => $property, 'user' => $user];
-}
-
-/**
- * @param  array<string, mixed>  $attributes
- */
-function dashboardUnit(Property $property, string $arrival, string $departure, string $state = 'confirmed', array $attributes = []): ReservationUnit
-{
-    $factory = ReservationUnit::factory()->for(Reservation::factory()->create(['property_id' => $property->id]))->withNights();
-
-    $factory = match ($state) {
-        'checkedIn' => $factory->checkedIn(),
-        'checkedOut' => $factory->checkedOut(),
-        'cancelled' => $factory->cancelled(),
-        default => $factory,
-    };
-
-    return $factory->create(['arrival_date' => $arrival, 'departure_date' => $departure, ...$attributes]);
-}
-
-function dashboardLine(Property $property, TransactionCode $code, string $amount, string $date, TransactionKind $kind = TransactionKind::Charge): void
-{
-    FolioLine::factory()->create([
-        'folio_id' => Folio::factory()->create(['property_id' => $property->id])->id,
-        'transaction_code_id' => $code->id,
-        'kind' => $kind,
-        'amount' => $amount,
-        'unit_amount' => $amount,
-        'posting_date' => $date,
-    ]);
-}
 
 test('there is no alert on a normal day', function () {
     $setup = dashboardSetup();
