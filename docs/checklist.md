@@ -134,7 +134,7 @@ Needed for go-live.
 
 - [x] `docs(reservations): plan property booking sources` — the booking sources spec, the badge, swatch tokens and the doc updates in reservations, channels, portal, onboarding and seed defaults. Docs: [Booking sources](12-reservations/11-booking-sources.md).
 - [x] `feat(reservations): replace the reservation source with booking sources` — `booking_sources`, `BookingSourceType`, `BookingSourceIcon`, `SwatchColor`, `BookingSource` and its factory, `SeedBookingSources` in `SeedPropertyDefaults`, the backfill migration (drops `source` and `channel_name`), `NewReservationData` and `NewBookingData` take a `BookingSource`, the `StoreBookingRequest` rules (OTA needs External reference, Company / Travel agent needs a company, Walk-in by type), the grouped Source select on the booking form, `filter[source]` by id, the seeders and tests. Delete `ReservationSource`. Check the old values in production and demo before the migration runs there. Needs: plan property booking sources. Docs: [Backfill](12-reservations/11-booking-sources.md#backfill), [Booking form](12-reservations/05-booking-form.md#sections).
-- [ ] `feat(reservations): show the booking source badge` — the swatch tokens with a contrast check, `BookingSourceBadge` and `BookingSourceBadgeData` on the reservation card and the List view Source column. Needs: replace the reservation source. Docs: [Badge](12-reservations/11-booking-sources.md#badge).
+- [x] `feat(reservations): show the booking source badge` — the swatch tokens with a contrast check, `BookingSourceBadge` and `BookingSourceBadgeData` on the reservation card and the List view Source column. Needs: replace the reservation source. Docs: [Badge](12-reservations/11-booking-sources.md#badge).
 - [ ] `feat(settings): manage booking sources` — Settings → Booking sources in the charge items pattern: Available switch, ↑ ↓, search, the New and Edit Dialog with name, type, OTA channel, badge and color, Delete only while unused, badge-only edit on system rows. `CreateBookingSource`, `UpdateBookingSource`, `ReorderBookingSources`, `DeleteBookingSource`, `BookingSourceUsage` and the settings nav item. Needs: show the booking source badge. Docs: [Settings page](12-reservations/11-booking-sources.md#settings-page).
 - [x] `feat(onboarding): add OTA lists to booking sources` — `SaveOtaCredentials` calls `EnsureOtaBookingSource`. A removed credential keeps its source. Needs: replace the reservation source. Docs: [Defaults](12-reservations/11-booking-sources.md#defaults).
 - [ ] `feat(front-desk): add the stay view` — Docs: [Stay View](18-front-desk/03-stay-view.md).
@@ -246,6 +246,7 @@ Topics on hold. Each one needs a planning session and its docs before it gets co
 
 | Commit     | Subject                                                                  |
 | ---------- | ------------------------------------------------------------------------ |
+| `27061cf9` | feat(onboarding): add OTA lists to booking sources                       |
 | `6498cf6b` | feat(reservations): replace the reservation source with booking sources  |
 | `072dff9b` | docs(reservations): plan property booking sources                        |
 | `a45b361c` | feat(platform): add the demo seeder                                      |

@@ -141,8 +141,13 @@ test('the list sends one item with its stay, units, occupancy, total and source'
         ->where('reservations.data.0.lastDeparture', '2026-10-16')
         ->where('reservations.data.0.nights', 4)
         ->where('reservations.data.0.total', '600.00')
-        ->where('reservations.data.0.sourceName', 'Booking.com')
-        ->where('reservations.data.0.sourceType', 'ota')
+        ->where('reservations.data.0.source', [
+            'name' => 'Booking.com',
+            'type' => 'ota',
+            'icon' => null,
+            'letters' => 'B',
+            'color' => 'blue',
+        ])
         ->where('reservations.data.0.externalReference', 'BK-77')
         ->where('reservations.data.0.status.label', 'Confirmed')
         ->where('reservations.data.0.bookedOn', now()->toDateString())
@@ -233,6 +238,21 @@ test('the status filter narrows the list and an unknown status is ignored', func
 
     expect(listedReferences($user, $property, ['filter' => ['status' => 'in_house']]))->toBe([$inHouse->reference])
         ->and(listedReferences($user, $property, ['filter' => ['status' => 'bogus']]))->toEqualCanonicalizing([$confirmed->reference, $inHouse->reference]);
+});
+
+test('the list sends the source badge with an icon for a Direct source', function () {
+    [$user, $property] = listOwner();
+    $source = BookingSource::factory()->create(['property_id' => $property->id, 'name' => 'Phone', 'badge_icon' => 'phone', 'badge_letters' => null, 'badge_color' => 'green']);
+    listReservation($property, ['booking_source_id' => $source->id]);
+
+    $this->actingAs($user)->get(listUrl($property))->assertInertia(fn (Assert $page) => $page
+        ->where('reservations.data.0.source', [
+            'name' => 'Phone',
+            'type' => 'direct',
+            'icon' => 'phone',
+            'letters' => null,
+            'color' => 'green',
+        ]));
 });
 
 test('the source filter narrows the list', function () {

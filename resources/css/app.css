@@ -107,6 +107,32 @@
     --info-foreground: oklch(0.97 0.014 254.604);
 
     /*
+     * Swatch tokens (estatell): colors a property picks, such as the booking source badge. Never for status (that
+     * is `Tone`). Light: a mid-tone with a near-white foreground. Dark: a light tone with a dark foreground. Every pair
+     * meets WCAG AA (4.5:1) for letters in both themes.
+     */
+    --swatch-gray: oklch(0.52 0.005 106);
+    --swatch-gray-foreground: oklch(0.985 0.003 106);
+    --swatch-red: oklch(0.52 0.145 25);
+    --swatch-red-foreground: oklch(0.985 0.004 25);
+    --swatch-orange: oklch(0.52 0.12 50);
+    --swatch-orange-foreground: oklch(0.985 0.008 50);
+    --swatch-amber: oklch(0.52 0.1 80);
+    --swatch-amber-foreground: oklch(0.985 0.008 80);
+    --swatch-green: oklch(0.52 0.145 145);
+    --swatch-green-foreground: oklch(0.985 0.008 145);
+    --swatch-teal: oklch(0.52 0.075 185);
+    --swatch-teal-foreground: oklch(0.985 0.008 185);
+    --swatch-blue: oklch(0.52 0.145 255);
+    --swatch-blue-foreground: oklch(0.985 0.004 255);
+    --swatch-indigo: oklch(0.52 0.145 277);
+    --swatch-indigo-foreground: oklch(0.985 0.004 277);
+    --swatch-violet: oklch(0.52 0.155 300);
+    --swatch-violet-foreground: oklch(0.985 0.008 300);
+    --swatch-pink: oklch(0.52 0.155 350);
+    --swatch-pink-foreground: oklch(0.985 0.008 350);
+
+    /*
      * Grid tokens (estatell): the date grid engine and the calendars built on it. Named by role, so the hue can
      * change here without touching a component. `weekend` and `hover` are translucent tints that lay over any
      * row background. Every text pair meets WCAG 2.2 AA (4.5:1) in light and dark.
@@ -169,6 +195,28 @@
     --warning-text: oklch(0.879 0.169 91.605);
     --info: oklch(0.707 0.165 254.624);
     --info-foreground: oklch(0.282 0.091 267.935);
+
+    /* Swatch tokens (estatell). */
+    --swatch-gray: oklch(0.76 0.005 106);
+    --swatch-gray-foreground: oklch(0.2 0.005 106);
+    --swatch-red: oklch(0.76 0.105 25);
+    --swatch-red-foreground: oklch(0.2 0.01 25);
+    --swatch-orange: oklch(0.76 0.125 50);
+    --swatch-orange-foreground: oklch(0.2 0.02 50);
+    --swatch-amber: oklch(0.76 0.12 80);
+    --swatch-amber-foreground: oklch(0.2 0.02 80);
+    --swatch-green: oklch(0.76 0.125 145);
+    --swatch-green-foreground: oklch(0.2 0.02 145);
+    --swatch-teal: oklch(0.76 0.115 185);
+    --swatch-teal-foreground: oklch(0.2 0.02 185);
+    --swatch-blue: oklch(0.76 0.085 255);
+    --swatch-blue-foreground: oklch(0.2 0.01 255);
+    --swatch-indigo: oklch(0.76 0.085 277);
+    --swatch-indigo-foreground: oklch(0.2 0.01 277);
+    --swatch-violet: oklch(0.76 0.125 300);
+    --swatch-violet-foreground: oklch(0.2 0.02 300);
+    --swatch-pink: oklch(0.76 0.125 350);
+    --swatch-pink-foreground: oklch(0.2 0.02 350);
 
     /* Grid tokens (estatell). */
     --grid-surface: oklch(0.2 0.012 108);
@@ -283,6 +331,26 @@
     --color-warning-text: var(--warning-text);
     --color-info: var(--info);
     --color-info-foreground: var(--info-foreground);
+    --color-swatch-gray: var(--swatch-gray);
+    --color-swatch-gray-foreground: var(--swatch-gray-foreground);
+    --color-swatch-red: var(--swatch-red);
+    --color-swatch-red-foreground: var(--swatch-red-foreground);
+    --color-swatch-orange: var(--swatch-orange);
+    --color-swatch-orange-foreground: var(--swatch-orange-foreground);
+    --color-swatch-amber: var(--swatch-amber);
+    --color-swatch-amber-foreground: var(--swatch-amber-foreground);
+    --color-swatch-green: var(--swatch-green);
+    --color-swatch-green-foreground: var(--swatch-green-foreground);
+    --color-swatch-teal: var(--swatch-teal);
+    --color-swatch-teal-foreground: var(--swatch-teal-foreground);
+    --color-swatch-blue: var(--swatch-blue);
+    --color-swatch-blue-foreground: var(--swatch-blue-foreground);
+    --color-swatch-indigo: var(--swatch-indigo);
+    --color-swatch-indigo-foreground: var(--swatch-indigo-foreground);
+    --color-swatch-violet: var(--swatch-violet);
+    --color-swatch-violet-foreground: var(--swatch-violet-foreground);
+    --color-swatch-pink: var(--swatch-pink);
+    --color-swatch-pink-foreground: var(--swatch-pink-foreground);
     --color-grid-surface: var(--grid-surface);
     --color-grid-foreground: var(--grid-foreground);
     --color-grid-header: var(--grid-header);

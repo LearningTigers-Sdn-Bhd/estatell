@@ -4,7 +4,7 @@
 
 Record where every booking came from, in the property's own words (Phone, WhatsApp, Booking.com), so the dashboard Channel mix is right even before the channel manager is on.
 
-**Status: commits 1 and 4 built** (the table, the enums, the seed, the backfill, the booking form and the reservation readers, and the OTA rows from the onboarding lists). The badge and the settings page are planned. It replaced the `ReservationSource` enum and `reservations.channel_name`. It lands before the dashboard Performance tab.
+**Status: commits 1, 2 and 4 built** (the table, the enums, the seed, the backfill, the booking form and the reservation readers, the badge and swatch tokens, and the OTA rows from the onboarding lists). The settings page is planned. It replaced the `ReservationSource` enum and `reservations.channel_name`. It lands before the dashboard Performance tab.
 
 ## Data model
 
@@ -212,7 +212,7 @@ Before running it in production or demo, check `select source, channel_name, cou
 Four commits after the docs commit, as in the [checklist](../checklist.md#next):
 
 1. **Replace the reservation source with booking sources.** `BookingSourceType`, `BookingSourceIcon`, `SwatchColor` (the swatch tokens come with commit 2), `booking_sources`, `BookingSource` with its factory, `SeedBookingSources` and the backfill, with tests. `ReservationFactory` gets a source of the same property, with `walkIn()`, `ota()` and `company()` states. `NewReservationData` and `NewBookingData` take a `BookingSource` (no `source`, no `channelName`). `CreateReservation` checks that the source belongs to the property and logs its id and name. `StoreBookingRequest`, `ReservationBookingController` and the booking form. `ReservationData` (`sourceName`), `ReservationListItemData`, `ReservationDirectory`, the list filter, the subtitle and the reservation page. The seeders (Sandbay, Boreno, BookingScenarios). Delete `ReservationSource`. Regenerate Wayfinder and the TypeScript types. This commit drops `source` and `channel_name`, so every reader and writer changes in it.
-2. **Show the booking source badge.** The swatch tokens with a contrast check, `BookingSourceBadge` and `BookingSourceBadgeData` (`ReservationListItemData.source`) on the card and the List view. Until then the card shows a simple icon by type, and `ReservationListItemData` has `sourceName` and `sourceType`.
+2. **Show the booking source badge.** The swatch tokens with a contrast check, `BookingSourceBadge` and `BookingSourceBadgeData` (`ReservationListItemData.source`) on the card and the List view.
 3. **Manage booking sources.** The settings page and its Actions.
 4. **Add OTA lists to booking sources.** `EnsureOtaBookingSource` in `SaveOtaCredentials`.
 

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from '@inertiajs/react';
 import { Baby, Ellipsis, Ship, User } from 'lucide-react';
+import { BookingSourceBadge } from '@/components/pms/booking-source-badge';
 import { DateText } from '@/components/pms/date-text';
 import { MoneyText } from '@/components/pms/money-text';
 import { StatusBadge } from '@/components/pms/status-badge';
@@ -23,7 +24,6 @@ import { show } from '@/routes/reservations';
 import {
     ReservationMarkers,
     RoomTotalLabel,
-    SourceIcon,
     reservationSubtitle,
 } from './reservation-parts';
 import { RoomBox } from './room-box';
@@ -149,7 +149,7 @@ export function ReservationCard({ reservation }: { reservation: Item }) {
                 </dl>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
                     <StatusBadge status={reservation.status} />
-                    <SourceIcon reservation={reservation} />
+                    <BookingSourceBadge source={reservation.source} size="sm" />
                     {reservation.isGroup && (
                         <span className="tabular-nums">
                             {reservation.unitCount} units

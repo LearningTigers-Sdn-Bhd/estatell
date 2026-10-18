@@ -1,14 +1,4 @@
-import {
-    Ban,
-    BriefcaseBusiness,
-    Footprints,
-    Globe,
-    Info,
-    Network,
-    RotateCw,
-    Star,
-    Users,
-} from 'lucide-react';
+import { Ban, Info, RotateCw, Star, Users } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import {
     Tooltip,
@@ -63,24 +53,6 @@ export function RoomTotalLabel() {
     );
 }
 
-const sourceIcons: Record<App.Enums.BookingSourceType, LucideIcon> = {
-    direct: Globe,
-    ota: Network,
-    company: BriefcaseBusiness,
-    walk_in: Footprints,
-};
-
-/** The booking source as an icon, with its label on hover. */
-export function SourceIcon({ reservation }: { reservation: Item }) {
-    return (
-        <IconWithTooltip
-            icon={sourceIcons[reservation.sourceType]}
-            label={reservation.sourceName}
-            className="text-muted-foreground"
-        />
-    );
-}
-
 /** VIP, blacklisted, repeat guest and group markers. */
 export function ReservationMarkers({ reservation }: { reservation: Item }) {
     return (
@@ -126,7 +98,7 @@ export function reservationSubtitle(reservation: Item): string {
             ? reservation.bookerName
             : null,
         reservation.reference,
-        reservation.sourceType === 'ota' ? reservation.sourceName : null,
+        reservation.source.type === 'ota' ? reservation.source.name : null,
         reservation.externalReference,
     ]
         .filter(Boolean)

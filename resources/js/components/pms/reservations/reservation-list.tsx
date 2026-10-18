@@ -1,6 +1,7 @@
 import { Link, router } from '@inertiajs/react';
 import { useMemo } from 'react';
 import type { ReactNode } from 'react';
+import { BookingSourceBadge } from '@/components/pms/booking-source-badge';
 import { DataTable, dataTableColumns } from '@/components/pms/data-table';
 import type { DataTablePagination } from '@/components/pms/data-table';
 import { DateText } from '@/components/pms/date-text';
@@ -104,14 +105,17 @@ export function ReservationList({
                 id: 'source',
                 header: 'Source',
                 cell: (info) => (
-                    <span className="flex flex-col">
-                        <span>{info.row.original.sourceName}</span>
-                        {info.row.original.sourceType === 'ota' &&
-                            info.row.original.externalReference && (
-                                <span className="text-xs text-muted-foreground">
-                                    {info.row.original.externalReference}
-                                </span>
-                            )}
+                    <span className="flex items-center gap-2">
+                        <BookingSourceBadge source={info.row.original.source} />
+                        <span className="flex flex-col">
+                            <span>{info.row.original.source.name}</span>
+                            {info.row.original.source.type === 'ota' &&
+                                info.row.original.externalReference && (
+                                    <span className="text-xs text-muted-foreground">
+                                        {info.row.original.externalReference}
+                                    </span>
+                                )}
+                        </span>
                     </span>
                 ),
             }),

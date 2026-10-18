@@ -2252,6 +2252,13 @@ supplement: string,
 discount: string,
 amount: string,
 };
+export type BookingSourceBadgeData = {
+name: string,
+type: App.Enums.BookingSourceType,
+icon: App.Enums.BookingSourceIcon | null,
+letters: string | null,
+color: App.Enums.SwatchColor,
+};
 export type BookingSourceOptionData = {
 id: number,
 name: string,
@@ -2593,8 +2600,7 @@ isBlacklisted: boolean,
 isRepeat: boolean,
 isCancelled: boolean,
 status: App.Data.Shared.BadgeData,
-sourceName: string,
-sourceType: App.Enums.BookingSourceType,
+source: App.Data.Reservations.BookingSourceBadgeData,
 externalReference: string | null,
 unitCount: number,
 adults: number,
