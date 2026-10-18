@@ -1363,6 +1363,15 @@ export type AdminWaitingPropertyData = {
 sentOn: string,
 warningsCount: number,
 };
+export type DemoAccessData = {
+url: string,
+logins: App.Data.Platform.DemoLoginData[],
+password: string,
+};
+export type DemoLoginData = {
+property: string,
+email: string,
+};
 export type ImpersonationData = {
 supportUserName: string,
 partnerName: string | null,

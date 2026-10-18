@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Partner;
 use App\Actions\Onboarding\CreatePropertyForOwner;
 use App\Data\Platform\AdminPropertyData;
 use App\Data\Platform\AdminPropertyStaffData;
+use App\Data\Platform\DemoAccessData;
 use App\Data\Platform\PartnerPropertyRowData;
 use App\Data\Platform\PropertyFeatureData;
 use App\Enums\OwnerSetupMethod;
@@ -38,6 +39,7 @@ class PartnerPropertyController extends Controller
             'signupUrl' => route('join', $partner->signup_code),
             'canCreateProperties' => $partner->can_create_properties,
             'properties' => PartnerPropertyRowData::collect($partnerProperties->paginate($partner), PaginatedDataCollection::class),
+            'demoAccess' => DemoAccessData::fromConfig(),
             ...($partner->can_create_properties ? [
                 'types' => PropertyType::options(),
                 'countries' => app(CountryOptions::class)->optionsWithMalaysiaFirst(),

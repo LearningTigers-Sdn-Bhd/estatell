@@ -3,6 +3,7 @@ import { AdminTwoFactorBanner } from '@/components/admin-two-factor-banner';
 import { AppContent } from '@/components/app-content';
 import { AppNavbar } from '@/components/app-navbar';
 import { AppShell } from '@/components/app-shell';
+import { DemoBanner } from '@/components/demo-banner';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
 import { ImpersonationBanner } from '@/components/impersonation-banner';
 import type { AppLayoutProps } from '@/types';
@@ -14,6 +15,7 @@ export default function AccountLayout({
     return (
         <AppShell variant="sidebar">
             <div className="flex h-svh w-full flex-col overflow-hidden">
+                <DemoBanner />
                 <AppNavbar identity="app" />
                 <div className="flex min-h-0 flex-1">
                     <AccountSidebar />

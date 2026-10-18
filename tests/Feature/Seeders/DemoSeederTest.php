@@ -15,7 +15,7 @@ use Database\Seeders\DemoSeeder;
 use Illuminate\Support\Facades\Hash;
 
 beforeEach(function () {
-    config(['seeding.demo_password' => 'demo-pass-2026']);
+    config(['estatell.demo.password' => 'demo-pass-2026']);
 });
 
 test('the demo seeder builds Pearlside View Resort and Boreno Hotel as live properties', function () {
@@ -47,6 +47,14 @@ test('each demo property has an Owner login that uses the demo password', functi
     ['boreno@demo.estatell.com', 'Boreno Hotel'],
 ]);
 
+test('the Owner logins on the partner Demo access card match the seeded Owners', function () {
+    $this->seed(DemoSeeder::class);
+
+    foreach (config('estatell.demo.logins') as $login) {
+        expect(User::query()->where('email', $login['email'])->sole()->property->name)->toBe($login['property']);
+    }
+});
+
 test('Boreno Hotel has a paid, a part paid and a credited AR invoice', function () {
     $this->seed(DemoSeeder::class);
 
@@ -62,7 +70,7 @@ test('Boreno Hotel has a paid, a part paid and a credited AR invoice', function 
 });
 
 test('the demo seeder refuses to run without a demo password', function () {
-    config(['seeding.demo_password' => null]);
+    config(['estatell.demo.password' => null]);
 
     expect(fn () => $this->seed(DemoSeeder::class))->toThrow(RuntimeException::class, 'DEMO_PASSWORD');
 

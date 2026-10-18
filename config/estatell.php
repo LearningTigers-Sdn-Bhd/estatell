@@ -16,4 +16,25 @@ return [
 
     'support_require_two_factor' => (bool) env('SUPPORT_REQUIRE_2FA', false),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Demo environment
+    |--------------------------------------------------------------------------
+    |
+    | demo.estatell.com, reset every night. The demo uses the password to seed
+    | its staff accounts. Production shows the link, the Owner logins and the
+    | password on the partner Demo access card, only when the URL is set.
+    | See docs/deployment/demo_environment.md.
+    |
+    */
+
+    'demo' => [
+        'url' => env('DEMO_URL'),
+        'password' => env('DEMO_PASSWORD'),
+        'logins' => [
+            ['property' => 'Pearlside View Resort', 'email' => 'pearlside@demo.estatell.com'],
+            ['property' => 'Boreno Hotel', 'email' => 'boreno@demo.estatell.com'],
+        ],
+    ],
+
 ];

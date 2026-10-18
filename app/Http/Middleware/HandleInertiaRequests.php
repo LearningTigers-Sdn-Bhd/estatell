@@ -60,6 +60,7 @@ class HandleInertiaRequests extends Middleware
             ],
             'impersonation' => fn () => $this->impersonation($request),
             'supportTwoFactor' => RequireSupportTwoFactor::sharedPropFor($request->user()),
+            'isDemo' => app()->environment('demo'),
             'property' => fn () => $this->currentProperty($request),
             'businessDate' => fn () => $this->businessDate($request),
             'adminNavigation' => fn () => $request->user()?->is_admin ? app(AdminNavigation::class)->items() : null,

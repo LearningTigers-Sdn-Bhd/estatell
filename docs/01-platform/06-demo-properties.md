@@ -81,4 +81,4 @@ Everything else works as in production. Mail goes to the log, and the nightly re
 
 ## Build status
 
-Seeders built. Guards, banner and the partner card are not built yet. See [Checklist: 17 Onboarding](../checklist.md#17-onboarding).
+Built: the seeders, the guards (`BlockOnDemo` in the web group, `Not available in the demo` toast), the banner (`isDemo` shared prop, `DemoBanner` in the staff and account layouts) and the partner card (`DemoAccessData::fromConfig()` from `estatell.demo`). See [Checklist: 17 Onboarding](../checklist.md#17-onboarding).

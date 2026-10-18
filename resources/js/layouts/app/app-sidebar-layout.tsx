@@ -2,6 +2,7 @@ import { AppContent } from '@/components/app-content';
 import { ImpersonationBanner } from '@/components/impersonation-banner';
 import { AppNavbar } from '@/components/app-navbar';
 import { AppShell } from '@/components/app-shell';
+import { DemoBanner } from '@/components/demo-banner';
 import { AppSidebar } from '@/components/app-sidebar';
 import { StaffWorkspaceHeader } from '@/components/staff-workspace-header';
 import { cn } from '@/lib/utils';
@@ -18,6 +19,7 @@ export default function AppSidebarLayout({
                 data-staff-shell
                 className="flex h-svh w-full flex-col overflow-hidden overscroll-none"
             >
+                <DemoBanner />
                 <AppNavbar surface="sidebar" />
                 <StaffWorkspaceHeader breadcrumbs={breadcrumbs} />
                 <div className="flex min-h-0 flex-1">

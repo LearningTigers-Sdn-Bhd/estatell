@@ -25,7 +25,7 @@ class DemoSeeder extends Seeder
      */
     public static function password(): string
     {
-        $password = config('seeding.demo_password');
+        $password = config('estatell.demo.password');
 
         if (! is_string($password) || strlen($password) < 8) {
             throw new RuntimeException('Set DEMO_PASSWORD (at least 8 characters) before seeding the demo.');

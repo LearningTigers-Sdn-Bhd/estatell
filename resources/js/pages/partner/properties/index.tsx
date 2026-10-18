@@ -2,6 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { Building2 } from 'lucide-react';
 import { DataTable, dataTableColumns } from '@/components/pms/data-table';
 import { DateText } from '@/components/pms/date-text';
+import { DemoAccessCard } from '@/components/pms/partners/demo-access-card';
 import { EmptyState } from '@/components/pms/empty-state';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { SignupLinkCard } from '@/components/pms/partners/signup-link-card';
@@ -20,6 +21,7 @@ type Props = {
     signupUrl: string;
     canCreateProperties: boolean;
     properties: Illuminate.LengthAwarePaginator<number, Row>;
+    demoAccess: App.Data.Platform.DemoAccessData | null;
     types?: EnumOption[];
     countries?: EnumOption[];
     setupMethods?: SetupMethod[];
@@ -76,6 +78,7 @@ export default function PartnerPropertiesIndex({
     signupUrl,
     canCreateProperties,
     properties,
+    demoAccess,
     types = [],
     countries = [],
     setupMethods = [],
@@ -90,6 +93,8 @@ export default function PartnerPropertiesIndex({
                     partnerName={partnerName}
                     signupUrl={signupUrl}
                 />
+
+                {demoAccess && <DemoAccessCard access={demoAccess} />}
 
                 <PageHeader
                     title="Properties"
