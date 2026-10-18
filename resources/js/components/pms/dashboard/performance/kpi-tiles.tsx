@@ -72,8 +72,13 @@ function KpiTile({
                 </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-1">
-                <p className="font-heading text-xl font-semibold tabular-nums">
-                    {value ?? '–'}
+                <p
+                    className={cn(
+                        'font-heading text-xl font-semibold tabular-nums',
+                        value === null && 'text-muted-foreground',
+                    )}
+                >
+                    {value ?? 'No data'}
                 </p>
                 {value === null ? (
                     <p className="text-xs text-muted-foreground">{empty}</p>
@@ -86,7 +91,7 @@ function KpiTile({
 }
 
 /**
- * Occupancy, ADR, RevPAR and lead time. A figure the range cannot give shows a dash and says why.
+ * Occupancy, ADR, RevPAR and lead time. A figure the range cannot give shows a muted "No data" and says why.
  */
 export function KpiTiles({ summary }: { summary: Summary }) {
     const noStays = 'No stays in this period';

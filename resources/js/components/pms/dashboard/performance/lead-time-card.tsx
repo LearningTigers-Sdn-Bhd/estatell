@@ -7,6 +7,7 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { rangeLabel } from '@/components/pms/dashboard/performance/format';
+import { EmptyState } from '@/components/pms/empty-state';
 
 const labels: Record<string, string> = {
     'same-day': 'Same day',
@@ -44,9 +45,11 @@ export function LeadTimeCard({
             </CardHeader>
             <CardContent className="flex flex-col gap-2">
                 {leadTime.units === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                        No arrivals in this period
-                    </p>
+                    <EmptyState
+                        icon={Hourglass}
+                        title="No arrivals in this period"
+                        description="Walk-ins are not counted here."
+                    />
                 ) : (
                     leadTime.buckets.map((bucket) => (
                         <div

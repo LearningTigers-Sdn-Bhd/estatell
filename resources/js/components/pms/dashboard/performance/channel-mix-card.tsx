@@ -2,6 +2,7 @@ import { ChartPie, ChevronRight, Globe, Shapes } from 'lucide-react';
 import { useState } from 'react';
 import { Cell, Label, Pie, PieChart } from 'recharts';
 import { BookingSourceBadge } from '@/components/pms/booking-source-badge';
+import { EmptyState } from '@/components/pms/empty-state';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -141,9 +142,13 @@ export function ChannelMixCard({
             </CardHeader>
             <CardContent className="flex flex-1 flex-col gap-4">
                 {rows.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                        No stays in this period
-                    </p>
+                    <div className="flex flex-1 items-center justify-center">
+                        <EmptyState
+                            icon={ChartPie}
+                            title="No stays in this period"
+                            description="The mix shows once guests stay nights in the range."
+                        />
+                    </div>
                 ) : (
                     <>
                         <ChartContainer

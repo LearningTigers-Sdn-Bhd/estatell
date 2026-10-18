@@ -12,6 +12,7 @@ import {
     YAxis,
 } from 'recharts';
 import type { BarShapeProps } from 'recharts';
+import { EmptyState } from '@/components/pms/empty-state';
 import { MoneyText } from '@/components/pms/money-text';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -193,11 +194,21 @@ export function TrendCard({
                     </div>
                 )}
                 {empty ? (
-                    <p className="flex min-h-64 flex-1 items-center justify-center text-sm text-muted-foreground">
-                        {summary.hasStays
-                            ? 'No night audit figures for this period'
-                            : 'No stays in this period'}
-                    </p>
+                    <div className="flex min-h-64 flex-1 items-center justify-center">
+                        {summary.hasStays ? (
+                            <EmptyState
+                                icon={ChartLine}
+                                title="No night audit figures for this period"
+                                description="Figures appear after the night audit closes each day."
+                            />
+                        ) : (
+                            <EmptyState
+                                icon={ChartLine}
+                                title="No stays in this period"
+                                description="The trend shows once guests stay nights in the range."
+                            />
+                        )}
+                    </div>
                 ) : (
                     <ChartContainer
                         config={config}

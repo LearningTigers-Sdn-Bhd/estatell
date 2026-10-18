@@ -60,6 +60,8 @@ Period [Last 7 days] [Last 30 days] [●This month] [Last month] [12 months] [Mo
 | Below 768px | Tiles 2×2. Cards stack. The period presets scroll sideways in one row                                                                             |
 
 - Tiles follow the Today stat tile style: a normal card, a soft primary icon chip (`primary/5`, like the month tile), strong figure. No left accents.
+- A figure the range cannot give shows a muted "No data" in place of the number, never a dash or 0, with the reason underneath ("No stays in this period").
+- Empty cards use the shared empty state with the card's own icon: Channel mix and Trend with no stays ("No stays in this period"), Trend with stays but no audit figures ("No night audit figures for this period"), and How far ahead guests book with no counted arrivals ("No arrivals in this period").
 - Every tile has a line under the figure: the comparison, or "Nothing to compare with" when the compared range has no figures.
 - The Trend and Channel mix switches show an icon before each label: Occupancy `BedDouble`, ADR `Coins`, RevPAR `TrendingUp` (the KPI tile icons), Source `Globe`, Type `Shapes`.
 - Each card heading has one muted 20px Lucide icon: Trend `ChartLine`, Channel mix `ChartPie`, Lead time `Hourglass`. The Lead time card is titled "How far ahead guests book", with the arrival range and "walk-ins not counted" as its description.
