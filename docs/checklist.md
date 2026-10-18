@@ -120,6 +120,7 @@ Build in this order. Each item is one commit. Docs: [Wizard steps](17-onboarding
 - [x] `style(front-desk): reshape the dashboard bento` — compact quick actions, flat task rows, a shared Arrivals/Departures card, and section icons. Recommended next sits inside the bento with `Sparkles`, progress, one next item and a remembered Show all control. Docs: [Dashboard](18-front-desk/04-dashboard.md#bento-grid).
 - [x] `feat(front-desk): add the dashboard housekeeping summary` — permission-scoped Dirty, To inspect and Blocked counts from the existing board, with a link to housekeeping. Docs: [Housekeeping](18-front-desk/04-dashboard.md#housekeeping).
     - The 78 affected tests, TypeScript, lint/format checks and production build pass. Browser review of the dashboard is still open.
+- [ ] `feat(front-desk): add the dashboard performance tab` — the Today and Performance tabs (`reports.view`), `PerformancePeriod` with the six presets and comparison, `PerformanceSummary` (occupancy, ADR, RevPAR as the Occupancy report totals; lead time without walk-ins; channel mix by booking source and type with the company popover), `PerformanceSummaryData`, one deferred prop with a skeleton, the trend chart and the cards. Needs: manage booking sources. Docs: [Dashboard: Performance tab](18-front-desk/06-dashboard-performance.md).
 
 ### 23 Company portal
 

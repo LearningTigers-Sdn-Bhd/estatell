@@ -6,6 +6,8 @@ The first page staff see after login: start the day's work in one click, see wha
 
 `GET /p/{code}/dashboard` uses `DashboardController::show` and `pages/dashboard.tsx`.
 
+This doc covers the **Today** tab. Users with `reports.view` also get a **Performance** tab with occupancy, ADR, RevPAR, channel mix and lead time over a period. See [Dashboard: Performance tab](06-dashboard-performance.md). The Today tab does not change.
+
 ## Layout
 
 The dashboard uses the fixed-height app layout. Its content scrolls inside the available space, while the navbar and workspace header stay fixed.
@@ -153,12 +155,12 @@ One list of what is left to act on, with a button on each row.
 
 ## Not on the dashboard
 
-| Left out                   | Where it lives                            |
-| -------------------------- | ----------------------------------------- |
-| Recent bookings            | The reservations list                     |
-| Overdue AR invoices        | Finance: city ledger and aging            |
-| Room types in detail       | The Tonight popover and the rate calendar |
-| Charts beyond the 7 nights | The Occupancy and Revenue reports         |
+| Left out                   | Where it lives                                             |
+| -------------------------- | ---------------------------------------------------------- |
+| Recent bookings            | The reservations list                                      |
+| Overdue AR invoices        | Finance: city ledger and aging                             |
+| Room types in detail       | The Tonight popover and the rate calendar                  |
+| Charts beyond the 7 nights | The Performance tab, and the Occupancy and Revenue reports |
 
 ## Loading
 
