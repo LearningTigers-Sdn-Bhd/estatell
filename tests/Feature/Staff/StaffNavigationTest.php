@@ -40,6 +40,7 @@ test('the details item stays active on every settings tab', function (string $ro
                 'external' => false,
                 'active' => true,
                 'action' => null,
+                'badge' => null,
             ])
         );
 })->with(['settings.profile', 'settings.business', 'settings.edit', 'settings.operations', 'settings.support']);

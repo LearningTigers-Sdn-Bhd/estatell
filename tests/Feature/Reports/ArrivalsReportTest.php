@@ -261,40 +261,41 @@ test('the Reports navigation groups the reports by category and needs reports.vi
                 [
                     'label' => 'Front desk',
                     'items' => [
-                        ['title' => 'Arrivals', 'href' => "/p/{$property->code}/reports/arrivals", 'icon' => 'calendar-check', 'external' => false, 'active' => true, 'action' => null],
-                        ['title' => 'Departures', 'href' => "/p/{$property->code}/reports/departures", 'icon' => 'door-open', 'external' => false, 'active' => false, 'action' => null],
-                        ['title' => 'In-house', 'href' => "/p/{$property->code}/reports/in-house", 'icon' => 'users', 'external' => false, 'active' => false, 'action' => null],
-                        ['title' => 'Police report', 'href' => "/p/{$property->code}/reports/police-report", 'icon' => 'id-card', 'external' => false, 'active' => false, 'action' => null],
+                        ['title' => 'Arrivals', 'href' => "/p/{$property->code}/reports/arrivals", 'icon' => 'calendar-check', 'external' => false, 'active' => true, 'action' => null, 'badge' => null],
+                        ['title' => 'Departures', 'href' => "/p/{$property->code}/reports/departures", 'icon' => 'door-open', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
+                        ['title' => 'In-house', 'href' => "/p/{$property->code}/reports/in-house", 'icon' => 'users', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
+                        ['title' => 'Police report', 'href' => "/p/{$property->code}/reports/police-report", 'icon' => 'id-card', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
                     ],
                 ],
                 [
                     'label' => 'Revenue',
                     'items' => [
-                        ['title' => 'Occupancy', 'href' => "/p/{$property->code}/reports/occupancy", 'icon' => 'percent', 'external' => false, 'active' => false, 'action' => null],
-                        ['title' => 'Revenue', 'href' => "/p/{$property->code}/reports/revenue", 'icon' => 'chart-column', 'external' => false, 'active' => false, 'action' => null],
-                        ['title' => 'Tax', 'href' => "/p/{$property->code}/reports/tax", 'icon' => 'landmark', 'external' => false, 'active' => false, 'action' => null],
-                        ['title' => 'Non-national guests', 'href' => "/p/{$property->code}/reports/non-national-guests", 'icon' => 'users', 'external' => false, 'active' => false, 'action' => null],
+                        ['title' => 'Occupancy', 'href' => "/p/{$property->code}/reports/occupancy", 'icon' => 'percent', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
+                        ['title' => 'Revenue', 'href' => "/p/{$property->code}/reports/revenue", 'icon' => 'chart-column', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
+                        ['title' => 'Tax', 'href' => "/p/{$property->code}/reports/tax", 'icon' => 'landmark', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
+                        ['title' => 'Non-national guests', 'href' => "/p/{$property->code}/reports/non-national-guests", 'icon' => 'users', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
                     ],
                 ],
                 [
                     'label' => 'Finance',
                     'items' => [
-                        ['title' => 'Payments', 'href' => "/p/{$property->code}/reports/payments", 'icon' => 'credit-card', 'external' => false, 'active' => false, 'action' => null],
-                        ['title' => 'Folio ledger', 'href' => "/p/{$property->code}/reports/folio-ledger", 'icon' => 'receipt', 'external' => false, 'active' => false, 'action' => null],
-                        ['title' => 'Outstanding balance', 'href' => "/p/{$property->code}/reports/outstanding-balance", 'icon' => 'wallet', 'external' => false, 'active' => false, 'action' => null],
-                        ['title' => 'Deposit liability', 'href' => "/p/{$property->code}/reports/deposit-liability", 'icon' => 'shield', 'external' => false, 'active' => false, 'action' => null],
+                        ['title' => 'Payments', 'href' => "/p/{$property->code}/reports/payments", 'icon' => 'credit-card', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
+                        ['title' => 'Folio ledger', 'href' => "/p/{$property->code}/reports/folio-ledger", 'icon' => 'receipt', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
+                        ['title' => 'Outstanding balance', 'href' => "/p/{$property->code}/reports/outstanding-balance", 'icon' => 'wallet', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
+                        ['title' => 'Deposit liability', 'href' => "/p/{$property->code}/reports/deposit-liability", 'icon' => 'shield', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
                     ],
                 ],
                 [
                     'label' => 'Kitchen',
                     'items' => [
-                        ['title' => 'Meal counts', 'href' => "/p/{$property->code}/reports/meal-counts", 'icon' => 'utensils', 'external' => false, 'active' => false, 'action' => null],
+                        ['title' => 'Meal counts', 'href' => "/p/{$property->code}/reports/meal-counts", 'icon' => 'utensils', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
                     ],
                 ],
                 [
                     'label' => 'Audit',
                     'items' => [
-                        ['title' => 'Night audit history', 'href' => "/p/{$property->code}/reports/night-audit-history", 'icon' => 'moon', 'external' => false, 'active' => false, 'action' => null],
+                        ['title' => 'Night audit history', 'href' => "/p/{$property->code}/reports/night-audit-history", 'icon' => 'moon', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
+                        ['title' => 'Activity log', 'href' => "/p/{$property->code}/reports/activity-log", 'icon' => 'activity', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
                     ],
                 ],
             ],
