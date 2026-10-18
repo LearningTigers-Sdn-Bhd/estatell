@@ -33,8 +33,13 @@ class PortalRecentBookings
         }
 
         return Reservation::query()
-            ->whereIn('reservations.company_id', $links->pluck('company_id')->all())
-            ->whereIn('reservations.property_id', $links->pluck('property_id')->all())
+            ->where(function ($query) use ($links): void {
+                foreach ($links as $link) {
+                    $query->orWhere(fn ($pair) => $pair
+                        ->where('reservations.company_id', $link->company_id)
+                        ->where('reservations.property_id', $link->property_id));
+                }
+            })
             ->with('property:id,name,code', 'booker:id,full_name')
             ->withMin('units as first_arrival', 'arrival_date')
             ->withMax('units as last_departure', 'departure_date')

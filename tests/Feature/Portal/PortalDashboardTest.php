@@ -133,3 +133,20 @@ test('the dashboard lists the 5 newest bookings of the user\'s own companies', f
             ->where('recentBookings.0.propertyCode', $property->code)
         );
 });
+
+test('recent bookings match each link\'s company and property as a pair', function () {
+    $user = portalUser();
+    $first = Property::factory()->create();
+    $second = Property::factory()->create();
+    [$firstCompany] = portalLinkFor($user, $first, 'active', 'First Co');
+    [$secondCompany] = portalLinkFor($user, $second, 'active', 'Second Co');
+
+    $crossed = Reservation::factory()->for($first)->create(['company_id' => $secondCompany->id]);
+    ReservationUnit::factory()->for($crossed)->create();
+
+    $this->actingAs($user)
+        ->get(route('portal.index'))
+        ->assertInertia(fn (Assert $page) => $page->has('recentBookings', 0));
+
+    expect($firstCompany->property_id)->toBe($first->id);
+});

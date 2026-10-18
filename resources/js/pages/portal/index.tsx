@@ -124,8 +124,8 @@ export default function PortalIndex({
                     description="Invitations and upcoming arrivals across your properties."
                 />
 
-                <div className="grid flex-1 gap-4 lg:grid-cols-2">
-                    <Card>
+                <div className="grid gap-4 lg:grid-cols-2">
+                    <Card className="min-h-64">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Mail className="size-4" />
@@ -152,7 +152,7 @@ export default function PortalIndex({
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="min-h-64">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <CalendarDays className="size-4" />
@@ -180,7 +180,7 @@ export default function PortalIndex({
                     </Card>
                 </div>
 
-                <Card>
+                <Card className="min-h-64">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <BedDouble className="size-4" />
