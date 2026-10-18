@@ -8,27 +8,27 @@ Terms follow the [Glossary](../overview.md#glossary): **company** is the organis
 
 ## Decisions
 
-| Area              | Decision                                                                                                                                                                   |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| One login         | A company has at most one portal login at a property. There is no list of portal users and no roles inside a company.                                                      |
-| Account           | The login is a `users` row with `is_company_user` and no `property_id`. Staff stay 1 user : 1 property.                                                                    |
-| Many properties   | One login can be linked at many properties, one company record at each. There is no global "agency".                                                                       |
-| Same organisation | Not enforced. Each property names its own record: "Borneo Travel" at one, "Borneo Travel Sdn Bhd" at another.                                                              |
-| Where it is set   | A **Portal login email** field on the company: the Add company Sheet, the company's Details tab, Bulk add and the onboarding Companies table. No separate user management. |
-| New email         | Saving creates the login with a temp password. It takes the company name. The property shares the sign-in details with **Copy message**.                                   |
-| Existing login    | Saving creates a Pending link and an invitation (in-app and mail). The company accepts it in the portal.                                                                   |
-| Portal on or off  | The portal is on while the company has an Active link. Clearing the email turns it off. There is no separate switch.                                                       |
-| Login email       | Separate from the contact email. The contact email gets invoices (often accounts@…); the login is usually the booking person (booking@…).                                  |
-| Remove            | Clearing the email revokes the link. A property never deactivates the login itself, because other properties may use it. Only a platform admin can.                        |
-| Browsing          | One property at a time. `/portal` lists the linked properties; the user opens one to book. A search across properties is later work.                                       |
-| Plan access       | `rate_plans.portal_access`: Hidden, All or Selected. Selected uses `company_rate_plans`.                                                                                   |
-| Plans at the desk | A plan linked to any company is hidden at the desk until one of those companies is selected.                                                                               |
-| Booking           | Confirmed at once. There is no approval queue.                                                                                                                             |
-| Payment           | Billed to the company (folio payer), settled through the city ledger. No online payment. Statements are read-only; the property records payments.                          |
-| Company reference | The company's voucher or file number goes in `reservations.external_reference`.                                                                                            |
-| Cancel            | Free until the company's cut-off. After it, "Request cancellation" notifies the property.                                                                                  |
-| Changes           | Company users edit guest details only. Changes to dates or rooms go through the property.                                                                                  |
-| URL               | `/portal` (property list), then `/portal/{property:code}/...`.                                                                                                             |
+| Area              | Decision                                                                                                                                                                  |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| One login         | A company has at most one portal login at a property. There is no list of portal users and no roles inside a company.                                                     |
+| Account           | The login is a `users` row with `is_company_user` and no `property_id`. Staff stay 1 user : 1 property.                                                                   |
+| Many properties   | One login can be linked at many properties, one company record at each. There is no global "agency".                                                                      |
+| Same organisation | Not enforced. Each property names its own record: "Borneo Travel" at one, "Borneo Travel Sdn Bhd" at another.                                                             |
+| Where it is set   | A **Portal login email** field on the company: the Add company Sheet, the company's Portal tab, Bulk add and the onboarding Companies table. No separate user management. |
+| New email         | Saving creates the login with a temp password. It takes the company name. The property shares the sign-in details with **Copy message**.                                  |
+| Existing login    | Saving creates a Pending link and an invitation (in-app and mail). The company accepts it in the portal.                                                                  |
+| Portal on or off  | The portal is on while the company has an Active link. Clearing the email turns it off. There is no separate switch.                                                      |
+| Login email       | Separate from the contact email. The contact email gets invoices (often accounts@…); the login is usually the booking person (booking@…).                                 |
+| Remove            | Clearing the email revokes the link. A property never deactivates the login itself, because other properties may use it. Only a platform admin can.                       |
+| Browsing          | One property at a time. `/portal` lists the linked properties; the user opens one to book. A search across properties is later work.                                      |
+| Plan access       | `rate_plans.portal_access`: Hidden, All or Selected. Selected uses `company_rate_plans`.                                                                                  |
+| Plans at the desk | A plan linked to any company is hidden at the desk until one of those companies is selected.                                                                              |
+| Booking           | Confirmed at once. There is no approval queue.                                                                                                                            |
+| Payment           | Billed to the company (folio payer), settled through the city ledger. No online payment. Statements are read-only; the property records payments.                         |
+| Company reference | The company's voucher or file number goes in `reservations.external_reference`.                                                                                           |
+| Cancel            | Free until the company's cut-off. After it, "Request cancellation" notifies the property.                                                                                 |
+| Changes           | Company users edit guest details only. Changes to dates or rooms go through the property.                                                                                 |
+| URL               | `/portal` (property list), then `/portal/{property:code}/...`.                                                                                                            |
 
 ## Data model
 
@@ -82,7 +82,7 @@ One optional field, **Portal login email**, wherever a company is added or edite
 - **Email verification.** A login made by a property starts with `email_verified_at` empty. At first sign-in, after setting their own password, the agent gets a verification email, and every `/portal` page waits until the email is verified. This stops property staff from creating a login for an email they don't own and then accepting another property's invitation with it. The real owner of the email can always take the login back with Forgot password.
 - A property can reset the temp password only while the user still has `must_change_password` and has no Active link at another property.
 
-**Company page → Details tab**, a **Portal** form under Details:
+**Company page → Portal tab** (`GET .../companies/{company}/portal`, the Globe icon, between Rates and Payments), a **Portal** form:
 
 ```
 Portal
@@ -98,7 +98,7 @@ Portal
 
 - **Add company** Sheet: a third section, Portal, with the same two fields.
 - **Bulk add**: `portal_email` and `cancel_days` columns, in both Simple and Detailed. After saving, the temp-password export lists only the rows that got a temp password.
-- **Onboarding Companies table**: the two fields in ⌄ row details (see [Companies table](../17-onboarding/02-wizard-steps.md#companies-table)). "Ready after go-live" shows only there; on the Details tab, Copy message and Reset password always work.
+- **Onboarding Companies table**: the two fields in ⌄ row details (see [Companies table](../17-onboarding/02-wizard-steps.md#companies-table)). "Ready after go-live" shows only there; on the Portal tab, Copy message and Reset password always work.
 - **Sign-in before the portal pages exist**: a company user lands on a plain `/portal` page ("The company portal is coming soon"). The home redirect, sign-in responses and shared page props handle a user with no property. The portal property list replaces the page.
 - Every save needs `company.manage`. No new permission.
 
