@@ -125,10 +125,10 @@ Build in this order. Each item is one commit. Docs: [Wizard steps](17-onboarding
 
 ### 23 Company portal
 
-- [ ] `feat(portal): add company users and company links` — `is_company_user`, users CHECK, `company_users`, Portal tab with invite, temp password and bulk add, existing-account invitations. Docs: [Company portal](23-company-portal/01-company-portal.md#adding-company-users).
+- [ ] `feat(portal): add the company portal login` — `is_company_user` in `users_one_kind_check`, `company_users` with its two partial unique indexes, drop `companies.portal_enabled`, `SetCompanyPortalLogin`, the Portal section on the Add company Sheet and the Details tab (status, Copy message, Reset password, Resend), `portal_email` and `cancel_days` in Bulk add and the template, the portal login in the onboarding Companies table, `CompanyLinkInvitation`, company users in `RefreshPendingTemporaryPasswords`. Docs: [Company portal](23-company-portal/01-company-portal.md#portal-login).
 - [ ] `feat(portal): add the portal property list and invitations` — `/portal`, accept and decline, `portal` middleware, home redirect. Docs: [Company portal](23-company-portal/01-company-portal.md#pages).
-- [ ] `feat(portal): let company users book and manage stays` — `portal_access`, booking checks, the auto-add charge items added by the server (see [Add-ons](12-reservations/04-add-ons.md#added-automatically)), cancel and request. Docs: [Company portal](23-company-portal/01-company-portal.md#rules).
-- [ ] `feat(portal): show company statements` — read-only invoices, payments and statement PDF. Docs: [Company portal](23-company-portal/01-company-portal.md#pages).
+- [ ] `feat(portal): let company users book and manage stays` — `portal_access`, `reservations.cancellation_requested_by`, booking checks, the auto-add charge items added by the server (see [Add-ons](12-reservations/04-add-ons.md#added-automatically)), cancel and request. Docs: [Company portal](23-company-portal/01-company-portal.md#rules).
+- [ ] `feat(portal): show company statements and details` — read-only invoices, payments and statement PDF; the Company page with `UpdatePortalCompanyDetails` and the "Only we manage our tax and billing details" tick. Docs: [Company portal](23-company-portal/01-company-portal.md#pages), [Company details](23-company-portal/01-company-portal.md#company-details).
 
 ## Next
 
@@ -228,6 +228,7 @@ Planned after print customer documents (done). Plan first, with the official MyI
 ### Registration and platform
 
 - [ ] `feat(registration): sign the card remotely` — `SendRegistrationCardLink`, signed `/g` routes on the step 1b guest screen, ID upload, a QR code of the link on the staff page (the QR package is chosen and approved at this step). Docs: [Signing flow](16-registration/04-signing-flow.md).
+- [ ] `feat(admin): deactivate a company user login` — a platform admin deactivates or reactivates a company user's login; properties only clear their portal login email. Needs: add the company portal login. Docs: [Company portal](23-company-portal/01-company-portal.md#rules).
 - [ ] Parked: `feat(registration): pair a signing tablet` — pairing code, Send to tablet, polling idle screen, per-property switch. Docs: [Signing tablet (parked)](16-registration/04-signing-flow.md#signing-tablet-parked).
 
 ### Translations and accessibility

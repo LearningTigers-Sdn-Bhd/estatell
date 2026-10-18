@@ -27,7 +27,7 @@ Every section and Review (go live) use the onboarding layout. Basics offers any 
 | 5   |          | Rooms: number ranges per room type, optional room groups. See [Rooms table](#rooms-table).                                                                      | Yes      | Room types         |
 | 6   | Finance  | Taxes, including which taxes apply to rooms (room revenue). See [Taxes table](#taxes-table).                                                                    | Yes      | Basics             |
 | 7   |          | Payment methods: turn seeded methods on or off, add more. See [Payment methods table](#payment-methods-table).                                                  | Yes      | Basics             |
-| 8   |          | Companies: city ledger companies and their portal users. See [Companies table](#companies-table).                                                               | No       | Basics             |
+| 8   |          | Companies: city ledger companies and their portal logins. See [Companies table](#companies-table).                                                              | No       | Basics             |
 | 9   | Prices   | Basic rate: weekday and weekend price per room-sold room type, priced by room or by guest, plus optional more rates. See [Basic rate table](#basic-rate-table). | Yes      | Room types + Taxes |
 | 10  |          | Charge items: starter items and extras with price, unit and taxes. See [Charge items table](#charge-items-table).                                               | No       | Taxes              |
 | 11  |          | Discounts: the starter discount and more, with type, value and what they apply to. See [Discounts table](#discounts-table).                                     | No       | Basics             |
@@ -304,9 +304,7 @@ Setup started (another section is no longer Not started):
  ├──────────────────────┼──────────────┼───────────────────────┼────────┼──────────────┼───────┼────┤
  │[ Petronas Carigali ] │[Corporate  ▾]│[ travel@petronas.my ] │  [x]   │ RM[20000.00] │ [30]  │ ⌃  │
  │   BRN [ 201901234567 ]  TIN [ C2584563200 ]  SST no. [ W10-… ]  Phone [ +60 88 … ]     │    │
- │   Portal users                                                                         │    │
- │   [ Aina Rahman     ] [ aina@petronas.my     ]  Ready after go-live                    │    │
- │   [ +Add portal user ]                                                                 │    │
+ │   Portal login [ booking@petronas.my ]  Cancel up to [ 7 ] days  Ready after go-live   │    │
  │[ Borneo Tours      ] │[Travel agt ▾]│[ ops@borneotours.my ] │  [x]   │ RM[        ] │ [14]  │ ⌄🗑│
  ├──────────────────────┴──────────────┴───────────────────────┴────────┴──────────────┴───────┴────┤
  │                                                             [Import from file]   [+ Add company] │
@@ -317,7 +315,7 @@ Setup started (another section is no longer Not started):
 
 - Optional. No rows to start: the empty state offers **Add company** and **Import from file** (the existing `BulkCreateCompanies` import and template).
 - Columns from `CompanyRules`: name, type (new rows Corporate), contact email, **Direct bill** (new rows ticked), credit limit (property currency, empty = no limit), terms days.
-- ⌄ row details: BRN, TIN, SST no., contact phone, and the portal users. The billing address stays on the company Details tab.
+- ⌄ row details: BRN, TIN, SST no., contact phone, and the portal login. The billing address stays on the company Details tab.
 - Before go-live a company can be removed while nothing refers to it (`DeleteOnboardingCompany`, `onboarding.companies.destroy`). 🗑 shows on every row. An unsaved row is removed in the browser. A saved row opens a confirm popover, and the server refuses with "{name} cannot be removed. Suspend it after you go live instead." when a reservation, folio, invoice or payment refers to the company (`CompanyReferences` tells the page which rows are blocked). A blocked row shows an info icon instead, with a tooltip that says so and that it can be suspended in Finance, under City ledger, after go-live. After go-live a company is never deleted: suspend it ([Companies](../15-city-ledger/01-companies.md)).
 - Saving a company with **Direct bill** turns on the City ledger payment method, with the toast "City ledger turned on in Payment methods".
 - Name is unique per property, ignoring case. Errors show per row.
@@ -326,12 +324,11 @@ Setup started (another section is no longer Not started):
 - The save is `SaveOnboardingCompanies`, called through `SaveCompaniesRequest` (`rows` with the fields above and the tax numbers, bounded by `CompanyRules`). It creates new rows through `CreateCompany` and updates saved rows through `UpdateCompany`. Saved companies without a row are left alone. A company that manages its own profile keeps its tax numbers. Saving at least one row removes a Skip; saving no rows is valid.
 - A suspended company shows in a read-only Suspended list under the table: it cannot be edited here, and its name still counts for the unique-name check.
 - **Import from file** reads the file on the server (`onboarding.companies.import`, through `CompanyImportReader`) and adds the rows to the table. Nothing is saved until the owner saves the table. **Template** downloads the Simple CSV or XLSX (`onboarding.companies.template`).
-- **Built without portal users.** Portal users need `company_users` and `CreateCompanyUserWithTemporaryPassword`, which come with [Company portal](../23-company-portal/01-company-portal.md). The block and the Review line below are added in that commit.
+- **Built without the portal login.** It needs `company_users` and `SetCompanyPortalLogin`, which come with [Company portal](../23-company-portal/01-company-portal.md). The block and the Review line below are added in that commit.
 
-**Portal users**
+**Portal login**
 
-- No email invitations in onboarding. Each portal user (name, email) is created with `CreateCompanyUserWithTemporaryPassword` and an Active link. Adding the first one sets the company's `portal_enabled`.
-- An email that already belongs to a company user follows the existing rule (Pending link, in-app).
+- One optional portal login email per company, plus the cancel days. Saving runs `SetCompanyPortalLogin`: a new email gets a temp password and an Active link; an email that already belongs to a company user gets a Pending link and an invitation (see [Portal login](../23-company-portal/01-company-portal.md#portal-login)).
 - Before go-live the row shows "Ready after go-live": no Copy, Reset or export. The temp password is replaced at go-live (see [Go live](03-go-live.md#action)), and the details are shared from the go-live screen.
 - The portal opens only when the property is Live (`portal` middleware). Owners hand out the sign-in details after go-live.
 - Review shows one info line: "{n} staff and {n} company users get their sign-in details when you go live."

@@ -184,8 +184,8 @@ One word per idea, in docs, code and UI.
 | Staff             | A property employee. Always exactly one property                                                         |                                            |
 | Company           | An organisation that books or pays later: a corporate, a travel agent or a government body. One property | agency, corporate account, agent (the org) |
 | Company type      | `Corporate`, `TravelAgent`, `Government`. A label only                                                   |                                            |
-| Company user      | A person who signs in for a company. One login can be linked to companies at several properties          | agent, agency user, portal user (in code)  |
-| Company link      | One `company_users` row: company user ↔ company, Pending, Active or Revoked                              |                                            |
+| Company user      | A company's portal login. One per company at a property; one login can be linked at several properties   | agent, agency user, portal user (in code)  |
+| Company link      | One `company_users` row: company user ↔ company at one property, Pending, Active or Revoked              |                                            |
 | Company portal    | The pages for company users, at `/portal`                                                                | agent portal                               |
 | Company reference | The company's own voucher or file number (`reservations.external_reference`)                             | agent reference                            |
 | City ledger       | Money owed to the property by companies. UI name; tables keep `ar_*`                                     | receivables (in UI)                        |
