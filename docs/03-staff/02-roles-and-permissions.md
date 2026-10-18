@@ -80,6 +80,9 @@ roles    spatie columns + property_id (NOT NULL, FK) + default_role (nullable)
 | `housekeeping.view`                | Housekeeping board, print and export                                        | ✓     | ✓       | Front desk, Housekeeping          |
 | `housekeeping.update`              | Mark clean or dirty, assign, priority, DND, remark, raise Needs maintenance | ✓     | ✓       | Front desk, Housekeeping          |
 | `housekeeping.inspect`             | Mark a room Inspected                                                       | ✓     | ✓       | Front desk                        |
+| `guest-requests.view`              | Guest requests list, reservation Requests tab, board tag                    | ✓     | ✓       | Front desk, Housekeeping          |
+| `guest-requests.manage`            | Open, edit, assign, cancel and reopen guest requests                        | ✓     | ✓       | Front desk                        |
+| `guest-requests.resolve`           | Start and resolve guest requests                                            | ✓     | ✓       | Front desk, Housekeeping          |
 
 Later modules add rows here. Their module docs list their permissions.
 

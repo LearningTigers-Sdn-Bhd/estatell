@@ -6,25 +6,26 @@ Find a reservation and see everything about it on one page, with the same flow s
 
 ## Routes
 
-| URL                                                          | Name                                  | Page                                                      |
-| ------------------------------------------------------------ | ------------------------------------- | --------------------------------------------------------- |
-| `GET /p/{code}/reservations`                                 | `reservations.index`                  | `pages/reservations/index.tsx`                            |
-| `GET /p/{code}/reservations/{reservation}`                   | `reservations.show`                   | `pages/reservations/show.tsx`                             |
-| `GET /p/{code}/reservations/{reservation}/guests`            | `reservations.guests`                 | `pages/reservations/show.tsx`                             |
-| `GET /p/{code}/reservations/{reservation}/add-ons`           | `reservations.add-ons`                | `pages/reservations/show.tsx`                             |
-| `GET /p/{code}/reservations/{reservation}/folio`             | `reservations.folio`                  | `pages/reservations/show.tsx`                             |
-| `…/{reservation}/folios/{folio}/…` (six action routes)       | `reservations.folios.*`               | – (see [Folio page](../13-folio/05-folio-page.md#routes)) |
-| `GET /p/{code}/reservations/{reservation}/activity`          | `reservations.activity`               | `pages/reservations/show.tsx`                             |
-| `PUT /p/{code}/reservations/{reservation}/group`             | `reservations.group.update`           | – (`UpdateReservationGroup`)                              |
-| `PUT …/{reservation}/company`                                | `reservations.company.update`         | – (`UpdateReservationCompany`; also needs `company.view`) |
-| `POST …/{reservation}/units`                                 | `reservations.units.store`            | – (`AddUnit`)                                             |
-| `POST …/{reservation}/units/{unit}/guests`                   | `reservations.units.guests.store`     | – (`AddGuestToUnit`, then `AttachGuest`)                  |
-| `PUT …/{reservation}/units/{unit}/guests/{guestId}`          | `reservations.units.guests.update`    | `guests.manage` (`UpdateGuest`)                           |
-| `POST …/{reservation}/units/{unit}/guests/{guestId}/replace` | `reservations.units.guests.replace`   | – (`ReplaceUnitGuest`)                                    |
-| `DELETE …/{reservation}/units/{unit}/guests/{guestId}`       | `reservations.units.guests.destroy`   | – (`DetachGuest`)                                         |
-| `POST …/{reservation}/units/{unit}/add-ons`                  | `reservations.units.add-ons.store`    | – (`AddUnitAddOn`)                                        |
-| `DELETE …/{reservation}/units/{unit}/add-ons/{addOn}`        | `reservations.units.add-ons.destroy`  | – (`RemoveUnitAddOn`)                                     |
-| `GET /p/{code}/guests/search`                                | `guests.search` (JSON, `guests.view`) | –                                                         |
+| URL                                                          | Name                                  | Page                                                        |
+| ------------------------------------------------------------ | ------------------------------------- | ----------------------------------------------------------- |
+| `GET /p/{code}/reservations`                                 | `reservations.index`                  | `pages/reservations/index.tsx`                              |
+| `GET /p/{code}/reservations/{reservation}`                   | `reservations.show`                   | `pages/reservations/show.tsx`                               |
+| `GET /p/{code}/reservations/{reservation}/guests`            | `reservations.guests`                 | `pages/reservations/show.tsx`                               |
+| `GET /p/{code}/reservations/{reservation}/add-ons`           | `reservations.add-ons`                | `pages/reservations/show.tsx`                               |
+| `GET /p/{code}/reservations/{reservation}/folio`             | `reservations.folio`                  | `pages/reservations/show.tsx`                               |
+| `…/{reservation}/folios/{folio}/…` (six action routes)       | `reservations.folios.*`               | – (see [Folio page](../13-folio/05-folio-page.md#routes))   |
+| `GET /p/{code}/reservations/{reservation}/activity`          | `reservations.activity`               | `pages/reservations/show.tsx`                               |
+| `GET /p/{code}/reservations/{reservation}/requests`          | `reservations.requests`               | `pages/reservations/show.tsx` (needs `guest-requests.view`) |
+| `PUT /p/{code}/reservations/{reservation}/group`             | `reservations.group.update`           | – (`UpdateReservationGroup`)                                |
+| `PUT …/{reservation}/company`                                | `reservations.company.update`         | – (`UpdateReservationCompany`; also needs `company.view`)   |
+| `POST …/{reservation}/units`                                 | `reservations.units.store`            | – (`AddUnit`)                                               |
+| `POST …/{reservation}/units/{unit}/guests`                   | `reservations.units.guests.store`     | – (`AddGuestToUnit`, then `AttachGuest`)                    |
+| `PUT …/{reservation}/units/{unit}/guests/{guestId}`          | `reservations.units.guests.update`    | `guests.manage` (`UpdateGuest`)                             |
+| `POST …/{reservation}/units/{unit}/guests/{guestId}/replace` | `reservations.units.guests.replace`   | – (`ReplaceUnitGuest`)                                      |
+| `DELETE …/{reservation}/units/{unit}/guests/{guestId}`       | `reservations.units.guests.destroy`   | – (`DetachGuest`)                                           |
+| `POST …/{reservation}/units/{unit}/add-ons`                  | `reservations.units.add-ons.store`    | – (`AddUnitAddOn`)                                          |
+| `DELETE …/{reservation}/units/{unit}/add-ons/{addOn}`        | `reservations.units.add-ons.destroy`  | – (`RemoveUnitAddOn`)                                       |
+| `GET /p/{code}/guests/search`                                | `guests.search` (JSON, `guests.view`) | –                                                           |
 
 Routes live in `routes/reservations.php` with `scopeBindings()`, so another property's reservation, unit or add-on returns 404. Pages are guarded with `can:` middleware, like the guests routes (no Policy classes). The tabs share one controller with a private `renderTab()`, like `GuestController`. The server sends only the open tab's data. The selected unit is `?unit={id}`, so a refresh keeps it.
 
@@ -182,14 +183,14 @@ Built: `reservations.index` with the status tabs, search, source and stay filter
 
 A fixed-height workspace (see [Detail workspace](../design-system/04-page-archetypes.md)), not `DetailLayout`. The page fills the shell height and never scrolls as a whole. Row 1 is the header, row 2 the link tabs, row 3 up to three panels. Each panel is a rounded, bordered card with small padding and its own scroll.
 
-| Tab               | Panel 1 (14rem)               | Panel 2 (rest)                | Panel 3 (20rem) |
-| ----------------- | ----------------------------- | ----------------------------- | --------------- |
-| Units             | Choose unit list              | Open unit and night table     | Summary card    |
-| Folio             | Folio rail                    | Folio table and actions       | Summary card    |
-| Guests            | Unit rail (Grouped, 2+ units) | Guest table                   | Summary card    |
-| Add-ons, Activity | – (two panels instead)        | Tab content, full panel width | Summary card    |
+| Tab                         | Panel 1 (14rem)               | Panel 2 (rest)                | Panel 3 (20rem) |
+| --------------------------- | ----------------------------- | ----------------------------- | --------------- |
+| Units                       | Choose unit list              | Open unit and night table     | Summary card    |
+| Folio                       | Folio rail                    | Folio table and actions       | Summary card    |
+| Guests                      | Unit rail (Grouped, 2+ units) | Guest table                   | Summary card    |
+| Add-ons, Requests, Activity | – (two panels instead)        | Tab content, full panel width | Summary card    |
 
-The Units list is hidden for one unit, and the Folio rail for one folio, so those tabs also show two panels. On the Folio and Guests tabs an icon button hides the summary card, and the panel takes its width (see [Folio page](../13-folio/05-folio-page.md#layout) and [Guests tab](#guests-tab)). The Units, Add-ons and Activity tabs always show the summary. Below `lg` the panels stack in one scrolling column, with the summary card first, and the unit list becomes a select.
+The Units list is hidden for one unit, and the Folio rail for one folio, so those tabs also show two panels. On the Folio and Guests tabs an icon button hides the summary card, and the panel takes its width (see [Folio page](../13-folio/05-folio-page.md#layout) and [Guests tab](#guests-tab)). The Units, Add-ons, Requests and Activity tabs always show the summary. Below `lg` the panels stack in one scrolling column, with the summary card first, and the unit list becomes a select.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────────┐
@@ -377,6 +378,20 @@ An add-on on a Cancelled, NoShow or CheckedOut unit never posts, so it shows no 
 ### Activity tab
 
 A title row (Activity), then a timeline grouped by day (`ActivityTab`): a muted day header, and under it one entry per row with a dot on a thin line, the text, the time on the right, and who did it under the text. An override reason shows as a muted line under the text. Grouping is display only, on the loaded page. Each entry has an icon in a small circle on the line, chosen from the entry's `kind` (the log `event`, for example `reservation.unit_added`) by a fixed map in the page: created, unit, room or bed, guest, add-on, group, payment, folio. An unknown or missing `kind` gets a neutral dot. The reservation's activity log entries (`spatie/laravel-activitylog`), newest first, paginated by 25: creation, units added, overrides with their reasons, group edits, guests attached, add-ons added and removed. Status changes appear when the [front desk](../18-front-desk/01-check-in-and-check-out.md) Actions log them; `SyncReservationStatus` does not log.
+
+### Requests tab
+
+**Status: planned.** The guest requests of the reservation's units, from [Guest requests](../25-guest-requests/01-guest-requests.md). The tab shows for staff with `guest-requests.view`, before Activity, with the Open and InProgress count on the tab.
+
+A title row (Requests, with **+ New request** on the right for `guest-requests.manage`) above one rounded, bordered table, newest first: opened, unit and room, type, details, status. A Resolved row shows its time ("Resolved · 1 h 05 min"). The status badge and the row Sheet work as on the list page. **+ New request** opens the shared Sheet with the open unit filled in. With no requests the table shows its header and "No requests for this reservation."
+
+```
+[Units] [Guests] [Add-ons] [Requests 1] [Activity]               │ Summary card
+ Requests                                        [ + New request ] │
+ Opened         Unit / room   Type          Details       Status   │
+ 14 Oct 09:15   204           Housekeeping  Extra towels  ● Open   │
+ 13 Oct 21:40   204           Complaint     Aircon noisy  ● Resolved · 1 h 05 min
+```
 
 ### Summary card
 

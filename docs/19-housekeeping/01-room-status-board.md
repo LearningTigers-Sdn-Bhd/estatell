@@ -90,6 +90,16 @@ An open `room_blocks` row that covers the business date makes the room **Blocked
 - The row ⋯ menu has **Block room** for a user with `rooms.block`. It opens the Room blocks sheet and calls `CreateRoomBlock`. Ending a block stays on the Room blocks page.
 - Blocked rows have no tick box, and the bulk bar skips them.
 
+## Guest requests on the board
+
+**Status: planned** (phase 1b of [Guest requests](../25-guest-requests/01-guest-requests.md#phases)).
+
+- A room with Open or InProgress **Housekeeping** or **Maintenance** requests shows a 🛎 tag with the count in the Flags cell, for staff with `guest-requests.view`. It prints as `Req 2`. Complaints and Other do not show on the board.
+- The tag opens a popover: each request's type, details, age and assignee, with **Start** and **Resolve** for `guest-requests.resolve`. Resolve asks for the optional note in the popover.
+- The row ⋯ menu has **New request** for `guest-requests.manage`. It opens the shared Sheet with the room and its stay filled in.
+- `HousekeepingBoardBuilder` reads the counts from `OpenGuestRequestCounts`. It never reads the guest requests model.
+- A request does not change the room status, and the Needs maintenance flag stays separate: housekeeping raises the flag for a fault no guest reported.
+
 ## Views, filters and order
 
 | Part    | Behavior                                                                                                                                                                                                                                                                                                                 |
@@ -179,6 +189,6 @@ View: ( All ) ( Grouped by room group ) ( Grouped by room type )   Status v  Ass
 
 ## Out of scope
 
-- Guest housekeeping requests and complaint workflows from wastays.
+- Complaints and the request list. They live in [Guest requests](../25-guest-requests/01-guest-requests.md); the board only shows the tag below.
 - A room checklist, with digital ticks or printed boxes, and a gate on Inspected.
 - A corridor mobile app, and per-user column layouts.

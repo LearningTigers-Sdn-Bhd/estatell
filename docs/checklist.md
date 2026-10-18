@@ -191,6 +191,17 @@ Needs the Channex staging checks in [Staging verification](21-channels/06-stagin
 - [ ] `feat(channels): ingest channel bookings` — Docs: [Booking ingestion](21-channels/05-booking-ingestion.md).
 - [ ] `feat(reports): add booking performance` — from wastays: bookings and revenue by source, room type and period. Needs: ingest channel bookings. Docs: [Core reports](22-reports/01-core-reports.md).
 
+### 25 Guest requests
+
+Build in this order. Docs: [Guest requests](25-guest-requests/01-guest-requests.md).
+
+- [ ] `feat(guest-requests): add guest requests and their actions` — the `guest_requests` table, `GuestRequestType`, `GuestRequestSource`, `GuestRequestStatus`, `GuestRequestRefusal`, the seven Actions, `OpenGuestRequestCounts`, `GuestRequestMetrics`, and the three `guest-requests.*` permissions with a syncing migration. Docs: [Guest requests](25-guest-requests/01-guest-requests.md).
+- [ ] `feat(guest-requests): add the requests list page` — the routes, `GuestRequestListBuilder`, the list table with the status badge moves, the row Sheet, the New request Sheet and the Requests sidebar item. Needs: guest requests and their actions. Docs: [List page](25-guest-requests/01-guest-requests.md#list-page).
+- [ ] `feat(reservations): add the Requests tab` — `reservations.requests` with the shared Sheet. Needs: the requests list page. Docs: [Requests tab](12-reservations/06-reservation-page.md#requests-tab).
+- [ ] `feat(front-desk): show open requests in the dashboard to do` — the Requests row from `OpenGuestRequestCounts`; add the row to the dashboard doc. Needs: the requests list page. Docs: [Dashboard To do row](25-guest-requests/01-guest-requests.md#dashboard-to-do-row).
+- [ ] `feat(dashboard): add the request resolution time tiles` — Complaint Resolution Time and Housekeeping Request Fulfillment Time on the Performance tab, from `GuestRequestMetrics`. Needs: guest requests and their actions, and the Performance tab. Docs: [KPIs](25-guest-requests/01-guest-requests.md#kpis).
+- [ ] `feat(housekeeping): show guest requests on the board` — the 🛎 tag, popover and row menu **New request** (phase 1b). Needs: the requests list page. Docs: [Room status board](19-housekeeping/01-room-status-board.md#guest-requests-on-the-board).
+
 ### Demo
 
 - [ ] `feat(platform): seed 14 days of demo history` — `DemoSeeder` opens the business date 14 days ago and runs a forced `RunNightAudit` each day, for overdue AR invoices and real report numbers. To verify first: how long the reset takes. Needs: the demo environment. Docs: [Demo properties](01-platform/06-demo-properties.md#data).

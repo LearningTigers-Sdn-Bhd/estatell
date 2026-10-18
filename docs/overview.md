@@ -14,6 +14,7 @@ It covers the PMS core:
 - Guest CRM and registration cards.
 - Folios, payments, taxes and city ledger (accounts receivable).
 - Front desk, housekeeping status and night audit.
+- Guest requests during a stay: housekeeping, maintenance and complaints.
 - An optional channel manager (Channex) behind a feature flag.
 - Optional boat departures, fares, trips and manifest for island properties, behind a feature flag.
 
@@ -225,3 +226,4 @@ The build plan, as one commit per item, is in [checklist.md](checklist.md).
 | 22  | [Reports](22-reports/)               | Core reports, column layouts, row export (PDF, CSV, Excel)                        |
 | 23  | [Company portal](23-company-portal/) | Company users book and view their own stays across linked properties              |
 | 24  | [Boats](24-boats/)                   | Boat departures, fares, trips per room and the boat manifest (feature flag)       |
+| 25  | [Guest requests](25-guest-requests/) | Housekeeping, maintenance and complaint requests, and their resolution times      |
