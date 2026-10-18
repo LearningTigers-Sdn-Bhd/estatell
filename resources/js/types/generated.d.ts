@@ -2259,12 +2259,29 @@ icon: App.Enums.BookingSourceIcon | null,
 letters: string | null,
 color: App.Enums.SwatchColor,
 };
+export type BookingSourceChannelOptionData = {
+id: number,
+code: string,
+name: string,
+isOther: boolean,
+defaultColor: App.Enums.SwatchColor,
+};
 export type BookingSourceOptionData = {
 id: number,
 name: string,
 type: App.Enums.BookingSourceType,
 typeLabel: string,
 isActive: boolean,
+};
+export type BookingSourceRowData = {
+id: number,
+badge: App.Data.Reservations.BookingSourceBadgeData,
+typeLabel: string,
+otaChannelId: number | null,
+otaChannelName: string | null,
+isSystem: boolean,
+isActive: boolean,
+usedCount: number,
 };
 export type CancelAllPreviewData = {
 rows: {

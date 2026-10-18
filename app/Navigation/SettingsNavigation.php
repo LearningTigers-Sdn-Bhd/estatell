@@ -47,6 +47,12 @@ class SettingsNavigation
                     icon: 'waypoints',
                     active: request()->routeIs('settings.ota-lists.*'),
                 ) : null,
+                $user->can(PermissionEnum::SettingsManage->value) ? new NavItemData(
+                    title: __('Booking sources'),
+                    href: route('settings.booking-sources.index', ['property' => $property->code], absolute: false),
+                    icon: 'ticket',
+                    active: request()->routeIs('settings.booking-sources.*'),
+                ) : null,
                 $user->can(PermissionEnum::SettingsManage->value) && Feature::for($property)->active(Boats::class) ? new NavItemData(
                     title: __('Boats'),
                     href: route('settings.boats', ['property' => $property->code], absolute: false),

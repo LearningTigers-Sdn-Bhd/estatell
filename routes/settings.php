@@ -21,6 +21,7 @@ use App\Http\Controllers\Property\PropertySettingsController;
 use App\Http\Controllers\Rates\RatePlanController;
 use App\Http\Controllers\Registration\RegistrationCardController;
 use App\Http\Controllers\Registration\RegistrationTermsController;
+use App\Http\Controllers\Reservations\BookingSourceController;
 use App\Http\Controllers\Rooms\BedController;
 use App\Http\Controllers\Rooms\RoomController;
 use App\Http\Controllers\Rooms\RoomGroupController;
@@ -175,6 +176,14 @@ Route::prefix('settings')->name('settings.')->group(function () {
     Route::prefix('ota-lists')->name('ota-lists.')->middleware('can:'.PermissionEnum::SettingsOtaLists->value)->group(function () {
         Route::get('/', [OtaListSettingsController::class, 'edit'])->name('edit');
         Route::put('/', [OtaListSettingsController::class, 'update'])->name('update');
+    });
+
+    Route::prefix('booking-sources')->name('booking-sources.')->middleware('can:'.PermissionEnum::SettingsManage->value)->scopeBindings()->group(function () {
+        Route::get('/', [BookingSourceController::class, 'index'])->name('index');
+        Route::post('/', [BookingSourceController::class, 'store'])->name('store');
+        Route::put('order', [BookingSourceController::class, 'reorder'])->name('reorder');
+        Route::put('{bookingSource}', [BookingSourceController::class, 'update'])->name('update');
+        Route::delete('{bookingSource}', [BookingSourceController::class, 'destroy'])->name('destroy');
     });
 
     Route::prefix('discounts')->name('discounts.')->middleware('can:'.PermissionEnum::SettingsManage->value)->scopeBindings()->group(function () {

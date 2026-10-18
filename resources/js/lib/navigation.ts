@@ -25,6 +25,7 @@ import {
     Ship,
     Shield,
     Tag,
+    Ticket,
     Users,
     User,
     Utensils,
@@ -66,6 +67,7 @@ const icons: Record<string, LucideIcon> = {
     user: User,
     palette: Palette,
     tag: Tag,
+    ticket: Ticket,
     'spray-can': SprayCan,
 };
 

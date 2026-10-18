@@ -72,7 +72,7 @@ test('the Boats routes return 404 and the settings item is hidden while the feat
 
     $this->actingAs($owner)
         ->get(route('settings.meal-periods', $property->code))
-        ->assertInertia(fn (Assert $page) => $page->missing('navigation.contexts.3.groups.0.items.3'));
+        ->assertInertia(fn (Assert $page) => $page->missing('navigation.contexts.3.groups.0.items.5'));
 
     boatDepartureEnable($property);
 
@@ -81,8 +81,8 @@ test('the Boats routes return 404 and the settings item is hidden while the feat
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('settings/boats/departures')
-            ->where('navigation.contexts.3.groups.0.items.3.title', 'Boats')
-            ->where('navigation.contexts.3.groups.0.items.3.active', true));
+            ->where('navigation.contexts.3.groups.0.items.5.title', 'Boats')
+            ->where('navigation.contexts.3.groups.0.items.5.active', true));
 });
 
 test('the Boats settings item opens the departures', function () {
