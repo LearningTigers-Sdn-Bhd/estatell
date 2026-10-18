@@ -46,8 +46,7 @@ company_users      id, property_id, company_id, user_id, status (CompanyUserStat
                    CHECK status = Revoked → revoked_at IS NOT NULL
 companies          - portal_enabled (dropped: the portal is on while an Active link exists)
                    portal_cancel_cutoff_days (int, nullable) stays
-reservations       + cancellation_requested_by (nullable, users)
-                   cancellation_requested_at is built
+reservations       cancellation_requested_at, cancellation_requested_by are built
 rate_plans         + portal_access (PortalAccess), default Hidden
 ```
 
@@ -108,17 +107,74 @@ Portal
 - The `portal` middleware lets a user in when they are a company user, have an Active link at the property in the URL, and the property is Live. Anything else returns 404.
 - A Suspended company can still view its bookings and statements. It cannot book or cancel.
 - Company users never get staff roles.
-- A company user sees plans with `portal_access` All, and Selected plans linked to their company. A Selected plan needs at least one linked company.
-- A portal booking is refused, with no override, when:
-    - The rooms are not available.
-    - A restriction fails (see [Daily rates and restrictions](../08-rates/02-daily-rates-and-restrictions.md)).
-    - A child age is missing.
-    - A room's `max_children` is exceeded.
-    - The company's credit limit would be exceeded (see [Credit control](../15-city-ledger/04-credit-control-and-reports.md)).
-    - A room has no guest name.
-- A new portal booking has the **Company / Travel agent** [booking source](../12-reservations/11-booking-sources.md) (the same row staff use for company bookings), `company_id` set, `created_by` the company user, and the company as folio payer. Its status is Confirmed.
-- Cancel: before `arrival_date - portal_cancel_cutoff_days`, the company user cancels. After it, or when the cut-off is empty, they can only request. A request sets `cancellation_requested_at` and `cancellation_requested_by` and notifies the property. Staff decide on any charge in the [Cancel reservation](../18-front-desk/01-check-in-and-check-out.md#cancel-reservation) Dialog, which shows the request and resolves it.
-- A company user sees only reservations of the company linked at that property.
+- A company user sees active nightly plans with `portal_access` All, and Selected plans linked to their company. Day use is never offered. Selected is only for derived plans (the only plans with company links) and needs at least one linked company.
+- A company user sees only reservations of the company linked at that property. Another company's or property's booking or document returns 404.
+
+### Booking
+
+```
+/portal/{code}/book
+ Dates      [21 Oct] → [23 Oct]  2 nights
+ Rooms      Line 1  Deluxe King   Adults [2] Children [1] Age [6 ▾]
+            Line 2  Dorm (mixed)  Beds [8]  Adults [8]
+            [+ Add line]                                   (up to 20)
+ Offers     Deluxe King · Borneo Travel Contract   RM 560   ✓
+            Dorm · Basic                           —        Closed to arrival 21 Oct
+ Guests     Line 1  [ e.g. Tan Wei Ming ]  [ e.g. +60 12 345 6789 ]
+ Group name [ e.g. Tour BT-118 ]       Your reference [ e.g. BT-2026-118 ]
+ Confirm    Total RM 1,280 incl. auto-added items
+            Billed to Borneo Travel · Free cancellation until 14 Oct
+                                                    [Confirm booking]
+```
+
+- Up to 20 lines, the same limit as the staff form. A dorm line takes 1–99 beds. A booking with 2 or more lines is a [group](../12-reservations/02-group-bookings.md), with an optional group name (empty shows the booker's name).
+- Prices come from the same quote service as the staff [booking form](../12-reservations/05-booking-form.md). A blocked offer shows its reason instead of being hidden.
+- Each child needs an age, 0 to 17.
+- Guests are always new guest records. The portal never searches existing guests. The first line's guest is the booker.
+- The total is checked again at Confirm. When it changed: "The price changed. Search again."
+- Auto-add charge items are added by the server, shown at Confirm, and cannot be removed (see [Add-ons](../12-reservations/04-add-ons.md#added-automatically)).
+- A new portal booking has the **Company / Travel agent** [booking source](../12-reservations/11-booking-sources.md) (the same row staff use for company bookings), `company_id` set, billing mode MasterPays with the company as folio payer, `created_by` the company user, and the company's reference in `external_reference`. Its status is Confirmed.
+- A portal booking is refused, with no override, and writes nothing:
+
+| Case                                           | Message                                                                                                                                                       |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Suspended company                              | "Your company can't book at this property right now. Contact the property."                                                                                   |
+| Rooms not available                            | "Not available on {date}."                                                                                                                                    |
+| Restriction fails                              | The restriction text, e.g. "Min stay 2 nights" (see [Daily rates and restrictions](../08-rates/02-daily-rates-and-restrictions.md))                           |
+| Child age missing, too many children or adults | Shown on the line                                                                                                                                             |
+| A line has no guest name                       | "Enter a guest name for each room."                                                                                                                           |
+| Credit limit exceeded                          | "This booking would take the company over its credit limit. Contact the property." (see [Credit control](../15-city-ledger/04-credit-control-and-reports.md)) |
+| Plan not visible to the company                | "This rate is not available. Search again."                                                                                                                   |
+| Price changed                                  | "The price changed. Search again."                                                                                                                            |
+| Any other refusal                              | "This booking cannot be made. Contact the property." The code is logged, never shown.                                                                         |
+
+### Bookings
+
+```
+/portal/{code}/bookings           [ Search our ref or yours ]
+ SBR-1042  BT-2026-118  Tour BT-118  21–23 Oct  9 rooms  RM 1,280  Confirmed
+ SBR-1051  BT-2026-120  Tan Wei Ming 24–25 Oct  1 room   RM 280    Cancel requested
+```
+
+- 20 per page. Search by our reference or the company's reference.
+- Detail: rooms, plans, guests, add-ons, total and references. No folio internals and no staff notes.
+- **Edit guests:** names, phone and ID of the booking's own guests, until check-in and not after the arrival date. Dates, rooms, plans and prices cannot change.
+- **Cancel:** whole reservation only. On or before `arrival_date - portal_cancel_cutoff_days` (the page shows the date), the company user cancels with no charge. After it, or when the cut-off is empty, they can only request, once. A request sets `cancellation_requested_at` and `cancellation_requested_by` and notifies the property. Staff decide on any charge in the [Cancel reservation](../18-front-desk/01-check-in-and-check-out.md#cancel-reservation) Dialog, which shows the request and resolves it. Changes to some rooms go through the property.
+- A Suspended company sees its bookings. Book, Edit guests, Cancel and Request are refused and their buttons are hidden.
+
+### Statements
+
+```
+/portal/{code}/statements         From [1 Sep] To [19 Oct]   [Statement PDF]
+ Invoices   AR-0087  1 Oct  due 31 Oct  RM 1,200  Balance 0      Settled  [PDF]
+            AR-0091  9 Oct  due 8 Nov   RM 3,000  Balance 3,000  Open     [PDF]
+ Payments   RCP-0040  5 Oct  Bank transfer  BT-PAY-77  RM 1,200  [Receipt]
+```
+
+- Open and Settled AR invoices, non-void AR payments, the statement with aging, and the invoice, receipt and statement PDFs, from the staff city ledger services. The invoice PDF is the staff one, including payments made at the hotel.
+- Voided invoices and payments are hidden; their PDFs return 404. Allocations are not shown.
+- Every document is looked up through the linked company at the property in the URL, never by id alone.
+- The statement shows the true closing balance: a credit is negative. A Suspended company keeps full access.
 - Guest edits and cancellations go into the reservation's activity log with the company user as causer.
 - Only a platform admin can deactivate a company user's login (later work).
 
@@ -131,11 +187,11 @@ Portal
 | `DeclineCompanyLink`                | The user declines their own Pending link (sets Revoked). Marks the invitation notification read. Logs `company-user.link-declined`. The property can set the email again                                                                                                         |
 | `ResendCompanyLinkInvitation`       | Sends a new in-app and mail notification for a Pending link. Sets `last_sent_at`                                                                                                                                                                                                 |
 | `ResetCompanyUserTemporaryPassword` | A new temp password, within the reset rule above                                                                                                                                                                                                                                 |
-| `CreatePortalReservation`           | Runs the checks above, then the shared reservation Actions from module 12                                                                                                                                                                                                        |
-| `CancelPortalReservation`           | Cancels before the cut-off                                                                                                                                                                                                                                                       |
-| `RequestPortalCancellation`         | Sets the request columns and notifies the property                                                                                                                                                                                                                               |
-| `UpdatePortalReservationGuests`     | Edits guest names, phone and ID before arrival                                                                                                                                                                                                                                   |
-| `UpdatePortalCompanyDetails`        | Saves contact, tax numbers and billing address for the company of the property in the URL                                                                                                                                                                                        |
+| `CreatePortalReservation`           | Runs the [Booking](#booking) checks, then the shared booking Actions from module 12. Notifies `PortalBookingCreated` after commit                                                                                                                                                |
+| `CancelPortalReservation`           | Cancels the whole reservation on or before the cut-off, with no charge, through `CancelUnits`. Notifies `PortalBookingCancelled`                                                                                                                                                 |
+| `RequestPortalCancellation`         | After the cut-off: sets the request columns once and notifies `PortalCancellationRequested`                                                                                                                                                                                      |
+| `UpdatePortalReservationGuests`     | Edits the booking's guest names, phone and ID until check-in and not after the arrival date                                                                                                                                                                                      |
+| `UpdatePortalCompanyDetails`        | Saves the tick, contact, tax numbers and billing address for the company of the property in the URL. Logs `company.updated`                                                                                                                                                      |
 
 ## Pages
 
@@ -161,7 +217,7 @@ Portal
 ```
 
 - Sign-in always lands on `/portal`, even with one property.
-- **Open balance** is the company's unpaid invoices at that property, the same figure as its statement. Stays not yet invoiced are left out.
+- **Open balance** is the company's unpaid invoices at that property, never below 0. Stays not yet invoiced are left out. A credit shows only on the statement.
 - **Arrivals** counts Confirmed reservations arriving in the next 7 days from the property's business date.
 - An Active link at a property that is not Live shows greyed out with "Not open yet", or "Suspended", and no **Open**.
 - Invitations show for every property. estatell has no notification bell yet, so the list and the email are where an invitation is seen.
@@ -175,6 +231,8 @@ The company user keeps the company's contact, tax numbers and billing address up
 - Fields: the consent tick, contact email, contact phone, `brn`, `tin`, `sst_registration_number`, `billing_address_line1`, `billing_address_line2`, `billing_city`, `billing_state_code`, `billing_postal_code`, `billing_country_code`.
 - Each property has its own company row, so a change applies only to the property in the URL.
 - `UpdatePortalCompanyDetails` saves them and logs `company.updated` with the company user as causer.
+- The company can untick the box; hotel staff can then edit again. Staff never see the tick.
+- A Suspended company can still edit its details.
 
 ## Notifications
 

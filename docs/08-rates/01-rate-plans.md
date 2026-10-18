@@ -74,7 +74,7 @@ A plan with `pricing_basis = DayUse` sells a room for a number of hours on one d
 - `PackageUnit`: PerGuest, PerRoom. See [Package prices](../09-packages/02-package-prices.md).
 - `AgeBandPricing`: Free, Percent, Fixed.
 - `StayDiscountType`: Percent, Amount.
-- `PortalAccess`: Hidden, All, Selected. Selected uses `company_rate_plans`. See [Company portal](../23-company-portal/01-company-portal.md).
+- `PortalAccess`: Hidden, All, Selected. Selected uses `company_rate_plans`. See [Company portal](../23-company-portal/01-company-portal.md). Saving Selected with no linked company is refused ("Link at least one company first."), and so is removing the last company link of a Selected plan on the company's Rates tab ("This plan is Selected for the portal and needs a company.").
 
 ## Sell unit and pricing basis
 
@@ -164,14 +164,14 @@ A right-side Sheet with one short form, not a wizard: a name, how it is priced (
 
 A full page with tab links (one URL per tab): **Details · Room types · Pricing · Children · Discounts · Portal**. Background text goes in info tooltips, not paragraphs under each heading.
 
-| Tab        | Content                                                                                                                                |
-| ---------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Details    | Name, description (shown to guests and company users), extra guest charges, single supplement                                          |
-| Room types | A checkbox per room type. Room types of the other family are shown disabled, with the reason in a tooltip.                             |
-| Pricing    | Step 1: "Set prices directly" or "Follow another plan". Package plans show package prices instead, or follow a package with a percent. |
-| Children   | PerGuest plans and per-guest packages only. One row per age group: Free, Percent or Fixed.                                             |
-| Discounts  | Long-stay discounts and a price preview. "Add long-stay discount" sits in the table footer. Not for Package plans.                     |
-| Portal     | `portal_access`: Hidden, All or Selected                                                                                               |
+| Tab        | Content                                                                                                                                                                               |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Details    | Name, description (shown to guests and company users), extra guest charges, single supplement                                                                                         |
+| Room types | A checkbox per room type. Room types of the other family are shown disabled, with the reason in a tooltip.                                                                            |
+| Pricing    | Step 1: "Set prices directly" or "Follow another plan". Package plans show package prices instead, or follow a package with a percent.                                                |
+| Children   | PerGuest plans and per-guest packages only. One row per age group: Free, Percent or Fixed.                                                                                            |
+| Discounts  | Long-stay discounts and a price preview. "Add long-stay discount" sits in the table footer. Not for Package plans.                                                                    |
+| Portal     | `portal_access`: Hidden, All or Selected. Selected only on derived plans, with at least one linked company (listed read-only, linking on the company's Rates tab). Hidden for Day use |
 
 - The Pricing and Discounts tabs use the full panel width (`panelWidth="full"`), not the 80% of the other tabs. Pricing needs it for the By day view (7 columns). On Discounts, the rules table is full width. Under it, a 3-column grid holds the sample stay (column 1) and the price preview (columns 2–3). Save is in the form footer under the preview.
 - "Set prices directly" uses the shared [pricing form](02-daily-rates-and-restrictions.md#pricing-form). It writes `rates` rows and stores nothing on the plan.
