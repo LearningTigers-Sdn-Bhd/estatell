@@ -76,12 +76,14 @@ Room    Group
                                                             [Save]
 ```
 
-- One `SettingsSection` with `guardUnsavedChanges`. **Generate rooms** and **+ Add rooms** sit in the section header (the `actions` slot). On a phone they wrap below the description.
+- One `SettingsSection` with `guardUnsavedChanges`. **Generate rooms** and **+ Add rooms** sit in the section header (the `actions` slot, which can be a function of the form state so Generate rooms can follow `isDirty`). On a phone they wrap below the description.
 - Each active room of this type has a Group select: any group of the property, or Ungrouped.
 - **+ Add rooms** is a searchable list of active rooms in other types, shown as "305 · Standard Twin". A picked room joins the list marked "From Standard Twin", with **Undo**. Nothing moves until **Save**.
 - There is no Remove. A room always has a type, so it leaves this type only when it is added on another type's page.
 - **Generate rooms** opens `GenerateRoomsSheet` with this room type fixed and its select hidden. It is disabled while the form has unsaved changes, with the tooltip "Save or discard your changes first." Rooms are created without beds; **Generate beds** stays on Settings > Rooms.
 - An empty type shows "No rooms yet. Generate or add rooms." with no buttons of its own.
+
+The Action returns a refusal message for rules 2, 4, 5 and 6, and the page shows it as an error toast; the Form Request covers rule 1 only. Archive and Restore on the room type page return to the room types list.
 
 `PUT settings.room-types.rooms.update` sends `[{room_id, room_group_id}]` to `AssignRoomTypeRooms`. It saves all rows in one transaction, or none:
 

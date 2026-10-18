@@ -139,6 +139,6 @@ class RoomController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => trans_choice('{1} :count room created.|[2,*] :count rooms created.', $result['created'], ['count' => $result['created']])]);
 
-        return to_route('settings.rooms.index', $property);
+        return back();
     }
 }

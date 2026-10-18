@@ -3,17 +3,26 @@
 namespace App\Http\Controllers\Rooms;
 
 use App\Actions\Rooms\ArchiveRoomType;
+use App\Actions\Rooms\AssignRoomTypeRooms;
 use App\Actions\Rooms\CreateRoomType;
 use App\Actions\Rooms\ReorderRoomTypes;
 use App\Actions\Rooms\RestoreRoomType;
 use App\Actions\Rooms\UpdateRoomType;
+use App\Data\Rooms\RoomData;
+use App\Data\Rooms\RoomGroupData;
 use App\Data\Rooms\RoomTypeData;
+use App\Data\Rooms\RoomTypeRoomChoiceData;
+use App\Enums\PermissionEnum;
 use App\Enums\SellUnit;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Rooms\AssignRoomTypeRoomsRequest;
 use App\Http\Requests\Rooms\ReorderRoomTypesRequest;
 use App\Http\Requests\Rooms\RoomTypeRequest;
 use App\Models\Property;
+use App\Models\Room;
+use App\Models\RoomGroup;
 use App\Models\RoomType;
+use App\Services\Rooms\RoomNumberGenerator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -43,7 +52,55 @@ class RoomTypeController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __(':name created.', ['name' => $roomType->name])]);
 
-        return to_route('settings.room-types.index', $property);
+        return to_route('settings.room-types.edit', [$property, $roomType]);
+    }
+
+    /**
+     * The Details tab of the room type page. Each tab is its own URL and loads only its own data.
+     */
+    public function edit(Request $request, Property $property, RoomType $roomType): Response
+    {
+        return Inertia::render('settings/room-types/edit', [
+            'roomType' => RoomTypeData::fromModel($roomType),
+            'roomCount' => $this->roomCount($roomType),
+            'canManage' => $request->user()->can(PermissionEnum::RoomsManage->value),
+            'sellUnits' => SellUnit::options(),
+            'termsDocuments' => $this->termsDocumentOptions($property),
+        ]);
+    }
+
+    /**
+     * The Rooms tab: the active rooms of this type, the groups to put them in and the rooms of other types that can move in.
+     */
+    public function editRooms(Request $request, Property $property, RoomType $roomType): Response
+    {
+        return Inertia::render('settings/room-types/rooms', [
+            'roomType' => RoomTypeData::fromModel($roomType),
+            'roomCount' => $this->roomCount($roomType),
+            'canManage' => $request->user()->can(PermissionEnum::RoomsManage->value),
+            'rooms' => $roomType->rooms()->active()->ordered()->get()
+                ->map(fn (Room $room): RoomData => RoomData::fromModel($room)),
+            'otherRooms' => $property->rooms()->active()
+                ->where('room_type_id', '!=', $roomType->id)
+                ->with('roomType')
+                ->ordered()
+                ->get()
+                ->map(fn (Room $room): RoomTypeRoomChoiceData => RoomTypeRoomChoiceData::fromModel($room)),
+            'roomGroups' => $property->roomGroups()->ordered()->get()
+                ->map(fn (RoomGroup $group): RoomGroupData => RoomGroupData::fromModel($group)),
+            'generateLimit' => RoomNumberGenerator::MAX_ROOMS,
+        ]);
+    }
+
+    public function updateRooms(AssignRoomTypeRoomsRequest $request, Property $property, RoomType $roomType, AssignRoomTypeRooms $assignRooms): RedirectResponse
+    {
+        $refusal = $assignRooms($request->user(), $roomType, $request->rows());
+
+        Inertia::flash('toast', $refusal === null
+            ? ['type' => 'success', 'message' => __('Rooms saved.')]
+            : ['type' => 'error', 'message' => $refusal]);
+
+        return to_route('settings.room-types.rooms.edit', [$property, $roomType]);
     }
 
     public function update(RoomTypeRequest $request, Property $property, RoomType $roomType, UpdateRoomType $updateRoomType): RedirectResponse
@@ -52,7 +109,7 @@ class RoomTypeController extends Controller
             ? ['type' => 'success', 'message' => __(':name saved.', ['name' => $roomType->name])]
             : ['type' => 'error', 'message' => __(':name is archived. Restore it before editing.', ['name' => $roomType->name])]);
 
-        return to_route('settings.room-types.index', $property);
+        return to_route('settings.room-types.edit', [$property, $roomType]);
     }
 
     public function reorder(ReorderRoomTypesRequest $request, Property $property, ReorderRoomTypes $reorderRoomTypes): RedirectResponse
@@ -80,6 +137,14 @@ class RoomTypeController extends Controller
             : ['type' => 'error', 'message' => __(':name cannot be restored. Another room type uses the same name.', ['name' => $roomType->name])]);
 
         return to_route('settings.room-types.index', $property);
+    }
+
+    /**
+     * The number in the "Rooms (N)" tab label: active rooms of the room type.
+     */
+    private function roomCount(RoomType $roomType): int
+    {
+        return $roomType->rooms()->active()->count();
     }
 
     /**

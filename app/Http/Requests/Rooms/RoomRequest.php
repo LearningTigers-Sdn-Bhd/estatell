@@ -7,6 +7,7 @@ use App\Models\Property;
 use App\Models\Room;
 use App\Models\RoomGroup;
 use App\Models\RoomType;
+use App\Services\Rooms\RoomAssignedNights;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -79,6 +80,16 @@ class RoomRequest extends FormRequest
 
                     if ($losesBeds) {
                         $fail(__('This room has beds. Choose a room type that sells beds.'));
+
+                        return;
+                    }
+
+                    $firstNight = $current instanceof Room && ! $keepsType
+                        ? app(RoomAssignedNights::class)->firstDate($current)
+                        : null;
+
+                    if ($firstNight !== null) {
+                        $fail(__(':number has stays assigned from :date. Move them first.', ['number' => $current->number, 'date' => $firstNight->translatedFormat('j M')]));
                     }
                 },
             ],

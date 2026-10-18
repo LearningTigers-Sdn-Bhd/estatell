@@ -37,9 +37,12 @@ test('a range run creates rooms of one type in the chosen group', function () {
     $group = RoomGroup::factory()->for($property)->create();
     Room::factory()->for($property)->create(['position' => 7]);
 
+    $from = route('settings.room-types.rooms.edit', [$property->code, $type]);
+
     $this->actingAs($owner)
+        ->from($from)
         ->post(route('settings.rooms.generate', $property->code), ['mode' => 'range', 'room_type_id' => $type->id, 'room_group_id' => $group->id, 'from' => '101', 'to' => '103'])
-        ->assertRedirect(route('settings.rooms.index', $property->code))
+        ->assertRedirect($from)
         ->assertInertiaFlash('toast', ['type' => 'success', 'message' => '3 rooms created.']);
 
     $rooms = Room::query()->whereIn('number', ['101', '102', '103'])->orderBy('position')->get();

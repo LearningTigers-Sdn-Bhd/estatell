@@ -2960,6 +2960,12 @@ petsAllowed: boolean,
 termsDocumentId: number | null,
 archived: boolean,
 };
+export type RoomTypeRoomChoiceData = {
+id: number,
+number: string,
+roomGroupId: number | null,
+roomTypeName: string,
+};
 }
 namespace Shared {
 export type BadgeData = {
@@ -3121,6 +3127,7 @@ export type ReportDatePreset = 'today' | 'yesterday' | 'tomorrow' | 'next-7-days
 export type ReportGroup = 'day' | 'month' | 'method' | 'staff';
 export type ReportKey = 'arrivals' | 'departures' | 'in-house' | 'occupancy' | 'revenue' | 'payments' | 'folio-ledger' | 'tax' | 'meal-counts' | 'night-audit-history' | 'outstanding-balance' | 'deposit-liability' | 'non-national-guests' | 'police-report' | 'housekeeping-tasks' | 'boat-manifest';
 export type ReservationRoomBoxState = 'assigned' | 'unassigned' | 'auto_assign' | 'cancelled' | 'no_show';
+export type ReservationSource = 'direct' | 'walk_in' | 'phone' | 'channel' | 'portal';
 export type ReservationStatus = 'confirmed' | 'in_house' | 'completed' | 'cancelled';
 export type RoomBlockReason = 'maintenance' | 'owner_use' | 'out_of_order' | 'other';
 export type RoutingRuleSource = 'billing_mode' | 'manual';

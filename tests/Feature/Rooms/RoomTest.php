@@ -1,10 +1,12 @@
 <?php
 
 use App\Enums\DefaultRoleEnum;
+use App\Models\BusinessDate;
 use App\Models\Property;
 use App\Models\Room;
 use App\Models\RoomGroup;
 use App\Models\RoomType;
+use App\Models\UnitNight;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -236,4 +238,27 @@ test('another property\'s rooms and groups are not reachable', function () {
     $this->get(route('settings.rooms.index', $other->code))->assertNotFound();
 
     expect($room->refresh()->archived_at)->toBeNull()->and(RoomGroup::query()->whereKey($group->id)->exists())->toBeTrue();
+});
+
+test('a room with stays from the business date cannot change type', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    BusinessDate::factory()->create(['property_id' => $property->id, 'date' => '2026-10-14']);
+    $type = RoomType::factory()->for($property)->create();
+    $newType = RoomType::factory()->for($property)->create();
+    $room = Room::factory()->for($property)->create(['room_type_id' => $type->id, 'number' => '305']);
+    $night = UnitNight::factory()->create(['room_id' => $room->id, 'date' => '2026-10-20']);
+    $url = route('settings.rooms.update', [$property->code, $room]);
+
+    $this->actingAs($owner)
+        ->put($url, ['number' => '305', 'room_type_id' => $newType->id])
+        ->assertSessionHasErrors(['room_type_id' => '305 has stays assigned from 20 Oct. Move them first.']);
+
+    $this->put($url, ['number' => '306', 'room_type_id' => $type->id])->assertSessionHasNoErrors();
+
+    $night->delete();
+    UnitNight::factory()->create(['room_id' => $room->id, 'date' => '2026-10-13']);
+
+    $this->put($url, ['number' => '306', 'room_type_id' => $newType->id])->assertSessionHasNoErrors();
+    expect($room->refresh()->room_type_id)->toBe($newType->id);
 });

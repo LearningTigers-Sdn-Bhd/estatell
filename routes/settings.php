@@ -87,10 +87,16 @@ Route::prefix('settings')->name('settings.')->group(function () {
     Route::prefix('room-types')->name('room-types.')->group(function () {
         Route::get('/', [RoomTypeController::class, 'index'])->middleware('can:'.PermissionEnum::RoomsView->value)->name('index');
 
+        Route::middleware('can:'.PermissionEnum::RoomsView->value)->scopeBindings()->group(function () {
+            Route::get('{roomType}', [RoomTypeController::class, 'edit'])->name('edit');
+            Route::get('{roomType}/rooms', [RoomTypeController::class, 'editRooms'])->name('rooms.edit');
+        });
+
         Route::middleware('can:'.PermissionEnum::RoomsManage->value)->scopeBindings()->group(function () {
             Route::post('/', [RoomTypeController::class, 'store'])->name('store');
             Route::put('order', [RoomTypeController::class, 'reorder'])->name('reorder');
             Route::put('{roomType}', [RoomTypeController::class, 'update'])->name('update');
+            Route::put('{roomType}/rooms', [RoomTypeController::class, 'updateRooms'])->name('rooms.update');
             Route::post('{roomType}/archive', [RoomTypeController::class, 'archive'])->name('archive');
             Route::post('{roomType}/restore', [RoomTypeController::class, 'restore'])->name('restore');
         });
