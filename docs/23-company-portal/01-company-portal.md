@@ -56,7 +56,7 @@ reservations       + cancellation_requested_at, cancellation_requested_by (nulla
 
 - `CompanyUserStatus`: Pending, Active, Revoked.
 - `PortalAccess`: Hidden, All, Selected.
-- `ReservationSource`: `Agent` becomes `Portal`.
+- `ReservationSource`: `Agent` became `Portal`. [Booking sources](../12-reservations/11-booking-sources.md) replace the enum: the portal uses the property's **Company / Travel agent** system source.
 
 ## Adding company users
 
@@ -95,7 +95,7 @@ Bulk add portal users — Borneo Travel
     - A room's `max_children` is exceeded.
     - The company's credit limit would be exceeded (see [Credit control](../15-city-ledger/04-credit-control-and-reports.md)).
     - A room has no guest name.
-- A new portal booking has `source` Portal, `company_id` set, `created_by` the company user, and the company as folio payer. Its status is Confirmed.
+- A new portal booking has the **Company / Travel agent** [booking source](../12-reservations/11-booking-sources.md) (the same row staff use for company bookings), `company_id` set, `created_by` the company user, and the company as folio payer. Its status is Confirmed.
 - Cancel: before `arrival_date - portal_cancel_cutoff_days`, the company user cancels. After it, or when the cut-off is empty, they can only request. A request sets `cancellation_requested_at` and notifies the property. Staff decide on any charge in the [Cancel reservation](../18-front-desk/01-check-in-and-check-out.md#cancel-reservation) Dialog, which shows the request and resolves it.
 - A company user sees only reservations of the company linked at that property.
 - Guest edits and cancellations go into the reservation's activity log with the company user as causer.

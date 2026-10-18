@@ -66,7 +66,7 @@ Status tabs, filters, and two views of the same page of results: **Cards** (defa
 | **New booking ▾**        | New booking, Walk-in (see [booking form](05-booking-form.md#entry-points)). Needs `reservations.manage`. Hidden until the booking form item ships.                                                                                                                                                                                                                                                                        |
 | **Status tabs**          | All, Confirmed, In house, Completed, Cancelled, each with an icon and a count. Each tab is a link that sets `filter[status]`. The counts follow the current search, source and stay filters (one grouped count query).                                                                                                                                                                                                    |
 | Search                   | Reference, `external_reference`, and the booker's or any unit guest's name, phone or email. A local phone number (`012-345 6789`) matches the stored E.164 number, using the `GuestMatcher` normalisation. Debounced (`FilterBar`).                                                                                                                                                                                       |
-| Source                   | All, or one `ReservationSource`                                                                                                                                                                                                                                                                                                                                                                                           |
+| Source                   | All, or one of the property's [booking sources](11-booking-sources.md), grouped by type. Inactive sources are listed too, because old bookings use them. `filter[source]` is the source id.                                                                                                                                                                                                                               |
 | Stay dates               | Reservations whose stay overlaps the range. **Default: from the current business date onward** (`CurrentBusinessDate`, or `PropertyToday`), an open-ended range: `DateRangePicker` gains an optional end. Clearing the range shows all dates (`filter[stay]=all`). The Completed and Cancelled tabs show a "Showing stays from {date}. Show all dates" hint. **Reset** clears search, source and stay, and keeps the tab. |
 | Sort                     | Arrival (default, earliest first), departure, reference, total, booked date. List view sorts by column header; Cards view uses the Sort select. Both use the same `sort` URL value.                                                                                                                                                                                                                                       |
 | **View** (Cards or List) | Switches the view of the loaded page and **makes no request**. Kept in the URL (`?view=list`) and remembered in the browser (`localStorage`). Default: Cards.                                                                                                                                                                                                                                                             |
@@ -93,7 +93,7 @@ Status tabs, filters, and two views of the same page of results: **Cards** (defa
 │ │ 12 Oct     │ 3 nights  │        15 Oct  │ │
 │ │ ⛴ 09:00 boat│           │    Own 11:30 ⛴ │ │  boat line, Boats feature only
 │ └─────────────────────────────────────────┘ │
-│ [●Confirmed] ☎  5 units     👤 6   🧒 2     │  status, source, units (groups), occupancy
+│ [●Confirmed] [☎] 5 units    👤 6   🧒 2     │  status, source badge, units (groups), occupancy
 │ Room type               Booked              │
 │ 1× Deluxe King, 3× Dorm  02 Oct 2026        │
 │ 6-Bed, 1× Family Suite                      │
@@ -110,12 +110,12 @@ Status tabs, filters, and two views of the same page of results: **Cards** (defa
 | Part        | Shows                                                                                                                                                                                            |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Room box    | See [Room box](#room-box)                                                                                                                                                                        |
-| Title       | `group_name`, or the booker's name. For a channel booking without a group name: the booker.                                                                                                      |
+| Title       | `group_name`, or the booker's name. For an OTA booking without a group name: the booker.                                                                                                         |
 | Markers     | ★ VIP (`is_vip`), ⛔ blacklisted, ↻ repeat guest (the booker has another Completed reservation with a lower id), 👥 group (2 or more units)                                                      |
-| Subtitle    | Booker (groups only), reference. Channel bookings add `channel_name` and `external_reference`.                                                                                                   |
+| Subtitle    | Booker (groups only), reference. OTA bookings add the source name. `external_reference` when set.                                                                                                |
 | Menu `[⋯]`  | Open reservation, Open guest. Unit actions come with front desk.                                                                                                                                 |
 | Stay strip  | Earliest arrival, nights, latest departure of units that hold inventory. When none does (a cancelled reservation), of all units. A day use reads "Day use · 4h" (`stayLabel`), never "0 nights". |
-| Badges      | `StatusBadge`, source icon (label on hover), unit count (groups only), adults and children of units that hold inventory                                                                          |
+| Badges      | `StatusBadge`, the [source badge](11-booking-sources.md#badge) (the source name on hover), unit count (groups only), adults and children of units that hold inventory                            |
 | Details     | Room types grouped as `N× name`, booked date                                                                                                                                                     |
 | Money strip | Three columns: Total, Paid and Balance. See [Money strip](#money-strip).                                                                                                                         |
 | Card tone   | Cancelled: muted. Blacklisted booker: destructive border and muted background.                                                                                                                   |
@@ -156,16 +156,16 @@ Room or bed numbers when assigned (from the first night of each unit). Every oth
 
 ### List view
 
-| Column | Shows                                                             | Sort |
-| ------ | ----------------------------------------------------------------- | ---- |
-| Ref    | `reference`                                                       | Yes  |
-| Booker | Title, markers and subtitle as on the card                        | –    |
-| Stay   | Earliest arrival → latest departure, nights                       | Yes  |
-| Units  | Unit count                                                        | –    |
-| Rooms  | The room box rules, inline                                        | –    |
-| Source | Label. Channel bookings: `channel_name` and `external_reference`. | –    |
-| Total  | As on the card                                                    | Yes  |
-| Status | `StatusBadge`                                                     | –    |
+| Column | Shows                                                                                                       | Sort |
+| ------ | ----------------------------------------------------------------------------------------------------------- | ---- |
+| Ref    | `reference`                                                                                                 | Yes  |
+| Booker | Title, markers and subtitle as on the card                                                                  | –    |
+| Stay   | Earliest arrival → latest departure, nights                                                                 | Yes  |
+| Units  | Unit count                                                                                                  | –    |
+| Rooms  | The room box rules, inline                                                                                  | –    |
+| Source | The [source badge](11-booking-sources.md#badge) and the source name. OTA bookings add `external_reference`. | –    |
+| Total  | As on the card                                                                                              | Yes  |
+| Status | `StatusBadge`                                                                                               | –    |
 
 Below `lg`, List view shows the cards, as wastays does.
 
@@ -177,7 +177,7 @@ Below `lg`, List view shows the cards, as wastays does.
 
 ### Build status
 
-Built: `reservations.index` with the status tabs, search, source and stay filters, sorts, Cards and List views, the card, the room box and the sidebar item **All reservations**. `ReservationDirectory` (`app/Services/Reservations/`) runs the query and the counts, and `ReservationRoomBox` builds the room box. The URL values are `filter[status]`, `filter[source]`, `filter[search]`, `filter[stay]` (`all`, or `from_to` with either date empty) and `sort`. A card or row opens `reservations.show` (the card title is a stretched link, and the **⋯** menu has **Open reservation** and, with `guests.view`, **Open guest**). **New booking** is hidden until the booking form.
+Built: `reservations.index` with the status tabs, search, source and stay filters, sorts, Cards and List views, the card, the room box and the sidebar item **All reservations**. `ReservationDirectory` (`app/Services/Reservations/`) runs the query and the counts, and `ReservationRoomBox` builds the room box. The URL values are `filter[status]`, `filter[source]` (a `ReservationSource` value until [booking sources](11-booking-sources.md) ship, then the source id), `filter[search]`, `filter[stay]` (`all`, or `from_to` with either date empty) and `sort`. A card or row opens `reservations.show` (the card title is a stretched link, and the **⋯** menu has **Open reservation** and, with `guests.view`, **Open guest**). **New booking** is hidden until the booking form.
 
 ## Reservation page (Detail archetype)
 
@@ -395,7 +395,7 @@ A title row (Requests, with **+ New request** on the right for `guest-requests.m
 
 ### Summary card
 
-Booker (name, VIP, phone, email; the name is an underlined link to the guest that opens in a new tab), earliest arrival, latest departure, units, room nights, the money figures (below), billing mode (2 or more units, with the `BillingMode` label), source, company (the name, a link to the [company page](../15-city-ledger/01-companies.md#pages) for staff with `company.view`, or "None"), Created at (the date) and Created by (the user, or "System" when there is none) as two rows. Every row has an icon before its label, and only the top row (the Booker block) has `ps-3 pt-2`, like the title rows of the tab panels. Notes, when the booking has them, show in a rounded, bordered box of fixed height (`h-32`, the text scrolls inside) under the summary figures (added with the booking form).
+Booker (name, VIP, phone, email; the name is an underlined link to the guest that opens in a new tab), earliest arrival, latest departure, units, room nights, the money figures (below), billing mode (2 or more units, with the `BillingMode` label), source (the [booking source](11-booking-sources.md) name), company (the name, a link to the [company page](../15-city-ledger/01-companies.md#pages) for staff with `company.view`, or "None"), Created at (the date) and Created by (the user, or "System" when there is none) as two rows. Every row has an icon before its label, and only the top row (the Booker block) has `ps-3 pt-2`, like the title rows of the tab panels. Notes, when the booking has them, show in a rounded, bordered box of fixed height (`h-32`, the text scrolls inside) under the summary figures (added with the booking form).
 
 **Money figures.** The summary card shows the full figures of the reservation, from `BookingSummary` (the same service and numbers as the [booking summary](08-booking-summary.md) PDF):
 

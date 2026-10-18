@@ -35,7 +35,7 @@ Stay is always visible above the tabs. The tab strip uses the `line` variant of 
 
 ## Entry points
 
-The page header has a description in both modes: "Reserve rooms or beds for a guest who arrives on a later date." for a new booking, and "A guest at the desk now. Every unit needs a room or bed." for a walk-in. The Reservations page has `New ▾` with **New booking** and **Walk-in**. Walk-in opens the same page with `source = WalkIn` and today's business date as arrival. The **Reservation mode** field on the form switches between the two pages without losing what was typed (see [Stay](#sections)). The walk-in check-in itself comes with [Check-in and check-out](../18-front-desk/01-check-in-and-check-out.md).
+The page header has a description in both modes: "Reserve rooms or beds for a guest who arrives on a later date." for a new booking, and "A guest at the desk now. Every unit needs a room or bed." for a walk-in. The Reservations page has `New ▾` with **New booking** and **Walk-in**. Walk-in opens the same page with the Walk-in [booking source](11-booking-sources.md) and today's business date as arrival. The **Reservation mode** field on the form switches between the two pages without losing what was typed (see [Stay](#sections)). The walk-in check-in itself comes with [Check-in and check-out](../18-front-desk/01-check-in-and-check-out.md).
 
 | URL                                         | Name                          | Needs                 |
 | ------------------------------------------- | ----------------------------- | --------------------- |
@@ -60,11 +60,24 @@ When the property has an active Day use plan, the Stay section starts with a **S
     - Arrival starts as today's business date on both pages. Staff can pick a later date on a new booking.
     - Walk-in: the arrival date is today and is fixed. The arrival time defaults to now, rounded to the minute, and staff can edit it.
     - Package plans lock the departure date, not the time.
-    - Reservation mode: a select after Departure, on the same row from `lg` (about 12rem wide; below `lg` it wraps to the next line). Options: **New booking** and **Walk-in**. Picking the other mode visits `reservations.walk-in` or `reservations.new` as a partial Inertia visit with `preserveState`, so the same page stays mounted and the dates, lines and guests are kept. The URL and the breadcrumb change, and no unsaved-changes prompt appears. To Walk-in: the source becomes WalkIn and is locked, and the arrival becomes today with the current time and is locked. To New booking: the source goes back to Direct and the arrival unlocks. A departure that is then not after the arrival gets the normal error on save. Both pages need `reservations.manage`, and the backend does not change.
+    - Reservation mode: a select after Departure, on the same row from `lg` (about 12rem wide; below `lg` it wraps to the next line). Options: **New booking** and **Walk-in**. Picking the other mode visits `reservations.walk-in` or `reservations.new` as a partial Inertia visit with `preserveState`, so the same page stays mounted and the dates, lines and guests are kept. The URL and the breadcrumb change, and no unsaved-changes prompt appears. To Walk-in: the source becomes Walk-in and is locked, and the arrival becomes today with the current time and is locked. To New booking: the source goes back to the first offered source and the arrival unlocks. A departure that is then not after the arrival gets the normal error on save. Both pages need `reservations.manage`, and the backend does not change.
     - Grid: Source, External reference, Company and Group name sit in 3 columns from `lg`. When Company and Group name both show (4 fields), the row stays at 2 columns.
     - Group name: the third field of the row after External reference, shown when the form has 2 or more units. Leave it empty to show the booker's name. `billing_mode` stays in the rail.
     - Company: a combobox before Group name, shown only to staff with `company.view` and when the property has an Active company. It lists the property's Active companies, with "No company" as the empty choice, and fills `company_id`. Plans linked to companies ([negotiated plans](../15-city-ledger/01-companies.md#rules)) show on a line only when the picked company is one of theirs. Changing the company clears the plan of a line that is now hidden, and the staff pick another. A Suspended or foreign id is refused as `company_not_available` on the `company_id` field.
-    - Source: **New booking** offers the sources Direct and Phone. **Walk-in** fixes the source to WalkIn. Channel and Portal are not offered: they come from ingestion and the company portal.
+    - Source: a select of the property's active [booking sources](11-booking-sources.md), grouped by type (`BookingSourceOptions`). It posts `booking_source_id`.
+        - **New booking** lists the active Direct and OTA sources, and **Company / Travel agent** for staff with `company.view` when the property has an Active company. The first Direct source is the default.
+        - An OTA source makes External reference required (`external_reference` error "Enter the OTA booking number.").
+        - Company / Travel agent makes Company required (`company_id` error "Select the company."). A Direct or OTA booking can still pick a company.
+        - **Walk-in** fixes the source to Walk-in.
+        - `StoreBookingRequest` checks the same rules: the source must be active, of the property, and offered for the mode and the staff member. The walk-in room rule follows the Walk-in type.
+
+        ```
+        Source [Booking.com ▾]   External reference* [BK-12345 ]   Company [Search…   ▾]   Group name [____]
+                ├ Direct:   Phone · WhatsApp · Email
+                ├ OTA:      Booking.com · Agoda
+                └ Company:  Company / Travel agent
+        ```
+
 2. **Rooms and beds** (tab **Rooms & guests**): one line per room type + rate plan.
     - Room lines: adults and children. When children > 0, one required age field per child, under the line.
     - Bed lines: "Beds: N", expanded into N units, with one bed picker per unit.
@@ -195,7 +208,7 @@ Without `guests.manage`, a row accepts only an existing guest, and **Update gues
 ## Saving and errors
 
 - `GET reservations/new`, `GET reservations/walk-in` and `POST reservations` (`reservations.store`) are in `ReservationBookingController`. `new` and `walk-in` share one private render method.
-- The page gets the lists it needs with the page, because they are bounded: room types and rate plans (`ReservationFormOptions::addUnit`), charge items, active RoomOnly discounts, the sources, the billing modes, `autoAssignRooms`, the currency, `canOverrideRestrictions` and `today`, the business date, which is the default arrival. The prop is not named `businessDate`, because the app shell shares a prop of that name for the header indicator.
+- The page gets the lists it needs with the page, because they are bounded: room types and rate plans (`ReservationFormOptions::addUnit`), charge items, active RoomOnly discounts, the sources (`{id, name, type}`), the billing modes, `autoAssignRooms`, the currency, `canOverrideRestrictions` and `today`, the business date, which is the default arrival. The prop is not named `businessDate`, because the app shell shares a prop of that name for the header indicator.
 - `StoreBookingRequest` checks the shape and builds `NewBookingData`. It expands each line into units in the order `CreateReservation` adds them (a Bed line with N beds is N units), so the unit index of a pick is the running count. On a walk-in every unit needs a room or bed pick. From commit 3 the request has a `guests` array: for each tab `guest_id`, the profile fields, `update_profile` and `stays_in` (the unit index, or empty for a booker who does not stay). The first tab is the booker. `toBookingData()` builds one `NewBookingGuestData` for each tab. `booker_guest_id`, which commit 2 used, is gone.
 - A refusal comes back as errors keyed by position: `lines.{i}.room_type_id`, `lines.{i}.rate_plan_id`, `lines.{i}.child_ages`, `lines.{i}.room_id`, `lines.{i}.bed_ids.{n}` and so on, plus `arrival_date`, `departure_date`, `guests.{i}.guest_id`, `guests.{i}.full_name`, `guests.{i}.stays_in` and `form`. A guest refusal (`guest_not_found`, `already_attached`, `bed_unit_full`, `unit_not_found`, `guest_name_required`) names the tab through the guest index of the result; `bed_unit_full` and `already_attached` show on "Stays in". The key comes from `ReservationRefusals` (the field) and the line or unit index of the result. `restricted` shows the override reason field of the line for staff with `rates.override-restrictions`, and a `form` error for everyone else.
 - A `restricted` or other line-level refusal never saves anything: `CreateBooking` rolls back.
@@ -214,6 +227,7 @@ One checklist item per commit, in this order:
 7. **Discounts and add-ons tables:** the Discounts and Add-ons tabs become tables (a flat add-ons table with a Line column). UI only: the request, error keys and Actions do not change.
 8. **Fixed height:** the page uses the `fixed` layout variant (renamed from `grid-only`), with one scroll region and `FormActions` below it. UI only.
 9. **Reservation mode:** the field after Departure switches between New booking and Walk-in with a partial visit that keeps the form. UI only.
+10. **Booking sources:** the source select lists the property's booking sources, with the OTA and Company rules. See [Booking sources](11-booking-sources.md#build-order). Planned.
 
 ## Build status
 

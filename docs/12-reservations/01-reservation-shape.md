@@ -13,8 +13,8 @@ One structure for single rooms, groups and dorm beds.
 ```
 reservations         id, property_id, reference, status (ReservationStatus),
                      booker_guest_id, company_id (nullable), group_name (nullable),
-                     billing_mode (BillingMode), source (ReservationSource),
-                     channel_name (nullable), external_reference (nullable),
+                     billing_mode (BillingMode), booking_source_id (FK booking_sources),
+                     external_reference (nullable),
                      notes (nullable text, up to 2000), created_by (FK users),
                      cancellation_requested_at, cancellation_requested_by (nullable),
                      timestamps
@@ -55,7 +55,7 @@ erDiagram
 - `ReservationStatus`: Confirmed, InHouse, Completed, Cancelled.
 - `UnitStatus`: Confirmed, CheckedIn, CheckedOut, Cancelled, NoShow (with `canTransitionTo()`).
 - `BillingMode`: MasterPays, MasterPaysAll, EachPays.
-- `ReservationSource`: Direct, WalkIn, Phone, Channel, Portal.
+- `BookingSourceType`: Direct, Ota, Company, WalkIn, on the property's [booking sources](11-booking-sources.md). It replaces `ReservationSource` (Direct, WalkIn, Phone, Channel, Portal) and `channel_name` (planned).
 
 ### Unit transitions
 
@@ -93,6 +93,7 @@ It has no `canTransitionTo()` because nothing sets it by hand.
 - `reference` comes from `document_sequences`.
 - `company_id` is a nullable column without a foreign key until [Companies](../15-city-ledger/01-companies.md) adds the table and the key.
 - `external_reference` holds the OTA booking number or the company reference (the company's voucher number).
+- `booking_source_id` is required. Its type sets the rules: an OTA source needs `external_reference`, the Company / Travel agent source needs `company_id`, and the Walk-in source needs a room or bed on every unit. See [Booking sources](11-booking-sources.md).
 - `cancellation_requested_*` is set only by a company user after the cancel cut-off (see [Company portal](../23-company-portal/01-company-portal.md)).
 - Status transitions are one Action per transition, checked by `UnitStatus::canTransitionTo()`. Each one calls `SyncReservationStatus` afterwards.
 - `MergeGuests` calls `RepointGuestReservations` (booker and unit guests), and `AnonymizeGuest` refuses an in-house guest through `GuestInHouse` (an occupant of a CheckedIn unit).
@@ -111,6 +112,7 @@ It has no `canTransitionTo()` because nothing sets it by hand.
 | `notes` column, `AssignRoom`, `AssignBed`                                                     | Built, see [Booking form](05-booking-form.md#build-status)       |
 | Double-booking indexes on `unit_nights`                                                       | Room and bed assignment (module 18)                              |
 | Check-in, check-out, cancel, no-show, reinstate, move                                         | Front desk (module 18)                                           |
+| `booking_source_id` in place of `source` and `channel_name`                                   | Planned, see [Booking sources](11-booking-sources.md)            |
 
 ## Lessons from wastays
 

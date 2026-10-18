@@ -132,6 +132,11 @@ Build in this order. Each item is one commit. Docs: [Wizard steps](17-onboarding
 
 Needed for go-live.
 
+- [x] `docs(reservations): plan property booking sources` — the booking sources spec, the badge, swatch tokens and the doc updates in reservations, channels, portal, onboarding and seed defaults. Docs: [Booking sources](12-reservations/11-booking-sources.md).
+- [ ] `feat(reservations): replace the reservation source with booking sources` — `booking_sources`, `BookingSourceType`, `BookingSourceIcon`, `SwatchColor` and the swatch tokens, `BookingSource` and its factory, `SeedBookingSources` in `SeedPropertyDefaults`, the backfill migration (drops `source` and `channel_name`), `NewReservationData` and `NewBookingData` take a `BookingSource`, the `StoreBookingRequest` rules (OTA needs External reference, Company / Travel agent needs a company, Walk-in by type), the grouped Source select on the booking form, `filter[source]` by id, the seeders and tests. Delete `ReservationSource`. Check the old values in production and demo before the migration runs there. Needs: plan property booking sources. Docs: [Backfill](12-reservations/11-booking-sources.md#backfill), [Booking form](12-reservations/05-booking-form.md#sections).
+- [ ] `feat(reservations): show the booking source badge` — `BookingSourceBadge` and `BookingSourceBadgeData` on the reservation card and the List view Source column. Needs: replace the reservation source. Docs: [Badge](12-reservations/11-booking-sources.md#badge).
+- [ ] `feat(settings): manage booking sources` — Settings → Booking sources in the charge items pattern: Available switch, ↑ ↓, search, the New and Edit Dialog with name, type, OTA channel, badge and color, Delete only while unused, badge-only edit on system rows. `CreateBookingSource`, `UpdateBookingSource`, `ReorderBookingSources`, `DeleteBookingSource`, `BookingSourceUsage` and the settings nav item. Needs: show the booking source badge. Docs: [Settings page](12-reservations/11-booking-sources.md#settings-page).
+- [ ] `feat(onboarding): add OTA lists to booking sources` — `SaveOtaCredentials` calls `EnsureOtaBookingSource`. A removed credential keeps its source. Needs: replace the reservation source. Docs: [Defaults](12-reservations/11-booking-sources.md#defaults).
 - [ ] `feat(front-desk): add the stay view` — Docs: [Stay View](18-front-desk/03-stay-view.md).
 - [ ] `feat(reservations): preview the price in the Add unit Sheet` — reuse the booking form quote route. Docs: [Reservations list and reservation page](12-reservations/06-reservation-page.md#header).
 - [ ] `feat(rates): override the early departure policy per rate plan` — `rate_plans.early_departure_policy` becomes an optional override that follows the property by default. Needs: room revenue policies. Docs: [Rate plans](08-rates/01-rate-plans.md), [Room revenue](06-catalogues/06-room-revenue.md#policies).
@@ -188,8 +193,8 @@ Needs the Channex staging checks in [Staging verification](21-channels/06-stagin
 - [ ] `feat(channels): map room types and rate plans` — Docs: [Mappings and capability](21-channels/02-mappings-and-capability.md).
 - [ ] `feat(channels): add dorm strategies` — Docs: [Dorm strategies](21-channels/03-dorm-strategies.md).
 - [ ] `feat(channels): sync availability, rates and restrictions` — Docs: [ARI sync](21-channels/04-ari-sync.md).
-- [ ] `feat(channels): ingest channel bookings` — Docs: [Booking ingestion](21-channels/05-booking-ingestion.md).
-- [ ] `feat(reports): add booking performance` — from wastays: bookings and revenue by source, room type and period. Needs: ingest channel bookings. Docs: [Core reports](22-reports/01-core-reports.md).
+- [ ] `feat(channels): ingest channel bookings` — Needs: replace the reservation source with booking sources. Docs: [Booking ingestion](21-channels/05-booking-ingestion.md).
+- [ ] `feat(reports): add booking performance` — from wastays: bookings and revenue by source, room type and period. Needs: ingest channel bookings, replace the reservation source with booking sources. Docs: [Core reports](22-reports/01-core-reports.md).
 
 ### 25 Guest requests
 

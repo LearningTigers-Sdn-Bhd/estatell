@@ -24,7 +24,7 @@ channel_booking_revisions    id, channel_connection_id, external_booking_id, rev
     - Dorm beds = one unit per bed (per the dorm strategy).
     - Guests go through `GuestMatcher`.
     - Prices are stored on `unit_nights`.
-    - `source = Channel`, `channel_name`, `external_reference` are set.
+    - `EnsureOtaBookingSource` gives the property's OTA [booking source](../12-reservations/11-booking-sources.md) for the revision's channel, and creates it when missing. The reservation gets its `booking_source_id` and `external_reference`. Manual and ingested bookings for the same OTA share one source.
     - Modified and Cancelled revisions update or cancel the matching units.
 3. The revision is acknowledged to Channex.
 4. Failures keep `error` and appear on the night audit readiness panel.
