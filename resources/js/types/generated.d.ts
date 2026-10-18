@@ -1507,6 +1507,24 @@ role: string | null,
 isOwner: boolean,
 };
 }
+namespace Portal {
+export type PortalInvitationData = {
+linkId: number,
+propertyName: string,
+companyName: string,
+};
+export type PortalPropertyData = {
+linkId: number,
+propertyName: string,
+propertyCode: string,
+companyName: string,
+state: string,
+stateLabel: string,
+openBalance: string,
+currency: App.Data.Property.CurrencyData | null,
+arrivals: number,
+};
+}
 namespace Property {
 export type CountryChangeCountsData = {
 taxes: number,
@@ -3073,6 +3091,7 @@ export type ChargingUnit = 'per_item' | 'per_night' | 'per_stay' | 'per_guest_ni
 export type CheckInRoomState = 'assigned' | 'auto' | 'none';
 export type ColumnAlign = 'left' | 'center' | 'right';
 export type CompanyImportMode = 'simple' | 'detailed';
+export type CompanyLinkRefusal = 'not_pending' | 'company_suspended' | 'property_not_live' | 'login_not_available' | 'already_linked';
 export type CompanyStatus = 'active' | 'suspended';
 export type CompanyType = 'corporate' | 'travel_agent' | 'government';
 export type CompanyUserStatus = 'pending' | 'active' | 'revoked';

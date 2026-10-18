@@ -8,6 +8,7 @@ import AuthLayout from '@/layouts/auth-layout';
 import GuestLayout from '@/layouts/guest-layout';
 import OnboardingLayout from '@/layouts/onboarding-layout';
 import PartnerLayout from '@/layouts/partner-layout';
+import PortalLayout from '@/layouts/portal-layout';
 import AccountLayout from '@/layouts/account/layout';
 import { setUrlDefaults } from '@/wayfinder';
 
@@ -23,7 +24,6 @@ void createInertiaApp({
             case name.startsWith('auth/'):
             case name.startsWith('invitations/'):
             case name === 'property/suspended':
-            case name === 'portal/index':
             case name === 'onboarding/waiting':
                 return AuthLayout;
             case name.startsWith('onboarding/'):
@@ -35,6 +35,8 @@ void createInertiaApp({
                 return AdminLayout;
             case name.startsWith('partner/'):
                 return PartnerLayout;
+            case name.startsWith('portal/'):
+                return PortalLayout;
             case name === 'view-as/show':
                 // A support user sees the page in the layout they came from.
                 return page.props.adminNavigation ? AdminLayout : PartnerLayout;

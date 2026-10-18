@@ -126,7 +126,7 @@ Build in this order. Each item is one commit. Docs: [Wizard steps](17-onboarding
 ### 23 Company portal
 
 - [x] `feat(portal): add the company portal login` — `is_company_user` in `users_one_kind_check`, `company_users` with its two partial unique indexes, drop `companies.portal_enabled`, `SetCompanyPortalLogin`, the Portal section on the Add company Sheet and the Details tab (status, Copy message, Reset password, Resend), `portal_email` and `cancel_days` in Bulk add and the template, the portal login in the onboarding Companies table, `CompanyLinkInvitation`, company users in `RefreshPendingTemporaryPasswords`. Docs: [Company portal](23-company-portal/01-company-portal.md#portal-login).
-- [ ] `feat(portal): add the portal property list and invitations` — `/portal`, accept and decline, `portal` middleware, home redirect. Docs: [Company portal](23-company-portal/01-company-portal.md#pages).
+- [x] `feat(portal): add the portal property list and invitations` — `/portal`, accept and decline, `portal` middleware, home redirect. Docs: [Company portal](23-company-portal/01-company-portal.md#pages).
 - [ ] `feat(portal): let company users book and manage stays` — `portal_access`, `reservations.cancellation_requested_by`, booking checks, the auto-add charge items added by the server (see [Add-ons](12-reservations/04-add-ons.md#added-automatically)), cancel and request. Docs: [Company portal](23-company-portal/01-company-portal.md#rules).
 - [ ] `feat(portal): show company statements and details` — read-only invoices, payments and statement PDF; the Company page with `UpdatePortalCompanyDetails` and the "Only we manage our tax and billing details" tick. Docs: [Company portal](23-company-portal/01-company-portal.md#pages), [Company details](23-company-portal/01-company-portal.md#company-details).
 
@@ -251,6 +251,7 @@ Topics on hold. Each one needs a planning session and its docs before it gets co
 
 | Commit     | Subject                                                                  |
 | ---------- | ------------------------------------------------------------------------ |
+| `be98d40c` | feat(portal): add the company portal login                               |
 | `c3c81c59` | feat(reservations): show the booking source badge                        |
 | `27061cf9` | feat(onboarding): add OTA lists to booking sources                       |
 | `6498cf6b` | feat(reservations): replace the reservation source with booking sources  |

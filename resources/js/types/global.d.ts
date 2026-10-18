@@ -18,6 +18,12 @@ declare module '@inertiajs/core' {
             businessDate: App.Data.NightAudit.BusinessDateData | null;
             adminNavigation: App.Data.Navigation.NavItemData[] | null;
             partnerNavigation: App.Data.Navigation.NavItemData[] | null;
+            portalNavigation: App.Data.Navigation.NavItemData[] | null;
+            portalCompany: {
+                companyName: string;
+                propertyName: string;
+                propertyCode: string;
+            } | null;
             accountNavigation: App.Data.Navigation.NavItemData[] | null;
             navigation: App.Data.Navigation.StaffNavigationData | null;
             commandShortcuts: App.Data.Navigation.NavItemData[];

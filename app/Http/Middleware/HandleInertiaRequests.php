@@ -10,10 +10,12 @@ use App\Data\Platform\ImpersonationData;
 use App\Data\Property\PropertySummaryData;
 use App\Enums\PermissionEnum;
 use App\Enums\PropertyStatus;
+use App\Models\CompanyUser;
 use App\Models\Property;
 use App\Navigation\AccountNavigation;
 use App\Navigation\AdminNavigation;
 use App\Navigation\PartnerNavigation;
+use App\Navigation\PortalNavigation;
 use App\Navigation\StaffNavigation;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Onboarding\GoLiveRequests;
@@ -64,6 +66,8 @@ class HandleInertiaRequests extends Middleware
             'property' => fn () => $this->currentProperty($request),
             'businessDate' => fn () => $this->businessDate($request),
             'adminNavigation' => fn () => $request->user()?->is_admin ? app(AdminNavigation::class)->items() : null,
+            'portalNavigation' => fn () => $request->user()?->is_company_user ? app(PortalNavigation::class)->items($request) : null,
+            'portalCompany' => fn () => $this->portalCompany($request),
             'partnerNavigation' => fn () => $request->user()?->partner_id !== null ? app(PartnerNavigation::class)->items() : null,
             'accountNavigation' => fn () => $request->user() !== null && $request->routeIs('account.*') ? app(AccountNavigation::class)->items($request) : null,
             'navigation' => fn () => $this->staffNavigation($request),
@@ -127,7 +131,7 @@ class HandleInertiaRequests extends Middleware
     {
         $user = $request->user();
 
-        if ($user === null || $user->is_admin || $user->partner_id !== null) {
+        if ($user === null || $user->is_admin || $user->partner_id !== null || $user->is_company_user) {
             return null;
         }
 
@@ -177,6 +181,10 @@ class HandleInertiaRequests extends Middleware
 
     private function resolveProperty(Request $request): ?Property
     {
+        if ($request->user()?->is_company_user) {
+            return null;
+        }
+
         $property = $request->route('property');
 
         if (! $property instanceof Property) {
@@ -184,6 +192,20 @@ class HandleInertiaRequests extends Middleware
         }
 
         return $property instanceof Property ? $property : null;
+    }
+
+    /**
+     * The company and property of the open `/portal/{code}` page, from the link `EnsurePortalAccess` found.
+     *
+     * @return array{companyName: string, propertyName: string, propertyCode: string}|null
+     */
+    private function portalCompany(Request $request): ?array
+    {
+        $link = $request->attributes->get('portalLink');
+
+        return $link instanceof CompanyUser
+            ? ['companyName' => $link->company->name, 'propertyName' => $link->property->name, 'propertyCode' => $link->property->code]
+            : null;
     }
 
     /** @return list<NavItemData> */

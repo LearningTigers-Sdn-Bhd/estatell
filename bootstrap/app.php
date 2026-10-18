@@ -7,6 +7,7 @@ use App\Http\Middleware\EnsureBoatsIsActive;
 use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\EnsureOnboarding;
 use App\Http\Middleware\EnsurePasswordChanged;
+use App\Http\Middleware\EnsurePortalAccess;
 use App\Http\Middleware\EnsurePropertyAccess;
 use App\Http\Middleware\EnsurePropertyIsLive;
 use App\Http\Middleware\HandleAppearance;
@@ -44,11 +45,13 @@ return Application::configure(basePath: dirname(__DIR__))
             'live' => EnsurePropertyIsLive::class,
             'onboarding.activity' => TrackOnboardingActivity::class,
             'onboarding.only' => EnsureOnboarding::class,
+            'portal' => EnsurePortalAccess::class,
             'property.access' => EnsurePropertyAccess::class,
             'verified' => EnsureEmailIsVerified::class,
         ]);
 
         $middleware->appendToPriorityList(SubstituteBindings::class, EnsurePropertyAccess::class);
+        $middleware->appendToPriorityList(SubstituteBindings::class, EnsurePortalAccess::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsurePropertyIsLive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureOnboarding::class);
         $middleware->appendToPriorityList(EnsureOnboarding::class, TrackOnboardingActivity::class);
