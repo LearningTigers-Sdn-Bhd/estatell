@@ -373,6 +373,7 @@ function AddTaxForm({ open, onClose, context, reason, row, line }: FormProps) {
             <Field data-invalid={!!errors.tax_ids}>
                 <FieldLabel htmlFor="add-tax-ids">Taxes to add</FieldLabel>
                 <MultiCombobox
+                    key={options.length}
                     id="add-tax-ids"
                     name="tax_ids"
                     items={options}
@@ -465,8 +466,8 @@ export function ManualLineDialogs({
         return null;
     }
 
+    const key = `${kept.line.lineId}-${kept.action}-${fresh}`;
     const props = {
-        key: `${kept.line.lineId}-${kept.action}-${fresh}`,
         open,
         onClose,
         context,
@@ -477,12 +478,12 @@ export function ManualLineDialogs({
 
     switch (kept.action) {
         case 'split':
-            return <SplitForm {...props} />;
+            return <SplitForm key={key} {...props} />;
         case 'remove_tax':
-            return <RemoveTaxForm {...props} />;
+            return <RemoveTaxForm key={key} {...props} />;
         case 'add_tax':
-            return <AddTaxForm {...props} />;
+            return <AddTaxForm key={key} {...props} />;
         default:
-            return <RecalculateTaxForm {...props} />;
+            return <RecalculateTaxForm key={key} {...props} />;
     }
 }
