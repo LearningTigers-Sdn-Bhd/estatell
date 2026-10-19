@@ -7,6 +7,7 @@ use App\Actions\Payments\PaymentResult;
 use App\Data\Folio\ManualRowData;
 use App\Enums\FolioStatus;
 use App\Enums\ManualRowType;
+use App\Enums\PaymentPurpose;
 use App\Enums\UnitStatus;
 use App\Models\Folio;
 use App\Models\FolioLine;
@@ -162,4 +163,43 @@ test('a folio of another reservation is a programming error', function () {
     $other = Folio::factory()->master()->create(['property_id' => $setup['property']->id]);
 
     expect(fn () => mbPost($setup, [mbRow(ManualRowType::Charge, $setup, ['folioId' => $other->id])]))->toThrow(InvalidArgumentException::class);
+});
+
+test('a payment row posts with its purpose, and Settlement when it gives none', function () {
+    $setup = mfSetup();
+
+    $result = mbPost($setup, [
+        mbRow(ManualRowType::Payment, $setup, ['amount' => '30.00', 'purpose' => PaymentPurpose::Advance]),
+        mbRow(ManualRowType::Payment, $setup, ['amount' => '20.00']),
+    ]);
+
+    $purposes = Payment::query()->whereIn('folio_line_id', $result->batch->lines()->pluck('id'))->orderBy('id')->pluck('purpose')->all();
+
+    expect($result->isRefused())->toBeFalse()
+        ->and($purposes)->toBe([PaymentPurpose::Advance, PaymentPurpose::Settlement]);
+});
+
+test('a security deposit posts on a unit folio and is refused on a master folio', function () {
+    $setup = mfSetup();
+    $unitFolio = Folio::factory()->forUnit($setup['unit'])->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id]);
+    $deposit = ['amount' => '100.00', 'purpose' => PaymentPurpose::SecurityDeposit];
+
+    $onUnit = mbPost($setup, [mbRow(ManualRowType::Payment, $setup, [...$deposit, 'folioId' => $unitFolio->id])]);
+    $row = mbRow(ManualRowType::Payment, $setup, $deposit);
+    $onMaster = mbPost($setup, [$row]);
+
+    expect($onUnit->isRefused())->toBeFalse()
+        ->and($onMaster->refusal)->toBe(PaymentResult::REFUSAL_DEPOSIT_ON_UNIT_ONLY)
+        ->and($onMaster->rowKey)->toBe($row->key);
+});
+
+test('a third party folio takes settlement payments only', function () {
+    $setup = mfSetup();
+    $agent = Folio::factory()->thirdParty()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id]);
+
+    $advance = mbPost($setup, [mbRow(ManualRowType::Payment, $setup, ['folioId' => $agent->id, 'purpose' => PaymentPurpose::Advance])]);
+    $settlement = mbPost($setup, [mbRow(ManualRowType::Payment, $setup, ['folioId' => $agent->id])]);
+
+    expect($advance->refusal)->toBe(PaymentResult::REFUSAL_PURPOSE_NOT_OFFERED)
+        ->and($settlement->isRefused())->toBeFalse();
 });

@@ -21,6 +21,8 @@ class PaymentResult
 
     public const REFUSAL_ADVANCE_ON_MASTER = 'advance_on_master';
 
+    public const REFUSAL_PURPOSE_NOT_OFFERED = 'purpose_not_offered';
+
     public const REFUSAL_METHOD_NOT_AVAILABLE = 'method_not_available';
 
     public const REFUSAL_AMOUNT_INVALID = 'amount_invalid';

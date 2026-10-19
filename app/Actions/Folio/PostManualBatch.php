@@ -35,7 +35,7 @@ class PostManualBatch
      * `RecordPayment` or `RefundPayment` (each with its service date and the batch), then `CloseFolio` on `$folio` when
      * `$close` is on. A refusal from any row, or from the close, rolls everything back, including the batch row and the
      * receipt numbers, and names the row. The form's UUID is the `$idempotencyKey`: a repeat returns the existing batch
-     * and writes nothing. Payment rows take the Settlement purpose. A refund row posts on the folio of the payment it
+     * and writes nothing. A Payment row takes its purpose, Settlement when it gives none. A refund row posts on the folio of the payment it
      * refunds. The caller (the controller) has found the folio, the payments and the units inside the reservation;
      * anything else is a programming error. Logged on the reservation as `folio.manual_batch_posted`. Permissions are
      * checked by the route. See docs/13-folio/08-manual-folio.md.
@@ -170,7 +170,7 @@ class PostManualBatch
         if ($row->type === ManualRowType::Payment) {
             $result = ($this->recordPayment)($actor, $reservation, $folios->get($row->folioId), null, new NewPaymentData(
                 paymentMethodId: (int) $row->paymentMethodId,
-                purpose: PaymentPurpose::Settlement,
+                purpose: $row->purpose ?? PaymentPurpose::Settlement,
                 amount: $row->amount,
                 reference: $row->reference,
                 idempotencyKey: $key,

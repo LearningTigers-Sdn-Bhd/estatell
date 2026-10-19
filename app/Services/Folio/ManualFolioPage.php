@@ -13,6 +13,7 @@ use App\Data\Property\CurrencyData;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
 use App\Enums\ManualFolioReason;
+use App\Enums\PaymentPurpose;
 use App\Enums\PaymentStatus;
 use App\Enums\UnitStatus;
 use App\Models\ChargeItem;
@@ -102,6 +103,7 @@ class ManualFolioPage
             $open->id,
             $this->labels->folioLabel($open, $unitLabels),
             $open->type === FolioType::Unit ? $open->reservation_unit_id : null,
+            array_map(fn (PaymentPurpose $purpose): array => ['value' => $purpose->value, 'label' => $purpose->label()], PaymentPurpose::forManualFolio($open->type)),
         ))->all());
     }
 

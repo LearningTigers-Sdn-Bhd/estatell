@@ -89,6 +89,10 @@ class RecordPayment
                 return PaymentResult::refused(PaymentResult::REFUSAL_DEPOSIT_ON_UNIT_ONLY);
             }
 
+            if ($target !== null && $target->type === FolioType::ThirdParty && $data->purpose !== PaymentPurpose::Settlement) {
+                return PaymentResult::refused(PaymentResult::REFUSAL_PURPOSE_NOT_OFFERED);
+            }
+
             if ($data->purpose === PaymentPurpose::Advance && $this->roomsGoToMaster($reservation, $lockedUnit, $target)) {
                 return PaymentResult::refused(PaymentResult::REFUSAL_ADVANCE_ON_MASTER);
             }

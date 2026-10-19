@@ -661,6 +661,10 @@ export type ManualFolioOptionData = {
 id: number,
 label: string,
 unitId: number | null,
+purposes: {
+value: string,
+label: string,
+}[],
 };
 export type ManualFolioPageData = {
 reservationId: number,
@@ -739,6 +743,7 @@ taxIds: number[] | null,
 paymentMethodId: number | null,
 paymentId: number | null,
 reference: string | null,
+purpose: App.Enums.PaymentPurpose | null,
 };
 export type ManualRowPreviewData = {
 key: string,

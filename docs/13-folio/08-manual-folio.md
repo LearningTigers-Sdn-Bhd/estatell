@@ -100,9 +100,9 @@ A full page with the same shell as the [reservation page](../12-reservations/06-
 
 A Payment row has a **Purpose** select: Advance, Settlement or Security deposit. It is the `purpose` of the payment, as in Record payment ([Payments](../14-payments/01-payments-and-refunds.md)).
 
-- The options come from `PaymentPurpose::forStage()` for the folio and the stage of its unit: a Unit folio offers Advance before arrival, Settlement and Security deposit in-house, and Settlement after. A Master folio offers Advance before arrival and Settlement after. A Third party folio is always Settlement.
+- The options come from the folio type, not the stay stage, because staff enter old payments here (`PaymentPurpose::forManualFolio()`): a Unit folio offers Settlement, Advance and Security deposit, a Master folio Settlement and Advance, a Third party folio Settlement only. Each folio of `ManualFolioPageData` carries its `purposes`.
 - The first option is the default. A refund copies the purpose of the payment it refunds, so a Refund row has no Purpose.
-- `PostManualBatch` passes the purpose to `RecordPayment`, which keeps its refusals: Security deposit only on a Unit folio, Advance not when the rooms go to the Master folio. The preview shows the refusal on the row.
+- `PostManualBatch` passes the purpose to `RecordPayment`, which keeps its refusals (Security deposit only on a Unit folio, Advance not when the rooms go to the Master folio) and adds `purpose_not_offered` (a Third party folio takes Settlement only). `ManualFolioPreview` gives the same refusals on the row.
 
 ## Scheduled lines
 

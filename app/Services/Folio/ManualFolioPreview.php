@@ -14,6 +14,7 @@ use App\Enums\FolioStatus;
 use App\Enums\FolioType;
 use App\Enums\ManualRowType;
 use App\Enums\PaymentMethodType;
+use App\Enums\PaymentPurpose;
 use App\Enums\PaymentStatus;
 use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
@@ -59,6 +60,7 @@ class ManualFolioPreview
         private InHouseUnits $inHouseUnits,
         private IncomingScheduledCharges $incomingScheduledCharges,
         private MoveChargesPreview $labels,
+        private FolioRouter $folioRouter,
     ) {}
 
     /**
@@ -304,6 +306,12 @@ class ManualFolioPreview
             return $this->refused($row, $zero, $this->folioRefusals->errors((string) $this->folioPostability->refusalFor($folio)));
         }
 
+        $purposeRefusal = $this->purposeRefusal($folio, $row);
+
+        if ($purposeRefusal !== null) {
+            return $this->refused($row, $zero, $this->paymentRefusals->errors($purposeRefusal));
+        }
+
         $method = $row->paymentMethodId === null ? null : $this->availablePaymentMethod->find($context['reservation'], $row->paymentMethodId, $context['actor']);
 
         if ($method === null) {
@@ -330,6 +338,28 @@ class ManualFolioPreview
             'charges' => $quote->total->minus($quote->amount),
             'payments' => $quote->total,
         ];
+    }
+
+    /**
+     * The refusal `RecordPayment` would give for the row's purpose on this folio, else null.
+     */
+    private function purposeRefusal(Folio $folio, ManualRowData $row): ?string
+    {
+        $purpose = $row->purpose ?? PaymentPurpose::Settlement;
+
+        return match (true) {
+            $purpose === PaymentPurpose::SecurityDeposit && $folio->type !== FolioType::Unit => PaymentResult::REFUSAL_DEPOSIT_ON_UNIT_ONLY,
+            $folio->type === FolioType::ThirdParty && $purpose !== PaymentPurpose::Settlement => PaymentResult::REFUSAL_PURPOSE_NOT_OFFERED,
+            $purpose === PaymentPurpose::Advance && $folio->type === FolioType::Unit && $this->roomChargesGoToMaster($folio) => PaymentResult::REFUSAL_ADVANCE_ON_MASTER,
+            default => null,
+        };
+    }
+
+    private function roomChargesGoToMaster(Folio $folio): bool
+    {
+        $unit = ReservationUnit::query()->find($folio->reservation_unit_id);
+
+        return $unit !== null && $this->folioRouter->roomChargesGoToMaster($unit);
     }
 
     /**

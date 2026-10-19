@@ -73,6 +73,19 @@ test('the folio rail lists the open folios of the reservation only', function ()
         ->where('manual.rail.0.balance', '0.00'));
 });
 
+test('each folio offers the payment purposes its type can take', function () {
+    $setup = mfSetup();
+    $unitFolio = Folio::factory()->forUnit($setup['unit'])->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id]);
+    $agent = Folio::factory()->thirdParty()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id]);
+
+    $this->actingAs($setup['user'])->get(mgUrl($setup))->assertInertia(fn (Assert $page) => $page
+        ->where('manual.folios', fn ($folios): bool => collect($folios)->mapWithKeys(fn ($folio): array => [$folio['id'] => collect($folio['purposes'])->pluck('value')->all()])->all() === [
+            $setup['folio']->id => ['settlement', 'advance'],
+            $unitFolio->id => ['settlement', 'advance', 'security_deposit'],
+            $agent->id => ['settlement'],
+        ]));
+});
+
 test('a page opened without a reason has none', function () {
     $setup = mfSetup();
 

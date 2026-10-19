@@ -5,6 +5,7 @@ use App\Data\Folio\ManualPreviewData;
 use App\Data\Folio\ManualRowData;
 use App\Data\Folio\ManualRowPreviewData;
 use App\Enums\ManualRowType;
+use App\Enums\PaymentPurpose;
 use App\Enums\UnitStatus;
 use App\Models\Folio;
 use App\Models\Payment;
@@ -141,4 +142,18 @@ test('the rail names every folio the rows touch and explains why the folio canno
     $setup['unit']->forceFill(['status' => UnitStatus::CheckedOut, 'checked_in_at' => now()->subDays(3), 'checked_out_at' => now()])->save();
 
     expect(mpPreview($setup, [])->closeBlocked)->toBeNull();
+});
+
+test('a payment purpose the folio cannot take is refused in the preview', function () {
+    $setup = mfSetup();
+    $agent = Folio::factory()->thirdParty()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id]);
+
+    $deposit = mpPreview($setup, [mpRow(ManualRowType::Payment, $setup, ['amount' => '50.00', 'purpose' => PaymentPurpose::SecurityDeposit])])->rows[0];
+    $advance = mpPreview($setup, [mpRow(ManualRowType::Payment, $setup, ['amount' => '50.00', 'folioId' => $agent->id, 'purpose' => PaymentPurpose::Advance])])->rows[0];
+    $advanceOnMaster = mpPreview($setup, [mpRow(ManualRowType::Payment, $setup, ['amount' => '50.00', 'purpose' => PaymentPurpose::Advance])])->rows[0];
+
+    expect($deposit->total)->toBeNull()
+        ->and($deposit->refusal)->not->toBeEmpty()
+        ->and($advance->total)->toBeNull()
+        ->and($advanceOnMaster->total)->toBe('-50.00');
 });

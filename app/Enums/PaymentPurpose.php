@@ -40,6 +40,22 @@ enum PaymentPurpose: string
     }
 
     /**
+     * The purposes the Manual Folio Editor offers on a folio. The stay stage does not limit them, because staff enter
+     * old payments there: a Unit folio takes all three, a Master folio Settlement and Advance, a Third party folio
+     * Settlement only. The first is the default.
+     *
+     * @return list<self>
+     */
+    public static function forManualFolio(FolioType $type): array
+    {
+        return match ($type) {
+            FolioType::Unit => [self::Settlement, self::Advance, self::SecurityDeposit],
+            FolioType::Master => [self::Settlement, self::Advance],
+            FolioType::ThirdParty => [self::Settlement],
+        };
+    }
+
+    /**
      * @return list<array{value: string, label: string}>
      */
     public static function options(): array

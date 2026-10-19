@@ -4,6 +4,7 @@ namespace App\Http\Requests\Folio;
 
 use App\Data\Folio\ManualRowData;
 use App\Enums\ManualRowType;
+use App\Enums\PaymentPurpose;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -42,6 +43,7 @@ class ManualFolioPreviewRequest extends FormRequest
             'rows.*.tax_ids' => ['nullable', 'array', 'max:20'],
             'rows.*.tax_ids.*' => ['integer'],
             'rows.*.payment_method_id' => ['nullable', 'integer'],
+            'rows.*.purpose' => ['nullable', Rule::enum(PaymentPurpose::class)],
             'rows.*.payment_id' => ['nullable', 'integer'],
             'rows.*.reference' => ['nullable', 'string', 'max:100'],
         ];
@@ -66,6 +68,7 @@ class ManualFolioPreviewRequest extends FormRequest
             paymentMethodId: isset($row['payment_method_id']) ? (int) $row['payment_method_id'] : null,
             paymentId: isset($row['payment_id']) ? (int) $row['payment_id'] : null,
             reference: $row['reference'] ?? null,
+            purpose: isset($row['purpose']) ? PaymentPurpose::from($row['purpose']) : null,
         ), $this->validated('rows')));
     }
 }

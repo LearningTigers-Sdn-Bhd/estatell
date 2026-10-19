@@ -49,6 +49,8 @@ export type ManualDraft = {
     payment_method_id: string;
     payment_id: string;
     reference: string;
+    /** A Payment row's purpose. Empty means the folio's first (default) purpose. */
+    purpose: string;
 };
 
 const TYPES: { value: RowType; label: string }[] = [
@@ -82,6 +84,7 @@ export function newDraft(
         payment_method_id: '',
         payment_id: '',
         reference: '',
+        purpose: '',
     };
 }
 
@@ -108,6 +111,8 @@ export function toPayload(row: ManualDraft): ManualPayloadRow {
             row.type === 'payment' ? toId(row.payment_method_id) : null,
         payment_id: row.type === 'refund' ? toId(row.payment_id) : null,
         reference: row.type === 'charge' ? null : row.reference,
+        purpose:
+            row.type === 'payment' && row.purpose !== '' ? row.purpose : null,
     };
 }
 
@@ -176,6 +181,7 @@ export function ManualFolioRows({
         value: String(one.id),
         label: one.label,
     }));
+    const purposeOptions = folio?.purposes ?? [];
     const methodOptions = page.paymentMethods.map((one) => ({
         value: String(one.id),
         label: one.name,
@@ -228,7 +234,9 @@ export function ManualFolioRows({
                         <TableHead className="min-w-48">Description</TableHead>
                         <TableHead className="min-w-20">Qty</TableHead>
                         <TableHead className="min-w-32">Amount</TableHead>
-                        <TableHead className="min-w-48">Taxes</TableHead>
+                        <TableHead className="min-w-48">
+                            Taxes / purpose
+                        </TableHead>
                         <TableHead className="min-w-28 text-center">
                             Total
                         </TableHead>
@@ -316,6 +324,7 @@ export function ManualFolioRows({
                                                     charge_item_id: '',
                                                     payment_method_id: '',
                                                     payment_id: '',
+                                                    purpose: '',
                                                     tax_ids: null,
                                                     reference: '',
                                                     description: '',
@@ -515,8 +524,29 @@ export function ManualFolioRows({
                                             />
                                         </div>
                                     </Cell>
-                                    <Cell label="Taxes">
-                                        {row.type === 'charge' ? (
+                                    <Cell
+                                        label={
+                                            row.type === 'payment'
+                                                ? 'Purpose'
+                                                : 'Taxes'
+                                        }
+                                    >
+                                        {row.type === 'payment' ? (
+                                            <EnumSelect
+                                                aria-label={`${label} purpose`}
+                                                options={purposeOptions}
+                                                value={
+                                                    row.purpose ||
+                                                    (purposeOptions[0]?.value ??
+                                                        '')
+                                                }
+                                                onValueChange={(value) =>
+                                                    onChange(row.key, {
+                                                        purpose: value,
+                                                    })
+                                                }
+                                            />
+                                        ) : row.type === 'charge' ? (
                                             <div className="flex items-start gap-1">
                                                 <div className="min-w-0 flex-1">
                                                     <MultiCombobox

@@ -44,6 +44,7 @@ class PaymentRefusals
             PaymentResult::REFUSAL_FOLIO_NOT_OPEN => [self::FORM, __('This folio is closed. Reopen it on the folio tab first, then try again.')],
             PaymentResult::REFUSAL_DEPOSIT_ON_UNIT_ONLY => [self::FORM, __('A security deposit stays on the unit\'s own folio. Record it on the unit folio.')],
             PaymentResult::REFUSAL_ADVANCE_ON_MASTER => [self::FORM, __('An advance for this room goes on the Master folio, because the Master folio pays the room charges. Record it there.')],
+            PaymentResult::REFUSAL_PURPOSE_NOT_OFFERED => [self::FORM, __('A third party folio takes settlement payments only.')],
             PaymentResult::REFUSAL_METHOD_NOT_AVAILABLE => ['payment_method_id', __('This payment method is not available.')],
             PaymentResult::REFUSAL_AMOUNT_INVALID => ['amount', __('Enter an amount greater than 0.')],
             PaymentResult::REFUSAL_REFERENCE_REQUIRED => ['reference', __('This payment method needs a reference.')],
