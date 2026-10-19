@@ -30,7 +30,7 @@ export function PortalSidebar() {
             )}
 
             <SidebarContent className="overscroll-none">
-                <NavMain label="" items={items.map(toNavItem)} />
+                <NavMain label="Menu" items={items.map(toNavItem)} />
             </SidebarContent>
         </Sidebar>
     );
