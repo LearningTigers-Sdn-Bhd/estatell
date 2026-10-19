@@ -1,4 +1,5 @@
 import { Link } from '@inertiajs/react';
+import { Eye } from 'lucide-react';
 import { DateText } from '@/components/pms/date-text';
 import { buttonVariants } from '@/components/ui/button';
 import { show } from '@/routes/portal/bookings';
@@ -42,6 +43,7 @@ export function PortalArrivalRow({
                         size: 'sm',
                     })}
                 >
+                    <Eye data-icon="inline-start" />
                     View
                 </Link>
             </div>

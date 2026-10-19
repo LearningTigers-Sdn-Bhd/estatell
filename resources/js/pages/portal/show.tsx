@@ -1,5 +1,15 @@
 import { Head, Link } from '@inertiajs/react';
-import { BedDouble, CalendarDays, FileText } from 'lucide-react';
+import {
+    ArrowRight,
+    BedDouble,
+    CalendarDays,
+    CalendarPlus,
+    CircleAlert,
+    Download,
+    FileText,
+    Landmark,
+    Wallet,
+} from 'lucide-react';
 import { DateText } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
 import { MoneyText } from '@/components/pms/money-text';
@@ -71,6 +81,7 @@ export default function PortalShow({
             href={create({ property: propertyCode })}
             className={buttonVariants()}
         >
+            <CalendarPlus data-icon="inline-start" />
             Book a stay
         </Link>
     );
@@ -103,6 +114,7 @@ export default function PortalShow({
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                     <PortalStatTile
                         title="Open balance"
+                        icon={Wallet}
                         figure={
                             <MoneyText
                                 amount={stats.openBalance}
@@ -113,6 +125,7 @@ export default function PortalShow({
                     />
                     <PortalStatTile
                         title="Overdue"
+                        icon={CircleAlert}
                         figure={
                             <MoneyText
                                 amount={stats.overdue}
@@ -123,11 +136,13 @@ export default function PortalShow({
                     />
                     <PortalStatTile
                         title="Arrivals, 7 days"
+                        icon={CalendarDays}
                         figure={stats.arrivals}
                         note={`${stats.inHouse} in-house now`}
                     />
                     <PortalStatTile
                         title="Credit available"
+                        icon={Landmark}
                         figure={
                             stats.creditAvailable === null ? (
                                 'No limit'
@@ -200,6 +215,7 @@ export default function PortalShow({
                                         size: 'sm',
                                     })}
                                 >
+                                    <FileText data-icon="inline-start" />
                                     View statements
                                 </Link>
                             </CardAction>
@@ -283,6 +299,7 @@ export default function PortalShow({
                                                             },
                                                         )}
                                                     >
+                                                        <Download data-icon="inline-start" />
                                                         PDF
                                                     </a>
                                                 </TableCell>
@@ -310,6 +327,7 @@ export default function PortalShow({
                                 })}
                             >
                                 View all
+                                <ArrowRight data-icon="inline-end" />
                             </Link>
                         </CardAction>
                     </CardHeader>

@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { Building2 } from 'lucide-react';
+import { ArrowRight, Building2 } from 'lucide-react';
 import { useMemo } from 'react';
 import { DataTable, dataTableColumns } from '@/components/pms/data-table';
 import { EmptyState } from '@/components/pms/empty-state';
@@ -72,6 +72,7 @@ export function PortalPropertiesTable({
                             className={buttonVariants({ size: 'sm' })}
                         >
                             Open
+                            <ArrowRight data-icon="inline-end" />
                         </Link>
                     ) : (
                         <span className="text-sm text-muted-foreground">

@@ -1,5 +1,13 @@
 import { Form, Head, Link } from '@inertiajs/react';
-import { BedDouble, Building2, CalendarDays, Mail } from 'lucide-react';
+import {
+    ArrowRight,
+    BedDouble,
+    Building2,
+    CalendarDays,
+    Check,
+    Mail,
+    X,
+} from 'lucide-react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { PageHeader } from '@/components/pms/page-header';
 import { PortalArrivalRow } from '@/components/pms/portal/portal-arrival-row';
@@ -45,6 +53,7 @@ function InvitationRow({ invitation }: { invitation: Invitation }) {
                             disabled={processing}
                             focusableWhenDisabled
                         >
+                            <X data-icon="inline-start" />
                             Decline
                         </Button>
                     )}
@@ -60,7 +69,11 @@ function InvitationRow({ invitation }: { invitation: Invitation }) {
                             disabled={processing}
                             focusableWhenDisabled
                         >
-                            {processing && <Spinner data-icon="inline-start" />}
+                            {processing ? (
+                                <Spinner data-icon="inline-start" />
+                            ) : (
+                                <Check data-icon="inline-start" />
+                            )}
                             Accept
                         </Button>
                     )}
@@ -165,6 +178,7 @@ export default function PortalIndex({
                                 })}
                             >
                                 View all
+                                <ArrowRight data-icon="inline-end" />
                             </Link>
                         </CardAction>
                     </CardHeader>
