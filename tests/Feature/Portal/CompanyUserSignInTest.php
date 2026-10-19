@@ -3,7 +3,6 @@
 use App\Actions\CityLedger\SetCompanyPortalLogin;
 use App\Models\Company;
 use App\Models\User;
-use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -22,7 +21,7 @@ test('a company user signs in with the temp password and lands on the portal pag
 
     $this->assertAuthenticatedAs($this->companyUser);
 
-    $this->actingAs($this->companyUser->refresh()->forceFill(['must_change_password' => false, 'email_verified_at' => now()]))
+    $this->actingAs($this->companyUser->refresh()->forceFill(['must_change_password' => false]))
         ->get(route('home.redirect'))
         ->assertRedirect(route('portal.index'));
 
@@ -58,21 +57,23 @@ test('a company user gets 404 on property pages and the staff dashboard route', 
         ->assertNotFound();
 });
 
-test('a login made by a property is unverified and the verification email goes out when they set their own password', function () {
+test('a login made by a property is verified, so the portal opens right after they set their own password, with no email', function () {
     Notification::fake();
 
-    expect($this->companyUser->email_verified_at)->toBeNull();
+    expect($this->companyUser->hasVerifiedEmail())->toBeTrue();
 
     $this->actingAs($this->companyUser)
         ->put(route('account.set-password.update'), ['password' => 'my-own-password', 'password_confirmation' => 'my-own-password'])
         ->assertRedirect(route('home.redirect'));
 
-    Notification::assertSentTo($this->companyUser, VerifyEmail::class);
-    Notification::assertSentToTimes($this->companyUser, VerifyEmail::class, 1);
+    Notification::assertNothingSent();
+
+    $this->get(route('home.redirect'))->assertRedirect(route('portal.index'));
+    $this->get(route('portal.index'))->assertOk();
 });
 
-test('an unverified company user waits at the verification notice, and /portal opens after verifying', function () {
-    $this->companyUser->forceFill(['must_change_password' => false, 'temporary_password' => null, 'temporary_password_expires_at' => null])->save();
+test('a company user whose email became unverified waits at the verification notice, and /portal opens after verifying', function () {
+    $this->companyUser->forceFill(['must_change_password' => false, 'temporary_password' => null, 'temporary_password_expires_at' => null, 'email_verified_at' => null])->save();
 
     $this->actingAs($this->companyUser)->get(route('portal.index'))->assertRedirect(route('verification.notice'));
     $this->get(route('verification.notice'))

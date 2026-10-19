@@ -121,6 +121,7 @@ class SetCompanyPortalLogin
             'temporary_password' => $temporaryPassword,
             'temporary_password_expires_at' => now()->addDays(CreateStaffWithTemporaryPassword::VALID_DAYS),
             'must_change_password' => true,
+            'email_verified_at' => now(),
         ])->save();
 
         $link = CompanyUser::query()->create([
