@@ -37,7 +37,7 @@ Interface `StayPricing`: `priceStay()` returns one amount breakdown per night (b
     - The adults or room part is `base` and the children or extra guests part is `extra`. Each is split across the nights with `allocate()`, the extra cents going to the first nights. `supplement` is 0.
     - Then `fitInclusions()` splits the stay again so each night covers the inclusions it posts (see [Package nights and inclusions](#package-nights-and-inclusions)).
     - The arrival weekdays are not checked here. `RestrictionCheck` reports them.
-- **Derived plans:** `RateQuoteService` prices a derived plan with its parent's strategy and rates, then `DerivedRateResolver` adjusts each night (see [derived rate plans](04-derived-rate-plans.md)). A missing parent rate is refused as `rate_missing`, and an archived parent as `plan_archived`. A derived package is priced by `PackagePricing` from its parent's package prices, then adjusted by a percent only (see [Derived packages](04-derived-rate-plans.md#derived-packages)).
+- **Derived plans:** `RateQuoteService` prices a derived plan with its parent's strategy and rates, then `DerivedRateResolver` adjusts each night (see [derived rate plans](04-derived-rate-plans.md)). A missing parent rate is refused as `rate_missing`, and an archived parent as `plan_archived`. A night before the property's go-live date with no rate prices at 0.00 instead (see [Nights without a rate](../12-reservations/12-past-and-migrated-stays.md#nights-without-a-rate)). A derived package is priced by `PackagePricing` from its parent's package prices, then adjusted by a percent only (see [Derived packages](04-derived-rate-plans.md#derived-packages)).
 
 ## Quote steps
 

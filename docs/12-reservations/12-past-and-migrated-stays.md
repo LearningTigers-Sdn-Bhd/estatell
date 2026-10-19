@@ -133,7 +133,7 @@ For a guest who is in the house on go-live day, or who checked out on or after i
 | Guest status | **Still in house** (the default): the departure is after the business date. **Already checked out**: the departure is on or before the business date, and on or after the go-live date. The form shows Guest status as a switch with an icon on each button; changing it clears the departure date. |
 | Departure    | As Guest status says. A departure after the business date with Already checked out is refused (`departure_after_today`, "Choose Still in house."). A departure before go-live is refused (`departure_before_go_live`, "The guest left before go-live. Use Old stay.").                              |
 | Rooms        | Every night has a room or bed, and must be free, as for a Past stay. Nights before go-live keep their room, so room history and the police report are complete.                                                                                                                                     |
-| Prices       | Nights before go-live show "before go-live" and no price. Their `unit_nights` rows keep the quoted amount, which is never posted.                                                                                                                                                                   |
+| Prices       | Nights before go-live show "before go-live" and no price. Their `unit_nights` rows keep the quoted amount, which is never posted. A night before go-live needs no rate: see [Nights without a rate](#nights-without-a-rate).                                                                        |
 | Old folio    | **One amount** (the default) or **Copy line by line**.                                                                                                                                                                                                                                              |
 | Reason       | Required.                                                                                                                                                                                                                                                                                           |
 
@@ -160,13 +160,13 @@ For a stay that started and ended before go-live. It keeps room history, the pol
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-| Field       | Rule                                                                                                                                                     |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Checked in  | Before the go-live date.                                                                                                                                 |
-| Checked out | On or before the day before go-live (`departure_not_before_go_live`, "This stay ends on or after go-live. Use Migrated stay."). After the check-in date. |
-| Rooms       | Every line has a room or bed for the whole stay, and every night must be free, as for a Past stay (`room_not_free`).                                     |
-| Reason      | Required.                                                                                                                                                |
-| Prices      | None shown. The nights keep the quoted amount in `unit_nights`. It is never posted.                                                                      |
+| Field       | Rule                                                                                                                                                                  |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Checked in  | Before the go-live date.                                                                                                                                              |
+| Checked out | On or before the day before go-live (`departure_not_before_go_live`, "This stay ends on or after go-live. Use Migrated stay."). After the check-in date.              |
+| Rooms       | Every line has a room or bed for the whole stay, and every night must be free, as for a Past stay (`room_not_free`).                                                  |
+| Reason      | Required.                                                                                                                                                             |
+| Prices      | None shown. The nights keep the quoted amount in `unit_nights` (0.00 when there is no rate, see [Nights without a rate](#nights-without-a-rate)). It is never posted. |
 
 `CreateOldStay` (`app/Actions/Reservations/`) runs `CreateBooking` with `allowPastArrival`, `CheckInUnit` with `asOf`, then `CheckOutUnit` with `asOf` and `skipBalanceCheck`, in one transaction. It posts no line (`PostMissedNights` and `PostRoomCharges` already refuse a night before go-live) and logs `reservation.old_stay_created`.
 
@@ -176,6 +176,15 @@ For a stay that started and ended before go-live. It keeps room history, the pol
 - No Settle dialog, no opening balance and no old folio page.
 - If staff later need a line, they reopen the folio with the existing rules and use the [manual folio page](../13-folio/08-manual-folio.md).
 - Guest profiles still come in through the guest list. This mode adds the stay to a guest's history.
+
+## Nights without a rate
+
+A night before go-live is never charged, so it needs no rate. A property that went live recently usually has none for those dates.
+
+- `RateQuoteService` prices the stay as always. If a night **before go-live** has no rate (`rate_missing`), every night before go-live prices at 0.00 and only the nights from go-live are priced and fitted to the plan's inclusions. The quote and the saved `unit_nights` rows both show 0.00.
+- A night **from go-live on** with no rate is still refused (`rate_missing`).
+- When every night has a rate, nothing changes: the nights keep their quoted amounts.
+- The rule is in the quote service, so the booking form's live quote and the save agree. A Past stay is not affected, because all its nights are on or after go-live.
 
 ## Old folio
 

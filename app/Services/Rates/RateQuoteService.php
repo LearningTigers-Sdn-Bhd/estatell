@@ -6,21 +6,27 @@ use App\Enums\PricingBasis;
 use App\Models\PropertyAgeGroup;
 use App\Models\RatePlan;
 use App\Models\RoomType;
+use App\Services\NightAudit\FirstBusinessDate;
 use App\Services\Rates\Pricing\DayUsePricing;
+use App\Services\Rates\Pricing\NightPrice;
 use App\Services\Rates\Pricing\PricedNights;
 use App\Services\Rates\Pricing\QuoteRefused;
 use App\Services\Rates\Pricing\StayContext;
+use Brick\Money\Money;
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use InvalidArgumentException;
 
 /**
  * Prices a stay night by night with the strategy of the plan's pricing basis. A derived plan is priced as its parent,
  * then adjusted by `DerivedRateResolver`. The strategy then fits the nights to the plan's inclusions. It reads only. Restrictions are
- * checked by `RestrictionCheck`, not here.
+ * checked by `RestrictionCheck`, not here. A night before the property's go-live date is never charged, so when one of
+ * them has no rate it needs none: every night before go-live then prices at 0.00 and only the nights from go-live are
+ * priced and fitted (a missing rate from go-live on is still refused).
  */
 class RateQuoteService
 {
-    public function __construct(private StayDiscount $stayDiscount, private DerivedRateResolver $derivedRateResolver, private DayUsePricing $dayUsePricing) {}
+    public function __construct(private StayDiscount $stayDiscount, private DerivedRateResolver $derivedRateResolver, private DayUsePricing $dayUsePricing, private FirstBusinessDate $firstBusinessDate) {}
 
     public function quote(RateQuoteRequest $request): RateQuote
     {
@@ -106,16 +112,57 @@ class RateQuoteService
         [$adults, $childAgeGroupIds] = $this->splitGuests($request);
         $stay = new StayContext($pricingPlan, $roomType, $adults, $childAgeGroupIds, $request->beds, $currency);
         $strategy = app($pricingPlan->pricing_basis->strategy());
-        $nights = $strategy->priceStay($stay, $arrival, $departure);
+        $unpriced = [];
 
-        if ($pricingPlan !== $plan) {
+        try {
+            $nights = $strategy->priceStay($stay, $arrival, $departure);
+        } catch (QuoteRefused $refused) {
+            $goLive = $this->goLiveFor($pricingPlan, $refused);
+
+            if ($goLive === null) {
+                throw $refused;
+            }
+
+            $zero = Money::zero($currency);
+
+            for ($date = $arrival; $date->lt($departure) && $date->lt($goLive); $date = $date->addDay()) {
+                $unpriced[] = NightPrice::of($date, $zero, $zero, $zero);
+            }
+
+            $nights = $goLive->lt($departure) ? $strategy->priceStay($stay, $goLive, $departure) : [];
+        }
+
+        if ($nights !== [] && $pricingPlan !== $plan) {
             $units = $strategy->discountUnits($stay);
             $nights = array_map(fn ($night) => $this->derivedRateResolver->resolve($night, $plan, $units), $nights);
         }
 
-        $nights = $strategy->fitInclusions($nights, $plan->loadMissing('inclusions')->inclusions, $adults + count($childAgeGroupIds));
+        if ($nights !== []) {
+            $nights = $strategy->fitInclusions($nights, $plan->loadMissing('inclusions')->inclusions, $adults + count($childAgeGroupIds));
+        }
 
-        return new PricedNights($nights, $strategy->discountUnits($stay));
+        $all = array_values([...$unpriced, ...$nights]);
+
+        if ($all === []) {
+            throw new QuoteRefused(RateQuote::REFUSAL_INVALID_STAY);
+        }
+
+        return new PricedNights($all, $strategy->discountUnits($stay));
+    }
+
+    /**
+     * The go-live date when the refusal is a missing rate on a night before it, so those nights need no rate. Null for
+     * any other refusal, and for a missing rate from go-live on.
+     */
+    private function goLiveFor(RatePlan $pricingPlan, QuoteRefused $refused): ?CarbonImmutable
+    {
+        if ($refused->reason !== RateQuote::REFUSAL_RATE_MISSING || $refused->date === null) {
+            return null;
+        }
+
+        $goLive = $this->firstBusinessDate->date($pricingPlan->property);
+
+        return $goLive !== null && $refused->date->toImmutable()->startOfDay()->lt($goLive) ? $goLive : null;
     }
 
     /**

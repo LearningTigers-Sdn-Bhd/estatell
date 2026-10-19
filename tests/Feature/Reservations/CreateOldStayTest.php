@@ -11,8 +11,11 @@ use App\Enums\HousekeepingStatus;
 use App\Enums\UnitStatus;
 use App\Models\Folio;
 use App\Models\FolioLine;
+use App\Models\Rate;
 use App\Models\Reservation;
 use App\Models\RoomStatus;
+use App\Services\Reservations\BookingQuote;
+use Carbon\CarbonImmutable;
 use Database\Factories\BookingSourceFactory;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
@@ -130,4 +133,38 @@ test('a refused old stay goes back to the form with the error and saves nothing'
         ->assertSessionHasErrors('departure_date');
 
     expect(Reservation::query()->count())->toBe(0);
+});
+
+test('a night before go-live with no rate prices at 0.00, and an old stay and a migrated stay can still be saved', function () {
+    $setup = migratedStaySetup();
+    Rate::query()->where('date', '<', '2026-10-10')->delete();
+
+    $old = makeOldStay($setup);
+    $migrated = createMigratedStay([...$setup, 'rooms' => [$setup['rooms'][1]]], ['arrivalDate' => '2026-10-08']);
+
+    expect($old->refusal)->toBeNull()
+        ->and($old->reservation->units()->sole()->nights()->pluck('amount')->all())->toBe(['0.00'])
+        ->and($migrated->refusal)->toBeNull()
+        ->and($migrated->reservation->units()->sole()->nights()->orderBy('date')->limit(2)->pluck('amount')->all())->toBe(['0.00', '0.00'])
+        ->and(nightServiceDates())->toBe(['2026-10-10', '2026-10-11', '2026-10-12', '2026-10-13']);
+});
+
+test('a missing rate from go-live on is still refused', function () {
+    $setup = migratedStaySetup();
+    Rate::query()->where('date', '>=', '2026-10-11')->delete();
+
+    $result = createMigratedStay($setup, ['arrivalDate' => '2026-10-08']);
+
+    expect($result->refusal)->toBe('rate_missing')
+        ->and(Reservation::query()->count())->toBe(0);
+});
+
+test('the booking quote shows a night before go-live without a rate as 0.00', function () {
+    $setup = migratedStaySetup();
+    Rate::query()->where('date', '<', '2026-10-10')->delete();
+
+    $quote = app(BookingQuote::class)->line($setup['property'], $setup['roomType']->id, $setup['plan']->id, CarbonImmutable::parse('2026-10-08'), CarbonImmutable::parse('2026-10-12'), 2, [], 1);
+
+    expect($quote->errors)->toBe([])
+        ->and(array_map(fn ($night) => $night->amount, $quote->nights))->toBe(['0.00', '0.00', '100.00', '100.00']);
 });
