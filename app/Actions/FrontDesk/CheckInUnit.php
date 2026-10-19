@@ -53,8 +53,8 @@ class CheckInUnit
      * `PostDayUseBlock`. A posting refusal rolls the whole check-in back.
      * A unit that arrives after its arrival date gets the nights it missed: `PostMissedNights` runs after the check-in,
      * so each night before the business date posts with its own service date, and a refusal rolls the check-in back.
-     * `$asOf` is the moment the guest really checked in, for a past stay entered late (`CreatePastStay`); it only sets
-     * `checked_in_at`. Permissions are checked by the route. See docs/18-front-desk/01-check-in-and-check-out.md.
+     * `$asOf` is the moment the guest really checked in, for a past stay entered late (`CreatePastStay`): it sets
+     * `checked_in_at`, and the arrival, the end of the stay and the room are checked on that day, not on the business date. Permissions are checked by the route. See docs/18-front-desk/01-check-in-and-check-out.md.
      */
     public function __invoke(User $actor, ReservationUnit $unit, bool $withoutCard = false, ?string $creditOverrideReason = null, ?CarbonImmutable $asOf = null): UnitStayResult
     {
@@ -74,14 +74,15 @@ class CheckInUnit
                 }
 
                 $today = $businessDate->toDateString();
+                $checkInDay = $asOf?->toDateString() ?? $today;
 
-                if ($today < $locked->arrival_date->toDateString()) {
+                if ($checkInDay < $locked->arrival_date->toDateString()) {
                     return UnitStayResult::refused(UnitStayResult::REFUSAL_ARRIVAL_NOT_REACHED);
                 }
 
                 $isDayUse = $locked->stay_type === StayType::DayUse;
 
-                if ($isDayUse ? $today > $locked->arrival_date->toDateString() : $today >= $locked->departure_date->toDateString()) {
+                if ($isDayUse ? $checkInDay > $locked->arrival_date->toDateString() : $checkInDay >= $locked->departure_date->toDateString()) {
                     return UnitStayResult::refused(UnitStayResult::REFUSAL_STAY_ENDED);
                 }
 
@@ -93,11 +94,11 @@ class CheckInUnit
                         return UnitStayResult::refused(UnitStayResult::REFUSAL_NO_ROOM_ASSIGNED);
                     }
                 } else {
-                    $tonight = $locked->nights()->whereDate('date', $today)->first();
+                    $tonight = $locked->nights()->whereDate('date', $checkInDay)->first();
 
                     if ($tonight !== null && $tonight->room_id === null && $tonight->bed_id === null && $property->settings?->auto_assign_rooms) {
                         ($this->autoAssignRooms)($actor, $locked);
-                        $tonight = $locked->nights()->whereDate('date', $today)->first();
+                        $tonight = $locked->nights()->whereDate('date', $checkInDay)->first();
                     }
 
                     if ($tonight === null || ($tonight->room_id === null && $tonight->bed_id === null)) {

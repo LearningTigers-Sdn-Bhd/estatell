@@ -32,7 +32,7 @@ use Inertia\Response;
  */
 class ReservationFolioManualController extends Controller
 {
-    private const string REASON_KEY = 'manual_folio_reason';
+    public const string REASON_KEY = 'manual_folio_reason';
 
     /**
      * Keep the reason for the page that comes next and open it. Nothing is written.

@@ -6,10 +6,14 @@ use App\Actions\Reservations\BookingResult;
 use App\Actions\Reservations\CreatePastStay;
 use App\Data\Reservations\NewBookingData;
 use App\Enums\BookingSourceType;
+use App\Enums\FolioStatus;
+use App\Enums\HousekeepingStatus;
 use App\Enums\UnitStatus;
 use App\Models\FolioLine;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
+use App\Models\RoomStatus;
+use App\Services\Folio\FolioBalance;
 use Database\Factories\BookingSourceFactory;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
@@ -19,7 +23,7 @@ use Spatie\Activitylog\Models\Activity;
  * @param  array<string, mixed>  $line
  * @param  array<string, mixed>  $data
  */
-function createPastStay(array $setup, array $line = [], string $reason = 'Walk-in entered late', array $data = []): BookingResult
+function createPastStay(array $setup, array $line = [], string $reason = 'Walk-in entered late', array $data = [], bool $checkedOut = false): BookingResult
 {
     return app(CreatePastStay::class)($setup['user'], $setup['property'], NewBookingData::from([
         'bookingSource' => BookingSourceFactory::systemFor($setup['property']->id, BookingSourceType::WalkIn),
@@ -27,7 +31,7 @@ function createPastStay(array $setup, array $line = [], string $reason = 'Walk-i
         'guests' => [['guestId' => $setup['guest']->id, 'unitIndex' => 0]],
         'picks' => [['unitIndex' => 0, 'roomId' => $setup['rooms'][0]->id]],
         ...$data,
-    ]), $reason, true);
+    ]), $reason, true, $checkedOut);
 }
 
 /**
@@ -142,4 +146,45 @@ test('a past stay needs a reason and a room', function () {
     $this->actingAs($setup['user'])->post($url, $noRoom)->assertSessionHasErrors('lines.0.room_id');
     $this->actingAs($setup['user'])->post($url, pastStayBody($setup, ['arrival_date' => '2026-10-14']))->assertSessionHasErrors('arrival_date');
     expect(Reservation::query()->count())->toBe(0);
+});
+
+test('an already checked out stay is checked out on its departure date with the folio left open', function () {
+    $setup = pastStaySetup();
+
+    $result = createPastStay($setup, ['arrivalDate' => '2026-10-11', 'departureDate' => '2026-10-13', 'departureTime' => '11:00'], checkedOut: true);
+
+    expect($result->refusal)->toBeNull();
+    $unit = $result->reservation->units()->sole();
+    $folio = $result->reservation->folios()->sole();
+
+    expect($result->isRefused())->toBeFalse()
+        ->and($unit->status)->toBe(UnitStatus::CheckedOut)
+        ->and($unit->checked_out_at->format('Y-m-d H:i'))->toBe('2026-10-13 11:00')
+        ->and($folio->status)->toBe(FolioStatus::Open)
+        ->and(app(FolioBalance::class)->forFolio($folio))->not->toBe('0.00')
+        ->and(FolioLine::query()->where('idempotency_key', 'like', 'night:%')->whereNull('parent_line_id')->count())->toBe(2)
+        ->and(RoomStatus::query()->where('room_id', $setup['rooms'][0]->id)->value('status'))->not->toBe(HousekeepingStatus::Dirty);
+});
+
+test('an already checked out stay cannot depart after the business date', function () {
+    $setup = pastStaySetup();
+
+    $result = createPastStay($setup, ['departureDate' => '2026-10-16'], checkedOut: true);
+
+    expect($result->refusal)->toBe(BookingResult::REFUSAL_DEPARTURE_AFTER_TODAY)
+        ->and(Reservation::query()->count())->toBe(0);
+});
+
+test('saving an already checked out stay opens the manual folio page with the reason', function () {
+    $setup = pastStaySetup();
+
+    $response = $this->actingAs($setup['user'])->post(route('reservations.store-past', ['property' => $setup['property']->code]), pastStayBody($setup, ['status' => 'checked_out', 'arrival_date' => '2026-10-11', 'departure_date' => '2026-10-13']));
+
+    $reservation = Reservation::query()->sole();
+    $folio = $reservation->folios()->sole();
+    $response->assertRedirect(route('reservations.folios.manual', ['property' => $setup['property']->code, 'reservation' => $reservation, 'folio' => $folio]));
+
+    $this->get($response->headers->get('Location'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where('manual.reason', 'Walk-in entered late'));
 });

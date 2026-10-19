@@ -58,15 +58,15 @@ Restrictions (min stay, closed to arrival) are not checked for the past nights. 
 `CreatePastStay` (`app/Actions/Reservations/`) runs the existing Actions in one transaction:
 
 1. `CreateBooking` with `allowPastArrival` (new flag, only this Action passes it), so the arrival check and the restriction check are skipped and the room picks are required. Availability is still checked.
-2. `CheckInUnit` for each unit, with `checked_in_at` set to the entered date and time through the new `asOf` input. The nationality check runs as at a normal check-in. The registration card rule is skipped for a user with `front-desk.check-in-without-card`, because no card can exist before the stay is saved.
+2. `CheckInUnit` for each unit, with `checked_in_at` set to the entered date and time through the new `asOf` input. The arrival, the end of the stay and tonight's room are checked on that day, not on the business date, so a stay that has already ended can still be checked in. The nationality check runs as at a normal check-in. The registration card rule is skipped for a user with `front-desk.check-in-without-card`, because no card can exist before the stay is saved.
 3. `PostMissedNights` for each unit (below). `CheckInUnit` calls it itself, so `CreatePastStay` does not call it twice.
-4. **Already checked out**: `CheckOutUnit` for each unit with `checked_out_at` set to the entered departure, skipping the balance check (`skipBalanceCheck`, only this Action passes it). The folio stays **Open** with its balance. The room is not marked Dirty: the stay ended in the past.
+4. **Already checked out**: `CheckOutUnit` for each unit with `checked_out_at` set to the entered departure date and time (`asOf`), skipping the balance check and the closing of the folios (`skipBalanceCheck`, only this Action passes it). The folio stays **Open** with its balance. The room is not marked Dirty: the stay ended in the past.
 5. Logs `reservation.past_stay_created` with the reason and the units.
 
 Any refusal rolls everything back and names the line. On success:
 
 - **Still in house** opens the folio tab.
-- **Already checked out** opens the [manual folio page](../13-folio/08-manual-folio.md) with the reason filled in, so staff enter the payments and close the folio.
+- **Already checked out** opens the [manual folio page](../13-folio/08-manual-folio.md) on the first folio of the stay, with the past stay reason as the page reason, so staff enter the payments and close the folio. A departure after the business date is refused (`departure_after_today`, "Choose Still in house."). The form shows Status as a switch; changing it clears the departure date.
 
 No policy runs: no no-show, cancellation, early departure or late check-out fee.
 

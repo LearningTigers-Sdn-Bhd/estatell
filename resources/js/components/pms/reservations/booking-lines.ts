@@ -56,6 +56,8 @@ export type BookingForm = {
     notes: string;
     /** Past stay only: why the stay is entered late. */
     reason?: string;
+    /** Past stay only: still in the house, or already checked out. */
+    status?: 'in_house' | 'checked_out';
     guests: BookingGuest[];
     lines: BookingLine[];
     /** Overnight only: the Boat in and Boat out picks, applied to every line. A day use block takes none. */

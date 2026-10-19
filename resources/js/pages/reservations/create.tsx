@@ -215,6 +215,7 @@ export default function ReservationCreate({
         stay_type: 'overnight',
         start_time: '',
         reason: '',
+        status: 'in_house',
         booking_source_id: defaultSourceId(isPastStay),
         external_reference: '',
         arrival_date: isPastStay ? addDays(today, -1) : today,
@@ -317,6 +318,7 @@ export default function ReservationCreate({
         (source) => String(source.id) === data.booking_source_id,
     )?.type;
     const isDayUse = data.stay_type === 'day_use' && !isPastStay;
+    const isCheckedOut = isPastStay && data.status === 'checked_out';
     // A refusal of the start of a block can come back on the form or on a line.
     const startError =
         errors.start_time ??
@@ -709,18 +711,25 @@ export default function ReservationCreate({
                                                     }
                                                     min={
                                                         data.arrival_date &&
-                                                        !isPastStay
+                                                        !(
+                                                            isPastStay &&
+                                                            !isCheckedOut
+                                                        )
                                                             ? addDays(
                                                                   data.arrival_date,
                                                                   1,
                                                               )
                                                             : addDays(today, 1)
                                                     }
-                                                    max={addDays(
-                                                        data.arrival_date ||
-                                                            today,
-                                                        LONGEST_STAY_DAYS,
-                                                    )}
+                                                    max={
+                                                        isCheckedOut
+                                                            ? today
+                                                            : addDays(
+                                                                  data.arrival_date ||
+                                                                      today,
+                                                                  LONGEST_STAY_DAYS,
+                                                              )
+                                                    }
                                                     onDateChange={(value) =>
                                                         form.setData(
                                                             'departure_date',
@@ -764,6 +773,41 @@ export default function ReservationCreate({
                                         </div>
                                     )}
                                     {isPastStay && (
+                                        <Field>
+                                            <FieldLabel>Status</FieldLabel>
+                                            <ToggleGroup
+                                                variant="outline"
+                                                spacing={0}
+                                                value={[
+                                                    data.status ?? 'in_house',
+                                                ]}
+                                                onValueChange={(value) =>
+                                                    value[0] &&
+                                                    form.setData((current) => ({
+                                                        ...current,
+                                                        status: value[0] as
+                                                            | 'in_house'
+                                                            | 'checked_out',
+                                                        departure_date: '',
+                                                    }))
+                                                }
+                                                aria-label="Status"
+                                            >
+                                                <ToggleGroupItem value="in_house">
+                                                    Still in house
+                                                </ToggleGroupItem>
+                                                <ToggleGroupItem value="checked_out">
+                                                    Already checked out
+                                                </ToggleGroupItem>
+                                            </ToggleGroup>
+                                            <FieldDescription>
+                                                {isCheckedOut
+                                                    ? 'The guest has left. The folio stays open so you can enter the payments.'
+                                                    : 'The guest is in the house now. Departure is after today.'}
+                                            </FieldDescription>
+                                        </Field>
+                                    )}
+                                    {isPastStay && (
                                         <Field data-invalid={!!errors.reason}>
                                             <FieldLabel htmlFor="booking-reason">
                                                 Reason
@@ -784,8 +828,7 @@ export default function ReservationCreate({
                                             />
                                             <FieldDescription>
                                                 Nights before {today} post now
-                                                with their own dates. The guest
-                                                is still in the house.
+                                                with their own dates.
                                             </FieldDescription>
                                             <FieldError>
                                                 {errors.reason}
@@ -1525,7 +1568,11 @@ export default function ReservationCreate({
                         ) : (
                             <CalendarPlus data-icon="inline-start" />
                         )}
-                        {isPastStay ? 'Save and open folio' : 'Create booking'}
+                        {isCheckedOut
+                            ? 'Save and open manual folio'
+                            : isPastStay
+                              ? 'Save and open folio'
+                              : 'Create booking'}
                     </Button>
                 </FormActions>
             </form>

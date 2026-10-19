@@ -70,11 +70,12 @@ class ReservationBookingController extends Controller
 
     /**
      * Save a past stay. A refusal goes back to the form as errors keyed by line, and nothing is saved. On success the
-     * folio tab opens, with the nights already posted.
+     * folio tab opens, with the nights already posted. A stay that is already checked out opens the manual folio page
+     * with the reason filled in, so staff enter the payments and close the folio.
      */
     public function storePast(StorePastStayRequest $request, Property $property, CreatePastStay $createPastStay, BookingErrorKeys $errorKeys): RedirectResponse
     {
-        $result = $createPastStay($request->user(), $property, $request->toBookingData(), $request->reason(), $request->withoutCard());
+        $result = $createPastStay($request->user(), $property, $request->toBookingData(), $request->reason(), $request->withoutCard(), $request->checkedOut());
 
         if ($result->isRefused()) {
             return back(fallback: route('reservations.past', ['property' => $property]))->withErrors(
@@ -83,6 +84,12 @@ class ReservationBookingController extends Controller
         }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Past stay :reference created.', ['reference' => $result->reservation->reference])]);
+
+        if ($request->checkedOut()) {
+            $request->session()->flash(ReservationFolioManualController::REASON_KEY, $request->reason());
+
+            return redirect(route('reservations.folios.manual', ['property' => $property, 'reservation' => $result->reservation, 'folio' => $result->reservation->folios()->orderBy('id')->firstOrFail()]));
+        }
 
         return to_route('reservations.folio', ['property' => $property, 'reservation' => $result->reservation]);
     }

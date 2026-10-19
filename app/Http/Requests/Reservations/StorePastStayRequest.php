@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Reservations;
 
 use App\Enums\PermissionEnum;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
 class StorePastStayRequest extends StoreBookingRequest
@@ -17,6 +18,7 @@ class StorePastStayRequest extends StoreBookingRequest
         return [
             ...parent::rules(),
             'reason' => ['required', 'string', 'max:500'],
+            'status' => ['nullable', Rule::in(['in_house', 'checked_out'])],
             'departure_date' => ['required', 'date_format:Y-m-d'],
         ];
     }
@@ -64,6 +66,14 @@ class StorePastStayRequest extends StoreBookingRequest
     public function withoutCard(): bool
     {
         return $this->user()->can(PermissionEnum::FrontDeskCheckInWithoutCard->value);
+    }
+
+    /**
+     * Already checked out, as against Still in house (the default).
+     */
+    public function checkedOut(): bool
+    {
+        return $this->validated('status') === 'checked_out';
     }
 
     public function reason(): string

@@ -19,6 +19,8 @@ use App\Services\Folio\FolioBalance;
 use App\Services\FrontDesk\CheckOutSettlement;
 use App\Services\NightAudit\CurrentBusinessDate;
 use Brick\Math\BigDecimal;
+use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
 class CheckOutUnit
@@ -41,20 +43,23 @@ class CheckOutUnit
      * (at 0 by the check above), which issues the folio's invoice number once. A close that is refused (a posting raced
      * in) rolls the check-out back as `balance_not_settled`. Master and ThirdParty folios stay Open. No `folio.close`
      * is needed: closing is part of check-out. A stay is checked out on or after its departure date. A shorter stay is changed first
-     * with `ChangeUnitDates`. Permissions are checked by the route. See docs/18-front-desk/01-check-in-and-check-out.md.
+     * with `ChangeUnitDates`. `$asOf` is the moment the guest really left, for a past stay entered after it ended
+     * (`CreatePastStay`); it sets `checked_out_at`. `$skipBalanceCheck` (only `CreatePastStay` passes it) leaves the
+     * balance, the scheduled-charge check and the folios alone: the folios stay Open with their balance, and the
+     * room is not marked Dirty, because the stay ended in the past. Permissions are checked by the route. See docs/18-front-desk/01-check-in-and-check-out.md.
      */
-    public function __invoke(User $actor, ReservationUnit $unit): UnitStayResult
+    public function __invoke(User $actor, ReservationUnit $unit, ?CarbonImmutable $asOf = null, bool $skipBalanceCheck = false): UnitStayResult
     {
         try {
-            return $this->checkOut($actor, $unit);
+            return $this->checkOut($actor, $unit, $asOf, $skipBalanceCheck);
         } catch (UnitStayRefused $refused) {
             return $refused->result;
         }
     }
 
-    private function checkOut(User $actor, ReservationUnit $unit): UnitStayResult
+    private function checkOut(User $actor, ReservationUnit $unit, ?CarbonImmutable $asOf, bool $skipBalanceCheck): UnitStayResult
     {
-        return DB::transaction(function () use ($actor, $unit): UnitStayResult {
+        return DB::transaction(function () use ($actor, $unit, $asOf, $skipBalanceCheck): UnitStayResult {
             $locked = ReservationUnit::query()->lockForUpdate()->findOrFail($unit->id);
 
             if (! $locked->status->canTransitionTo(UnitStatus::CheckedOut)) {
@@ -73,29 +78,26 @@ class CheckOutUnit
                 return UnitStayResult::refused(UnitStayResult::REFUSAL_BEFORE_DEPARTURE_DATE);
             }
 
-            $folios = $this->checkOutSettlement->folios($locked);
-            $incoming = $this->checkOutSettlement->incomingScheduled($locked, $folios);
+            if (! $skipBalanceCheck) {
+                $folios = $this->checkOutSettlement->folios($locked);
+                $incoming = $this->checkOutSettlement->incomingScheduled($locked, $folios);
 
-            if ($incoming !== []) {
-                return UnitStayResult::refused(UnitStayResult::REFUSAL_RECEIVES_SCHEDULED_CHARGES, $incoming);
-            }
+                if ($incoming !== []) {
+                    return UnitStayResult::refused(UnitStayResult::REFUSAL_RECEIVES_SCHEDULED_CHARGES, $incoming);
+                }
 
-            $unsettled = $folios->contains(fn (Folio $folio): bool => ! BigDecimal::of($this->folioBalance->forFolio($folio))->isZero());
+                $unsettled = $folios->contains(fn (Folio $folio): bool => ! BigDecimal::of($this->folioBalance->forFolio($folio))->isZero());
 
-            if ($unsettled) {
-                return UnitStayResult::refused(UnitStayResult::REFUSAL_BALANCE_NOT_SETTLED, $this->checkOutSettlement->heldForOtherRooms($locked, $folios));
+                if ($unsettled) {
+                    return UnitStayResult::refused(UnitStayResult::REFUSAL_BALANCE_NOT_SETTLED, $this->checkOutSettlement->heldForOtherRooms($locked, $folios));
+                }
             }
 
             $locked->status = UnitStatus::CheckedOut;
-            $locked->checked_out_at = now();
+            $locked->checked_out_at = $asOf ?? now();
             $locked->save();
 
-            $openFolios = Folio::query()
-                ->where('reservation_unit_id', $locked->id)
-                ->where('type', FolioType::Unit)
-                ->where('status', FolioStatus::Open)
-                ->orderBy('id')
-                ->get();
+            $openFolios = $skipBalanceCheck ? [] : $this->openUnitFolios($locked);
 
             foreach ($openFolios as $folio) {
                 $closed = ($this->closeFolio)($actor, $folio);
@@ -111,12 +113,8 @@ class CheckOutUnit
 
             $roomId = $this->roomOf($locked, $today);
 
-            if ($roomId !== null) {
-                RoomStatus::query()->where('room_id', $roomId)->update([
-                    'status' => HousekeepingStatus::Dirty,
-                    'last_changed_by' => $actor->id,
-                    'last_changed_at' => now(),
-                ]);
+            if (! $skipBalanceCheck) {
+                $this->markRoomDirty($actor, $roomId);
             }
 
             activity()
@@ -135,6 +133,32 @@ class CheckOutUnit
 
             return UnitStayResult::done($locked);
         });
+    }
+
+    /**
+     * @return Collection<int, Folio>
+     */
+    private function openUnitFolios(ReservationUnit $unit): Collection
+    {
+        return Folio::query()
+            ->where('reservation_unit_id', $unit->id)
+            ->where('type', FolioType::Unit)
+            ->where('status', FolioStatus::Open)
+            ->orderBy('id')
+            ->get();
+    }
+
+    private function markRoomDirty(User $actor, ?int $roomId): void
+    {
+        if ($roomId === null) {
+            return;
+        }
+
+        RoomStatus::query()->where('room_id', $roomId)->update([
+            'status' => HousekeepingStatus::Dirty,
+            'last_changed_by' => $actor->id,
+            'last_changed_at' => now(),
+        ]);
     }
 
     /**
