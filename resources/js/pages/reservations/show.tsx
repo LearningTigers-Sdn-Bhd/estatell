@@ -5,6 +5,7 @@ import type { EnumOption } from '@/components/pms/enum-select';
 import { DateText } from '@/components/pms/date-text';
 import { FolioRail } from '@/components/pms/folio/folio-rail';
 import { FolioTab } from '@/components/pms/folio/folio-tab';
+import { SettlePastStayDialog } from '@/components/pms/folio/settle-past-stay-dialog';
 import { PageHeader } from '@/components/pms/page-header';
 import { TabLinks } from '@/components/pms/tab-links';
 import { ReservationActions } from '@/components/pms/reservations/reservation-actions';
@@ -76,6 +77,7 @@ type Props = {
     manualLines?: Record<number, App.Data.Folio.ManualLineData>;
     manualFolios?: App.Data.Folio.ManualFolioOptionData[];
     oldFolioUrl?: string | null;
+    settlePastStayUrl?: string | null;
     manualTaxes?: App.Data.Catalogues.ChargeItemTaxData[];
     voucher: { kinds: { value: string; label: string }[]; maxLines: number };
     activity?: Illuminate.LengthAwarePaginator<
@@ -128,6 +130,7 @@ export default function ReservationShow({
     manualLines = {},
     manualFolios,
     oldFolioUrl = null,
+    settlePastStayUrl = null,
     manualTaxes,
     voucher,
     activity,
@@ -322,30 +325,37 @@ export default function ReservationShow({
                                 currency={currency}
                             />
                         ) : tab === 'folio' ? (
-                            <FolioTab
-                                reservationId={reservation.id}
-                                units={units}
-                                folio={folio}
-                                chargeItems={chargeItems}
-                                chargeCodes={chargeCodes}
-                                folioDiscounts={folioDiscounts}
-                                manualReasons={manualReasons}
-                                paymentOptions={paymentOptions}
-                                canViewCompany={canViewCompany}
-                                companies={companies}
-                                canManageRouting={canManageRouting}
-                                routingRules={routingRules}
-                                creditInvoice={creditInvoice}
-                                manualLines={manualLines}
-                                manualFolios={manualFolios}
-                                oldFolioUrl={oldFolioUrl}
-                                manualTaxes={manualTaxes}
-                                voucher={voucher}
-                                summaryHidden={summaryHidden}
-                                onToggleSummary={toggleSummary}
-                                onCorrectPrice={correctPrice}
-                                currency={currency}
-                            />
+                            <>
+                                <FolioTab
+                                    reservationId={reservation.id}
+                                    units={units}
+                                    folio={folio}
+                                    chargeItems={chargeItems}
+                                    chargeCodes={chargeCodes}
+                                    folioDiscounts={folioDiscounts}
+                                    manualReasons={manualReasons}
+                                    paymentOptions={paymentOptions}
+                                    canViewCompany={canViewCompany}
+                                    companies={companies}
+                                    canManageRouting={canManageRouting}
+                                    routingRules={routingRules}
+                                    creditInvoice={creditInvoice}
+                                    manualLines={manualLines}
+                                    manualFolios={manualFolios}
+                                    oldFolioUrl={oldFolioUrl}
+                                    manualTaxes={manualTaxes}
+                                    voucher={voucher}
+                                    summaryHidden={summaryHidden}
+                                    onToggleSummary={toggleSummary}
+                                    onCorrectPrice={correctPrice}
+                                    currency={currency}
+                                />
+                                {settlePastStayUrl && (
+                                    <SettlePastStayDialog
+                                        manualUrl={settlePastStayUrl}
+                                    />
+                                )}
+                            </>
                         ) : tab === 'activity' && activity ? (
                             <ActivityTab activity={activity} />
                         ) : (

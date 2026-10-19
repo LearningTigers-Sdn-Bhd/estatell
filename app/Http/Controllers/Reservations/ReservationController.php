@@ -197,8 +197,15 @@ class ReservationController extends Controller
             $folio = $folioProps['folio'] ?? null;
             $manual = $folio?->canManageManually === true;
 
+            $settleFolioId = $request->user()->can(PermissionEnum::FolioManual->value) ? $request->session()->get(ReservationFolioManualController::SETTLE_PROMPT_KEY) : null;
+
+            if ($settleFolioId !== null) {
+                $request->session()->keep([ReservationFolioManualController::REASON_KEY]);
+            }
+
             return [
                 ...$folioProps,
+                'settlePastStayUrl' => $settleFolioId === null ? null : route('reservations.folios.manual', ['property' => $property, 'reservation' => $reservation, 'folio' => $settleFolioId]),
                 'manualLines' => $manual ? $lineMenu->apply($request->user(), $folio, $property->id, true, fn (): bool => app(MigrationWindow::class)->isOpen($property)) : [],
                 'oldFolioUrl' => $oldFolioPage->isAvailable($request->user(), $property, $reservation) ? route('reservations.old-folio', ['property' => $property, 'reservation' => $reservation]) : null,
                 'manualFolios' => Inertia::optional(fn (): array => $manual ? $manualPage->folioOptions($reservation) : []),

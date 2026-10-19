@@ -110,9 +110,12 @@ class ReservationBookingController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Past stay :reference created.', ['reference' => $result->reservation->reference])]);
 
         if ($request->checkedOut()) {
-            $request->session()->flash(ReservationFolioManualController::REASON_KEY, $request->reason());
+            $folio = $result->reservation->folios()->orderBy('id')->firstOrFail();
 
-            return redirect(route('reservations.folios.manual', ['property' => $property, 'reservation' => $result->reservation, 'folio' => $result->reservation->folios()->orderBy('id')->firstOrFail()]));
+            $request->session()->flash(ReservationFolioManualController::REASON_KEY, $request->reason());
+            $request->session()->flash(ReservationFolioManualController::SETTLE_PROMPT_KEY, $folio->id);
+
+            return to_route('reservations.folio', ['property' => $property, 'reservation' => $result->reservation, 'folio' => $folio->id]);
         }
 
         return to_route('reservations.folio', ['property' => $property, 'reservation' => $result->reservation]);

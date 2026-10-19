@@ -175,16 +175,33 @@ test('an already checked out stay cannot depart after the business date', functi
         ->and(Reservation::query()->count())->toBe(0);
 });
 
-test('saving an already checked out stay opens the manual folio page with the reason', function () {
+test('saving an already checked out stay opens the folio tab with the settle prompt, and Settle now keeps the reason', function () {
     $setup = pastStaySetup();
 
     $response = $this->actingAs($setup['user'])->post(route('reservations.store-past', ['property' => $setup['property']->code]), pastStayBody($setup, ['status' => 'checked_out', 'arrival_date' => '2026-10-11', 'departure_date' => '2026-10-13']));
 
     $reservation = Reservation::query()->sole();
     $folio = $reservation->folios()->sole();
-    $response->assertRedirect(route('reservations.folios.manual', ['property' => $setup['property']->code, 'reservation' => $reservation, 'folio' => $folio]));
+    $manualUrl = route('reservations.folios.manual', ['property' => $setup['property']->code, 'reservation' => $reservation, 'folio' => $folio]);
+    $response->assertRedirect(route('reservations.folio', ['property' => $setup['property']->code, 'reservation' => $reservation, 'folio' => $folio->id]));
 
     $this->get($response->headers->get('Location'))
         ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where('settlePastStayUrl', $manualUrl));
+
+    $this->get($manualUrl)
+        ->assertOk()
         ->assertInertia(fn (Assert $page) => $page->where('manual.reason', 'Walk-in entered late'));
+});
+
+test('the folio tab shows no settle prompt unless a checked out past stay was just saved', function () {
+    $setup = pastStaySetup();
+
+    $this->actingAs($setup['user'])->post(route('reservations.store-past', ['property' => $setup['property']->code]), pastStayBody($setup, ['status' => 'checked_out', 'arrival_date' => '2026-10-11', 'departure_date' => '2026-10-13']));
+
+    $reservation = Reservation::query()->sole();
+    $url = route('reservations.folio', ['property' => $setup['property']->code, 'reservation' => $reservation]);
+
+    $this->get($url);
+    $this->get($url)->assertInertia(fn (Assert $page) => $page->where('settlePastStayUrl', null));
 });

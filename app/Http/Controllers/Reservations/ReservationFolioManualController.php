@@ -35,6 +35,9 @@ class ReservationFolioManualController extends Controller
 {
     public const string REASON_KEY = 'manual_folio_reason';
 
+    /** Set after a checked-out past stay is saved: the id of the folio the settle-now dialog offers to open. */
+    public const string SETTLE_PROMPT_KEY = 'settle_past_stay_folio';
+
     /**
      * Keep the reason for the page that comes next and open it. Nothing is written.
      */

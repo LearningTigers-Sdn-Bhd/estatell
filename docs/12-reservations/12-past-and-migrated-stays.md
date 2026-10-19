@@ -66,7 +66,7 @@ Restrictions (min stay, closed to arrival) are not checked for the past nights. 
 Any refusal rolls everything back and names the line. On success:
 
 - **Still in house** opens the folio tab.
-- **Already checked out** opens the [manual folio page](../13-folio/08-manual-folio.md) on the first folio of the stay, with the past stay reason as the page reason, so staff enter the payments and close the folio. A departure after the business date is refused (`departure_after_today`, "Choose Still in house."). The form shows Status as a switch; changing it clears the departure date.
+- **Already checked out** opens the Folio tab on the first folio of the stay, with an alert dialog: "Settle the folio now?". **Settle now** opens the [manual folio page](../13-folio/08-manual-folio.md) on that folio, with the past stay reason as the page reason, so staff enter the payments and close the folio. **Later** (or Esc) closes the dialog and leaves the folio Open with its balance. The dialog shows once, for users with `folio.manual`. A departure after the business date is refused (`departure_after_today`, "Choose Still in house."). The form shows Status as a switch; changing it clears the departure date.
 
 No policy runs: no no-show, cancellation, early departure or late check-out fee.
 
