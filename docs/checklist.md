@@ -17,23 +17,7 @@ Legend: **Needs** lists items that must be done first.
 
 ## Now
 
-The critical path is done. Housekeeping, boats, 17 Registration, the front desk dashboard and the company portal are done. Next up is the admin onboarding board.
-
-### 17 Onboarding
-
-Build in this order. Each item is one commit. Docs: [Wizard steps](17-onboarding/02-wizard-steps.md), [Go live](17-onboarding/03-go-live.md), [Demo properties](01-platform/06-demo-properties.md), [Seed property defaults](02-property/03-seed-property-defaults.md).
-
-- [ ] `feat(onboarding): add the admin onboarding board` — every onboarding property with step, completion percentage and last activity (`onboarding_last_activity_at`), the **Waiting for approval** tab, **View as** with the reason Onboarding help, and the partner's own board on their Properties page. Needs: reminders. Docs: [Admin board](17-onboarding/04-engagement-and-admin-board.md#admin-board).
-
-## Next
-
-Needed for go-live.
-
-- [ ] `feat(front-desk): add the stay view` — Docs: [Stay View](18-front-desk/03-stay-view.md).
-- [ ] `feat(reservations): preview the price in the Add unit Sheet` — reuse the booking form quote route. Docs: [Reservations list and reservation page](12-reservations/06-reservation-page.md#header).
-- [ ] `feat(rates): override the early departure policy per rate plan` — `rate_plans.early_departure_policy` becomes an optional override that follows the property by default. Needs: room revenue policies. Docs: [Rate plans](08-rates/01-rate-plans.md), [Room revenue](06-catalogues/06-room-revenue.md#policies).
-- [ ] `perf(reservations): build scheduled rows once on the folio tab` — the `money` prop (`BookingSummary`, added in `6730a71`) runs on every reservation tab and adds about 25 queries. On the folio tab it also builds `ScheduledFolioRows` a second time after `FolioStatement`, so the tab runs 63 queries (was under 30). Build the scheduled rows once in `renderTab`, pass them to `BookingSummary` and `FolioStatement`, and lower the `FolioTabTest` cap again. The card and PDF must keep the same numbers. Plan first: whether `money` should stay on every tab, be deferred with a skeleton, or read lighter totals. Docs: [Reservation page](12-reservations/06-reservation-page.md#header), [Booking summary](12-reservations/08-booking-summary.md).
-- [ ] `feat(platform): redirect the root URL to sign-in` — the app runs at `app.estatell.com` and the landing page is a separate site, so `/` sends guests to login and signed-in users to their home; remove the starter `welcome.tsx` and its Register link; record the domain in `docs/routing.md`. Docs: [Routing](routing.md).
+The critical path is done. Manual entry and migration comes first, then the admin onboarding board.
 
 ### Manual entry and migration
 
@@ -50,6 +34,33 @@ Build in this order. Docs: [Manual folio](13-folio/08-manual-folio.md), [Past an
 - [ ] `feat(reservations): copy old folios line by line` — the old folio page with folio tabs, `SaveOldFolios`, `folio_lines.migrated`, top-level copied Tax lines, editing inside the window, the OLD SYSTEM section on the folio tab, voucher and invoice. Needs: migrated stays with one amount, record payments from the old system. Docs: [Copy line by line](12-reservations/12-past-and-migrated-stays.md#copy-line-by-line).
 - [ ] `feat(city-ledger): add unpaid invoices and credit from old PMS` — `ar_invoices.migrated`, the nullable receipt number for Old system, `AddOldSystemInvoice`, `AddOldSystemCredit`, the dialog, the Migrated badge, the credit limit warning. Needs: the migration window. Docs: [Old system balances](15-city-ledger/05-old-system-balances.md).
 - [ ] `feat(reports): keep migrated lines out of revenue and tax` — the `migrated` and Opening balance filters in `DailyRevenueQuery`, statistics and the dashboard, the **Migrated from old system** rows on the Tax report. Needs: copy old folios line by line. Docs: [Migration › Reports](17-onboarding/07-migration.md#reports).
+
+### 17 Onboarding
+
+Build in this order. Each item is one commit. Docs: [Wizard steps](17-onboarding/02-wizard-steps.md), [Go live](17-onboarding/03-go-live.md), [Demo properties](01-platform/06-demo-properties.md), [Seed property defaults](02-property/03-seed-property-defaults.md).
+
+- [ ] `feat(onboarding): add the admin onboarding board` — every onboarding property with step, completion percentage and last activity (`onboarding_last_activity_at`), the **Waiting for approval** tab, **View as** with the reason Onboarding help, and the partner's own board on their Properties page. Needs: reminders. Docs: [Admin board](17-onboarding/04-engagement-and-admin-board.md#admin-board).
+
+## Next
+
+Needed for go-live.
+
+### 01 Platform
+
+- [ ] `feat(platform): redirect the root URL to sign-in` — the app runs at `app.estatell.com` and the landing page is a separate site, so `/` sends guests to login and signed-in users to their home; remove the starter `welcome.tsx` and its Register link; record the domain in `docs/routing.md`. Docs: [Routing](routing.md).
+
+### 08 Rates
+
+- [ ] `feat(rates): override the early departure policy per rate plan` — `rate_plans.early_departure_policy` becomes an optional override that follows the property by default. Needs: room revenue policies. Docs: [Rate plans](08-rates/01-rate-plans.md), [Room revenue](06-catalogues/06-room-revenue.md#policies).
+
+### 12 Reservations
+
+- [ ] `feat(reservations): preview the price in the Add unit Sheet` — reuse the booking form quote route. Docs: [Reservations list and reservation page](12-reservations/06-reservation-page.md#header).
+- [ ] `perf(reservations): build scheduled rows once on the folio tab` — the `money` prop (`BookingSummary`, added in `6730a71`) runs on every reservation tab and adds about 25 queries. On the folio tab it also builds `ScheduledFolioRows` a second time after `FolioStatement`, so the tab runs 63 queries (was under 30). Build the scheduled rows once in `renderTab`, pass them to `BookingSummary` and `FolioStatement`, and lower the `FolioTabTest` cap again. The card and PDF must keep the same numbers. Plan first: whether `money` should stay on every tab, be deferred with a skeleton, or read lighter totals. Docs: [Reservation page](12-reservations/06-reservation-page.md#header), [Booking summary](12-reservations/08-booking-summary.md).
+
+### 18 Front desk
+
+- [ ] `feat(front-desk): add the stay view` — Docs: [Stay View](18-front-desk/03-stay-view.md).
 
 ## OpenCode
 
