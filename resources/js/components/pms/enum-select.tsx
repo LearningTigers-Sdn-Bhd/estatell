@@ -8,6 +8,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 
 export type EnumOption = {
     value: string;
@@ -18,6 +19,8 @@ export type EnumOption = {
     group?: string;
     /** A second, muted line under the label in the menu, for example a price or why the option is disabled. */
     description?: ReactNode;
+    /** An icon shown before the label in the menu and in the trigger when this option is picked. */
+    icon?: ReactNode;
 };
 
 type Props = {
@@ -40,6 +43,8 @@ type Props = {
     'aria-label'?: string;
     'aria-invalid'?: boolean;
     className?: string;
+    /** Extra classes for the menu, for example a fixed width. */
+    menuClassName?: string;
 };
 
 /** Splits the options into groups by their `group`, keeping the order. Options without a group form one group. */
@@ -77,6 +82,7 @@ export function EnumSelect({
     id,
     disabled,
     className,
+    menuClassName,
     ...props
 }: Props) {
     const items = allLabel
@@ -105,21 +111,27 @@ export function EnumSelect({
                 {icon}
                 <SelectValue placeholder={placeholder} className="min-w-0">
                     {(picked: string | null) => {
-                        const label = items.find(
-                            (option) => option.value === picked,
-                        )?.label;
+                        const option = items.find(
+                            (candidate) => candidate.value === picked,
+                        );
 
                         return (
-                            <span className="min-w-0 truncate">
-                                {label ?? placeholder}
-                            </span>
+                            <>
+                                {option?.icon}
+                                <span className="min-w-0 truncate">
+                                    {option?.label ?? placeholder}
+                                </span>
+                            </>
                         );
                     }}
                 </SelectValue>
             </SelectTrigger>
             <SelectContent
                 alignItemWithTrigger={!icon}
-                className="max-h-72 w-max max-w-sm min-w-(--anchor-width)"
+                className={cn(
+                    'max-h-72 w-max max-w-sm min-w-(--anchor-width)',
+                    menuClassName,
+                )}
             >
                 {groups.map((group) => (
                     <SelectGroup key={group.name ?? ''}>
@@ -131,7 +143,23 @@ export function EnumSelect({
                                 disabled={option.disabled}
                                 className="*:first:min-w-0 *:first:shrink"
                             >
-                                {option.description ? (
+                                {option.icon ? (
+                                    <span className="flex min-w-0 items-start gap-2.5 py-0.5">
+                                        <span className="mt-0.5 shrink-0">
+                                            {option.icon}
+                                        </span>
+                                        <span className="flex min-w-0 flex-col">
+                                            <span className="truncate">
+                                                {option.label}
+                                            </span>
+                                            {option.description && (
+                                                <span className="text-xs text-muted-foreground">
+                                                    {option.description}
+                                                </span>
+                                            )}
+                                        </span>
+                                    </span>
+                                ) : option.description ? (
                                     <span className="flex min-w-0 flex-col">
                                         <span className="truncate">
                                             {option.label}

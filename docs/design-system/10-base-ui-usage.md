@@ -76,6 +76,7 @@ Rules:
 - Set `name` on the root in forms. Base UI renders a hidden input, so Inertia `<Form>` submits it.
 - Object values use `{ value, label }`, or `itemToStringLabel` (display) and `itemToStringValue` (submission).
 - Use `alignItemWithTrigger={false}` for dropdown-style positioning.
+- `EnumSelect` options can carry an `icon` (shown in the menu and in the trigger) and a `description`. `menuClassName` sets the menu width, for example `w-80`.
 - Items always sit inside their group (`SelectItem` in `SelectGroup`).
 
 ## Multiple values

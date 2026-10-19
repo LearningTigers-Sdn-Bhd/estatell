@@ -26,6 +26,18 @@ The booking form's **Reservation mode** select gains three options, shown only t
 
 All three new modes post to `POST /p/{code}/reservations/past` (`reservations.store-past`, `reservations.manage` and `folio.manual`). Switching modes keeps what was typed, like New booking and Walk-in.
 
+The select opens a wide menu. Each mode has an icon and a one-line description:
+
+| Mode          | Icon             | Description                                                      |
+| ------------- | ---------------- | ---------------------------------------------------------------- |
+| New booking   | `CalendarPlus`   | Reserve for a guest who arrives on a later date.                 |
+| Walk-in       | `Footprints`     | A guest at the desk now. Checked in today.                       |
+| Past stay     | `History`        | Began before today and was entered late. Every night is charged. |
+| Migrated stay | `ArrowRightLeft` | Began in your old PMS, before go-live. Brings the old folio.     |
+| Old stay      | `Archive`        | Ended before go-live. History only, nothing charged.             |
+
+The toggles on this form show an icon and a label: Guest status (`BedDouble` Still in house, `LogOut` Already checked out) and Bring in the old folio (`Banknote` One amount, `ListPlus` Copy line by line), each with a line of help under it that follows the pick.
+
 ## Past stay
 
 ```
@@ -34,7 +46,7 @@ All three new modes post to `POST /p/{code}/reservations/past` (`reservations.st
 │  ┌ Past stay ─────────────────────────────────────────────────────────────────┐ │
 │  │ The stay is entered after it began. Nights before 10 Oct post today with   │ │
 │  │ their own dates.                                                           │ │
-│  │ Status        (•) Still in house   ( ) Already checked out                 │ │
+│  │ Guest status  (•) Still in house   ( ) Already checked out                 │ │
 │  │ Checked in    [08 Oct ▾] [15:00]                                           │ │
 │  │ Departure     [12 Oct ▾] [12:00]                                           │ │
 │  │ Reason *      [e.g. Walk-in entered late                               ]   │ │
@@ -44,14 +56,14 @@ All three new modes post to `POST /p/{code}/reservations/past` (`reservations.st
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-| Field      | Rule                                                                                                                                                                                                              |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Status     | **Still in house**: the departure is after the business date. **Already checked out**: the departure is on or before the business date.                                                                           |
-| Checked in | Before the business date and on or after the go-live date (`arrival_before_go_live`, "This stay began before go-live. Use Migrated stay."). Not the business date: that is a normal walk-in (`arrival_not_past`). |
-| Rooms      | Every line has a room or bed for the whole stay, as on a Walk-in (the form has one pick for each line, not one for each night). A night that is not free in that room is refused (`room_not_free` on the night).  |
-| Prices     | Quoted by `RateQuoteService` as today. The ✎ override works as on a normal booking. The booking summary on the right shows the nights as on any booking.                                                          |
-| Reason     | Required.                                                                                                                                                                                                         |
-| Source     | Any active source. Walk-in is the default.                                                                                                                                                                        |
+| Field        | Rule                                                                                                                                                                                                              |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Guest status | **Still in house**: the departure is after the business date. **Already checked out**: the departure is on or before the business date.                                                                           |
+| Checked in   | Before the business date and on or after the go-live date (`arrival_before_go_live`, "This stay began before go-live. Use Migrated stay."). Not the business date: that is a normal walk-in (`arrival_not_past`). |
+| Rooms        | Every line has a room or bed for the whole stay, as on a Walk-in (the form has one pick for each line, not one for each night). A night that is not free in that room is refused (`room_not_free` on the night).  |
+| Prices       | Quoted by `RateQuoteService` as today. The ✎ override works as on a normal booking. The booking summary on the right shows the nights as on any booking.                                                          |
+| Reason       | Required.                                                                                                                                                                                                         |
+| Source       | Any active source. Walk-in is the default.                                                                                                                                                                        |
 
 Restrictions (min stay, closed to arrival) are not checked for the past nights. Availability is.
 
@@ -68,7 +80,7 @@ Restrictions (min stay, closed to arrival) are not checked for the past nights. 
 Any refusal rolls everything back and names the line. On success:
 
 - **Still in house** opens the folio tab.
-- **Already checked out** opens the Folio tab on the first folio of the stay, with an alert dialog: "Settle the folio now?". **Settle now** opens the [manual folio page](../13-folio/08-manual-folio.md) on that folio, with the past stay reason as the page reason, so staff enter the payments and close the folio. **Later** (or Esc) closes the dialog and leaves the folio Open with its balance. The dialog shows once, for users with `folio.manual`. A departure after the business date is refused (`departure_after_today`, "Choose Still in house."). The form shows Status as a switch; changing it clears the departure date.
+- **Already checked out** opens the Folio tab on the first folio of the stay, with an alert dialog: "Settle the folio now?". **Settle now** opens the [manual folio page](../13-folio/08-manual-folio.md) on that folio, with the past stay reason as the page reason, so staff enter the payments and close the folio. **Later** (or Esc) closes the dialog and leaves the folio Open with its balance. The dialog shows once, for users with `folio.manual`. A departure after the business date is refused (`departure_after_today`, "Choose Still in house."). The form shows Guest status as a switch with an icon on each button; changing it clears the departure date.
 
 No policy runs: no no-show, cancellation, early departure or late check-out fee.
 
@@ -95,11 +107,12 @@ For a guest who is in the house on go-live day, or who checked out on or after i
 ┌─ New booking ───────────────────────────────────────────────────────────────────┐
 │  Reservation mode [Migrated stay ▾]                                             │
 │  ┌ Migrated stay ─────────────────────────────────────────────────────────────┐ │
-│  │ Status        (•) Still in house   ( ) Already checked out                 │ │
+│  │ Guest status  (•) Still in house   ( ) Already checked out                 │ │
 │  │ Checked in    [01 Oct ▾] [15:00]     Departure  [12 Oct ▾] [12:00]         │ │
 │  │ Nights before go-live (1–9 Oct) are not charged here.                      │ │
 │  │                                                                            │ │
-│  │ Old folio   (•) One amount   [ 1,080.00 ]   Old folio no. [e.g. F1203   ]  │ │
+│  │ Bring in the old folio  (•) One amount  ( ) Copy line by line              │ │
+│  │ Amount [ 1,080.00 ]                    Old folio no. [e.g. F1203   ]       │ │
 │  │                 What the guest still owes in your old system.              │ │
 │  │                 Enter a minus amount for a credit.                         │ │
 │  │             ( ) Copy line by line   opens the old folio page after saving  │ │
@@ -114,15 +127,15 @@ For a guest who is in the house on go-live day, or who checked out on or after i
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-| Field      | Rule                                                                                                                                                                                                                                                              |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Checked in | Before the go-live date (`arrival_not_before_go_live`, "Use Past stay for a stay that began after go-live.").                                                                                                                                                     |
-| Status     | **Still in house** (the default): the departure is after the business date. **Already checked out**: the departure is on or before the business date, and on or after the go-live date. The form shows Status as a switch; changing it clears the departure date. |
-| Departure  | As Status says. A departure after the business date with Already checked out is refused (`departure_after_today`, "Choose Still in house."). A departure before go-live is refused (`departure_before_go_live`, "The guest left before go-live. Use Old stay.").  |
-| Rooms      | Every night has a room or bed, and must be free, as for a Past stay. Nights before go-live keep their room, so room history and the police report are complete.                                                                                                   |
-| Prices     | Nights before go-live show "before go-live" and no price. Their `unit_nights` rows keep the quoted amount, which is never posted.                                                                                                                                 |
-| Old folio  | **One amount** (the default) or **Copy line by line**.                                                                                                                                                                                                            |
-| Reason     | Required.                                                                                                                                                                                                                                                         |
+| Field        | Rule                                                                                                                                                                                                                                                                                                |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Checked in   | Before the go-live date (`arrival_not_before_go_live`, "Use Past stay for a stay that began after go-live.").                                                                                                                                                                                       |
+| Guest status | **Still in house** (the default): the departure is after the business date. **Already checked out**: the departure is on or before the business date, and on or after the go-live date. The form shows Guest status as a switch with an icon on each button; changing it clears the departure date. |
+| Departure    | As Guest status says. A departure after the business date with Already checked out is refused (`departure_after_today`, "Choose Still in house."). A departure before go-live is refused (`departure_before_go_live`, "The guest left before go-live. Use Old stay.").                              |
+| Rooms        | Every night has a room or bed, and must be free, as for a Past stay. Nights before go-live keep their room, so room history and the police report are complete.                                                                                                                                     |
+| Prices       | Nights before go-live show "before go-live" and no price. Their `unit_nights` rows keep the quoted amount, which is never posted.                                                                                                                                                                   |
+| Old folio    | **One amount** (the default) or **Copy line by line**.                                                                                                                                                                                                                                              |
+| Reason       | Required.                                                                                                                                                                                                                                                                                           |
 
 `CreateMigratedStay` runs `CreateBooking` with `allowPastArrival`, `CheckInUnit` with `asOf`, then `PostOpeningBalance` (One amount) for the unit's folio, in one transaction. The form has one amount and one old folio number for the stay, so the opening line posts on the folio of the first unit (the one the success page opens). The form posts `mode=migrated` and `old_folio` (`one_amount` or `copy_line_by_line`) to `reservations.store-past`; an empty amount is zero and posts nothing. It logs `reservation.migrated_stay_created`. **Copy line by line** saves the stay with no opening line and opens the old folio page.
 

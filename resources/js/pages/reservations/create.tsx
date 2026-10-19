@@ -1,8 +1,15 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import {
+    Archive,
+    ArrowRightLeft,
+    Banknote,
     BedDouble,
     CalendarPlus,
     Clock,
+    Footprints,
+    History,
+    ListPlus,
+    LogOut,
     Moon,
     NotebookText,
     Package,
@@ -275,14 +282,52 @@ export default function ReservationCreate({
               ? 'walk-in'
               : 'new';
     const lastMode = useRef(mode);
-    const modeOptions = [
-        { value: 'new', label: 'New booking' },
-        { value: 'walk-in', label: 'Walk-in' },
-        ...(canEnterPastStay ? [{ value: 'past', label: 'Past stay' }] : []),
-        ...(canEnterMigratedStay
-            ? [{ value: 'migrated', label: 'Migrated stay' }]
+    const modeOptions: EnumOption[] = [
+        {
+            value: 'new',
+            label: 'New booking',
+            icon: <CalendarPlus />,
+            description: 'Reserve for a guest who arrives on a later date.',
+        },
+        {
+            value: 'walk-in',
+            label: 'Walk-in',
+            icon: <Footprints />,
+            description: 'A guest at the desk now. Checked in today.',
+        },
+        ...(canEnterPastStay
+            ? [
+                  {
+                      value: 'past',
+                      label: 'Past stay',
+                      icon: <History />,
+                      description:
+                          'Began before today and was entered late. Every night is charged.',
+                  },
+              ]
             : []),
-        ...(canEnterOldStay ? [{ value: 'old', label: 'Old stay' }] : []),
+        ...(canEnterMigratedStay
+            ? [
+                  {
+                      value: 'migrated',
+                      label: 'Migrated stay',
+                      icon: <ArrowRightLeft />,
+                      description:
+                          'Began in your old PMS, before go-live. Brings the old folio.',
+                  },
+              ]
+            : []),
+        ...(canEnterOldStay
+            ? [
+                  {
+                      value: 'old',
+                      label: 'Old stay',
+                      icon: <Archive />,
+                      description:
+                          'Ended before go-live. History only, nothing charged.',
+                  },
+              ]
+            : []),
     ];
 
     // A mode switch keeps the page mounted, so the form follows the new mode when the props change.
@@ -672,6 +717,7 @@ export default function ReservationCreate({
                                                     options={modeOptions}
                                                     value={mode}
                                                     onValueChange={switchMode}
+                                                    menuClassName="w-80"
                                                 />
                                             </Field>
                                         </div>
@@ -870,13 +916,16 @@ export default function ReservationCreate({
                                                     options={modeOptions}
                                                     value={mode}
                                                     onValueChange={switchMode}
+                                                    menuClassName="w-80"
                                                 />
                                             </Field>
                                         </div>
                                     )}
                                     {isPastStay && !isOldStay && (
                                         <Field>
-                                            <FieldLabel>Status</FieldLabel>
+                                            <FieldLabel>
+                                                Guest status
+                                            </FieldLabel>
                                             <ToggleGroup
                                                 variant="outline"
                                                 spacing={0}
@@ -893,12 +942,14 @@ export default function ReservationCreate({
                                                         departure_date: '',
                                                     }))
                                                 }
-                                                aria-label="Status"
+                                                aria-label="Guest status"
                                             >
                                                 <ToggleGroupItem value="in_house">
+                                                    <BedDouble data-icon="inline-start" />
                                                     Still in house
                                                 </ToggleGroupItem>
                                                 <ToggleGroupItem value="checked_out">
+                                                    <LogOut data-icon="inline-start" />
                                                     Already checked out
                                                 </ToggleGroupItem>
                                             </ToggleGroup>
@@ -934,7 +985,7 @@ export default function ReservationCreate({
                                             )}
                                             <Field>
                                                 <FieldLabel>
-                                                    Old folio
+                                                    Bring in the old folio
                                                 </FieldLabel>
                                                 <ToggleGroup
                                                     variant="outline"
@@ -950,7 +1001,7 @@ export default function ReservationCreate({
                                                             value[0],
                                                         )
                                                     }
-                                                    aria-label="Old folio"
+                                                    aria-label="Bring in the old folio"
                                                 >
                                                     {oldFolioModes.map(
                                                         (option) => (
@@ -962,19 +1013,26 @@ export default function ReservationCreate({
                                                                     option.value
                                                                 }
                                                             >
+                                                                {option.value ===
+                                                                'copy_line_by_line' ? (
+                                                                    <ListPlus data-icon="inline-start" />
+                                                                ) : (
+                                                                    <Banknote data-icon="inline-start" />
+                                                                )}
                                                                 {option.label}
                                                             </ToggleGroupItem>
                                                         ),
                                                     )}
                                                 </ToggleGroup>
+                                                <FieldDescription>
+                                                    {data.old_folio ===
+                                                    'copy_line_by_line'
+                                                        ? 'Enter each charge and payment as your old folio shows it. Opens the old folio page after saving.'
+                                                        : 'One opening line with the balance from your old system.'}
+                                                </FieldDescription>
                                             </Field>
                                             {data.old_folio ===
-                                            'copy_line_by_line' ? (
-                                                <p className="text-sm text-muted-foreground">
-                                                    Opens the old folio page
-                                                    after saving.
-                                                </p>
-                                            ) : (
+                                            'copy_line_by_line' ? null : (
                                                 <div className="grid items-start gap-4 sm:grid-cols-2">
                                                     <Field
                                                         data-invalid={
