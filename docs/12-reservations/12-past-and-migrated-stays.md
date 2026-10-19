@@ -122,7 +122,7 @@ For a guest who is in the house on go-live day, or a stay that started before it
 
 `CreateMigratedStay` runs `CreateBooking` with `allowPastArrival`, `CheckInUnit` with `asOf`, then `PostOpeningBalance` (One amount) for the unit's folio, in one transaction. It logs `reservation.migrated_stay_created`. **Copy line by line** saves the stay with no opening line and opens the old folio page.
 
-**A night before the go-live date is never charged.** This needs no column: `PostRoomCharges`, `PostMissedNights` and the audit refuse a night before the go-live date (`night_before_go_live`). The folio's Scheduled rows leave those nights out.
+**A night before the go-live date is never charged.** This needs no column: `PostRoomCharges`, `PostMissedNights` and the audit refuse a night before the go-live date (`night_before_go_live`). The folio's Scheduled rows and the booking summary totals leave those nights out.
 
 ## Old folio
 
@@ -199,9 +199,10 @@ Copied lines sit in their own section above POSTED:
 
 ## Build order
 
-| Item | Commit                                                   | Covers                                                                                                                                                    |
-| ---- | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1    | `feat(reservations): add past stays still in house`      | The Past stay mode and route, `CreatePastStay` (still in house), `allowPastArrival`, `CheckInUnit` `asOf`, `PostMissedNights`, the late-arrival catch-up  |
-| 2    | `feat(reservations): add past stays already checked out` | Already checked out, `CheckOutUnit` `skipBalanceCheck`, opening the manual folio page. Needs: the manual folio page                                       |
-| 3    | `feat(reservations): add migrated stays with one amount` | The Migrated stay mode and route, `CreateMigratedStay`, `night_before_go_live`, `PostOpeningBalance`, `ChangeOpeningBalance`. Needs: the migration window |
-| 4    | `feat(reservations): copy old folios line by line`       | The old folio page, folio tabs, `SaveOldFolios`, the OLD SYSTEM section on the folio tab, the invoice and the voucher                                     |
+| Item | Commit                                                                | Covers                                                                                                                                                                               |
+| ---- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1    | `feat(reservations): add past stays still in house`                   | The Past stay mode and route, `CreatePastStay` (still in house), `allowPastArrival`, `CheckInUnit` `asOf`, `PostMissedNights`, the late-arrival catch-up                             |
+| 2    | `feat(reservations): add past stays already checked out`              | Already checked out, `CheckOutUnit` `skipBalanceCheck`, opening the manual folio page. Needs: the manual folio page                                                                  |
+| 3    | `feat(reservations): add migrated stays with one amount`              | The Migrated stay mode and route, `CreateMigratedStay`, `night_before_go_live`, `PostOpeningBalance`, `ChangeOpeningBalance`. Needs: the migration window                            |
+| 4    | `feat(reservations): copy old folios line by line`                    | The old folio page, folio tabs, `SaveOldFolios`, `folio_lines.migrated`, top-level copied Tax lines. The first save only: saved lines are read only                                  |
+| 5    | `feat(reservations): edit old folios and show the old system section` | Editing inside the window, switching between One amount and Copy line by line, the OLD SYSTEM section on the folio tab, the invoice and the voucher, Move charges keeping `migrated` |
