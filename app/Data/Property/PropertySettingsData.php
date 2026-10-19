@@ -31,6 +31,7 @@ class PropertySettingsData extends Data
         public string $securityDepositAmount,
         public bool $allowSupportAccess,
         public bool $allowSupportMoneyCorrections,
+        public int $migrationWindowDays,
         public bool $currencyAndTimeZoneLocked,
     ) {}
 
@@ -55,6 +56,7 @@ class PropertySettingsData extends Data
             securityDepositAmount: $settings->security_deposit_amount,
             allowSupportAccess: $settings->allow_support_access,
             allowSupportMoneyCorrections: $settings->allow_support_money_corrections,
+            migrationWindowDays: $settings->migration_window_days,
             currencyAndTimeZoneLocked: $currencyAndTimeZoneLocked,
         );
     }

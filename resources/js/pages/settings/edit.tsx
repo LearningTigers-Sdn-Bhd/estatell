@@ -391,6 +391,18 @@ export default function PropertySettings({
                                         options={weekendNightsOptions}
                                         error={errors.weekend_nights}
                                     />
+                                    <SettingsInput
+                                        name="migration_window_days"
+                                        label="Migration window (days)"
+                                        type="number"
+                                        min={0}
+                                        max={365}
+                                        step="1"
+                                        placeholder="e.g. 60"
+                                        value={settings.migrationWindowDays}
+                                        description="How long after go-live you can bring in stays, deposits and balances from your old system."
+                                        error={errors.migration_window_days}
+                                    />
                                     <SettingsSwitch
                                         name="auto_audit_enabled"
                                         label="Run night audit automatically"

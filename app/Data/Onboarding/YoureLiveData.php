@@ -21,5 +21,6 @@ class YoureLiveData extends Data
         public ?string $expiresOn,
         public array $userIds,
         public array $exportFormats,
+        public int $migrationWindowDays,
     ) {}
 }

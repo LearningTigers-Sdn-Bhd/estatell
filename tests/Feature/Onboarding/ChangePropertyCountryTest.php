@@ -37,7 +37,7 @@ test('while no other section has started the country changes and no Malaysian pr
         ->and($property->taxes()->count())->toBe(0)
         ->and($property->transactionCodes()->whereIn('system_key', ['sst_tax', 'tourism_tax'])->exists())->toBeFalse()
         ->and($property->paymentMethods()->with('transactionCode')->get()->pluck('transactionCode.system_key')->sort()->values()->all())
-        ->toBe(['bank_transfer_payment', 'card_payment', 'cash_payment', 'direct_bill_payment'])
+        ->toBe(['bank_transfer_payment', 'card_payment', 'cash_payment', 'direct_bill_payment', 'old_system_payment'])
         ->and($property->termsDocuments()->count())->toBe(1)
         ->and($property->termsDocuments()->sole()->versions()->where('locale', 'ms')->exists())->toBeFalse();
 });
@@ -53,7 +53,7 @@ test('changing back to Malaysia brings the Malaysian presets and fixed currency 
         ->and($property->settings->currency->getCurrencyCode())->toBe('MYR')
         ->and($property->settings->time_zone)->toBe('Asia/Kuala_Lumpur')
         ->and($property->taxes()->count())->toBe(2)
-        ->and($property->paymentMethods()->count())->toBe(6)
+        ->and($property->paymentMethods()->count())->toBe(7)
         ->and($property->termsDocuments()->sole()->versions()->where('locale', 'ms')->exists())->toBeTrue();
 });
 

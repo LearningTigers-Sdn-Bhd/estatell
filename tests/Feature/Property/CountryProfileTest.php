@@ -54,6 +54,7 @@ test('a property outside Malaysia receives the generic defaults', function () {
             PaymentMethodType::Card,
             PaymentMethodType::BankTransfer,
             PaymentMethodType::DirectBill,
+            PaymentMethodType::OldSystem,
         ])
         ->and($property->paymentMethods()->where('active', true)->count())->toBe(3)
         ->and($property->roles()->count())->toBe(5)
@@ -81,7 +82,7 @@ test('seeding the generic defaults twice creates nothing new', function () {
     $seed($property, PropertyType::Hotel, 'TH');
 
     expect($property->transactionCodes()->count())->toBe(count(SystemTransactionCode::cases()) - 2)
-        ->and($property->paymentMethods()->count())->toBe(4)
+        ->and($property->paymentMethods()->count())->toBe(5)
         ->and($property->settings()->count())->toBe(1);
 });
 

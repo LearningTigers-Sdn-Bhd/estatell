@@ -66,6 +66,7 @@ class UpdatePropertySettingsRequest extends FormRequest
                 'missed_arrival_policy' => ['required', Rule::enum(MissedArrivalPolicy::class)],
                 'overdue_departure_policy' => ['required', Rule::enum(OverdueDeparturePolicy::class)],
                 'weekend_nights' => ['required', Rule::enum(WeekendNights::class)],
+                'migration_window_days' => ['required', 'integer', 'min:0', 'max:365'],
             ],
             'support' => [
                 'allow_support_access' => ['required', 'boolean'],

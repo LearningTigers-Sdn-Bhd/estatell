@@ -76,6 +76,7 @@ class MalaysiaProfile extends CountryProfile
             ['systemCode' => SystemTransactionCode::EWalletPayment, 'type' => PaymentMethodType::EWallet, 'requiresReference' => true, 'active' => true],
             ['systemCode' => SystemTransactionCode::OtaCollectedPayment, 'type' => PaymentMethodType::OtaCollected, 'requiresReference' => false, 'active' => false],
             ['systemCode' => SystemTransactionCode::DirectBillPayment, 'type' => PaymentMethodType::DirectBill, 'requiresReference' => false, 'active' => false],
+            ['systemCode' => SystemTransactionCode::OldSystemPayment, 'type' => PaymentMethodType::OldSystem, 'requiresReference' => true, 'active' => false],
         ];
     }
 }

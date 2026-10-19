@@ -44,6 +44,7 @@ test('payment method and surcharge types expose their labels and options', funct
             ['value' => 'e_wallet', 'label' => 'E-wallet'],
             ['value' => 'ota_collected', 'label' => 'OTA collected'],
             ['value' => 'direct_bill', 'label' => 'City ledger'],
+            ['value' => 'old_system', 'label' => 'Old system'],
         ])
         ->and(SurchargeType::options())->toBe([
             ['value' => 'none', 'label' => 'None'],
@@ -52,7 +53,7 @@ test('payment method and surcharge types expose their labels and options', funct
         ]);
 });
 
-test('Malaysia properties receive six payment methods idempotently', function () {
+test('Malaysia properties receive seven payment methods idempotently', function () {
     $property = Property::factory()->create(['country_code' => 'MY']);
     app(SeedTransactionCodes::class)($property, CountryProfiles::for('MY'));
 
@@ -67,7 +68,7 @@ test('Malaysia properties receive six payment methods idempotently', function ()
     app(SeedPaymentMethods::class)($property, CountryProfiles::for('MY'));
 
     $methods = $property->paymentMethods()->ordered()->get();
-    expect($methods)->toHaveCount(6)
+    expect($methods)->toHaveCount(7)
         ->and($methods->where('active', true)->pluck('type')->all())->toBe([
             PaymentMethodType::Cash,
             PaymentMethodType::BankTransfer,
@@ -76,7 +77,9 @@ test('Malaysia properties receive six payment methods idempotently', function ()
         ->and($methods->where('requires_reference', true)->pluck('type')->all())->toBe([
             PaymentMethodType::BankTransfer,
             PaymentMethodType::EWallet,
+            PaymentMethodType::OldSystem,
         ])
+        ->and($methods->firstWhere('type', PaymentMethodType::OldSystem)->active)->toBeFalse()
         ->and($card->refresh()->name)->toBe('Front desk terminal')
         ->and($card->active)->toBeFalse()
         ->and($card->position)->toBe(9)

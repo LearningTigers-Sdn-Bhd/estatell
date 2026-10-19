@@ -36,6 +36,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property bool $allow_support_access
  * @property bool $allow_support_money_corrections
  * @property WeekendNights $weekend_nights
+ * @property int $migration_window_days
  */
 #[Fillable([
     'currency', 'time_zone', 'default_locale', 'check_in_time', 'check_out_time',
@@ -43,6 +44,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'missed_arrival_policy', 'overdue_departure_policy',
     'registration_card_scope', 'card_required_for_check_in', 'id_document_retention_days',
     'security_deposit_amount', 'allow_support_access', 'allow_support_money_corrections', 'weekend_nights',
+    'migration_window_days',
 ])]
 class PropertySetting extends Model
 {
@@ -66,6 +68,7 @@ class PropertySetting extends Model
             'allow_support_access' => 'boolean',
             'allow_support_money_corrections' => 'boolean',
             'weekend_nights' => WeekendNights::class,
+            'migration_window_days' => 'integer',
         ];
     }
 

@@ -1434,6 +1434,7 @@ exportFormats: {
 value: string,
 label: string,
 }[],
+migrationWindowDays: number,
 };
 }
 namespace Payments {
@@ -1939,6 +1940,7 @@ idDocumentRetentionDays: number | null,
 securityDepositAmount: string,
 allowSupportAccess: boolean,
 allowSupportMoneyCorrections: boolean,
+migrationWindowDays: number,
 currencyAndTimeZoneLocked: boolean,
 };
 export type PropertySummaryData = {
@@ -3440,7 +3442,7 @@ export type OwnerSetupMethod = 'email_link' | 'initial_password';
 export type PackageUnit = 'per_guest' | 'per_room';
 export type PageOrientation = 'portrait' | 'landscape';
 export type PartnerStatus = 'invited' | 'active' | 'suspended';
-export type PaymentMethodType = 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill';
+export type PaymentMethodType = 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill' | 'old_system';
 export type PaymentPurpose = 'advance' | 'settlement' | 'security_deposit';
 export type PaymentReportStatus = 'pending' | 'completed' | 'failed' | 'voided';
 export type PaymentStage = 'before_arrival' | 'in_house' | 'departed';
@@ -3481,13 +3483,13 @@ export type StayType = 'overnight' | 'day_use';
 export type StepState = 'locked' | 'not_started' | 'in_progress' | 'done' | 'needs_attention';
 export type SurchargeType = 'none' | 'fixed' | 'percent';
 export type SwatchColor = 'gray' | 'red' | 'orange' | 'amber' | 'green' | 'teal' | 'blue' | 'indigo' | 'violet' | 'pink';
-export type SystemTransactionCode = 'room_revenue' | 'no_show_revenue' | 'cancellation_revenue' | 'late_checkout_revenue' | 'early_departure_revenue' | 'day_use_revenue' | 'food_and_beverage_revenue' | 'laundry_revenue' | 'minibar_revenue' | 'fee_revenue' | 'sst_tax' | 'tourism_tax' | 'cash_payment' | 'card_payment' | 'bank_transfer_payment' | 'ewallet_payment' | 'ota_collected_payment' | 'direct_bill_payment' | 'security_deposit' | 'refund' | 'adjustment' | 'discount';
+export type SystemTransactionCode = 'room_revenue' | 'no_show_revenue' | 'cancellation_revenue' | 'late_checkout_revenue' | 'early_departure_revenue' | 'day_use_revenue' | 'food_and_beverage_revenue' | 'laundry_revenue' | 'minibar_revenue' | 'fee_revenue' | 'sst_tax' | 'tourism_tax' | 'cash_payment' | 'card_payment' | 'bank_transfer_payment' | 'ewallet_payment' | 'ota_collected_payment' | 'direct_bill_payment' | 'security_deposit' | 'refund' | 'adjustment' | 'discount' | 'opening_balance' | 'old_system_payment';
 export type TaxRateType = 'percent' | 'flat';
 export type TemporaryPasswordExportFormat = 'message' | 'csv' | 'xlsx' | 'pdf';
 export type TermsPlaceholder = 'property_name' | 'check_in_time' | 'check_out_time' | 'security_deposit' | 'tourism_tax_rate';
 export type TermsPreset = 'standard_hotel' | 'hostel' | 'resort' | 'serviced_apartment' | 'homestay';
 export type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
-export type TransactionCategory = 'room' | 'food_and_beverage' | 'laundry' | 'minibar' | 'transport' | 'fee' | 'tax' | 'discount' | 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill' | 'deposit' | 'refund' | 'adjustment' | 'other';
+export type TransactionCategory = 'room' | 'food_and_beverage' | 'laundry' | 'minibar' | 'transport' | 'fee' | 'tax' | 'discount' | 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill' | 'deposit' | 'refund' | 'adjustment' | 'opening_balance' | 'old_system' | 'other';
 export type TransactionKind = 'charge' | 'payment' | 'adjustment' | 'tax';
 export type UnitAction = 'check-in' | 'check-out' | 'late-check-out' | 'change-dates' | 'cancel' | 'no-show' | 'reinstate' | 'move-room' | 'undo-check-in' | 'undo-check-out';
 export type UnitStatus = 'confirmed' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show';

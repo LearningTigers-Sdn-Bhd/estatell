@@ -21,6 +21,8 @@ enum TransactionCategory: string
     case Deposit = 'deposit';
     case Refund = 'refund';
     case Adjustment = 'adjustment';
+    case OpeningBalance = 'opening_balance';
+    case OldSystem = 'old_system';
     case Other = 'other';
 
     public function label(): string
@@ -43,6 +45,8 @@ enum TransactionCategory: string
             self::Deposit => __('Deposit'),
             self::Refund => __('Refund'),
             self::Adjustment => __('Adjustment'),
+            self::OpeningBalance => __('Opening balance'),
+            self::OldSystem => __('Old system'),
             self::Other => __('Other'),
         };
     }

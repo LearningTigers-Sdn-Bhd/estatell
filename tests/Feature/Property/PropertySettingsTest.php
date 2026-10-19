@@ -81,7 +81,7 @@ test('settings sections save independently', function () {
     $this->put(route('settings.update', [$property->code, 'operations']), [
         'audit_time' => '03:30', 'auto_audit_enabled' => 'on',
         'missed_arrival_policy' => 'mark_no_show', 'overdue_departure_policy' => 'extend_one_night',
-        'weekend_nights' => 'sat_sun',
+        'weekend_nights' => 'sat_sun', 'migration_window_days' => 90,
     ])->assertRedirect(route('settings.operations', $property->code))->assertSessionHasNoErrors();
     $this->put(route('settings.registration-card.update', $property->code), [
         'registration_card_scope' => 'every_adult', 'card_required_for_check_in' => 'on',

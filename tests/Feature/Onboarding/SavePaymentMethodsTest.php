@@ -24,7 +24,7 @@ beforeEach(function () {
     $this->save = fn (array $rows) => $this->actingAs($this->owner)
         ->put(route('onboarding.payment-methods.update', $this->property->code), ['rows' => $rows]);
     $this->rowsOf = fn () => $this->property->paymentMethods()
-        ->where('type', '!=', PaymentMethodType::OtaCollected)
+        ->whereNotIn('type', [PaymentMethodType::OtaCollected, PaymentMethodType::OldSystem])
         ->ordered()->get()
         ->map(fn (PaymentMethod $method): array => [
             'id' => $method->id,

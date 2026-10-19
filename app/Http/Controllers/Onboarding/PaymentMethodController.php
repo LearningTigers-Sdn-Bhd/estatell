@@ -18,7 +18,7 @@ use Inertia\Response;
 class PaymentMethodController extends Controller
 {
     /**
-     * The property's payment methods in settings order, without OTA collected (channels come after go-live), and the
+     * The property's payment methods in settings order, without OTA collected (channels come after go-live) and Old system (only the migration window offers it), and the
      * types a new row can take. A locked step opens as a preview.
      */
     public function edit(Property $property, OnboardingProgress $progress): Response
@@ -27,7 +27,7 @@ class PaymentMethodController extends Controller
 
         return Inertia::render('onboarding/payment-methods', [
             'paymentMethods' => $property->paymentMethods()
-                ->where('type', '!=', PaymentMethodType::OtaCollected->value)
+                ->whereNotIn('type', [PaymentMethodType::OtaCollected->value, PaymentMethodType::OldSystem->value])
                 ->ordered()
                 ->get()
                 ->map(fn (PaymentMethod $paymentMethod): OnboardingPaymentMethodData => OnboardingPaymentMethodData::fromModel($paymentMethod)),

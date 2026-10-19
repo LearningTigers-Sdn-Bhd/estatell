@@ -70,6 +70,17 @@ export function YoureLiveCard({
                 </CardDescription>
             </CardHeader>
 
+            {youreLive.migrationWindowDays > 0 && (
+                <CardContent className="flex flex-col gap-1">
+                    <p className="font-medium">Moving from another system?</p>
+                    <p className="text-sm text-muted-foreground">
+                        For {youreLive.migrationWindowDays} days you can bring
+                        in guests in the house, old folios, deposits and company
+                        balances from your old system.
+                    </p>
+                </CardContent>
+            )}
+
             {hasPending && (
                 <CardContent className="flex flex-col gap-3">
                     <p className="font-medium">Share sign-in details</p>

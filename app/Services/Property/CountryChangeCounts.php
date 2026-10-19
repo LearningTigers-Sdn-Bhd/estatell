@@ -4,6 +4,7 @@ namespace App\Services\Property;
 
 use App\Data\Property\CountryChangeCountsData;
 use App\Enums\OnboardingStep;
+use App\Enums\PaymentMethodType;
 use App\Enums\StayDiscountType;
 use App\Models\OnboardingSkip;
 use App\Models\Property;
@@ -54,7 +55,7 @@ class CountryChangeCounts
 
         return new CountryChangeCountsData(
             taxes: $property->taxes()->count(),
-            paymentMethods: $property->paymentMethods()->count(),
+            paymentMethods: $property->paymentMethods()->where('type', '!=', PaymentMethodType::OldSystem->value)->count(),
             chargeItems: $property->chargeItems()->count(),
             discounts: $property->discounts()->count(),
             prices: $prices,

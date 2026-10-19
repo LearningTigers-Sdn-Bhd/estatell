@@ -59,7 +59,7 @@ test('another country is seeded with the generic presets and its own currency an
         ->and($property->settings->time_zone)->toBe('Asia/Makassar')
         ->and($property->taxes()->count())->toBe(0)
         ->and($property->transactionCodes()->whereIn('system_key', ['sst_tax', 'tourism_tax'])->count())->toBe(0)
-        ->and($property->paymentMethods()->count())->toBe(4)
+        ->and($property->paymentMethods()->count())->toBe(5)
         ->and($property->termsDocuments()->sole()->versions()->pluck('locale')->map->value->unique()->all())->toBe(['en']);
 });
 
@@ -139,7 +139,7 @@ test('before setup starts the owner can change country and the old presets go', 
     expect($property->country_code)->toBe('ID')
         ->and($property->settings->currency->getCurrencyCode())->toBe('IDR')
         ->and($property->taxes()->count())->toBe(0)
-        ->and($property->paymentMethods()->count())->toBe(4);
+        ->and($property->paymentMethods()->count())->toBe(5);
 });
 
 test('once another section has started, a country name save keeps the country and needs no confirmation', function () {
@@ -178,7 +178,7 @@ test('once another section has started, a changed country needs the confirmation
     expect($property->country_code)->toBe('ID')
         ->and($property->settings->currency->getCurrencyCode())->toBe('IDR')
         ->and($property->taxes()->count())->toBe(0)
-        ->and($property->paymentMethods()->count())->toBe(4);
+        ->and($property->paymentMethods()->count())->toBe(5);
 });
 
 test('after setup started a pending go-live request hides Change country and refuses the change', function () {

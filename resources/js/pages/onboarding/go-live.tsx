@@ -31,12 +31,14 @@ export default function GoLive({
     requiresApproval,
     pendingRequest,
     sentBack,
+    migrationWindowDays,
 }: {
     review: Review;
     awaitingApproval: boolean;
     requiresApproval: boolean;
     pendingRequest: Request | null;
     sentBack: Request | null;
+    migrationWindowDays: number;
 }) {
     const [confirming, setConfirming] = useState(false);
     const impersonating = useIsImpersonating();
@@ -167,6 +169,14 @@ export default function GoLive({
                                         Your first business day opens on the day
                                         you go live.
                                     </p>
+                                    {migrationWindowDays > 0 && (
+                                        <p>
+                                            For {migrationWindowDays} days after
+                                            go-live you can bring in guests in
+                                            the house, deposits and company
+                                            balances from your old system.
+                                        </p>
+                                    )}
                                 </div>
 
                                 <AlertDialog

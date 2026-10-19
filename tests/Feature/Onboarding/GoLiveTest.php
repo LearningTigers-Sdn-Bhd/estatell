@@ -335,3 +335,11 @@ test('settings, the dashboard and the business date send an onboarding property 
     $this->actingAs($owner)->get(route('settings.edit', $owner->property->code))->assertRedirect(route('onboarding.basics.edit', $owner->property->code));
     $this->actingAs($owner)->getJson(route('business-date.show', $owner->property->code))->assertRedirect(route('onboarding.basics.edit', $owner->property->code));
 });
+
+test('the go-live page sends the window days for the note', function (int $days) {
+    $owner = readyOnboardingOwner();
+    $owner->property->settings->update(['migration_window_days' => $days]);
+
+    $this->actingAs($owner)->get(route('onboarding.go-live.show', $owner->property->code))
+        ->assertInertia(fn (Assert $page) => $page->component('onboarding/go-live')->where('migrationWindowDays', $days));
+})->with([60, 0]);

@@ -45,6 +45,7 @@ class YoureLiveSummary
             notSharedCount: $pending->whereNull('temporary_password_shared_at')->count(),
             expiresOn: $latestExpiry?->toDateString(),
             userIds: $pending->modelKeys(),
+            migrationWindowDays: $property->settings?->migration_window_days ?? 0,
             exportFormats: array_values(array_filter(
                 TemporaryPasswordExportFormat::options(),
                 fn (array $format): bool => in_array($format['value'], [TemporaryPasswordExportFormat::Csv->value, TemporaryPasswordExportFormat::Pdf->value], true),

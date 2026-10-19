@@ -95,6 +95,7 @@ class GenericProfile extends CountryProfile
             ['systemCode' => SystemTransactionCode::CardPayment, 'type' => PaymentMethodType::Card, 'requiresReference' => true, 'active' => true],
             ['systemCode' => SystemTransactionCode::BankTransferPayment, 'type' => PaymentMethodType::BankTransfer, 'requiresReference' => true, 'active' => true],
             ['systemCode' => SystemTransactionCode::DirectBillPayment, 'type' => PaymentMethodType::DirectBill, 'requiresReference' => false, 'active' => false],
+            ['systemCode' => SystemTransactionCode::OldSystemPayment, 'type' => PaymentMethodType::OldSystem, 'requiresReference' => true, 'active' => false],
         ];
     }
 }

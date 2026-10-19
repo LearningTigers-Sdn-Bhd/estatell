@@ -35,6 +35,7 @@ class GoLiveController extends Controller
             'requiresApproval' => $platformSettings->current()->require_go_live_approval,
             'pendingRequest' => $pending === null ? null : GoLiveRequestData::fromReview($pending),
             'sentBack' => $sentBack === null ? null : GoLiveRequestData::fromReview($sentBack),
+            'migrationWindowDays' => $property->settings?->migration_window_days ?? 0,
         ]);
     }
 

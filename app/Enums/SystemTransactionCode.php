@@ -26,6 +26,8 @@ enum SystemTransactionCode: string
     case Refund = 'refund';
     case Adjustment = 'adjustment';
     case Discount = 'discount';
+    case OpeningBalance = 'opening_balance';
+    case OldSystemPayment = 'old_system_payment';
 
     public function code(): string
     {
@@ -52,6 +54,8 @@ enum SystemTransactionCode: string
             self::Refund => 'REFUND',
             self::Adjustment => 'ADJUSTMENT',
             self::Discount => 'DISCOUNT',
+            self::OpeningBalance => 'OPENING_BAL',
+            self::OldSystemPayment => 'OLD_SYSTEM',
         };
     }
 
@@ -80,6 +84,8 @@ enum SystemTransactionCode: string
             self::Refund => __('Refund'),
             self::Adjustment => __('Adjustment'),
             self::Discount => __('Discount'),
+            self::OpeningBalance => __('Opening balance'),
+            self::OldSystemPayment => __('Old system'),
         };
     }
 
@@ -103,9 +109,10 @@ enum SystemTransactionCode: string
             self::EWalletPayment,
             self::OtaCollectedPayment,
             self::DirectBillPayment,
+            self::OldSystemPayment,
             self::SecurityDeposit,
             self::Refund => TransactionKind::Payment,
-            self::Adjustment, self::Discount => TransactionKind::Adjustment,
+            self::Adjustment, self::Discount, self::OpeningBalance => TransactionKind::Adjustment,
         };
     }
 
@@ -133,6 +140,8 @@ enum SystemTransactionCode: string
             self::Refund => TransactionCategory::Refund,
             self::Adjustment => TransactionCategory::Adjustment,
             self::Discount => TransactionCategory::Discount,
+            self::OpeningBalance => TransactionCategory::OpeningBalance,
+            self::OldSystemPayment => TransactionCategory::OldSystem,
         };
     }
 
