@@ -130,6 +130,7 @@ class TransferLines
         ]);
         $copy->folio_id = $target->id;
         $copy->posting_date = $postingDate;
+        $copy->service_date = $line->service_date;
         $copy->parent_line_id = $parentCopyId;
         $copy->transfer_group_id = $group;
         $copy->idempotency_key = 'transfer:'.$group.':'.$line->id;

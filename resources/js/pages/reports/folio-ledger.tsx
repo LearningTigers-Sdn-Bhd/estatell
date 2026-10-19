@@ -29,6 +29,7 @@ type Props = {
 
 const cells: ReportCells<Row> = {
     date: (row) => <DateText date={row.date} />,
+    service_date: (row) => <DateText date={row.serviceDate} />,
     folio: (row) => <span className="font-medium">{row.folio}</span>,
     code: (row) => <span className="font-medium">{row.code}</span>,
     amount: (row, currency) => (

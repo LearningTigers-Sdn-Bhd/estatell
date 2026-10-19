@@ -28,6 +28,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property string $amount
  * @property-read CarbonImmutable $posting_date
  * @property-write CarbonImmutable|string $posting_date
+ * @property-read CarbonImmutable $service_date
+ * @property-write CarbonImmutable|string $service_date
  * @property string|null $source_type
  * @property int|null $source_id
  * @property int|null $parent_line_id
@@ -38,7 +40,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property CarbonImmutable|null $created_at
  */
 #[Fillable([
-    'folio_id', 'transaction_code_id', 'kind', 'description', 'quantity', 'unit_amount', 'amount', 'posting_date',
+    'folio_id', 'transaction_code_id', 'kind', 'description', 'quantity', 'unit_amount', 'amount', 'posting_date', 'service_date',
     'source_type', 'source_id', 'parent_line_id', 'reversal_of_id', 'transfer_group_id', 'idempotency_key', 'user_id',
 ])]
 class FolioLine extends Model
@@ -59,6 +61,7 @@ class FolioLine extends Model
             'unit_amount' => 'decimal:2',
             'amount' => 'decimal:2',
             'posting_date' => 'date',
+            'service_date' => 'date',
         ];
     }
 

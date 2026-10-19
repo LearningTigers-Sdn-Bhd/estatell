@@ -42,7 +42,7 @@ class FolioInvoice
 
         $units = $reservation->units()->with(['roomType', 'guests.guest'])->orderBy('id')->get();
         $places = $this->documentRows->places($property, $units);
-        $lines = $folio->lines()->orderBy('posting_date')->orderBy('id')->get();
+        $lines = $folio->lines()->orderBy('service_date')->orderBy('id')->get();
         $rows = $this->documentRows->for($property, $lines, $units, $places);
         $groups = $this->documentLines->group($rows, $settings);
         $onFolio = $this->documentRows->unitsOnFolio($folio, $rows, $units);

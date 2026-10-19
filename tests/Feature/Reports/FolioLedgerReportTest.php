@@ -77,7 +77,8 @@ test('the page needs reports.view and is scoped to the property', function () {
         ->where('maxRangeDays', 31)
         ->where('sort', 'date')
         ->where('code', null)
-        ->has('layout.columns', 9)
+        ->has('layout.columns', 10)
+        ->where('layout.columns', fn ($columns) => collect($columns)->firstWhere('key', 'service_date')['visible'] === false)
         ->where('rows.meta.total', 4)
         ->where('totals.figures.amount', '280.00'));
 });

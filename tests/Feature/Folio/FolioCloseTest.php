@@ -464,7 +464,7 @@ test('void and reopen voids the invoice, reopens the folio and reverses the City
     $manager = User::factory()->withRole(DefaultRoleEnum::Manager)->create(['property_id' => $billed['setup']['property']->id]);
     $folio = $billed['invoice']->folio;
     $code = TransactionCode::factory()->system(SystemTransactionCode::DirectBillPayment)->create(['property_id' => $billed['setup']['property']->id]);
-    $line = FolioLine::factory()->create(['folio_id' => $folio->id, 'transaction_code_id' => $code->id, 'kind' => TransactionKind::Payment, 'amount' => '-100.00', 'unit_amount' => '-100.00', 'idempotency_key' => 'city-ledger:'.$folio->id]);
+    $line = FolioLine::factory()->create(['folio_id' => $folio->id, 'transaction_code_id' => $code->id, 'kind' => TransactionKind::Payment, 'amount' => '-100.00', 'unit_amount' => '-100.00', 'posting_date' => today()->toDateString(), 'idempotency_key' => 'city-ledger:'.$folio->id]);
     $url = route('reservations.folios.void-invoice-and-reopen', ['property' => $billed['setup']['property']->code, 'reservation' => $folio->reservation_id, 'folio' => $folio->id]);
 
     $this->actingAs($manager)->get($billed['url'])->assertInertia(fn ($page) => $page

@@ -43,7 +43,7 @@
                 <tbody>
                     @foreach ($voucher->rows as $row)
                         <tr class="rule">
-                            <td class="nowrap">{{ $row['level'] === 0 ? $row['date'] : '' }}</td>
+                            <td class="nowrap">{{ $row['level'] === 0 ? $row['date'] : '' }}@if ($row['level'] === 0 && ($row['posted'] ?? null) !== null)<div class="small muted">{{ __('posted :date', ['date' => $row['posted']]) }}</div>@endif</td>
                             <td @if ($row['level'] > 0) style="padding-left: {{ $row['level'] * 12 }}pt;" @endif>{{ $row['description'] }}</td>
                             <td class="num">{{ $money($row['amount']) }}</td>
                         </tr>

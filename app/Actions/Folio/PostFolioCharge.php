@@ -20,7 +20,8 @@ class PostFolioCharge
      * with no checks. The caller checks everything first, calculates the tax with `TaxCalculator` (a refusal must stop
      * before any write) and runs this inside its transaction. The charge line holds the net amount, so the folio total
      * is the gross amount. The `$source` names the unit of the line (see docs/13-folio/02-posting-charges.md#line-sources). A caller that discounts the charge gives `$lineAmount` (the charge line amount, which the
-     * tax result cannot know) and its `$discounts`, which post as negative Adjustment children. Tax keys are
+     * tax result cannot know) and its `$discounts`, which post as negative Adjustment children. The `$serviceDate` is the day
+     * it really happened (a night's date) and defaults to the posting date; the children share it. Tax keys are
      * `{key}:tax:{tax_id}`. A null actor is the system, as in the night audit. `PostCharge`, `PostRoomCharges` and
      * `RecordPayment` (the payment surcharge) call it. See docs/13-folio/02-posting-charges.md.
      *
@@ -40,12 +41,14 @@ class PostFolioCharge
         ?Model $source = null,
         ?Money $lineAmount = null,
         array $discounts = [],
+        ?string $serviceDate = null,
     ): array {
         if (! $tax->isCalculated()) {
             throw new InvalidArgumentException('A refused tax calculation cannot be posted.');
         }
 
-        $charge = $this->line($folio, $actor, $postingDate, $key, [
+        $serviceDate ??= $postingDate;
+        $charge = $this->line($folio, $actor, $postingDate, $serviceDate, $key, [
             'transaction_code_id' => $code->id,
             'kind' => TransactionKind::Charge,
             'description' => $description,
@@ -58,7 +61,7 @@ class PostFolioCharge
         $lines = [$charge];
 
         foreach ($discounts as $discount) {
-            $lines[] = $this->line($folio, $actor, $postingDate, $discount->key, [
+            $lines[] = $this->line($folio, $actor, $postingDate, $serviceDate, $discount->key, [
                 'transaction_code_id' => $discount->transactionCodeId,
                 'kind' => TransactionKind::Adjustment,
                 'description' => $discount->description,
@@ -70,7 +73,7 @@ class PostFolioCharge
         }
 
         foreach ($tax->taxes as $component) {
-            $lines[] = $this->line($folio, $actor, $postingDate, $key.':tax:'.$component->taxId, [
+            $lines[] = $this->line($folio, $actor, $postingDate, $serviceDate, $key.':tax:'.$component->taxId, [
                 'transaction_code_id' => $component->transactionCodeId,
                 'kind' => TransactionKind::Tax,
                 'description' => $component->name,
@@ -87,11 +90,12 @@ class PostFolioCharge
     /**
      * @param  array<string, mixed>  $attributes
      */
-    private function line(Folio $folio, ?User $actor, string $postingDate, string $key, array $attributes): FolioLine
+    private function line(Folio $folio, ?User $actor, string $postingDate, string $serviceDate, string $key, array $attributes): FolioLine
     {
         $line = new FolioLine($attributes);
         $line->folio_id = $folio->id;
         $line->posting_date = $postingDate;
+        $line->service_date = $serviceDate;
         $line->idempotency_key = $key;
         $line->user_id = $actor?->id;
         $line->save();

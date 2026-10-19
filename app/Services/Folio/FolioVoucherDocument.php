@@ -12,7 +12,7 @@ namespace App\Services\Folio;
 class FolioVoucherDocument
 {
     /**
-     * @param  list<array{date: string, description: string, level: int, amount: string}>  $rows
+     * @param  list<array{date: string, posted?: string|null, description: string, level: int, amount: string}>  $rows
      */
     public function __construct(
         public readonly string $issuedOn,

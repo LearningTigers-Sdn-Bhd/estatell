@@ -107,6 +107,7 @@ class SettleToCityLedger
             ]);
             $line->folio_id = $locked->id;
             $line->posting_date = $businessDate->toDateString();
+            $line->service_date = $businessDate->toDateString();
             $line->idempotency_key = 'city-ledger:'.$locked->id.':'.$attempt;
             $line->user_id = $actor->id;
             $line->save();

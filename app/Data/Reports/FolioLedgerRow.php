@@ -15,6 +15,7 @@ class FolioLedgerRow extends Data implements ReportRow
     public function __construct(
         public int $key,
         public string $date,
+        public string $serviceDate,
         public string $folio,
         public string $reservation,
         public string $guest,
@@ -32,6 +33,7 @@ class FolioLedgerRow extends Data implements ReportRow
     {
         return [
             'date' => CarbonImmutable::parse($this->date)->format('j M Y'),
+            'service_date' => CarbonImmutable::parse($this->serviceDate)->format('j M Y'),
             'folio' => $this->folio,
             'reservation' => $this->reservation,
             'guest' => $this->guest,
@@ -50,6 +52,7 @@ class FolioLedgerRow extends Data implements ReportRow
     {
         return [
             'date' => $this->date,
+            'service_date' => $this->serviceDate,
             'folio' => $this->folio,
             'reservation' => $this->reservation,
             'guest' => $this->guest,
@@ -72,6 +75,7 @@ class FolioLedgerRow extends Data implements ReportRow
         return new self(
             key: $line->id,
             date: $line->posting_date->toDateString(),
+            serviceDate: $line->service_date->toDateString(),
             folio: $folio->number,
             reservation: $folio->reservation->reference,
             guest: $folio->payerCompany->name ?? $folio->payerGuest->full_name ?? $folio->reservation->booker->full_name,

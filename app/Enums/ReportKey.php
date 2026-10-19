@@ -374,6 +374,7 @@ enum ReportKey: string
                 new ReportColumn('kind', __('Kind'), ColumnAlign::Left, true),
                 new ReportColumn('staff', __('Staff'), ColumnAlign::Left, true),
                 new ReportColumn('amount', __('Amount'), ColumnAlign::Right, true),
+                new ReportColumn('service_date', __('Service date'), ColumnAlign::Left, false),
             ],
             self::Tax => [
                 new ReportColumn('period', __('Date / month'), ColumnAlign::Left, true),

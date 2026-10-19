@@ -44,7 +44,7 @@ class FolioVoucher
      */
     public function printableLines(Folio $folio): Collection
     {
-        $lines = $folio->lines()->orderBy('posting_date')->orderBy('id')->get();
+        $lines = $folio->lines()->orderBy('service_date')->orderBy('id')->get();
         $reversed = $lines->pluck('reversal_of_id')->filter()->flip();
 
         return $lines->filter(fn (FolioLine $line): bool => self::isPrintable($line, $reversed->has($line->id)))->values();
@@ -77,7 +77,8 @@ class FolioVoucher
         $parents = $folio->lines()->pluck('parent_line_id', 'id');
         $chosen = $this->printableLines($folio)->whereIn('id', $lineIds)->values();
         $posted = $chosen->map(fn (FolioLine $line): array => [
-            'date' => $line->posting_date->format('j M Y'),
+            'date' => $line->service_date->format('j M Y'),
+            'posted' => $line->service_date->lt($line->posting_date) ? $line->posting_date->format('j M Y') : null,
             'description' => $line->description,
             'level' => $this->level($line->id, $parents, $chosen->pluck('id')),
             'amount' => (string) BigDecimal::of($line->amount)->toScale(2),

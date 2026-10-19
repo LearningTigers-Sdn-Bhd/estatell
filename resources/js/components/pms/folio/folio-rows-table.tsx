@@ -229,6 +229,15 @@ export function FolioRowsTable({
                                         {row.level === 0 && (
                                             <DateText date={row.date} />
                                         )}
+                                        {row.level === 0 &&
+                                            row.postedDate !== null && (
+                                                <div className="text-xs text-muted-foreground">
+                                                    posted{' '}
+                                                    <DateText
+                                                        date={row.postedDate}
+                                                    />
+                                                </div>
+                                            )}
                                     </TableCell>
                                     <TableCell>
                                         <span

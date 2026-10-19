@@ -114,7 +114,7 @@ class ApplyDiscount
 
             $charge = FolioLine::query()->findOrFail($target->folioLineId);
             $key = 'discount:'.$discount->id.':'.$charge->id;
-            $discountLine = $this->line($actor, $folio, $date, $key, [
+            $discountLine = $this->line($actor, $folio, $date, $charge->service_date->toDateString(), $key, [
                 'transaction_code_id' => $discount->transaction_code_id,
                 'kind' => TransactionKind::Adjustment,
                 'description' => $discount->name,
@@ -141,7 +141,7 @@ class ApplyDiscount
                     continue;
                 }
 
-                $lines[] = $this->line($actor, $folio, $date, $key.':tax:'.$tax->id, [
+                $lines[] = $this->line($actor, $folio, $date, $charge->service_date->toDateString(), $key.':tax:'.$tax->id, [
                     'transaction_code_id' => $taxLine->transaction_code_id,
                     'kind' => TransactionKind::Tax,
                     'description' => $taxLine->description,
@@ -159,11 +159,12 @@ class ApplyDiscount
     /**
      * @param  array<string, mixed>  $attributes
      */
-    private function line(User $actor, Folio $folio, string $postingDate, string $key, array $attributes): FolioLine
+    private function line(User $actor, Folio $folio, string $postingDate, string $serviceDate, string $key, array $attributes): FolioLine
     {
         $line = new FolioLine($attributes);
         $line->folio_id = $folio->id;
         $line->posting_date = $postingDate;
+        $line->service_date = $serviceDate;
         $line->idempotency_key = $key;
         $line->user_id = $actor->id;
         $line->save();

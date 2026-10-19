@@ -16,7 +16,8 @@ use Spatie\LaravelData\Data;
  * (a Scheduled row, or a posted line that is not a payment, a reversal or a reversed line) for a user who holds
  * `folio.print-voucher`.
  * A live room line of a night carries `correct_price` with its `unitId` and `unitNightId` for a user with
- * `reservations.change-price`.
+ * `reservations.change-price`. A posted row's `date` is its service date; `postedDate` is its posting date, set only
+ * when the line was posted after the day it happened.
  */
 class FolioRowData extends Data
 {
@@ -43,5 +44,6 @@ class FolioRowData extends Data
         public bool $printable = false,
         public ?int $unitId = null,
         public ?int $unitNightId = null,
+        public ?string $postedDate = null,
     ) {}
 }

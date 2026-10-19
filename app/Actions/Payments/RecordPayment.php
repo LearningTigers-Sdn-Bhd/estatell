@@ -133,6 +133,7 @@ class RecordPayment
             ]);
             $line->folio_id = $target->id;
             $line->posting_date = $postingDate;
+            $line->service_date = $postingDate;
             $line->idempotency_key = $key;
             $line->user_id = $actor->id;
             $line->save();

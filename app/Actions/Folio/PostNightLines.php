@@ -51,6 +51,7 @@ class PostNightLines
                 $night,
                 $charge->lineAmount,
                 $discounts,
+                $night->date->toDateString(),
             );
             array_push($result, ...$lines);
         }

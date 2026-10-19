@@ -652,6 +652,7 @@ kind: App.Enums.TransactionKind | null,
 printable: boolean,
 unitId: number | null,
 unitNightId: number | null,
+postedDate: string | null,
 };
 export type MoveBalanceData = {
 folioId: number,
@@ -2295,6 +2296,7 @@ held: string,
 export type FolioLedgerRow = {
 key: number,
 date: string,
+serviceDate: string,
 folio: string,
 reservation: string,
 guest: string,

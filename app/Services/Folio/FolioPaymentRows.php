@@ -34,7 +34,7 @@ class FolioPaymentRows
             ->whereIn('folio_id', $ids)
             ->where('kind', TransactionKind::Payment)
             ->with('transactionCode:id,system_key')
-            ->orderBy('posting_date')
+            ->orderBy('service_date')
             ->orderBy('id')
             ->get();
         $payments = Payment::query()->whereIn('folio_id', $ids)->with('paymentMethod:id,name')->get()->keyBy('folio_line_id');
@@ -51,7 +51,7 @@ class FolioPaymentRows
         foreach ($lines as $line) {
             $payment = $payments->get($line->id);
             $method = $payment?->paymentMethod->name ?? $line->description;
-            $date = CarbonImmutable::parse($line->posting_date->toDateString());
+            $date = CarbonImmutable::parse($line->service_date->toDateString());
 
             if ($line->transactionCode?->system_key === SystemTransactionCode::DirectBillPayment->value) {
                 if (! $withCityLedger) {

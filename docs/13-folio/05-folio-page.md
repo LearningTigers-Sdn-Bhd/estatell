@@ -29,7 +29,7 @@ An icon-only button with a tooltip ("Hide summary" or "Show summary") sits after
 
 An **OLD SYSTEM · folio {legacy number}** section sits above POSTED when the folio has migrated lines. Its header is a button like SCHEDULED, shows the section total and starts **collapsed** ([Past and migrated stays](../12-reservations/12-past-and-migrated-stays.md#on-the-folio-tab)).
 
-The Date column shows each line's `service_date`. A line whose `service_date` is before its `posting_date` adds a muted line under the description: "posted {posting date}".
+The Date column shows each line's `service_date`. A line whose `service_date` is before its `posting_date` adds a muted line under the date: "posted {posting date}". The voucher does the same. The invoice groups lines into date ranges, so it prints the service date only.
 
 The SCHEDULED header is a button with a chevron and `aria-expanded`. It hides or shows all Scheduled rows. It starts open. While collapsed it shows "N rows hidden". The state is local to the table and is not remembered. The POSTED header is plain text. Balance and Projected total do not change.
 

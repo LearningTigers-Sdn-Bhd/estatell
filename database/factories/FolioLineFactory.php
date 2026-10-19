@@ -32,6 +32,7 @@ class FolioLineFactory extends Factory
             'unit_amount' => '100.00',
             'amount' => '100.00',
             'posting_date' => '2026-11-02',
+            'service_date' => fn (array $attributes): mixed => $attributes['posting_date'],
             'idempotency_key' => fn (): string => 'test:'.fake()->unique()->uuid(),
         ];
     }

@@ -129,6 +129,7 @@ class ReverseLine
         ]);
         $reversal->folio_id = $line->folio_id;
         $reversal->posting_date = $postingDate;
+        $reversal->service_date = $line->service_date;
         $reversal->reversal_of_id = $line->id;
         $reversal->parent_line_id = $parentReversalId;
         $reversal->transfer_group_id = $transferGroupId;

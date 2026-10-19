@@ -66,7 +66,7 @@ class FolioDocumentRows
     }
 
     /**
-     * The rows of the posted lines, payments left out, sorted by the order of the units, then the posting date, then
+     * The rows of the posted lines, payments left out, sorted by the order of the units, then the service date, then
      * the order the lines come in.
      *
      * @param  Collection<int, FolioLine>  $lines  Posted lines in ledger order
@@ -115,11 +115,11 @@ class FolioDocumentRows
 
             $unitId = $unitOf($line);
             $entries[] = [
-                'sort' => [$order[$unitId] ?? PHP_INT_MAX, $line->posting_date->toDateString(), count($entries)],
+                'sort' => [$order[$unitId] ?? PHP_INT_MAX, $line->service_date->toDateString(), count($entries)],
                 'row' => new DocumentRow(
                     $line->kind,
                     $line->description,
-                    CarbonImmutable::parse($line->posting_date->toDateString()),
+                    CarbonImmutable::parse($line->service_date->toDateString()),
                     $line->quantity,
                     $line->quantity === 1 ? $line->amount : $line->unit_amount,
                     $line->amount,
