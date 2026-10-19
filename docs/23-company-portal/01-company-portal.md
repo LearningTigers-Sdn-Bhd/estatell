@@ -227,8 +227,22 @@ The shell (navbar, breadcrumbs, sidebar and property switcher) is in [App shell]
 - **Arrivals** on a property card counts Confirmed reservations arriving in the next 7 days from the property's business date.
 - An Active link at a property that is not Live shows greyed out with "Not open yet", or "Suspended", and no **Open**.
 - Invitations show for every property, on the dashboard. estatell has no notification bell yet, so that list and the email are where an invitation is seen.
-- `/portal/{code}` starts as a small dashboard: company, status, open balance. Its **Book a stay** button opens `/portal/{code}/bookings/new`.
-- **Built:** the `/portal` list with Accept and Decline, the `portal` middleware (`EnsurePortalAccess`), the portal layout and sidebar (Properties; Dashboard inside a property), this small dashboard, the Statements page with its statement, invoice, payment and PDF views (`PortalStatements`), and the Company page with `UpdatePortalCompanyDetails` and the tick. Book and Bookings are built too (see below).
+- **Property dashboard** (`/portal/{code}`): scoped to this property and the company of the user's link.
+
+```
+Sandbay Resort  [● Active]                                  [Book a stay]
+Borneo Travel · Free cancellation until 7 days before arrival
+
+[Open balance] [Overdue] [Arrivals, 7 days] [Credit available]
+[Upcoming arrivals]                [Open invoices]
+[Recent bookings (5)                                  View all]
+```
+
+- **Header:** the company status as a badge, and the company name with the cancellation rule ("Free cancellation until N days before arrival", or "Cancellations by request only" when the cut-off is empty). **Book a stay** is in the header. A Suspended company sees a warning ("Your company can't book at this property right now. Contact the property.") in its place, and the Book buttons in the empty states are hidden. Stats and lists stay.
+- **Stats:** Open balance (unpaid AR invoices, never below 0, with the count of open invoices); Overdue (open invoices past their due date on the business date, with amount and count); Arrivals in the next 7 days from the business date, with the units checked in now; Credit available (the limit minus the credit exposure, "of {limit} limit", or "No limit"). Credit comes from the staff `CreditExposure` service, so it matches the over-limit refusal at booking. The company sees its own credit limit.
+- **Lists,** each with an empty state: Upcoming arrivals (our reference, company reference, guest or group, arrival date, link to the booking), Open invoices (number, date, due, amount, balance, PDF; overdue has a danger badge, **View statements** opens the statements page) and Recent bookings (the 5 newest, **View all** opens Bookings).
+- The lists reuse `PortalArrivals` and `PortalRecentBookings` with a property filter. The query count does not grow with the data.
+- **Built:** the `/portal` list with Accept and Decline, the `portal` middleware (`EnsurePortalAccess`), the portal layout and sidebar (Properties; Dashboard inside a property), the property dashboard, the Statements page with its statement, invoice, payment and PDF views (`PortalStatements`), and the Company page with `UpdatePortalCompanyDetails` and the tick. Book and Bookings are built too (see below).
 - **Built (Book and Bookings):** `rate_plans.portal_access` (`PortalAccess`, CHECK), `PortalRatePlans` (the visible plans and room types), `PortalBookingQuote` (offers and totals on `BookingQuote` with the auto-add items), `CreatePortalReservation`, `PortalBookingMessages` (the message table above), `PortalBookings` (list and detail), `PortalBookingRules` (cut-off and edit window on the property's business date), `UpdatePortalReservationGuests`, `CancelPortalReservation`, `RequestPortalCancellation`, the three notifications and the pages `portal/bookings/create`, `portal/bookings/index` and `portal/bookings/show`.
 - **Built (portal shell):** the three-row shell, `PortalNavigation` for both sidebars, the property switcher (`portalSwitcher`), the dashboard with `PortalArrivals`, `/portal/properties`, and the booking URLs under `/bookings`. The old `/book` URLs are gone (404).
 - **How it works:** the offers come from `POST /portal/{code}/bookings/offers` (JSON, throttled). A search shows every visible plan of a room type, a blocked one with its reason. Confirm sends the plan ids, the lead guest of each line and the total the page showed (`expected_total`); the server prices again and refuses `price_changed` when the total differs. A dorm line sends its beds and books one adult for each bed; its lead guest stays in the first bed. An ID typed in Edit guests (kind and number, no scan) replaces the number on the guest's first ID document or adds one; the number is never sent back to the browser.
