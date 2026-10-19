@@ -88,7 +88,7 @@ test('the migration moves old portal access and links to the new setting', funct
     expect($row($linkedSelected)->company_access)->toBe('selected')
         ->and($link($linkedSelected))->toMatchObject(['at_desk' => true, 'in_portal' => true])
         ->and($row($linkedAll)->company_access)->toBe('selected')
-        ->and($link($linkedAll))->toMatchObject(['at_desk' => true, 'in_portal' => false])
+        ->and($link($linkedAll))->toMatchObject(['at_desk' => true, 'in_portal' => true])
         ->and($row($linkedHidden)->company_access)->toBe('selected')
         ->and($link($linkedHidden))->toMatchObject(['at_desk' => true, 'in_portal' => false])
         ->and($row($openAll))->toMatchObject(['company_access' => 'all', 'company_at_desk' => false, 'company_in_portal' => true])

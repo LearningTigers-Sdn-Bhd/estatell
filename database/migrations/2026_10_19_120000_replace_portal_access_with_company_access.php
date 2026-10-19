@@ -23,7 +23,7 @@ return new class extends Migration
             $table->boolean('in_portal')->default(false)->after('at_desk');
         });
 
-        DB::statement("UPDATE company_rate_plans SET in_portal = (SELECT portal_access = 'selected' FROM rate_plans WHERE rate_plans.id = company_rate_plans.rate_plan_id)");
+        DB::statement("UPDATE company_rate_plans SET in_portal = (SELECT portal_access IN ('selected', 'all') FROM rate_plans WHERE rate_plans.id = company_rate_plans.rate_plan_id)");
         DB::statement("UPDATE rate_plans SET company_access = 'selected' WHERE EXISTS (SELECT 1 FROM company_rate_plans WHERE company_rate_plans.rate_plan_id = rate_plans.id)");
         DB::statement("UPDATE rate_plans SET company_access = 'all', company_at_desk = false, company_in_portal = true WHERE company_access = 'everyone' AND portal_access = 'all'");
 

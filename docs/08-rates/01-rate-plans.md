@@ -125,11 +125,11 @@ The migration replaces `portal_access` with `company_access`, `company_at_desk` 
 
 | Old state                        | New state                                                                                                                                                                                         |
 | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Plan has company links           | Only these companies. Links get `at_desk` true, and `in_portal` true only when the old `portal_access` was selected                                                                               |
+| Plan has company links           | Only these companies. Links get `at_desk` true, and `in_portal` true when the old `portal_access` was selected or all                                                                             |
 | No links, `portal_access` hidden | Everyone                                                                                                                                                                                          |
 | No links, `portal_access` all    | All companies, Front desk off and Portal on. The plan stays in the portal. It no longer shows at the front desk, where it showed for every booking; staff turn Front desk on if they want it back |
 
-**Check the production and demo values before this migration runs there.** Two cases change what users see. A plan that was All for the portal and had links becomes Only these companies, and its links lose the portal. A plan that was All for the portal with no links disappears from the front desk.
+**Check the production and demo values before this migration runs there.** Two cases change what users see. A plan that was All for the portal and had links becomes Only these companies; its links keep the portal, but other companies lose it. A plan that was All for the portal with no links disappears from the front desk.
 
 ## Sell unit and pricing basis
 
