@@ -47,7 +47,7 @@ The database needs no change. `rate_plans_package_check` and `rate_plans_derivat
 - A room type cannot be unlinked from a parent while an active follower sells it: "Breakfast follows this plan for Deluxe."
 - A follower cannot be restored while its parent is archived.
 - A package parent can have followers only when they are packages of the same unit and nights. Nightly plans and packages never mix.
-- Companies can be linked to derived plans (see [Companies](../15-city-ledger/01-companies.md)).
+- A derived plan can be limited to companies (see [Who can use this rate](01-rate-plans.md#who-can-use-this-rate)).
 
 ## Eligible parent
 
@@ -79,17 +79,17 @@ The option is disabled, with the reason in a tooltip, in these cases:
 
 A shortcut for "give Petronas 15% off". It is on the row menu of the Rate plans list, named "Create derived package" on a Package row, and shows only for an active plan that is an eligible parent (see above), a Package plan included. The Sheet of a package parent shows its Nights and Charged read-only and copies them to the new plan. It opens a Sheet with the parent fixed.
 
-| Field                  | Rule                                                                                                                    |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Name                   | Required. Unique among active plans. Prefilled as "{Parent} – ".                                                        |
-| Direction, value, unit | Down or Up, a number, % or RM. The same preview as the Pricing tab: "Deluxe 800 → 680". A package parent allows % only. |
-| Room types             | A multi-select combobox. All of the parent's room types start selected. Staff can remove some. At least one is needed.  |
-| Companies              | Optional multi-select of the property's Active companies. Shown only to staff with `company.manage`.                    |
+| Field                  | Rule                                                                                                                                                                     |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Name                   | Required. Unique among active plans. Prefilled as "{Parent} – ".                                                                                                         |
+| Direction, value, unit | Down or Up, a number, % or RM. The same preview as the Pricing tab: "Deluxe 800 → 680". A package parent allows % only.                                                  |
+| Room types             | A multi-select combobox. All of the parent's room types start selected. Staff can remove some. At least one is needed.                                                   |
+| Companies              | Optional multi-select of the property's Active companies. Chosen: Only these companies with both switches on. None: Everyone. Shown only to staff with `company.manage`. |
 
-- **Action:** `CreateDerivedRatePlan` runs in one transaction. It creates the plan through `CreateRatePlan`, sets the derivation through `SaveRatePlanDerivation`, then syncs `company_rate_plans` for the chosen companies. It adds no new rule. Every check is the one the plan editor and the Rates tab already use.
+- **Action:** `CreateDerivedRatePlan` runs in one transaction. It creates the plan through `CreateRatePlan`, sets the derivation through `SaveRatePlanDerivation`, then, when companies are chosen, sets Only these companies through `SetRatePlanCompanyAccess` and adds them through `AddRatePlanCompanies`, both switches on. With none chosen the plan stays Everyone. It adds no new rule. Every check is the one the plan editor and the Rates tab already use.
 - **Route:** `settings.rate-plans.derived.store`, with `settings.manage`. Choosing companies also needs `company.manage`.
 - **Result:** back to the list with a success toast. The new plan shows in the list, and its row menu opens it.
-- Companies can still be linked or unlinked later on the company's Rates tab.
+- Companies can be added or removed later on the plan's Companies tab.
 
 ## Built
 
@@ -100,7 +100,7 @@ A shortcut for "give Petronas 15% off". It is on the row menu of the Rate plans 
 - **UI:** a "Set prices directly / Follow another plan" choice on the Pricing tab. The form has the parent, Down or Up, the value and the unit. The preview shows today's room price per room type. A plan that follows another shows "Stop following" instead of the price form. The list shows "Follows Basic Rate -10%".
 - **Rate calendar:** a derived plan row shows the parent's room price after the derivation, with a link marker, read-only. Its own restriction rows show too (see [the calendar](02-daily-rates-and-restrictions.md#the-rate-calendar)).
 - **Derived packages:** `DerivedRatePlans` (eligible package parents, `nightsLockMessage`), `SaveRatePlanDerivation` (percent only for a package, drops its own `package_prices`), `CreateDerivedRatePlan` (copies nights and unit), `SavePackagePricing` (a follower saves weekdays only), the nights guard in `RatePlanRequest` and `UpdateRatePlan`, the package preview in `DerivedRatePreview`, and the package rows of the rate calendar. The Pricing tab of a package has the same "Set prices directly / Follow another plan" choice, with Percent only, and a follower shows its Arrival days under the follow form. The Details tab disables Nights with the reason (`nightsLockedReason`). The quick action Sheet of a package parent shows its nights and charged unit.
-- **Company links:** `company_rate_plans`, set on the company's Rates tab (see [Companies](../15-city-ledger/01-companies.md#rules)) or in the Create derived plan Sheet. The rate plan editor has no link screen.
+- **Company access:** set on the plan's Companies tab or by the Companies field of the Create derived plan Sheet (see [Who can use this rate](01-rate-plans.md#who-can-use-this-rate)). The company's Rates tab only shows the result.
 
 ## Future
 

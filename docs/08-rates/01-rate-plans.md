@@ -15,7 +15,8 @@ rate_plans              id, property_id, name, description, pricing_basis (Prici
                         day_use_min_hours, day_use_max_hours (nullable, 1–24),
                         day_use_from, day_use_until (nullable time),
                         early_departure_policy (EarlyDeparturePolicy),
-                        portal_access (PortalAccess, default Hidden),
+                        company_access (CompanyAccess, default Everyone),
+                        company_at_desk, company_in_portal (booleans, default true),
                         position, archived_at, timestamps
 rate_plan_room_types    id, rate_plan_id, room_type_id, timestamps
                         unique (rate_plan_id, room_type_id)
@@ -37,13 +38,13 @@ rate_plan_stay_discounts
 
 Staff with `settings.manage` use Settings, Rates, Rate plans (`settings.rate-plans.*`, `RatePlanController`). Every write is an Action in `app/Actions/Rates/`.
 
-- **Tables built:** `rate_hour_prices` (see [Day use prices](02-daily-rates-and-restrictions.md#day-use-prices)), `rate_plans`, `rate_plan_room_types`, `rate_plan_child_prices`, `rate_plan_stay_discounts`, `rate_plan_inclusions`. `rate_plans` has `parent_rate_plan_id`, `derivation` and `derivation_value` (see [Derived rate plans](04-derived-rate-plans.md)). It has `fixed_nights` and `package_unit` (see [Package prices](../09-packages/02-package-prices.md)). It has `portal_access` (`PortalAccess`, default Hidden, CHECK in hidden, all, selected), set on the Portal tab.
-- **Portal tab built:** `settings.rate-plans.portal.edit|update`, `UpdateRatePlanPortalAccess`, `RatePlanPortalData`. Selected needs a derived plan and at least one linked company; `SyncCompanyRatePlans` refuses removing the last company of a Selected plan.
+- **Tables built:** `rate_hour_prices` (see [Day use prices](02-daily-rates-and-restrictions.md#day-use-prices)), `rate_plans`, `rate_plan_room_types`, `rate_plan_child_prices`, `rate_plan_stay_discounts`, `rate_plan_inclusions`. `rate_plans` has `parent_rate_plan_id`, `derivation` and `derivation_value` (see [Derived rate plans](04-derived-rate-plans.md)). It has `fixed_nights` and `package_unit` (see [Package prices](../09-packages/02-package-prices.md)). It has `company_access` (`CompanyAccess`, default Everyone, CHECK in everyone, all, selected), `company_at_desk` and `company_in_portal`, set on the Companies tab. `company_rate_plans` has `at_desk` and `in_portal`.
+- **Companies tab built:** `settings.rate-plans.companies.edit|update`, `.store`, `.rows.update` and `.destroy`, the Actions `SetRatePlanCompanyAccess`, `AddRatePlanCompanies`, `UpdateRatePlanCompany` and `RemoveRatePlanCompany`, `RatePlanCompaniesData`. See [Who can use this rate](#who-can-use-this-rate).
 - **Extra column:** `needs_child_price_review` (boolean) stores the "Check child prices" flag. [Age groups](../02-property/04-age-groups.md) sets it when a group is added. Saving the Children tab clears it.
 - **Enums built:** `PricingBasis`, `EarlyDeparturePolicy`, `AgeBandPricing`, `StayDiscountType`, `RateDerivation`, `PackageUnit`. `PricingBasis::fits(SellUnit)` holds the sell unit table below.
 - **Package plans** are created like any plan. The Package case fits both families. A database CHECK keeps `fixed_nights` (1 to 30) and `package_unit` set on a package and empty on every other plan. There is no `is_package` column, `pricing_basis = Package` says it.
 - **New plan:** a Sheet with name, pricing basis and optional room types. Choosing Package adds Nights and Charged (per guest or per room). Room types are a multi-select combobox that shows how each is sold and disables one the basis cannot sell. The Room types tab keeps its checkbox list.
-- **Editor:** a full page with `TabLinks`. Each tab is its own URL, controller method and page, and loads only its own data: Details (`settings.rate-plans.edit`), Room types (`settings.rate-plans.room-types.edit`), Pricing (`settings.rate-plans.pricing.edit`, a stay price grid for Package plans, see [Package prices](../09-packages/02-package-prices.md#ui), and [Daily rates](02-daily-rates-and-restrictions.md#ui) for the others) Children (`settings.rate-plans.child-prices.edit`, PerGuest plans and per-guest packages only, 404 otherwise) and Discounts (`settings.rate-plans.discounts.edit`, 404 for Package plans). Each tab is its own form. Leaving a tab with unsaved changes asks Cancel, Discard or Save (see [Form containers](../design-system/05-form-containers.md#unsaved-changes)). The Inclusions tab (`settings.rate-plans.inclusions.edit`) is open to every plan, see [Inclusions](../09-packages/01-inclusions.md). The Portal tab (`settings.rate-plans.portal.edit` and `.update`, `settings.manage`, a 404 for Day use plans) sets `portal_access` through `UpdateRatePlanPortalAccess` and lists the linked companies read only, each linking to that company's Rates tab. `early_departure_policy` has a column and a default (ChargeFull) but no field yet.
+- **Editor:** a full page with `TabLinks`. Each tab is its own URL, controller method and page, and loads only its own data: Details (`settings.rate-plans.edit`), Room types (`settings.rate-plans.room-types.edit`), Pricing (`settings.rate-plans.pricing.edit`, a stay price grid for Package plans, see [Package prices](../09-packages/02-package-prices.md#ui), and [Daily rates](02-daily-rates-and-restrictions.md#ui) for the others) Children (`settings.rate-plans.child-prices.edit`, PerGuest plans and per-guest packages only, 404 otherwise) and Discounts (`settings.rate-plans.discounts.edit`, 404 for Package plans). Each tab is its own form. Leaving a tab with unsaved changes asks Cancel, Discard or Save (see [Form containers](../design-system/05-form-containers.md#unsaved-changes)). The Inclusions tab (`settings.rate-plans.inclusions.edit`) is open to every plan, see [Inclusions](../09-packages/01-inclusions.md). The Companies tab (`settings.rate-plans.companies.edit`, `settings.manage`, a 404 for Day use plans) sets who can use the rate, see [Who can use this rate](#who-can-use-this-rate). `early_departure_policy` has a column and a default (ChargeFull) but no field yet.
 - **List:** one table with name, family, pricing, room types, status and a row menu (Edit, Create derived plan, Move up, Move down, Archive or Restore). **Create derived plan** shows only on an active plan that can be a parent (see [Derived rate plans](04-derived-rate-plans.md#create-derived-plan-quick-action)). A search box and a status filter (Active by default, Archived, All) filter the loaded list in the browser, and the choice is kept in `?status=`. Archived plans show in the same table, so there is no archived section. Reorder shows only on the Active filter with no search. Badges: status (`RatePlanStatus`), sells (tone only, no dot, from `PricingBasis::familyTone()`), pricing (icon and tone, from `PricingBasis::tone()`; a derived plan shows a branch icon and its "Follows" label), and "Check child prices". Room types show as up to 3 pills and one "+X" pill, whose tooltip lists the rest. A new plan opens on its Room types tab.
 - **Guard built:** a room type keeps at least one active linked plan. It is checked on unlinking and archiving by `RatePlanCoverage`, and re-checked in the Action under a lock.
 - **Package guard:** a package's nights cannot change while an active package follows it, and a package that follows another has its nights and unit locked (see [Derived packages](04-derived-rate-plans.md#derived-packages)).
@@ -75,7 +76,60 @@ A plan with `pricing_basis = DayUse` sells a room for a number of hours on one d
 - `PackageUnit`: PerGuest, PerRoom. See [Package prices](../09-packages/02-package-prices.md).
 - `AgeBandPricing`: Free, Percent, Fixed.
 - `StayDiscountType`: Percent, Amount.
-- `PortalAccess`: Hidden, All, Selected. Selected uses `company_rate_plans`. See [Company portal](../23-company-portal/01-company-portal.md). Saving Selected with no linked company is refused ("Link at least one company first."), and so is removing the last company link of a Selected plan on the company's Rates tab ("This plan is Selected for the portal and needs a company.").
+- `CompanyAccess`: Everyone, All, Selected (shown as "Only these companies"), with `label()` and `options()`. See [Who can use this rate](#who-can-use-this-rate).
+
+## Who can use this rate
+
+One setting on the rate plan owns it: **Who can use this rate** (`rate_plans.company_access`, `CompanyAccess`). It is set on the **Companies** tab of the plan editor. It replaces `portal_access`, the Portal tab and the switches on the company's Rates tab. Staff no longer visit two or three pages for one idea.
+
+| Choice               | Front desk                                                             | Portal                                             |
+| -------------------- | ---------------------------------------------------------------------- | -------------------------------------------------- |
+| Everyone (default)   | Every booking. A normal plan.                                          | Never                                              |
+| All companies        | Only when a company is picked on the booking, if Front desk is on      | Every company with a portal login, if Portal is on |
+| Only these companies | Only when a listed company with Front desk on is picked on the booking | Only listed companies with Portal on               |
+
+- **Columns:** `rate_plans.company_access` (CHECK in everyone, all, selected), `company_at_desk` and `company_in_portal` (booleans, default true, used by All companies; CHECK at least one is true when `company_access` is all). The rows of Only these companies are in `company_rate_plans` (`company_id`, `rate_plan_id`, `at_desk` default true, `in_portal` default false, CHECK `at_desk OR in_portal`).
+- **Only derived plans** can be Only these companies, as with company links before. The radio is disabled on other plans, with the hint "Only a derived plan can be limited to some companies."
+- **Day use plans** are front desk only and always Everyone. The Companies tab is a 404 for them. An archived plan cannot change.
+- **Switching away** from Only these companies keeps the rows. They apply again if the choice is switched back.
+- **Day use, channels and rates:** the choice never changes price. A plan priced for companies is still priced by `RateQuoteService`. Channel ingestion skips the front desk check (`fromChannel`).
+- **Bookings already made** keep their plan and price when access changes.
+
+### Companies tab
+
+The tab replaces the Portal tab in the same position. A radio group "Who can use this rate" holds the three choices.
+
+- **All companies:** a "Where" radio: Front desk and portal, Front desk only, Portal only, and a Save button. Saving sets `company_at_desk` and `company_in_portal`.
+- **Only these companies:** a table with the columns Company (name, with a link that opens that company's Rates tab), Login, Front desk, Portal and a ⋯ menu. Login is the company's portal login status: Active, Waiting, Temp password or —. Front desk and Portal are switches that save at once. Turning both off is refused: "Turn on at least one, or remove the company." The ⋯ menu has **Remove**.
+- **Add companies** is a Dialog with a search box and a checklist of the Active companies not yet listed (name, type). Confirming adds them with both switches on and shows a toast.
+- **Remove** is an AlertDialog "Remove {company} from this rate?" It says: "Staff won't see "{plan}" at the front desk for this company", then ", and the company can't book it in the portal" only when the row's Portal is on and the company has an Active login, then ". Bookings already made keep their price." The Remove button is destructive.
+- **Removing the last company is allowed.** The empty state "No company has this rate yet." shows with **Add companies**. Nobody can use the rate until a company is added or the choice changes. The old refusals "Link at least one company first" and "This plan is Selected for the portal and needs a company" are gone.
+- **Permissions:** the tab and its switches need `settings.manage`. Adding and removing companies also needs `company.manage`, as the Create derived plan Sheet does. Without it the buttons and menu are hidden.
+
+### Actions
+
+All in `app/Actions/Rates/`. Each returns null when done, or a refusal code when the state refuses, and writes nothing then. Each logs one activity entry.
+
+| Action                     | Does                                                                                                                                                                    | Log                                |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| `SetRatePlanCompanyAccess` | Saves `company_access` and, for All companies, the two switches. Refuses an archived or Day use plan, non derived plan with Only these companies, and both switches off | `rate_plan.company_access_updated` |
+| `AddRatePlanCompanies`     | Adds Active companies of the property to an Only these companies plan, both switches on. Skips companies already listed                                                 | `rate_plan.companies_added`        |
+| `UpdateRatePlanCompany`    | Saves `at_desk` and `in_portal` of one row. Refuses both off                                                                                                            | `rate_plan.company_updated`        |
+| `RemoveRatePlanCompany`    | Deletes the row. Allowed for the last one                                                                                                                               | `rate_plan.company_removed`        |
+
+`CompanyRateAccess` (a Service in `app/Services/Rates/`) answers the read side: `deskAllows($plan, $companyId)` for the front desk and `usableBy($plan, $companyId)` (any company the plan is open to, desk or portal) for the company change check. `PortalRatePlans` answers the portal side.
+
+### Data change
+
+The migration replaces `portal_access` with `company_access`, `company_at_desk` and `company_in_portal`, and adds `at_desk` and `in_portal` to `company_rate_plans`. It backfills in this order:
+
+| Old state                        | New state                                                                                                                                                                                         |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Plan has company links           | Only these companies. Links get `at_desk` true, and `in_portal` true only when the old `portal_access` was selected                                                                               |
+| No links, `portal_access` hidden | Everyone                                                                                                                                                                                          |
+| No links, `portal_access` all    | All companies, Front desk off and Portal on. The plan stays in the portal. It no longer shows at the front desk, where it showed for every booking; staff turn Front desk on if they want it back |
+
+**Check the production and demo values before this migration runs there.** Two cases change what users see. A plan that was All for the portal and had links becomes Only these companies, and its links lose the portal. A plan that was All for the portal with no links disappears from the front desk.
 
 ## Sell unit and pricing basis
 
@@ -165,14 +219,14 @@ A right-side Sheet with one short form, not a wizard: a name, how it is priced (
 
 A full page with tab links (one URL per tab): **Details · Room types · Pricing · Children · Discounts · Portal**. Background text goes in info tooltips, not paragraphs under each heading.
 
-| Tab        | Content                                                                                                                                                                               |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Details    | Name, description (shown to guests and company users), extra guest charges, single supplement                                                                                         |
-| Room types | A checkbox per room type. Room types of the other family are shown disabled, with the reason in a tooltip.                                                                            |
-| Pricing    | Step 1: "Set prices directly" or "Follow another plan". Package plans show package prices instead, or follow a package with a percent.                                                |
-| Children   | PerGuest plans and per-guest packages only. One row per age group: Free, Percent or Fixed.                                                                                            |
-| Discounts  | Long-stay discounts and a price preview. "Add long-stay discount" sits in the table footer. Not for Package plans.                                                                    |
-| Portal     | `portal_access`: Hidden, All or Selected. Selected only on derived plans, with at least one linked company (listed read-only, linking on the company's Rates tab). Hidden for Day use |
+| Tab        | Content                                                                                                                                                        |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Details    | Name, description (shown to guests and company users), extra guest charges, single supplement                                                                  |
+| Room types | A checkbox per room type. Room types of the other family are shown disabled, with the reason in a tooltip.                                                     |
+| Pricing    | Step 1: "Set prices directly" or "Follow another plan". Package plans show package prices instead, or follow a package with a percent.                         |
+| Children   | PerGuest plans and per-guest packages only. One row per age group: Free, Percent or Fixed.                                                                     |
+| Discounts  | Long-stay discounts and a price preview. "Add long-stay discount" sits in the table footer. Not for Package plans.                                             |
+| Companies  | Who can use this rate: Everyone, All companies or Only these companies (derived plans only), with the front desk and portal switches. A 404 for Day use plans. |
 
 - The Pricing and Discounts tabs use the full panel width (`panelWidth="full"`), not the 80% of the other tabs. Pricing needs it for the By day view (7 columns). On Discounts, the rules table is full width. Under it, a 3-column grid holds the sample stay (column 1) and the price preview (columns 2–3). Save is in the form footer under the preview.
 - "Set prices directly" uses the shared [pricing form](02-daily-rates-and-restrictions.md#pricing-form). It writes `rates` rows and stores nothing on the plan.
