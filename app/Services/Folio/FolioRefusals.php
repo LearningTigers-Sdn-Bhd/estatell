@@ -91,6 +91,11 @@ class FolioRefusals
             FolioStatusResult::REFUSAL_NOT_CLOSED => [self::FORM, __('Only a closed folio can be reopened.')],
             TaxCalculator::REFUSAL_NATIONALITY_REQUIRED => [self::FORM, __('This charge has a tax that depends on nationality. Add the booker\'s nationality to the guest first.')],
             TaxCalculator::REFUSAL_INCLUSIVE_TAX_EXCEEDS_AMOUNT => ['unit_amount', __('The tax in this price is more than the amount.')],
+            PostingResult::REFUSAL_MIGRATION_WINDOW_CLOSED => [self::FORM, __('The migration window is closed, so the opening balance cannot be changed. Correct it with a reversal or a refund.')],
+            PostingResult::REFUSAL_REASON_REQUIRED => ['reason', __('Describe the reason.')],
+            PostingResult::REFUSAL_OPENING_AMOUNT_INVALID => ['amount', __('Enter an amount such as 1,080.00. A minus amount is a credit.')],
+            PostingResult::REFUSAL_NOT_OPENING_BALANCE => [self::FORM, __('This line is not an opening balance.')],
+            PostingResult::REFUSAL_OPENING_BALANCE_EXISTS => [self::FORM, __('This folio already has an opening balance. Change it instead.')],
             default => [self::FORM, __('This could not be done.')],
         };
     }

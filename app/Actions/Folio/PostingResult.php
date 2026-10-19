@@ -5,7 +5,7 @@ namespace App\Actions\Folio;
 use App\Models\FolioLine;
 
 /**
- * What `PostCharge`, `ReverseLine`, `TransferLines`, `ApplyDiscount`, `RemoveDiscount`, `PostRoomCharges`, `SplitLine`, `RemoveLineTax`, `AddLineTax` and `RecalculateLineTax` return: the lines that were written, or a refusal code.
+ * What `PostCharge`, `ReverseLine`, `TransferLines`, `ApplyDiscount`, `RemoveDiscount`, `PostRoomCharges`, `PostOpeningBalance`, `ChangeOpeningBalance`, `SplitLine`, `RemoveLineTax`, `AddLineTax` and `RecalculateLineTax` return: the lines that were written, or a refusal code.
  * `lines` starts with the main line (the charge, the reversal of the given line, or the first copy on the target),
  * followed by its children. A repeated idempotency key returns the existing lines with `replayed` set and writes nothing.
  */
@@ -74,6 +74,18 @@ class PostingResult
     public const REFUSAL_TAX_UNCHANGED = 'tax_unchanged';
 
     public const REFUSAL_NET_AMOUNT_CHANGED = 'net_amount_changed';
+
+    public const REFUSAL_NIGHT_BEFORE_GO_LIVE = 'night_before_go_live';
+
+    public const REFUSAL_MIGRATION_WINDOW_CLOSED = 'migration_window_closed';
+
+    public const REFUSAL_NOT_OPENING_BALANCE = 'not_opening_balance';
+
+    public const REFUSAL_OPENING_BALANCE_EXISTS = 'opening_balance_exists';
+
+    public const REFUSAL_REASON_REQUIRED = 'reason_required';
+
+    public const REFUSAL_OPENING_AMOUNT_INVALID = 'opening_amount_invalid';
 
     /**
      * @param  list<FolioLine>  $lines

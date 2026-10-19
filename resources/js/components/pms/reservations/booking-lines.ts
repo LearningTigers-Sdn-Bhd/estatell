@@ -58,6 +58,14 @@ export type BookingForm = {
     reason?: string;
     /** Past stay only: still in the house, or already checked out. */
     status?: 'in_house' | 'checked_out';
+    /** Past stay and Migrated stay: which of the two the form saves. */
+    mode?: 'past' | 'migrated';
+    /** Migrated stay only: `one_amount` or `copy_line_by_line`. */
+    old_folio?: string;
+    /** Migrated stay, One amount: what the guest still owes in the old system. Minus is a credit. */
+    opening_amount?: string;
+    /** Migrated stay, One amount: the folio number in the old system. */
+    legacy_number?: string;
     guests: BookingGuest[];
     lines: BookingLine[];
     /** Overnight only: the Boat in and Boat out picks, applied to every line. A day use block takes none. */
@@ -217,6 +225,83 @@ export function nightsBetween(arrival: string, departure: string): number {
     const end = Date.parse(`${departure}T00:00:00Z`);
 
     return end > start ? Math.round((end - start) / 86_400_000) : 0;
+}
+
+const MONTHS = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+];
+
+/**
+ * "1–9 Oct" for the nights before go-live: from the arrival to the day before go-live. Empty when the stay does not
+ * start before go-live. A range over two months reads "30 Sep–9 Oct".
+ */
+export function beforeGoLiveRange(arrival: string, goLive: string): string {
+    if (!arrival || !goLive || arrival >= goLive) {
+        return '';
+    }
+
+    const last = addDays(goLive, -1);
+    const label = (date: string, withMonth: boolean) => {
+        const [, month, day] = date.split('-').map(Number);
+        const name = MONTHS[month - 1];
+
+        return withMonth ? `${day} ${name}` : String(day);
+    };
+
+    return arrival.slice(0, 7) === last.slice(0, 7)
+        ? `${label(arrival, false)}–${label(last, true)}`
+        : `${label(arrival, true)}–${label(last, true)}`;
+}
+
+/**
+ * A Migrated stay quote without the nights before go-live, which are never charged: the line and unit totals count
+ * only the nights from go-live. A price override is spread evenly over the nights, so its total is cut in proportion.
+ * The nights stay in the quote, so the night table can say "before go-live". Display only: the server charges.
+ */
+export function chargeableQuote(
+    quote: App.Data.Reservations.BookingQuoteData | null,
+    goLive: string | null,
+    beds: number,
+): App.Data.Reservations.BookingQuoteData | null {
+    if (quote === null || goLive === null || quote.unitTotal === null) {
+        return quote;
+    }
+
+    const before = quote.nights.filter((night) => night.date < goLive);
+
+    if (before.length === 0) {
+        return quote;
+    }
+
+    const total = Math.round(Number(quote.unitTotal) * 100);
+    const kept = quote.isOverridden
+        ? Math.round(
+              (total * (quote.nights.length - before.length)) /
+                  quote.nights.length,
+          )
+        : total -
+          before.reduce(
+              (sum, night) => sum + Math.round(Number(night.amount) * 100),
+              0,
+          );
+    const unit = Math.max(0, kept);
+
+    return {
+        ...quote,
+        unitTotal: (unit / 100).toFixed(2),
+        lineTotal: ((unit * Math.max(1, beds)) / 100).toFixed(2),
+    };
 }
 
 /** Adds decimal strings in cents, for display. The server sends every amount, so this only adds them up. */

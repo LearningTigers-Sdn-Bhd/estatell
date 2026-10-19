@@ -41,6 +41,7 @@ export function BookingQuoteCell({
     errors,
     index,
     canOverride = true,
+    goLiveDate = null,
 }: {
     quote: Quote | null;
     loading: boolean;
@@ -55,6 +56,8 @@ export function BookingQuoteCell({
     index: number;
     /** A day use price cannot be overridden, so its line has no pencil. */
     canOverride?: boolean;
+    /** Migrated stay only: a night before this date shows "before go-live" and no price. */
+    goLiveDate?: string | null;
 }) {
     const overrideInvalid =
         !!errors[`lines.${index}.override_total`] ||
@@ -104,10 +107,17 @@ export function BookingQuoteCell({
                                         <DateText date={night.date} />
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <MoneyText
-                                            amount={night.amount}
-                                            currency={currency}
-                                        />
+                                        {goLiveDate !== null &&
+                                        night.date < goLiveDate ? (
+                                            <span className="text-muted-foreground">
+                                                before go-live
+                                            </span>
+                                        ) : (
+                                            <MoneyText
+                                                amount={night.amount}
+                                                currency={currency}
+                                            />
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))}

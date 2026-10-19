@@ -26,6 +26,10 @@ class BookingResult
 
     public const REFUSAL_ARRIVAL_BEFORE_GO_LIVE = 'arrival_before_go_live';
 
+    public const REFUSAL_ARRIVAL_NOT_BEFORE_GO_LIVE = 'arrival_not_before_go_live';
+
+    public const REFUSAL_MIGRATION_WINDOW_CLOSED = 'migration_window_closed';
+
     public const REFUSAL_DEPARTURE_NOT_AFTER_TODAY = 'departure_not_after_today';
 
     public const REFUSAL_DEPARTURE_AFTER_TODAY = 'departure_after_today';

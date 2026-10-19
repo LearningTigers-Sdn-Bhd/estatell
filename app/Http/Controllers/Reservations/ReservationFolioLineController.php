@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Reservations;
 
 use App\Actions\Folio\AddLineTax;
+use App\Actions\Folio\ChangeOpeningBalance;
 use App\Actions\Folio\PostingResult;
 use App\Actions\Folio\RecalculateLineTax;
 use App\Actions\Folio\RemoveLineTax;
 use App\Actions\Folio\SplitLine;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Folio\ChangeLineTaxRequest;
+use App\Http\Requests\Folio\ChangeOpeningBalanceRequest;
 use App\Http\Requests\Folio\LineManualActionRequest;
 use App\Http\Requests\Folio\SplitLineRequest;
 use App\Models\Folio;
@@ -20,7 +22,8 @@ use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 
 /**
- * The row menu of the manual folio page: split a posted line, and remove, add or recalculate its tax. Each one posts at
+ * The row menu of the manual folio page: split a posted line, and remove, add or recalculate its tax. The folio tab
+ * adds Change opening balance. Each one posts at
  * once with its own reason. A refusal goes back to the Dialog as an error. A folio that is not on the reservation, or a
  * folio, tax or line that is not on the route's folio, is a 404. See docs/13-folio/08-manual-folio.md#row-menu-on-posted-lines.
  */
@@ -51,6 +54,16 @@ class ReservationFolioLineController extends Controller
     public function recalculateTax(LineManualActionRequest $request, Property $property, Reservation $reservation, Folio $folio, FolioLine $line, RecalculateLineTax $recalculateLineTax, FolioRefusals $refusals): RedirectResponse
     {
         return $this->answer($recalculateLineTax($request->user(), $line, $request->string('reason')->toString(), $request->string('idempotency_key')->toString()), $refusals, __('Tax recalculated.'), $property, $reservation, $folio);
+    }
+
+    /**
+     * Change the opening balance of a folio from the line's row menu: the old line is reversed and the new one posted.
+     */
+    public function changeOpeningBalance(ChangeOpeningBalanceRequest $request, Property $property, Reservation $reservation, Folio $folio, FolioLine $line, ChangeOpeningBalance $changeOpeningBalance, FolioRefusals $refusals): RedirectResponse
+    {
+        abort_unless($folio->reservation_id === $reservation->id && $line->folio_id === $folio->id, 404);
+
+        return $this->answer($changeOpeningBalance($request->user(), $line, $request->string('amount')->toString(), $request->string('reason')->toString()), $refusals, __('Opening balance changed.'), $property, $reservation, $folio);
     }
 
     private function answer(PostingResult $result, FolioRefusals $refusals, string $message, Property $property, Reservation $reservation, Folio $folio): RedirectResponse

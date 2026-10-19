@@ -29,6 +29,7 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
         Route::post('/', [ReservationBookingController::class, 'store'])->name('store');
         Route::middleware('can:'.PermissionEnum::FolioManual->value)->group(function () {
             Route::get('past', [ReservationBookingController::class, 'past'])->name('past');
+            Route::get('migrated', [ReservationBookingController::class, 'migrated'])->name('migrated');
             Route::post('past', [ReservationBookingController::class, 'storePast'])->name('store-past');
         });
         Route::get('free-units', [ReservationBookingController::class, 'freeUnits'])->name('free-units');
@@ -64,6 +65,7 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                     Route::post('tax/remove', [ReservationFolioLineController::class, 'removeTax'])->name('tax.remove');
                     Route::post('tax', [ReservationFolioLineController::class, 'addTax'])->name('tax.add');
                     Route::post('tax/recalculate', [ReservationFolioLineController::class, 'recalculateTax'])->name('tax.recalculate');
+                    Route::post('opening-balance', [ReservationFolioLineController::class, 'changeOpeningBalance'])->name('opening-balance');
                 });
                 Route::post('city-ledger', [ReservationCityLedgerController::class, 'settle'])->middleware('can:'.PermissionEnum::CityLedgerInvoice->value)->name('city-ledger');
                 Route::post('close', [ReservationFolioController::class, 'close'])->middleware('can:'.PermissionEnum::FolioClose->value)->name('close');

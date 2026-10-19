@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Reservations;
 
+use App\Enums\OldFolioMode;
 use App\Enums\PermissionEnum;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -19,8 +20,22 @@ class StorePastStayRequest extends StoreBookingRequest
             ...parent::rules(),
             'reason' => ['required', 'string', 'max:500'],
             'status' => ['nullable', Rule::in(['in_house', 'checked_out'])],
+            'mode' => ['nullable', Rule::in(['past', 'migrated'])],
+            'old_folio' => ['required_if:mode,migrated', 'nullable', Rule::enum(OldFolioMode::class)],
+            'opening_amount' => ['nullable', 'string', 'max:20'],
+            'legacy_number' => ['nullable', 'string', 'max:50'],
             'departure_date' => ['required', 'date_format:Y-m-d'],
         ];
+    }
+
+    /**
+     * The amount of a migrated stay may be typed as 1,080.00: the commas and spaces go before it is checked.
+     */
+    protected function prepareForValidation(): void
+    {
+        if (is_string($this->input('opening_amount'))) {
+            $this->merge(['opening_amount' => str_replace([',', ' '], '', trim($this->input('opening_amount')))]);
+        }
     }
 
     /**
@@ -31,6 +46,7 @@ class StorePastStayRequest extends StoreBookingRequest
         return [
             ...parent::messages(),
             'reason.required' => __('Enter a reason.'),
+            'old_folio.required_if' => __('Choose how to bring in the old folio.'),
         ];
     }
 
@@ -66,6 +82,33 @@ class StorePastStayRequest extends StoreBookingRequest
     public function withoutCard(): bool
     {
         return $this->user()->can(PermissionEnum::FrontDeskCheckInWithoutCard->value);
+    }
+
+    /**
+     * Migrated stay mode: the stay began in the old system, before the go-live date.
+     */
+    public function isMigrated(): bool
+    {
+        return $this->validated('mode') === 'migrated';
+    }
+
+    public function oldFolio(): OldFolioMode
+    {
+        return OldFolioMode::from((string) $this->validated('old_folio'));
+    }
+
+    /**
+     * The signed amount of One amount as typed. An empty amount is zero, which posts nothing. `PostOpeningBalance`
+     * refuses a value that is not an amount.
+     */
+    public function openingAmount(): string
+    {
+        return (string) $this->validated('opening_amount');
+    }
+
+    public function legacyNumber(): ?string
+    {
+        return $this->validated('legacy_number');
     }
 
     /**

@@ -19,6 +19,7 @@ use App\Models\UnitAddOn;
 use App\Models\UnitNight;
 use App\Services\Catalogues\TaxCalculationResult;
 use App\Services\Catalogues\TaxCalculator;
+use App\Services\NightAudit\FirstBusinessDate;
 use App\Services\Reservations\AddOnLabel;
 use Brick\Money\Money;
 use Illuminate\Support\Collection;
@@ -28,6 +29,7 @@ use Illuminate\Support\Collection;
  * `night:{unit_night_id}` line exists, and an add-on until its row has a `folio_line_id`. Nothing is stored and
  * nothing is written. Each block is a charge with its discount and tax children, placed on the folio the router
  * would choose (null while the unit has no folio). Tax is worked out with `TaxCalculator`, on the discounted amount.
+ * A night before the go-live date is never charged, so it is never Scheduled (it keeps its quoted amount in `unit_nights`).
  * Assumes the booker's nationality drives foreign-guest taxes, as `PostCharge` does. Expects the property's `settings` and
  * the reservation's `booker` to be loaded. See docs/13-folio/05-folio-page.md.
  */
@@ -41,6 +43,7 @@ class ScheduledFolioRows
         private TaxCalculator $taxCalculator,
         private NightChargeQuote $nightChargeQuote,
         private DayUseChargeQuote $dayUseChargeQuote,
+        private FirstBusinessDate $firstBusinessDate,
     ) {}
 
     /**
@@ -80,6 +83,7 @@ class ScheduledFolioRows
             ->flip();
         $resolve = $this->folioRouter->resolverFor($reservation);
         $nationality = $reservation->booker->nationality_code;
+        $goLive = $this->firstBusinessDate->date($property)?->toDateString();
         $blocks = [];
 
         foreach ($units as $unit) {
@@ -104,7 +108,7 @@ class ScheduledFolioRows
                 $isFirst = $first;
                 $first = false;
 
-                if ($posted->has('night:'.$night->id)) {
+                if ($posted->has('night:'.$night->id) || ($goLive !== null && $night->date->toDateString() < $goLive)) {
                     continue;
                 }
 

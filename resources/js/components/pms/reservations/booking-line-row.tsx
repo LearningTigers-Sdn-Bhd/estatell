@@ -1,9 +1,10 @@
 import { Trash2 } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { BookingQuoteCell } from '@/components/pms/booking-quote-cell';
 import { BookingUnitPicker } from '@/components/pms/reservations/booking-unit-picker';
 import {
+    chargeableQuote,
     isQuotable,
     plansFor,
     resizeAges,
@@ -63,6 +64,7 @@ export function BookingLineRow({
     onChange,
     onRemove,
     onQuote,
+    goLiveDate = null,
 }: {
     index: number;
     line: BookingLine;
@@ -79,17 +81,28 @@ export function BookingLineRow({
     onChange: (patch: Partial<BookingLine>) => void;
     onRemove: () => void;
     onQuote: (key: string, quote: Quote | null) => void;
+    /** Migrated stay only: nights before this date are never charged, so they show no price and leave the totals. */
+    goLiveDate?: string | null;
 }) {
     const roomType = roomTypeOf(line, options.roomTypes);
     const isBed = roomType?.isBed === true;
     const plans = plansFor(options.ratePlans, line.room_type_id, companyId);
     const quotable = isQuotable(line, arrival, departure);
-    const { quote, loading } = useBookingQuote(
+    const { quote: quoted, loading } = useBookingQuote(
         line,
         arrival,
         departure,
         isBed,
         quotable,
+    );
+    const quote = useMemo(
+        () =>
+            chargeableQuote(
+                quoted,
+                goLiveDate,
+                isBed ? Number.parseInt(line.beds, 10) || 1 : 1,
+            ),
+        [quoted, goLiveDate, isBed, line.beds],
     );
     const error = (field: string) => errors[`lines.${index}.${field}`];
     const beds = isBed
@@ -282,6 +295,7 @@ export function BookingLineRow({
             <div className="flex items-center justify-between lg:justify-end">
                 <BookingQuoteCell
                     quote={quote}
+                    goLiveDate={goLiveDate}
                     loading={loading}
                     currency={currency}
                     overrideTotal={line.override_total}

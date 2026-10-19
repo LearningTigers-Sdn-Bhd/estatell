@@ -120,7 +120,7 @@ For a guest who is in the house on go-live day, or a stay that started before it
 | Old folio  | **One amount** (the default) or **Copy line by line**.                                                                                                                              |
 | Reason     | Required.                                                                                                                                                                           |
 
-`CreateMigratedStay` runs `CreateBooking` with `allowPastArrival`, `CheckInUnit` with `asOf`, then `PostOpeningBalance` (One amount) for the unit's folio, in one transaction. It logs `reservation.migrated_stay_created`. **Copy line by line** saves the stay with no opening line and opens the old folio page.
+`CreateMigratedStay` runs `CreateBooking` with `allowPastArrival`, `CheckInUnit` with `asOf`, then `PostOpeningBalance` (One amount) for the unit's folio, in one transaction. The form has one amount and one old folio number for the stay, so the opening line posts on the folio of the first unit (the one the success page opens). The form posts `mode=migrated` and `old_folio` (`one_amount` or `copy_line_by_line`) to `reservations.store-past`; an empty amount is zero and posts nothing. It logs `reservation.migrated_stay_created`. **Copy line by line** saves the stay with no opening line and opens the old folio page.
 
 **A night before the go-live date is never charged.** This needs no column: `PostRoomCharges`, `PostMissedNights` and the audit refuse a night before the go-live date (`night_before_go_live`). The folio's Scheduled rows and the booking summary totals leave those nights out.
 

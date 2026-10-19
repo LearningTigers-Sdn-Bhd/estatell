@@ -2,7 +2,9 @@ import { expect, test } from 'vite-plus/test';
 import {
     addDays,
     autoAddOns,
+    beforeGoLiveRange,
     bookingPayload,
+    chargeableQuote,
     emptyLine,
     isQuotable,
     moveAddOn,
@@ -355,4 +357,48 @@ test('the posted add-ons carry the declined ids and not the client-only tag', ()
 
     expect(line.declined_auto_add_ons).toEqual(['5']);
     expect(line.add_ons[0]).not.toHaveProperty('auto');
+});
+
+test('the nights before go-live read as a range that ends the day before go-live', () => {
+    expect(beforeGoLiveRange('2026-10-01', '2026-10-10')).toBe('1–9 Oct');
+    expect(beforeGoLiveRange('2026-09-30', '2026-10-10')).toBe('30 Sep–9 Oct');
+    expect(beforeGoLiveRange('2026-10-10', '2026-10-10')).toBe('');
+    expect(beforeGoLiveRange('', '2026-10-10')).toBe('');
+});
+
+test('a migrated stay quote leaves the nights before go-live out of its totals', () => {
+    const night = (date: string) => ({
+        date,
+        base: '100.00',
+        extra: '0.00',
+        supplement: '0.00',
+        discount: '0.00',
+        amount: '100.00',
+    });
+    const quote = {
+        nights: [night('2026-10-08'), night('2026-10-09'), night('2026-10-10')],
+        unitTotal: '300.00',
+        lineTotal: '600.00',
+        addOnsTotal: '0.00',
+        isOverridden: false,
+        beds: 2,
+        violations: [],
+        available: 1,
+        errors: {},
+    };
+
+    const result = chargeableQuote(quote, '2026-10-10', 2);
+
+    expect(result?.unitTotal).toBe('100.00');
+    expect(result?.lineTotal).toBe('200.00');
+    expect(result?.nights).toHaveLength(3);
+    expect(chargeableQuote(quote, null, 2)).toBe(quote);
+    expect(chargeableQuote(quote, '2026-10-08', 2)).toBe(quote);
+    expect(
+        chargeableQuote(
+            { ...quote, isOverridden: true, unitTotal: '240.00' },
+            '2026-10-10',
+            1,
+        )?.unitTotal,
+    ).toBe('80.00');
 });

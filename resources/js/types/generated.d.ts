@@ -3436,6 +3436,7 @@ export type MissedArrivalPolicy = 'mark_no_show' | 'keep_as_late_arrival';
 export type NavigationContext = 'front-desk' | 'finance' | 'reports' | 'settings';
 export type NotificationChannel = 'mail' | 'database';
 export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions' | 'night_audit_failed' | 'registration_card_link' | 'onboarding_reminder' | 'dorm_strategy_changed' | 'support_access_used' | 'go_live_approved' | 'go_live_rejected' | 'portal_booking_created' | 'portal_booking_cancelled' | 'portal_cancellation_requested';
+export type OldFolioMode = 'one_amount' | 'copy_line_by_line';
 export type OnboardingPhase = 'property' | 'rooms' | 'finance' | 'prices' | 'channels' | 'review';
 export type OnboardingStep = 'basics' | 'check_in_essentials' | 'team' | 'room_types' | 'rooms' | 'taxes' | 'payment_methods' | 'companies' | 'basic_rate' | 'charge_items' | 'discounts' | 'channel_manager' | 'review';
 export type OtaCredentialStatus = 'pending' | 'processed';

@@ -16,6 +16,7 @@ use App\Services\Folio\FolioRouter;
 use App\Services\Folio\NightChargeQuote;
 use App\Services\Folio\QuotedDiscount;
 use App\Services\NightAudit\CurrentBusinessDate;
+use App\Services\NightAudit\FirstBusinessDate;
 use App\Services\Reservations\UnitNationality;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +25,7 @@ class PostRoomCharges
 {
     public function __construct(
         private CurrentBusinessDate $currentBusinessDate,
+        private FirstBusinessDate $firstBusinessDate,
         private NightChargeQuote $nightChargeQuote,
         private FolioRouter $folioRouter,
         private FolioPostability $folioPostability,
@@ -40,7 +42,8 @@ class PostRoomCharges
      * already exists returns it as replayed and writes nothing. Automatic postings log no activity: the lines are the
      * record. `$date` is the night: the business date for the audit, or an earlier night for `RetryRoomCharge`. The
      * lines are always posted on the business date, and an earlier night may belong to a unit that has checked out
-     * since; its room line names the night. See docs/13-folio/02-posting-charges.md.
+     * since; its room line names the night. A night before the go-live date belongs to the old system and is never
+     * charged (`night_before_go_live`), whoever asks: the audit, a Retry or `PostMissedNights`. See docs/13-folio/02-posting-charges.md.
      */
     public function __invoke(?User $actor, ReservationUnit $unit, CarbonImmutable $date): PostingResult
     {
@@ -51,6 +54,12 @@ class PostRoomCharges
 
             if ($businessDate === null || $date->startOfDay()->gt($businessDate)) {
                 return PostingResult::refused(PostingResult::REFUSAL_NO_BUSINESS_DATE);
+            }
+
+            $goLive = $this->firstBusinessDate->date($property);
+
+            if ($goLive !== null && $date->startOfDay()->lt($goLive)) {
+                return PostingResult::refused(PostingResult::REFUSAL_NIGHT_BEFORE_GO_LIVE);
             }
 
             $earlierNight = $date->startOfDay()->lt($businessDate);

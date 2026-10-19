@@ -319,6 +319,6 @@ test('the folio tab runs the same queries for few and many units', function () {
     $few = $queries(2);
     $many = $queries(8);
 
-    // The header's `money` prop (BookingSummary) runs on every tab and adds about 25 queries. The manual row menu adds 2.
-    expect($many)->toBe($few)->and($many)->toBeLessThanOrEqual(67);
+    // The header's `money` prop (BookingSummary) runs on every tab and adds about 25 queries. The manual row menu adds 2, and the go-live date read for the Scheduled rows adds 1 for each of the two callers.
+    expect($many)->toBe($few)->and($many)->toBeLessThanOrEqual(69);
 });

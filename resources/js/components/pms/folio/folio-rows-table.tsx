@@ -11,6 +11,7 @@ import {
     PencilLine,
     RefreshCw,
     RotateCcw,
+    Pencil,
     Scissors,
     Tag,
     Undo2,
@@ -146,7 +147,8 @@ export function FolioRowsTable({
             | 'split'
             | 'remove_tax'
             | 'add_tax'
-            | 'recalculate_tax',
+            | 'recalculate_tax'
+            | 'change_opening_balance',
     ) => void;
 }) {
     const canCorrectMoney = useCanCorrectMoney();
@@ -384,6 +386,22 @@ export function FolioRowsTable({
                                                             >
                                                                 <ArrowRightLeft />
                                                                 Move…
+                                                            </DropdownMenuItem>
+                                                        )}
+                                                        {row.actions.includes(
+                                                            'change_opening_balance',
+                                                        ) && (
+                                                            <DropdownMenuItem
+                                                                onClick={() =>
+                                                                    onAction(
+                                                                        row,
+                                                                        'change_opening_balance',
+                                                                    )
+                                                                }
+                                                            >
+                                                                <Pencil />
+                                                                Change opening
+                                                                balance…
                                                             </DropdownMenuItem>
                                                         )}
                                                         {row.actions.includes(

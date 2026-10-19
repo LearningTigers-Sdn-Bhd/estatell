@@ -68,6 +68,7 @@ class ReadinessAdvice
             'rate_missing' => __('There is no rate for the extra night.'),
             'not_available' => __('No room is free for the extra night.'),
             'restricted' => __('A rate restriction stops the extra night.'),
+            'night_before_go_live' => __('This night is before go-live, so it belongs to the old system and is not charged here.'),
             'unit_not_postable' => __('The unit was not in a state that could be charged.'),
             'exceeds_night_amount' => __('The night\'s price is less than its inclusions, so it could not be split.'),
             ResolveOverdueDepartures::MESSAGE_BLOCKED => __('The guest is past the departure date and your policy blocks extending.'),

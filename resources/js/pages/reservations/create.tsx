@@ -15,6 +15,7 @@ import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { sourceSelectOptions } from '@/components/pms/reservations/booking-source-options';
 import { FormActions } from '@/components/pms/form-actions';
+import { MoneyInput } from '@/components/pms/money-input';
 import { PageHeader } from '@/components/pms/page-header';
 import {
     BookingAddOnsSection,
@@ -32,6 +33,7 @@ import {
 } from '@/components/pms/reservations/booking-line-row';
 import {
     addDays,
+    beforeGoLiveRange,
     bookingPayload,
     bookingSeats,
     autoAddOns,
@@ -95,6 +97,7 @@ import { CreditOverrideField } from '@/components/pms/city-ledger/credit-overrid
 import { CompanySelect } from '@/components/pms/company-select';
 import {
     index,
+    migrated,
     newMethod,
     past,
     store,
@@ -119,8 +122,14 @@ type Props = {
     isWalkIn: boolean;
     /** Past stay mode: a stay that began before the business date and is still in the house. */
     isPastStay: boolean;
+    /** Migrated stay mode (it shares the Past stay form): a guest who arrived before go-live and is in the house now. */
+    isMigratedStay: boolean;
     /** Whether the user may enter a past stay (`folio.manual`): it adds the mode to the select. */
     canEnterPastStay: boolean;
+    /** Whether Migrated stay shows in the select: `folio.manual` inside the migration window. */
+    canEnterMigratedStay: boolean;
+    /** The ways to carry the old folio over, from `OldFolioMode::options()`. */
+    oldFolioModes: EnumOption[];
     /** The go-live date, `Y-m-d`: the earliest arrival of a past stay. */
     goLiveDate: string;
     sources: App.Data.Reservations.BookingSourceOptionData[];
@@ -181,7 +190,10 @@ function Section({
 export default function ReservationCreate({
     isWalkIn,
     isPastStay,
+    isMigratedStay,
     canEnterPastStay,
+    canEnterMigratedStay,
+    oldFolioModes,
     goLiveDate,
     sources,
     today,
@@ -216,9 +228,17 @@ export default function ReservationCreate({
         start_time: '',
         reason: '',
         status: 'in_house',
+        mode: isMigratedStay ? 'migrated' : 'past',
+        old_folio: 'one_amount',
+        opening_amount: '',
+        legacy_number: '',
         booking_source_id: defaultSourceId(isPastStay),
         external_reference: '',
-        arrival_date: isPastStay ? addDays(today, -1) : today,
+        arrival_date: isMigratedStay
+            ? addDays(goLiveDate, -1)
+            : isPastStay
+              ? addDays(today, -1)
+              : today,
         departure_date: '',
         arrival_time: isWalkIn ? nowTime : checkInTime,
         departure_time: checkOutTime,
@@ -236,12 +256,21 @@ export default function ReservationCreate({
     const [quotes, setQuotes] = useState<Record<string, Quote>>({});
     const [tab, setTab] = useState<BookingTab>('rooms');
     const guard = useUnsavedChanges(form.isDirty && !form.processing);
-    const mode = isPastStay ? 'past' : isWalkIn ? 'walk-in' : 'new';
+    const mode = isMigratedStay
+        ? 'migrated'
+        : isPastStay
+          ? 'past'
+          : isWalkIn
+            ? 'walk-in'
+            : 'new';
     const lastMode = useRef(mode);
     const modeOptions = [
         { value: 'new', label: 'New booking' },
         { value: 'walk-in', label: 'Walk-in' },
         ...(canEnterPastStay ? [{ value: 'past', label: 'Past stay' }] : []),
+        ...(canEnterMigratedStay
+            ? [{ value: 'migrated', label: 'Migrated stay' }]
+            : []),
     ];
 
     // A mode switch keeps the page mounted, so the form follows the new mode when the props change.
@@ -255,11 +284,15 @@ export default function ReservationCreate({
             ...current,
             booking_source_id: defaultSourceId(isPastStay),
             stay_type: isPastStay ? 'overnight' : current.stay_type,
+            mode: isMigratedStay ? 'migrated' : 'past',
+            status: 'in_house',
             arrival_date: isWalkIn
                 ? today
-                : isPastStay
-                  ? addDays(today, -1)
-                  : current.arrival_date,
+                : isMigratedStay
+                  ? addDays(goLiveDate, -1)
+                  : isPastStay
+                    ? addDays(today, -1)
+                    : current.arrival_date,
             arrival_time: isWalkIn
                 ? nowTime
                 : isPastStay
@@ -306,19 +339,32 @@ export default function ReservationCreate({
         }
 
         const target =
-            next === 'past' ? past : next === 'walk-in' ? walkIn : newMethod;
+            next === 'migrated'
+                ? migrated
+                : next === 'past'
+                  ? past
+                  : next === 'walk-in'
+                    ? walkIn
+                    : newMethod;
 
         guard.visitWithout(target.url(), {
             preserveState: true,
             preserveScroll: true,
-            only: ['isWalkIn', 'isPastStay', 'sources', 'nowTime'],
+            only: [
+                'isWalkIn',
+                'isPastStay',
+                'isMigratedStay',
+                'sources',
+                'nowTime',
+            ],
         });
     };
     const sourceType = sources.find(
         (source) => String(source.id) === data.booking_source_id,
     )?.type;
     const isDayUse = data.stay_type === 'day_use' && !isPastStay;
-    const isCheckedOut = isPastStay && data.status === 'checked_out';
+    const isCheckedOut =
+        isPastStay && !isMigratedStay && data.status === 'checked_out';
     // A refusal of the start of a block can come back on the form or on a line.
     const startError =
         errors.start_time ??
@@ -456,11 +502,13 @@ export default function ReservationCreate({
         0,
     );
 
-    const pageTitle = isPastStay
-        ? 'Past stay'
-        : isWalkIn
-          ? 'Walk-in'
-          : 'New booking';
+    const pageTitle = isMigratedStay
+        ? 'Migrated stay'
+        : isPastStay
+          ? 'Past stay'
+          : isWalkIn
+            ? 'Walk-in'
+            : 'New booking';
 
     const submit = (event?: React.FormEvent) => {
         event?.preventDefault();
@@ -499,11 +547,13 @@ export default function ReservationCreate({
                     <PageHeader
                         title={pageTitle}
                         description={
-                            isPastStay
-                                ? 'A stay that began before today and is still in the house. Every unit needs a room or bed.'
-                                : isWalkIn
-                                  ? 'A guest at the desk now. Every unit needs a room or bed.'
-                                  : 'Reserve rooms or beds for a guest who arrives on a later date.'
+                            isMigratedStay
+                                ? 'A guest who arrived before go-live and is in the house now. Every unit needs a room or bed.'
+                                : isPastStay
+                                  ? 'A stay that began before today and is still in the house. Every unit needs a room or bed.'
+                                  : isWalkIn
+                                    ? 'A guest at the desk now. Every unit needs a room or bed.'
+                                    : 'Reserve rooms or beds for a guest who arrives on a later date.'
                         }
                         back={{ href: index.url(), label: 'Reservations' }}
                     />
@@ -626,14 +676,27 @@ export default function ReservationCreate({
                                                     )}
                                                     dateLocked={isWalkIn}
                                                     min={
-                                                        isPastStay
-                                                            ? goLiveDate
-                                                            : today
+                                                        isMigratedStay
+                                                            ? addDays(
+                                                                  goLiveDate,
+                                                                  -LONGEST_STAY_DAYS,
+                                                              )
+                                                            : isPastStay
+                                                              ? goLiveDate
+                                                              : today
                                                     }
                                                     max={
-                                                        isPastStay
-                                                            ? addDays(today, -1)
-                                                            : lastBookable
+                                                        isMigratedStay
+                                                            ? addDays(
+                                                                  goLiveDate,
+                                                                  -1,
+                                                              )
+                                                            : isPastStay
+                                                              ? addDays(
+                                                                    today,
+                                                                    -1,
+                                                                )
+                                                              : lastBookable
                                                     }
                                                     onDateChange={(value) =>
                                                         form.setData(
@@ -772,7 +835,7 @@ export default function ReservationCreate({
                                             </Field>
                                         </div>
                                     )}
-                                    {isPastStay && (
+                                    {isPastStay && !isMigratedStay && (
                                         <Field>
                                             <FieldLabel>Status</FieldLabel>
                                             <ToggleGroup
@@ -807,6 +870,145 @@ export default function ReservationCreate({
                                             </FieldDescription>
                                         </Field>
                                     )}
+                                    {isMigratedStay && (
+                                        <div className="flex flex-col gap-4 rounded-lg border p-4">
+                                            {beforeGoLiveRange(
+                                                data.arrival_date,
+                                                goLiveDate,
+                                            ) !== '' && (
+                                                <p className="text-sm text-muted-foreground">
+                                                    Nights before go-live (
+                                                    {beforeGoLiveRange(
+                                                        data.arrival_date,
+                                                        goLiveDate,
+                                                    )}
+                                                    ) are not charged here.
+                                                </p>
+                                            )}
+                                            <Field>
+                                                <FieldLabel>
+                                                    Old folio
+                                                </FieldLabel>
+                                                <ToggleGroup
+                                                    variant="outline"
+                                                    spacing={0}
+                                                    value={[
+                                                        data.old_folio ??
+                                                            'one_amount',
+                                                    ]}
+                                                    onValueChange={(value) =>
+                                                        value[0] &&
+                                                        form.setData(
+                                                            'old_folio',
+                                                            value[0],
+                                                        )
+                                                    }
+                                                    aria-label="Old folio"
+                                                >
+                                                    {oldFolioModes.map(
+                                                        (option) => (
+                                                            <ToggleGroupItem
+                                                                key={
+                                                                    option.value
+                                                                }
+                                                                value={
+                                                                    option.value
+                                                                }
+                                                            >
+                                                                {option.label}
+                                                            </ToggleGroupItem>
+                                                        ),
+                                                    )}
+                                                </ToggleGroup>
+                                            </Field>
+                                            {data.old_folio ===
+                                            'copy_line_by_line' ? (
+                                                <p className="text-sm text-muted-foreground">
+                                                    Opens the old folio page
+                                                    after saving.
+                                                </p>
+                                            ) : (
+                                                <div className="grid items-start gap-4 sm:grid-cols-2">
+                                                    <Field
+                                                        data-invalid={
+                                                            !!errors.opening_amount
+                                                        }
+                                                    >
+                                                        <FieldLabel htmlFor="booking-opening-amount">
+                                                            Amount
+                                                        </FieldLabel>
+                                                        <MoneyInput
+                                                            id="booking-opening-amount"
+                                                            value={
+                                                                data.opening_amount ??
+                                                                ''
+                                                            }
+                                                            onChange={(value) =>
+                                                                form.setData(
+                                                                    'opening_amount',
+                                                                    value,
+                                                                )
+                                                            }
+                                                            currency={currency}
+                                                            placeholder="e.g. 1,080.00"
+                                                            invalid={
+                                                                !!errors.opening_amount
+                                                            }
+                                                        />
+                                                        <FieldDescription>
+                                                            What the guest still
+                                                            owes in your old
+                                                            system. Enter a
+                                                            minus amount for a
+                                                            credit.
+                                                        </FieldDescription>
+                                                        <FieldError>
+                                                            {
+                                                                errors.opening_amount
+                                                            }
+                                                        </FieldError>
+                                                    </Field>
+                                                    <Field
+                                                        data-invalid={
+                                                            !!errors.legacy_number
+                                                        }
+                                                    >
+                                                        <FieldLabel htmlFor="booking-legacy-number">
+                                                            Old folio no.
+                                                        </FieldLabel>
+                                                        <Input
+                                                            id="booking-legacy-number"
+                                                            name="legacy_number"
+                                                            value={
+                                                                data.legacy_number ??
+                                                                ''
+                                                            }
+                                                            onChange={(event) =>
+                                                                form.setData(
+                                                                    'legacy_number',
+                                                                    event.target
+                                                                        .value,
+                                                                )
+                                                            }
+                                                            placeholder="e.g. F1203"
+                                                            maxLength={50}
+                                                            aria-invalid={
+                                                                !!errors.legacy_number
+                                                            }
+                                                        />
+                                                        <FieldError>
+                                                            {
+                                                                errors.legacy_number
+                                                            }
+                                                        </FieldError>
+                                                    </Field>
+                                                </div>
+                                            )}
+                                            <FieldError>
+                                                {errors.old_folio}
+                                            </FieldError>
+                                        </div>
+                                    )}
                                     {isPastStay && (
                                         <Field data-invalid={!!errors.reason}>
                                             <FieldLabel htmlFor="booking-reason">
@@ -822,14 +1024,20 @@ export default function ReservationCreate({
                                                         event.target.value,
                                                     )
                                                 }
-                                                placeholder="e.g. Walk-in entered late"
+                                                placeholder={
+                                                    isMigratedStay
+                                                        ? 'e.g. Migrated from old PMS'
+                                                        : 'e.g. Walk-in entered late'
+                                                }
                                                 maxLength={500}
                                                 aria-invalid={!!errors.reason}
                                             />
-                                            <FieldDescription>
-                                                Nights before {today} post now
-                                                with their own dates.
-                                            </FieldDescription>
+                                            {!isMigratedStay && (
+                                                <FieldDescription>
+                                                    Nights before {today} post
+                                                    now with their own dates.
+                                                </FieldDescription>
+                                            )}
                                             <FieldError>
                                                 {errors.reason}
                                             </FieldError>
@@ -1227,6 +1435,11 @@ export default function ReservationCreate({
                                                                         errors={
                                                                             errors
                                                                         }
+                                                                        goLiveDate={
+                                                                            isMigratedStay
+                                                                                ? goLiveDate
+                                                                                : null
+                                                                        }
                                                                         emptyPickLabel={
                                                                             emptyPickLabel
                                                                         }
@@ -1590,6 +1803,7 @@ export default function ReservationCreate({
 ReservationCreate.layout = (props: {
     isWalkIn: boolean;
     isPastStay: boolean;
+    isMigratedStay: boolean;
     property: App.Data.Property.PropertySummaryData;
 }) => ({
     variant: 'fixed' as const,
@@ -1597,10 +1811,15 @@ ReservationCreate.layout = (props: {
     // render the same links.
     breadcrumbs: [
         { title: 'Reservations', href: index(props.property.code) },
-        props.isPastStay
-            ? { title: 'Past stay', href: past(props.property.code) }
-            : props.isWalkIn
-              ? { title: 'Walk-in', href: walkIn(props.property.code) }
-              : { title: 'New booking', href: newMethod(props.property.code) },
+        props.isMigratedStay
+            ? { title: 'Migrated stay', href: migrated(props.property.code) }
+            : props.isPastStay
+              ? { title: 'Past stay', href: past(props.property.code) }
+              : props.isWalkIn
+                ? { title: 'Walk-in', href: walkIn(props.property.code) }
+                : {
+                      title: 'New booking',
+                      href: newMethod(props.property.code),
+                  },
     ],
 });

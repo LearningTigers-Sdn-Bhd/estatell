@@ -45,6 +45,7 @@ use App\Services\FrontDesk\GroupCheckOutPreview;
 use App\Services\Guests\CountryOptions;
 use App\Services\Payments\PaymentReceipt;
 use App\Services\Platform\Impersonation;
+use App\Services\Property\MigrationWindow;
 use App\Services\Reservations\BookingSourceOptions;
 use App\Services\Reservations\BookingSummary;
 use App\Services\Reservations\ReservationActivityLog;
@@ -197,7 +198,7 @@ class ReservationController extends Controller
 
             return [
                 ...$folioProps,
-                'manualLines' => $manual ? $lineMenu->apply($request->user(), $folio, $property->id, true) : [],
+                'manualLines' => $manual ? $lineMenu->apply($request->user(), $folio, $property->id, true, fn (): bool => app(MigrationWindow::class)->isOpen($property)) : [],
                 'manualFolios' => Inertia::optional(fn (): array => $manual ? $manualPage->folioOptions($reservation) : []),
                 'manualTaxes' => Inertia::optional(fn (): array => $manual ? $manualPage->taxOptions($property) : []),
                 'voucher' => [

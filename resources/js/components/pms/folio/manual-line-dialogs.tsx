@@ -18,7 +18,7 @@ import {
     FieldLabel,
 } from '@/components/ui/field';
 import { Textarea } from '@/components/ui/textarea';
-import { split } from '@/routes/reservations/folios/lines';
+import { openingBalance, split } from '@/routes/reservations/folios/lines';
 import {
     add,
     recalculate,
@@ -41,7 +41,8 @@ export type ManualLineAction =
     | 'split'
     | 'remove_tax'
     | 'add_tax'
-    | 'recalculate_tax';
+    | 'recalculate_tax'
+    | 'change_opening_balance';
 
 type Target = { row: Row; line: Line; action: ManualLineAction };
 
@@ -444,6 +445,69 @@ function RecalculateTaxForm({
 }
 
 /**
+ * Change opening balance, from the opening line's row menu on the folio tab. The old line is reversed and the new
+ * one posted by the server. A zero amount only reverses. The reason starts empty: the page has no reason of its own.
+ */
+function ChangeOpeningBalanceForm({
+    open,
+    onClose,
+    context,
+    reason,
+    row,
+    line,
+}: FormProps) {
+    const form = useForm({ amount: line.total, reason });
+    const errors = form.errors as Partial<Record<string, string>>;
+
+    return (
+        <FormOverlay
+            variant="dialog"
+            open={open}
+            onOpenChange={(next) => !next && onClose()}
+            title={`Change ${row.description}`}
+            description="What the guest still owes in your old system. Enter a minus amount for a credit, or 0 to remove it. The current line is reversed and the new one posted."
+            errors={errors}
+            onSubmit={() =>
+                form.post(
+                    openingBalance.url({
+                        reservation: context.reservationId,
+                        folio: context.folioId,
+                        line: line.lineId,
+                    }),
+                    postOptions(onClose),
+                )
+            }
+            submitLabel="Change opening balance"
+            processing={form.processing}
+            submitDisabled={
+                form.data.amount.trim() === '' || form.data.reason.trim() === ''
+            }
+        >
+            <Field data-invalid={!!errors.amount}>
+                <FieldLabel htmlFor="opening-balance-amount">
+                    New amount
+                </FieldLabel>
+                <MoneyInput
+                    id="opening-balance-amount"
+                    value={form.data.amount}
+                    onChange={(value) => form.setData('amount', value)}
+                    currency={context.currency}
+                    placeholder="e.g. 1,080.00"
+                    invalid={!!errors.amount}
+                />
+                <FieldError>{errors.amount}</FieldError>
+            </Field>
+            <ReasonField
+                id="opening-balance-reason"
+                value={form.data.reason}
+                onChange={(value) => form.setData('reason', value)}
+                error={errors.reason}
+            />
+        </FormOverlay>
+    );
+}
+
+/**
  * The Dialogs of the manual folio page's row menu: Split, Remove tax, Add tax and Recalculate tax. Each posts at once
  * with its own reason, which starts as the page's reason. See docs/13-folio/08-manual-folio.md#row-menu-on-posted-lines.
  */
@@ -483,6 +547,8 @@ export function ManualLineDialogs({
             return <RemoveTaxForm key={key} {...props} />;
         case 'add_tax':
             return <AddTaxForm key={key} {...props} />;
+        case 'change_opening_balance':
+            return <ChangeOpeningBalanceForm key={key} {...props} />;
         default:
             return <RecalculateTaxForm key={key} {...props} />;
     }

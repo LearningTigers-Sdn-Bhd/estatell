@@ -26,6 +26,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $payer_guest_id
  * @property int|null $payer_company_id The company that pays this folio.
  * @property string|null $invoice_number
+ * @property string|null $legacy_number The folio number in the old system, set by the opening balance.
  * @property CarbonImmutable|null $closed_at
  * @property int|null $closed_by
  * @property CarbonImmutable|null $created_at
@@ -33,7 +34,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 #[Fillable([
     'reservation_id', 'reservation_unit_id', 'number', 'type', 'status', 'payer_guest_id', 'payer_company_id',
-    'invoice_number', 'closed_at', 'closed_by',
+    'invoice_number', 'legacy_number', 'closed_at', 'closed_by',
 ])]
 class Folio extends Model
 {

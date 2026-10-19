@@ -7,17 +7,21 @@ use App\Data\Folio\FolioRowData;
 use App\Data\Folio\ManualLineData;
 use App\Data\Folio\ManualLineTaxData;
 use App\Enums\PermissionEnum;
+use App\Enums\SystemTransactionCode;
 use App\Enums\TransactionKind;
 use App\Models\FolioLine;
 use App\Models\Tax;
 use App\Models\User;
 use Brick\Math\BigDecimal;
+use Closure;
 
 /**
  * The manual items of the row menu, on the manual folio page and on the folio tab. A live charge without a live
  * discount offers Split, Remove tax (when it has a tax), Add tax and Recalculate tax. On the manual page the other row
  * actions of the folio tab (Move, Refund, Remove discount, Correct price) are not wired, so its rows keep only Reverse
- * (for a user with `folio.reverse`); on the folio tab (`$keepActions`) every row keeps its actions. It changes the
+ * (for a user with `folio.reverse`); on the folio tab (`$keepActions`) every row keeps its actions. With
+ * `$changeOpeningBalance` (the tab: a check that the migration window is open, asked only when the folio has an
+ * Adjustment row) the live Opening balance line also gets Change opening balance. It changes the
  * rows' `actions` and returns what the Dialogs need, by charge line id. It writes nothing. See
  * docs/13-folio/08-manual-folio.md#row-menu-on-posted-lines.
  */
@@ -26,7 +30,7 @@ class ManualLineMenu
     /**
      * @return array<int, ManualLineData>
      */
-    public function apply(User $user, FolioData $folio, int $propertyId, bool $keepActions = false): array
+    public function apply(User $user, FolioData $folio, int $propertyId, bool $keepActions = false, ?Closure $changeOpeningBalance = null): array
     {
         $charges = array_values(array_filter($folio->rows, fn (FolioRowData $row): bool => $row->state === 'posted' && $row->level === 0 && $row->kind === TransactionKind::Charge && $row->lineId !== null));
         $ids = array_map(fn (FolioRowData $row): int => (int) $row->lineId, $charges);
@@ -70,6 +74,46 @@ class ManualLineMenu
             ))->all());
             $data[$line->id] = new ManualLineData($line->id, (string) BigDecimal::of($line->unit_amount)->multipliedBy($line->quantity)->toScale(2), $taxes);
             $row->actions = [...$row->actions, 'split', ...($taxes === [] ? [] : ['remove_tax']), 'add_tax', 'recalculate_tax'];
+        }
+
+        if ($keepActions && $changeOpeningBalance !== null) {
+            $data += $this->openingBalanceLines($folio, $changeOpeningBalance);
+        }
+
+        return $data;
+    }
+
+    /**
+     * The live Opening balance line of the folio, with the action added to its row.
+     *
+     * @return array<int, ManualLineData>
+     */
+    private function openingBalanceLines(FolioData $folio, Closure $windowOpen): array
+    {
+        $rows = array_values(array_filter($folio->rows, fn (FolioRowData $row): bool => $row->state === 'posted' && $row->level === 0 && $row->kind === TransactionKind::Adjustment && $row->lineId !== null));
+
+        if ($rows === [] || ! $windowOpen()) {
+            return [];
+        }
+
+        $lines = FolioLine::query()
+            ->whereIn('id', array_map(fn (FolioRowData $row): int => (int) $row->lineId, $rows))
+            ->whereNull('reversal_of_id')
+            ->whereDoesntHave('reversal')
+            ->whereHas('transactionCode', fn ($codes) => $codes->where('system_key', SystemTransactionCode::OpeningBalance->value))
+            ->get()
+            ->keyBy('id');
+        $data = [];
+
+        foreach ($rows as $row) {
+            $line = $lines->get($row->lineId);
+
+            if ($line === null) {
+                continue;
+            }
+
+            $row->actions = [...$row->actions, 'change_opening_balance'];
+            $data[$line->id] = new ManualLineData($line->id, (string) BigDecimal::of($line->amount)->toScale(2), []);
         }
 
         return $data;
