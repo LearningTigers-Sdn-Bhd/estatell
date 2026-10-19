@@ -1,4 +1,4 @@
-import { Trash2, TriangleAlert } from 'lucide-react';
+import { BedDouble, Trash2, TriangleAlert } from 'lucide-react';
 import { BookingQuoteCell } from '@/components/pms/booking-quote-cell';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { MoneyText } from '@/components/pms/money-text';
@@ -7,6 +7,14 @@ import type { BookLine } from '@/components/pms/portal/book-lines';
 import { Button } from '@/components/ui/button';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import {
+    Popover,
+    PopoverContent,
+    PopoverDescription,
+    PopoverHeader,
+    PopoverTitle,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 
 type RatePlan = App.Data.Portal.PortalRatePlanData;
 type RoomType = App.Data.Portal.PortalRoomTypeData;
@@ -178,17 +186,71 @@ export function BookLineRow({
                 >
                     Room type
                 </FieldLabel>
-                <EnumSelect
-                    id={`line-${index}-room_type_id`}
-                    placeholder={
-                        plan ? 'Choose a room type' : 'Pick a rate first'
-                    }
-                    options={roomTypeOptions}
-                    value={line.room_type_id}
-                    onValueChange={(value) => onChange({ room_type_id: value })}
-                    disabled={!plan}
-                    aria-invalid={!!error('room_type_id')}
-                />
+                <div className="flex items-center gap-1">
+                    <EnumSelect
+                        id={`line-${index}-room_type_id`}
+                        placeholder={
+                            plan ? 'Choose a room type' : 'Pick a rate first'
+                        }
+                        options={roomTypeOptions}
+                        value={line.room_type_id}
+                        onValueChange={(value) =>
+                            onChange({ room_type_id: value })
+                        }
+                        disabled={!plan}
+                        aria-invalid={!!error('room_type_id')}
+                    />
+                    <Popover>
+                        <PopoverTrigger
+                            render={
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    aria-label="About this room type"
+                                    disabled={!roomType}
+                                />
+                            }
+                        >
+                            <BedDouble />
+                        </PopoverTrigger>
+                        {roomType && (
+                            <PopoverContent className="w-80" align="end">
+                                <PopoverHeader>
+                                    <PopoverTitle>{roomType.name}</PopoverTitle>
+                                    {roomType.description && (
+                                        <PopoverDescription>
+                                            {roomType.description}
+                                        </PopoverDescription>
+                                    )}
+                                </PopoverHeader>
+                                <ul className="flex flex-col gap-1 text-sm">
+                                    {isBed ? (
+                                        <li>Sold by the bed</li>
+                                    ) : (
+                                        <li>
+                                            Sleeps up to {roomType.maxAdults}{' '}
+                                            {roomType.maxAdults === 1
+                                                ? 'adult'
+                                                : 'adults'}
+                                            {roomType.maxChildren > 0 &&
+                                                `, ${roomType.maxChildren} ${roomType.maxChildren === 1 ? 'child' : 'children'}`}
+                                        </li>
+                                    )}
+                                    <li>
+                                        {roomType.smokingAllowed
+                                            ? 'Smoking allowed'
+                                            : 'Non-smoking'}
+                                        {' · '}
+                                        {roomType.petsAllowed
+                                            ? 'Pets allowed'
+                                            : 'No pets'}
+                                    </li>
+                                </ul>
+                            </PopoverContent>
+                        )}
+                    </Popover>
+                </div>
                 {roomType && picked && (
                     <span className="text-xs text-muted-foreground">
                         {picked.left} {isBed ? 'beds ' : ''}left

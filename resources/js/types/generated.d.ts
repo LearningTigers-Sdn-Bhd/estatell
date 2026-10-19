@@ -1690,6 +1690,8 @@ description: string | null,
 sellUnit: App.Enums.SellUnit,
 maxAdults: number,
 maxChildren: number,
+smokingAllowed: boolean,
+petsAllowed: boolean,
 };
 export type PortalSwitcherData = {
 propertyName: string,

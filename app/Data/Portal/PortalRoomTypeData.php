@@ -18,10 +18,12 @@ class PortalRoomTypeData extends Data
         public SellUnit $sellUnit,
         public int $maxAdults,
         public int $maxChildren,
+        public bool $smokingAllowed,
+        public bool $petsAllowed,
     ) {}
 
     public static function fromModel(RoomType $roomType): self
     {
-        return new self($roomType->id, $roomType->name, $roomType->description, $roomType->sell_unit, $roomType->max_adults, $roomType->max_children);
+        return new self($roomType->id, $roomType->name, $roomType->description, $roomType->sell_unit, $roomType->max_adults, $roomType->max_children, $roomType->smoking_allowed, $roomType->pets_allowed);
     }
 }
