@@ -2,12 +2,16 @@ import {
     ArrowRightLeft,
     Ban,
     ChevronDown,
+    CircleMinus,
+    CirclePlus,
     Clock,
     FileText,
     Printer,
     MoreHorizontal,
     PencilLine,
+    RefreshCw,
     RotateCcw,
+    Scissors,
     Tag,
     Undo2,
     X,
@@ -22,6 +26,7 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -137,7 +142,11 @@ export function FolioRowsTable({
             | 'move'
             | 'remove_discount'
             | 'refund'
-            | 'correct_price',
+            | 'correct_price'
+            | 'split'
+            | 'remove_tax'
+            | 'add_tax'
+            | 'recalculate_tax',
     ) => void;
 }) {
     const canCorrectMoney = useCanCorrectMoney();
@@ -373,6 +382,68 @@ export function FolioRowsTable({
                                                                 <ArrowRightLeft />
                                                                 Move…
                                                             </DropdownMenuItem>
+                                                        )}
+                                                        {row.actions.includes(
+                                                            'split',
+                                                        ) && (
+                                                            <DropdownMenuItem
+                                                                onClick={() =>
+                                                                    onAction(
+                                                                        row,
+                                                                        'split',
+                                                                    )
+                                                                }
+                                                            >
+                                                                <Scissors />
+                                                                Split…
+                                                            </DropdownMenuItem>
+                                                        )}
+                                                        {row.actions.includes(
+                                                            'add_tax',
+                                                        ) && (
+                                                            <>
+                                                                <DropdownMenuSeparator />
+                                                                {row.actions.includes(
+                                                                    'remove_tax',
+                                                                ) && (
+                                                                    <DropdownMenuItem
+                                                                        onClick={() =>
+                                                                            onAction(
+                                                                                row,
+                                                                                'remove_tax',
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <CircleMinus />
+                                                                        Remove
+                                                                        tax…
+                                                                    </DropdownMenuItem>
+                                                                )}
+                                                                <DropdownMenuItem
+                                                                    onClick={() =>
+                                                                        onAction(
+                                                                            row,
+                                                                            'add_tax',
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <CirclePlus />
+                                                                    Add tax…
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem
+                                                                    onClick={() =>
+                                                                        onAction(
+                                                                            row,
+                                                                            'recalculate_tax',
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <RefreshCw />
+                                                                    Recalculate
+                                                                    tax
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuSeparator />
+                                                            </>
                                                         )}
                                                         {row.actions.includes(
                                                             'remove_discount',

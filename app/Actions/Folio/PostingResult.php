@@ -5,7 +5,7 @@ namespace App\Actions\Folio;
 use App\Models\FolioLine;
 
 /**
- * What `PostCharge`, `ReverseLine`, `TransferLines`, `ApplyDiscount`, `RemoveDiscount` and `PostRoomCharges` return: the lines that were written, or a refusal code.
+ * What `PostCharge`, `ReverseLine`, `TransferLines`, `ApplyDiscount`, `RemoveDiscount`, `PostRoomCharges`, `SplitLine`, `RemoveLineTax`, `AddLineTax` and `RecalculateLineTax` return: the lines that were written, or a refusal code.
  * `lines` starts with the main line (the charge, the reversal of the given line, or the first copy on the target),
  * followed by its children. A repeated idempotency key returns the existing lines with `replayed` set and writes nothing.
  */
@@ -58,6 +58,22 @@ class PostingResult
     public const REFUSAL_SERVICE_DATE_INVALID = 'service_date_invalid';
 
     public const REFUSAL_TAX_NOT_AVAILABLE = 'tax_not_available';
+
+    public const REFUSAL_SPLIT_INVALID = 'split_invalid';
+
+    public const REFUSAL_SPLIT_TOTAL_MISMATCH = 'split_total_mismatch';
+
+    public const REFUSAL_LINE_HAS_DISCOUNT = 'line_has_discount';
+
+    public const REFUSAL_TAX_NOT_ON_LINE = 'tax_not_on_line';
+
+    public const REFUSAL_TAX_ALREADY_ON_LINE = 'tax_already_on_line';
+
+    public const REFUSAL_TAX_INCLUSIVE = 'tax_inclusive';
+
+    public const REFUSAL_TAX_UNCHANGED = 'tax_unchanged';
+
+    public const REFUSAL_NET_AMOUNT_CHANGED = 'net_amount_changed';
 
     /**
      * @param  list<FolioLine>  $lines

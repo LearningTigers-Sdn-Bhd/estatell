@@ -10,8 +10,11 @@ import {
     X,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import type { ComponentProps } from 'react';
 import { FolioRail } from '@/components/pms/folio/folio-rail';
 import { FolioRowsTable } from '@/components/pms/folio/folio-rows-table';
+import { ManualLineDialogs } from '@/components/pms/folio/manual-line-dialogs';
+import { ReverseLineDialog } from '@/components/pms/folio/reverse-line-dialog';
 import { ManualFolioRail } from '@/components/pms/folio/manual-folio-rail';
 import {
     ManualFolioReasonDialog,
@@ -69,6 +72,10 @@ export default function ManualFolio({ manual: page }: Props) {
         newDraft(page, page.folioId),
     ]);
     const [tab, setTab] = useState('new');
+    const [reversing, setReversing] =
+        useState<App.Data.Folio.FolioRowData | null>(null);
+    const [lineTarget, setLineTarget] =
+        useState<ComponentProps<typeof ManualLineDialogs>['target']>(null);
     const [closeChoices, setCloseChoices] = useState<Record<number, boolean>>(
         {},
     );
@@ -307,7 +314,29 @@ export default function ManualFolio({ manual: page }: Props) {
                                             (row) => row.state === 'posted',
                                         )}
                                         currency={page.currency}
-                                        onAction={noop}
+                                        onAction={(row, action) => {
+                                            if (action === 'reverse') {
+                                                setReversing(row);
+                                            } else if (row.lineId !== null) {
+                                                const line =
+                                                    page.lines[row.lineId];
+
+                                                if (
+                                                    line !== undefined &&
+                                                    action !== 'move' &&
+                                                    action !== 'refund' &&
+                                                    action !==
+                                                        'correct_price' &&
+                                                    action !== 'remove_discount'
+                                                ) {
+                                                    setLineTarget({
+                                                        row,
+                                                        line,
+                                                        action,
+                                                    });
+                                                }
+                                            }
+                                        }}
                                         onPrintVoucher={noop}
                                     />
                                 )}
@@ -347,6 +376,20 @@ export default function ManualFolio({ manual: page }: Props) {
                 onConfirm={setReason}
                 reservationId={page.reservationId}
                 folioId={page.folioId}
+            />
+
+            <ManualLineDialogs
+                page={page}
+                reason={reasonLabel}
+                target={lineTarget}
+                onClose={() => setLineTarget(null)}
+            />
+
+            <ReverseLineDialog
+                reservationId={page.reservationId}
+                folioId={page.folioId}
+                row={reversing}
+                onClose={() => setReversing(null)}
             />
 
             <UnsavedChangesDialog

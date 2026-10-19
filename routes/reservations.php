@@ -8,6 +8,7 @@ use App\Http\Controllers\Reservations\ReservationCityLedgerController;
 use App\Http\Controllers\Reservations\ReservationCompanyController;
 use App\Http\Controllers\Reservations\ReservationController;
 use App\Http\Controllers\Reservations\ReservationFolioController;
+use App\Http\Controllers\Reservations\ReservationFolioLineController;
 use App\Http\Controllers\Reservations\ReservationFolioManualController;
 use App\Http\Controllers\Reservations\ReservationFolioMoveController;
 use App\Http\Controllers\Reservations\ReservationGroupCheckOutController;
@@ -53,6 +54,12 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                     Route::post('start', [ReservationFolioManualController::class, 'start'])->name('.start');
                     Route::post('preview', [ReservationFolioManualController::class, 'preview'])->name('.preview');
                     Route::post('/', [ReservationFolioManualController::class, 'store'])->name('.store');
+                });
+                Route::middleware('can:'.PermissionEnum::FolioManual->value)->prefix('lines/{line}')->name('lines.')->group(function () {
+                    Route::post('split', [ReservationFolioLineController::class, 'split'])->name('split');
+                    Route::post('tax/remove', [ReservationFolioLineController::class, 'removeTax'])->name('tax.remove');
+                    Route::post('tax', [ReservationFolioLineController::class, 'addTax'])->name('tax.add');
+                    Route::post('tax/recalculate', [ReservationFolioLineController::class, 'recalculateTax'])->name('tax.recalculate');
                 });
                 Route::post('city-ledger', [ReservationCityLedgerController::class, 'settle'])->middleware('can:'.PermissionEnum::CityLedgerInvoice->value)->name('city-ledger');
                 Route::post('close', [ReservationFolioController::class, 'close'])->middleware('can:'.PermissionEnum::FolioClose->value)->name('close');

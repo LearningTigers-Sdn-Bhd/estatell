@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 /**
  * One line of the immutable folio ledger. `amount` is signed: charges and taxes are positive, payments negative.
@@ -88,6 +89,16 @@ class FolioLine extends Model
     public function transactionCode(): BelongsTo
     {
         return $this->belongsTo(TransactionCode::class);
+    }
+
+    /**
+     * The unit, unit night or add-on that caused the line.
+     *
+     * @return MorphTo<Model, $this>
+     */
+    public function source(): MorphTo
+    {
+        return $this->morphTo();
     }
 
     /**

@@ -83,13 +83,13 @@ class ReverseLine
      * Write the reversal of a parent line and of its descendants, without any check. `TransferLines` and
      * `RemoveDiscount` call this after their own checks. Returns the reversal of the parent first, then the reversals
      * of its descendants, parents before children. A descendant that was reversed before is skipped, and its own
-     * descendants are still reversed when they are not.
+     * descendants are still reversed when they are not. A `$manualBatchId` marks the first reversal only.
      *
      * @return non-empty-list<FolioLine>
      */
-    public function post(User $actor, FolioLine $line, string $postingDate, ?string $transferGroupId): array
+    public function post(User $actor, FolioLine $line, string $postingDate, ?string $transferGroupId, ?int $manualBatchId = null): array
     {
-        $reversal = $this->reversalOf($actor, $line, $postingDate, $transferGroupId, null);
+        $reversal = $this->reversalOf($actor, $line, $postingDate, $transferGroupId, null, $manualBatchId);
 
         return [$reversal, ...$this->reverseChildren($actor, $line, $postingDate, $transferGroupId, $reversal->id)];
     }
@@ -115,7 +115,7 @@ class ReverseLine
         return $lines;
     }
 
-    private function reversalOf(User $actor, FolioLine $line, string $postingDate, ?string $transferGroupId, ?int $parentReversalId): FolioLine
+    private function reversalOf(User $actor, FolioLine $line, string $postingDate, ?string $transferGroupId, ?int $parentReversalId, ?int $manualBatchId = null): FolioLine
     {
         $reversal = new FolioLine([
             'transaction_code_id' => $line->transaction_code_id,
@@ -133,6 +133,7 @@ class ReverseLine
         $reversal->reversal_of_id = $line->id;
         $reversal->parent_line_id = $parentReversalId;
         $reversal->transfer_group_id = $transferGroupId;
+        $reversal->manual_batch_id = $manualBatchId;
         $reversal->idempotency_key = 'reverse:'.$line->id;
         $reversal->user_id = $actor->id;
         $reversal->save();

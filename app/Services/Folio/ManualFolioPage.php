@@ -44,6 +44,7 @@ class ManualFolioPage
         private MoveChargesPreview $labels,
         private ServiceDateRange $serviceDateRange,
         private CurrentBusinessDate $businessDate,
+        private ManualLineMenu $lineMenu,
     ) {}
 
     /**
@@ -85,6 +86,7 @@ class ManualFolioPage
             rail: array_values(array_filter($statement['folios'], fn (FolioRailItemData $item): bool => in_array($item->key, $openKeys, true))),
             preview: $this->preview->preview($property, $reservation, $folio, []),
             posted: $statement['folio'],
+            lines: $statement['folio'] === null ? [] : $this->lineMenu->apply($user, $statement['folio'], $property->id),
             batchKey: (string) Str::uuid(),
             maxRows: ManualBatchResult::MAX_ROWS,
             cancelUrl: route('reservations.folio', ['property' => $property, 'reservation' => $reservation, 'folio' => $folio->id]),

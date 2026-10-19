@@ -684,9 +684,21 @@ units: App.Data.Folio.FolioOptionData[],
 rail: App.Data.Folio.FolioRailItemData[],
 preview: App.Data.Folio.ManualPreviewData,
 posted: App.Data.Folio.FolioData | null,
+lines: App.Data.Folio.ManualLineData[],
 batchKey: string,
 maxRows: number,
 cancelUrl: string,
+};
+export type ManualLineData = {
+lineId: number,
+total: string,
+taxes: App.Data.Folio.ManualLineTaxData[],
+};
+export type ManualLineTaxData = {
+lineId: number,
+taxId: number | null,
+name: string,
+amount: string,
 };
 export type ManualPaymentOptionData = {
 id: number,
@@ -842,6 +854,10 @@ value: string,
 label: string,
 }[],
 targets: App.Data.Folio.FolioOptionData[],
+};
+export type SplitPartData = {
+folioId: number,
+amount: string,
 };
 }
 namespace Guests {
