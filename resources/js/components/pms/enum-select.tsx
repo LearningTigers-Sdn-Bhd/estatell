@@ -141,7 +141,7 @@ export function EnumSelect({
                                 key={option.value}
                                 value={option.value}
                                 disabled={option.disabled}
-                                className="*:first:min-w-0 *:first:shrink"
+                                className="*:first:min-w-0 *:first:shrink *:first:whitespace-normal"
                             >
                                 {option.icon ? (
                                     <span className="flex min-w-0 items-start gap-2.5 py-0.5">
@@ -153,7 +153,7 @@ export function EnumSelect({
                                                 {option.label}
                                             </span>
                                             {option.description && (
-                                                <span className="text-xs text-muted-foreground">
+                                                <span className="text-xs whitespace-normal text-muted-foreground">
                                                     {option.description}
                                                 </span>
                                             )}
@@ -164,7 +164,7 @@ export function EnumSelect({
                                         <span className="truncate">
                                             {option.label}
                                         </span>
-                                        <span className="text-xs text-muted-foreground">
+                                        <span className="text-xs whitespace-normal text-muted-foreground">
                                             {option.description}
                                         </span>
                                     </span>
