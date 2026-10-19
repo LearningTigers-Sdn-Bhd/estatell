@@ -24,6 +24,7 @@ Terms follow the [Glossary](../overview.md#glossary): **company** is the organis
 | Plan access       | `rate_plans.company_access` (Everyone, All, Selected) with `company_in_portal`, and `company_rate_plans.in_portal` per listed company. Set on the rate plan's Companies tab. |
 | Plans at the desk | By the same setting: All companies plans with Front desk on, and Only these companies plans for listed companies with Front desk on, show only once a company is picked.     |
 | Booking           | Confirmed at once. There is no approval queue.                                                                                                                               |
+| Booking form      | Follows the staff booking form layout. The rate plan is picked before the room type. Each line has a Rooms quantity. Guests are new records, with no autocomplete.           |
 | Payment           | Billed to the company (folio payer), settled through the city ledger. No online payment. Statements are read-only; the property records payments.                            |
 | Company reference | The company's voucher or file number goes in `reservations.external_reference`.                                                                                              |
 | Cancel            | Free until the company's cut-off. After it, "Request cancellation" notifies the property.                                                                                    |
@@ -113,40 +114,106 @@ Portal
 
 ### Booking
 
+The form follows the staff [booking form](../12-reservations/05-booking-form.md): a Stay card, a lines table, a guests table and a summary rail. It keeps only the portal's fields, and it picks the **rate plan before the room type**, because a company books on its own contract rate.
+
 ```
 /portal/{code}/bookings/new
- Dates      [21 Oct] → [23 Oct]  2 nights
- Rooms      Line 1  Deluxe King   Adults [2] Children [1] Age [6 ▾]
-            Line 2  Dorm (mixed)  Beds [8]  Adults [8]
-            [+ Add line]                                   (up to 20)
- Offers     Deluxe King · Borneo Travel Contract   RM 560   ✓
-            Dorm · Basic                           —        Closed to arrival 21 Oct
- Guests     Line 1  [ e.g. Tan Wei Ming ]  [ e.g. +60 12 345 6789 ]
- Group name [ e.g. Tour BT-118 ]       Your reference [ e.g. BT-2026-118 ]
- Confirm    Total RM 1,280 incl. auto-added items
-            Billed to Borneo Travel · Free cancellation until 14 Oct
-                                                    [Confirm booking]
+┌ Stay ───────────────────────────────────────────────┐  ┌ Summary ──────────────────┐
+│ Arrival [21 Oct 2026] (2 nights) Departure [23 Oct] │  │ 21 Oct – 23 Oct · 2 nights│
+│ Your reference [e.g. BT-2026-118]                   │  │ 2 × Deluxe King  RM 1,120 │
+│ Group name     [e.g. Tour BT-118]                   │  │ 2 beds · Dorm    RM   160 │
+└─────────────────────────────────────────────────────┘  │ Total            RM 1,280 │
+┌──────────────────┬──────────────────┬─────┬──────┬─────┬──────────┬──┐ │ Includes Breakfast.       │
+│ RATE PLAN        │ ROOM TYPE        │ROOMS│ADULTS│CHILD│     RATE │  │ │ Billed to Borneo Travel   │
+├──────────────────┼──────────────────┼─────┼──────┼─────┼──────────┼──┤ │ Free cancellation until   │
+│ BT Contract    ▾ │ Deluxe King    ▾ │ [2] │ [2]  │ [1] │RM 1,120 ⓘ│✕ │ │ 14 Oct 2026               │
+│ Breakfast        │ 3 left           │     │      │     │          │  │ │ Guests                    │
+│   Age of child 1 [6]        (applies to each room)               │  │ │  Tan Wei Ming  Booker     │
+│ BT Contract    ▾ │ Dorm (mixed)   ▾ │ Beds [2]         │  RM 160 ⓘ│✕ │ │  1 room without a name    │
+│ BAR            ▾ │ Pick a room type │ [1] │ [2]  │ [0] │        — │✕ │ │ [Confirm booking]         │
+└──────────────────┴──────────────────┴─────┴──────┴─────┴──────────┴──┘ └───────────────────────────┘
+ 4 rooms · up to 20 lines                                  [+ Add line]
+
+ GUESTS  (one lead guest per room or bed)
+┌───┬────────────────────────────┬──────────────────────┬────────────────┐
+│ ▾ │ [Tan Wei Ming    ] Booker  │ [+60 12-345 6789   ] │ Deluxe King #1 │
+│   │ ID (optional) [IC ▾] [e.g. 900101-14-5678]                        │
+│ ▸ │ [e.g. Tan Wei Ming]        │ [e.g. +60 12-345 678]│ Deluxe King #2 │
+├───┴────────────────────────────┴──────────────────────┴────────────────┤
+│ 1 room without a name                                                  │
+└────────────────────────────────────────────────────────────────────────┘
+
+Rate plan ▾                          Room type ▾ (for the picked plan)
+ BT Contract   Breakfast         ✓    Deluxe King    RM 560 / room · 3 left   ✓
+ BAR           Room only              Dorm (mixed)   RM 80 / bed · 8 beds left
+ Reef Escape   3-night package        Family Suite   Min stay 3 nights        (disabled)
+                                      Sea View King  Not available on 22 Oct  (disabled)
 ```
 
-- Up to 20 lines, the same limit as the staff form. A dorm line takes 1–99 beds. A booking with 2 or more lines is a [group](../12-reservations/02-group-bookings.md), with an optional group name (empty shows the booker's name).
-- Prices come from the same quote service as the staff [booking form](../12-reservations/05-booking-form.md). A blocked offer shows its reason instead of being hidden.
-- Each child needs an age, 0 to 17.
-- Guests are always new guest records. The portal never searches existing guests. The first line's guest is the booker.
-- The total is checked again at Confirm. When it changed: "The price changed. Search again."
-- Auto-add charge items are added by the server, shown at Confirm, and cannot be removed (see [Add-ons](../12-reservations/04-add-ons.md#added-automatically)).
+The layout breakpoints are the staff form's: below `xl` the summary rail moves under the guests, and below `lg` each line is a stacked card (Rate plan, Room type, Rooms, Adults, Children, Rate) and each guest is a stacked collapsible card.
+
+**Stay**
+
+- Arrival and Departure (no times), the nights between them, **Your reference** (optional, `external_reference`) and **Group name** (optional, shown with 2 or more units; empty shows the booker's name). The arrival cannot be before the property's business date.
+- There is no Source, Company, Reservation mode or Notes. The source is always **Company / Travel agent** and the company is the one of the link.
+
+**Lines**
+
+- Columns: Rate plan, Room type, Rooms, Adults, Children, Rate, ✕. Up to 20 lines, the same limit as the staff form. A booking with 2 or more units is a [group](../12-reservations/02-group-bookings.md).
+- **Rate plan** lists only the plans the company can see (see [Rules](#rules)). Under each name is a short line: the plan's inclusions (for example "Breakfast"), "Room only" when it has none, or "{n}-night package" for a Package plan. No price shows here, because the price depends on the room type.
+- A new line takes the rate plan of the line above. With one visible plan, it is preset.
+- **Room type** is disabled until a plan is picked ("Pick a rate first"). It lists only the active room types the plan sells. Each option shows its price for the line's party ("RM 560 / room", "RM 80 / bed") and what is left ("3 left", "8 beds left"). A blocked room type is disabled and shows its reason (not available on a date, a restriction, a stay length that does not fit a package). Changing the plan keeps the room type when the new plan sells it and clears it when it does not.
+- **Rooms** (1–99) books that many units with the same plan and party. A dorm line shows **Beds** (1–99) instead of Rooms, Adults and Children, and books one adult for each bed.
+- **Children:** one required age (0 to 17) per child, under the line. Adults, children and ages apply to each room of the line.
+- **Left** is the room type's free rooms or beds on every night of the stay, less what the lines above with the same room type take. Asking for more gives "Only {n} left for these dates." on Rooms or Beds.
+- **Rate** shows the line total (rooms × the price, with the auto-add items) from the server, with ⓘ for the night breakdown. There is no ✎ override. A line with no open price shows "—".
+- Prices update by themselves: after a change to the dates or a line, the page asks `offers` again (debounced) and shows a spinner in the Rate cell. There is no Search button.
+- When a picked room type becomes blocked after a change, the line shows ⚠ with the reason, and its Rate shows "—".
+- Too many adults or children for the room type shows on Adults or Children, with the room type's limit.
+- **Package plans** are offered like any nightly plan. The stay dates apply to every line and never move. When the nights of the stay differ from the package's fixed nights, every room type of that plan is blocked with the stay-length reason.
+
+**Guests**
+
+- One row per unit (each room, each dorm bed), built from the lines in order: "Deluxe King #1", "Deluxe King #2", "Dorm · Bed 1". The rows follow the lines. Names stay when a line changes, and a row is removed only with its unit.
+- The table looks like the staff [Guests section](../12-reservations/05-booking-form.md#guests-section): one collapsible row per guest.
+    - Main row: chevron, **Name** (required), **Phone** (optional) and **Stays in** (fixed text). No ✕ and no **+ Add guest**: every unit has exactly one lead guest.
+    - Expanded row: **ID** (optional): the type (`IdentityDocumentType`) and the number, the same fields as Edit guests.
+    - The booker (first row) starts open, and a row with an error opens itself. The only badge is **Booker**.
+    - Footer: "{n} rooms without a name".
+- Name and Phone are plain inputs. There is no autocomplete and no guest search. Every guest is a new guest record.
+
+**Summary rail**
+
+- The stay dates and nights, one row per line (quantity, room type, line total), the total with the auto-add items ("Includes Breakfast."), **Billed to {company}**, the free-cancellation date ("Free cancellation until {date}", or "Free cancellation has ended for these dates. You can ask the property to cancel."), the guest names and **Confirm booking**.
+- **Confirm booking** is disabled until every line has an open price and every unit has a guest name.
+- There is no billing select: billing is always MasterPays.
+
+**Shared with the staff form**
+
+- The lines table header and column layout, `BookingQuoteCell` with `canOverride={false}`, and `BookingSummaryRail` with its billing select hidden. The portal line and guest rows are their own components, because the staff rows call staff-only endpoints (`reservations.quote`, `guests.search`, the room picker).
+- Left out of the portal: arrival and departure times, Reservation mode, Source, Company, the Room / Bed column, ✎ price overrides, the restriction override, Billing, the Discounts, Add-ons and Notes tabs, guest search, Not staying and the Existing, New, VIP and Blacklisted badges.
+
+**Saving**
+
+- Prices come from the same `BookingQuote` as the staff form. Auto-add charge items are added by the server, shown in the summary, and cannot be removed (see [Add-ons](../12-reservations/04-add-ons.md#added-automatically)).
+- The page sends the total it showed (`expected_total`). The server prices every line again and refuses when the total differs.
 - A new portal booking has the **Company / Travel agent** [booking source](../12-reservations/11-booking-sources.md) (the same row staff use for company bookings), `company_id` set, billing mode MasterPays with the company as folio payer, `created_by` the company user, and the company's reference in `external_reference`. Its status is Confirmed.
+- The first unit's guest is the booker. A guest ID is saved as the guest's first ID document, the same way as Edit guests. The number is never sent back to the browser.
 - A portal booking is refused, with no override, and writes nothing:
 
 | Case                                           | Message                                                                                                                                                       |
 | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Suspended company                              | "Your company can't book at this property right now. Contact the property."                                                                                   |
 | Rooms not available                            | "Not available on {date}."                                                                                                                                    |
+| More rooms or beds than are left               | "Only {n} left for these dates." on the line                                                                                                                  |
 | Restriction fails                              | The restriction text, e.g. "Min stay 2 nights" (see [Daily rates and restrictions](../08-rates/02-daily-rates-and-restrictions.md))                           |
+| Stay length does not fit a package             | The stay-length reason from the quote, on the line                                                                                                            |
 | Child age missing, too many children or adults | Shown on the line                                                                                                                                             |
-| A line has no guest name                       | "Enter a guest name for each room."                                                                                                                           |
+| A unit has no guest name                       | "Enter a guest name for each room."                                                                                                                           |
 | Credit limit exceeded                          | "This booking would take the company over its credit limit. Contact the property." (see [Credit control](../15-city-ledger/04-credit-control-and-reports.md)) |
-| Plan not visible to the company                | "This rate is not available. Search again."                                                                                                                   |
-| Price changed                                  | "The price changed. Search again."                                                                                                                            |
+| Plan not visible to the company                | "This rate is not available. Pick another rate."                                                                                                              |
+| Room type not sold by the plan                 | "This room type is not sold on this rate. Pick another room type."                                                                                            |
+| Price changed                                  | "The price changed. Check the new total and confirm again." The page asks for new prices.                                                                     |
 | Any other refusal                              | "This booking cannot be made. Contact the property." The code is logged, never shown.                                                                         |
 
 ### Bookings
@@ -201,7 +268,7 @@ Portal
 /portal/properties                     Properties: linked properties, open balance, arrivals next 7 days
 /portal/{code}                         Dashboard for one property
 /portal/{code}/bookings                List (search by reference or company reference) [New booking]
-/portal/{code}/bookings/new            Dates → rooms (pax + child ages) → plan → guest names → confirm
+/portal/{code}/bookings/new            Stay → lines (rate plan → room type → rooms, pax) → guests → confirm
 /portal/{code}/bookings/{id}           Detail: [Edit guests] [Cancel] or [Request cancellation]
 /portal/{code}/statements              AR invoices, payments, statement PDF (read-only)
 /portal/{code}/company                 Company details: contact, tax numbers and billing address (see below)
@@ -246,7 +313,13 @@ Borneo Travel · Free cancellation until 7 days before arrival
 - **Built:** the `/portal` list with Accept and Decline, the `portal` middleware (`EnsurePortalAccess`), the portal layout and sidebar (Properties; Dashboard inside a property), the property dashboard, the Statements page with its statement, invoice, payment and PDF views (`PortalStatements`), and the Company page with `UpdatePortalCompanyDetails` and the tick. Book and Bookings are built too (see below).
 - **Built (Book and Bookings):** `rate_plans.company_access` (`CompanyAccess`, CHECK), `PortalRatePlans` (the visible plans and room types), `PortalBookingQuote` (offers and totals on `BookingQuote` with the auto-add items), `CreatePortalReservation`, `PortalBookingMessages` (the message table above), `PortalBookings` (list and detail), `PortalBookingRules` (cut-off and edit window on the property's business date), `UpdatePortalReservationGuests`, `CancelPortalReservation`, `RequestPortalCancellation`, the three notifications and the pages `portal/bookings/create`, `portal/bookings/index` and `portal/bookings/show`.
 - **Built (portal shell):** the three-row shell, `PortalNavigation` for both sidebars, the property switcher (`portalSwitcher`), the dashboard with `PortalArrivals`, `/portal/properties`, and the booking URLs under `/bookings`. The old `/book` URLs are gone (404).
-- **How it works:** the offers come from `POST /portal/{code}/bookings/offers` (JSON, throttled). A search shows every visible plan of a room type, a blocked one with its reason. Confirm sends the plan ids, the lead guest of each line and the total the page showed (`expected_total`); the server prices again and refuses `price_changed` when the total differs. A dorm line sends its beds and books one adult for each bed; its lead guest stays in the first bed. An ID typed in Edit guests (kind and number, no scan) replaces the number on the guest's first ID document or adds one; the number is never sent back to the browser.
+- **How it works (built):** the offers come from `POST /portal/{code}/bookings/offers` (JSON, throttled). A search shows every visible plan of a room type, a blocked one with its reason. Confirm sends the plan ids, the lead guest of each line and the total the page showed (`expected_total`); the server prices again and refuses `price_changed` when the total differs. A dorm line sends its beds and books one adult for each bed; its lead guest stays in the first bed. An ID typed in Edit guests (kind and number, no scan) replaces the number on the guest's first ID document or adds one; the number is never sent back to the browser.
+- **Planned (booking form redesign):** the [Booking](#booking) form above replaces the built line cards and Search button. Changes:
+    - `create` also sends the visible plans: id, name and the short line (inclusions, "Room only" or "{n}-night package").
+    - `offers` turns around: each line sends `rate_plan_id`, adults, child ages, beds and rooms, and gets back the room types the plan sells, each with its total, what is left (less the lines above) and a reason when blocked. It still checks that the plan is visible and still uses `BookingQuote`.
+    - Store: each line gains `rooms` (1–99), and each unit's guest gains an optional `id_type` and `id_number`. `CreatePortalReservation` expands `rooms` into units, one guest each, refuses more than are left, and saves the ID through the Edit guests path.
+    - `BookingSummaryRail` gets an option to hide the billing select. `PortalBookingMessages` gets the new and changed messages.
+    - Tests: `PortalOffersTest`, `PortalBookingCreateTest` and `book-lines.test.ts`.
 
 ## Company details
 

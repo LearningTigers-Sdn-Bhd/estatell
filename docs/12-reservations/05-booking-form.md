@@ -4,6 +4,8 @@
 
 Create a booking in as few fields as possible, with the same flow front desk staff know from wastays.
 
+The [company portal booking form](../23-company-portal/01-company-portal.md#booking) uses the same layout with fewer fields. It reuses the lines table header and columns, `BookingQuoteCell` (no override) and `BookingSummaryRail` (no billing select).
+
 ## Container and layout
 
 A full page (Form archetype): it has repeating lines and many fields. Two columns from `xl`: the form on the left, a sticky summary rail on the right. Below `xl` the rail moves under the form. The page uses the `fixed` layout variant (see [Page archetypes](../design-system/04-page-archetypes.md)): it is as tall as the window, the breadcrumb header stays on top, the title, Stay, tabs and rail scroll together in one region, and `FormActions` is below that region, always visible. The title row scrolls with the content.
