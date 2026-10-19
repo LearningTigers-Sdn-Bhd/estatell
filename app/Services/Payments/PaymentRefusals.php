@@ -47,6 +47,7 @@ class PaymentRefusals
             PaymentResult::REFUSAL_METHOD_NOT_AVAILABLE => ['payment_method_id', __('This payment method is not available.')],
             PaymentResult::REFUSAL_AMOUNT_INVALID => ['amount', __('Enter an amount greater than 0.')],
             PaymentResult::REFUSAL_REFERENCE_REQUIRED => ['reference', __('This payment method needs a reference.')],
+            PaymentResult::REFUSAL_SERVICE_DATE_INVALID => ['service_date', __('Pick a day from the booking date to today.')],
             PaymentResult::REFUSAL_PAYMENT_NOT_FOUND => [self::FORM, __('This payment could not be found. Close the form and try again.')],
             PaymentResult::REFUSAL_NOT_REFUNDABLE => [self::FORM, __('Only a completed payment can be refunded.')],
             PaymentResult::REFUSAL_REFUND_EXCEEDS_PAYMENT => ['amount', __('The refund is more than what is left of this payment.')],

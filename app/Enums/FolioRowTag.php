@@ -13,6 +13,7 @@ enum FolioRowTag: string
     case Reversed = 'reversed';
     case Reversal = 'reversal';
     case Refund = 'refund';
+    case Manual = 'manual';
 
     public function label(): string
     {
@@ -22,13 +23,14 @@ enum FolioRowTag: string
             self::Reversed => __('Reversed'),
             self::Reversal => __('Reversal of an earlier line'),
             self::Refund => __('Refund'),
+            self::Manual => __('Manual entry'),
         };
     }
 
     public function tone(): Tone
     {
         return match ($this) {
-            self::Scheduled => Tone::Neutral,
+            self::Scheduled, self::Manual => Tone::Neutral,
             self::Overridden, self::Reversed, self::Reversal => Tone::Warning,
             self::Refund => Tone::Info,
         };

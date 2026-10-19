@@ -598,6 +598,7 @@ label: string,
 }[],
 defaultPaymentPurpose: string | null,
 closedNotice: string | null,
+canManageManually: boolean,
 settleCreditWarning: string | null,
 canPrintInvoice: boolean,
 arInvoiceId: number | null,
@@ -653,6 +654,84 @@ printable: boolean,
 unitId: number | null,
 unitNightId: number | null,
 postedDate: string | null,
+};
+export type ManualFolioOptionData = {
+id: number,
+label: string,
+unitId: number | null,
+};
+export type ManualFolioPageData = {
+reservationId: number,
+reference: string,
+title: string,
+folioId: number,
+folioLabel: string,
+reason: string | null,
+currency: App.Data.Property.CurrencyData | null,
+businessDate: string,
+earliestDate: string,
+chargeItems: App.Data.Reservations.ChargeItemOptionData[],
+itemTaxIds: number[][],
+taxes: App.Data.Catalogues.ChargeItemTaxData[],
+paymentMethods: App.Data.Payments.PaymentMethodOptionData[],
+payments: App.Data.Folio.ManualPaymentOptionData[],
+folios: App.Data.Folio.ManualFolioOptionData[],
+units: App.Data.Folio.FolioOptionData[],
+preview: App.Data.Folio.ManualPreviewData,
+posted: App.Data.Folio.FolioData | null,
+batchKey: string,
+maxRows: number,
+cancelUrl: string,
+};
+export type ManualPaymentOptionData = {
+id: number,
+folioId: number,
+label: string,
+left: string,
+};
+export type ManualPreviewData = {
+rows: App.Data.Folio.ManualRowPreviewData[],
+chargesNow: string,
+chargesAfter: string,
+paymentsNow: string,
+paymentsAfter: string,
+balanceNow: string,
+balanceAfter: string,
+folios: App.Data.Folio.ManualRailFolioData[],
+closeBlocked: string | null,
+};
+export type ManualRailFolioData = {
+folioId: number,
+label: string,
+now: string,
+after: string,
+};
+export type ManualRowData = {
+key: string,
+type: App.Enums.ManualRowType,
+serviceDate: string,
+folioId: number,
+unitId: number | null,
+chargeItemId: number | null,
+description: string | null,
+quantity: number,
+amount: string,
+taxIds: number[] | null,
+paymentMethodId: number | null,
+paymentId: number | null,
+reference: string | null,
+};
+export type ManualRowPreviewData = {
+key: string,
+total: string | null,
+taxes: App.Data.Folio.ManualTaxData[],
+field: string | null,
+refusal: string | null,
+};
+export type ManualTaxData = {
+name: string,
+amount: string,
+exempt: boolean,
 };
 export type MoveBalanceData = {
 folioId: number,
@@ -733,6 +812,9 @@ idempotencyKey: string | null,
 unitAddOnId: number | null,
 folioId: number | null,
 ownFolio: boolean,
+serviceDate: string | null,
+taxIds: number[] | null,
+manualBatchId: number | null,
 };
 export type PostFolioOptionData = {
 id: number | null,
@@ -1340,6 +1422,8 @@ purpose: App.Enums.PaymentPurpose,
 amount: string,
 reference: string | null,
 idempotencyKey: string,
+serviceDate: string | null,
+manualBatchId: number | null,
 };
 export type PaymentFormOptionsData = {
 methods: App.Data.Payments.PaymentMethodOptionData[],
@@ -3304,7 +3388,7 @@ export type DocumentType = 'reservation' | 'folio' | 'invoice' | 'credit_note' |
 export type DormStrategy = 'bed_as_unit' | 'native_dorm';
 export type EarlyDeparturePolicy = 'charge_full' | 'charge_used_nights';
 export type FieldVisibility = 'hidden' | 'optional' | 'required';
-export type FolioRowTag = 'scheduled' | 'overridden' | 'reversed' | 'reversal' | 'refund';
+export type FolioRowTag = 'scheduled' | 'overridden' | 'reversed' | 'reversal' | 'refund' | 'manual';
 export type FolioStatus = 'open' | 'closed' | 'voided';
 export type FolioType = 'master' | 'unit' | 'third_party';
 export type Gender = 'male' | 'female';
@@ -3320,6 +3404,7 @@ export type ImpersonationReason = 'onboarding_help' | 'support' | 'setup_check';
 export type InclusionEnd = 'departure_day' | 'night_before_departure';
 export type InclusionStart = 'arrival_day' | 'day_after_arrival';
 export type Locale = 'en' | 'ms';
+export type ManualRowType = 'charge' | 'payment' | 'refund';
 export type MediaDisk = 'local' | 'r2';
 export type MissedArrivalPolicy = 'mark_no_show' | 'keep_as_late_arrival';
 export type NavigationContext = 'front-desk' | 'finance' | 'reports' | 'settings';
@@ -3341,7 +3426,7 @@ export type PaymentStatus = 'pending' | 'completed' | 'failed';
 export type PdfFont = 'office' | 'modern' | 'fancy' | 'handwritten';
 export type PdfFontSize = 'small' | 'medium' | 'large';
 export type PerformancePreset = '7d' | '30d' | 'month' | 'last-month' | '12m';
-export type PermissionEnum = 'settings.manage' | 'settings.ota-lists' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'reservations.change-price' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'payment.record' | 'payment.refund' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void' | 'front-desk.check-in' | 'front-desk.check-out' | 'front-desk.check-in-without-card' | 'front-desk.waive-fees' | 'front-desk.undo-check-in' | 'front-desk.undo-check-out' | 'night-audit.run' | 'night-audit.force' | 'night-audit.receive-report' | 'reports.view' | 'housekeeping.view' | 'housekeeping.update' | 'housekeeping.inspect';
+export type PermissionEnum = 'settings.manage' | 'settings.ota-lists' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'reservations.change-price' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'folio.manual' | 'folio.view-manual-entries' | 'payment.record' | 'payment.refund' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void' | 'front-desk.check-in' | 'front-desk.check-out' | 'front-desk.check-in-without-card' | 'front-desk.waive-fees' | 'front-desk.undo-check-in' | 'front-desk.undo-check-out' | 'night-audit.run' | 'night-audit.force' | 'night-audit.receive-report' | 'reports.view' | 'housekeeping.view' | 'housekeeping.update' | 'housekeeping.inspect';
 export type PlatformFeature = 'channel-manager' | 'boats';
 export type PolicyChargeMode = 'free' | 'fixed_amount' | 'percentage';
 export type PolicyRateBasis = 'booked_rate' | 'current_rate';

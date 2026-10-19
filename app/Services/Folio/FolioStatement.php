@@ -22,6 +22,7 @@ use App\Models\ArInvoice;
 use App\Models\Company;
 use App\Models\Folio;
 use App\Models\FolioLine;
+use App\Models\FolioManualBatch;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\UnitGuest;
@@ -59,7 +60,7 @@ class FolioStatement
      * what is allowed now, so the page never works it out.
      *
      * @param  list<ReservationUnitOptionData>  $units
-     * @param  array{postCharge?: bool, reverse?: bool, transfer?: bool, discount?: bool, close?: bool, recordPayment?: bool, refund?: bool, printVoucher?: bool, settleCityLedger?: bool, changePrice?: bool}  $can
+     * @param  array{postCharge?: bool, reverse?: bool, transfer?: bool, discount?: bool, close?: bool, recordPayment?: bool, refund?: bool, printVoucher?: bool, settleCityLedger?: bool, changePrice?: bool, manual?: bool, viewManual?: bool}  $can
      * @return array{folios: list<FolioRailItemData>, folio: FolioData|null}
      */
     public function build(Property $property, Reservation $reservation, array $units, string $selected = '', array $can = [], ?User $user = null): array
@@ -203,7 +204,7 @@ class FolioStatement
      * @param  list<ReservationUnitOptionData>  $units
      * @param  list<array{target: int|null, unit: int, date: string, rows: list<FolioRowData>}>  $blocks
      * @param  array<int, string>  $balances
-     * @param  array{postCharge?: bool, reverse?: bool, transfer?: bool, discount?: bool, close?: bool, recordPayment?: bool, refund?: bool, printVoucher?: bool, settleCityLedger?: bool, changePrice?: bool}  $can
+     * @param  array{postCharge?: bool, reverse?: bool, transfer?: bool, discount?: bool, close?: bool, recordPayment?: bool, refund?: bool, printVoucher?: bool, settleCityLedger?: bool, changePrice?: bool, manual?: bool, viewManual?: bool}  $can
      * @param  array<int, string>  $labels  Unit label by unit id
      */
     private function data(Reservation $reservation, array $entry, Collection $entries, array $units, array $blocks, array $balances, array $can, array $labels, ?User $user): FolioData
@@ -255,7 +256,7 @@ class FolioStatement
             ->filter(fn (ReservationUnitOptionData $unit): bool => in_array($unit->status->value, [UnitStatus::Confirmed->value, UnitStatus::CheckedIn->value, UnitStatus::CheckedOut->value], true))
             ->map(fn (ReservationUnitOptionData $unit): int => $unit->id)
             ->all()) : [];
-        [$posted, $discountable] = $folio === null ? [collect(), false] : $this->postedRows($folio, $allowed, $isOpen && ($can['discount'] ?? false), $isOpen && ($can['refund'] ?? false), $can['recordPayment'] ?? false, $can['printVoucher'] ?? false, $labels, $priceUnitIds);
+        [$posted, $discountable] = $folio === null ? [collect(), false] : $this->postedRows($folio, $allowed, $isOpen && ($can['discount'] ?? false), $isOpen && ($can['refund'] ?? false), $can['recordPayment'] ?? false, $can['printVoucher'] ?? false, $labels, $priceUnitIds, $can['viewManual'] ?? false);
         $balance = $folio === null ? null : ($balances[$folio->id] ?? '0.00');
         $purposes = ($can['recordPayment'] ?? false) && ($folio === null || $isOpen)
             ? $this->paymentPurposeChoices->for($reservation, $folio, $entry['unit'])
@@ -302,7 +303,28 @@ class FolioStatement
             canVoidAndReopen: $canVoidAndReopen,
             voidInvoiceBlockedBy: $canVoidAndReopen ? $this->arInvoiceVoidCheck->blockedBy($billedBy) : null,
             closedNotice: $folio !== null && $user !== null ? $this->folioReopenRule->notice($user, $folio) : null,
+            canManageManually: $isOpen && ($can['manual'] ?? false),
         );
+    }
+
+    /**
+     * The Manual marker of a top-level line that a manual batch wrote: "Manual entry by {user}, {date time}. Reason:
+     * {reason}." Only for a user who may see manual entries (`$batches` is empty for anyone else).
+     *
+     * @param  Collection<int, FolioManualBatch>  $batches
+     * @return list<BadgeData>
+     */
+    private function manualBadge(int $level, FolioLine $line, Collection $batches): array
+    {
+        $batch = $level === 0 && $line->manual_batch_id !== null ? $batches->get($line->manual_batch_id) : null;
+
+        if ($batch === null) {
+            return [];
+        }
+
+        $text = __('Manual entry by :user, :when. Reason: :reason', ['user' => $batch->user->name, 'when' => $batch->created_at->format('j M Y H:i'), 'reason' => $batch->reason]);
+
+        return [new BadgeData(FolioRowTag::Manual->value, $text, FolioRowTag::Manual->tone())];
     }
 
     /**
@@ -345,17 +367,19 @@ class FolioStatement
      * @param  list<int>  $priceUnitIds
      * @return array{0: Collection<int, FolioRowData>, 1: bool}
      */
-    private function postedRows(Folio $folio, array $allowed, bool $canRemoveDiscount, bool $canRefund, bool $canDownloadReceipt, bool $canPrintVoucher, array $labels, array $priceUnitIds = []): array
+    private function postedRows(Folio $folio, array $allowed, bool $canRemoveDiscount, bool $canRefund, bool $canDownloadReceipt, bool $canPrintVoucher, array $labels, array $priceUnitIds = [], bool $viewManual = false): array
     {
         $nightMorph = (new UnitNight)->getMorphClass();
         $lines = $folio->lines()->orderBy('service_date')->orderBy('id')->get();
+        $manualBatchIds = $viewManual ? $lines->pluck('manual_batch_id')->filter()->unique()->values() : collect();
+        $manualBatches = $manualBatchIds->isEmpty() ? collect() : FolioManualBatch::query()->with('user:id,name')->whereIn('id', $manualBatchIds)->get()->keyBy('id');
         $payments = $folio->payments()->withSum('refunds', 'amount')->get()->keyBy('folio_line_id');
         $reversed = $lines->pluck('reversal_of_id')->filter()->flip();
         $children = $lines->whereNotNull('parent_line_id')->groupBy('parent_line_id');
         $rows = collect();
         $sourceUnits = $this->lineSourceUnits->for($lines);
 
-        $walk = function (FolioLine $line, int $level, ?int $parentUnitId) use (&$walk, $sourceUnits, $labels, $children, $reversed, $rows, $allowed, $canRemoveDiscount, $payments, $canRefund, $canDownloadReceipt, $canPrintVoucher, $nightMorph, $priceUnitIds): void {
+        $walk = function (FolioLine $line, int $level, ?int $parentUnitId) use (&$walk, $sourceUnits, $labels, $children, $reversed, $rows, $allowed, $canRemoveDiscount, $payments, $canRefund, $canDownloadReceipt, $canPrintVoucher, $nightMorph, $priceUnitIds, $manualBatches): void {
             $tags = [];
             $unitId = $line->source_id === null ? $parentUnitId : ($sourceUnits[$line->source_type.':'.$line->source_id] ?? $parentUnitId);
 
@@ -390,7 +414,7 @@ class FolioStatement
                 $actions = $canRefund && $payment->status === PaymentStatus::Completed && BigDecimal::of($refundable)->isPositive() ? ['refund'] : [];
             }
 
-            $rows->push(new FolioRowData('line:'.$line->id, 'posted', $line->service_date->toDateString(), $line->description, min($level, 2), $unitId === null ? null : ($labels[$unitId] ?? null), (string) $line->amount, array_map(BadgeData::fromFolioRowTag(...), $tags), $line->id, $actions, $payment?->reference, $payment?->id, $refundable, $canDownloadReceipt && $payment !== null && $payment->refund_of_id === null, $line->kind, $canPrintVoucher && FolioVoucher::isPrintable($line, $reversed->has($line->id)), $correctsNight ? $unitId : null, $correctsNight ? $line->source_id : null, $line->service_date->lt($line->posting_date) ? $line->posting_date->toDateString() : null));
+            $rows->push(new FolioRowData('line:'.$line->id, 'posted', $line->service_date->toDateString(), $line->description, min($level, 2), $unitId === null ? null : ($labels[$unitId] ?? null), (string) $line->amount, [...array_map(BadgeData::fromFolioRowTag(...), $tags), ...$this->manualBadge($level, $line, $manualBatches)], $line->id, $actions, $payment?->reference, $payment?->id, $refundable, $canDownloadReceipt && $payment !== null && $payment->refund_of_id === null, $line->kind, $canPrintVoucher && FolioVoucher::isPrintable($line, $reversed->has($line->id)), $correctsNight ? $unitId : null, $correctsNight ? $line->source_id : null, $line->service_date->lt($line->posting_date) ? $line->posting_date->toDateString() : null));
 
             foreach ($children->get($line->id, []) as $child) {
                 $walk($child, $level + 1, $unitId);

@@ -48,6 +48,7 @@ const TAG_ICONS: Record<App.Enums.FolioRowTag, LucideIcon> = {
     reversed: Ban,
     reversal: Undo2,
     refund: RotateCcw,
+    manual: PencilLine,
 };
 
 const TAG_TONES: Record<App.Enums.Tone, string> = {

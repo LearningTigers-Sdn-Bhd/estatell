@@ -8,6 +8,7 @@ use App\Http\Controllers\Reservations\ReservationCityLedgerController;
 use App\Http\Controllers\Reservations\ReservationCompanyController;
 use App\Http\Controllers\Reservations\ReservationController;
 use App\Http\Controllers\Reservations\ReservationFolioController;
+use App\Http\Controllers\Reservations\ReservationFolioManualController;
 use App\Http\Controllers\Reservations\ReservationFolioMoveController;
 use App\Http\Controllers\Reservations\ReservationGroupCheckOutController;
 use App\Http\Controllers\Reservations\ReservationGroupController;
@@ -47,6 +48,12 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                 Route::post('discounts/quote', [ReservationFolioController::class, 'quoteDiscount'])->middleware('can:'.PermissionEnum::FolioDiscount->value)->name('discounts.quote');
                 Route::post('discounts', [ReservationFolioController::class, 'storeDiscount'])->middleware('can:'.PermissionEnum::FolioDiscount->value)->name('discounts.store');
                 Route::delete('lines/{line}/discount', [ReservationFolioController::class, 'destroyDiscount'])->middleware('can:'.PermissionEnum::FolioDiscount->value)->name('discounts.destroy');
+                Route::middleware('can:'.PermissionEnum::FolioManual->value)->prefix('manual')->name('manual')->group(function () {
+                    Route::get('/', [ReservationFolioManualController::class, 'show']);
+                    Route::post('start', [ReservationFolioManualController::class, 'start'])->name('.start');
+                    Route::post('preview', [ReservationFolioManualController::class, 'preview'])->name('.preview');
+                    Route::post('/', [ReservationFolioManualController::class, 'store'])->name('.store');
+                });
                 Route::post('city-ledger', [ReservationCityLedgerController::class, 'settle'])->middleware('can:'.PermissionEnum::CityLedgerInvoice->value)->name('city-ledger');
                 Route::post('close', [ReservationFolioController::class, 'close'])->middleware('can:'.PermissionEnum::FolioClose->value)->name('close');
                 Route::post('reopen', [ReservationFolioController::class, 'reopen'])->name('reopen');

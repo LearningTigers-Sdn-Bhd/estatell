@@ -30,6 +30,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property-write CarbonImmutable|string $posting_date
  * @property-read CarbonImmutable $service_date
  * @property-write CarbonImmutable|string $service_date
+ * @property int|null $manual_batch_id
  * @property string|null $source_type
  * @property int|null $source_id
  * @property int|null $parent_line_id
@@ -71,6 +72,14 @@ class FolioLine extends Model
     public function folio(): BelongsTo
     {
         return $this->belongsTo(Folio::class);
+    }
+
+    /**
+     * @return BelongsTo<FolioManualBatch, $this>
+     */
+    public function manualBatch(): BelongsTo
+    {
+        return $this->belongsTo(FolioManualBatch::class, 'manual_batch_id');
     }
 
     /**

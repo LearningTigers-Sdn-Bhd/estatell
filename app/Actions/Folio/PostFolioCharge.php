@@ -25,6 +25,8 @@ class PostFolioCharge
      * `{key}:tax:{tax_id}`. A null actor is the system, as in the night audit. `PostCharge`, `PostRoomCharges` and
      * `RecordPayment` (the payment surcharge) call it. See docs/13-folio/02-posting-charges.md.
      *
+     * A `$manualBatchId` marks the charge line only, not its children.
+     *
      * @param  list<QuotedDiscount>  $discounts  Each with its transaction code id resolved.
      * @return non-empty-list<FolioLine> the charge line first, then its discount lines, then its tax lines
      */
@@ -42,6 +44,7 @@ class PostFolioCharge
         ?Money $lineAmount = null,
         array $discounts = [],
         ?string $serviceDate = null,
+        ?int $manualBatchId = null,
     ): array {
         if (! $tax->isCalculated()) {
             throw new InvalidArgumentException('A refused tax calculation cannot be posted.');
@@ -57,7 +60,7 @@ class PostFolioCharge
             'amount' => (string) ($lineAmount ?? $tax->netAmount)?->getAmount(),
             'source_type' => $source?->getMorphClass(),
             'source_id' => $source?->getKey(),
-        ]);
+        ], $manualBatchId);
         $lines = [$charge];
 
         foreach ($discounts as $discount) {
@@ -90,13 +93,14 @@ class PostFolioCharge
     /**
      * @param  array<string, mixed>  $attributes
      */
-    private function line(Folio $folio, ?User $actor, string $postingDate, string $serviceDate, string $key, array $attributes): FolioLine
+    private function line(Folio $folio, ?User $actor, string $postingDate, string $serviceDate, string $key, array $attributes, ?int $manualBatchId = null): FolioLine
     {
         $line = new FolioLine($attributes);
         $line->folio_id = $folio->id;
         $line->posting_date = $postingDate;
         $line->service_date = $serviceDate;
         $line->idempotency_key = $key;
+        $line->manual_batch_id = $manualBatchId;
         $line->user_id = $actor?->id;
         $line->save();
 

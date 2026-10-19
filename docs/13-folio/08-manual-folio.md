@@ -36,7 +36,7 @@ On the folio tab, the **More actions** dropdown gains a **Manual** group with **
 └─────────────────────────────────────────────────────────┘
 ```
 
-**Continue** opens the manual folio page. The reason is kept in the page's form state and saved with the first post. Nothing is written until the first post.
+**Continue** opens the manual folio page (`POST …/manual/start` flashes the reason, then redirects to the page). The reason is kept in the page's form state and saved with the first post. Nothing is written until the first post. A page opened without a reason (a reload or the address) opens the reason dialog first.
 
 ## Page
 
@@ -127,7 +127,7 @@ Each one posts at once in its own Dialog (they are not draft rows). The Dialog's
 
 - A new `FolioRowTag`, **Manual** (`PencilLine` icon, neutral tone, no tint), on every top-level line with a `manual_batch_id`, on the folio tab and the Posted lines tab.
 - It shows only to users with `folio.view-manual-entries`. Others see a normal line.
-- Its popover: "Manual entry by {user}, {date time}. Reason: {reason}." The Activity tab always has the batch, whatever the permission.
+- Its tooltip (the same as every other row marker): "Manual entry by {user}, {date time}. Reason: {reason}." The Activity tab always has the batch (`folio.manual_batch_posted`), whatever the permission.
 
 ## Data model
 

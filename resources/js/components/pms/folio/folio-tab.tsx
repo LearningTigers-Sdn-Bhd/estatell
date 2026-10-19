@@ -11,6 +11,7 @@ import {
     Lock,
     LockOpen,
     MoreHorizontal,
+    PencilLine,
     PanelRightClose,
     PanelRightOpen,
     Plus,
@@ -29,6 +30,7 @@ import { EmptyState } from '@/components/pms/empty-state';
 import { ApplyDiscountDialog } from '@/components/pms/folio/apply-discount-dialog';
 import { CloseFolioDialog } from '@/components/pms/folio/close-folio-dialog';
 import { FolioRowsTable } from '@/components/pms/folio/folio-rows-table';
+import { ManualFolioReasonDialog } from '@/components/pms/folio/manual-folio-reason-dialog';
 import { PostChargeDialog } from '@/components/pms/folio/post-charge-dialog';
 import {
     PrintVoucherDialog,
@@ -158,6 +160,7 @@ export function FolioTab({
     const [refunding, setRefunding] =
         useState<App.Data.Folio.FolioRowData | null>(null);
     const [discounting, setDiscounting] = useState(false);
+    const [managing, setManaging] = useState(false);
     const [closing, setClosing] = useState(false);
     const [settling, setSettling] = useState(false);
     const [voucherOpen, setVoucherOpen] = useState(false);
@@ -169,8 +172,9 @@ export function FolioTab({
 
     const summaryLabel = summaryHidden ? 'Show summary' : 'Hide summary';
 
+    const canManageManually = folio?.canManageManually ?? false;
     const moreActions = (canMove: boolean) =>
-        (canMove || canManageRouting) && (
+        (canMove || canManageRouting || canManageManually) && (
             <DropdownMenu>
                 <DropdownMenuTrigger render={<Button variant="outline" />}>
                     <MoreHorizontal data-icon="inline-start" />
@@ -213,6 +217,18 @@ export function FolioTab({
                             >
                                 <UserPlus />
                                 Third-party folio
+                            </DropdownMenuItem>
+                        </DropdownMenuGroup>
+                    )}
+                    {(canMove || canManageRouting) && canManageManually && (
+                        <DropdownMenuSeparator />
+                    )}
+                    {canManageManually && (
+                        <DropdownMenuGroup>
+                            <DropdownMenuLabel>Manual</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => setManaging(true)}>
+                                <PencilLine />
+                                Manage manually…
                             </DropdownMenuItem>
                         </DropdownMenuGroup>
                     )}
@@ -691,6 +707,14 @@ export function FolioTab({
                         />
                     )}
                 </div>
+                {folio.canManageManually && (
+                    <ManualFolioReasonDialog
+                        open={managing}
+                        onOpenChange={setManaging}
+                        reservationId={reservationId}
+                        folioId={Number(folio.key)}
+                    />
+                )}
                 {folio.canPostCharge && (
                     <PostChargeDialog
                         open={posting}

@@ -55,6 +55,10 @@ class PostingResult
 
     public const REFUSAL_NIGHT_NOT_FOUND = 'night_not_found';
 
+    public const REFUSAL_SERVICE_DATE_INVALID = 'service_date_invalid';
+
+    public const REFUSAL_TAX_NOT_AVAILABLE = 'tax_not_available';
+
     /**
      * @param  list<FolioLine>  $lines
      */

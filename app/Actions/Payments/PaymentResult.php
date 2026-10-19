@@ -33,6 +33,8 @@ class PaymentResult
 
     public const REFUSAL_REFUND_EXCEEDS_PAYMENT = 'refund_exceeds_payment';
 
+    public const REFUSAL_SERVICE_DATE_INVALID = 'service_date_invalid';
+
     /**
      * @param  list<FolioLine>  $lines
      */

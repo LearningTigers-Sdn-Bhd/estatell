@@ -12,6 +12,7 @@ use App\Models\FolioLine;
 use App\Models\Payment;
 use App\Models\TransactionCode;
 use App\Models\User;
+use App\Services\Folio\ServiceDateRange;
 use App\Services\NightAudit\CurrentBusinessDate;
 use Brick\Money\Money;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +23,7 @@ class RefundPayment
     public function __construct(
         private CurrentBusinessDate $currentBusinessDate,
         private CloseSettledUnitFolio $closeSettledUnitFolio,
+        private ServiceDateRange $serviceDateRange,
     ) {}
 
     /**
@@ -32,9 +34,9 @@ class RefundPayment
      * existing refund. The last step closes the folio when it is an Open Unit folio of a CheckedOut unit at 0
      * (`CloseSettledUnitFolio`). See docs/14-payments/01-payments-and-refunds.md.
      */
-    public function __invoke(User $actor, Payment $payment, string $amount, ?string $reference, string $idempotencyKey): PaymentResult
+    public function __invoke(User $actor, Payment $payment, string $amount, ?string $reference, string $idempotencyKey, ?string $serviceDate = null, ?int $manualBatchId = null): PaymentResult
     {
-        return DB::transaction(function () use ($actor, $payment, $amount, $reference, $idempotencyKey): PaymentResult {
+        return DB::transaction(function () use ($actor, $payment, $amount, $reference, $idempotencyKey, $serviceDate, $manualBatchId): PaymentResult {
             $current = Payment::query()->findOrFail($payment->id);
             $folio = Folio::query()->lockForUpdate()->findOrFail($current->folio_id);
             $key = 'refund:'.$idempotencyKey;
@@ -81,7 +83,12 @@ class RefundPayment
                 ->where('property_id', $folio->property_id)
                 ->where('system_key', SystemTransactionCode::Refund->value)
                 ->firstOrFail();
+            if ($serviceDate !== null && ! $this->serviceDateRange->allows($property, $folio->reservation, $businessDate, $serviceDate)) {
+                return PaymentResult::refused(PaymentResult::REFUSAL_SERVICE_DATE_INVALID);
+            }
+
             $postingDate = $businessDate->toDateString();
+            $serviceDate ??= $postingDate;
             $value = (string) $refundAmount->getAmount();
 
             $line = new FolioLine([
@@ -94,7 +101,8 @@ class RefundPayment
             ]);
             $line->folio_id = $folio->id;
             $line->posting_date = $postingDate;
-            $line->service_date = $postingDate;
+            $line->service_date = $serviceDate;
+            $line->manual_batch_id = $manualBatchId;
             $line->idempotency_key = $key;
             $line->user_id = $actor->id;
             $line->save();
@@ -125,6 +133,8 @@ class RefundPayment
                     'refund_id' => $refund->id,
                     'amount' => $value,
                     'posting_date' => $postingDate,
+                    'service_date' => $serviceDate,
+                    'manual_batch_id' => $manualBatchId,
                 ])
                 ->log('Payment refunded');
 

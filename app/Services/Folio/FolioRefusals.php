@@ -3,6 +3,7 @@
 namespace App\Services\Folio;
 
 use App\Actions\Folio\FolioStatusResult;
+use App\Actions\Folio\ManualBatchResult;
 use App\Actions\Folio\MoveChargesResult;
 use App\Actions\Folio\PostingResult;
 use App\Services\Catalogues\TaxCalculator;
@@ -64,6 +65,11 @@ class FolioRefusals
             MoveChargesResult::REFUSAL_NOTHING_TO_MOVE => [self::FORM, __('Tick a charge or choose a scheduled option to move.')],
             MoveChargesResult::REFUSAL_TOO_MANY_CHARGES => [self::FORM, __('You can move up to 200 charges at once. Move them in two parts.')],
             MoveChargesResult::REFUSAL_NOTHING_SCHEDULED => [self::FORM, __('No scheduled nights are left to move for :rooms.', ['rooms' => implode(', ', $rooms)])],
+            ManualBatchResult::REFUSAL_NOTHING_TO_POST => [self::FORM, __('Add at least one line.')],
+            ManualBatchResult::REFUSAL_TOO_MANY_ROWS => [self::FORM, __('You can post up to :count lines at once. Post them in two parts.', ['count' => ManualBatchResult::MAX_ROWS])],
+            ManualBatchResult::REFUSAL_UNIT_REQUIRED => ['unit_id', __('Pick the room this charge is for.')],
+            PostingResult::REFUSAL_SERVICE_DATE_INVALID => ['service_date', __('Pick a day from the booking date to today.')],
+            PostingResult::REFUSAL_TAX_NOT_AVAILABLE => ['tax_ids', __('A tax you chose is not available.')],
             PostingResult::REFUSAL_DISCOUNT_NOT_FOUND => ['discount_id', __('This discount is not available.')],
             PostingResult::REFUSAL_NOTHING_ELIGIBLE => ['discount_id', __('No charge on this folio can take this discount.')],
             PostingResult::REFUSAL_AMOUNT_REQUIRED => ['amount', __('Enter the discount amount.')],

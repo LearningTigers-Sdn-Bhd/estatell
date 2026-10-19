@@ -12,10 +12,15 @@ use Spatie\LaravelData\Data;
  * With `unitAddOnId` the key is always `addon:{id}` and the caller passes that add-on's item, quantity and amount.
  * With `folioId` the charge lands on that folio and routing is not used; without it `FolioRouter` picks the folio.
  * With `ownFolio` the charge lands on the unit's own Unit folio (made when the unit has none) and routing is not used.
+ * The manual folio page also gives `serviceDate` (a `Y-m-d` day in `ServiceDateRange`), `taxIds` (taxes calculated in place
+ * of the item's own; an empty list means no tax) and `manualBatchId`.
  * See docs/13-folio/02-posting-charges.md.
  */
 class NewChargeData extends Data
 {
+    /**
+     * @param  list<int>|null  $taxIds
+     */
     public function __construct(
         public ?int $chargeItemId,
         public ?int $transactionCodeId,
@@ -26,5 +31,8 @@ class NewChargeData extends Data
         public ?int $unitAddOnId = null,
         public ?int $folioId = null,
         public bool $ownFolio = false,
+        public ?string $serviceDate = null,
+        public ?array $taxIds = null,
+        public ?int $manualBatchId = null,
     ) {}
 }

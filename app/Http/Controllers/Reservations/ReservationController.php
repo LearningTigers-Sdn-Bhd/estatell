@@ -185,6 +185,8 @@ class ReservationController extends Controller
                 'printVoucher' => $request->user()->can(PermissionEnum::FolioPrintVoucher->value),
                 'settleCityLedger' => $request->user()->can(PermissionEnum::CityLedgerInvoice->value),
                 'changePrice' => $request->user()->can(PermissionEnum::ReservationsChangePrice->value),
+                'manual' => $request->user()->can(PermissionEnum::FolioManual->value),
+                'viewManual' => $request->user()->can(PermissionEnum::FolioViewManualEntries->value),
             ], $request->user());
 
             return [

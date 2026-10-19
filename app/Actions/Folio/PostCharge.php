@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Services\Catalogues\TaxCalculator;
 use App\Services\Folio\FolioPostability;
 use App\Services\Folio\FolioRouter;
+use App\Services\Folio\ServiceDateRange;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Reservations\AddOnLabel;
 use App\Services\Reservations\UnitNationality;
@@ -36,6 +37,7 @@ class PostCharge
         private PostFolioCharge $postFolioCharge,
         private UnitNationality $unitNationality,
         private CloseSettledUnitFolio $closeSettledUnitFolio,
+        private ServiceDateRange $serviceDateRange,
     ) {}
 
     /**
@@ -44,6 +46,7 @@ class PostCharge
      * nothing. The folio is the given `folio_id` (it must belong to the reservation, and a Unit folio must be the unit's own: `unit_not_on_folio`) or, with `ownFolio`, the unit's own folio (created when missing), or, without either, comes from `FolioRouter` (a routing rule or the unit's own folio), and a closed one refuses the posting with
      * no fallback (`folio_settled_to_city_ledger` when it is settled to the city ledger). `PostFolioCharge` writes the lines, and tax lines go on the folio of their charge. A key that already exists returns the existing lines and writes nothing, but only when the line's folio belongs to the unit's reservation (otherwise `charge_not_found`). The charge line holds the net
      * amount (the entered amount without inclusive tax), so the folio total is the gross amount.
+     * The manual folio page also gives `service_date` (the day it really happened, inside `ServiceDateRange`, else `service_date_invalid`; the posting date stays the business date), `tax_ids` (taxes calculated in place of the item's own, and a tax that is not the property's refuses with `tax_not_available`) and `manual_batch_id`.
      * The last step closes the folio when it is an Open Unit folio of a CheckedOut unit at 0 (`CloseSettledUnitFolio`).
      * See docs/13-folio/02-posting-charges.md.
      */
@@ -107,6 +110,10 @@ class PostCharge
                 }
             }
 
+            if ($data->serviceDate !== null && ! $this->serviceDateRange->allows($property, $locked->reservation, $businessDate, $data->serviceDate)) {
+                return PostingResult::refused(PostingResult::REFUSAL_SERVICE_DATE_INVALID);
+            }
+
             if ($data->folioId !== null) {
                 $folio = Folio::query()->find($data->folioId);
 
@@ -128,7 +135,19 @@ class PostCharge
             }
 
             $entered = $unitAmount->multipliedBy($data->quantity);
-            $tax = $this->taxCalculator->calculate($property, $code, $entered, (string) $data->quantity, $this->unitNationality->for($locked));
+            $nationality = $this->unitNationality->for($locked);
+
+            if ($data->taxIds === null) {
+                $tax = $this->taxCalculator->calculate($property, $code, $entered, (string) $data->quantity, $nationality);
+            } else {
+                $chosen = $property->taxes()->whereKey($data->taxIds)->get();
+
+                if ($chosen->count() !== count(array_unique($data->taxIds))) {
+                    return PostingResult::refused(PostingResult::REFUSAL_TAX_NOT_AVAILABLE);
+                }
+
+                $tax = $this->taxCalculator->calculateWithTaxes($property, $chosen, $entered, (string) $data->quantity, $nationality);
+            }
 
             if (! $tax->isCalculated()) {
                 return PostingResult::refused((string) $tax->refusalReason);
@@ -148,6 +167,8 @@ class PostCharge
                 $key,
                 $businessDate->toDateString(),
                 $addOn ?? $locked,
+                serviceDate: $data->serviceDate,
+                manualBatchId: $data->manualBatchId,
             );
             $charge = $lines[0];
 
@@ -172,6 +193,8 @@ class PostCharge
                     'tax_lines' => count($lines) - 1,
                     'unit_add_on_id' => $addOn?->id,
                     'posting_date' => $businessDate->toDateString(),
+                    'service_date' => $charge->service_date->toDateString(),
+                    'manual_batch_id' => $data->manualBatchId,
                 ])
                 ->log('Charge posted to folio');
 

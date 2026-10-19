@@ -37,6 +37,8 @@ enum PermissionEnum: string
     case FolioClose = 'folio.close';
     case FolioReopen = 'folio.reopen';
     case FolioPrintVoucher = 'folio.print-voucher';
+    case FolioManual = 'folio.manual';
+    case FolioViewManualEntries = 'folio.view-manual-entries';
     case PaymentRecord = 'payment.record';
     case PaymentRefund = 'payment.refund';
     case CompanyView = 'company.view';
@@ -96,6 +98,8 @@ enum PermissionEnum: string
             self::FolioClose => __('Close folios'),
             self::FolioReopen => __('Reopen closed folios'),
             self::FolioPrintVoucher => __('Print folio vouchers and invoices'),
+            self::FolioManual => __('Manage folios manually'),
+            self::FolioViewManualEntries => __('See which folio lines were entered manually'),
             self::PaymentRecord => __('Record payments and download receipts'),
             self::PaymentRefund => __('Refund payments'),
             self::CompanyView => __('View companies'),
@@ -138,7 +142,7 @@ enum PermissionEnum: string
             self::RatesView, self::RatesManage, self::RatesOverrideRestrictions => __('Rates'),
             self::GuestsView, self::GuestsManage, self::GuestsBlacklist, self::GuestsViewDocuments, self::GuestsMerge, self::GuestsAnonymize => __('Guests'),
             self::ReservationsView, self::ReservationsManage, self::ReservationsChangePrice => __('Reservations'),
-            self::FolioPostCharge, self::FolioReverse, self::FolioTransfer, self::FolioDiscount, self::FolioDiscountOpen, self::FolioClose, self::FolioReopen, self::FolioPrintVoucher => __('Folio'),
+            self::FolioPostCharge, self::FolioReverse, self::FolioTransfer, self::FolioDiscount, self::FolioDiscountOpen, self::FolioClose, self::FolioReopen, self::FolioPrintVoucher, self::FolioManual, self::FolioViewManualEntries => __('Folio'),
             self::PaymentRecord, self::PaymentRefund => __('Payments'),
             self::CompanyView, self::CompanyManage, self::CompanyCreditOverride, self::CityLedgerInvoice, self::CityLedgerCreditNote, self::CityLedgerPayment, self::CityLedgerAllocate => __('City ledger'),
             self::RegistrationCardManageTerms, self::RegistrationCardSign, self::RegistrationCardSendLink, self::RegistrationCardVoid => __('Registration card'),

@@ -1,0 +1,131 @@
+<?php
+
+namespace App\Services\Folio;
+
+use App\Actions\Folio\ManualBatchResult;
+use App\Data\Catalogues\ChargeItemTaxData;
+use App\Data\Folio\FolioOptionData;
+use App\Data\Folio\ManualFolioOptionData;
+use App\Data\Folio\ManualFolioPageData;
+use App\Data\Folio\ManualPaymentOptionData;
+use App\Data\Property\CurrencyData;
+use App\Enums\FolioStatus;
+use App\Enums\FolioType;
+use App\Enums\PaymentStatus;
+use App\Enums\UnitStatus;
+use App\Models\ChargeItem;
+use App\Models\Folio;
+use App\Models\Payment;
+use App\Models\Property;
+use App\Models\Reservation;
+use App\Models\ReservationUnit;
+use App\Models\User;
+use App\Services\NightAudit\CurrentBusinessDate;
+use App\Services\Reservations\ReservationFormOptions;
+use App\Services\Reservations\ReservationOverview;
+use Brick\Math\BigDecimal;
+use Illuminate\Support\Str;
+use InvalidArgumentException;
+
+/**
+ * Reads the manual folio page: the lists its rows pick from (charge items with their own taxes, taxes, payment
+ * methods, Open folios, postable rooms, refundable payments), an empty preview and the Posted lines of the folio as
+ * the folio tab shows them, read only. It writes nothing. See docs/13-folio/08-manual-folio.md.
+ */
+class ManualFolioPage
+{
+    public function __construct(
+        private ReservationFormOptions $options,
+        private ReservationOverview $overview,
+        private FolioStatement $statement,
+        private ManualFolioPreview $preview,
+        private MoveChargesPreview $labels,
+        private ServiceDateRange $serviceDateRange,
+        private CurrentBusinessDate $businessDate,
+    ) {}
+
+    /**
+     * Expects the property's `settings` and the reservation's `booker` to be loaded and the folio to be Open.
+     */
+    public function build(User $user, Property $property, Reservation $reservation, Folio $folio, ?string $reason): ManualFolioPageData
+    {
+        $businessDate = $this->businessDate->date($property) ?? throw new InvalidArgumentException('The property has no open business date.');
+        $unitLabels = $this->labels->unitLabels($reservation);
+        $folios = $reservation->folios()->where('status', FolioStatus::Open)->with(['payerGuest', 'payerCompany:id,name'])->orderBy('id')->get();
+        $units = $reservation->units()->whereIn('status', [UnitStatus::CheckedIn, UnitStatus::CheckedOut])->orderBy('id')->get();
+        $overview = $this->overview->build($reservation, false);
+        $label = $this->labels->folioLabel($folio, $unitLabels);
+
+        return new ManualFolioPageData(
+            reservationId: $reservation->id,
+            reference: $reservation->reference,
+            title: __('Manage folio manually · :reference', ['reference' => $reservation->reference]),
+            folioId: $folio->id,
+            folioLabel: $label,
+            reason: $reason,
+            currency: CurrencyData::forProperty($property),
+            businessDate: $businessDate->toDateString(),
+            earliestDate: ($this->serviceDateRange->earliest($property, $reservation) ?? $businessDate)->toDateString(),
+            chargeItems: $this->options->chargeItems($property),
+            itemTaxIds: $this->itemTaxIds($property),
+            taxes: array_values($property->taxes()->orderBy('name')->get()->map(ChargeItemTaxData::fromModel(...))->all()),
+            paymentMethods: $this->options->payments($property)->methods,
+            payments: $this->payments($reservation),
+            folios: array_values($folios->map(fn (Folio $open): ManualFolioOptionData => new ManualFolioOptionData(
+                $open->id,
+                $this->labels->folioLabel($open, $unitLabels),
+                $open->type === FolioType::Unit ? $open->reservation_unit_id : null,
+            ))->all()),
+            units: array_values($units->map(fn (ReservationUnit $unit): FolioOptionData => new FolioOptionData($unit->id, $unitLabels[$unit->id] ?? '—'))->all()),
+            preview: $this->preview->preview($property, $reservation, $folio, []),
+            posted: $this->statement->build($property, $reservation, $overview['units'], (string) $folio->id, [], $user)['folio'],
+            batchKey: (string) Str::uuid(),
+            maxRows: ManualBatchResult::MAX_ROWS,
+            cancelUrl: route('reservations.folio', ['property' => $property, 'reservation' => $reservation, 'folio' => $folio->id]),
+        );
+    }
+
+    /**
+     * Each active charge item's own tax ids, from the taxes that apply to its transaction code.
+     *
+     * @return array<int, list<int>>
+     */
+    private function itemTaxIds(Property $property): array
+    {
+        $byCode = $property->taxes()->with('applicableTransactionCodes:id')->get()
+            ->flatMap(fn ($tax) => $tax->applicableTransactionCodes->map(fn ($code): array => [$code->id, $tax->id]))
+            ->groupBy(0)
+            ->map(fn ($pairs): array => $pairs->pluck(1)->sort()->values()->all());
+
+        return ChargeItem::query()->where('property_id', $property->id)->active()->pluck('transaction_code_id', 'id')
+            ->map(fn (int $codeId): array => $byCode->get($codeId, []))
+            ->all();
+    }
+
+    /**
+     * The completed payments of the reservation that still have money to give back.
+     *
+     * @return list<ManualPaymentOptionData>
+     */
+    private function payments(Reservation $reservation): array
+    {
+        return array_values(Payment::query()
+            ->whereIn('folio_id', $reservation->folios()->select('folios.id'))
+            ->whereNull('refund_of_id')
+            ->where('status', PaymentStatus::Completed)
+            ->withSum('refunds', 'amount')
+            ->with('paymentMethod:id,name')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (Payment $payment): ?ManualPaymentOptionData => BigDecimal::of($payment->amount)->minus((string) ($payment->refunds_sum_amount ?? '0'))->isPositive()
+                ? new ManualPaymentOptionData(
+                    $payment->id,
+                    $payment->folio_id,
+                    trim($payment->paymentMethod->name.' · '.$payment->amount.' · '.$payment->received_at->format('j M').($payment->receipt_number === null ? '' : ' · '.$payment->receipt_number)),
+                    (string) BigDecimal::of($payment->amount)->minus((string) ($payment->refunds_sum_amount ?? '0'))->toScale(2),
+                )
+                : null)
+            ->filter()
+            ->all());
+    }
+}

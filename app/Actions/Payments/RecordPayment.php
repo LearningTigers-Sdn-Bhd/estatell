@@ -9,21 +9,20 @@ use App\Data\Payments\NewPaymentData;
 use App\Enums\DocumentType;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
-use App\Enums\PaymentMethodType;
 use App\Enums\PaymentPurpose;
 use App\Enums\PaymentStatus;
-use App\Enums\SurchargeType;
 use App\Enums\TransactionKind;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Payment;
-use App\Models\PaymentMethod;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\User;
 use App\Services\Folio\FolioRouter;
+use App\Services\Folio\ServiceDateRange;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\NightAudit\NextDocumentNumber;
+use App\Services\Payments\AvailablePaymentMethod;
 use App\Services\Payments\PaymentQuote;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -38,6 +37,8 @@ class RecordPayment
         private NextDocumentNumber $nextDocumentNumber,
         private FolioRouter $folioRouter,
         private CloseSettledUnitFolio $closeSettledUnitFolio,
+        private ServiceDateRange $serviceDateRange,
+        private AvailablePaymentMethod $availablePaymentMethod,
     ) {}
 
     /**
@@ -90,7 +91,7 @@ class RecordPayment
                 return PaymentResult::refused(PaymentResult::REFUSAL_ADVANCE_ON_MASTER);
             }
 
-            $method = $this->availableMethod($reservation, $data->paymentMethodId);
+            $method = $this->availablePaymentMethod->find($reservation, $data->paymentMethodId);
 
             if ($method === null) {
                 return PaymentResult::refused(PaymentResult::REFUSAL_METHOD_NOT_AVAILABLE);
@@ -112,14 +113,19 @@ class RecordPayment
                 return PaymentResult::refused((string) $quote->refusal);
             }
 
+            if ($data->serviceDate !== null && ! $this->serviceDateRange->allows($property, $reservation, $businessDate, $data->serviceDate)) {
+                return PaymentResult::refused(PaymentResult::REFUSAL_SERVICE_DATE_INVALID);
+            }
+
             $postingDate = $businessDate->toDateString();
+            $serviceDate = $data->serviceDate ?? $postingDate;
             $target ??= ($this->createFolio)($reservation, $lockedUnit);
             $receiptNumber = ($this->nextDocumentNumber)($property, DocumentType::Receipt)->reference;
             $surchargeLines = [];
 
             if ($quote->tax !== null && $quote->surcharge !== null) {
                 $item = $method->surchargeChargeItem;
-                $surchargeLines = ($this->postFolioCharge)($actor, $target, $item->transactionCode, $item->name, 1, $quote->surcharge, $quote->tax, $key.':surcharge', $postingDate);
+                $surchargeLines = ($this->postFolioCharge)($actor, $target, $item->transactionCode, $item->name, 1, $quote->surcharge, $quote->tax, $key.':surcharge', $postingDate, serviceDate: $serviceDate);
             }
 
             $total = (string) $quote->total?->getAmount();
@@ -133,7 +139,8 @@ class RecordPayment
             ]);
             $line->folio_id = $target->id;
             $line->posting_date = $postingDate;
-            $line->service_date = $postingDate;
+            $line->service_date = $serviceDate;
+            $line->manual_batch_id = $data->manualBatchId;
             $line->idempotency_key = $key;
             $line->user_id = $actor->id;
             $line->save();
@@ -169,6 +176,8 @@ class RecordPayment
                     'total' => $total,
                     'receipt_number' => $receiptNumber,
                     'posting_date' => $postingDate,
+                    'service_date' => $serviceDate,
+                    'manual_batch_id' => $data->manualBatchId,
                 ])
                 ->log('Payment recorded');
 
@@ -225,31 +234,5 @@ class RecordPayment
             ->first();
 
         return [$locked, $folio];
-    }
-
-    /**
-     * An active method of the reservation's property that staff can take money with. City ledger and OTA collected
-     * are not offered yet, and a surcharge needs an active charge item on an active charge code.
-     */
-    private function availableMethod(Reservation $reservation, int $methodId): ?PaymentMethod
-    {
-        $method = PaymentMethod::query()
-            ->where('property_id', $reservation->property_id)
-            ->active()
-            ->whereNotIn('type', [PaymentMethodType::OtaCollected, PaymentMethodType::DirectBill])
-            ->with(['transactionCode', 'surchargeChargeItem.transactionCode'])
-            ->find($methodId);
-
-        if ($method === null || ! $method->transactionCode->active || $method->transactionCode->kind !== TransactionKind::Payment) {
-            return null;
-        }
-
-        if ($method->surcharge_type === SurchargeType::None) {
-            return $method;
-        }
-
-        $item = $method->surchargeChargeItem;
-
-        return $item !== null && $item->active && $item->transactionCode->active && $item->transactionCode->kind === TransactionKind::Charge ? $method : null;
     }
 }
