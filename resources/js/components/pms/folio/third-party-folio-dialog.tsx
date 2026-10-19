@@ -23,6 +23,8 @@ type Props = {
     companies?: Company[];
     /** Where the folio is created. Defaults to the folio tab's third-party route. */
     url?: string;
+    /** Keep the page's own state through the post (the Manual Folio Editor keeps its draft rows). */
+    preserveState?: boolean;
 };
 
 function ThirdPartyForm({
@@ -32,6 +34,7 @@ function ThirdPartyForm({
     canViewCompany,
     companies,
     url,
+    preserveState,
 }: Props) {
     useFormOptions(
         open && canViewCompany,
@@ -56,6 +59,7 @@ function ThirdPartyForm({
         );
         form.post(url ?? store.url({ reservation: reservationId }), {
             preserveScroll: true,
+            preserveState,
             except: KEEP_OPTIONS,
             onSuccess: () => onOpenChange(false),
         });

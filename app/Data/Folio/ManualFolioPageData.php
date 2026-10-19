@@ -13,7 +13,7 @@ use Spatie\LaravelData\Data;
  * Posted lines of the folio with their row menu (`lines` holds what the menu's Dialogs need). `rail` is the folio rail: the Open folios of the reservation with their
  * balance. `reason` is what the reason dialog sent (`reasonOptions` are its choices), null when the page was opened
  * by its address, which makes the page ask for it. `itemTaxIds` gives each charge item's own tax ids by item id, so a
- * row starts with them. `earliestDate` and `businessDate` bound a row's service date. `batchKey` is the form's UUID.
+ * row starts with them. `earliestDate` and `businessDate` bound a row's service date. `canViewCompany` lets the Add folio dialog offer a company payer. `batchKey` is the form's UUID.
  * See docs/13-folio/08-manual-folio.md.
  */
 class ManualFolioPageData extends Data
@@ -52,6 +52,7 @@ class ManualFolioPageData extends Data
         public ManualPreviewData $preview,
         public ?FolioData $posted,
         public array $lines,
+        public bool $canViewCompany,
         public string $batchKey,
         public int $maxRows,
         public string $cancelUrl,

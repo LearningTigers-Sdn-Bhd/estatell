@@ -1,5 +1,6 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import {
+    ArrowRightLeft,
     Clock,
     History,
     ListPlus,
@@ -35,6 +36,7 @@ import { FormError } from '@/components/pms/form-error';
 import { PageHeader } from '@/components/pms/page-header';
 import { ReservationWorkspace } from '@/components/pms/reservations/reservation-workspace';
 import { useSummaryHidden } from '@/components/pms/reservations/use-summary-hidden';
+import { ThirdPartyFolioDialog } from '@/components/pms/folio/third-party-folio-dialog';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -48,9 +50,12 @@ import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { folio as folioTab, index, show } from '@/routes/reservations';
 import { manual as manualPage } from '@/routes/reservations/folios';
 import { store } from '@/routes/reservations/folios/manual';
+import { store as storeFolio } from '@/routes/reservations/folios/manual/folios';
+import { move as moveCharges } from '@/routes/reservations/folio';
 
 type Props = {
     manual: App.Data.Folio.ManualFolioPageData;
+    companies?: App.Data.CityLedger.CompanyOptionData[];
 };
 
 const noop = () => undefined;
@@ -63,7 +68,7 @@ const noop = () => undefined;
  * typed; the server answers each row and the summary after every change and decides everything on post.
  * See docs/13-folio/08-manual-folio.md.
  */
-export default function ManualFolio({ manual: page }: Props) {
+export default function ManualFolio({ manual: page, companies }: Props) {
     const [reason, setReason] = useState(() =>
         reasonFromText(page.reason, page.reasonOptions),
     );
@@ -73,6 +78,7 @@ export default function ManualFolio({ manual: page }: Props) {
         newDraft(page, page.folioId),
     ]);
     const [tab, setTab] = useState('new');
+    const [addingFolio, setAddingFolio] = useState(false);
     const scheduledRows = (page.posted?.rows ?? []).filter(
         (row) => row.state === 'scheduled',
     );
@@ -212,6 +218,7 @@ export default function ManualFolio({ manual: page }: Props) {
                                 currency={page.currency}
                                 onSelect={selectFolio}
                                 drafts={drafts}
+                                onAdd={() => setAddingFolio(true)}
                             />
                         }
                         hideAside={summaryHidden}
@@ -279,6 +286,28 @@ export default function ManualFolio({ manual: page }: Props) {
                                             Add line
                                         </Button>
                                     )}
+                                    {tab === 'posted' &&
+                                        page.posted?.canMoveCharges && (
+                                            <Link
+                                                href={moveCharges.url(
+                                                    {
+                                                        reservation:
+                                                            page.reservationId,
+                                                    },
+                                                    {
+                                                        query: {
+                                                            to: page.folioId,
+                                                        },
+                                                    },
+                                                )}
+                                                className={buttonVariants({
+                                                    variant: 'outline',
+                                                })}
+                                            >
+                                                <ArrowRightLeft data-icon="inline-start" />
+                                                Move charges…
+                                            </Link>
+                                        )}
                                     <Tooltip>
                                         <TooltipTrigger
                                             render={
@@ -419,6 +448,19 @@ export default function ManualFolio({ manual: page }: Props) {
                 folioId={page.folioId}
                 row={reversing}
                 onClose={() => setReversing(null)}
+            />
+
+            <ThirdPartyFolioDialog
+                open={addingFolio}
+                onOpenChange={setAddingFolio}
+                reservationId={page.reservationId}
+                canViewCompany={page.canViewCompany}
+                companies={companies}
+                url={storeFolio.url({
+                    reservation: page.reservationId,
+                    folio: page.folioId,
+                })}
+                preserveState
             />
 
             <UnsavedChangesDialog

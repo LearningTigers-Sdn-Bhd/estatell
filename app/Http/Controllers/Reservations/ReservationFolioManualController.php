@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Reservations;
 
+use App\Actions\Folio\CreateFolio;
 use App\Actions\Folio\ManualBatchResult;
 use App\Actions\Folio\PostManualBatch;
 use App\Data\Folio\ManualPreviewData;
@@ -12,6 +13,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Folio\ManualFolioPreviewRequest;
 use App\Http\Requests\Folio\StartManualFolioRequest;
 use App\Http\Requests\Folio\StoreManualFolioRequest;
+use App\Http\Requests\Folio\StoreThirdPartyFolioRequest;
 use App\Models\Folio;
 use App\Models\Payment;
 use App\Models\Property;
@@ -97,6 +99,22 @@ class ReservationFolioManualController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => $count === 1 ? __('1 line posted.') : __(':count lines posted.', ['count' => $count])]);
 
         return redirect(route('reservations.folio', ['property' => $property, 'reservation' => $reservation, 'folio' => $folio->id]));
+    }
+
+    /**
+     * Add a Third party folio from the page's rail, then open the page on it. Nothing else is written, and the draft
+     * rows stay in the browser. See docs/13-folio/08-manual-folio.md#add-a-third-party-folio.
+     */
+    public function storeFolio(StoreThirdPartyFolioRequest $request, Property $property, Reservation $reservation, Folio $folio, CreateFolio $createFolio): RedirectResponse
+    {
+        $guest = $request->payerGuest($property);
+        $company = $guest === null ? $request->payerCompany($property) : null;
+
+        $created = $createFolio->thirdParty($reservation, $guest, $company?->id, $request->user());
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Folio :number created for :payer.', ['number' => $created->number, 'payer' => $guest->full_name ?? $company?->name])]);
+
+        return redirect(route('reservations.folios.manual', ['property' => $property, 'reservation' => $reservation, 'folio' => $created->id]));
     }
 
     /**

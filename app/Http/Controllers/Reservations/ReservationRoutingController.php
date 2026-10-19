@@ -33,14 +33,8 @@ class ReservationRoutingController extends Controller
      */
     public function storeThirdPartyFolio(StoreThirdPartyFolioRequest $request, Property $property, Reservation $reservation, CreateFolio $createFolio): RedirectResponse
     {
-        $guest = $request->filled('payer_guest_id')
-            ? Guest::query()
-                ->where('property_id', $property->id)
-                ->notMerged()
-                ->whereNull('anonymized_at')
-                ->findOrFail($request->integer('payer_guest_id'))
-            : null;
-        $company = $guest === null ? Company::query()->where('property_id', $property->id)->findOrFail($request->integer('payer_company_id')) : null;
+        $guest = $request->payerGuest($property);
+        $company = $guest === null ? $request->payerCompany($property) : null;
 
         $folio = $createFolio->thirdParty($reservation, $guest, $company?->id, $request->user());
 

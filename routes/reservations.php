@@ -66,6 +66,7 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                     Route::get('/', [ReservationFolioManualController::class, 'show']);
                     Route::post('start', [ReservationFolioManualController::class, 'start'])->name('.start');
                     Route::post('preview', [ReservationFolioManualController::class, 'preview'])->name('.preview');
+                    Route::post('folios', [ReservationFolioManualController::class, 'storeFolio'])->name('.folios.store');
                     Route::post('/', [ReservationFolioManualController::class, 'store'])->name('.store');
                 });
                 Route::middleware('can:'.PermissionEnum::FolioManual->value)->prefix('lines/{line}')->name('lines.')->group(function () {

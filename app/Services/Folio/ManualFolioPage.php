@@ -15,6 +15,7 @@ use App\Enums\FolioType;
 use App\Enums\ManualFolioReason;
 use App\Enums\PaymentPurpose;
 use App\Enums\PaymentStatus;
+use App\Enums\PermissionEnum;
 use App\Enums\UnitStatus;
 use App\Models\ChargeItem;
 use App\Models\Folio;
@@ -59,7 +60,7 @@ class ManualFolioPage
         $units = $reservation->units()->whereIn('status', [UnitStatus::CheckedIn, UnitStatus::CheckedOut])->orderBy('id')->get();
         $overview = $this->overview->build($reservation, false);
         $label = $this->labels->folioLabel($folio, $unitLabels);
-        $statement = $this->statement->build($property, $reservation, $overview['units'], (string) $folio->id, [], $user);
+        $statement = $this->statement->build($property, $reservation, $overview['units'], (string) $folio->id, ['transfer' => $user->can(PermissionEnum::FolioTransfer->value)], $user);
         $openKeys = $folios->map(fn (Folio $open): string => (string) $open->id)->all();
 
         return new ManualFolioPageData(
@@ -84,6 +85,7 @@ class ManualFolioPage
             preview: $this->preview->preview($user, $property, $reservation, $folio, []),
             posted: $statement['folio'],
             lines: $statement['folio'] === null ? [] : $this->lineMenu->apply($user, $statement['folio'], $property->id),
+            canViewCompany: $user->can(PermissionEnum::CompanyView->value),
             batchKey: (string) Str::uuid(),
             maxRows: ManualBatchResult::MAX_ROWS,
             cancelUrl: route('reservations.folio', ['property' => $property, 'reservation' => $reservation, 'folio' => $folio->id]),

@@ -3,11 +3,14 @@
 use App\Actions\Folio\PostManualBatch;
 use App\Data\Folio\ManualRowData;
 use App\Enums\DefaultRoleEnum;
+use App\Enums\FolioType;
 use App\Enums\ManualRowType;
 use App\Enums\SystemTransactionCode;
+use App\Models\Company;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\FolioManualBatch;
+use App\Models\Guest;
 use App\Models\ReservationUnit;
 use App\Models\TransactionCode;
 use App\Models\UnitNight;
@@ -219,4 +222,49 @@ test('the folio tab offers the Manual Folio Editor on an Open folio and marks ma
     $this->actingAs($frontDesk)->get($tab)->assertInertia(fn (Assert $page) => $page
         ->where('folio.canManageManually', false)
         ->where('folio.rows.0.tags', []));
+});
+
+test('Add folio creates a third party folio for a guest or a company and opens the editor on it', function () {
+    $setup = mfSetup();
+    $guest = Guest::factory()->create(['property_id' => $setup['property']->id, 'full_name' => 'Tan Travel']);
+    $company = Company::factory()->for($setup['property'])->create(['name' => 'Borneo Travel']);
+
+    $byGuest = $this->actingAs($setup['user'])->post(mgUrl($setup, 'reservations.folios.manual.folios.store'), ['payer_guest_id' => $guest->id]);
+    $guestFolio = Folio::query()->where('payer_guest_id', $guest->id)->sole();
+
+    $byGuest->assertRedirect(mgUrl($setup, 'reservations.folios.manual', ['folio' => $guestFolio->id]))
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Folio '.$guestFolio->number.' created for Tan Travel.']);
+
+    $byCompany = $this->post(mgUrl($setup, 'reservations.folios.manual.folios.store'), ['payer_company_id' => $company->id]);
+    $companyFolio = Folio::query()->where('payer_company_id', $company->id)->sole();
+
+    $byCompany->assertRedirect(mgUrl($setup, 'reservations.folios.manual', ['folio' => $companyFolio->id]));
+
+    expect($guestFolio->type)->toBe(FolioType::ThirdParty)
+        ->and($guestFolio->reservation_id)->toBe($setup['reservation']->id)
+        ->and($companyFolio->type)->toBe(FolioType::ThirdParty)
+        ->and(Activity::query()->where('event', 'folio.third_party_created')->count())->toBe(2);
+});
+
+test('Add folio needs folio.manual and a payer of this property', function () {
+    $setup = mfSetup(DefaultRoleEnum::FrontDesk);
+    $guest = Guest::factory()->create(['property_id' => $setup['property']->id]);
+
+    $this->actingAs($setup['user'])->post(mgUrl($setup, 'reservations.folios.manual.folios.store'), ['payer_guest_id' => $guest->id])->assertForbidden();
+
+    $owner = mfSetup();
+    $foreign = Guest::factory()->create();
+
+    $this->actingAs($owner['user'])->post(mgUrl($owner, 'reservations.folios.manual.folios.store'), ['payer_guest_id' => $foreign->id])->assertNotFound();
+    $this->post(mgUrl($owner, 'reservations.folios.manual.folios.store'), [])->assertSessionHasErrors('payer_guest_id');
+    expect(Folio::query()->where('type', FolioType::ThirdParty)->count())->toBe(0);
+});
+
+test('the posted folio says whether the Move charges link shows', function () {
+    $setup = mfSetup();
+    Folio::factory()->thirdParty()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id]);
+
+    $this->actingAs($setup['user'])->get(mgUrl($setup))->assertInertia(fn (Assert $page) => $page
+        ->where('manual.posted.canMoveCharges', true)
+        ->where('manual.canViewCompany', true));
 });

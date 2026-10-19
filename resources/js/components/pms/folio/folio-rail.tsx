@@ -1,7 +1,9 @@
 import { Link, router } from '@inertiajs/react';
+import { Plus } from 'lucide-react';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { MoneyText } from '@/components/pms/money-text';
 import { StatusBadge } from '@/components/pms/status-badge';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { folio as folioTab } from '@/routes/reservations';
 
@@ -17,7 +19,7 @@ function folioUrl(reservationId: number, key: string): string {
 /**
  * The folios of a reservation: a rail from `lg` and a select below it. The balance is in the danger tone when above 0.
  * By default an entry opens the folio tab on that folio. With `onSelect` it calls back instead (the manual folio page
- * switches folios itself), and `drafts` adds "N new" to each folio with draft rows.
+ * switches folios itself), `drafts` adds "N new" to each folio with draft rows, and `onAdd` shows **+ Add folio**.
  */
 export function FolioRail({
     reservationId,
@@ -26,6 +28,7 @@ export function FolioRail({
     currency,
     onSelect,
     drafts,
+    onAdd,
 }: {
     reservationId: number;
     items: Item[];
@@ -34,6 +37,8 @@ export function FolioRail({
     onSelect?: (key: string) => void;
     /** Draft rows by folio key. */
     drafts?: Record<string, number>;
+    /** Adds a button under the folios (the Manual Folio Editor adds a Third party folio). */
+    onAdd?: () => void;
 }) {
     const select = (key: string) =>
         onSelect
@@ -62,6 +67,17 @@ export function FolioRail({
                     value={activeKey}
                     onValueChange={select}
                 />
+                {onAdd && (
+                    <Button
+                        type="button"
+                        variant="outline"
+                        className="mt-2 w-full"
+                        onClick={onAdd}
+                    >
+                        <Plus data-icon="inline-start" />
+                        Add folio
+                    </Button>
+                )}
             </div>
             <nav
                 aria-label="Choose folio"
@@ -105,6 +121,12 @@ export function FolioRail({
                         </Link>
                     );
                 })}
+                {onAdd && (
+                    <Button type="button" variant="outline" onClick={onAdd}>
+                        <Plus data-icon="inline-start" />
+                        Add folio
+                    </Button>
+                )}
             </nav>
         </>
     );
