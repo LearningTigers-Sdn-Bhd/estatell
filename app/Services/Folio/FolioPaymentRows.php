@@ -3,6 +3,7 @@
 namespace App\Services\Folio;
 
 use App\Enums\ArInvoiceType;
+use App\Enums\PaymentMethodType;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TransactionKind;
 use App\Models\ArInvoice;
@@ -17,7 +18,7 @@ use Illuminate\Support\Collection;
 /**
  * The payment lines of some folios as a customer document prints them, with paid (net of refunds, without the city
  * ledger line) and billed to company, as the reservation list counts them. The booking summary and the folio invoice
- * use it. It only reads.
+ * use it. A payment recorded in the old system has no receipt number, and its text is the line's "Paid in old system · {reference}". It only reads.
  */
 class FolioPaymentRows
 {
@@ -37,7 +38,7 @@ class FolioPaymentRows
             ->orderBy('service_date')
             ->orderBy('id')
             ->get();
-        $payments = Payment::query()->whereIn('folio_id', $ids)->with('paymentMethod:id,name')->get()->keyBy('folio_line_id');
+        $payments = Payment::query()->whereIn('folio_id', $ids)->with('paymentMethod:id,name,type')->get()->keyBy('folio_line_id');
         $invoices = ArInvoice::query()
             ->where('property_id', $property->id)
             ->whereIn('folio_id', $ids)
@@ -50,7 +51,9 @@ class FolioPaymentRows
 
         foreach ($lines as $line) {
             $payment = $payments->get($line->id);
-            $method = $payment?->paymentMethod->name ?? $line->description;
+            $method = $payment?->paymentMethod->type === PaymentMethodType::OldSystem && $payment->refund_of_id === null
+                ? $line->description
+                : ($payment?->paymentMethod->name ?? $line->description);
             $date = CarbonImmutable::parse($line->service_date->toDateString());
 
             if ($line->transactionCode?->system_key === SystemTransactionCode::DirectBillPayment->value) {

@@ -31,6 +31,7 @@ class StorePaymentRequest extends FormRequest
             'purpose' => ['required', Rule::enum(PaymentPurpose::class)],
             'amount' => ['required', 'string', 'regex:/^\d+(\.\d{1,2})?$/'],
             'reference' => ['nullable', 'string', 'max:100'],
+            'service_date' => ['nullable', 'string', 'max:10'],
             'idempotency_key' => ['required', 'uuid'],
         ];
     }
@@ -54,6 +55,7 @@ class StorePaymentRequest extends FormRequest
             amount: $this->string('amount')->toString(),
             reference: $this->filled('reference') ? $this->string('reference')->toString() : null,
             idempotencyKey: $this->string('idempotency_key')->toString(),
+            serviceDate: $this->filled('service_date') ? $this->string('service_date')->toString() : null,
         );
     }
 }

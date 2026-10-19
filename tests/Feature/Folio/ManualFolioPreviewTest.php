@@ -38,7 +38,7 @@ function mpRow(ManualRowType $type, array $setup, array $attributes = []): Manua
  */
 function mpPreview(array $setup, array $rows): ManualPreviewData
 {
-    return app(ManualFolioPreview::class)->preview($setup['property']->fresh(['settings']), $setup['reservation'], $setup['folio'], $rows);
+    return app(ManualFolioPreview::class)->preview($setup['user'], $setup['property']->fresh(['settings']), $setup['reservation'], $setup['folio'], $rows);
 }
 
 test('a charge row shows its tax lines and total, and the rail moves by it', function () {

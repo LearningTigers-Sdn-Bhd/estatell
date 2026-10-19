@@ -16,6 +16,7 @@ use App\Models\Folio;
 use App\Models\Payment;
 use App\Models\Property;
 use App\Models\Reservation;
+use App\Models\User;
 use App\Services\Folio\FolioRefusals;
 use App\Services\Folio\ManualFolioPage;
 use App\Services\Folio\ManualFolioPreview;
@@ -71,7 +72,7 @@ class ReservationFolioManualController extends Controller
         $rows = $request->rows();
         $this->scope($reservation, $rows);
 
-        return response()->json($this->previewData($preview, $property, $reservation, $folio, $rows));
+        return response()->json($this->previewData($preview, $request->user(), $property, $reservation, $folio, $rows));
     }
 
     /**
@@ -115,9 +116,9 @@ class ReservationFolioManualController extends Controller
     /**
      * @param  list<ManualRowData>  $rows
      */
-    private function previewData(ManualFolioPreview $preview, Property $property, Reservation $reservation, Folio $folio, array $rows): ManualPreviewData
+    private function previewData(ManualFolioPreview $preview, User $actor, Property $property, Reservation $reservation, Folio $folio, array $rows): ManualPreviewData
     {
-        return $preview->preview($property, $reservation, $folio, $rows);
+        return $preview->preview($actor, $property, $reservation, $folio, $rows);
     }
 
     /**

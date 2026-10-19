@@ -1449,11 +1449,13 @@ manualBatchId: number | null,
 };
 export type PaymentFormOptionsData = {
 methods: App.Data.Payments.PaymentMethodOptionData[],
+businessDate: string | null,
 };
 export type PaymentMethodOptionData = {
 id: number,
 name: string,
 requiresReference: boolean,
+isOldSystem: boolean,
 };
 export type PaymentQuoteData = {
 amount: string | null,

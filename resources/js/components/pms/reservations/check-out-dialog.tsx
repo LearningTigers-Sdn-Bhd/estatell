@@ -91,7 +91,9 @@ function CheckOutForm({
         'paymentOptions',
     );
     const [idempotencyKey] = useState(() => crypto.randomUUID());
-    const methods = paymentOptions?.methods ?? [];
+    const methods = (paymentOptions?.methods ?? []).filter(
+        (one) => !one.isOldSystem,
+    );
     const form = useForm({
         deposit: '',
         refund_amount: '',

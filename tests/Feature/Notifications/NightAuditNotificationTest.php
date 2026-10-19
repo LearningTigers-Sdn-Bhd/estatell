@@ -9,6 +9,7 @@ use App\Enums\InclusionEnd;
 use App\Enums\InclusionStart;
 use App\Enums\NotificationChannel;
 use App\Enums\NotificationType;
+use App\Enums\PaymentMethodType;
 use App\Enums\PermissionEnum;
 use App\Enums\SystemTransactionCode;
 use App\Models\ArPayment;
@@ -220,4 +221,18 @@ test('a failed message names the step and the error', function () {
 
     expect($message->subject)->toBe('Night audit failed for Oct 12, 2026')
         ->and($message->render()->toHtml())->toContain('Snapshot statistics', 'RuntimeException: snapshot boom', 'resume');
+});
+
+test('an Old system payment is left out of the payments by method', function () {
+    ['property' => $property, 'audit' => $audit] = notifySetup();
+    $folio = Folio::factory()->create(['property_id' => $property->id]);
+    $old = PaymentMethod::factory()->create(['property_id' => $property->id, 'name' => 'Old system', 'type' => PaymentMethodType::OldSystem]);
+    Payment::factory()->create([
+        'folio_id' => $folio->id,
+        'payment_method_id' => $old->id,
+        'amount' => '400.00',
+        'folio_line_id' => FolioLine::factory()->payment('400.00')->create(['folio_id' => $folio->id, 'transaction_code_id' => $old->transaction_code_id, 'posting_date' => '2026-10-12'])->id,
+    ]);
+
+    expect(app(AuditResultSummary::class)->forAudit($audit)->payments)->toBeEmpty();
 });

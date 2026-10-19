@@ -82,11 +82,11 @@ class ReservationPaymentController extends Controller
 
     /**
      * The receipt of a payment as an A4 PDF, shown inline so staff can print or save it. It is rendered on demand and
-     * not stored. Font subsetting keeps the file small (about 20 KB instead of 850 KB). A refund has no receipt (404).
+     * not stored. Font subsetting keeps the file small (about 20 KB instead of 850 KB). A refund and an Old system payment have no receipt (404).
      */
     public function receipt(Property $property, Reservation $reservation, Folio $folio, Payment $payment, PaymentReceipt $paymentReceipt, PrintedPdf $printedPdf): Response
     {
-        abort_if($payment->refund_of_id !== null, 404);
+        abort_if($payment->refund_of_id !== null || $payment->receipt_number === null, 404);
 
         $receipt = $paymentReceipt->forPayment($payment);
 
@@ -100,10 +100,11 @@ class ReservationPaymentController extends Controller
             return back(fallback: route('reservations.folio', ['property' => $property, 'reservation' => $reservation]))->withErrors($refusals->errors((string) $result->refusal));
         }
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Payment of :amount recorded. Receipt :receipt.', [
-            'amount' => $result->payment?->amount,
-            'receipt' => $result->payment?->receipt_number,
-        ])]);
+        $receipt = $result->payment?->receipt_number;
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => $receipt === null
+            ? __('Payment of :amount recorded.', ['amount' => $result->payment?->amount])
+            : __('Payment of :amount recorded. Receipt :receipt.', ['amount' => $result->payment?->amount, 'receipt' => $receipt])]);
 
         return redirect()->to($this->page($property, $reservation, $folioId));
     }

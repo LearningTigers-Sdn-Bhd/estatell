@@ -81,7 +81,9 @@ function CheckInForm({
     const key = { reservation: reservationId, unit: unit.id };
     const { preview } = useUnitPreview<Preview>(checkInPreview.url(key), open);
     const [idempotencyKey] = useState(() => crypto.randomUUID());
-    const methods = paymentOptions?.methods ?? [];
+    const methods = (paymentOptions?.methods ?? []).filter(
+        (one) => !one.isOldSystem,
+    );
     const form = useForm({
         nationality_code: '',
         without_card: false,

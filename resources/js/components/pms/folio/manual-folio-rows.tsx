@@ -180,6 +180,11 @@ export function ManualFolioRows({
         value: String(one.id),
         label: one.name,
     }));
+    const oldSystemIds = new Set(
+        page.paymentMethods
+            .filter((one) => one.isOldSystem)
+            .map((one) => String(one.id)),
+    );
     const paymentOptions = page.payments
         .filter((one) => one.folioId === folioId)
         .map((one) => ({
@@ -292,6 +297,9 @@ export function ManualFolioRows({
                             !item.allowOverride &&
                             item.defaultAmount !== null;
                         const label = `Line ${position + 1}`;
+                        const oldSystemRow =
+                            row.type === 'payment' &&
+                            oldSystemIds.has(row.payment_method_id);
 
                         return (
                             <RowFragment key={row.key}>
@@ -324,7 +332,16 @@ export function ManualFolioRows({
                                                     service_date: value,
                                                 })
                                             }
-                                            min={page.earliestDate}
+                                            variant={
+                                                oldSystemRow
+                                                    ? 'dropdown'
+                                                    : 'default'
+                                            }
+                                            min={
+                                                oldSystemRow
+                                                    ? undefined
+                                                    : page.earliestDate
+                                            }
                                             max={page.businessDate}
                                             aria-invalid={invalid(
                                                 'service_date',
@@ -424,7 +441,9 @@ export function ManualFolioRows({
                                                 row.type === 'charge'
                                                     ? (item?.name ??
                                                       'e.g. 2 x Coke')
-                                                    : 'e.g. Visa ending 4242'
+                                                    : oldSystemRow
+                                                      ? 'e.g. OR-1203'
+                                                      : 'e.g. Visa ending 4242'
                                             }
                                             value={
                                                 row.type === 'charge'
@@ -683,6 +702,16 @@ export function ManualFolioRows({
                     </TableRow>
                 </TableFooter>
             </Table>
+            {shown.some(
+                ({ row }) =>
+                    row.type === 'payment' &&
+                    oldSystemIds.has(row.payment_method_id),
+            ) && (
+                <p className="border-t px-3 py-2 text-sm text-muted-foreground">
+                    An advance tied to a booking goes on its folio. Money not
+                    tied to a booking goes on the company.
+                </p>
+            )}
         </div>
     );
 }

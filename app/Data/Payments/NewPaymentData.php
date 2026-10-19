@@ -8,7 +8,8 @@ use Spatie\LaravelData\Data;
 /**
  * One payment to record. `amount` is the amount paid on the bill as a decimal string; any surcharge and its tax are
  * added on top. `idempotencyKey` is a UUID sent by the form: the payment line key is `payment:{uuid}`.
- * The manual folio page also gives `serviceDate` (a `Y-m-d` day in `ServiceDateRange`) and `manualBatchId`.
+ * The manual folio page also gives `serviceDate` (a `Y-m-d` day in `ServiceDateRange`) and `manualBatchId`. An Old system
+ * payment must give `serviceDate`, the day the old PMS took the money (any real day up to the business date).
  * See docs/14-payments/01-payments-and-refunds.md.
  */
 class NewPaymentData extends Data

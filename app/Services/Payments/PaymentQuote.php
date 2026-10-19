@@ -3,6 +3,7 @@
 namespace App\Services\Payments;
 
 use App\Actions\Payments\PaymentResult;
+use App\Enums\PaymentMethodType;
 use App\Enums\SurchargeType;
 use App\Models\PaymentMethod;
 use App\Models\Reservation;
@@ -23,7 +24,7 @@ class PaymentQuote
 
     /**
      * `$amount` is the amount paid on the bill (a decimal string). A Fixed surcharge is the method's value, a Percent
-     * one that percent of the amount (rounded half up). The tax on the fee follows the code of the method's surcharge
+     * one that percent of the amount (rounded half up). An Old system payment never has one. The tax on the fee follows the code of the method's surcharge
      * charge item and the booker's nationality. A fee that rounds to 0.00 adds nothing.
      */
     public function quote(Reservation $reservation, PaymentMethod $method, string $amount): PaymentQuoteResult
@@ -36,7 +37,8 @@ class PaymentQuote
         $currency = $property->settings?->currency->getCurrencyCode()
             ?? throw new InvalidArgumentException('The property needs settings with a currency to quote a payment.');
         $paid = Money::of($amount, $currency);
-        $surcharge = match ($method->surcharge_type) {
+        $surchargeType = $method->type === PaymentMethodType::OldSystem ? SurchargeType::None : $method->surcharge_type;
+        $surcharge = match ($surchargeType) {
             SurchargeType::None => Money::zero($currency),
             SurchargeType::Fixed => Money::of((string) $method->surcharge_value, $currency),
             SurchargeType::Percent => $paid->multipliedBy(BigDecimal::of((string) $method->surcharge_value)->dividedBy(100, 4), RoundingMode::HalfUp),

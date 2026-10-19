@@ -1,5 +1,6 @@
 import { useForm, useHttp } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
+import { DatePicker } from '@/components/pms/date-picker';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { MoneyInput } from '@/components/pms/money-input';
@@ -57,7 +58,7 @@ function RecordPaymentForm({
     onOpenChange,
     reservationId,
     folio,
-    options = { methods: [] },
+    options = { methods: [], businessDate: null },
     currency,
     loading,
 }: Props & { loading: boolean }) {
@@ -72,11 +73,14 @@ function RecordPaymentForm({
                 ? folio.balance
                 : '',
         reference: '',
+        service_date: options.businessDate ?? '',
     });
     const { data, errors } = form;
     const method = options.methods.find(
         (one) => String(one.id) === data.payment_method_id,
     );
+    const oldSystem = method?.isOldSystem === true;
+    const needsReference = method?.requiresReference === true || oldSystem;
     const http = useHttp<{ payment_method_id: string; amount: string }, Quote>(
         'post',
         quoteRoute.url({ reservation: reservationId }),
@@ -113,7 +117,8 @@ function RecordPaymentForm({
     const submit = () => {
         form.transform((values) => ({
             ...values,
-            reference: method?.requiresReference ? values.reference : '',
+            reference: needsReference ? values.reference : '',
+            service_date: oldSystem ? values.service_date : '',
             idempotency_key: key,
         }));
         form.post(
@@ -202,14 +207,35 @@ function RecordPaymentForm({
                 />
                 <FieldError>{errors.amount}</FieldError>
             </Field>
-            {method?.requiresReference && (
+            {oldSystem && (
+                <Field data-invalid={!!errors.service_date}>
+                    <FieldLabel htmlFor="payment-service-date">
+                        Date paid in the old system
+                    </FieldLabel>
+                    <DatePicker
+                        id="payment-service-date"
+                        variant="dropdown"
+                        value={data.service_date}
+                        onChange={(value) =>
+                            form.setData('service_date', value)
+                        }
+                        max={options.businessDate ?? undefined}
+                        aria-invalid={!!errors.service_date}
+                    />
+                    <FieldError>{errors.service_date}</FieldError>
+                </Field>
+            )}
+            {needsReference && (
                 <Field data-invalid={!!errors.reference}>
                     <FieldLabel htmlFor="payment-reference">
-                        Reference
+                        {oldSystem ? 'Old receipt number' : 'Reference'}
                     </FieldLabel>
                     <Input
                         id="payment-reference"
                         maxLength={100}
+                        placeholder={
+                            oldSystem ? 'e.g. OR-1203' : 'e.g. Visa ending 4242'
+                        }
                         value={data.reference}
                         onChange={(event) =>
                             form.setData('reference', event.target.value)
@@ -218,6 +244,12 @@ function RecordPaymentForm({
                     />
                     <FieldError>{errors.reference}</FieldError>
                 </Field>
+            )}
+            {oldSystem && (
+                <p className="text-sm text-muted-foreground">
+                    An advance tied to a booking goes on its folio. Money not
+                    tied to a booking goes on the company.
+                </p>
             )}
             {quote?.error && <FormError errors={{ form: quote.error }} />}
             {ready && (

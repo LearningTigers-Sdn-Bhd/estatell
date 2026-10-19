@@ -24,6 +24,9 @@ use App\Models\Property;
 use App\Models\RatePlan;
 use App\Models\RoomType;
 use App\Models\TransactionCode;
+use App\Models\User;
+use App\Services\NightAudit\CurrentBusinessDate;
+use App\Services\Payments\AvailablePaymentMethod;
 
 /**
  * The lists the reservation page forms pick from. Each list is read when its overlay opens, in two queries or fewer.
@@ -99,15 +102,24 @@ class ReservationFormOptions
 
     /**
      * The methods of the Record payment Dialog. City ledger and OTA collected methods are not offered
-     * yet. `RecordPayment` checks the method again.
+     * yet. The Old system method is added, at the end, only for a user with `folio.manual` while the migration window
+     * is open, whatever its `active` flag says. `RecordPayment` checks the method again.
      */
-    public function payments(Property $property): PaymentFormOptionsData
+    public function payments(Property $property, ?User $user = null): PaymentFormOptionsData
     {
+        $methods = PaymentMethod::query()->where('property_id', $property->id)
+            ->where(function ($query) use ($property, $user): void {
+                $query->where(fn ($active) => $active->active()->whereNotIn('type', [PaymentMethodType::OtaCollected, PaymentMethodType::DirectBill, PaymentMethodType::OldSystem]));
+
+                if ($user !== null && app(AvailablePaymentMethod::class)->oldSystemOffered($property, $user)) {
+                    $query->orWhere('type', PaymentMethodType::OldSystem);
+                }
+            })
+            ->ordered()->get();
+
         return PaymentFormOptionsData::forMethods(
-            array_values(PaymentMethod::query()->where('property_id', $property->id)->active()
-                ->whereNotIn('type', [PaymentMethodType::OtaCollected, PaymentMethodType::DirectBill])
-                ->ordered()->get()
-                ->map(PaymentMethodOptionData::fromModel(...))->all()),
+            array_values($methods->map(PaymentMethodOptionData::fromModel(...))->all()),
+            app(CurrentBusinessDate::class)->date($property)?->toDateString(),
         );
     }
 }

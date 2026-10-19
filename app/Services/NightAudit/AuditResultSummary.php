@@ -2,6 +2,7 @@
 
 namespace App\Services\NightAudit;
 
+use App\Enums\PaymentMethodType;
 use App\Enums\PaymentStatus;
 use App\Models\ArPayment;
 use App\Models\DailyRevenue;
@@ -81,7 +82,7 @@ class AuditResultSummary
     }
 
     /**
-     * The completed payments and refunds whose folio line was posted on the business date.
+     * The completed payments and refunds whose folio line was posted on the business date, without the Old system method.
      *
      * @return Collection<int, Payment>
      */
@@ -91,6 +92,7 @@ class AuditResultSummary
             ->with('paymentMethod')
             ->where('payments.property_id', $audit->property_id)
             ->where('payments.status', PaymentStatus::Completed->value)
+            ->whereHas('paymentMethod', fn ($methods) => $methods->where('type', '!=', PaymentMethodType::OldSystem->value))
             ->whereHas('folioLine', fn ($lines) => $lines->whereDate('posting_date', $date->toDateString()))
             ->get();
     }

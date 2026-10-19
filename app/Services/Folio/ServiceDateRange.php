@@ -43,4 +43,17 @@ class ServiceDateRange
 
         return $earliest !== null && $date >= $earliest->toDateString() && $date <= $businessDate->toDateString();
     }
+
+    /**
+     * Whether a `Y-m-d` date is a real day up to the business date. An Old system payment uses it: the day the old PMS
+     * took the money has no earliest day, and it skips the range above.
+     */
+    public function allowsOldSystemPayment(CarbonImmutable $businessDate, string $date): bool
+    {
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) !== 1 || CarbonImmutable::createFromFormat('Y-m-d', $date)?->toDateString() !== $date) {
+            return false;
+        }
+
+        return $date <= $businessDate->toDateString();
+    }
 }

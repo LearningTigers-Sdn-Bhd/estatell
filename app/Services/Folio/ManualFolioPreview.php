@@ -13,6 +13,7 @@ use App\Data\Folio\ManualTaxData;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
 use App\Enums\ManualRowType;
+use App\Enums\PaymentMethodType;
 use App\Enums\PaymentStatus;
 use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
@@ -20,10 +21,12 @@ use App\Models\ChargeItem;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Payment;
+use App\Models\PaymentMethod;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\Tax;
+use App\Models\User;
 use App\Services\Catalogues\TaxCalculator;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Payments\AvailablePaymentMethod;
@@ -61,7 +64,7 @@ class ManualFolioPreview
     /**
      * @param  list<ManualRowData>  $rows
      */
-    public function preview(Property $property, Reservation $reservation, Folio $folio, array $rows): ManualPreviewData
+    public function preview(User $actor, Property $property, Reservation $reservation, Folio $folio, array $rows): ManualPreviewData
     {
         if ($folio->reservation_id !== $reservation->id) {
             throw new InvalidArgumentException('The folio belongs to another reservation.');
@@ -70,6 +73,7 @@ class ManualFolioPreview
         $currency = $property->settings?->currency->getCurrencyCode()
             ?? throw new InvalidArgumentException('The property needs settings with a currency to preview manual entries.');
         $context = [
+            'actor' => $actor,
             'property' => $property,
             'reservation' => $reservation,
             'currency' => $currency,
@@ -179,7 +183,7 @@ class ManualFolioPreview
             return $this->refused($row, $zero, $this->folioRefusals->errors(PostingResult::REFUSAL_NO_BUSINESS_DATE));
         }
 
-        if (! $this->serviceDateRange->allows($context['property'], $context['reservation'], $context['businessDate'], $row->serviceDate)) {
+        if (! $this->dateAllowed($row, $context)) {
             return $this->refused($row, $zero, $this->folioRefusals->errors(PostingResult::REFUSAL_SERVICE_DATE_INVALID));
         }
 
@@ -188,6 +192,22 @@ class ManualFolioPreview
             ManualRowType::Payment => $this->payment($row, $context),
             ManualRowType::Refund => $this->refund($row, $context),
         };
+    }
+
+    /**
+     * Whether the row's service date is allowed. An Old system payment skips the range: any real day up to the business date.
+     *
+     * @param  array<string, mixed>  $context
+     */
+    private function dateAllowed(ManualRowData $row, array $context): bool
+    {
+        $isOldSystem = $row->type === ManualRowType::Payment
+            && $row->paymentMethodId !== null
+            && PaymentMethod::query()->where('property_id', $context['property']->id)->whereKey($row->paymentMethodId)->where('type', PaymentMethodType::OldSystem)->exists();
+
+        return $isOldSystem
+            ? $this->serviceDateRange->allowsOldSystemPayment($context['businessDate'], $row->serviceDate)
+            : $this->serviceDateRange->allows($context['property'], $context['reservation'], $context['businessDate'], $row->serviceDate);
     }
 
     /**
@@ -284,7 +304,7 @@ class ManualFolioPreview
             return $this->refused($row, $zero, $this->folioRefusals->errors((string) $this->folioPostability->refusalFor($folio)));
         }
 
-        $method = $row->paymentMethodId === null ? null : $this->availablePaymentMethod->find($context['reservation'], $row->paymentMethodId);
+        $method = $row->paymentMethodId === null ? null : $this->availablePaymentMethod->find($context['reservation'], $row->paymentMethodId, $context['actor']);
 
         if ($method === null) {
             return $this->refused($row, $zero, $this->paymentRefusals->errors(PaymentResult::REFUSAL_METHOD_NOT_AVAILABLE));
@@ -296,7 +316,7 @@ class ManualFolioPreview
             return $this->refused($row, $zero, $this->paymentRefusals->errors(PaymentResult::REFUSAL_AMOUNT_INVALID));
         }
 
-        if ($method->requires_reference && ! filled($row->reference)) {
+        if (($method->requires_reference || $method->type === PaymentMethodType::OldSystem) && ! filled($row->reference)) {
             return $this->refused($row, $zero, $this->paymentRefusals->errors(PaymentResult::REFUSAL_REFERENCE_REQUIRED));
         }
 

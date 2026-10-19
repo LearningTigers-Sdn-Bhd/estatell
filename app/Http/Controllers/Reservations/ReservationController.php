@@ -325,7 +325,7 @@ class ReservationController extends Controller
             'chargeItems' => Inertia::optional(fn () => $options->chargeItems($property)),
             'chargeCodes' => Inertia::optional(fn () => $options->chargeCodes($property)),
             'folioDiscounts' => Inertia::optional(fn () => $options->folioDiscounts($property, $user->can(PermissionEnum::FolioDiscountOpen->value))),
-            'paymentOptions' => Inertia::optional(fn () => $options->payments($property)),
+            'paymentOptions' => Inertia::optional(fn () => $options->payments($property, $user)),
             'boatDepartures' => Inertia::optional(fn () => $hasBoats ? $options->boatDepartures($property) : []),
             'boatSetup' => Inertia::optional(fn () => $hasBoats ? app(ReservationBoatSetup::class)->forUnits($overview['models'], $canManage) : []),
             ...$tabProps($overview['units'], $overview['models']),

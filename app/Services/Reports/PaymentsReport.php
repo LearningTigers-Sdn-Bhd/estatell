@@ -6,6 +6,7 @@ use App\Data\Reports\PaymentRow;
 use App\Data\Reports\ReportBreakdown;
 use App\Data\Reports\ReportFilters;
 use App\Data\Reports\ReportTotals;
+use App\Enums\PaymentMethodType;
 use App\Enums\ReportGroup;
 use App\Models\ArPayment;
 use App\Models\Payment;
@@ -20,7 +21,8 @@ use Illuminate\Database\Eloquent\Builder;
  * line) and the city ledger payments (`received_on`). A refund is a negative amount. Every row shows, but only
  * Completed payments count in the totals and in the summaries (by method or by staff, with In, Out and Net): Pending,
  * Failed and Voided rows add nothing. The `staff` filter keeps one receiver, and `refundsOnly` keeps only the refunds
- * (and so no city ledger rows). See docs/22-reports/01-core-reports.md.
+ * (and so no city ledger rows). Payments of the Old system method (and their refunds) are left out of the rows, the totals, the staff list and both summaries.
+ * See docs/22-reports/01-core-reports.md.
  */
 class PaymentsReport implements HasBreakdown, HasTotals, Report
 {
@@ -37,6 +39,8 @@ class PaymentsReport implements HasBreakdown, HasTotals, Report
         if ($folioIds === null || $folioIds !== []) {
             $payments = Payment::query()
                 ->join('folio_lines', 'folio_lines.id', '=', 'payments.folio_line_id')
+                ->join('payment_methods', 'payment_methods.id', '=', 'payments.payment_method_id')
+                ->where('payment_methods.type', '!=', PaymentMethodType::OldSystem->value)
                 ->where('payments.property_id', $property->id)
                 ->whereBetween('folio_lines.posting_date', [$filters->from, $filters->to])
                 ->when($folioIds !== null, fn (Builder $query) => $query->whereIn('payments.id', $folioIds))
@@ -84,6 +88,8 @@ class PaymentsReport implements HasBreakdown, HasTotals, Report
     {
         $folio = Payment::query()
             ->join('folio_lines', 'folio_lines.id', '=', 'payments.folio_line_id')
+            ->join('payment_methods', 'payment_methods.id', '=', 'payments.payment_method_id')
+            ->where('payment_methods.type', '!=', PaymentMethodType::OldSystem->value)
             ->where('payments.property_id', $property->id)
             ->whereBetween('folio_lines.posting_date', [$filters->from, $filters->to])
             ->select('payments.received_by');

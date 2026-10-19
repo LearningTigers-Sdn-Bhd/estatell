@@ -4,6 +4,7 @@ require_once __DIR__.'/../Support/ReportSetup.php';
 
 use App\Data\Reports\ReportFilters;
 use App\Enums\DefaultRoleEnum;
+use App\Enums\PaymentMethodType;
 use App\Enums\PaymentStatus;
 use App\Enums\TransactionKind;
 use App\Models\ArPayment;
@@ -418,4 +419,23 @@ test('the PDF prints the cash-up table with its subtotal rows in bold', function
         ->and($html)->toContain('<strong>Alice Cashier subtotal</strong>')
         ->and($html)->toContain('<strong>Bob Cashier subtotal</strong>')
         ->and($html)->not->toContain('<strong>Alice Cashier</strong>');
+});
+
+test('Old system payments and their refunds are left out of the rows, totals, method summary and cash-up', function () {
+    [$user, $property] = reportSetup();
+    paymentsData($property);
+    $old = PaymentMethod::factory()->create(['property_id' => $property->id, 'name' => 'Old system', 'type' => PaymentMethodType::OldSystem]);
+    $oldPaid = reportPayment($property, $old, '700.00', '2026-10-10');
+    reportPayment($property, $old, '100.00', '2026-10-10', refundOf: $oldPaid);
+
+    $this->actingAs($user)->get(paymentsUrl($property, '?from=2026-10-08&to=2026-10-10'))->assertInertia(fn (Assert $page) => $page
+        ->where('rows.meta.total', 7)
+        ->where('totals.figures.amount', '830.00')
+        ->where('breakdown.rows', [['Card', '2', '300.00', '-50.00', '250.00'], ['Cash', '2', '580.00', '0.00', '580.00']])
+        ->where('breakdown.total', ['Total', '4', '880.00', '-50.00', '830.00']));
+
+    $this->actingAs($user)->get(paymentsUrl($property, '?from=2026-10-08&to=2026-10-10&group=staff'))->assertInertia(fn (Assert $page) => $page
+        ->where('breakdown.total', ['Total', '', '4', '880.00', '-50.00', '830.00'])
+        ->where('breakdown.rows', fn ($rows) => collect($rows)->flatten()->doesntContain('Old system')));
+
 });

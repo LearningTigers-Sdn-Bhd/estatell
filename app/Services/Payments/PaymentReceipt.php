@@ -16,7 +16,7 @@ use InvalidArgumentException;
 class PaymentReceipt
 {
     /**
-     * The payments of a reservation that have a receipt (every payment that is not a refund), in id order, for the
+     * The payments of a reservation that have a receipt (every payment that is not a refund or an Old system payment), in id order, for the
      * reservation page's Print receipts. See docs/12-reservations/06-reservation-page.md#header.
      *
      * @return list<int>
@@ -26,6 +26,7 @@ class PaymentReceipt
         return array_values(Payment::query()
             ->where('property_id', $reservation->property_id)
             ->whereNull('refund_of_id')
+            ->whereNotNull('receipt_number')
             ->whereHas('folio', fn ($folios) => $folios->where('reservation_id', $reservation->id))
             ->orderBy('id')
             ->pluck('id')

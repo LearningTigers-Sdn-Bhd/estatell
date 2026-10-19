@@ -9,6 +9,7 @@ use App\Data\Payments\NewPaymentData;
 use App\Enums\DocumentType;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
+use App\Enums\PaymentMethodType;
 use App\Enums\PaymentPurpose;
 use App\Enums\PaymentStatus;
 use App\Enums\TransactionKind;
@@ -47,7 +48,8 @@ class RecordPayment
      * locked first, and every check runs before the first write, so a refusal writes and logs nothing. A SecurityDeposit
      * on a Master or ThirdParty folio is refused (`deposit_on_unit_only`), and so is an Advance on a unit whose Room
      * charges go to the Master folio (`advance_on_master`). The last step closes the folio when it is an Open Unit folio of a
-     * CheckedOut unit at 0 (`CloseSettledUnitFolio`). A surcharge
+     * CheckedOut unit at 0 (`CloseSettledUnitFolio`). An Old system payment (`folio.manual` and an open migration window) takes no receipt number and no surcharge, needs a
+     * reference and a service date of any real day up to the business date, and prints as "Paid in old system · {reference}". A surcharge
      * posts as a charge on the same folio, and the payment line covers the amount, the fee and its tax, so the balance
      * falls by the amount entered. The key `payment:{uuid}` makes a repeat return the existing payment. The route
      * checks the permission and that the folio or unit belongs to the reservation's property.
@@ -91,7 +93,7 @@ class RecordPayment
                 return PaymentResult::refused(PaymentResult::REFUSAL_ADVANCE_ON_MASTER);
             }
 
-            $method = $this->availablePaymentMethod->find($reservation, $data->paymentMethodId);
+            $method = $this->availablePaymentMethod->find($reservation, $data->paymentMethodId, $actor);
 
             if ($method === null) {
                 return PaymentResult::refused(PaymentResult::REFUSAL_METHOD_NOT_AVAILABLE);
@@ -105,7 +107,9 @@ class RecordPayment
 
             $reference = filled($data->reference) ? trim((string) $data->reference) : null;
 
-            if ($method->requires_reference && $reference === null) {
+            $isOldSystem = $method->type === PaymentMethodType::OldSystem;
+
+            if (($method->requires_reference || $isOldSystem) && $reference === null) {
                 return PaymentResult::refused(PaymentResult::REFUSAL_REFERENCE_REQUIRED);
             }
 
@@ -113,14 +117,18 @@ class RecordPayment
                 return PaymentResult::refused((string) $quote->refusal);
             }
 
-            if ($data->serviceDate !== null && ! $this->serviceDateRange->allows($property, $reservation, $businessDate, $data->serviceDate)) {
+            $dateAllowed = $isOldSystem
+                ? $data->serviceDate !== null && $this->serviceDateRange->allowsOldSystemPayment($businessDate, $data->serviceDate)
+                : $data->serviceDate === null || $this->serviceDateRange->allows($property, $reservation, $businessDate, $data->serviceDate);
+
+            if (! $dateAllowed) {
                 return PaymentResult::refused(PaymentResult::REFUSAL_SERVICE_DATE_INVALID);
             }
 
             $postingDate = $businessDate->toDateString();
             $serviceDate = $data->serviceDate ?? $postingDate;
             $target ??= ($this->createFolio)($reservation, $lockedUnit);
-            $receiptNumber = ($this->nextDocumentNumber)($property, DocumentType::Receipt)->reference;
+            $receiptNumber = $isOldSystem ? null : ($this->nextDocumentNumber)($property, DocumentType::Receipt)->reference;
             $surchargeLines = [];
 
             if ($quote->tax !== null && $quote->surcharge !== null) {
@@ -132,7 +140,7 @@ class RecordPayment
             $line = new FolioLine([
                 'transaction_code_id' => $method->transaction_code_id,
                 'kind' => TransactionKind::Payment,
-                'description' => $method->name,
+                'description' => $isOldSystem ? __('Paid in old system · :reference', ['reference' => $reference]) : $method->name,
                 'quantity' => 1,
                 'unit_amount' => '-'.$total,
                 'amount' => '-'.$total,
