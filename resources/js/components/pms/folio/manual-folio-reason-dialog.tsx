@@ -96,7 +96,7 @@ function ReasonForm({
             variant="dialog"
             open={open}
             onOpenChange={onOpenChange}
-            title="Manage folio manually"
+            title="Manual Folio Editor"
             description={`Lines you add post today${businessDate ? ` (${businessDate})` : ''} and keep the date you enter as their service date.`}
             errors={errors}
             onSubmit={submit}

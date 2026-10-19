@@ -175,7 +175,7 @@ test('the reason is required to post and a picked one is saved as its label', fu
     expect(FolioManualBatch::query()->sole()->reason)->toBe('Moving from the old system');
 });
 
-test('the folio tab offers Manage manually on an Open folio and marks manual lines only for those who may see them', function () {
+test('the folio tab offers the Manual Folio Editor on an Open folio and marks manual lines only for those who may see them', function () {
     $setup = mfSetup();
     app(PostManualBatch::class)($setup['user'], $setup['reservation'], $setup['folio'], 'Paper folio', [ManualRowData::from(['key' => 'a', 'type' => ManualRowType::Charge, 'serviceDate' => '2026-10-11', 'folioId' => $setup['folio']->id, 'unitId' => $setup['unit']->id, 'chargeItemId' => $setup['laundry']->id, 'quantity' => 1, 'amount' => '25.00'])], false, fake()->uuid());
     $tab = route('reservations.folio', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id, 'folio' => $setup['folio']->id]);

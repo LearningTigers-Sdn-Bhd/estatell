@@ -1892,7 +1892,7 @@ export default function ReservationCreate({
                         {isOldStay
                             ? 'Save old stay'
                             : isCheckedOut && !isMigratedStay
-                              ? 'Save and open manual folio'
+                              ? 'Save and open Manual Folio Editor'
                               : isPastStay
                                 ? 'Save and open folio'
                                 : 'Create booking'}

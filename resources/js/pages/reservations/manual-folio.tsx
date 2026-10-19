@@ -55,7 +55,7 @@ type Props = {
 const noop = () => undefined;
 
 /**
- * Manage folio manually: lines for charges, payments and refunds that were missed, each with the day it really
+ * Manual Folio Editor: lines for charges, payments and refunds that were missed, each with the day it really
  * happened, posted together with one reason. The page uses the reservation workspace: the folio rail on the left, the
  * lines of the selected folio in the centre and the summary on the right. Picking a folio in the rail reloads the page
  * for it and keeps the draft rows of every folio; Post sends them all as one batch. The browser holds only what was
@@ -173,7 +173,7 @@ export default function ManualFolio({ manual: page }: Props) {
                     className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4 lg:overflow-hidden"
                 >
                     <PageHeader
-                        title="Manage folio manually"
+                        title="Manual Folio Editor"
                         description={
                             <span className="flex flex-wrap items-center gap-2">
                                 Reason:{' '}
@@ -424,7 +424,7 @@ ManualFolio.layout = (props: {
             }),
         },
         {
-            title: 'Manage manually',
+            title: 'Manual Folio Editor',
             href: manualPage({
                 property: props.property.code,
                 reservation: props.manual.reservationId,

@@ -98,7 +98,7 @@ enum PermissionEnum: string
             self::FolioClose => __('Close folios'),
             self::FolioReopen => __('Reopen closed folios'),
             self::FolioPrintVoucher => __('Print folio vouchers and invoices'),
-            self::FolioManual => __('Manage folios manually'),
+            self::FolioManual => __('Use the Manual Folio Editor'),
             self::FolioViewManualEntries => __('See which folio lines were entered manually'),
             self::PaymentRecord => __('Record payments and download receipts'),
             self::PaymentRefund => __('Refund payments'),

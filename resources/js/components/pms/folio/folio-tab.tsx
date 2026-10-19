@@ -262,7 +262,7 @@ export function FolioTab({
                                     onClick={() => setManaging(true)}
                                 >
                                     <PencilLine />
-                                    Manage manually…
+                                    Manual Folio Editor…
                                 </DropdownMenuItem>
                             )}
                             {oldFolioUrl !== null && (

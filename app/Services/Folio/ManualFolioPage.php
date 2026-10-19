@@ -64,7 +64,7 @@ class ManualFolioPage
         return new ManualFolioPageData(
             reservationId: $reservation->id,
             reference: $reservation->reference,
-            title: __('Manage folio manually · :reference', ['reference' => $reservation->reference]),
+            title: __('Manual Folio Editor · :reference', ['reference' => $reservation->reference]),
             folioId: $folio->id,
             folioLabel: $label,
             reason: $reason,
