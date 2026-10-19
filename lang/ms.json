@@ -98,5 +98,6 @@
     "No boat in trips on :date.": "Tiada perjalanan bot pada :date.",
     "No departures yet": "Belum ada pelepasan",
     "Add departures in Settings, Boats.": "Tambah pelepasan dalam Tetapan, Bot.",
-    "Pick another date or direction to see the boat trips.": "Pilih tarikh atau arah lain untuk melihat perjalanan bot."
+    "Pick another date or direction to see the boat trips.": "Pilih tarikh atau arah lain untuk melihat perjalanan bot.",
+    "validation.phone": "Masukkan nombor telefon yang sah, contohnya +60 12 345 6789."
 }
