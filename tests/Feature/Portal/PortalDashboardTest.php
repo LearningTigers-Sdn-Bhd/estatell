@@ -150,3 +150,18 @@ test('recent bookings match each link\'s company and property as a pair', functi
 
     expect($firstCompany->property_id)->toBe($first->id);
 });
+
+test('the dashboard lists at most 5 properties', function () {
+    $user = portalUser();
+
+    foreach (range(1, 6) as $number) {
+        portalLinkFor($user, Property::factory()->create(['name' => "Property {$number}"]), 'active', "Company {$number}");
+    }
+
+    $this->actingAs($user)
+        ->get(route('portal.index'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('properties', 5)
+            ->where('properties.0.propertyName', 'Property 1')
+        );
+});

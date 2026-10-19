@@ -25,6 +25,7 @@ class PortalController extends Controller
         return Inertia::render('portal/index', [
             'invitations' => $portalProperties->invitations($request->user()),
             'arrivals' => $portalArrivals->for($request->user()),
+            'properties' => array_slice($portalProperties->for($request->user()), 0, PortalProperties::DASHBOARD_LIMIT),
             'recentBookings' => $recentBookings->for($request->user()),
             'arrivalDays' => PortalProperties::ARRIVAL_DAYS,
         ]);

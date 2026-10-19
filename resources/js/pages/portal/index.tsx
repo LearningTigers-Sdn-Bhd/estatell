@@ -1,11 +1,18 @@
 import { Form, Head, Link } from '@inertiajs/react';
-import { BedDouble, CalendarDays, Mail } from 'lucide-react';
+import { BedDouble, Building2, CalendarDays, Mail } from 'lucide-react';
 import { DateText } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
 import { PageHeader } from '@/components/pms/page-header';
+import { PortalPropertiesTable } from '@/components/pms/portal/portal-properties-table';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Card,
+    CardAction,
+    CardContent,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import {
     Table,
@@ -15,7 +22,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { index } from '@/routes/portal';
+import { index, properties as propertiesPage } from '@/routes/portal';
 import { show } from '@/routes/portal/bookings';
 import { accept, decline } from '@/routes/portal/links';
 
@@ -106,11 +113,13 @@ function ArrivalRow({ arrival }: { arrival: Arrival }) {
 export default function PortalIndex({
     invitations,
     arrivals,
+    properties,
     recentBookings,
     arrivalDays,
 }: {
     invitations: Invitation[];
     arrivals: Arrival[];
+    properties: App.Data.Portal.PortalPropertyData[];
     recentBookings: RecentBooking[];
     arrivalDays: number;
 }) {
@@ -180,7 +189,30 @@ export default function PortalIndex({
                     </Card>
                 </div>
 
-                <Card className="min-h-64">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Building2 className="size-4" />
+                            Properties
+                        </CardTitle>
+                        <CardAction>
+                            <Link
+                                href={propertiesPage()}
+                                className={buttonVariants({
+                                    variant: 'outline',
+                                    size: 'sm',
+                                })}
+                            >
+                                View all
+                            </Link>
+                        </CardAction>
+                    </CardHeader>
+                    <CardContent>
+                        <PortalPropertiesTable properties={properties} />
+                    </CardContent>
+                </Card>
+
+                <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <BedDouble className="size-4" />

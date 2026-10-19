@@ -27,6 +27,11 @@ class PortalProperties
      */
     public const int ARRIVAL_DAYS = 7;
 
+    /**
+     * Properties the dashboard lists before "View all".
+     */
+    public const int DASHBOARD_LIMIT = 5;
+
     public function __construct(private CreditExposure $creditExposure) {}
 
     /**
