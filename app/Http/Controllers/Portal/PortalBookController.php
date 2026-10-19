@@ -3,15 +3,18 @@
 namespace App\Http\Controllers\Portal;
 
 use App\Actions\Portal\CreatePortalReservation;
+use App\Data\Portal\PortalRatePlanData;
 use App\Data\Portal\PortalRoomTypeData;
 use App\Data\Property\CurrencyData;
 use App\Enums\CompanyStatus;
+use App\Enums\IdentityDocumentType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Portal\PortalOffersRequest;
 use App\Http\Requests\Portal\StorePortalBookingRequest;
 use App\Models\ChargeItem;
 use App\Models\CompanyUser;
 use App\Models\Property;
+use App\Models\RatePlan;
 use App\Services\Portal\PortalBookingMessages;
 use App\Services\Portal\PortalBookingQuote;
 use App\Services\Portal\PortalBookingRules;
@@ -45,15 +48,19 @@ class PortalBookController extends Controller
             'companySuspended' => $suspended,
             'today' => $rules->businessDate($property)->toDateString(),
             'cancelCutoffDays' => $link->company->portal_cancel_cutoff_days,
+            'ratePlans' => $suspended ? [] : $portalRatePlans->bookablePlansFor($link->company)->get()
+                ->map(fn (RatePlan $ratePlan): PortalRatePlanData => PortalRatePlanData::fromModel($ratePlan))->all(),
             'roomTypes' => $suspended ? [] : $portalRatePlans->roomTypesFor($link->company)->get()
                 ->map(fn ($roomType): PortalRoomTypeData => PortalRoomTypeData::fromModel($roomType))->all(),
+            'idTypes' => IdentityDocumentType::options(),
             'autoAddOns' => array_map(fn (ChargeItem $item): string => $item->name, $autoAddOns->items($property)),
             'currency' => CurrencyData::forProperty($property),
         ]);
     }
 
     /**
-     * The offers for a search, as JSON: each line's visible plans with their price or the reason they are blocked.
+     * The offers as JSON: for each line, the room types of its plan with their price, what is left, or the reason they
+     * are blocked.
      */
     public function offers(PortalOffersRequest $request, Property $property, PortalBookingQuote $bookingQuote): JsonResponse
     {

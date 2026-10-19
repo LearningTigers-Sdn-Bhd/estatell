@@ -4,7 +4,7 @@
 
 Create a booking in as few fields as possible, with the same flow front desk staff know from wastays.
 
-The [company portal booking form](../23-company-portal/01-company-portal.md#booking) uses the same layout with fewer fields. It reuses the lines table header and columns, `BookingQuoteCell` (no override) and `BookingSummaryRail` (no billing select).
+The [company portal booking form](../23-company-portal/01-company-portal.md#booking) uses the same layout with fewer fields. It reuses the lines table header and columns, and `BookingQuoteCell` (no override). Its line rows, guest rows and summary rail are its own components.
 
 ## Container and layout
 

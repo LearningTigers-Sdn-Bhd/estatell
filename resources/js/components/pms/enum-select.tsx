@@ -16,6 +16,8 @@ export type EnumOption = {
     disabled?: boolean;
     /** A heading to list the option under. Options that share a group sit together, in the order they first appear. */
     group?: string;
+    /** A second, muted line under the label in the menu, for example a price or why the option is disabled. */
+    description?: ReactNode;
 };
 
 type Props = {
@@ -129,7 +131,20 @@ export function EnumSelect({
                                 disabled={option.disabled}
                                 className="*:first:min-w-0 *:first:shrink"
                             >
-                                <span className="truncate">{option.label}</span>
+                                {option.description ? (
+                                    <span className="flex min-w-0 flex-col">
+                                        <span className="truncate">
+                                            {option.label}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">
+                                            {option.description}
+                                        </span>
+                                    </span>
+                                ) : (
+                                    <span className="truncate">
+                                        {option.label}
+                                    </span>
+                                )}
                             </SelectItem>
                         ))}
                     </SelectGroup>

@@ -2,6 +2,9 @@
 
 use App\Enums\BillingMode;
 use App\Enums\BookingSourceType;
+use App\Enums\IdentityDocumentType;
+use App\Enums\PackageUnit;
+use App\Enums\PricingBasis;
 use App\Enums\ReservationStatus;
 use App\Models\Company;
 use App\Models\Guest;
@@ -22,7 +25,8 @@ test('a booking is Confirmed, billed to the company and sourced as Company / Tra
     $setup = portalBookingSetup();
     portalAutoAddOn($setup['property']);
 
-    $response = portalBook($setup, portalBookingBody($setup, [portalRoomLine($setup, ['guest_name' => 'Tan Wei Ming', 'guest_phone' => '012 345 6789'])], [
+    $response = portalBook($setup, portalBookingBody($setup, [portalRoomLine($setup)], [
+        'guests' => [['full_name' => 'Tan Wei Ming', 'phone' => '012 345 6789']],
         'group_name' => 'Tour BT-118',
         'external_reference' => 'BT-2026-118',
         'expected_total' => '210.00',
@@ -64,7 +68,7 @@ test('guests are always new records, even when the name matches an existing gues
     $setup = portalBookingSetup();
     $before = Guest::query()->count();
 
-    portalBook($setup, portalBookingBody($setup, [portalRoomLine($setup, ['guest_name' => $setup['guest']->full_name, 'guest_phone' => $setup['guest']->phone])]));
+    portalBook($setup, portalBookingBody($setup, [portalRoomLine($setup)], ['guests' => [['full_name' => $setup['guest']->full_name, 'phone' => $setup['guest']->phone]]]));
 
     $reservation = Reservation::query()->sole();
 
@@ -73,7 +77,7 @@ test('guests are always new records, even when the name matches an existing gues
         ->and($reservation->booker->full_name)->toBe('Tan Wei Ming');
 });
 
-test('several lines make a group: the first guest is the booker and each line keeps its guest', function () {
+test('several lines make a group: the first guest is the booker and each unit keeps its guest', function () {
     $setup = portalBookingSetup();
 
     portalBook($setup, portalBookingBody($setup, [portalRoomLine($setup), portalRoomLine($setup)], ['expected_total' => '400.00']))->assertSessionHasNoErrors();
@@ -85,14 +89,58 @@ test('several lines make a group: the first guest is the booker and each line ke
         ->and($reservation->units->map(fn ($unit) => $unit->guests->sole()->guest->full_name)->all())->toBe(['Guest 1', 'Guest 2']);
 });
 
-test('a dorm line books one unit for each bed', function () {
+test('a dorm line books one unit for each bed, each with its own guest', function () {
     $setup = portalBookingSetup();
 
     portalBook($setup, portalBookingBody($setup, [portalDormLine($setup, 2)], ['expected_total' => '160.00']))->assertSessionHasNoErrors();
 
-    expect(ReservationUnit::query()->count())->toBe(2)
-        ->and(Reservation::query()->sole()->units->every(fn ($unit) => $unit->adults === 1))->toBeTrue();
+    $reservation = Reservation::query()->with('units.guests.guest')->sole();
+
+    expect($reservation->units)->toHaveCount(2)
+        ->and($reservation->units->every(fn ($unit) => $unit->adults === 1))->toBeTrue()
+        ->and($reservation->units->map(fn ($unit) => $unit->guests->sole()->guest->full_name)->all())->toBe(['Guest 1', 'Guest 2']);
 });
+
+test('a line with several rooms books one unit for each room with the same plan and party', function () {
+    $setup = portalBookingSetup();
+
+    portalBook($setup, portalBookingBody($setup, [portalRoomLine($setup, ['rooms' => 2, 'child_ages' => [6]])], ['expected_total' => '400.00']))->assertSessionHasNoErrors();
+
+    $reservation = Reservation::query()->with('units.guests.guest')->sole();
+
+    expect($reservation->units)->toHaveCount(2)
+        ->and($reservation->units->every(fn ($unit) => $unit->rate_plan_id === $setup['plan']->id && $unit->adults === 2 && $unit->children === 1))->toBeTrue()
+        ->and($reservation->units->map(fn ($unit) => $unit->guests->sole()->guest->full_name)->all())->toBe(['Guest 1', 'Guest 2']);
+});
+
+test('an ID typed for a guest is saved on that guest', function () {
+    $setup = portalBookingSetup();
+
+    portalBook($setup, portalBookingBody($setup, [portalRoomLine($setup, ['rooms' => 2])], [
+        'expected_total' => '400.00',
+        'guests' => [['full_name' => 'Tan Wei Ming'], ['full_name' => 'Lim Mei Ling', 'id_type' => IdentityDocumentType::MyKad->value, 'id_number' => '900101-14-5678']],
+    ]))->assertSessionHasNoErrors();
+
+    $units = Reservation::query()->sole()->units()->orderBy('id')->with('guests.guest.documents')->get();
+
+    expect($units[0]->guests->sole()->guest->documents)->toHaveCount(0)
+        ->and($units[1]->guests->sole()->guest->documents->sole()->type)->toBe(IdentityDocumentType::MyKad)
+        ->and($units[1]->guests->sole()->guest->documents->sole()->number)->toBe('900101145678');
+});
+
+test('a guest ID needs both parts and a MyKad has 12 digits', function (array $guest, string $key) {
+    $setup = portalBookingSetup();
+    $before = portalCounts();
+
+    portalBook($setup, portalBookingBody($setup, [portalRoomLine($setup)], ['guests' => [['full_name' => 'Tan Wei Ming', ...$guest]]]))
+        ->assertSessionHasErrors([$key]);
+
+    expect(portalCounts())->toBe($before);
+})->with([
+    'number without type' => [['id_number' => 'A1234567'], 'guests.0.id_type'],
+    'type without number' => [['id_type' => IdentityDocumentType::Passport->value], 'guests.0.id_number'],
+    'short MyKad' => [['id_type' => IdentityDocumentType::MyKad->value, 'id_number' => '9001011'], 'guests.0.id_number'],
+]);
 
 test('a booking can have children with ages', function () {
     $setup = portalBookingSetup();
@@ -118,7 +166,14 @@ test('a refusal writes nothing and shows its message', function (string $case, s
             $setup['plan']->forceFill(['company_access' => 'everyone'])->save();
             break;
         case 'no guest name':
-            $body['lines'][0]['guest_name'] = '  ';
+            $body['guests'][0]['full_name'] = '  ';
+            break;
+        case 'more rooms than left':
+            $body['lines'][0]['rooms'] = 3;
+            $body['guests'] = [['full_name' => 'A'], ['full_name' => 'B'], ['full_name' => 'C']];
+            break;
+        case 'package nights':
+            $setup['plan']->forceFill(['pricing_basis' => PricingBasis::Package, 'package_unit' => PackageUnit::PerGuest, 'fixed_nights' => 3])->save();
             break;
         case 'too many adults':
             $body['lines'][0]['adults'] = 3;
@@ -151,13 +206,15 @@ test('a refusal writes nothing and shows its message', function (string $case, s
     expect(portalCounts())->toBe($before);
     Notification::assertNothingSent();
 })->with([
-    ['price changed', 'form', 'The price changed. Search again.'],
-    ['plan hidden', 'form', 'This rate is not available. Search again.'],
-    ['no guest name', 'lines.0.guest_name', 'Enter a guest name for each room.'],
+    ['price changed', 'form', 'The price changed. Check the new total and confirm again.'],
+    ['plan hidden', 'lines.0.rate_plan_id', 'This rate is not available. Pick another rate.'],
+    ['no guest name', 'guests.0.full_name', 'Enter a guest name for each room.'],
+    ['more rooms than left', 'lines.0.rooms', 'Only 2 left for these dates.'],
+    ['package nights', 'lines.0.room_type_id', 'This package sells a fixed number of nights.'],
     ['too many adults', 'lines.0.adults', 'Too many adults for this room type.'],
     ['too many children', 'lines.0.child_ages', 'Too many children for this room type.'],
-    ['not available', 'lines.0.rate_plan_id', 'Not available on 20 Oct 2026.'],
-    ['restriction', 'lines.0.rate_plan_id', 'Min stay 3 nights.'],
+    ['not available', 'lines.0.room_type_id', 'Not available on 20 Oct 2026.'],
+    ['restriction', 'lines.0.room_type_id', 'Min stay 3 nights.'],
     ['credit limit', 'form', 'This booking would take the company over its credit limit. Contact the property.'],
     ['suspended', 'form', 'Your company can\'t book at this property right now. Contact the property.'],
     ['in the past', 'arrival_date', 'Arrival cannot be before today.'],
@@ -189,7 +246,7 @@ test('a refusal in a later line saves no line, no guest and no reference', funct
     $before = portalCounts();
 
     portalBook($setup, portalBookingBody($setup, [portalRoomLine($setup), portalRoomLine($setup), portalRoomLine($setup)], ['expected_total' => '600.00']))
-        ->assertSessionHasErrors(['lines.2.rate_plan_id']);
+        ->assertSessionHasErrors(['lines.2.room_type_id']);
 
     expect(portalCounts())->toBe($before);
 
@@ -198,10 +255,12 @@ test('a refusal in a later line saves no line, no guest and no reference', funct
     expect(Reservation::query()->sole()->reference)->toEndWith('0001');
 });
 
-test('the booking takes up to 20 lines', function () {
+test('the booking takes up to 20 lines and 99 guests', function () {
     $setup = portalBookingSetup();
 
     portalBook($setup, portalBookingBody($setup, array_fill(0, 21, portalRoomLine($setup))))->assertSessionHasErrors(['lines']);
+    portalBook($setup, portalBookingBody($setup, [portalRoomLine($setup)], ['guests' => array_fill(0, 100, ['full_name' => 'Guest'])]))
+        ->assertSessionHasErrors(['guests' => 'A booking can have up to 99 rooms and beds.']);
 });
 
 test('the company comes from the link, not from the request', function () {

@@ -11,8 +11,9 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
 /**
- * A search on the portal book page: the dates and up to 20 lines, the same limit as the staff booking form. Each child
- * needs an age from 0 to 17. A dorm line sends its beds. The `portal` middleware has already checked the company user.
+ * The prices on the portal book page: the dates and up to 20 lines, the same limit as the staff booking form. A line
+ * sends its rate plan, the room type when one is picked, the rooms and the guests of each room. Each child needs an
+ * age from 0 to 17. A dorm line sends its beds. The `portal` middleware has already checked the company user.
  */
 class PortalOffersRequest extends FormRequest
 {
@@ -30,7 +31,9 @@ class PortalOffersRequest extends FormRequest
             'arrival_date' => ['required', 'date_format:Y-m-d'],
             'departure_date' => ['required', 'date_format:Y-m-d', 'after:arrival_date'],
             'lines' => ['required', 'array', 'min:1', 'max:20'],
-            'lines.*.room_type_id' => ['required', 'integer'],
+            'lines.*.rate_plan_id' => ['nullable', 'integer'],
+            'lines.*.room_type_id' => ['nullable', 'integer'],
+            'lines.*.rooms' => ['nullable', 'integer', 'min:1', 'max:99'],
             'lines.*.adults' => ['required', 'integer', 'min:1', 'max:99'],
             'lines.*.child_ages' => ['nullable', 'array', 'max:20'],
             'lines.*.child_ages.*' => ['required', 'integer', 'between:0,17'],
@@ -93,13 +96,12 @@ class PortalOffersRequest extends FormRequest
     public function lines(): array
     {
         return array_values(array_map(fn (array $line): NewPortalLineData => new NewPortalLineData(
-            roomTypeId: (int) $line['room_type_id'],
+            ratePlanId: isset($line['rate_plan_id']) ? (int) $line['rate_plan_id'] : null,
+            roomTypeId: isset($line['room_type_id']) ? (int) $line['room_type_id'] : null,
             adults: (int) $line['adults'],
             childAges: array_values(array_map(intval(...), $line['child_ages'] ?? [])),
             beds: (int) ($line['beds'] ?? 1),
-            ratePlanId: isset($line['rate_plan_id']) ? (int) $line['rate_plan_id'] : null,
-            guestName: $line['guest_name'] ?? null,
-            guestPhone: $line['guest_phone'] ?? null,
+            rooms: (int) ($line['rooms'] ?? 1),
         ), $this->validated('lines')));
     }
 }

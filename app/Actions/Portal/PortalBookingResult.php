@@ -7,7 +7,7 @@ use Carbon\CarbonInterface;
 
 /**
  * What the portal Actions return: the reservation, or the refusal code. `lineIndex` points at the booking line that
- * caused it, `date` at the night, and `violations` holds the restriction texts of a `restricted` refusal. Codes that
+ * caused it, `guestIndex` at the guest (one for each unit), `date` at the night, and `violations` holds the restriction texts of a `restricted` refusal. Codes that
  * come from the shared booking Actions pass through as they are; `PortalBookingMessages` words them for the portal.
  */
 class PortalBookingResult
@@ -21,6 +21,10 @@ class PortalBookingResult
     public const string REFUSAL_TOO_MANY_ADULTS = 'too_many_adults';
 
     public const string REFUSAL_TOO_MANY_CHILDREN = 'too_many_children';
+
+    public const string REFUSAL_NOT_ENOUGH_LEFT = 'not_enough_left';
+
+    public const string REFUSAL_TOO_MANY_UNITS = 'too_many_units';
 
     public const string REFUSAL_BOOKING_SOURCE_MISSING = 'booking_source_missing';
 
@@ -43,19 +47,21 @@ class PortalBookingResult
         public readonly ?int $lineIndex,
         public readonly ?CarbonInterface $date,
         public readonly array $violations,
+        public readonly ?int $guestIndex,
+        public readonly ?int $left,
     ) {}
 
     public static function done(Reservation $reservation): self
     {
-        return new self($reservation, null, null, null, []);
+        return new self($reservation, null, null, null, [], null, null);
     }
 
     /**
      * @param  list<string>  $violations
      */
-    public static function refused(string $refusal, ?int $lineIndex = null, ?CarbonInterface $date = null, array $violations = []): self
+    public static function refused(string $refusal, ?int $lineIndex = null, ?CarbonInterface $date = null, array $violations = [], ?int $guestIndex = null, ?int $left = null): self
     {
-        return new self(null, $refusal, $lineIndex, $date, $violations);
+        return new self(null, $refusal, $lineIndex, $date, $violations, $guestIndex, $left);
     }
 
     public function isRefused(): bool

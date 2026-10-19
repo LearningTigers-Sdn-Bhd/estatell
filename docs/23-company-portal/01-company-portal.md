@@ -190,7 +190,7 @@ The layout breakpoints are the staff form's: below `xl` the summary rail moves u
 
 **Shared with the staff form**
 
-- The lines table header and column layout, `BookingQuoteCell` with `canOverride={false}`, and `BookingSummaryRail` with its billing select hidden. The portal line and guest rows are their own components, because the staff rows call staff-only endpoints (`reservations.quote`, `guests.search`, the room picker).
+- The lines table header and column layout, `BookingQuoteCell` with `canOverride={false}`. The portal line rows, guest rows and summary rail (`book-summary.tsx`) are their own components, because the staff rows call staff-only endpoints (`reservations.quote`, `guests.search`, the room picker).
 - Left out of the portal: arrival and departure times, Reservation mode, Source, Company, the Room / Bed column, ✎ price overrides, the restriction override, Billing, the Discounts, Add-ons and Notes tabs, guest search, Not staying and the Existing, New, VIP and Blacklisted badges.
 
 **Saving**
@@ -313,12 +313,12 @@ Borneo Travel · Free cancellation until 7 days before arrival
 - **Built:** the `/portal` list with Accept and Decline, the `portal` middleware (`EnsurePortalAccess`), the portal layout and sidebar (Properties; Dashboard inside a property), the property dashboard, the Statements page with its statement, invoice, payment and PDF views (`PortalStatements`), and the Company page with `UpdatePortalCompanyDetails` and the tick. Book and Bookings are built too (see below).
 - **Built (Book and Bookings):** `rate_plans.company_access` (`CompanyAccess`, CHECK), `PortalRatePlans` (the visible plans and room types), `PortalBookingQuote` (offers and totals on `BookingQuote` with the auto-add items), `CreatePortalReservation`, `PortalBookingMessages` (the message table above), `PortalBookings` (list and detail), `PortalBookingRules` (cut-off and edit window on the property's business date), `UpdatePortalReservationGuests`, `CancelPortalReservation`, `RequestPortalCancellation`, the three notifications and the pages `portal/bookings/create`, `portal/bookings/index` and `portal/bookings/show`.
 - **Built (portal shell):** the three-row shell, `PortalNavigation` for both sidebars, the property switcher (`portalSwitcher`), the dashboard with `PortalArrivals`, `/portal/properties`, and the booking URLs under `/bookings`. The old `/book` URLs are gone (404).
-- **How it works (built):** the offers come from `POST /portal/{code}/bookings/offers` (JSON, throttled). A search shows every visible plan of a room type, a blocked one with its reason. Confirm sends the plan ids, the lead guest of each line and the total the page showed (`expected_total`); the server prices again and refuses `price_changed` when the total differs. A dorm line sends its beds and books one adult for each bed; its lead guest stays in the first bed. An ID typed in Edit guests (kind and number, no scan) replaces the number on the guest's first ID document or adds one; the number is never sent back to the browser.
-- **Planned (booking form redesign):** the [Booking](#booking) form above replaces the built line cards and Search button. Changes:
-    - `create` also sends the visible plans: id, name and the short line (inclusions, "Room only" or "{n}-night package").
-    - `offers` turns around: each line sends `rate_plan_id`, adults, child ages, beds and rooms, and gets back the room types the plan sells, each with its total, what is left (less the lines above) and a reason when blocked. It still checks that the plan is visible and still uses `BookingQuote`.
-    - Store: each line gains `rooms` (1–99), and each unit's guest gains an optional `id_type` and `id_number`. `CreatePortalReservation` expands `rooms` into units, one guest each, refuses more than are left, and saves the ID through the Edit guests path.
-    - `BookingSummaryRail` gets an option to hide the billing select. `PortalBookingMessages` gets the new and changed messages.
+- **How it works (built):** the booking form in [Booking](#booking).
+    - `create` sends the visible plans: id, name and the short line (inclusions, "Room only" or "{n}-night package").
+    - `POST /portal/{code}/bookings/offers` (JSON, throttled) takes `rate_plan_id`, adults, child ages, beds and rooms for each line. It returns the room types the plan sells, each with its total, what is left (less the lines above) and a reason when blocked. It checks that the plan is visible and uses `BookingQuote`.
+    - Store: each line has `rooms` (1–99), and each unit's guest has an optional `id_type` and `id_number`. `CreatePortalReservation` expands `rooms` into units, one guest each, refuses more than are left, and saves the ID through the Edit guests path. The server prices again and refuses `price_changed` when the total differs from `expected_total`.
+    - A dorm line sends its beds and books one adult for each bed; its lead guest stays in the first bed. An ID typed in Edit guests (kind and number, no scan) replaces the number on the guest's first ID document or adds one; the number is never sent back to the browser.
+    - The page uses its own `book-summary.tsx` for the summary rail, not the staff `BookingSummaryRail`, because the portal has no billing select, source or notes.
     - Tests: `PortalOffersTest`, `PortalBookingCreateTest` and `book-lines.test.ts`.
 
 ## Company details

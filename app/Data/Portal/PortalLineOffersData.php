@@ -5,7 +5,8 @@ namespace App\Data\Portal;
 use Spatie\LaravelData\Data;
 
 /**
- * The offers for one search line, or the `lineError` that stops the line (too many adults or children).
+ * The room types offered for one line, or the `lineError` that stops the line (no rate plan, or a plan the company
+ * cannot see).
  */
 class PortalLineOffersData extends Data
 {

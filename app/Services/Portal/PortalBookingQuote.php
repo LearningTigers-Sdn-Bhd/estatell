@@ -23,8 +23,9 @@ use Carbon\CarbonImmutable;
 
 /**
  * Prices what a company user can book. It uses the same `BookingQuote` as the staff booking form, with the auto-add
- * items of the property on every room, so the total the page shows is what the save charges. A dorm line is priced
- * for one adult in each bed. It reads only. See docs/23-company-portal/01-company-portal.md#booking.
+ * items of the property on every unit, so the total the page shows is what the save charges. A line picks the rate
+ * plan first: its offers are the room types that plan sells. A room line is priced for its rooms, a dorm line for one
+ * adult in each bed. It reads only. See docs/23-company-portal/01-company-portal.md#booking.
  */
 class PortalBookingQuote
 {
@@ -40,50 +41,58 @@ class PortalBookingQuote
     ) {}
 
     /**
-     * The offers for each line: every plan the company can see that sells the room type, quoted and checked. A blocked
-     * offer keeps its reason. A line with too many adults or children has a `lineError` and no offers.
+     * The offers for each line: every active room type of the line's plan, quoted and checked. A blocked room type keeps
+     * its reason. What is left of a room type counts the units of the lines above that picked it. A line without a plan,
+     * or with a plan the company cannot see, has a `lineError` and no offers.
      *
      * @param  list<NewPortalLineData>  $lines
      * @return list<PortalLineOffersData>
      */
     public function offers(Property $property, Company $company, CarbonImmutable $arrival, CarbonImmutable $departure, array $lines): array
     {
-        $roomTypes = RoomType::query()->where('property_id', $property->id)->active()
-            ->whereIn('id', array_unique(array_map(fn (NewPortalLineData $line): int => $line->roomTypeId, $lines)))
-            ->get()->keyBy('id');
-        $plans = $this->portalRatePlans->visibleTo($company)->with('roomTypes:id')->ordered()->get();
+        $plans = $this->portalRatePlans->bookablePlansFor($company)->get()->keyBy('id');
+        $roomTypes = $plans->flatMap(fn (RatePlan $plan) => $plan->roomTypes)->keyBy('id');
         $nights = $this->availability->nightsForRoomTypes($roomTypes->all(), $arrival, $departure);
+        $taken = [];
+        $result = [];
 
-        return array_map(function (NewPortalLineData $line) use ($property, $arrival, $departure, $roomTypes, $plans, $nights): PortalLineOffersData {
-            $roomType = $roomTypes->get($line->roomTypeId);
+        foreach ($lines as $line) {
+            $plan = $line->ratePlanId === null ? null : $plans->get($line->ratePlanId);
 
-            if ($roomType === null) {
-                return new PortalLineOffersData([], $this->messages->message(ReservationResult::REFUSAL_ROOM_TYPE_NOT_FOUND));
+            if ($plan === null) {
+                $result[] = new PortalLineOffersData([], $line->ratePlanId === null ? null : $this->messages->message(PortalBookingResult::REFUSAL_PLAN_NOT_VISIBLE));
+            } else {
+                $result[] = new PortalLineOffersData(
+                    array_values($plan->roomTypes->map(fn (RoomType $roomType): PortalOfferData => $this->offer($property, $roomType, $plan, $line, $arrival, $departure, $nights[$roomType->id] ?? [], $taken[$roomType->id] ?? 0))->all()),
+                    null,
+                );
             }
 
-            $refusal = $this->occupancyRefusal($roomType, $line);
-
-            if ($refusal !== null) {
-                return new PortalLineOffersData([], $this->messages->message($refusal));
+            if ($line->roomTypeId !== null && $roomTypes->has($line->roomTypeId)) {
+                $taken[$line->roomTypeId] = ($taken[$line->roomTypeId] ?? 0) + $this->units($roomTypes->get($line->roomTypeId), $line);
             }
+        }
 
-            return new PortalLineOffersData(
-                array_values($plans->filter(fn (RatePlan $plan): bool => $plan->roomTypes->contains('id', $roomType->id))
-                    ->map(fn (RatePlan $plan): PortalOfferData => $this->offer($property, $roomType, $plan, $line, $arrival, $departure, $nights[$roomType->id] ?? []))
-                    ->all()),
-                null,
-            );
-        }, $lines);
+        return $result;
     }
 
     /**
-     * The total of a line with its auto-added items, or null when the quote is refused (no rate, wrong stay length).
+     * The total of a line (its rooms or beds with their auto-added items), or null when the quote is refused (no rate,
+     * wrong stay length).
      */
     public function lineTotal(Property $property, RoomType $roomType, NewPortalLineData $line, CarbonImmutable $arrival, CarbonImmutable $departure): ?string
     {
         $quote = $this->quote($property, $roomType, (int) $line->ratePlanId, $line, $arrival, $departure);
 
         return $quote->errors === [] ? $this->total($quote) : null;
+    }
+
+    /**
+     * How many units a line books: its beds on a dorm, its rooms otherwise.
+     */
+    public function units(RoomType $roomType, NewPortalLineData $line): int
+    {
+        return $roomType->sell_unit === SellUnit::Bed ? max(1, $line->beds) : max(1, $line->rooms);
     }
 
     /**
@@ -105,24 +114,33 @@ class PortalBookingQuote
     /**
      * @param  list<NightAvailability>  $nights
      */
-    private function offer(Property $property, RoomType $roomType, RatePlan $plan, NewPortalLineData $line, CarbonImmutable $arrival, CarbonImmutable $departure, array $nights): PortalOfferData
+    private function offer(Property $property, RoomType $roomType, RatePlan $plan, NewPortalLineData $line, CarbonImmutable $arrival, CarbonImmutable $departure, array $nights, int $taken): PortalOfferData
     {
+        $left = max(0, ($nights === [] ? 0 : min(array_map(fn (NightAvailability $night): int => $night->available, $nights))) - $taken);
+        $occupancy = $this->occupancyRefusal($roomType, $line);
+
+        if ($occupancy !== null) {
+            return new PortalOfferData($roomType->id, null, $left, $this->messages->message($occupancy));
+        }
+
         $quote = $this->quote($property, $roomType, $plan->id, $line, $arrival, $departure);
 
         if ($quote->errors !== []) {
-            return new PortalOfferData($plan->id, $plan->name, null, (string) current($quote->errors));
+            return new PortalOfferData($roomType->id, null, $left, (string) current($quote->errors));
         }
 
-        $needed = $roomType->sell_unit === SellUnit::Bed ? max(1, $line->beds) : 1;
-        $soldOut = array_find($nights, fn (NightAvailability $night): bool => $night->available < $needed);
+        $needed = $this->units($roomType, $line);
+        $soldOut = array_find($nights, fn (NightAvailability $night): bool => $night->available - $taken < 1);
 
         $reason = match (true) {
+            $nights === [] => $this->messages->message(ReservationResult::REFUSAL_NOT_AVAILABLE),
             $soldOut !== null => $this->messages->message(ReservationResult::REFUSAL_NOT_AVAILABLE, $soldOut->date),
+            $needed > $left => $this->messages->onlyLeft($left),
             $quote->violations !== [] => implode(' ', $quote->violations),
             default => null,
         };
 
-        return new PortalOfferData($plan->id, $plan->name, $this->total($quote), $reason);
+        return new PortalOfferData($roomType->id, $quote, $left, $reason);
     }
 
     private function quote(Property $property, RoomType $roomType, int $ratePlanId, NewPortalLineData $line, CarbonImmutable $arrival, CarbonImmutable $departure): BookingQuoteData
@@ -137,7 +155,7 @@ class PortalBookingQuote
             $departure,
             $isBed ? 1 : $line->adults,
             $isBed ? [] : $line->childAges,
-            $isBed ? max(1, $line->beds) : 1,
+            $this->units($roomType, $line),
             $this->autoAddOns($property),
         );
     }

@@ -27,8 +27,9 @@ Route::middleware(['auth', 'verified'])->prefix('portal')->name('portal.')->grou
             Route::get('new', [PortalBookController::class, 'create'])->name('create');
             Route::get('{reservation}', [PortalBookingController::class, 'show'])->whereNumber('reservation')->name('show');
             Route::put('{reservation}/guests', [PortalBookingController::class, 'updateGuests'])->whereNumber('reservation')->name('guests.update');
+            // The book page asks for new prices after each change, so offers have their own, higher limit.
+            Route::post('offers', [PortalBookController::class, 'offers'])->middleware('throttle:60,1')->name('offers');
             Route::middleware('throttle:20,1')->group(function () {
-                Route::post('offers', [PortalBookController::class, 'offers'])->name('offers');
                 Route::post('/', [PortalBookController::class, 'store'])->name('store');
                 Route::post('{reservation}/cancel', [PortalBookingController::class, 'cancel'])->whereNumber('reservation')->name('cancel');
                 Route::post('{reservation}/cancellation-request', [PortalBookingController::class, 'requestCancellation'])->whereNumber('reservation')->name('cancellation-request');

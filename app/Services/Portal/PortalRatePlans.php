@@ -37,6 +37,18 @@ class PortalRatePlans
     }
 
     /**
+     * The visible plans in display order, each with its active room types and its inclusions, for the book page.
+     *
+     * @return Builder<RatePlan>
+     */
+    public function bookablePlansFor(Company $company): Builder
+    {
+        return $this->visibleTo($company)
+            ->with(['roomTypes' => fn ($roomTypes) => $roomTypes->active()->ordered(), 'inclusions.chargeItem'])
+            ->ordered();
+    }
+
+    /**
      * The active room types that at least one visible plan sells, in display order.
      *
      * @return Builder<RoomType>

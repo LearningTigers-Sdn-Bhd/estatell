@@ -1,4 +1,5 @@
 import { Head } from '@inertiajs/react';
+import type { EnumOption } from '@/components/pms/enum-select';
 import { BookForm } from '@/components/pms/portal/book-form';
 import { PageHeader } from '@/components/pms/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -11,7 +12,9 @@ export default function PortalBookingCreate({
     companySuspended,
     today,
     cancelCutoffDays,
+    ratePlans,
     roomTypes,
+    idTypes,
     autoAddOns,
     currency,
 }: {
@@ -21,7 +24,9 @@ export default function PortalBookingCreate({
     companySuspended: boolean;
     today: string;
     cancelCutoffDays: number | null;
+    ratePlans: App.Data.Portal.PortalRatePlanData[];
     roomTypes: App.Data.Portal.PortalRoomTypeData[];
+    idTypes: EnumOption[];
     autoAddOns: string[];
     currency: App.Data.Property.CurrencyData | null;
 }) {
@@ -46,7 +51,7 @@ export default function PortalBookingCreate({
                             now. Contact the property.
                         </AlertDescription>
                     </Alert>
-                ) : roomTypes.length === 0 ? (
+                ) : ratePlans.length === 0 ? (
                     <Alert>
                         <AlertDescription>
                             No rates are open to your company yet. Contact the
@@ -56,7 +61,9 @@ export default function PortalBookingCreate({
                 ) : (
                     <BookForm
                         propertyCode={propertyCode}
+                        ratePlans={ratePlans}
                         roomTypes={roomTypes}
+                        idTypes={idTypes}
                         today={today}
                         cancelCutoffDays={cancelCutoffDays}
                         autoAddOns={autoAddOns}

@@ -1,7 +1,7 @@
 import { Trash2 } from 'lucide-react';
 import { useEffect } from 'react';
 import { EnumSelect } from '@/components/pms/enum-select';
-import { BookingQuoteCell } from '@/components/pms/reservations/booking-quote-cell';
+import { BookingQuoteCell } from '@/components/pms/booking-quote-cell';
 import { BookingUnitPicker } from '@/components/pms/reservations/booking-unit-picker';
 import {
     plansFor,

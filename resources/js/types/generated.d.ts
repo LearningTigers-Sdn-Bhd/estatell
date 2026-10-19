@@ -1519,18 +1519,24 @@ export type NewPortalBookingData = {
 arrivalDate: string,
 departureDate: string,
 lines: App.Data.Portal.NewPortalLineData[],
+guests: App.Data.Portal.NewPortalGuestData[],
 groupName: string | null,
 externalReference: string | null,
 expectedTotal: string,
 };
+export type NewPortalGuestData = {
+fullName: string | null,
+phone: string | null,
+idType: App.Enums.IdentityDocumentType | null,
+idNumber: string | null,
+};
 export type NewPortalLineData = {
-roomTypeId: number,
+ratePlanId: number | null,
+roomTypeId: number | null,
 adults: number,
 childAges: number[],
 beds: number,
-ratePlanId: number | null,
-guestName: string | null,
-guestPhone: string | null,
+rooms: number,
 };
 export type PortalArrivalData = {
 reservationId: number,
@@ -1635,9 +1641,9 @@ offers: App.Data.Portal.PortalOfferData[],
 lineError: string | null,
 };
 export type PortalOfferData = {
-ratePlanId: number,
-ratePlanName: string,
-total: string | null,
+roomTypeId: number,
+quote: App.Data.Reservations.BookingQuoteData | null,
+left: number,
 reason: string | null,
 };
 export type PortalPaymentRowData = {
@@ -1658,6 +1664,12 @@ stateLabel: string,
 openBalance: string,
 currency: App.Data.Property.CurrencyData | null,
 arrivals: number,
+};
+export type PortalRatePlanData = {
+id: number,
+name: string,
+summary: string,
+roomTypeIds: number[],
 };
 export type PortalRecentBookingData = {
 reservationId: number,

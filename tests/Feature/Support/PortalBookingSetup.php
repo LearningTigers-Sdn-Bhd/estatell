@@ -51,7 +51,7 @@ function portalBookingSetup(): array
 }
 
 /**
- * A search or booking body for one Room line, 2026-10-20 to 2026-10-22, 2 adults.
+ * A line for the Basic plan and the Room room type, 2026-10-20 to 2026-10-22, 2 adults, one room.
  *
  * @param  array<string, mixed>  $setup
  * @param  array<string, mixed>  $line
@@ -59,22 +59,24 @@ function portalBookingSetup(): array
  */
 function portalRoomLine(array $setup, array $line = []): array
 {
-    return ['room_type_id' => $setup['roomType']->id, 'adults' => 2, 'child_ages' => [], ...$line];
+    return ['rate_plan_id' => $setup['plan']->id, 'room_type_id' => $setup['roomType']->id, 'adults' => 2, 'child_ages' => [], ...$line];
 }
 
 /**
+ * A line for the dorm plan and the dorm, with its beds.
+ *
  * @param  array<string, mixed>  $setup
  * @param  array<string, mixed>  $line
  * @return array<string, mixed>
  */
 function portalDormLine(array $setup, int $beds, array $line = []): array
 {
-    return ['room_type_id' => $setup['dorm']->id, 'adults' => 1, 'beds' => $beds, ...$line];
+    return ['rate_plan_id' => $setup['bedPlan']->id, 'room_type_id' => $setup['dorm']->id, 'adults' => 1, 'beds' => $beds, ...$line];
 }
 
 /**
- * A full booking body: the lines get the Basic plan (or the dorm plan for a dorm line) and a guest name unless they
- * already have them.
+ * A full booking body: one guest for each unit of the lines (each room, then each bed), named "Guest 1", "Guest 2",
+ * and so on, unless the overrides give `guests`.
  *
  * @param  array<string, mixed>  $setup
  * @param  list<array<string, mixed>>  $lines
@@ -83,13 +85,10 @@ function portalDormLine(array $setup, int $beds, array $line = []): array
  */
 function portalBookingBody(array $setup, array $lines, array $overrides = []): array
 {
-    $lines = array_map(fn (array $line, int $index): array => [
-        'rate_plan_id' => $line['room_type_id'] === $setup['dorm']->id ? $setup['bedPlan']->id : $setup['plan']->id,
-        'guest_name' => 'Guest '.($index + 1),
-        ...$line,
-    ], $lines, array_keys($lines));
+    $units = array_sum(array_map(fn (array $line): int => $line['room_type_id'] === $setup['dorm']->id ? (int) ($line['beds'] ?? 1) : (int) ($line['rooms'] ?? 1), $lines));
+    $guests = array_map(fn (int $index): array => ['full_name' => 'Guest '.($index + 1)], range(0, $units - 1));
 
-    return ['arrival_date' => '2026-10-20', 'departure_date' => '2026-10-22', 'lines' => $lines, 'expected_total' => '200.00', ...$overrides];
+    return ['arrival_date' => '2026-10-20', 'departure_date' => '2026-10-22', 'lines' => $lines, 'guests' => $guests, 'expected_total' => '200.00', ...$overrides];
 }
 
 function portalAutoAddOn(Property $property, string $amount = '10.00'): ChargeItem
