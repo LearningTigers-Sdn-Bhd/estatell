@@ -16,18 +16,38 @@ function folioUrl(reservationId: number, key: string): string {
 
 /**
  * The folios of a reservation: a rail from `lg` and a select below it. The balance is in the danger tone when above 0.
+ * By default an entry opens the folio tab on that folio. With `onSelect` it calls back instead (the manual folio page
+ * switches folios itself), and `drafts` adds "N new" to each folio with draft rows.
  */
 export function FolioRail({
     reservationId,
     items,
     activeKey,
     currency,
+    onSelect,
+    drafts,
 }: {
     reservationId: number;
     items: Item[];
     activeKey: string;
     currency: App.Data.Property.CurrencyData | null;
+    onSelect?: (key: string) => void;
+    /** Draft rows by folio key. */
+    drafts?: Record<string, number>;
 }) {
+    const select = (key: string) =>
+        onSelect
+            ? onSelect(key)
+            : router.get(
+                  folioUrl(reservationId, key),
+                  {},
+                  {
+                      preserveScroll: true,
+                      preserveState: true,
+                      replace: true,
+                  },
+              );
+
     return (
         <>
             <div className="lg:hidden">
@@ -40,68 +60,94 @@ export function FolioRail({
                             .join(' · '),
                     }))}
                     value={activeKey}
-                    onValueChange={(value) =>
-                        router.get(
-                            folioUrl(reservationId, value),
-                            {},
-                            {
-                                preserveScroll: true,
-                                preserveState: true,
-                                replace: true,
-                            },
-                        )
-                    }
+                    onValueChange={select}
                 />
             </div>
             <nav
                 aria-label="Choose folio"
                 className="hidden h-fit flex-col gap-1 lg:flex"
             >
-                {items.map((item) => (
-                    <Link
-                        key={item.key}
-                        href={folioUrl(reservationId, item.key)}
-                        preserveScroll
-                        preserveState
-                        aria-current={
-                            item.key === activeKey ? 'true' : undefined
-                        }
+                {items.map((item) => {
+                    const className = cn(
+                        'flex flex-col gap-1 rounded-lg border px-3 py-2 text-left text-sm hover:bg-muted',
+                        item.key === activeKey && 'border-primary bg-muted',
+                    );
+                    const current =
+                        item.key === activeKey ? ('true' as const) : undefined;
+                    const content = (
+                        <RailEntry
+                            item={item}
+                            currency={currency}
+                            drafts={drafts?.[item.key] ?? 0}
+                        />
+                    );
+
+                    return onSelect ? (
+                        <button
+                            key={item.key}
+                            type="button"
+                            aria-current={current}
+                            className={className}
+                            onClick={() => onSelect(item.key)}
+                        >
+                            {content}
+                        </button>
+                    ) : (
+                        <Link
+                            key={item.key}
+                            href={folioUrl(reservationId, item.key)}
+                            preserveScroll
+                            preserveState
+                            aria-current={current}
+                            className={className}
+                        >
+                            {content}
+                        </Link>
+                    );
+                })}
+            </nav>
+        </>
+    );
+}
+
+function RailEntry({
+    item,
+    currency,
+    drafts,
+}: {
+    item: Item;
+    currency: App.Data.Property.CurrencyData | null;
+    drafts: number;
+}) {
+    return (
+        <>
+            <span className="font-medium">{item.name}</span>
+            {item.subtitle && (
+                <span className="text-muted-foreground">{item.subtitle}</span>
+            )}
+            <span className="flex items-center justify-between gap-2">
+                {item.status ? (
+                    <StatusBadge status={item.status} />
+                ) : (
+                    <span className="text-xs text-muted-foreground">
+                        Scheduled only
+                    </span>
+                )}
+                {item.balance !== null && (
+                    <span
                         className={cn(
-                            'flex flex-col gap-1 rounded-lg border px-3 py-2 text-sm hover:bg-muted',
-                            item.key === activeKey && 'border-primary bg-muted',
+                            Number(item.balance) > 0 && 'text-destructive',
                         )}
                     >
-                        <span className="font-medium">{item.name}</span>
-                        {item.subtitle && (
-                            <span className="text-muted-foreground">
-                                {item.subtitle}
-                            </span>
-                        )}
-                        <span className="flex items-center justify-between gap-2">
-                            {item.status ? (
-                                <StatusBadge status={item.status} />
-                            ) : (
-                                <span className="text-xs text-muted-foreground">
-                                    Scheduled only
-                                </span>
-                            )}
-                            {item.balance !== null && (
-                                <span
-                                    className={cn(
-                                        Number(item.balance) > 0 &&
-                                            'text-destructive',
-                                    )}
-                                >
-                                    <MoneyText
-                                        amount={item.balance}
-                                        currency={currency}
-                                    />
-                                </span>
-                            )}
-                        </span>
-                    </Link>
-                ))}
-            </nav>
+                        <MoneyText amount={item.balance} currency={currency} />
+                    </span>
+                )}
+            </span>
+            {drafts > 0 && (
+                <span className="text-xs font-medium text-primary">
+                    {drafts} new
+                </span>
+            )}
         </>
     );
 }

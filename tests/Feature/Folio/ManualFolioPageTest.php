@@ -63,6 +63,16 @@ test('the page opens for a user with folio.manual and lists what the rows pick f
             ->where('manual.preview.balanceNow', '0.00'));
 });
 
+test('the folio rail lists the open folios of the reservation only', function () {
+    $setup = mfSetup();
+    Folio::factory()->thirdParty()->closed()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id]);
+    $open = Folio::query()->where('reservation_id', $setup['reservation']->id)->where('status', 'open')->pluck('id')->map(fn (int $id): string => (string) $id)->sort()->values()->all();
+
+    $this->actingAs($setup['user'])->get(mgUrl($setup))->assertInertia(fn (Assert $page) => $page
+        ->where('manual.rail', fn ($rail): bool => collect($rail)->pluck('key')->sort()->values()->all() === $open)
+        ->where('manual.rail.0.balance', '0.00'));
+});
+
 test('a page opened without a reason has none', function () {
     $setup = mfSetup();
 

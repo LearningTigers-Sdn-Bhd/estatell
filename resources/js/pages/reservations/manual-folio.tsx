@@ -1,6 +1,15 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { History, ListPlus, Pencil, Send, X } from 'lucide-react';
+import {
+    History,
+    ListPlus,
+    PanelRightClose,
+    PanelRightOpen,
+    Pencil,
+    Send,
+    X,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { FolioRail } from '@/components/pms/folio/folio-rail';
 import { FolioRowsTable } from '@/components/pms/folio/folio-rows-table';
 import { ManualFolioRail } from '@/components/pms/folio/manual-folio-rail';
 import { ManualFolioReasonDialog } from '@/components/pms/folio/manual-folio-reason-dialog';
@@ -15,10 +24,17 @@ import { useManualPreview } from '@/components/pms/folio/use-manual-preview';
 import { FormActions } from '@/components/pms/form-actions';
 import { FormError } from '@/components/pms/form-error';
 import { PageHeader } from '@/components/pms/page-header';
+import { ReservationWorkspace } from '@/components/pms/reservations/reservation-workspace';
+import { useSummaryHidden } from '@/components/pms/reservations/use-summary-hidden';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { folio as folioTab, index, show } from '@/routes/reservations';
 import { manual as manualPage } from '@/routes/reservations/folios';
@@ -32,15 +48,24 @@ const noop = () => undefined;
 
 /**
  * Manage folio manually: lines for charges, payments and refunds that were missed, each with the day it really
- * happened, posted together with one reason. The browser holds only what was typed; the server answers each row and the
- * summary after every change and decides everything on post. See docs/13-folio/08-manual-folio.md.
+ * happened, posted together with one reason. The page uses the reservation workspace: the folio rail on the left, the
+ * lines of the selected folio in the centre and the summary on the right. Picking a folio in the rail reloads the page
+ * for it and keeps the draft rows of every folio; Post sends them all as one batch. The browser holds only what was
+ * typed; the server answers each row and the summary after every change and decides everything on post.
+ * See docs/13-folio/08-manual-folio.md.
  */
 export default function ManualFolio({ manual: page }: Props) {
     const [reason, setReason] = useState(page.reason ?? '');
     const [reasonOpen, setReasonOpen] = useState(page.reason === null);
-    const [rows, setRows] = useState<ManualDraft[]>(() => [newDraft(page)]);
+    const [rows, setRows] = useState<ManualDraft[]>(() => [
+        newDraft(page, page.folioId),
+    ]);
     const [tab, setTab] = useState('new');
-    const [closeChoice, setCloseChoice] = useState<boolean | null>(null);
+    const [closeChoices, setCloseChoices] = useState<Record<number, boolean>>(
+        {},
+    );
+    const [summaryHidden, toggleSummary] = useSummaryHidden();
+    const summaryLabel = summaryHidden ? 'Show summary' : 'Hide summary';
 
     const payload = useMemo(() => rows.map(toPayload), [rows]);
     const { preview, current } = useManualPreview(
@@ -53,7 +78,14 @@ export default function ManualFolio({ manual: page }: Props) {
     const errors = form.errors as Record<string, string | undefined>;
     const defaultClose =
         preview.closeBlocked === null && preview.balanceAfter === '0.00';
-    const close = closeChoice ?? defaultClose;
+    const close = closeChoices[page.folioId] ?? defaultClose;
+    const drafts = rows.reduce<Record<string, number>>(
+        (counts, row) => ({
+            ...counts,
+            [row.folio_id]: (counts[row.folio_id] ?? 0) + 1,
+        }),
+        {},
+    );
     const answers = new Map(preview.rows.map((one) => [one.key, one]));
     const unfinished = rows.some(
         (row) =>
@@ -70,6 +102,15 @@ export default function ManualFolio({ manual: page }: Props) {
         (row) => !isIncomplete(row) || row.description !== '',
     );
     const guard = useUnsavedChanges(dirty && !form.processing);
+
+    const selectFolio = (key: string) =>
+        guard.visitWithout(
+            manualPage.url({
+                reservation: page.reservationId,
+                folio: Number(key),
+            }),
+            { preserveState: true, preserveScroll: true, replace: true },
+        );
 
     const change = (key: string, patch: Partial<ManualDraft>) =>
         setRows((current) =>
@@ -113,31 +154,25 @@ export default function ManualFolio({ manual: page }: Props) {
             >
                 <div
                     scroll-region=""
-                    className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4 pb-12"
+                    className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4 lg:overflow-hidden"
                 >
                     <PageHeader
                         title="Manage folio manually"
                         description={
-                            <span className="flex flex-col gap-1">
-                                <span className="flex flex-wrap items-center gap-2">
-                                    Reason:{' '}
-                                    <span className="text-foreground">
-                                        {reason || 'Not given yet'}
-                                    </span>
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="xs"
-                                        onClick={() => setReasonOpen(true)}
-                                    >
-                                        <Pencil data-icon="inline-start" />
-                                        Edit
-                                    </Button>
+                            <span className="flex flex-wrap items-center gap-2">
+                                Reason:{' '}
+                                <span className="text-foreground">
+                                    {reason || 'Not given yet'}
                                 </span>
-                                <span>
-                                    Lines post today ({page.businessDate}) and
-                                    keep the date you enter.
-                                </span>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="xs"
+                                    onClick={() => setReasonOpen(true)}
+                                >
+                                    <Pencil data-icon="inline-start" />
+                                    Edit
+                                </Button>
                             </span>
                         }
                         back={{ href: page.cancelUrl, label: 'folio' }}
@@ -145,27 +180,84 @@ export default function ManualFolio({ manual: page }: Props) {
 
                     <FormError errors={errors} />
 
-                    <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-                        <Tabs value={tab} onValueChange={setTab}>
-                            <TabsList variant="line">
-                                <TabsTrigger value="new">
-                                    <ListPlus />
-                                    New lines ({count})
-                                </TabsTrigger>
-                                <TabsTrigger value="posted">
-                                    <History />
-                                    Posted lines ({page.posted?.lineCount ?? 0})
-                                </TabsTrigger>
-                            </TabsList>
-                            <TabsContent value="new" className="pt-4">
+                    <ReservationWorkspace
+                        list={
+                            <FolioRail
+                                reservationId={page.reservationId}
+                                items={page.rail}
+                                activeKey={String(page.folioId)}
+                                currency={page.currency}
+                                onSelect={selectFolio}
+                                drafts={drafts}
+                            />
+                        }
+                        hideAside={summaryHidden}
+                        aside={
+                            <ManualFolioRail
+                                preview={preview}
+                                currency={page.currency}
+                                current={current}
+                                close={close}
+                                onCloseChange={(checked) =>
+                                    setCloseChoices((all) => ({
+                                        ...all,
+                                        [page.folioId]: checked,
+                                    }))
+                                }
+                            />
+                        }
+                    >
+                        <Tabs
+                            value={tab}
+                            onValueChange={setTab}
+                            className="flex flex-col gap-1.5"
+                        >
+                            <div className="flex items-center justify-between gap-2">
+                                <TabsList variant="line">
+                                    <TabsTrigger value="new">
+                                        <ListPlus />
+                                        New lines ({drafts[page.folioId] ?? 0})
+                                    </TabsTrigger>
+                                    <TabsTrigger value="posted">
+                                        <History />
+                                        Posted lines (
+                                        {page.posted?.lineCount ?? 0})
+                                    </TabsTrigger>
+                                </TabsList>
+                                <Tooltip>
+                                    <TooltipTrigger
+                                        render={
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="icon"
+                                                aria-label={summaryLabel}
+                                                aria-pressed={summaryHidden}
+                                                onClick={toggleSummary}
+                                            />
+                                        }
+                                    >
+                                        {summaryHidden ? (
+                                            <PanelRightOpen />
+                                        ) : (
+                                            <PanelRightClose />
+                                        )}
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        {summaryLabel}
+                                    </TooltipContent>
+                                </Tooltip>
+                            </div>
+                            <TabsContent value="new">
                                 <ManualFolioRows
                                     page={page}
+                                    folioId={page.folioId}
                                     rows={rows}
                                     onChange={change}
                                     onAdd={() =>
                                         setRows((all) => [
                                             ...all,
-                                            newDraft(page),
+                                            newDraft(page, page.folioId),
                                         ])
                                     }
                                     onRemove={(key) =>
@@ -180,7 +272,7 @@ export default function ManualFolio({ manual: page }: Props) {
                                     processing={form.processing}
                                 />
                             </TabsContent>
-                            <TabsContent value="posted" className="pt-4">
+                            <TabsContent value="posted">
                                 {page.posted && (
                                     <FolioRowsTable
                                         reservationId={page.reservationId}
@@ -195,16 +287,7 @@ export default function ManualFolio({ manual: page }: Props) {
                                 )}
                             </TabsContent>
                         </Tabs>
-                        <aside className="h-fit xl:sticky xl:top-4">
-                            <ManualFolioRail
-                                preview={preview}
-                                currency={page.currency}
-                                current={current}
-                                close={close}
-                                onCloseChange={setCloseChoice}
-                            />
-                        </aside>
-                    </div>
+                    </ReservationWorkspace>
                 </div>
 
                 <FormActions fixed>

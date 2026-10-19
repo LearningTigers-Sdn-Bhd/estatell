@@ -5,6 +5,7 @@ namespace App\Services\Folio;
 use App\Actions\Folio\ManualBatchResult;
 use App\Data\Catalogues\ChargeItemTaxData;
 use App\Data\Folio\FolioOptionData;
+use App\Data\Folio\FolioRailItemData;
 use App\Data\Folio\ManualFolioOptionData;
 use App\Data\Folio\ManualFolioPageData;
 use App\Data\Folio\ManualPaymentOptionData;
@@ -29,8 +30,8 @@ use InvalidArgumentException;
 
 /**
  * Reads the manual folio page: the lists its rows pick from (charge items with their own taxes, taxes, payment
- * methods, Open folios, postable rooms, refundable payments), an empty preview and the Posted lines of the folio as
- * the folio tab shows them, read only. It writes nothing. See docs/13-folio/08-manual-folio.md.
+ * methods, Open folios, postable rooms, refundable payments), the folio rail of the Open folios, an empty preview and
+ * the Posted lines of the folio as the folio tab shows them, read only. It writes nothing. See docs/13-folio/08-manual-folio.md.
  */
 class ManualFolioPage
 {
@@ -55,6 +56,8 @@ class ManualFolioPage
         $units = $reservation->units()->whereIn('status', [UnitStatus::CheckedIn, UnitStatus::CheckedOut])->orderBy('id')->get();
         $overview = $this->overview->build($reservation, false);
         $label = $this->labels->folioLabel($folio, $unitLabels);
+        $statement = $this->statement->build($property, $reservation, $overview['units'], (string) $folio->id, [], $user);
+        $openKeys = $folios->map(fn (Folio $open): string => (string) $open->id)->all();
 
         return new ManualFolioPageData(
             reservationId: $reservation->id,
@@ -77,8 +80,9 @@ class ManualFolioPage
                 $open->type === FolioType::Unit ? $open->reservation_unit_id : null,
             ))->all()),
             units: array_values($units->map(fn (ReservationUnit $unit): FolioOptionData => new FolioOptionData($unit->id, $unitLabels[$unit->id] ?? '—'))->all()),
+            rail: array_values(array_filter($statement['folios'], fn (FolioRailItemData $item): bool => in_array($item->key, $openKeys, true))),
             preview: $this->preview->preview($property, $reservation, $folio, []),
-            posted: $this->statement->build($property, $reservation, $overview['units'], (string) $folio->id, [], $user)['folio'],
+            posted: $statement['folio'],
             batchKey: (string) Str::uuid(),
             maxRows: ManualBatchResult::MAX_ROWS,
             cancelUrl: route('reservations.folio', ['property' => $property, 'reservation' => $reservation, 'folio' => $folio->id]),

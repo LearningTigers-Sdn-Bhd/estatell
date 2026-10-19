@@ -40,45 +40,41 @@ On the folio tab, the **More actions** dropdown gains a **Manual** group with **
 
 ## Page
 
-A full page in the Form archetype, with the same shell as the [booking form](../12-reservations/05-booking-form.md#container-and-layout): the `fixed` layout variant, two columns from `xl` (form on the left, a sticky summary rail on the right), and `FormActions` always visible at the bottom. Below `xl` the rail moves under the form. At phone width the rows stack into cards.
+A full page with the same shell as the [reservation page](../12-reservations/06-reservation-page.md): the `fixed` layout variant and `ReservationWorkspace`, three rounded panels that scroll on their own. On the left is the folio rail, in the centre are the lines, and on the right is the summary. `FormActions` stays visible at the bottom. Below `lg` the panels stack, the rail becomes a select and the rows stack into cards.
 
 ```
-┌─ Folio GRH-26300118 · Room 103 · Ahmad Faiz › Manage manually ───────────────────────────────┐
-│ ┌──────────────────────────────────────────────────────────────────────────┬────────────────┐ │
-│ │ Manage folio manually                                                    │ SUMMARY        │ │
-│ │ Reason: Entering charges from the paper folio  [Edit]                    │       Now After│ │
-│ │ Lines post today (10 Oct) and keep the date you enter.                   │ Charges 540 580│ │
-│ │                                                                          │ Payments  0-580│ │
-│ │ New lines (4)   Posted lines (14)                                        │ Balance 540   0│ │
-│ │ ─────────────                                                            │                │ │
-│ │ Type    │Date   │Item / method│Description  │Qty│Amount│Taxes       │Total  │Folio│ │ By folio       │ │
-│ │ Charge ▾│08 Oct▾│Minibar ▾    │e.g. 2 x Coke│ 2 │  6.00│SST 8% ×  ▾ │12.96 ⓘ│This▾│🗑│ │  Room 103  0.00│ │
-│ │ Charge ▾│09 Oct▾│Laundry ▾    │e.g. Shirts  │ 1 │ 25.00│No taxes ✎▾ │25.00 ⓘ│This▾│🗑│ │                │ │
-│ │ Payment▾│08 Oct▾│Cash ▾       │e.g. Deposit │ · │200.00│·           │-200.00│This▾│🗑│ │ [✓] Close the  │ │
-│ │ Payment▾│10 Oct▾│Card · Visa ▾│e.g. Final   │ · │342.96│·           │-342.96│This▾│🗑│ │ folio after    │ │
-│ │                                                              [+ Add line]│ posting        │ │
-│ └──────────────────────────────────────────────────────────────────────────┴────────────────┘ │
-├───────────────────────────────────────────────────────────────────────────────────────────────┤
-│                                                               [Discard]  [Post 4 lines]       │
-└───────────────────────────────────────────────────────────────────────────────────────────────┘
+┌─ Reservations › GRH-26300118 › Folio › Manage manually ──────────────────────────────────────────┐
+│ Manage folio manually                                                                            │
+│ Reason: Entering charges from the paper folio  [Edit]                                            │
+│ ┌──────────────┐ ┌──────────────────────────────────────────────────────────────┐ ┌────────────┐ │
+│ │ Master       │ │ New lines (3)   Posted lines (14)                        [⇥] │ │ SUMMARY    │ │
+│ │ Ahmad Faiz   │ │ Type    │Date ⓘ │Item / method│Description│Qty│Amount│Taxes  │ │   Now After│ │
+│ │ Open  540.00 │ │ Charge ▾│08 Oct▾│Minibar ▾    │e.g. 2 Coke│ 2 │  6.00│SST 8%▾│ │ Charges    │ │
+│ │ 2 new        │ │ Charge ▾│09 Oct▾│Laundry ▾    │e.g. Shirts│ 1 │ 25.00│None  ▾│ │ Payments   │ │
+│ ├──────────────┤ │                                             [+ Add line]     │ │ Balance    │ │
+│ │ Room 103     │ │                                                              │ │            │ │
+│ │ Open    0.00 │ │                                                              │ │ [✓] Close  │ │
+│ │ 1 new        │ │                                                              │ │ the folio  │ │
+│ └──────────────┘ └──────────────────────────────────────────────────────────────┘ └────────────┘ │
+├──────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                   [Discard]  [Post 3 lines]      │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-| Part                | Rule                                                                                                                                                                                                                                                                                                                                                       |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Header              | `PageHeader` with a breadcrumb back to the folio tab. The reason sits under the title. **Edit** reopens the reason dialog.                                                                                                                                                                                                                                 |
-| Tabs                | `Tabs`, `line` variant, an icon in each. **New lines** opens first. **Posted lines** is `FolioRowsTable`, read only, with the row menu below. These are client tabs inside one form, like the booking form's tabs, not page tabs.                                                                                                                          |
-| New lines           | The add-and-remove rows table ([Form containers](../design-system/05-form-containers.md)): **+ Add line** in `TableFooter` on the right, a trash icon to remove. One row per line.                                                                                                                                                                         |
-| Type                | Charge, Payment or Refund. Payment rows show Method and Reference in place of Item, Qty and Taxes. A Refund row shows a **Payment** picker (a refundable payment on the reservation) in place of Method, and its amount cannot exceed what is still refundable on that payment. A refund posts on the payment's own folio, so its Folio cell is read only. |
-| Date                | The service date. From the reservation's creation date (a deposit before arrival) to the business date. Never before the property's first business date, except with the **Old system** method ([Migration](../17-onboarding/07-migration.md#old-system-payment-method)).                                                                                  |
-| Item                | A charge item, as in the Post charge Dialog. The amount follows `default_amount` and `allow_override`.                                                                                                                                                                                                                                                     |
-| Taxes               | A `MultiCombobox`, the same field as on the charge item page (`taxLabel()`). It starts with the charge item's own taxes, and picking another item resets it. A choice that differs from the item shows ✎ with the tooltip "Taxes changed from the item's default".                                                                                         |
-| Total               | Includes tax. Its ⓘ popover lists each tax and its amount, like `BookingQuoteCell` on the booking form. A foreign-only tax for a local guest shows "Exempt" and 0.00: the nationality rule still applies.                                                                                                                                                  |
-| Folio               | "This" or another Open folio of the reservation. A Unit folio must be the unit's own.                                                                                                                                                                                                                                                                      |
-| Unit                | Charge rows only. `PostCharge` works on a unit (its status and its guest's nationality decide the tax). A Unit folio fixes the unit. A master folio shows a Unit picker, preselected when the reservation has one unit. The unit must be Checked in or Checked out, else the row is refused with `unit_not_postable`.                                      |
-| Summary rail        | Charges, payments and balance, **Now** and **After**, plus a balance for each folio the rows touch. Every figure comes from the server preview.                                                                                                                                                                                                            |
-| Close after posting | A checkbox in the rail. Ticked by default when the balance after posting is 0.00. Disabled with the `CloseFolio` reason as a hint when the folio cannot close (`units_in_house`, `folio_receives_scheduled_charges`).                                                                                                                                      |
-| Footer              | **Post N lines**. **Discard** asks to confirm when there are draft rows. Leaving the page with drafts asks too (`useFormOptions`).                                                                                                                                                                                                                         |
-| Errors              | Inline on the row through `FormField`, focus on the first refused row. Nothing posts.                                                                                                                                                                                                                                                                      |
+| Header | `PageHeader` with a breadcrumb back to the folio tab. The reason sits under the title. **Edit** reopens the reason dialog. The posting rule ("Lines post today and keep the date you enter.") is the tooltip of the Date column header. |
+| Tabs | `Tabs`, `line` variant, an icon in each, at the top of the centre panel. **New lines** opens first. **Posted lines** is `FolioRowsTable` of the selected folio, read only, with the row menu below. These are client tabs inside one form, not page tabs. The Hide summary / Show summary button sits at the right of the tabs: the same button and the same remembered choice as on the folio tab. |
+| New lines | The add-and-remove rows table ([Form containers](../design-system/05-form-containers.md)): **+ Add line** in `TableFooter` on the right, a trash icon to remove. One row per line. |
+| Type | Charge, Payment or Refund. Payment rows show Method and Reference in place of Item, Qty and Taxes. A Refund row shows a **Payment** picker (a refundable payment on the selected folio) in place of Method, and its amount cannot exceed what is still refundable on that payment. |
+| Date | The service date. From the reservation's creation date (a deposit before arrival) to the business date. Never before the property's first business date, except with the **Old system** method ([Migration](../17-onboarding/07-migration.md#old-system-payment-method)). |
+| Item | A charge item, as in the Post charge Dialog. The amount follows `default_amount` and `allow_override`. |
+| Taxes | A `MultiCombobox`, the same field as on the charge item page (`taxLabel()`). It starts with the charge item's own taxes, and picking another item resets it. A choice that differs from the item shows ✎ with the tooltip "Taxes changed from the item's default". |
+| Total | Includes tax. Its ⓘ popover lists each tax and its amount, like `BookingQuoteCell` on the booking form. A foreign-only tax for a local guest shows "Exempt" and 0.00: the nationality rule still applies. |
+| Folio rail | `FolioRail` with the Open folios of the reservation (name, payer, status, balance now). Picking one changes the selected folio and the address (`…/folios/{folio}/manual`) without the unsaved-changes dialog. Draft rows are kept for every folio, and each folio with drafts shows "N new". There is no Folio column: a row posts on the folio it was added to. |
+| Room | Charge rows only. `PostCharge` works on a unit (its status and its guest's nationality decide the tax). A Unit folio has no Room column: the folio fixes the unit. On another folio a Room column shows, preselected when the reservation has one postable unit. The unit must be Checked in or Checked out, else the row is refused with `unit_not_postable`. |
+| Summary | The right panel. Charges, payments and balance of the selected folio, **Now** and **After**, plus a balance for each folio the rows touch. Every figure comes from the server preview. The summary button hides it. Below `lg`, hiding removes it. |
+| Close after posting | A checkbox in the summary, for the selected folio. Ticked by default when its balance after posting is 0.00. Disabled with the `CloseFolio` reason as a hint when the folio cannot close (`units_in_house`, `folio_receives_scheduled_charges`). |
+| Footer | **Post N lines** posts the draft rows of every folio as one batch with one reason. **Discard** asks to confirm when there are draft rows. Leaving the page with drafts asks too (`useUnsavedChanges`). |
+| Errors | Inline on the row through `FormField`, focus on the first refused row. Nothing posts. |
 
 ## Preview and post
 

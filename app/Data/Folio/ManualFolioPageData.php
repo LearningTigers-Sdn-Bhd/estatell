@@ -10,8 +10,9 @@ use Spatie\LaravelData\Data;
 
 /**
  * The manual folio page: the folio being managed, the lists its rows pick from, the first (empty) preview and the
- * Posted lines of the folio (read only). `reason` is what the reason dialog sent, null when the page was opened by
- * its address, which makes the page ask for it. `itemTaxIds` gives each charge item's own tax ids by item id, so a
+ * Posted lines of the folio (read only). `rail` is the folio rail: the Open folios of the reservation with their
+ * balance. `reason` is what the reason dialog sent, null when the page was opened
+ * by its address, which makes the page ask for it. `itemTaxIds` gives each charge item's own tax ids by item id, so a
  * row starts with them. `earliestDate` and `businessDate` bound a row's service date. `batchKey` is the form's UUID.
  * See docs/13-folio/08-manual-folio.md.
  */
@@ -25,6 +26,7 @@ class ManualFolioPageData extends Data
      * @param  list<ManualPaymentOptionData>  $payments
      * @param  list<ManualFolioOptionData>  $folios
      * @param  list<FolioOptionData>  $units
+     * @param  list<FolioRailItemData>  $rail
      */
     public function __construct(
         public int $reservationId,
@@ -43,6 +45,7 @@ class ManualFolioPageData extends Data
         public array $payments,
         public array $folios,
         public array $units,
+        public array $rail,
         public ManualPreviewData $preview,
         public ?FolioData $posted,
         public string $batchKey,

@@ -57,15 +57,19 @@ const TYPES: { value: RowType; label: string }[] = [
     { value: 'refund', label: 'Refund' },
 ];
 
-/** A new row dated today, on the folio being managed. */
-export function newDraft(page: Page, type: RowType = 'charge'): ManualDraft {
-    const own = page.folios.find((folio) => folio.id === page.folioId);
+/** A new row dated today, on the given folio. */
+export function newDraft(
+    page: Page,
+    folioId: number,
+    type: RowType = 'charge',
+): ManualDraft {
+    const own = page.folios.find((folio) => folio.id === folioId);
 
     return {
         key: crypto.randomUUID(),
         type,
         service_date: page.businessDate,
-        folio_id: String(page.folioId),
+        folio_id: String(folioId),
         unit_id:
             own?.unitId == null && page.units.length === 1
                 ? String(page.units[0].id)
@@ -127,11 +131,15 @@ const FIELD_OF: Record<string, string> = {
 };
 
 /**
- * The New lines table: one row per line to post. At phone width each row stacks into a card with a label on every
+ * The New lines table of one folio: one row per line to post on it. `rows` holds the drafts of every folio, so a
+ * server error (`rows.{index}.…`) keeps its index; only the rows of `folioId` show. There is no Folio column: a row
+ * posts on the folio it was added to. The Room column shows on a folio without its own unit, unless the reservation
+ * has one postable unit (it is then preselected). At phone width each row stacks into a card with a label on every
  * cell. The server answers each row's tax lines, total and refusal; the browser only holds what was typed.
  */
 export function ManualFolioRows({
     page,
+    folioId,
     rows,
     onChange,
     onAdd,
@@ -141,6 +149,7 @@ export function ManualFolioRows({
     processing,
 }: {
     page: Page;
+    folioId: number;
     rows: ManualDraft[];
     onChange: (key: string, patch: Partial<ManualDraft>) => void;
     onAdd: () => void;
@@ -159,10 +168,12 @@ export function ManualFolioRows({
         value: String(tax.id),
         label: currency ? taxLabel(tax, currency) : tax.name,
     }));
-    const folioOptions = page.folios.map((one) => ({
-        value: String(one.id),
-        label: one.label,
-    }));
+    const folio = page.folios.find((one) => one.id === folioId);
+    const showRoom = folio?.unitId == null && page.units.length !== 1;
+    const columns = showRoom ? 10 : 9;
+    const shown = rows
+        .map((row, index) => ({ row, index }))
+        .filter(({ row }) => row.folio_id === String(folioId));
     const unitOptions = page.units.map((one) => ({
         value: String(one.id),
         label: one.label,
@@ -171,11 +182,13 @@ export function ManualFolioRows({
         value: String(one.id),
         label: one.name,
     }));
-    const paymentOptions = page.payments.map((one) => ({
-        value: String(one.id),
-        label: one.label,
-        description: `${one.left} left to refund`,
-    }));
+    const paymentOptions = page.payments
+        .filter((one) => one.folioId === folioId)
+        .map((one) => ({
+            value: String(one.id),
+            label: one.label,
+            description: `${one.left} left to refund`,
+        }));
 
     return (
         <div className="overflow-hidden rounded-lg border">
@@ -183,24 +196,46 @@ export function ManualFolioRows({
                 <TableHeader className="hidden xl:table-header-group">
                     <TableRow>
                         <TableHead>Type</TableHead>
-                        <TableHead>Date</TableHead>
+                        <TableHead>
+                            <span className="inline-flex items-center gap-1">
+                                Date
+                                <Tooltip>
+                                    <TooltipTrigger
+                                        render={
+                                            <span
+                                                role="img"
+                                                aria-label="About the date"
+                                                tabIndex={0}
+                                                className="text-muted-foreground"
+                                            />
+                                        }
+                                    >
+                                        <Info className="size-3.5" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        Lines post today ({page.businessDate})
+                                        and keep the date you enter.
+                                    </TooltipContent>
+                                </Tooltip>
+                            </span>
+                        </TableHead>
                         <TableHead>Item / method</TableHead>
                         <TableHead>Description</TableHead>
                         <TableHead>Qty</TableHead>
                         <TableHead>Amount</TableHead>
                         <TableHead>Taxes</TableHead>
                         <TableHead className="text-right">Total</TableHead>
-                        <TableHead>Folio</TableHead>
+                        {showRoom && <TableHead>Room</TableHead>}
                         <TableHead>
                             <span className="sr-only">Remove</span>
                         </TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {rows.length === 0 && (
+                    {shown.length === 0 && (
                         <TableRow>
                             <TableCell
-                                colSpan={10}
+                                colSpan={columns}
                                 className="py-6 text-center text-muted-foreground"
                             >
                                 No lines yet. Add a charge, a payment or a
@@ -208,7 +243,7 @@ export function ManualFolioRows({
                             </TableCell>
                         </TableRow>
                     )}
-                    {rows.map((row, index) => {
+                    {shown.map(({ row, index }, position) => {
                         const answer = answers.get(row.key);
                         const message = (field: string) => {
                             const server = Object.entries(serverErrors).find(
@@ -248,17 +283,11 @@ export function ManualFolioRows({
                                 row.tax_ids.some(
                                     (id) => !defaults.includes(id),
                                 ));
-                        const folio = page.folios.find(
-                            (one) => String(one.id) === row.folio_id,
-                        );
-                        const refunded = page.payments.find(
-                            (one) => String(one.id) === row.payment_id,
-                        );
                         const fixedAmount =
                             item !== undefined &&
                             !item.allowOverride &&
                             item.defaultAmount !== null;
-                        const label = `Line ${index + 1}`;
+                        const label = `Line ${position + 1}`;
 
                         return (
                             <RowFragment key={row.key}>
@@ -278,9 +307,6 @@ export function ManualFolioRows({
                                                     tax_ids: null,
                                                     reference: '',
                                                     description: '',
-                                                    folio_id: String(
-                                                        page.folioId,
-                                                    ),
                                                 })
                                             }
                                         />
@@ -370,11 +396,6 @@ export function ManualFolioRows({
                                                         payment_id: value,
                                                         amount:
                                                             next?.left ?? '',
-                                                        folio_id: next
-                                                            ? String(
-                                                                  next.folioId,
-                                                              )
-                                                            : row.folio_id,
                                                     });
                                                 }}
                                                 aria-invalid={invalid('item')}
@@ -570,44 +591,28 @@ export function ManualFolioRows({
                                             <Dot />
                                         )}
                                     </Cell>
-                                    <Cell label="Folio">
-                                        <div className="flex flex-col gap-2">
-                                            <EnumSelect
-                                                aria-label={`${label} folio`}
-                                                options={folioOptions}
-                                                value={row.folio_id}
-                                                disabled={row.type === 'refund'}
-                                                onValueChange={(value) =>
-                                                    onChange(row.key, {
-                                                        folio_id: value,
-                                                    })
-                                                }
-                                            />
-                                            {row.type === 'charge' &&
-                                                folio?.unitId == null && (
-                                                    <EnumSelect
-                                                        aria-label={`${label} room`}
-                                                        options={unitOptions}
-                                                        placeholder="Choose a room"
-                                                        value={row.unit_id}
-                                                        onValueChange={(
-                                                            value,
-                                                        ) =>
-                                                            onChange(row.key, {
-                                                                unit_id: value,
-                                                            })
-                                                        }
-                                                        aria-invalid={invalid(
-                                                            'unit_id',
-                                                        )}
-                                                    />
-                                                )}
-                                            {row.type === 'refund' &&
-                                                refunded === undefined && (
-                                                    <Dot />
-                                                )}
-                                        </div>
-                                    </Cell>
+                                    {showRoom && (
+                                        <Cell label="Room">
+                                            {row.type === 'charge' ? (
+                                                <EnumSelect
+                                                    aria-label={`${label} room`}
+                                                    options={unitOptions}
+                                                    placeholder="Choose a room"
+                                                    value={row.unit_id}
+                                                    onValueChange={(value) =>
+                                                        onChange(row.key, {
+                                                            unit_id: value,
+                                                        })
+                                                    }
+                                                    aria-invalid={invalid(
+                                                        'unit_id',
+                                                    )}
+                                                />
+                                            ) : (
+                                                <Dot />
+                                            )}
+                                        </Cell>
+                                    )}
                                     <Cell
                                         label=""
                                         className="col-span-2 xl:col-span-1"
@@ -628,7 +633,7 @@ export function ManualFolioRows({
                                 {problem && (
                                     <TableRow className="block border-0 px-3 xl:table-row xl:px-0">
                                         <TableCell
-                                            colSpan={10}
+                                            colSpan={columns}
                                             className="block pt-0 whitespace-normal xl:table-cell"
                                         >
                                             <FieldError>
@@ -642,29 +647,33 @@ export function ManualFolioRows({
                     })}
                 </TableBody>
                 <TableFooter>
-                    <TableRow className="flex justify-between xl:table-row">
+                    <TableRow className="block xl:table-row">
                         <TableCell
-                            colSpan={10}
-                            className="flex w-full items-center justify-between gap-3 whitespace-normal xl:table-cell"
+                            colSpan={columns}
+                            className="whitespace-normal max-xl:block"
                         >
-                            <span className="text-sm text-muted-foreground">
-                                {rows.length === 0
-                                    ? 'Nothing to post yet'
-                                    : `${rows.length} of ${page.maxRows} lines`}
-                            </span>
-                            <span className="flex items-center gap-2">
-                                {processing && <Spinner />}
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    className="max-xl:w-full"
-                                    onClick={onAdd}
-                                    disabled={rows.length >= page.maxRows}
-                                >
-                                    <Plus data-icon="inline-start" />
-                                    Add line
-                                </Button>
-                            </span>
+                            <div className="flex items-center justify-between gap-3">
+                                <span className="text-sm text-muted-foreground">
+                                    {rows.length === 0
+                                        ? 'Nothing to post yet'
+                                        : shown.length === rows.length
+                                          ? `${rows.length} of ${page.maxRows} lines`
+                                          : `${shown.length} here · ${rows.length} of ${page.maxRows} lines in all`}
+                                </span>
+                                <span className="flex items-center gap-2">
+                                    {processing && <Spinner />}
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="max-xl:w-full"
+                                        onClick={onAdd}
+                                        disabled={rows.length >= page.maxRows}
+                                    >
+                                        <Plus data-icon="inline-start" />
+                                        Add line
+                                    </Button>
+                                </span>
+                            </div>
                         </TableCell>
                     </TableRow>
                 </TableFooter>
