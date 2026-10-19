@@ -21,6 +21,7 @@ use App\Models\TransactionCode;
 use App\Models\UnitNight;
 use App\Models\User;
 use App\Services\Folio\FolioVoucher;
+use App\Services\Property\PrintProfile;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
@@ -286,4 +287,28 @@ test('a child printed without its parent stands at the top, and with its parent 
 
     expect(collect($alone->rows)->pluck('level')->all())->toBe([0])
         ->and(collect($together->rows)->pluck('level')->all())->toBe([0, 1]);
+});
+
+test('a chosen line copied from the old system prints first in an Old system section with its own subtotal', function () {
+    $setup = fvSetup();
+    $setup['folio']->forceFill(['legacy_number' => 'F1203'])->save();
+    $old = FolioLine::factory()->create(['folio_id' => $setup['folio']->id, 'transaction_code_id' => $setup['item']->transaction_code_id, 'kind' => 'charge', 'description' => 'Room · Standard', 'amount' => '200.00', 'unit_amount' => '200.00', 'posting_date' => '2026-10-10', 'service_date' => '2026-10-08', 'migrated' => true, 'idempotency_key' => 'migrated:'.$setup['folio']->id.':'.fake()->uuid()]);
+    $charge = fvPost($setup, '50.00');
+
+    $document = app(FolioVoucher::class)->forLines($setup['folio'], [$charge->id, $old->id]);
+    $html = view('pdf.voucher', ['voucher' => $document, 'print' => app(PrintProfile::class)->for($setup['property'])])->render();
+
+    expect($document->oldTitle)->toBe('Old system · folio F1203')
+        ->and($document->oldRows)->toHaveCount(1)
+        ->and($document->oldRows[0]['description'])->toBe('Room · Standard')
+        ->and($document->oldSubtotal)->toBe('200.00')
+        ->and(collect($document->rows)->pluck('description')->all())->not->toContain('Room · Standard')
+        ->and($document->total)->toBe('250.00')
+        ->and(strpos($html, 'OLD SYSTEM · FOLIO F1203'))->toBeLessThan(strpos($html, (string) $charge->description))
+        ->and($html)->toContain('Old system subtotal');
+
+    $this->actingAs($setup['user'])->get(fvUrl($setup, lines: [$old->id]))->assertOk()->assertHeader('content-type', 'application/pdf');
+    $this->get(route('reservations.folio', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id, 'folio' => $setup['folio']->id]))->assertInertia(fn (Assert $page) => $page
+        ->where('folio.canPrintVoucher', true)
+        ->where('folio.rows', fn ($rows) => collect($rows)->firstWhere('state', 'old')['printable'] === true));
 });

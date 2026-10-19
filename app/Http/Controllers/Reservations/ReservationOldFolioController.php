@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Reservations;
 
 use App\Actions\Folio\AddOldFolio;
 use App\Actions\Folio\PostingResult;
-use App\Actions\Folio\PrepareOldFolios;
 use App\Actions\Folio\SaveOldFolios;
 use App\Actions\Folio\SaveOldFoliosResult;
 use App\Data\Folio\OldFolioRowData;
@@ -34,10 +33,10 @@ use Inertia\Response;
 class ReservationOldFolioController extends Controller
 {
     /**
-     * The page. After the migration window it goes back to the folio tab with an error toast. The unit folios of the
-     * stay are made first, so every room has its tab. Once the old folios are saved the page is read only.
+     * The page. After the migration window it goes back to the folio tab with an error toast, so the old lines are read
+     * only there. It writes nothing: a room without a folio gets a tab, and its folio is made when the page is saved.
      */
-    public function show(Request $request, Property $property, Reservation $reservation, OldFolioPage $page, PrepareOldFolios $prepareOldFolios, MigrationWindow $migrationWindow, FolioRefusals $refusals): Response|RedirectResponse
+    public function show(Request $request, Property $property, Reservation $reservation, OldFolioPage $page, MigrationWindow $migrationWindow, FolioRefusals $refusals): Response|RedirectResponse
     {
         if (! $migrationWindow->isOpen($property)) {
             Inertia::flash('toast', ['type' => 'error', 'message' => $refusals->message(PostingResult::REFUSAL_MIGRATION_WINDOW_CLOSED)]);
@@ -46,10 +45,6 @@ class ReservationOldFolioController extends Controller
         }
 
         $property->loadMissing('settings');
-
-        if (! $page->hasMigratedLines($reservation)) {
-            $prepareOldFolios($reservation);
-        }
 
         return Inertia::render('reservations/old-folio', [
             'oldFolio' => $page->build($request->user(), $property, $reservation),
@@ -68,12 +63,14 @@ class ReservationOldFolioController extends Controller
         $folioIds = $reservation->folios()->pluck('id')->all();
         $unitIds = $reservation->units()->pluck('id')->all();
 
+        $knows = fn (int $folioId): bool => $folioId < 0 ? in_array(-$folioId, $unitIds, true) : in_array($folioId, $folioIds, true);
+
         foreach ($rows as $row) {
-            abort_unless(in_array($row->folioId, $folioIds, true), 404);
+            abort_unless($knows($row->folioId), 404);
             abort_unless($row->unitId === null || in_array($row->unitId, $unitIds, true), 404);
         }
 
-        abort_unless(array_all(array_keys($legacyNumbers), fn (int $folioId): bool => in_array($folioId, $folioIds, true)), 404);
+        abort_unless(array_all(array_keys($legacyNumbers), $knows), 404);
 
         $result = $saveOldFolios($request->user(), $reservation, $rows, $legacyNumbers);
 
@@ -82,10 +79,24 @@ class ReservationOldFolioController extends Controller
                 ->withErrors($this->errors($result, $rows, $folioRefusals, $paymentRefusals));
         }
 
-        $count = count($rows);
-        Inertia::flash('toast', ['type' => 'success', 'message' => $count === 1 ? __('1 old folio line saved.') : __(':count old folio lines saved.', ['count' => $count])]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => $this->savedMessage($result)]);
 
         return redirect(route('reservations.folio', ['property' => $property, 'reservation' => $reservation]));
+    }
+
+    private function savedMessage(SaveOldFoliosResult $result): string
+    {
+        $parts = [];
+
+        if ($result->lineCount > 0) {
+            $parts[] = trans_choice(':count old folio line saved|:count old folio lines saved', $result->lineCount);
+        }
+
+        if ($result->removedCount > 0) {
+            $parts[] = trans_choice(':count line removed|:count lines removed', $result->removedCount);
+        }
+
+        return $parts === [] ? ($result->replayed ? __('The old folios have no changes to save.') : __('Old folios saved.')) : implode(', ', $parts).'.';
     }
 
     /**

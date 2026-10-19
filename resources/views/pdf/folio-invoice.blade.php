@@ -34,7 +34,21 @@
     @include('pdf.partials.rooms-block', ['rooms' => $invoice->rooms])
 
     @if ($invoice->hasCharges())
-        @include('pdf.partials.document-lines', ['groups' => $invoice->lines, 'currency' => $invoice->currency, 'settings' => $settings, 'words' => false])
+        @if ($invoice->oldSystem !== null)
+            <div class="heading gap-16">{{ strtoupper($invoice->oldTitle) }}</div>
+            @include('pdf.partials.document-lines', ['groups' => $invoice->oldSystem, 'currency' => $invoice->currency, 'settings' => $settings, 'words' => false, 'totalLabel' => __('Old system subtotal :currency', ['currency' => $invoice->currency->getCurrencyCode()])])
+        @endif
+        @if ($invoice->lines->groups !== [] || $invoice->lines->taxes !== [])
+            @include('pdf.partials.document-lines', ['groups' => $invoice->lines, 'currency' => $invoice->currency, 'settings' => $settings, 'words' => false])
+        @endif
+        @if ($invoice->oldSystem !== null)
+            <table class="gap-8">
+                <tr class="total">
+                    <td class="num">{{ __('Total :currency', ['currency' => $invoice->currency->getCurrencyCode()]) }}</td>
+                    <td class="num" style="width: 22%;">{{ $money($invoice->total) }}</td>
+                </tr>
+            </table>
+        @endif
     @else
         <div class="small muted gap-16">{{ __('No charges') }}</div>
     @endif

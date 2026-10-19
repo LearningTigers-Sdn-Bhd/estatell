@@ -23,12 +23,14 @@ class ChangeOpeningBalance
         private ReverseLine $reverseLine,
         private PostOpeningBalance $postOpeningBalance,
         private CloseSettledUnitFolio $closeSettledUnitFolio,
+        private ReverseMigratedLines $reverseMigratedLines,
     ) {}
 
     /**
      * Change the opening balance of a folio: reverse the current opening line and post the new one, in one
      * transaction (staff never see the reversal step). The new line has the next key `opening:{folio_id}:{n}` and the
-     * same old folio number. A zero amount reverses only. The folio row is locked first, so a second click on the
+     * same old folio number. A zero amount reverses only. A new line on a folio that holds live lines copied from the old
+     * system takes them back first (`ReverseMigratedLines`). The folio row is locked first, so a second click on the
      * same line is refused (`already_reversed`). Only inside the migration window (`migration_window_closed`), on an
      * Open folio, and only for a live line with the Opening balance code (`not_opening_balance`). Every check runs
      * before the first write, so a refusal writes and logs nothing. Logged on the reservation as
@@ -36,6 +38,15 @@ class ChangeOpeningBalance
      * See docs/12-reservations/12-past-and-migrated-stays.md#one-amount.
      */
     public function __invoke(User $actor, FolioLine $line, string $amount, string $reason): PostingResult
+    {
+        try {
+            return $this->change($actor, $line, $amount, $reason);
+        } catch (SaveOldFoliosRefused $refused) {
+            return PostingResult::refused((string) $refused->result->refusal);
+        }
+    }
+
+    private function change(User $actor, FolioLine $line, string $amount, string $reason): PostingResult
     {
         return DB::transaction(function () use ($actor, $line, $amount, $reason): PostingResult {
             $current = FolioLine::query()->findOrFail($line->id);
@@ -80,6 +91,7 @@ class ChangeOpeningBalance
             $lines = [$reversal[0]];
 
             if (! BigDecimal::of($normalized)->isZero()) {
+                ($this->reverseMigratedLines)($actor, $folio, $businessDate->toDateString());
                 $lines[] = $this->postOpeningBalance->write($actor, $folio, $code, $normalized, $businessDate->toDateString(), $goLive->toDateString());
             }
 

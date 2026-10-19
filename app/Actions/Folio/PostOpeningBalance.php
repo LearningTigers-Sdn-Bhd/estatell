@@ -24,6 +24,7 @@ class PostOpeningBalance
         private FolioRouter $folioRouter,
         private FolioPostability $folioPostability,
         private CreateFolio $createFolio,
+        private ReverseMigratedLines $reverseMigratedLines,
     ) {}
 
     /**
@@ -33,67 +34,77 @@ class PostOpeningBalance
      * kept on `folios.legacy_number`. The amount is signed: positive when the guest owes, negative for a credit. Zero
      * posts nothing. There is no tax line. The key is `opening:{folio_id}:{n}`. A folio that already has a live
      * opening line is refused (`opening_balance_exists`): `ChangeOpeningBalance` changes it. The folio row is locked
-     * first, and every check runs before the first write. The migration window is checked by the caller. Permissions
+     * first, and every check runs before the first write. A folio that holds live lines copied from the old system
+     * (Copy line by line) has them taken back first, in the same transaction (`ReverseMigratedLines`): a folio carries one
+     * amount or copied lines, never both. The migration window is checked by the caller. Permissions
      * (`folio.manual`) are checked by the route. See docs/12-reservations/12-past-and-migrated-stays.md#one-amount.
      */
     public function __invoke(User $actor, ReservationUnit $unit, string $amount, ?string $legacyNumber): PostingResult
     {
-        return DB::transaction(function () use ($actor, $unit, $amount, $legacyNumber): PostingResult {
-            $normalized = self::normalize($amount);
+        try {
+            return DB::transaction(fn (): PostingResult => $this->post($actor, $unit, $amount, $legacyNumber));
+        } catch (SaveOldFoliosRefused $refused) {
+            return PostingResult::refused((string) $refused->result->refusal);
+        }
+    }
 
-            if ($normalized === null) {
-                return PostingResult::refused(PostingResult::REFUSAL_OPENING_AMOUNT_INVALID);
-            }
+    private function post(User $actor, ReservationUnit $unit, string $amount, ?string $legacyNumber): PostingResult
+    {
+        $normalized = self::normalize($amount);
 
-            $locked = ReservationUnit::query()->lockForUpdate()->findOrFail($unit->id);
-            $property = $locked->property;
-            $businessDate = $this->currentBusinessDate->date($property);
-            $goLive = $this->firstBusinessDate->date($property);
+        if ($normalized === null) {
+            return PostingResult::refused(PostingResult::REFUSAL_OPENING_AMOUNT_INVALID);
+        }
 
-            if ($businessDate === null || $goLive === null) {
-                return PostingResult::refused(PostingResult::REFUSAL_NO_BUSINESS_DATE);
-            }
+        $locked = ReservationUnit::query()->lockForUpdate()->findOrFail($unit->id);
+        $property = $locked->property;
+        $businessDate = $this->currentBusinessDate->date($property);
+        $goLive = $this->firstBusinessDate->date($property);
 
-            $code = self::code($locked->property_id);
+        if ($businessDate === null || $goLive === null) {
+            return PostingResult::refused(PostingResult::REFUSAL_NO_BUSINESS_DATE);
+        }
 
-            if ($code === null) {
-                return PostingResult::refused(PostingResult::REFUSAL_CHARGE_NOT_FOUND);
-            }
+        $code = self::code($locked->property_id);
 
-            if (BigDecimal::of($normalized)->isZero()) {
-                return PostingResult::posted([]);
-            }
+        if ($code === null) {
+            return PostingResult::refused(PostingResult::REFUSAL_CHARGE_NOT_FOUND);
+        }
 
-            $folio = $this->folioRouter->unitFolio($locked) ?? ($this->createFolio)($locked->reservation, $locked);
-            $folio = Folio::query()->lockForUpdate()->findOrFail($folio->id);
+        if (BigDecimal::of($normalized)->isZero()) {
+            return PostingResult::posted([]);
+        }
 
-            if ($folio->status !== FolioStatus::Open) {
-                return PostingResult::refused((string) $this->folioPostability->refusalFor($folio));
-            }
+        $folio = $this->folioRouter->unitFolio($locked) ?? ($this->createFolio)($locked->reservation, $locked);
+        $folio = Folio::query()->lockForUpdate()->findOrFail($folio->id);
 
-            if (self::liveLine($folio, $code) !== null) {
-                return PostingResult::refused(PostingResult::REFUSAL_OPENING_BALANCE_EXISTS);
-            }
+        if ($folio->status !== FolioStatus::Open) {
+            return PostingResult::refused((string) $this->folioPostability->refusalFor($folio));
+        }
 
-            $number = trim((string) $legacyNumber);
-            $folio->forceFill(['legacy_number' => $number === '' ? null : $number])->save();
-            $line = $this->write($actor, $folio, $code, $normalized, $businessDate->toDateString(), $goLive->toDateString());
+        if (self::liveLine($folio, $code) !== null) {
+            return PostingResult::refused(PostingResult::REFUSAL_OPENING_BALANCE_EXISTS);
+        }
 
-            activity()
-                ->performedOn($folio->reservation)
-                ->causedBy($actor)
-                ->event('folio.opening_balance_posted')
-                ->withProperties([
-                    'property_id' => $folio->property_id,
-                    'folio_id' => $folio->id,
-                    'folio_line_id' => $line->id,
-                    'amount' => $line->amount,
-                    'legacy_number' => $folio->legacy_number,
-                ])
-                ->log('Opening balance posted');
+        ($this->reverseMigratedLines)($actor, $folio, $businessDate->toDateString());
+        $number = trim((string) $legacyNumber);
+        $folio->forceFill(['legacy_number' => $number === '' ? null : $number])->save();
+        $line = $this->write($actor, $folio, $code, $normalized, $businessDate->toDateString(), $goLive->toDateString());
 
-            return PostingResult::posted([$line]);
-        });
+        activity()
+            ->performedOn($folio->reservation)
+            ->causedBy($actor)
+            ->event('folio.opening_balance_posted')
+            ->withProperties([
+                'property_id' => $folio->property_id,
+                'folio_id' => $folio->id,
+                'folio_line_id' => $line->id,
+                'amount' => $line->amount,
+                'legacy_number' => $folio->legacy_number,
+            ])
+            ->log('Opening balance posted');
+
+        return PostingResult::posted([$line]);
     }
 
     /**

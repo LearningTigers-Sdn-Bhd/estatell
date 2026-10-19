@@ -608,6 +608,8 @@ arInvoiceNumber: string | null,
 canVoidAndReopen: boolean,
 invoiceVoided: boolean,
 voidInvoiceBlockedBy: string | null,
+oldSystemTitle: string | null,
+oldSystemTotal: string | null,
 };
 export type FolioDiscountOptionData = {
 id: number,
@@ -833,14 +835,6 @@ serviceDate: string | null,
 taxIds: number[] | null,
 manualBatchId: number | null,
 };
-export type OldFolioLineData = {
-id: number,
-serviceDate: string,
-item: string,
-description: string,
-quantity: number,
-amount: string,
-};
 export type OldFolioOptionData = {
 kind: string,
 id: number,
@@ -854,7 +848,6 @@ title: string,
 goLiveDate: string,
 businessDate: string,
 currency: App.Data.Property.CurrencyData | null,
-readOnly: boolean,
 canAddMaster: boolean,
 canViewCompany: boolean,
 tabs: App.Data.Folio.OldFolioTabData[],
@@ -881,8 +874,7 @@ folioId: number,
 label: string,
 legacyNumber: string | null,
 rows: App.Data.Folio.OldFolioRowData[],
-lines: App.Data.Folio.OldFolioLineData[],
-total: string | null,
+openingBalance: string | null,
 };
 export type PostFolioOptionData = {
 id: number | null,

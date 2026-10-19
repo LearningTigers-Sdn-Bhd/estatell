@@ -18,6 +18,7 @@ import {
     X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { Link } from '@inertiajs/react';
 import { Fragment, useState } from 'react';
 import { DateText } from '@/components/pms/date-text';
 import { MoneyText } from '@/components/pms/money-text';
@@ -114,12 +115,14 @@ function RowTag({ tag, row }: { tag: App.Data.Shared.BadgeData; row: Row }) {
 }
 
 const SECTIONS: Record<Row['state'], string> = {
+    old: 'Old system',
     posted: 'Posted',
     scheduled: 'Scheduled',
 };
 
 /**
- * The Posted rows, then the Scheduled rows, as the server sent them. Scheduled, Reversed and Reversal rows are muted,
+ * The Old system rows, the Posted rows, then the Scheduled rows, as the server sent them. The Old system header is a
+ * button like Scheduled, with the section total and the Edit old folio link; it starts collapsed. Scheduled, Reversed and Reversal rows are muted,
  * the Scheduled header collapses its rows (open by default), a Reversed row is struck through, a row takes the tone of its marker as a light tint, and children (a discount, then its tax) are indented. Row markers are icons. A payment shows its reference under the method. The Unit column shows only
  * when a row names a unit.
  */
@@ -130,11 +133,18 @@ export function FolioRowsTable({
     currency,
     onAction,
     onPrintVoucher,
+    oldSystem = null,
 }: {
     reservationId: number;
     folioId: number;
     rows: Row[];
     currency: App.Data.Property.CurrencyData | null;
+    /** The OLD SYSTEM header: its title, the total of its rows and the link that edits the old folio (inside the migration window). */
+    oldSystem?: {
+        title: string | null;
+        total: string | null;
+        editUrl: string | null;
+    } | null;
     onPrintVoucher: (row: Row) => void;
     onAction: (
         row: Row,
@@ -153,9 +163,11 @@ export function FolioRowsTable({
 }) {
     const canCorrectMoney = useCanCorrectMoney();
     const [scheduledOpen, setScheduledOpen] = useState(true);
+    const [oldOpen, setOldOpen] = useState(false);
     const scheduledCount = rows.filter(
         (row) => row.state === 'scheduled',
     ).length;
+    const oldCount = rows.filter((row) => row.state === 'old').length;
     const showUnit = rows.some((row) => row.unit !== null);
     const hasMenu = (row: Row) =>
         row.actions.length > 0 || row.hasReceipt || row.printable;
@@ -187,7 +199,63 @@ export function FolioRowsTable({
                                         colSpan={columns}
                                         className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
                                     >
-                                        {row.state === 'scheduled' ? (
+                                        {row.state === 'old' ? (
+                                            <div className="flex items-center justify-between gap-3">
+                                                <button
+                                                    type="button"
+                                                    aria-expanded={oldOpen}
+                                                    onClick={() =>
+                                                        setOldOpen(
+                                                            (open) => !open,
+                                                        )
+                                                    }
+                                                    className="flex items-center gap-2 uppercase"
+                                                >
+                                                    <ChevronDown
+                                                        aria-hidden
+                                                        className={cn(
+                                                            'size-4 transition-transform motion-reduce:transition-none',
+                                                            !oldOpen &&
+                                                                '-rotate-90',
+                                                        )}
+                                                    />
+                                                    {oldSystem?.title ??
+                                                        'OLD SYSTEM'}
+                                                    {!oldOpen && (
+                                                        <span className="font-normal normal-case">
+                                                            {oldCount} rows
+                                                            hidden
+                                                        </span>
+                                                    )}
+                                                </button>
+                                                <span className="flex items-center gap-4 font-normal normal-case">
+                                                    {oldSystem?.editUrl && (
+                                                        <Link
+                                                            href={
+                                                                oldSystem.editUrl
+                                                            }
+                                                            className="inline-flex items-center gap-1 text-foreground underline-offset-4 hover:underline"
+                                                        >
+                                                            <Pencil className="size-3.5" />
+                                                            Edit old folio
+                                                        </Link>
+                                                    )}
+                                                    {oldSystem?.total && (
+                                                        <span className="text-foreground tabular-nums">
+                                                            <MoneyText
+                                                                amount={
+                                                                    oldSystem.total
+                                                                }
+                                                                currency={
+                                                                    currency
+                                                                }
+                                                                plain
+                                                            />
+                                                        </span>
+                                                    )}
+                                                </span>
+                                            </div>
+                                        ) : row.state === 'scheduled' ? (
                                             <button
                                                 type="button"
                                                 aria-expanded={scheduledOpen}
@@ -220,8 +288,8 @@ export function FolioRowsTable({
                                     </TableCell>
                                 </TableRow>
                             )}
-                            {row.state === 'scheduled' &&
-                            !scheduledOpen ? null : (
+                            {(row.state === 'scheduled' && !scheduledOpen) ||
+                            (row.state === 'old' && !oldOpen) ? null : (
                                 <TableRow
                                     className={cn(
                                         (row.state === 'scheduled' ||

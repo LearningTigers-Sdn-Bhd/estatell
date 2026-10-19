@@ -3,6 +3,7 @@
 use App\Actions\CityLedger\SettleToCityLedger;
 use App\Actions\Folio\CloseFolio;
 use App\Actions\Folio\CreateFolio;
+use App\Actions\Folio\ReverseLine;
 use App\Actions\Folio\TransferLines;
 use App\Actions\NightAudit\PostRoomCharges;
 use App\Enums\DefaultRoleEnum;
@@ -344,4 +345,39 @@ test('the folio tab offers Print invoice on a Closed folio to a user who may pri
 
     $this->actingAs($setup['user'])->get($url)->assertInertia(fn ($page) => $page->where('folio.canPrintInvoice', true));
     $this->actingAs($setup['user'])->get(route('reservations.folio', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id, 'folio' => $open->id]))->assertInertia(fn ($page) => $page->where('folio.canPrintInvoice', false));
+});
+
+test('lines copied from the old system print first in their own block with a subtotal, and the balance still adds up', function () {
+    $setup = fiSetup();
+    $unit = fiUnit($setup, state: 'checkedOut');
+    $folio = app(CreateFolio::class)($setup['reservation'], $unit);
+    $folio->forceFill(['legacy_number' => 'F1203'])->save();
+    $old = fn (string $description, string $amount, TransactionKind $kind = TransactionKind::Charge) => FolioLine::factory()->create(['folio_id' => $folio->id, 'transaction_code_id' => $setup['room']->id, 'kind' => $kind, 'description' => $description, 'amount' => $amount, 'unit_amount' => $amount, 'posting_date' => '2026-10-10', 'service_date' => '2026-10-08', 'migrated' => true, 'idempotency_key' => 'migrated:'.$folio->id.':'.fake()->uuid()]);
+    $old('Room · Standard', '200.00');
+    $dropped = $old('Minibar', '30.00');
+    app(ReverseLine::class)($setup['user'], $dropped);
+    fiCharge($setup, $unit, '10.00', 'Laundry');
+    fiPayBalance($folio);
+    $folio = fiClose($setup, $folio);
+
+    $invoice = fiInvoice($folio);
+    $html = fiHtml($setup, $folio);
+
+    expect($invoice->oldTitle)->toBe('Old system · folio F1203')
+        ->and($invoice->oldSystem->total)->toBe('200.00')
+        ->and(collect($invoice->oldSystem->groups)->flatMap(fn ($group) => collect($group->rows)->map->text())->all())->toBe(['Room · Standard'])
+        ->and(collect($invoice->lines->groups)->flatMap(fn ($group) => collect($group->rows)->map->text())->all())->toBe(['Laundry'])
+        ->and($invoice->lines->total)->toBe('10.00')
+        ->and($invoice->total)->toBe('210.00')
+        ->and($invoice->paid)->toBe('210.00')
+        ->and($invoice->balance)->toBe('0.00')
+        ->and(strpos($html, 'OLD SYSTEM · FOLIO F1203'))->toBeLessThan(strpos($html, 'Laundry'))
+        ->and($html)->toContain('Old system subtotal MYR')->toContain('200.00')->toContain('210.00');
+});
+
+test('a folio with no migrated line prints no Old system block', function () {
+    $setup = fiSetup();
+    $folio = fiClosedFolio($setup);
+
+    expect(fiInvoice($folio)->oldSystem)->toBeNull()->and(fiHtml($setup, $folio))->not->toContain('OLD SYSTEM');
 });

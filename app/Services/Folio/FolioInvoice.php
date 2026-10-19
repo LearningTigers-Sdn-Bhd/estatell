@@ -16,7 +16,8 @@ use Illuminate\Support\Collection;
 
 /**
  * Works out the invoice of one Closed folio: the number and close date, the info strip with Bill to, the Rooms block,
- * the posted lines through the shared grouper (no Scheduled rows, the folio is closed), the payments and the balance. It
+ * the posted lines through the shared grouper (no Scheduled rows, the folio is closed), the lines copied from the old system in an
+ * Old system block of their own with a subtotal,, the payments and the balance. It
  * prints the folio's lines as they are now and stores nothing. The route refuses a folio that is not Closed.
  * See docs/13-folio/06-folio-invoice.md.
  */
@@ -43,12 +44,15 @@ class FolioInvoice
         $units = $reservation->units()->with(['roomType', 'guests.guest'])->orderBy('id')->get();
         $places = $this->documentRows->places($property, $units);
         $lines = $folio->lines()->orderBy('service_date')->orderBy('id')->get();
-        $rows = $this->documentRows->for($property, $lines, $units, $places);
+        $oldRows = $this->documentRows->for($property, $lines->where('migrated', true), $units, $places);
+        $rows = $this->documentRows->for($property, $lines->where('migrated', false), $units, $places);
         $groups = $this->documentLines->group($rows, $settings);
-        $onFolio = $this->documentRows->unitsOnFolio($folio, $rows, $units);
+        $old = $oldRows === [] ? null : $this->documentLines->group($oldRows, $settings);
+        $onFolio = $this->documentRows->unitsOnFolio($folio, [...$oldRows, ...$rows], $units);
+        $total = BigDecimal::of($groups->total)->plus($old->total ?? '0');
 
         [$payments, $paid, $billed] = $this->paymentRows->for($property, collect([$folio->id => $folio]), $reservation->company?->name);
-        $balance = (string) BigDecimal::of($groups->total)->minus($paid)->minus($billed)->toScale(2);
+        $balance = (string) $total->minus($paid)->minus($billed)->toScale(2);
 
         return new FolioInvoiceDocument(
             invoiceNumber: (string) $folio->invoice_number,
@@ -61,8 +65,11 @@ class FolioInvoice
             paid: $paid,
             billed: $billed,
             balance: $balance,
-            totalInWords: $settings->show_amount_in_words && $groups->groups !== [] ? $this->amountInWords->for($groups->total, $currency) : null,
+            totalInWords: $settings->show_amount_in_words && ($groups->groups !== [] || $old !== null) ? $this->amountInWords->for((string) $total->toScale(2), $currency) : null,
             showSignatureLines: $settings->show_signature_lines,
+            oldSystem: $old,
+            oldTitle: $old === null ? null : (filled($folio->legacy_number) ? __('Old system · folio :number', ['number' => $folio->legacy_number]) : __('Old system')),
+            total: (string) $total->toScale(2),
         );
     }
 

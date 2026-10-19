@@ -73,6 +73,19 @@ const PLACEHOLDER: Record<Kind, string> = {
     payment: 'e.g. OR-1203',
 };
 
+/** The picked item of a saved row: `charge:{id}`, `tax:{id}` or `payment:{id}`. A room night and a new row have none. */
+function itemOf(row: App.Data.Folio.OldFolioRowData): string {
+    if (row.chargeItemId !== null) {
+        return `charge:${row.chargeItemId}`;
+    }
+
+    if (row.taxId !== null) {
+        return `tax:${row.taxId}`;
+    }
+
+    return row.paymentMethodId !== null ? `payment:${row.paymentMethodId}` : '';
+}
+
 /** The day before go-live: the latest date a row may take. */
 function dayBefore(date: string): string {
     const [year, month, day] = date.split('-').map(Number);
@@ -137,8 +150,10 @@ function toPayload(row: Draft) {
 /**
  * Copy old folio: one tab for each Open folio of the reservation, where staff enter the lines their old folios show.
  * Room nights before go-live are drafted from the unit nights. Tax is a row of its own and payments use the Old
- * system method. Save posts every tab at once; the lines keep their own dates and post on the business date. After the
- * first save the page is read only. The browser holds what was typed; the server checks and posts everything.
+ * system method. Save posts every tab at once; the lines keep their own dates and post on the business date. The page
+ * opens with the lines saved before, so staff can change or remove them while the migration window is open: the server
+ * compares the rows with the saved lines and corrects only what changed. The browser holds what was typed; the server
+ * checks and posts everything.
  * See docs/12-reservations/12-past-and-migrated-stays.md#copy-line-by-line.
  */
 export default function OldFolio({ oldFolio: page, companies }: Props) {
@@ -151,7 +166,7 @@ export default function OldFolio({ oldFolio: page, companies }: Props) {
                 service_date: row.serviceDate,
                 folio_id: row.folioId,
                 unit_id: row.unitId,
-                item: '',
+                item: itemOf(row),
                 description: row.description ?? '',
                 quantity: String(row.quantity),
                 amount: row.amount,
@@ -205,7 +220,8 @@ export default function OldFolio({ oldFolio: page, companies }: Props) {
     }));
     const guard = useUnsavedChanges(touched && !form.processing);
     const unfinished = rows.some(isIncomplete);
-    const canSave = rows.length > 0 && !unfinished && !form.processing;
+    const canSave =
+        (rows.length > 0 || touched) && !unfinished && !form.processing;
     const folioId = Number(tab);
 
     const change = (key: string, patch: Partial<Draft>) => {
@@ -261,18 +277,9 @@ export default function OldFolio({ oldFolio: page, companies }: Props) {
         );
     };
 
-    const grandTotal = page.readOnly
-        ? page.tabs
-              .reduce((all, one) => all + Number(one.total ?? 0), 0)
-              .toFixed(2)
-        : sum(rows);
-    const folioTotal = (id: number) => {
-        const found = page.tabs.find((one) => one.folioId === id);
-
-        return page.readOnly
-            ? (found?.total ?? '0.00')
-            : sum(rows.filter((row) => row.folio_id === id));
-    };
+    const grandTotal = sum(rows);
+    const folioTotal = (id: number) =>
+        sum(rows.filter((row) => row.folio_id === id));
 
     return (
         <>
@@ -342,41 +349,37 @@ export default function OldFolio({ oldFolio: page, companies }: Props) {
                                         </TabsTrigger>
                                     ))}
                                 </TabsList>
-                                {!page.readOnly && (
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger
-                                            render={
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                />
-                                            }
-                                        >
-                                            <Plus data-icon="inline-start" />
-                                            Folio
-                                            <ChevronDown data-icon="inline-end" />
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            {page.canAddMaster && (
-                                                <DropdownMenuItem
-                                                    disabled={addingMaster}
-                                                    onClick={addMaster}
-                                                >
-                                                    <Users />
-                                                    Master folio
-                                                </DropdownMenuItem>
-                                            )}
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger
+                                        render={
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                            />
+                                        }
+                                    >
+                                        <Plus data-icon="inline-start" />
+                                        Folio
+                                        <ChevronDown data-icon="inline-end" />
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        {page.canAddMaster && (
                                             <DropdownMenuItem
-                                                onClick={() =>
-                                                    setThirdParty(true)
-                                                }
+                                                disabled={addingMaster}
+                                                onClick={addMaster}
                                             >
-                                                <UserPlus />
-                                                Third-party folio…
+                                                <Users />
+                                                Master folio
                                             </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                )}
+                                        )}
+                                        <DropdownMenuItem
+                                            onClick={() => setThirdParty(true)}
+                                        >
+                                            <UserPlus />
+                                            Third-party folio…
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             </div>
 
                             {page.tabs.length === 0 && (
@@ -403,7 +406,6 @@ export default function OldFolio({ oldFolio: page, companies }: Props) {
                                             id={`old-number-${one.folioId}`}
                                             maxLength={50}
                                             placeholder="e.g. F1203"
-                                            disabled={page.readOnly}
                                             value={numbers[one.folioId] ?? ''}
                                             onChange={(event) => {
                                                 setTouched(true);
@@ -416,13 +418,20 @@ export default function OldFolio({ oldFolio: page, companies }: Props) {
                                         />
                                     </div>
 
-                                    {page.readOnly ? (
-                                        <SavedLines
-                                            lines={one.lines}
-                                            total={one.total ?? '0.00'}
-                                            currency={page.currency}
-                                        />
-                                    ) : (
+                                    {one.openingBalance !== null && (
+                                        <p className="text-sm text-muted-foreground">
+                                            This folio carries an opening
+                                            balance of{' '}
+                                            <MoneyText
+                                                amount={one.openingBalance}
+                                                currency={page.currency}
+                                                plain
+                                            />
+                                            . Saving lines here replaces it.
+                                        </p>
+                                    )}
+
+                                    {
                                         <div className="overflow-hidden rounded-lg border">
                                             <Table>
                                                 <TableHeader className="hidden xl:table-header-group">
@@ -560,7 +569,7 @@ export default function OldFolio({ oldFolio: page, companies }: Props) {
                                                 </TableFooter>
                                             </Table>
                                         </div>
-                                    )}
+                                    }
                                 </TabsContent>
                             ))}
                         </Tabs>
@@ -573,22 +582,20 @@ export default function OldFolio({ oldFolio: page, companies }: Props) {
                         className={buttonVariants({ variant: 'outline' })}
                     >
                         <X data-icon="inline-start" />
-                        {page.readOnly ? 'Back to folio' : 'Discard'}
+                        Discard
                     </Link>
-                    {!page.readOnly && (
-                        <Button
-                            type="submit"
-                            disabled={!canSave}
-                            focusableWhenDisabled
-                        >
-                            {form.processing ? (
-                                <Spinner data-icon="inline-start" />
-                            ) : (
-                                <Save data-icon="inline-start" />
-                            )}
-                            Save old folios
-                        </Button>
-                    )}
+                    <Button
+                        type="submit"
+                        disabled={!canSave}
+                        focusableWhenDisabled
+                    >
+                        {form.processing ? (
+                            <Spinner data-icon="inline-start" />
+                        ) : (
+                            <Save data-icon="inline-start" />
+                        )}
+                        Save old folios
+                    </Button>
                 </FormActions>
             </form>
 
@@ -756,73 +763,6 @@ function DraftRow({
                 </TableRow>
             )}
         </>
-    );
-}
-
-function SavedLines({
-    lines,
-    total,
-    currency,
-}: {
-    lines: App.Data.Folio.OldFolioLineData[];
-    total: string;
-    currency: App.Data.Property.CurrencyData | null;
-}) {
-    return (
-        <div className="overflow-hidden rounded-lg border">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Item / method</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead className="text-right">Qty</TableHead>
-                        <TableHead className="text-right">Amount</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {lines.length === 0 && (
-                        <TableRow>
-                            <TableCell
-                                colSpan={5}
-                                className="py-6 text-center text-muted-foreground"
-                            >
-                                No old lines on this folio.
-                            </TableCell>
-                        </TableRow>
-                    )}
-                    {lines.map((line) => (
-                        <TableRow key={line.id}>
-                            <TableCell>{line.serviceDate}</TableCell>
-                            <TableCell>{line.item}</TableCell>
-                            <TableCell>{line.description}</TableCell>
-                            <TableCell className="text-right tabular-nums">
-                                {line.quantity}
-                            </TableCell>
-                            <TableCell className="text-right">
-                                <MoneyText
-                                    amount={line.amount}
-                                    currency={currency}
-                                    plain
-                                />
-                            </TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-                <TableFooter>
-                    <TableRow>
-                        <TableCell colSpan={4}>This folio</TableCell>
-                        <TableCell className="text-right">
-                            <MoneyText
-                                amount={total}
-                                currency={currency}
-                                plain
-                            />
-                        </TableCell>
-                    </TableRow>
-                </TableFooter>
-            </Table>
-        </div>
     );
 }
 

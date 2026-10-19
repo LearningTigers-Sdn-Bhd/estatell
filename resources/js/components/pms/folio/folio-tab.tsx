@@ -709,6 +709,11 @@ export function FolioTab({
                             folioId={Number(folio.key)}
                             rows={folio.rows}
                             currency={currency}
+                            oldSystem={{
+                                title: folio.oldSystemTitle,
+                                total: folio.oldSystemTotal,
+                                editUrl: canManageManually ? oldFolioUrl : null,
+                            }}
                             onPrintVoucher={(row) => {
                                 const at = folio.rows.indexOf(row);
                                 const children: string[] = [];

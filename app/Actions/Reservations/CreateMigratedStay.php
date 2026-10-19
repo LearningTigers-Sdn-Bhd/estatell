@@ -4,6 +4,7 @@ namespace App\Actions\Reservations;
 
 use App\Actions\Folio\PostingResult;
 use App\Actions\Folio\PostOpeningBalance;
+use App\Actions\Folio\PrepareOldFolios;
 use App\Actions\FrontDesk\CheckInUnit;
 use App\Data\Reservations\NewBookingData;
 use App\Enums\OldFolioMode;
@@ -22,6 +23,7 @@ class CreateMigratedStay
         private CreateBooking $createBooking,
         private CheckInUnit $checkInUnit,
         private PostOpeningBalance $postOpeningBalance,
+        private PrepareOldFolios $prepareOldFolios,
         private MigrationWindow $migrationWindow,
         private CurrentBusinessDate $currentBusinessDate,
         private FirstBusinessDate $firstBusinessDate,
@@ -32,7 +34,7 @@ class CreateMigratedStay
      * `CreateBooking` with `allowPastArrival`, `CheckInUnit` for each unit with `asOf` set to the arrival date and time
      * (its `PostMissedNights` posts the nights from go-live to yesterday, and never a night before go-live), then, for
      * One amount (an empty amount is zero), `PostOpeningBalance` on the folio of the first unit with the old folio number. Copy line by line
-     * saves the stay with no opening line. The nights before go-live keep their quoted amount and are never charged.
+     * saves the stay with no opening line and gives each unit its own folio (`PrepareOldFolios`), so the old folio page has a tab for it. The nights before go-live keep their quoted amount and are never charged.
      * Only inside the migration window (`migration_window_closed`). The arrival must be before the go-live date
      * (`arrival_not_before_go_live`) and the departure after the business date (`departure_not_after_today`). Every
      * unit needs a room or bed pick, and a reason is required. A refusal rolls everything back and names the unit or
@@ -104,6 +106,8 @@ class CreateMigratedStay
                     if ($posted->isRefused()) {
                         throw new BookingRefused(BookingResult::refused((string) $posted->refusal));
                     }
+                } else {
+                    ($this->prepareOldFolios)($reservation);
                 }
 
                 activity()

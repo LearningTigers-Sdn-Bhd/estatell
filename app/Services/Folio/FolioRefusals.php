@@ -100,7 +100,6 @@ class FolioRefusals
             PostingResult::REFUSAL_OPENING_BALANCE_EXISTS => [self::FORM, __('This folio already has an opening balance. Change it instead.')],
             SaveOldFoliosResult::REFUSAL_NOTHING_TO_SAVE => [self::FORM, __('Add at least one line.')],
             SaveOldFoliosResult::REFUSAL_TOO_MANY_ROWS => [self::FORM, __('You can save up to :count lines at once.', ['count' => SaveOldFoliosResult::MAX_ROWS])],
-            SaveOldFoliosResult::REFUSAL_ALREADY_SAVED => [self::FORM, __('The old folios of this reservation are already saved. Editing them comes later.')],
             SaveOldFoliosResult::REFUSAL_DATE_NOT_BEFORE_GO_LIVE => ['service_date', __('Pick a day before go-live. Lines from go-live on are posted by estatell.')],
             SaveOldFoliosResult::REFUSAL_UNIT_NOT_FOUND => ['item', __('This room night does not belong to the reservation.')],
             SaveOldFoliosResult::REFUSAL_FOLIO_NOT_FOUND => [self::FORM, __('This folio does not belong to the reservation.')],

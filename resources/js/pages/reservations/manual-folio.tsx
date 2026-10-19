@@ -311,7 +311,7 @@ export default function ManualFolio({ manual: page }: Props) {
                                         reservationId={page.reservationId}
                                         folioId={page.folioId}
                                         rows={page.posted.rows.filter(
-                                            (row) => row.state === 'posted',
+                                            (row) => row.state !== 'scheduled',
                                         )}
                                         currency={page.currency}
                                         onAction={(row, action) => {

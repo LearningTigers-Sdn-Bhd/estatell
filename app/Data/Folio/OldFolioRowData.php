@@ -7,7 +7,7 @@ use Spatie\LaravelData\Data;
 
 /**
  * One row of the old folio page, sent to `SaveOldFolios` and shown on the page. `key` is a UUID made when the row is
- * created: the line key is `migrated:{folio_id}:{key}`. `serviceDate` is a `Y-m-d` day before the go-live date. A Room
+ * created and kept for the life of the row: the line key is `migrated:{folio_id}:{key}` (a replaced line adds `~{n}`). `folioId` below 0 is `-{unit id}`, a unit whose folio is created on save. `serviceDate` is a `Y-m-d` day before the go-live date. A Room
  * row gives `unitId` (the room night's unit) and posts as a Room charge. A Charge row gives `chargeItemId`, a Tax row
  * `taxId` and a Payment row `paymentMethodId` (the Old system method), with the old receipt number as `description`.
  * `amount` is the amount of one unit; a Tax and a Payment row always have a quantity of 1. `lineId` is set on a saved row.

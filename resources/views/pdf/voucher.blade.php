@@ -41,6 +41,17 @@
                     </tr>
                 </thead>
                 <tbody>
+                    @if ($voucher->oldTitle !== null)
+                        <tr class="rule"><th colspan="3">{{ strtoupper($voucher->oldTitle) }}</th></tr>
+                        @foreach ($voucher->oldRows as $row)
+                            <tr class="rule">
+                                <td class="nowrap">{{ $row['level'] === 0 ? $row['date'] : '' }}@if ($row['level'] === 0 && ($row['posted'] ?? null) !== null)<div class="small muted">{{ __('posted :date', ['date' => $row['posted']]) }}</div>@endif</td>
+                                <td @if ($row['level'] > 0) style="padding-left: {{ $row['level'] * 12 }}pt;" @endif>{{ $row['description'] }}</td>
+                                <td class="num">{{ $money($row['amount']) }}</td>
+                            </tr>
+                        @endforeach
+                        <tr class="rule"><td colspan="2" class="num">{{ __('Old system subtotal') }}</td><td class="num">{{ $money($voucher->oldSubtotal) }}</td></tr>
+                    @endif
                     @foreach ($voucher->rows as $row)
                         <tr class="rule">
                             <td class="nowrap">{{ $row['level'] === 0 ? $row['date'] : '' }}@if ($row['level'] === 0 && ($row['posted'] ?? null) !== null)<div class="small muted">{{ __('posted :date', ['date' => $row['posted']]) }}</div>@endif</td>

@@ -7,12 +7,14 @@ namespace App\Services\Folio;
  * in ledger order, then the Scheduled rows; the PDF does not tell them apart. `level` is 0 for a row with no parent
  * on the voucher and 1 or 2 for its discount and tax rows. Amounts are signed decimal strings with two places.
  * `total` is the sum of all rows. `folioNumber` is null for a unit that has no folio yet. `billedTo` is the company that
- * pays the folio, printed next to the guest, or null when a guest pays.
+ * pays the folio, printed next to the guest, or null when a guest pays. `oldRows` are the chosen lines copied from the old
+ * system, printed first under `oldTitle` with `oldSubtotal`; they are empty (and both null) when none is chosen. `total` includes them.
  */
 class FolioVoucherDocument
 {
     /**
      * @param  list<array{date: string, posted?: string|null, description: string, level: int, amount: string}>  $rows
+     * @param  list<array{date: string, posted: string|null, description: string, level: int, amount: string}>  $oldRows
      */
     public function __construct(
         public readonly string $issuedOn,
@@ -25,5 +27,8 @@ class FolioVoucherDocument
         public readonly array $rows,
         public readonly string $total,
         public readonly ?string $billedTo = null,
+        public readonly array $oldRows = [],
+        public readonly ?string $oldTitle = null,
+        public readonly ?string $oldSubtotal = null,
     ) {}
 }

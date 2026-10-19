@@ -17,7 +17,8 @@ use Illuminate\Support\Collection;
  * Reads folio lines and Scheduled rows and gathers what a voucher shows. Any posted line that is not a payment, a
  * reversal or already reversed can be printed, children (discount, tax) on their own as well, and so can any Scheduled
  * row, because a voucher writes nothing. Posted amounts come straight from the ledger and Scheduled amounts from
- * `ScheduledFolioRows`. A voucher does not mark which rows were Scheduled. See docs/13-folio/05-folio-page.md#print-voucher.
+ * `ScheduledFolioRows`. A voucher does not mark which rows were Scheduled. A chosen line copied from the old system
+ * prints first, in an Old system section with its own subtotal. See docs/13-folio/05-folio-page.md#print-voucher.
  */
 class FolioVoucher
 {
@@ -76,15 +77,17 @@ class FolioVoucher
         $folio->loadMissing(['property.settings', 'reservation.booker', 'payerGuest', 'payerCompany']);
         $parents = $folio->lines()->pluck('parent_line_id', 'id');
         $chosen = $this->printableLines($folio)->whereIn('id', $lineIds)->values();
-        $posted = $chosen->map(fn (FolioLine $line): array => [
+        $format = fn (FolioLine $line): array => [
             'date' => $line->service_date->format('j M Y'),
             'posted' => $line->service_date->lt($line->posting_date) ? $line->posting_date->format('j M Y') : null,
             'description' => $line->description,
             'level' => $this->level($line->id, $parents, $chosen->pluck('id')),
             'amount' => (string) BigDecimal::of($line->amount)->toScale(2),
-        ]);
+        ];
+        $posted = $chosen->reject(fn (FolioLine $line): bool => $line->migrated)->map($format)->values();
+        $old = $chosen->filter(fn (FolioLine $line): bool => $line->migrated)->map($format)->values();
 
-        return $this->document($folio->property, $folio->reservation, $folio, $folio->payerGuest ?? $folio->reservation->booker, $folio->reservation_unit_id, $posted, $scheduled ?? collect());
+        return $this->document($folio->property, $folio->reservation, $folio, $folio->payerGuest ?? $folio->reservation->booker, $folio->reservation_unit_id, $posted, $scheduled ?? collect(), $old);
     }
 
     /**
@@ -101,10 +104,11 @@ class FolioVoucher
     }
 
     /**
-     * @param  Collection<int, array{date: string, description: string, level: int, amount: string}>  $posted
+     * @param  Collection<int, array{date: string, posted: string|null, description: string, level: int, amount: string}>  $posted
      * @param  Collection<int, FolioRowData>  $scheduled
+     * @param  Collection<int, array{date: string, posted: string|null, description: string, level: int, amount: string}>|null  $old  The chosen lines copied from the old system.
      */
-    private function document(Property $property, Reservation $reservation, ?Folio $folio, mixed $guest, ?int $unitId, Collection $posted, Collection $scheduled): FolioVoucherDocument
+    private function document(Property $property, Reservation $reservation, ?Folio $folio, mixed $guest, ?int $unitId, Collection $posted, Collection $scheduled, ?Collection $old = null): FolioVoucherDocument
     {
         $timeZone = $property->settings->time_zone ?? config('app.timezone');
         $later = $scheduled->map(fn (FolioRowData $row): array => [
@@ -115,6 +119,8 @@ class FolioVoucher
         ]);
         $sum = fn (Collection $rows): BigDecimal => $rows->reduce(fn (BigDecimal $total, array $row): BigDecimal => $total->plus($row['amount']), BigDecimal::zero());
 
+        $old ??= collect();
+
         return new FolioVoucherDocument(
             issuedOn: now()->setTimezone($timeZone)->format('j M Y'),
             reservationReference: $reservation->reference,
@@ -124,8 +130,11 @@ class FolioVoucher
             stay: $this->stay($reservation, $unitId),
             currency: $property->settings?->currency->getCurrencyCode() ?? '',
             rows: [...$posted->all(), ...$later->all()],
-            total: (string) $sum($posted->concat($later))->toScale(2),
+            total: (string) $sum($old->concat($posted)->concat($later))->toScale(2),
             billedTo: $folio?->payerCompany?->name,
+            oldRows: array_values($old->all()),
+            oldTitle: $old->isEmpty() ? null : (filled($folio?->legacy_number) ? __('Old system · folio :number', ['number' => $folio->legacy_number]) : __('Old system')),
+            oldSubtotal: $old->isEmpty() ? null : (string) $sum($old)->toScale(2),
         );
     }
 

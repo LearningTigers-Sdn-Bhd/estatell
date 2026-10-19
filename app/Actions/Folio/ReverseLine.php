@@ -24,7 +24,7 @@ class ReverseLine
      * reversals of one line never race. Every check runs before the first write, so a refusal writes and logs nothing.
      * A line that a payment or refund owns is refused: a refund corrects a payment. The last step closes the folio when
      * it is an Open Unit folio of a CheckedOut unit at 0 (`CloseSettledUnitFolio`).
-     * A reversed add-on keeps its `folio_line_id`, and a reversal keeps the source of its line. See docs/13-folio/02-posting-charges.md.
+     * A reversed add-on keeps its `folio_line_id`, and a reversal keeps the source and the `migrated` flag of its line. See docs/13-folio/02-posting-charges.md.
      */
     public function __invoke(User $actor, FolioLine $line): PostingResult
     {
@@ -134,6 +134,7 @@ class ReverseLine
         $reversal->parent_line_id = $parentReversalId;
         $reversal->transfer_group_id = $transferGroupId;
         $reversal->manual_batch_id = $manualBatchId;
+        $reversal->migrated = $line->migrated;
         $reversal->idempotency_key = 'reverse:'.$line->id;
         $reversal->user_id = $actor->id;
         $reversal->save();

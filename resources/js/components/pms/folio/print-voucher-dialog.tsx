@@ -85,7 +85,7 @@ function VoucherForm({
 
     const print = () => {
         const lines = chosen
-            .filter((row) => row.state === 'posted')
+            .filter((row) => row.state !== 'scheduled')
             .map((row) => row.lineId as number);
         const scheduled = chosen
             .filter((row) => row.state === 'scheduled')
@@ -175,7 +175,8 @@ function VoucherForm({
                             <Fragment key={row.key}>
                                 {row.state !== rows[index - 1]?.state &&
                                     (index > 0 ||
-                                        row.state === 'scheduled') && (
+                                        row.state === 'scheduled' ||
+                                        row.state === 'old') && (
                                         <TableRow className="bg-muted/50 hover:bg-muted/50">
                                             <TableCell
                                                 colSpan={4}
@@ -183,7 +184,9 @@ function VoucherForm({
                                             >
                                                 {row.state === 'scheduled'
                                                     ? 'Scheduled, not posted yet'
-                                                    : 'Posted'}
+                                                    : row.state === 'old'
+                                                      ? 'Old system'
+                                                      : 'Posted'}
                                             </TableCell>
                                         </TableRow>
                                     )}

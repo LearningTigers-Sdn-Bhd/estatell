@@ -28,7 +28,7 @@ class RefundPayment
 
     /**
      * Give money back from a payment. A refund is a payment row with `refund_of_id`, the same purpose and method, no
-     * receipt number, and a positive line with the system Refund code on the payment's folio. The surcharge is not
+     * receipt number, and a positive line with the system Refund code on the payment's folio. A refund of a payment copied from the old system is `migrated` too. The surcharge is not
      * refunded: staff reverse that charge by hand. The folio row is locked first, so two refunds of one payment never
      * exceed it, and every check runs before the first write. The key `refund:{uuid}` makes a repeat return the
      * existing refund. The last step closes the folio when it is an Open Unit folio of a CheckedOut unit at 0
@@ -103,6 +103,7 @@ class RefundPayment
             $line->posting_date = $postingDate;
             $line->service_date = $serviceDate;
             $line->manual_batch_id = $manualBatchId;
+            $line->migrated = (bool) FolioLine::query()->whereKey($current->folio_line_id)->value('migrated');
             $line->idempotency_key = $key;
             $line->user_id = $actor->id;
             $line->save();

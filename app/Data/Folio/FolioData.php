@@ -10,6 +10,7 @@ use Spatie\LaravelData\Data;
  * total is the posted lines plus the Scheduled rows. `canClose` is true for an Open folio when the user holds the permission (a balance other than 0 is refused by the Action). `canReopen` is true for a Closed folio the user may reopen (`FolioReopenRule`), and
  * `closedNotice` is the text above its rows that says what to do. `canApplyDiscount` says an Open folio has a charge that can still take a discount. `postUnits` are the units a charge can be posted for (empty when the user may not post), and
  * `canManageManually` says an Open folio can be managed on the manual folio page and the user holds `folio.manual`.
+ * `oldSystemTitle` and `oldSystemTotal` name the OLD SYSTEM section and sum its rows (its rows have the state `old` and come first); both are null when the folio has no migrated line.
  * `canMoveCharges` says an Open folio has another Open folio to move charges with and the user holds `folio.transfer`
  * (it shows **Move charges** in the header and **Move…** in the row menu of a movable charge).
  * `canRecordPayment` is true for an Open folio or a "not started" entry when the user holds `payment.record`, and
@@ -67,5 +68,7 @@ class FolioData extends Data
         public bool $canVoidAndReopen = false,
         public bool $invoiceVoided = false,
         public ?string $voidInvoiceBlockedBy = null,
+        public ?string $oldSystemTitle = null,
+        public ?string $oldSystemTotal = null,
     ) {}
 }

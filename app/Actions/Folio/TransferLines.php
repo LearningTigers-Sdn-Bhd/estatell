@@ -24,7 +24,7 @@ class TransferLines
      * one reservation. All lines of one transfer share one `transfer_group_id`. Every involved folio row is locked in id
      * order, and every check runs before the first write, so a refusal writes nothing. It writes no activity entry: the
      * caller logs what it did (`MoveCharges` writes `folio.charges_moved`).
-     * A line that a payment owns is refused. The result lists the copies on the target. With `$closeSettled` (the default) the last step closes each source
+     * A copy keeps the `migrated` flag of its line. A line that a payment owns is refused. The result lists the copies on the target. With `$closeSettled` (the default) the last step closes each source
      * and the target when it is an Open Unit folio of a CheckedOut unit at 0 (`CloseSettledUnitFolio`); `MoveCharges` passes
      * false and closes the sources itself after it saved its routing rules. See docs/13-folio/02-posting-charges.md.
      *
@@ -133,6 +133,7 @@ class TransferLines
         $copy->service_date = $line->service_date;
         $copy->parent_line_id = $parentCopyId;
         $copy->transfer_group_id = $group;
+        $copy->migrated = $line->migrated;
         $copy->idempotency_key = 'transfer:'.$group.':'.$line->id;
         $copy->user_id = $actor->id;
         $copy->save();

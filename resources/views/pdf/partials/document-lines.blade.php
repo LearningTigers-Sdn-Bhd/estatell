@@ -1,6 +1,6 @@
 {{--
     The lines of a customer document: the groups, the tax summary, the total and, when switched on, the amount in
-    words. Pass `'words' => false` to leave the words out (the booking summary prints them under Balance due). Expects $groups (App\Services\Folio\DocumentLineGroups), $currency (Brick\Money\Currency) and $settings
+    words. Pass `'totalLabel'` to name the total row another way (the Old system block of the folio invoice). Pass `'words' => false` to leave the words out (the booking summary prints them under Balance due). Expects $groups (App\Services\Folio\DocumentLineGroups), $currency (Brick\Money\Currency) and $settings
     (App\Models\PrintSetting). A tax that has registration numbers prints them next to its label, or under the one "Tax" line with Tax breakdown off. Empty values never print. See docs/02-property/05-printing-settings.md#line-grouper.
 --}}
 @php
@@ -8,6 +8,7 @@
     /** @var \Brick\Money\Currency $currency */
     /** @var \App\Models\PrintSetting $settings */
     $words ??= true;
+    $totalLabel ??= __('Total :currency', ['currency' => $currency->getCurrencyCode()]);
     $room = $groups->showRoomColumn;
     $span = $room ? 3 : 2;
     $money = fn (string $amount): string => number_format((float) $amount, 2);
@@ -57,7 +58,7 @@
         @endif
     @endforeach
     <tr class="total">
-        <td colspan="{{ $span }}" class="num">{{ __('Total :currency', ['currency' => $currency->getCurrencyCode()]) }}</td>
+        <td colspan="{{ $span }}" class="num">{{ $totalLabel }}</td>
         <td class="num">{{ $money($groups->total) }}</td>
     </tr>
 </table>
