@@ -4,9 +4,13 @@ use App\Actions\Folio\PostManualBatch;
 use App\Data\Folio\ManualRowData;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\ManualRowType;
+use App\Enums\SystemTransactionCode;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\FolioManualBatch;
+use App\Models\ReservationUnit;
+use App\Models\TransactionCode;
+use App\Models\UnitNight;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
@@ -84,6 +88,19 @@ test('each folio offers the payment purposes its type can take', function () {
             $unitFolio->id => ['settlement', 'advance', 'security_deposit'],
             $agent->id => ['settlement'],
         ]));
+});
+
+test('the posted folio carries its scheduled nights for the read-only Scheduled tab, which has no row menu', function () {
+    $setup = mfSetup();
+    TransactionCode::factory()->system(SystemTransactionCode::RoomRevenue)->create(['property_id' => $setup['property']->id]);
+    $unit = ReservationUnit::factory()->for($setup['reservation'])->withNights()->checkedIn()->create(['arrival_date' => '2026-10-12', 'departure_date' => '2026-10-15']);
+    UnitNight::query()->where('reservation_unit_id', $unit->id)->update(['base_amount' => '100.00', 'amount' => '100.00']);
+    $folio = Folio::factory()->forUnit($unit)->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id]);
+    $setup['folio'] = $folio;
+
+    $this->actingAs($setup['user'])->get(mgUrl($setup))->assertInertia(fn (Assert $page) => $page
+        ->where('manual.posted.rows', fn ($rows): bool => collect($rows)->where('state', 'scheduled')->where('level', 0)->count() > 0
+            && collect($rows)->where('state', 'scheduled')->every(fn ($row): bool => $row['actions'] === [])));
 });
 
 test('a page opened without a reason has none', function () {

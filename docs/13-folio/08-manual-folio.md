@@ -227,7 +227,8 @@ A migration syncs both to the existing roles. The rate of a live room night in *
 | 3    | `feat(folio): split lines and change taxes manually`                   | `SplitLine`, `RemoveLineTax`, `AddLineTax`, `RecalculateLineTax`, the row menu and Dialogs                                                           |
 | 4    | `refactor(folio): rename the manual folio page to Manual Folio Editor` | The labels, the page and Dialog titles, the permission label and the docs. The key, routes, table and events stay                                    |
 | 5    | `feat(folio): choose the purpose of a manual payment`                  | The Purpose select on Payment rows, `PostManualBatch` passing it                                                                                     |
-| 6    | `feat(folio): show scheduled lines and move lines in the editor`       | The Scheduled tab, **Move** in the row menu, **+ Add folio** for Third party folios                                                                  |
-| 7    | `feat(folio): edit a charge line in one dialog`                        | `EditLine`, the Edit line Dialog, the live night rate through `ChangeNightPrice`                                                                     |
+| 6    | `feat(folio): show scheduled lines in the Manual Folio Editor`         | The Scheduled tab                                                                                                                                    |
+| 7    | `feat(folio): move lines and add third party folios in the editor`     | **Move** in the row menu, **+ Add folio** for Third party folios                                                                                     |
+| 8    | `feat(folio): edit a charge line in one dialog`                        | `EditLine`, the Edit line Dialog, the live night rate through `ChangeNightPrice`                                                                     |
 
 See [Past and migrated stays](../12-reservations/12-past-and-migrated-stays.md) and [Migration](../17-onboarding/07-migration.md) for the rest of the plan.

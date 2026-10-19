@@ -1,5 +1,6 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import {
+    Clock,
     History,
     ListPlus,
     Plus,
@@ -72,6 +73,12 @@ export default function ManualFolio({ manual: page }: Props) {
         newDraft(page, page.folioId),
     ]);
     const [tab, setTab] = useState('new');
+    const scheduledRows = (page.posted?.rows ?? []).filter(
+        (row) => row.state === 'scheduled',
+    );
+    const scheduledCount = scheduledRows.filter(
+        (row) => row.level === 0,
+    ).length;
     const [reversing, setReversing] =
         useState<App.Data.Folio.FolioRowData | null>(null);
     const [lineTarget, setLineTarget] =
@@ -224,7 +231,11 @@ export default function ManualFolio({ manual: page }: Props) {
                         }
                     >
                         <Tabs
-                            value={tab}
+                            value={
+                                tab === 'scheduled' && scheduledCount === 0
+                                    ? 'new'
+                                    : tab
+                            }
                             onValueChange={setTab}
                             className="flex flex-col gap-1.5"
                         >
@@ -239,6 +250,12 @@ export default function ManualFolio({ manual: page }: Props) {
                                         Posted lines (
                                         {page.posted?.lineCount ?? 0})
                                     </TabsTrigger>
+                                    {scheduledCount > 0 && (
+                                        <TabsTrigger value="scheduled">
+                                            <Clock />
+                                            Scheduled ({scheduledCount})
+                                        </TabsTrigger>
+                                    )}
                                 </TabsList>
                                 <div className="flex items-center gap-2">
                                     {tab === 'new' && (
@@ -337,6 +354,18 @@ export default function ManualFolio({ manual: page }: Props) {
                                                 }
                                             }
                                         }}
+                                        onPrintVoucher={noop}
+                                    />
+                                )}
+                            </TabsContent>
+                            <TabsContent value="scheduled">
+                                {page.posted && (
+                                    <FolioRowsTable
+                                        reservationId={page.reservationId}
+                                        folioId={page.folioId}
+                                        rows={scheduledRows}
+                                        currency={page.currency}
+                                        onAction={noop}
                                         onPrintVoucher={noop}
                                     />
                                 )}
