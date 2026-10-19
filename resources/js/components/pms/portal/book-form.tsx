@@ -356,7 +356,7 @@ export function BookForm({
                                         ratePlans={ratePlans}
                                         roomTypes={roomTypes}
                                         offers={offers.lines?.[index] ?? null}
-                                        loading={offers.loading}
+                                        loading={offers.lineLoading(index)}
                                         errors={errors}
                                         currency={currency}
                                         canRemove={data.lines.length > 1}
