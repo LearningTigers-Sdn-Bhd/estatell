@@ -2,6 +2,7 @@ import { ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
+import { GuestDetailsFields } from '@/components/pms/guests/guest-details-fields';
 import { PhoneInput } from '@/components/pms/phone-input';
 import { emptyGuest } from '@/components/pms/portal/book-lines';
 import type { BookGuest, UnitSlot } from '@/components/pms/portal/book-lines';
@@ -31,6 +32,9 @@ function GuestRow({
     slot,
     guest,
     idTypes,
+    countries,
+    genders,
+    locales,
     errors,
     onChange,
 }: {
@@ -38,12 +42,20 @@ function GuestRow({
     slot: UnitSlot;
     guest: BookGuest;
     idTypes: EnumOption[];
+    countries: EnumOption[];
+    genders: EnumOption[];
+    locales: EnumOption[];
     errors: Errors;
     onChange: (patch: Partial<BookGuest>) => void;
 }) {
     const error = (field: string) => errors[`guests.${index}.${field}`];
     const [open, setOpen] = useState(index === 0);
-    const hiddenError = !!error('id_type') || !!error('id_number');
+    const hiddenError = Object.keys(errors).some(
+        (key) =>
+            key.startsWith(`guests.${index}.`) &&
+            !key.endsWith('.full_name') &&
+            !key.endsWith('.phone'),
+    );
     const label = guest.full_name.trim() || slot.label;
 
     return (
@@ -59,7 +71,7 @@ function GuestRow({
                             type="button"
                             variant="ghost"
                             size="icon-sm"
-                            aria-label={`${open || hiddenError ? 'Hide' : 'Show'} the ID of ${label}`}
+                            aria-label={`${open || hiddenError ? 'Hide' : 'Show'} the details of ${label}`}
                             className="group/row max-lg:justify-self-start"
                         />
                     }
@@ -124,44 +136,79 @@ function GuestRow({
             </div>
 
             <CollapsibleContent>
-                <div className="grid gap-3 px-3 pb-3 sm:grid-cols-[12rem_minmax(0,16rem)] lg:px-14">
-                    <Field data-invalid={!!error('id_type')}>
-                        <FieldLabel htmlFor={`guest-${index}-id_type`}>
-                            ID (optional)
-                        </FieldLabel>
-                        <EnumSelect
-                            id={`guest-${index}-id_type`}
-                            placeholder="Choose a kind of ID"
-                            options={idTypes}
-                            value={guest.id_type}
-                            onValueChange={(value) =>
-                                onChange({ id_type: value })
-                            }
-                            aria-invalid={!!error('id_type')}
-                        />
-                        <FieldError>{error('id_type')}</FieldError>
-                    </Field>
-                    <Field data-invalid={!!error('id_number')}>
-                        <FieldLabel htmlFor={`guest-${index}-id_number`}>
-                            ID number
-                        </FieldLabel>
-                        <Input
-                            id={`guest-${index}-id_number`}
-                            placeholder={
-                                guest.id_type === 'mykad'
-                                    ? 'e.g. 900101-14-5678'
-                                    : 'e.g. A12345678'
-                            }
-                            maxLength={40}
-                            autoComplete="off"
-                            value={guest.id_number}
-                            onChange={(event) =>
-                                onChange({ id_number: event.target.value })
-                            }
-                            aria-invalid={!!error('id_number')}
-                        />
-                        <FieldError>{error('id_number')}</FieldError>
-                    </Field>
+                <div className="flex flex-col gap-4 px-3 pb-3 lg:px-14">
+                    <GuestDetailsFields
+                        columns={3}
+                        idPrefix={`guest-${index}-`}
+                        errorPrefix={`guests.${index}.`}
+                        values={guest}
+                        errors={errors}
+                        onChange={(field, value) =>
+                            onChange({ [field]: value })
+                        }
+                        countries={countries}
+                        genders={genders}
+                        locales={locales}
+                        leading={
+                            <Field data-invalid={!!error('email')}>
+                                <FieldLabel htmlFor={`guest-${index}-email`}>
+                                    Email (optional)
+                                </FieldLabel>
+                                <Input
+                                    id={`guest-${index}-email`}
+                                    type="email"
+                                    placeholder="e.g. tan@example.com"
+                                    maxLength={255}
+                                    autoComplete="off"
+                                    value={guest.email}
+                                    onChange={(event) =>
+                                        onChange({ email: event.target.value })
+                                    }
+                                    aria-invalid={!!error('email')}
+                                />
+                                <FieldError>{error('email')}</FieldError>
+                            </Field>
+                        }
+                    />
+                    <div className="grid gap-3 sm:grid-cols-[12rem_minmax(0,16rem)]">
+                        <Field data-invalid={!!error('id_type')}>
+                            <FieldLabel htmlFor={`guest-${index}-id_type`}>
+                                ID (optional)
+                            </FieldLabel>
+                            <EnumSelect
+                                id={`guest-${index}-id_type`}
+                                placeholder="Choose a kind of ID"
+                                options={idTypes}
+                                value={guest.id_type}
+                                onValueChange={(value) =>
+                                    onChange({ id_type: value })
+                                }
+                                aria-invalid={!!error('id_type')}
+                            />
+                            <FieldError>{error('id_type')}</FieldError>
+                        </Field>
+                        <Field data-invalid={!!error('id_number')}>
+                            <FieldLabel htmlFor={`guest-${index}-id_number`}>
+                                ID number
+                            </FieldLabel>
+                            <Input
+                                id={`guest-${index}-id_number`}
+                                placeholder={
+                                    guest.id_type === 'mykad'
+                                        ? 'e.g. 900101-14-5678'
+                                        : 'e.g. A12345678'
+                                }
+                                maxLength={40}
+                                autoComplete="off"
+                                value={guest.id_number}
+                                onChange={(event) =>
+                                    onChange({ id_number: event.target.value })
+                                }
+                                aria-invalid={!!error('id_number')}
+                            />
+                            <FieldError>{error('id_number')}</FieldError>
+                        </Field>
+                    </div>
                 </div>
             </CollapsibleContent>
         </Collapsible>
@@ -177,12 +224,18 @@ export function BookGuestsTable({
     slots,
     guests,
     idTypes,
+    countries,
+    genders,
+    locales,
     errors,
     onChange,
 }: {
     slots: UnitSlot[];
     guests: Record<string, BookGuest>;
     idTypes: EnumOption[];
+    countries: EnumOption[];
+    genders: EnumOption[];
+    locales: EnumOption[];
     errors: Errors;
     onChange: (key: string, patch: Partial<BookGuest>) => void;
 }) {
@@ -208,6 +261,9 @@ export function BookGuestsTable({
                         slot={slot}
                         guest={guests[slot.key] ?? emptyGuest()}
                         idTypes={idTypes}
+                        countries={countries}
+                        genders={genders}
+                        locales={locales}
                         errors={errors}
                         onChange={(patch) => onChange(slot.key, patch)}
                     />

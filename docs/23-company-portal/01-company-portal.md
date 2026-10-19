@@ -177,7 +177,7 @@ The layout breakpoints are the staff form's: below `xl` the summary rail moves u
 - One row per unit (each room, each dorm bed), built from the lines in order: "Deluxe King #1", "Deluxe King #2", "Dorm · Bed 1". The rows follow the lines. Names stay when a line changes, and a row is removed only with its unit.
 - The table looks like the staff [Guests section](../12-reservations/05-booking-form.md#guests-section): one collapsible row per guest.
     - Main row: chevron, **Name** (required), **Phone** (optional) and **Stays in** (fixed text). No ✕ and no **+ Add guest**: every unit has exactly one lead guest.
-    - Expanded row: **ID** (optional): the type (`IdentityDocumentType`) and the number, the same fields as Edit guests.
+    - Expanded row: **Email**, the personal details (nationality, date of birth, gender, preferred language) and the address, all optional, from the same `GuestDetailsFields` as the staff form. Then **ID** (optional): the type (`IdentityDocumentType`) and the number, the same fields as Edit guests.
     - The booker (first row) starts open, and a row with an error opens itself. The only badge is **Booker**.
     - Footer: "{n} rooms without a name".
 - Name and Phone are plain inputs. There is no autocomplete and no guest search. Every guest is a new guest record.
@@ -316,7 +316,7 @@ Borneo Travel · Free cancellation until 7 days before arrival
 - **How it works (built):** the booking form in [Booking](#booking).
     - `create` sends the visible plans: id, name and the short line (inclusions, "Room only" or "{n}-night package").
     - `POST /portal/{code}/bookings/offers` (JSON, throttled) takes `rate_plan_id`, adults, child ages, beds and rooms for each line. It returns the room types the plan sells, each with its total, what is left (less the lines above) and a reason when blocked. It checks that the plan is visible and uses `BookingQuote`.
-    - Store: each line has `rooms` (1–99), and each unit's guest has an optional `id_type` and `id_number`. `CreatePortalReservation` expands `rooms` into units, one guest each, refuses more than are left, and saves the ID through the Edit guests path. The server prices again and refuses `price_changed` when the total differs from `expected_total`.
+    - Store: each line has `rooms` (1–99), and each unit's guest has an optional email, personal details and address (the `GuestProfileRules` fields), and an optional `id_type` and `id_number`. The details go into the new guest's profile. `CreatePortalReservation` expands `rooms` into units, one guest each, refuses more than are left, and saves the ID through the Edit guests path. The server prices again and refuses `price_changed` when the total differs from `expected_total`.
     - A dorm line sends its beds and books one adult for each bed; its lead guest stays in the first bed. An ID typed in Edit guests (kind and number, no scan) replaces the number on the guest's first ID document or adds one; the number is never sent back to the browser.
     - The page uses its own `book-summary.tsx` for the summary rail, not the staff `BookingSummaryRail`, because the portal has no billing select, source or notes.
     - Tests: `PortalOffersTest`, `PortalBookingCreateTest` and `book-lines.test.ts`.

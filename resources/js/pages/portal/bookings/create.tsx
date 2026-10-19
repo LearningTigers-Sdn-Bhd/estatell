@@ -15,6 +15,9 @@ export default function PortalBookingCreate({
     ratePlans,
     roomTypes,
     idTypes,
+    countries,
+    genders,
+    locales,
     autoAddOns,
     currency,
 }: {
@@ -27,6 +30,9 @@ export default function PortalBookingCreate({
     ratePlans: App.Data.Portal.PortalRatePlanData[];
     roomTypes: App.Data.Portal.PortalRoomTypeData[];
     idTypes: EnumOption[];
+    countries: EnumOption[];
+    genders: EnumOption[];
+    locales: EnumOption[];
     autoAddOns: string[];
     currency: App.Data.Property.CurrencyData | null;
 }) {
@@ -64,6 +70,9 @@ export default function PortalBookingCreate({
                         ratePlans={ratePlans}
                         roomTypes={roomTypes}
                         idTypes={idTypes}
+                        countries={countries}
+                        genders={genders}
+                        locales={locales}
                         today={today}
                         cancelCutoffDays={cancelCutoffDays}
                         autoAddOns={autoAddOns}

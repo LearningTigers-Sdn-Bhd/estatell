@@ -5,13 +5,14 @@ namespace App\Http\Requests\Portal;
 use App\Data\Portal\NewPortalBookingData;
 use App\Data\Portal\NewPortalGuestData;
 use App\Enums\IdentityDocumentType;
+use App\Http\Requests\Guests\GuestProfileRules;
 use App\Models\Property;
 use App\Services\Guests\IdentityNumber;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Support\Arr;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 use Propaganistas\LaravelPhone\PhoneNumber;
-use Propaganistas\LaravelPhone\Rules\Phone;
 
 /**
  * The booking of the portal book page: the lines with their plan and room type, one lead guest for each unit (each
@@ -47,8 +48,7 @@ class StorePortalBookingRequest extends PortalOffersRequest
             'lines.*.rate_plan_id' => ['required', 'integer'],
             'lines.*.room_type_id' => ['required', 'integer'],
             'guests' => ['required', 'array', 'min:1', 'max:99'],
-            'guests.*.full_name' => ['nullable', 'string', 'max:150'],
-            'guests.*.phone' => ['nullable', 'string', 'max:30', (new Phone)->country($this->phoneRegion())->international()],
+            ...GuestProfileRules::prefixed('guests.*.', $this->phoneRegion(), nameRequired: false),
             'guests.*.id_type' => ['nullable', 'required_with:guests.*.id_number', Rule::enum(IdentityDocumentType::class)],
             'guests.*.id_number' => ['nullable', 'required_with:guests.*.id_type', 'string', 'min:4', 'max:40'],
             'group_name' => ['nullable', 'string', 'max:150'],
@@ -98,6 +98,10 @@ class StorePortalBookingRequest extends PortalOffersRequest
                 phone: filled($guest['phone'] ?? null) ? (new PhoneNumber($guest['phone'], $this->phoneRegion()))->formatE164() : null,
                 idType: filled($guest['id_type'] ?? null) ? IdentityDocumentType::from($guest['id_type']) : null,
                 idNumber: $guest['id_number'] ?? null,
+                profile: array_filter(
+                    Arr::except(GuestProfileRules::attributes($guest, $this->phoneRegion()), ['full_name', 'phone']),
+                    fn (mixed $value): bool => filled($value),
+                ),
             ), $this->validated('guests'))),
             groupName: $this->validated('group_name'),
             externalReference: $this->validated('external_reference'),

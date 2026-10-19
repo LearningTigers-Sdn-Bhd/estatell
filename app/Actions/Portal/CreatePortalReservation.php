@@ -229,7 +229,7 @@ class CreatePortalReservation
         for ($index = 0; $index < $unitCount; $index++) {
             $guest = $data->guests[$index];
             $guests[] = new NewBookingGuestData(
-                profile: array_filter(['full_name' => trim((string) $guest->fullName), 'phone' => $guest->phone], fn (?string $value): bool => $value !== null && $value !== ''),
+                profile: [...$guest->profile, ...array_filter(['full_name' => trim((string) $guest->fullName), 'phone' => $guest->phone], fn (?string $value): bool => $value !== null && $value !== '')],
                 unitIndex: $index,
             );
         }

@@ -23,7 +23,6 @@ import {
 import type { BookGuest, BookLine } from '@/components/pms/portal/book-lines';
 import { BookSummary } from '@/components/pms/portal/book-summary';
 import { usePortalOffers } from '@/components/pms/portal/use-portal-offers';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     Field,
@@ -74,6 +73,9 @@ export function BookForm({
     ratePlans,
     roomTypes,
     idTypes,
+    countries,
+    genders,
+    locales,
     today,
     cancelCutoffDays,
     autoAddOns,
@@ -84,6 +86,9 @@ export function BookForm({
     ratePlans: RatePlan[];
     roomTypes: RoomType[];
     idTypes: EnumOption[];
+    countries: EnumOption[];
+    genders: EnumOption[];
+    locales: EnumOption[];
     today: string;
     cancelCutoffDays: number | null;
     autoAddOns: string[];
@@ -196,11 +201,12 @@ export function BookForm({
             guests: slots.map((slot) => {
                 const guest = current.guests[slot.key] ?? emptyGuest();
 
+                const { id_type, id_number, ...rest } = guest;
+
                 return {
-                    full_name: guest.full_name,
-                    phone: guest.phone,
-                    id_type: guest.id_type === '' ? null : guest.id_type,
-                    id_number: guest.id_number === '' ? null : guest.id_number,
+                    ...rest,
+                    id_type: id_type === '' ? null : id_type,
+                    id_number: id_number === '' ? null : id_number,
                 };
             }),
         }));
@@ -223,7 +229,7 @@ export function BookForm({
                     description="The dates apply to every line."
                 >
                     <FieldGroup>
-                        <div className="grid items-start gap-4 sm:grid-cols-[minmax(0,16rem)_auto_minmax(0,16rem)]">
+                        <div className="grid items-start gap-4 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
                             <Field data-invalid={!!errors.arrival_date}>
                                 <FieldLabel htmlFor="book-arrival">
                                     Arrival
@@ -240,16 +246,25 @@ export function BookForm({
                                 />
                                 <FieldError>{errors.arrival_date}</FieldError>
                             </Field>
-                            <div className="flex sm:pt-8">
-                                <Badge
-                                    variant="secondary"
-                                    className="tabular-nums"
+                            <Field>
+                                <FieldLabel
+                                    aria-hidden
+                                    className="invisible max-sm:hidden"
                                 >
-                                    {nights > 0
-                                        ? `${nights} ${nights === 1 ? 'night' : 'nights'}`
-                                        : '0 nights'}
-                                </Badge>
-                            </div>
+                                    Nights
+                                </FieldLabel>
+                                <div
+                                    className="flex h-8 min-w-16 flex-col items-center justify-center rounded-lg bg-muted px-3 text-xs leading-tight tabular-nums max-sm:justify-self-start"
+                                    aria-label="Nights"
+                                >
+                                    <span className="font-medium">
+                                        {Math.max(nights, 0)}
+                                    </span>
+                                    <span className="text-muted-foreground">
+                                        {nights === 1 ? 'Night' : 'Nights'}
+                                    </span>
+                                </div>
+                            </Field>
                             <Field data-invalid={!!errors.departure_date}>
                                 <FieldLabel htmlFor="book-departure">
                                     Departure
@@ -398,6 +413,9 @@ export function BookForm({
                         slots={slots}
                         guests={data.guests}
                         idTypes={idTypes}
+                        countries={countries}
+                        genders={genders}
+                        locales={locales}
                         errors={errors}
                         onChange={setGuest}
                     />

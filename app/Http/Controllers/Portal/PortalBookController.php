@@ -7,7 +7,9 @@ use App\Data\Portal\PortalRatePlanData;
 use App\Data\Portal\PortalRoomTypeData;
 use App\Data\Property\CurrencyData;
 use App\Enums\CompanyStatus;
+use App\Enums\Gender;
 use App\Enums\IdentityDocumentType;
+use App\Enums\Locale;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Portal\PortalOffersRequest;
 use App\Http\Requests\Portal\StorePortalBookingRequest;
@@ -15,6 +17,7 @@ use App\Models\ChargeItem;
 use App\Models\CompanyUser;
 use App\Models\Property;
 use App\Models\RatePlan;
+use App\Services\Guests\CountryOptions;
 use App\Services\Portal\PortalBookingMessages;
 use App\Services\Portal\PortalBookingQuote;
 use App\Services\Portal\PortalBookingRules;
@@ -53,6 +56,9 @@ class PortalBookController extends Controller
             'roomTypes' => $suspended ? [] : $portalRatePlans->roomTypesFor($link->company)->get()
                 ->map(fn ($roomType): PortalRoomTypeData => PortalRoomTypeData::fromModel($roomType))->all(),
             'idTypes' => IdentityDocumentType::options(),
+            'countries' => app(CountryOptions::class)->options(),
+            'genders' => Gender::options(),
+            'locales' => Locale::options(),
             'autoAddOns' => array_map(fn (ChargeItem $item): string => $item->name, $autoAddOns->items($property)),
             'currency' => CurrencyData::forProperty($property),
         ]);

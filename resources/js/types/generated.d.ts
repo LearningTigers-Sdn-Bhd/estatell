@@ -1529,6 +1529,7 @@ fullName: string | null,
 phone: string | null,
 idType: App.Enums.IdentityDocumentType | null,
 idNumber: string | null,
+profile: Record<string, string>,
 };
 export type NewPortalLineData = {
 ratePlanId: number | null,

@@ -3,6 +3,8 @@
  * with its beds. Numbers are kept as text while the user types. A dorm line has `beds` and always one adult for each
  * bed; a room line has rooms, adults and one age for each child.
  */
+import { EMPTY_GUEST_DETAILS } from '@/components/pms/guests/guest-details-fields';
+import type { GuestDetails } from '@/components/pms/guests/guest-details-fields';
 export type BookLine = {
     key: string;
     rate_plan_id: string;
@@ -14,9 +16,10 @@ export type BookLine = {
 };
 
 /** The lead guest of one unit. Always a new guest record. The ID is optional. */
-export type BookGuest = {
+export type BookGuest = GuestDetails & {
     full_name: string;
     phone: string;
+    email: string;
     id_type: string;
     id_number: string;
 };
@@ -44,7 +47,14 @@ export function newLine(ratePlanId = ''): BookLine {
 }
 
 export function emptyGuest(): BookGuest {
-    return { full_name: '', phone: '', id_type: '', id_number: '' };
+    return {
+        full_name: '',
+        phone: '',
+        email: '',
+        id_type: '',
+        id_number: '',
+        ...EMPTY_GUEST_DETAILS,
+    };
 }
 
 /** Keep the first `count` ages, and add empty ones (asked for) up to `count`. */

@@ -128,6 +128,46 @@ test('an ID typed for a guest is saved on that guest', function () {
         ->and($units[1]->guests->sole()->guest->documents->sole()->number)->toBe('900101145678');
 });
 
+test('the email, personal details and address typed for a guest are saved on that guest', function () {
+    $setup = portalBookingSetup();
+
+    portalBook($setup, portalBookingBody($setup, [portalRoomLine($setup)], [
+        'guests' => [[
+            'full_name' => 'Tan Wei Ming',
+            'email' => 'tan@example.com',
+            'nationality_code' => 'MY',
+            'date_of_birth' => '1990-01-01',
+            'gender' => 'male',
+            'preferred_locale' => 'en',
+            'address_line1' => '12 Jalan Ampang',
+            'city' => 'Kuala Lumpur',
+            'postal_code' => '50450',
+            'country_code' => 'MY',
+        ]],
+    ]))->assertSessionHasNoErrors();
+
+    $guest = Reservation::query()->sole()->units()->with('guests.guest')->get()->first()->guests->sole()->guest;
+
+    expect($guest->email)->toBe('tan@example.com')
+        ->and($guest->nationality_code)->toBe('MY')
+        ->and($guest->date_of_birth->toDateString())->toBe('1990-01-01')
+        ->and($guest->address_line1)->toBe('12 Jalan Ampang')
+        ->and($guest->city)->toBe('Kuala Lumpur');
+});
+
+test('a guest email and date of birth must be valid', function (array $guest, string $key) {
+    $setup = portalBookingSetup();
+    $before = portalCounts();
+
+    portalBook($setup, portalBookingBody($setup, [portalRoomLine($setup)], ['guests' => [['full_name' => 'Tan Wei Ming', ...$guest]]]))
+        ->assertSessionHasErrors([$key]);
+
+    expect(portalCounts())->toBe($before);
+})->with([
+    'bad email' => [['email' => 'not-an-email'], 'guests.0.email'],
+    'future birth date' => [['date_of_birth' => '2999-01-01'], 'guests.0.date_of_birth'],
+]);
+
 test('a guest ID needs both parts and a MyKad has 12 digits', function (array $guest, string $key) {
     $setup = portalBookingSetup();
     $before = portalCounts();
