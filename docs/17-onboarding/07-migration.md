@@ -89,13 +89,13 @@ Example: the old PMS charged 1–9 Oct with SST 155.52 and its daily reports sho
 
 ## What is not migrated
 
-| Item                                     | Instead                                                                                       |
-| ---------------------------------------- | --------------------------------------------------------------------------------------------- |
-| Stays that ended before go-live          | Not entered. Guest profiles come in through the guest list. Old invoices stay in the old PMS. |
-| Old line items when one amount is enough | One opening balance.                                                                          |
-| Future bookings                          | Entered as normal bookings. A deposit paid in the old PMS uses the Old system method.         |
-| Old invoices to reprint                  | Printed from the old PMS. estatell has no folio for them.                                     |
-| E-invoice submission of old invoices     | Never: the old system submitted them.                                                         |
+| Item                                     | Instead                                                                                                                                                                             |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Stays that ended before go-live          | Entered as an [Old stay](../12-reservations/12-past-and-migrated-stays.md#old-stay), history only. Guest profiles come in through the guest list. Old invoices stay in the old PMS. |
+| Old line items when one amount is enough | One opening balance.                                                                                                                                                                |
+| Future bookings                          | Entered as normal bookings. A deposit paid in the old PMS uses the Old system method.                                                                                               |
+| Old invoices to reprint                  | Printed from the old PMS. estatell has no folio for them.                                                                                                                           |
+| E-invoice submission of old invoices     | Never: the old system submitted them.                                                                                                                                               |
 
 ## Go-live page
 

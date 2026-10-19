@@ -2,18 +2,19 @@
 
 ## Purpose
 
-Enter a stay that began before today. Two cases:
+Enter a stay that began before today. Three cases:
 
 - **Past stay**: the stay started on or after the property's first business date and was entered late (a walk-in typed in the next morning, a paper booking). estatell charges every night, with its real date.
-- **Migrated stay**: the stay started before the property's first business date, in the old PMS. estatell does not charge the old nights. It carries the old folio over (see [Old folio](#old-folio)).
+- **Migrated stay**: the stay started before the property's first business date, in the old PMS, and the guest is still in the house or checked out on or after go-live. estatell does not charge the old nights. It carries the old folio over (see [Old folio](#old-folio)).
+- **Old stay**: the stay started and ended before the property's first business date. History only: rooms and guest history, no money (see [Old stay](#old-stay)).
 
-Normal bookings still refuse an arrival before the business date (`arrival_in_past`). These two modes are the only staff paths around it.
+Normal bookings still refuse an arrival before the business date (`arrival_in_past`). These three modes are the only staff paths around it.
 
 **Go-live date** in this file means the property's first business date (the earliest `business_dates.date`). It is usually the day the property went live. An admin can set it earlier when the owner asked to replay past stays day by day ([Go live](../17-onboarding/03-go-live.md#actions)). That path stays as it is.
 
 ## Booking form modes
 
-The booking form's **Reservation mode** select gains two options, shown only to users with `folio.manual`:
+The booking form's **Reservation mode** select gains three options, shown only to users with `folio.manual`:
 
 | Mode          | Shown                                                                                                     | URL                                   | Name                    |
 | ------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------- | ----------------------- |
@@ -21,8 +22,9 @@ The booking form's **Reservation mode** select gains two options, shown only to 
 | Walk-in       | Always                                                                                                    | `GET /p/{code}/reservations/walk-in`  | `reservations.walk-in`  |
 | Past stay     | With `folio.manual`                                                                                       | `GET /p/{code}/reservations/past`     | `reservations.past`     |
 | Migrated stay | With `folio.manual`, and inside the [migration window](../17-onboarding/07-migration.md#migration-window) | `GET /p/{code}/reservations/migrated` | `reservations.migrated` |
+| Old stay      | With `folio.manual`, and inside the migration window                                                      | `GET /p/{code}/reservations/old`      | `reservations.old`      |
 
-Both new modes post to `POST /p/{code}/reservations/past` (`reservations.store-past`, `reservations.manage` and `folio.manual`). Switching modes keeps what was typed, like New booking and Walk-in.
+All three new modes post to `POST /p/{code}/reservations/past` (`reservations.store-past`, `reservations.manage` and `folio.manual`). Switching modes keeps what was typed, like New booking and Walk-in.
 
 ## Past stay
 
@@ -87,12 +89,13 @@ Staff who do not want to charge the missed nights reverse them on the folio, or 
 
 ## Migrated stay
 
-For a guest who is in the house on go-live day, or a stay that started before it. Shown only inside the migration window.
+For a guest who is in the house on go-live day, or who checked out on or after it, from a stay that started before go-live. Shown only inside the migration window.
 
 ```
 ┌─ New booking ───────────────────────────────────────────────────────────────────┐
 │  Reservation mode [Migrated stay ▾]                                             │
 │  ┌ Migrated stay ─────────────────────────────────────────────────────────────┐ │
+│  │ Status        (•) Still in house   ( ) Already checked out                 │ │
 │  │ Checked in    [01 Oct ▾] [15:00]     Departure  [12 Oct ▾] [12:00]         │ │
 │  │ Nights before go-live (1–9 Oct) are not charged here.                      │ │
 │  │                                                                            │ │
@@ -111,18 +114,54 @@ For a guest who is in the house on go-live day, or a stay that started before it
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-| Field      | Rule                                                                                                                                                                                |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Checked in | Before the go-live date (`arrival_not_before_go_live`, "Use Past stay for a stay that began after go-live.").                                                                       |
-| Departure  | After the business date: the guest is still in the house. A stay that ended before go-live is not entered (see [Migration](../17-onboarding/07-migration.md#what-is-not-migrated)). |
-| Rooms      | Every night has a room or bed, and must be free, as for a Past stay. Nights before go-live keep their room, so room history and the police report are complete.                     |
-| Prices     | Nights before go-live show "before go-live" and no price. Their `unit_nights` rows keep the quoted amount, which is never posted.                                                   |
-| Old folio  | **One amount** (the default) or **Copy line by line**.                                                                                                                              |
-| Reason     | Required.                                                                                                                                                                           |
+| Field      | Rule                                                                                                                                                                                                                                                              |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Checked in | Before the go-live date (`arrival_not_before_go_live`, "Use Past stay for a stay that began after go-live.").                                                                                                                                                     |
+| Status     | **Still in house** (the default): the departure is after the business date. **Already checked out**: the departure is on or before the business date, and on or after the go-live date. The form shows Status as a switch; changing it clears the departure date. |
+| Departure  | As Status says. A departure after the business date with Already checked out is refused (`departure_after_today`, "Choose Still in house."). A stay that ended before go-live is an [Old stay](#old-stay).                                                        |
+| Rooms      | Every night has a room or bed, and must be free, as for a Past stay. Nights before go-live keep their room, so room history and the police report are complete.                                                                                                   |
+| Prices     | Nights before go-live show "before go-live" and no price. Their `unit_nights` rows keep the quoted amount, which is never posted.                                                                                                                                 |
+| Old folio  | **One amount** (the default) or **Copy line by line**.                                                                                                                                                                                                            |
+| Reason     | Required.                                                                                                                                                                                                                                                         |
 
 `CreateMigratedStay` runs `CreateBooking` with `allowPastArrival`, `CheckInUnit` with `asOf`, then `PostOpeningBalance` (One amount) for the unit's folio, in one transaction. The form has one amount and one old folio number for the stay, so the opening line posts on the folio of the first unit (the one the success page opens). The form posts `mode=migrated` and `old_folio` (`one_amount` or `copy_line_by_line`) to `reservations.store-past`; an empty amount is zero and posts nothing. It logs `reservation.migrated_stay_created`. **Copy line by line** saves the stay with no opening line and opens the old folio page.
 
+**Already checked out** adds `CheckOutUnit` for each unit with `checked_out_at` set to the entered departure (`asOf`) and `skipBalanceCheck`, as a [Past stay](#saving) does. Nights from go-live up to the departure post through `PostMissedNights`. The folio stays **Open** with its balance. The room is not marked Dirty. With **One amount** the page ends with the "Settle the folio now?" dialog described under Past stay. With **Copy line by line** the old folio page opens first, as for a stay in the house.
+
 **A night before the go-live date is never charged.** This needs no column: `PostRoomCharges`, `PostMissedNights` and the audit refuse a night before the go-live date (`night_before_go_live`). The folio's Scheduled rows and the booking summary totals leave those nights out.
+
+## Old stay
+
+For a stay that started and ended before go-live. It keeps room history, the police report and the guest's stay history. It holds no money. Shown only inside the migration window.
+
+```
+┌─ New booking ───────────────────────────────────────────────────────────────────┐
+│  Reservation mode [Old stay ▾]                                                  │
+│  ┌ Old stay ──────────────────────────────────────────────────────────────────┐ │
+│  │ History only. Nothing is charged and no folio lines are made.              │ │
+│  │ Checked in    [02 Oct ▾] [15:00]     Checked out  [04 Oct ▾] [12:00]       │ │
+│  │ Reason *      [e.g. Stay before go-live, from old PMS                  ]   │ │
+│  └────────────────────────────────────────────────────────────────────────────┘ │
+│  Line 1   Standard Double · Room Only · 2 adults · Room [103 ▾]                 │
+│                                        [Cancel]  [Save]                         │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+| Field       | Rule                                                                                                                                                     |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Checked in  | Before the go-live date.                                                                                                                                 |
+| Checked out | On or before the day before go-live (`departure_not_before_go_live`, "This stay ends on or after go-live. Use Migrated stay."). After the check-in date. |
+| Rooms       | Every line has a room or bed for the whole stay, and every night must be free, as for a Past stay (`room_not_free`).                                     |
+| Reason      | Required.                                                                                                                                                |
+| Prices      | None shown. The nights keep the quoted amount in `unit_nights`. It is never posted.                                                                      |
+
+`CreateOldStay` (`app/Actions/Reservations/`) runs `CreateBooking` with `allowPastArrival`, `CheckInUnit` with `asOf`, then `CheckOutUnit` with `asOf` and `skipBalanceCheck`, in one transaction. It posts no line (`PostMissedNights` and `PostRoomCharges` already refuse a night before go-live) and logs `reservation.old_stay_created`.
+
+- The folio is made **Closed** at 0 with no lines. It is not counted in revenue, tax, cash-up or statistics.
+- The room is not marked Dirty.
+- No Settle dialog, no opening balance and no old folio page.
+- If staff later need a line, they reopen the folio with the existing rules and use the [manual folio page](../13-folio/08-manual-folio.md).
+- Guest profiles still come in through the guest list. This mode adds the stay to a guest's history.
 
 ## Old folio
 
@@ -193,8 +232,8 @@ Copied lines sit in their own section above POSTED:
 
 ## Rules
 
-- Both modes need `folio.manual` (Owner, Manager).
-- Neither mode writes into a closed business date. Every line posts on the business date. Only `service_date` goes back in time.
+- All three modes need `folio.manual` (Owner, Manager).
+- No mode writes into a closed business date. Every line posts on the business date. Only `service_date` goes back in time.
 - A migrated stay is a normal reservation from then on: the night audit charges the nights from go-live, and check-out needs a balance of 0.
 
 ## Build order
@@ -206,3 +245,5 @@ Copied lines sit in their own section above POSTED:
 | 3    | `feat(reservations): add migrated stays with one amount`              | The Migrated stay mode and route, `CreateMigratedStay`, `night_before_go_live`, `PostOpeningBalance`, `ChangeOpeningBalance`. Needs: the migration window                            |
 | 4    | `feat(reservations): copy old folios line by line`                    | The old folio page, folio tabs, `SaveOldFolios`, `folio_lines.migrated`, top-level copied Tax lines. The first save only: saved lines are read only                                  |
 | 5    | `feat(reservations): edit old folios and show the old system section` | Editing inside the window, switching between One amount and Copy line by line, the OLD SYSTEM section on the folio tab, the invoice and the voucher, Move charges keeping `migrated` |
+| 6    | `feat(reservations): add migrated stays already checked out`          | The Status switch on Migrated stay, `CheckOutUnit` with `asOf` and `skipBalanceCheck` in `CreateMigratedStay`, `departure_after_today`, the Settle dialog after One amount           |
+| 7    | `feat(reservations): add old stays for guest history`                 | The Old stay mode and route, `CreateOldStay`, `departure_not_before_go_live`, the Closed folio with no lines. Needs: migrated stays already checked out                              |
