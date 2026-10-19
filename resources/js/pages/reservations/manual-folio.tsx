@@ -12,7 +12,11 @@ import { useMemo, useState } from 'react';
 import { FolioRail } from '@/components/pms/folio/folio-rail';
 import { FolioRowsTable } from '@/components/pms/folio/folio-rows-table';
 import { ManualFolioRail } from '@/components/pms/folio/manual-folio-rail';
-import { ManualFolioReasonDialog } from '@/components/pms/folio/manual-folio-reason-dialog';
+import {
+    ManualFolioReasonDialog,
+    reasonFromText,
+    reasonText,
+} from '@/components/pms/folio/manual-folio-reason-dialog';
 import {
     isIncomplete,
     ManualFolioRows,
@@ -55,7 +59,10 @@ const noop = () => undefined;
  * See docs/13-folio/08-manual-folio.md.
  */
 export default function ManualFolio({ manual: page }: Props) {
-    const [reason, setReason] = useState(page.reason ?? '');
+    const [reason, setReason] = useState(() =>
+        reasonFromText(page.reason, page.reasonOptions),
+    );
+    const reasonLabel = reasonText(reason, page.reasonOptions);
     const [reasonOpen, setReasonOpen] = useState(page.reason === null);
     const [rows, setRows] = useState<ManualDraft[]>(() => [
         newDraft(page, page.folioId),
@@ -94,7 +101,7 @@ export default function ManualFolio({ manual: page }: Props) {
     );
     const canPost =
         rows.length > 0 &&
-        reason.trim() !== '' &&
+        reasonLabel !== '' &&
         !unfinished &&
         current &&
         !form.processing;
@@ -126,7 +133,8 @@ export default function ManualFolio({ manual: page }: Props) {
 
         form.transform(() => ({
             rows: payload,
-            reason,
+            reason_option: reason.option,
+            reason_details: reason.details,
             close: close && preview.closeBlocked === null,
             idempotency_key: page.batchKey,
         }));
@@ -162,7 +170,7 @@ export default function ManualFolio({ manual: page }: Props) {
                             <span className="flex flex-wrap items-center gap-2">
                                 Reason:{' '}
                                 <span className="text-foreground">
-                                    {reason || 'Not given yet'}
+                                    {reasonLabel || 'Not given yet'}
                                 </span>
                                 <Button
                                     type="button"
@@ -316,6 +324,7 @@ export default function ManualFolio({ manual: page }: Props) {
             <ManualFolioReasonDialog
                 open={reasonOpen}
                 onOpenChange={setReasonOpen}
+                options={page.reasonOptions}
                 initial={reason}
                 onConfirm={setReason}
                 reservationId={page.reservationId}

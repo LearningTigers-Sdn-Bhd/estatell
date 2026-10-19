@@ -667,6 +667,10 @@ title: string,
 folioId: number,
 folioLabel: string,
 reason: string | null,
+reasonOptions: {
+value: string,
+label: string,
+}[],
 currency: App.Data.Property.CurrencyData | null,
 businessDate: string,
 earliestDate: string,
@@ -3405,6 +3409,7 @@ export type ImpersonationReason = 'onboarding_help' | 'support' | 'setup_check';
 export type InclusionEnd = 'departure_day' | 'night_before_departure';
 export type InclusionStart = 'arrival_day' | 'day_after_arrival';
 export type Locale = 'en' | 'ms';
+export type ManualFolioReason = 'paper_folio' | 'missed_charge' | 'missed_payment' | 'old_system' | 'fix_mistake' | 'other';
 export type ManualRowType = 'charge' | 'payment' | 'refund';
 export type MediaDisk = 'local' | 'r2';
 export type MissedArrivalPolicy = 'mark_no_show' | 'keep_as_late_arrival';

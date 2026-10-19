@@ -39,7 +39,7 @@ class ReservationFolioManualController extends Controller
      */
     public function start(StartManualFolioRequest $request, Property $property, Reservation $reservation, Folio $folio): RedirectResponse
     {
-        $request->session()->flash(self::REASON_KEY, trim($request->string('reason')->toString()));
+        $request->session()->flash(self::REASON_KEY, $request->reason());
 
         return redirect(route('reservations.folios.manual', ['property' => $property, 'reservation' => $reservation, 'folio' => $folio]));
     }
@@ -82,7 +82,7 @@ class ReservationFolioManualController extends Controller
     {
         $rows = $request->rows();
         $this->scope($reservation, $rows);
-        $result = $postManualBatch($request->user(), $reservation, $folio, $request->string('reason')->toString(), $rows, $request->boolean('close'), $request->string('idempotency_key')->toString());
+        $result = $postManualBatch($request->user(), $reservation, $folio, $request->reason(), $rows, $request->boolean('close'), $request->string('idempotency_key')->toString());
 
         if ($result->isRefused()) {
             return back(fallback: route('reservations.folios.manual', ['property' => $property, 'reservation' => $reservation, 'folio' => $folio]))

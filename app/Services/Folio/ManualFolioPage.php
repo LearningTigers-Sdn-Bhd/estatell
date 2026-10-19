@@ -12,6 +12,7 @@ use App\Data\Folio\ManualPaymentOptionData;
 use App\Data\Property\CurrencyData;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
+use App\Enums\ManualFolioReason;
 use App\Enums\PaymentStatus;
 use App\Enums\UnitStatus;
 use App\Models\ChargeItem;
@@ -66,6 +67,7 @@ class ManualFolioPage
             folioId: $folio->id,
             folioLabel: $label,
             reason: $reason,
+            reasonOptions: ManualFolioReason::options(),
             currency: CurrencyData::forProperty($property),
             businessDate: $businessDate->toDateString(),
             earliestDate: ($this->serviceDateRange->earliest($property, $reservation) ?? $businessDate)->toDateString(),

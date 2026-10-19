@@ -49,6 +49,7 @@ type Props = {
     canWaiveFees: boolean;
     canOverrideRestrictions: boolean;
     billingModes: EnumOption[];
+    manualReasons: EnumOption[];
     canViewCompany: boolean;
     canOverrideCredit: boolean;
     companies?: App.Data.CityLedger.CompanyOptionData[];
@@ -96,6 +97,7 @@ export default function ReservationShow({
     canWaiveFees,
     canOverrideRestrictions,
     billingModes,
+    manualReasons,
     canViewCompany,
     canOverrideCredit,
     companies,
@@ -319,6 +321,7 @@ export default function ReservationShow({
                                 chargeItems={chargeItems}
                                 chargeCodes={chargeCodes}
                                 folioDiscounts={folioDiscounts}
+                                manualReasons={manualReasons}
                                 paymentOptions={paymentOptions}
                                 canViewCompany={canViewCompany}
                                 companies={companies}

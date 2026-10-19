@@ -30,11 +30,31 @@ On the folio tab, the **More actions** dropdown gains a **Manual** group with **
 │                                                         │
 │  Reason *                                               │
 │  ┌───────────────────────────────────────────────────┐  │
-│  │ e.g. Entering charges from the paper folio        │  │
+│  │ Choose a reason                                 ▾ │  │
+│  └───────────────────────────────────────────────────┘  │
+│  Reason details *              (only for Other)         │
+│  ┌───────────────────────────────────────────────────┐  │
+│  │ e.g. Guest paid cash to the night staff           │  │
 │  └───────────────────────────────────────────────────┘  │
 │                               [Cancel]  [Continue]      │
 └─────────────────────────────────────────────────────────┘
 ```
+
+The reason is a select of `ManualFolioReason`, in this order:
+
+| Value            | Label                                 |
+| ---------------- | ------------------------------------- |
+| `paper_folio`    | Entering charges from the paper folio |
+| `missed_charge`  | A charge was missed                   |
+| `missed_payment` | A payment was not recorded            |
+| `old_system`     | Moving from the old system            |
+| `fix_mistake`    | Fixing a mistake                      |
+| `other`          | Other                                 |
+
+- Nothing is picked at first. **Continue** stays disabled until a reason is picked, and for Other until details are typed.
+- **Other** shows **Reason details** (required, at most 500 characters).
+- The requests send `reason_option` and `reason_details`. The server builds the reason text: the label, or the trimmed details for Other. The batch keeps that text in `folio_manual_batches.reason`, so the Manual marker and the Activity log read as before.
+- **Edit** on the page reopens the dialog on the option whose label matches the reason, else on Other with the text as details.
 
 **Continue** opens the manual folio page (`POST …/manual/start` flashes the reason, then redirects to the page). The reason is kept in the page's form state and saved with the first post. Nothing is written until the first post. A page opened without a reason (a reload or the address) opens the reason dialog first.
 

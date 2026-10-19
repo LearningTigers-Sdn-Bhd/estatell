@@ -30,6 +30,7 @@ import { EmptyState } from '@/components/pms/empty-state';
 import { ApplyDiscountDialog } from '@/components/pms/folio/apply-discount-dialog';
 import { CloseFolioDialog } from '@/components/pms/folio/close-folio-dialog';
 import { FolioRowsTable } from '@/components/pms/folio/folio-rows-table';
+import type { EnumOption } from '@/components/pms/enum-select';
 import { ManualFolioReasonDialog } from '@/components/pms/folio/manual-folio-reason-dialog';
 import { PostChargeDialog } from '@/components/pms/folio/post-charge-dialog';
 import {
@@ -96,6 +97,7 @@ export function FolioTab({
     chargeItems,
     chargeCodes,
     folioDiscounts,
+    manualReasons,
     paymentOptions,
     canViewCompany,
     companies,
@@ -114,6 +116,8 @@ export function FolioTab({
     chargeItems?: App.Data.Reservations.ChargeItemOptionData[];
     chargeCodes?: App.Data.Reservations.ChargeCodeOptionData[];
     folioDiscounts?: App.Data.Folio.FolioDiscountOptionData[];
+    /** The reasons the manual folio dialog offers. */
+    manualReasons: EnumOption[];
     paymentOptions?: App.Data.Payments.PaymentFormOptionsData;
     canViewCompany: boolean;
     companies?: App.Data.CityLedger.CompanyOptionData[];
@@ -711,6 +715,7 @@ export function FolioTab({
                     <ManualFolioReasonDialog
                         open={managing}
                         onOpenChange={setManaging}
+                        options={manualReasons}
                         reservationId={reservationId}
                         folioId={Number(folio.key)}
                     />

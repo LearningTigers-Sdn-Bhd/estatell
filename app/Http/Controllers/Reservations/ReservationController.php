@@ -16,6 +16,7 @@ use App\Enums\BillingMode;
 use App\Enums\BoatDirection;
 use App\Enums\Gender;
 use App\Enums\Locale;
+use App\Enums\ManualFolioReason;
 use App\Enums\PermissionEnum;
 use App\Enums\ReservationStatus;
 use App\Enums\TransactionKind;
@@ -308,6 +309,7 @@ class ReservationController extends Controller
             'canWaiveFees' => $user->can(PermissionEnum::FrontDeskWaiveFees->value),
             'canOverrideRestrictions' => $user->can(PermissionEnum::RatesOverrideRestrictions->value),
             'billingModes' => BillingMode::options(),
+            'manualReasons' => ManualFolioReason::options(),
             'canViewCompany' => $user->can(PermissionEnum::CompanyView->value),
             'canOverrideCredit' => $user->can(PermissionEnum::CompanyCreditOverride->value),
             'companies' => Inertia::optional(fn () => $user->can(PermissionEnum::CompanyView->value) ? app(CompanyOptions::class)->active($property) : []),

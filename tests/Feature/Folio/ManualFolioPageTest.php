@@ -79,15 +79,28 @@ test('a page opened without a reason has none', function () {
     $this->actingAs($setup['user'])->get(mgUrl($setup))->assertInertia(fn (Assert $page) => $page->where('manual.reason', null));
 });
 
-test('the reason dialog keeps the reason for the page and refuses an empty one', function () {
+test('the reason dialog keeps a picked reason as its label', function () {
     $setup = mfSetup();
 
-    $this->actingAs($setup['user'])->post(mgUrl($setup, 'reservations.folios.manual.start'), ['reason' => '  Entering charges from the paper folio '])
+    $this->actingAs($setup['user'])->post(mgUrl($setup, 'reservations.folios.manual.start'), ['reason_option' => 'missed_charge', 'reason_details' => 'ignored'])
         ->assertRedirect(mgUrl($setup));
-    $this->get(mgUrl($setup))->assertInertia(fn (Assert $page) => $page->where('manual.reason', 'Entering charges from the paper folio'));
-    $this->post(mgUrl($setup, 'reservations.folios.manual.start'), ['reason' => ''])->assertSessionHasErrors('reason');
+    $this->get(mgUrl($setup))->assertInertia(fn (Assert $page) => $page
+        ->where('manual.reason', 'A charge was missed')
+        ->has('manual.reasonOptions', 6)
+        ->where('manual.reasonOptions.5', ['value' => 'other', 'label' => 'Other']));
 
     expect(FolioManualBatch::query()->count())->toBe(0);
+});
+
+test('the reason dialog keeps the details of Other and refuses a missing reason', function () {
+    $setup = mfSetup();
+
+    $this->actingAs($setup['user'])->post(mgUrl($setup, 'reservations.folios.manual.start'), ['reason_option' => 'other', 'reason_details' => '  Guest paid cash to the night staff '])
+        ->assertRedirect(mgUrl($setup));
+    $this->get(mgUrl($setup))->assertInertia(fn (Assert $page) => $page->where('manual.reason', 'Guest paid cash to the night staff'));
+    $this->post(mgUrl($setup, 'reservations.folios.manual.start'), ['reason_option' => 'other', 'reason_details' => ''])->assertSessionHasErrors('reason_details');
+    $this->post(mgUrl($setup, 'reservations.folios.manual.start'), ['reason_option' => ''])->assertSessionHasErrors('reason_option');
+    $this->post(mgUrl($setup, 'reservations.folios.manual.start'), ['reason_option' => 'bored'])->assertSessionHasErrors('reason_option');
 });
 
 test('users without folio.manual cannot open, preview or post', function () {
@@ -95,8 +108,8 @@ test('users without folio.manual cannot open, preview or post', function () {
 
     $this->actingAs($setup['user'])->get(mgUrl($setup))->assertForbidden();
     $this->post(mgUrl($setup, 'reservations.folios.manual.preview'), ['rows' => []])->assertForbidden();
-    $this->post(mgUrl($setup, 'reservations.folios.manual.start'), ['reason' => 'x'])->assertForbidden();
-    $this->post(mgUrl($setup, 'reservations.folios.manual.store'), ['rows' => [mgRow($setup)], 'reason' => 'x', 'close' => false, 'idempotency_key' => fake()->uuid()])->assertForbidden();
+    $this->post(mgUrl($setup, 'reservations.folios.manual.start'), ['reason_option' => 'other', 'reason_details' => 'x'])->assertForbidden();
+    $this->post(mgUrl($setup, 'reservations.folios.manual.store'), ['rows' => [mgRow($setup)], 'reason_option' => 'other', 'reason_details' => 'x', 'close' => false, 'idempotency_key' => fake()->uuid()])->assertForbidden();
 });
 
 test('another property cannot reach the page', function () {
@@ -128,7 +141,7 @@ test('the preview answers for the rows and refuses a folio of another reservatio
 test('posting writes the batch, logs it and opens the folio tab', function () {
     $setup = mfSetup();
     $key = fake()->uuid();
-    $body = ['rows' => [mgRow($setup), mgRow($setup, ['type' => 'payment', 'charge_item_id' => null, 'payment_method_id' => $setup['cash']->id, 'amount' => '10.00'])], 'reason' => 'Paper folio', 'close' => false, 'idempotency_key' => $key];
+    $body = ['rows' => [mgRow($setup), mgRow($setup, ['type' => 'payment', 'charge_item_id' => null, 'payment_method_id' => $setup['cash']->id, 'amount' => '10.00'])], 'reason_option' => 'other', 'reason_details' => 'Paper folio', 'close' => false, 'idempotency_key' => $key];
 
     $this->actingAs($setup['user'])->post(mgUrl($setup, 'reservations.folios.manual.store'), $body)
         ->assertRedirect(route('reservations.folio', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id, 'folio' => $setup['folio']->id]));
@@ -141,7 +154,7 @@ test('posting writes the batch, logs it and opens the folio tab', function () {
 
 test('a refused row comes back as an error on that row and writes nothing', function () {
     $setup = mfSetup();
-    $body = ['rows' => [mgRow($setup), mgRow($setup, ['service_date' => '2026-10-30'])], 'reason' => 'Paper folio', 'close' => false, 'idempotency_key' => fake()->uuid()];
+    $body = ['rows' => [mgRow($setup), mgRow($setup, ['service_date' => '2026-10-30'])], 'reason_option' => 'other', 'reason_details' => 'Paper folio', 'close' => false, 'idempotency_key' => fake()->uuid()];
 
     $this->actingAs($setup['user'])->from(mgUrl($setup))->post(mgUrl($setup, 'reservations.folios.manual.store'), $body)
         ->assertRedirect(mgUrl($setup))
@@ -150,11 +163,16 @@ test('a refused row comes back as an error on that row and writes nothing', func
     expect(FolioLine::query()->count())->toBe(0)->and(FolioManualBatch::query()->count())->toBe(0);
 });
 
-test('the reason is required to post', function () {
+test('the reason is required to post and a picked one is saved as its label', function () {
     $setup = mfSetup();
 
-    $this->actingAs($setup['user'])->post(mgUrl($setup, 'reservations.folios.manual.store'), ['rows' => [mgRow($setup)], 'reason' => '', 'close' => false, 'idempotency_key' => fake()->uuid()])
-        ->assertSessionHasErrors('reason');
+    $this->actingAs($setup['user'])->post(mgUrl($setup, 'reservations.folios.manual.store'), ['rows' => [mgRow($setup)], 'reason_option' => '', 'close' => false, 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasErrors('reason_option');
+    $this->post(mgUrl($setup, 'reservations.folios.manual.store'), ['rows' => [mgRow($setup)], 'reason_option' => 'other', 'reason_details' => ' ', 'close' => false, 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasErrors('reason_details');
+    $this->post(mgUrl($setup, 'reservations.folios.manual.store'), ['rows' => [mgRow($setup)], 'reason_option' => 'old_system', 'close' => false, 'idempotency_key' => fake()->uuid()]);
+
+    expect(FolioManualBatch::query()->sole()->reason)->toBe('Moving from the old system');
 });
 
 test('the folio tab offers Manage manually on an Open folio and marks manual lines only for those who may see them', function () {
