@@ -1,8 +1,11 @@
-import { Form, Link, router, useForm } from '@inertiajs/react';
+import { Form, router, useForm } from '@inertiajs/react';
 import {
-    ArrowUpRight,
     Building2,
+    ConciergeBell,
     Ellipsis,
+    ExternalLink,
+    Globe,
+    Layers,
     ListChecks,
     Trash2,
     UserRound,
@@ -33,15 +36,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import {
     Field,
-    FieldDescription,
     FieldError,
     FieldGroup,
     FieldLabel,
-    FieldSet,
-    FieldLegend,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -78,10 +77,28 @@ const CHOICES: Record<string, Pick<Choice, 'icon' | 'description'>> = {
     },
 };
 
-const WHERE = [
-    { value: 'both', label: 'Front desk and portal' },
-    { value: 'desk', label: 'Front desk only' },
-    { value: 'portal', label: 'Portal only' },
+const WHERE: Choice[] = [
+    {
+        value: 'both',
+        label: 'Front desk and portal',
+        icon: Layers,
+        description:
+            'Staff can pick it once a company is on the booking, and every company with a portal login can book it.',
+    },
+    {
+        value: 'desk',
+        label: 'Front desk only',
+        icon: ConciergeBell,
+        description:
+            'Staff can pick it once a company is on the booking. Not in the portal.',
+    },
+    {
+        value: 'portal',
+        label: 'Portal only',
+        icon: Globe,
+        description:
+            'Every company with a portal login can book it. Not at the front desk.',
+    },
 ];
 
 function whereOf(access: Access): string {
@@ -170,46 +187,19 @@ export function RatePlanCompaniesForm({
                     }}
                     className="flex flex-col gap-4"
                 >
-                    <FieldSet>
-                        <FieldLegend variant="label">Where</FieldLegend>
-                        <RadioGroup
-                            name="where"
-                            value={form.data.where}
-                            onValueChange={(value) =>
-                                form.setData('where', String(value))
-                            }
-                            className="flex flex-wrap gap-4"
-                        >
-                            {WHERE.map((option) => (
-                                <Field
-                                    key={option.value}
-                                    orientation="horizontal"
-                                    className="w-fit"
-                                >
-                                    <RadioGroupItem
-                                        value={option.value}
-                                        id={`where-${option.value}`}
-                                    />
-                                    <FieldLabel
-                                        htmlFor={`where-${option.value}`}
-                                    >
-                                        {option.label}
-                                    </FieldLabel>
-                                </Field>
-                            ))}
-                        </RadioGroup>
-                        <FieldDescription>
-                            At the front desk the rate shows only once a company
-                            is picked on the booking. In the portal it shows to
-                            every company with a portal login.
-                        </FieldDescription>
-                        <FieldError>
-                            {
-                                (form.errors as Record<string, string>)
-                                    .company_access
-                            }
-                        </FieldError>
-                    </FieldSet>
+                    <ChoiceCards
+                        id="where"
+                        name="where"
+                        legend="Where"
+                        choices={WHERE}
+                        value={form.data.where}
+                        onValueChange={(value) => form.setData('where', value)}
+                        error={
+                            (form.errors as Record<string, string>)
+                                .company_access
+                        }
+                        columns={3}
+                    />
                     <footer className="flex justify-end">
                         <Button
                             type="submit"
@@ -314,16 +304,23 @@ function SelectedCompanies({
                             <TableRow key={row.id}>
                                 <TableCell className="font-medium">
                                     {canViewCompanies ? (
-                                        <Link
-                                            href={rates({ company: row.id })}
+                                        <a
+                                            href={rates.url({
+                                                company: row.id,
+                                            })}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
                                             className="inline-flex items-center gap-1 underline-offset-4 hover:underline"
                                         >
                                             {row.name}
-                                            <ArrowUpRight
-                                                className="size-3.5"
+                                            <ExternalLink
+                                                className="size-3.5 text-muted-foreground"
                                                 aria-hidden
                                             />
-                                        </Link>
+                                            <span className="sr-only">
+                                                (opens in a new tab)
+                                            </span>
+                                        </a>
                                     ) : (
                                         row.name
                                     )}
