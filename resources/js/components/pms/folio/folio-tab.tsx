@@ -23,6 +23,7 @@ import {
     UserPlus,
 } from 'lucide-react';
 import { useState } from 'react';
+import type { ComponentProps } from 'react';
 import { IssueCreditNoteDialog } from '@/components/pms/city-ledger/issue-credit-note-dialog';
 import { ReverseAllocationDialog } from '@/components/pms/city-ledger/reverse-allocation-dialog';
 import { useCreditNoteFlow } from '@/components/pms/city-ledger/use-credit-note-flow';
@@ -32,6 +33,7 @@ import { CloseFolioDialog } from '@/components/pms/folio/close-folio-dialog';
 import { FolioRowsTable } from '@/components/pms/folio/folio-rows-table';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { ManualFolioReasonDialog } from '@/components/pms/folio/manual-folio-reason-dialog';
+import { ManualLineDialogs } from '@/components/pms/folio/manual-line-dialogs';
 import { PostChargeDialog } from '@/components/pms/folio/post-charge-dialog';
 import {
     PrintVoucherDialog,
@@ -64,7 +66,10 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { KEEP_OPTIONS } from '@/components/pms/use-form-options';
+import {
+    KEEP_OPTIONS,
+    useFormOptions,
+} from '@/components/pms/use-form-options';
 import { useCanCorrectMoney } from '@/hooks/use-is-impersonating';
 import { show as showArInvoice } from '@/routes/finance/city-ledger/invoices';
 import { move as moveCharges } from '@/routes/reservations/folio';
@@ -104,6 +109,9 @@ export function FolioTab({
     canManageRouting,
     routingRules,
     creditInvoice,
+    manualLines,
+    manualFolios,
+    manualTaxes,
     voucher,
     summaryHidden,
     onToggleSummary,
@@ -124,6 +132,10 @@ export function FolioTab({
     canManageRouting: boolean;
     routingRules?: App.Data.Folio.RoutingRulesData | null;
     creditInvoice?: App.Data.CityLedger.ArInvoiceData | null;
+    /** The row menu Dialogs' data by charge line id, and the folios and taxes they pick from. Only for `folio.manual`. */
+    manualLines: Record<number, App.Data.Folio.ManualLineData>;
+    manualFolios?: App.Data.Folio.ManualFolioOptionData[];
+    manualTaxes?: App.Data.Catalogues.ChargeItemTaxData[];
     voucher: VoucherOptions;
     summaryHidden: boolean;
     onToggleSummary: () => void;
@@ -173,6 +185,13 @@ export function FolioTab({
         useState<App.Data.Folio.FolioRowData | null>(null);
     const [reversing, setReversing] =
         useState<App.Data.Folio.FolioRowData | null>(null);
+    const [lineTarget, setLineTarget] =
+        useState<ComponentProps<typeof ManualLineDialogs>['target']>(null);
+    useFormOptions(
+        lineTarget !== null,
+        manualFolios !== undefined && manualTaxes !== undefined,
+        ['manualFolios', 'manualTaxes'],
+    );
 
     const summaryLabel = summaryHidden ? 'Show summary' : 'Hide summary';
 
@@ -704,8 +723,14 @@ export function FolioTab({
                                     onCorrectPrice?.(row);
                                 } else if (action === 'refund') {
                                     setRefunding(row);
-                                } else {
+                                } else if (action === 'remove_discount') {
                                     setRemoving(row);
+                                } else if (row.lineId !== null) {
+                                    const line = manualLines[row.lineId];
+
+                                    if (line !== undefined) {
+                                        setLineTarget({ row, line, action });
+                                    }
                                 }
                             }}
                         />
@@ -798,6 +823,20 @@ export function FolioTab({
                     row={removing}
                     onClose={() => setRemoving(null)}
                 />
+                {folio.canManageManually && (
+                    <ManualLineDialogs
+                        context={{
+                            reservationId,
+                            folioId: Number(folio.key),
+                            currency,
+                            folios: manualFolios ?? [],
+                            taxes: manualTaxes ?? [],
+                        }}
+                        reason=""
+                        target={lineTarget}
+                        onClose={() => setLineTarget(null)}
+                    />
+                )}
                 <ReverseLineDialog
                     reservationId={reservationId}
                     folioId={Number(folio.key)}

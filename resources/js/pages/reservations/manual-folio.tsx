@@ -379,7 +379,7 @@ export default function ManualFolio({ manual: page }: Props) {
             />
 
             <ManualLineDialogs
-                page={page}
+                context={page}
                 reason={reasonLabel}
                 target={lineTarget}
                 onClose={() => setLineTarget(null)}

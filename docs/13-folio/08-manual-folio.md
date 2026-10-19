@@ -110,7 +110,7 @@ A full page with the same shell as the [reservation page](../12-reservations/06-
 
 ## Row menu on posted lines
 
-On the **Posted lines** tab, each top-level row's ⋯ menu adds manual actions to the existing ones:
+On the **Posted lines** tab, and on the **folio tab** of an Open folio for a user with `folio.manual`, each top-level row's ⋯ menu adds manual actions to the existing ones:
 
 ```
 │  09 Oct   Laundry · Shirts      1     25.00   ⋯ ┐
@@ -126,7 +126,7 @@ On the **Posted lines** tab, each top-level row's ⋯ menu adds manual actions t
 
 Each one posts at once in its own Dialog (they are not draft rows). The Dialog's reason field starts with the page's reason and can be edited. Every action creates its own `folio_manual_batches` row (its key is the Dialog's UUID, so a second click writes nothing), so each line still points to a reason. After an action, the Posted lines tab, the rail and the summary reload and the draft rows stay.
 
-The menu shows on a live charge. **Move**, **Refund**, **Remove discount** and **Correct price** stay on the folio tab: they leave this page or need data it does not load. A charge with a live discount offers **Reverse** only: remove the discount first (`line_has_discount`).
+The menu shows on a live charge. On the manual page **Move**, **Refund**, **Remove discount** and **Correct price** are left out: they leave the page or need data it does not load. On the folio tab every item stays and the manual ones follow Move, with no page reason, so the Dialog's reason starts empty. The folio tab loads the folios and taxes the Dialogs pick from (`manualFolios`, `manualTaxes`) when the first Dialog opens. A charge with a live discount offers **Reverse** only: remove the discount first (`line_has_discount`).
 
 | Action          | Dialog                                                                                                                             | Writes                                                                                                                                                                                                                                                                                  | Refusals                                                                                                                                                                       |
 | --------------- | ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |

@@ -9,7 +9,9 @@ type OptionProp =
     | 'paymentOptions'
     | 'companies'
     | 'boatDepartures'
-    | 'boatSetup';
+    | 'boatSetup'
+    | 'manualFolios'
+    | 'manualTaxes';
 
 /**
  * Asks the server for an optional page prop the first time an overlay opens. The prop stays on the page afterwards.
@@ -39,4 +41,6 @@ export const KEEP_OPTIONS = [
     'companies',
     'boatDepartures',
     'boatSetup',
+    'manualFolios',
+    'manualTaxes',
 ];

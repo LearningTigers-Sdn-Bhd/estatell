@@ -73,6 +73,9 @@ type Props = {
     canManageRouting?: boolean;
     routingRules?: App.Data.Folio.RoutingRulesData | null;
     creditInvoice?: App.Data.CityLedger.ArInvoiceData | null;
+    manualLines?: Record<number, App.Data.Folio.ManualLineData>;
+    manualFolios?: App.Data.Folio.ManualFolioOptionData[];
+    manualTaxes?: App.Data.Catalogues.ChargeItemTaxData[];
     voucher: { kinds: { value: string; label: string }[]; maxLines: number };
     activity?: Illuminate.LengthAwarePaginator<
         number,
@@ -121,6 +124,9 @@ export default function ReservationShow({
     canManageRouting = false,
     routingRules,
     creditInvoice,
+    manualLines = {},
+    manualFolios,
+    manualTaxes,
     voucher,
     activity,
 }: Props) {
@@ -328,6 +334,9 @@ export default function ReservationShow({
                                 canManageRouting={canManageRouting}
                                 routingRules={routingRules}
                                 creditInvoice={creditInvoice}
+                                manualLines={manualLines}
+                                manualFolios={manualFolios}
+                                manualTaxes={manualTaxes}
                                 voucher={voucher}
                                 summaryHidden={summaryHidden}
                                 onToggleSummary={toggleSummary}

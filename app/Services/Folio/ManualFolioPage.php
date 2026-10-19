@@ -74,14 +74,10 @@ class ManualFolioPage
             earliestDate: ($this->serviceDateRange->earliest($property, $reservation) ?? $businessDate)->toDateString(),
             chargeItems: $this->options->chargeItems($property),
             itemTaxIds: $this->itemTaxIds($property),
-            taxes: array_values($property->taxes()->orderBy('name')->get()->map(ChargeItemTaxData::fromModel(...))->all()),
+            taxes: $this->taxOptions($property),
             paymentMethods: $this->options->payments($property)->methods,
             payments: $this->payments($reservation),
-            folios: array_values($folios->map(fn (Folio $open): ManualFolioOptionData => new ManualFolioOptionData(
-                $open->id,
-                $this->labels->folioLabel($open, $unitLabels),
-                $open->type === FolioType::Unit ? $open->reservation_unit_id : null,
-            ))->all()),
+            folios: $this->folioOptions($reservation),
             units: array_values($units->map(fn (ReservationUnit $unit): FolioOptionData => new FolioOptionData($unit->id, $unitLabels[$unit->id] ?? '—'))->all()),
             rail: array_values(array_filter($statement['folios'], fn (FolioRailItemData $item): bool => in_array($item->key, $openKeys, true))),
             preview: $this->preview->preview($property, $reservation, $folio, []),
@@ -91,6 +87,32 @@ class ManualFolioPage
             maxRows: ManualBatchResult::MAX_ROWS,
             cancelUrl: route('reservations.folio', ['property' => $property, 'reservation' => $reservation, 'folio' => $folio->id]),
         );
+    }
+
+    /**
+     * The Open folios of the reservation, as the Split Dialog and the rows pick them.
+     *
+     * @return list<ManualFolioOptionData>
+     */
+    public function folioOptions(Reservation $reservation): array
+    {
+        $unitLabels = $this->labels->unitLabels($reservation);
+
+        return array_values($reservation->folios()->where('status', FolioStatus::Open)->with(['payerGuest', 'payerCompany:id,name'])->orderBy('id')->get()->map(fn (Folio $open): ManualFolioOptionData => new ManualFolioOptionData(
+            $open->id,
+            $this->labels->folioLabel($open, $unitLabels),
+            $open->type === FolioType::Unit ? $open->reservation_unit_id : null,
+        ))->all());
+    }
+
+    /**
+     * The property's taxes, by name.
+     *
+     * @return list<ChargeItemTaxData>
+     */
+    public function taxOptions(Property $property): array
+    {
+        return array_values($property->taxes()->orderBy('name')->get()->map(ChargeItemTaxData::fromModel(...))->all());
     }
 
     /**

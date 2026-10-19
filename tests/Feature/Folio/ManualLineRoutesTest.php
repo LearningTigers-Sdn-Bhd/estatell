@@ -117,3 +117,26 @@ test('the row menu routes need folio.manual and stay on the reservation', functi
 
     expect(FolioManualBatch::query()->count())->toBe(0);
 });
+
+test('the folio tab offers the manual items next to its own for folio.manual only', function () {
+    $setup = mfSetup();
+    $line = mlCharge($setup, $setup['minibar']);
+    $plain = User::factory()->for($setup['property'])->withPermissions([PermissionEnum::ReservationsView, PermissionEnum::FolioReverse])->create();
+    $url = route('reservations.folio', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id, 'folio' => $setup['folio']->id]);
+
+    $this->actingAs($setup['user'])->get($url)->assertInertia(fn (Assert $page) => $page
+        ->where('manualLines.'.$line->id.'.total', '100.00')
+        ->where('folio.rows.0.actions', fn ($actions) => collect($actions)->contains('reverse') && collect($actions)->contains('split') && collect($actions)->contains('recalculate_tax'))
+        ->missing('manualFolios')
+        ->missing('manualTaxes'));
+
+    $this->actingAs($setup['user'])
+        ->get($url, ['X-Inertia' => 'true', 'X-Inertia-Partial-Component' => 'reservations/show', 'X-Inertia-Partial-Data' => 'manualFolios,manualTaxes', 'X-Inertia-Version' => Inertia\Inertia::getVersion()])
+        ->assertOk()
+        ->assertJsonCount(1, 'props.manualFolios')
+        ->assertJsonCount(1, 'props.manualTaxes');
+
+    $this->actingAs($plain)->get($url)->assertInertia(fn (Assert $page) => $page
+        ->where('manualLines', [])
+        ->where('folio.rows.0.actions', fn ($actions) => collect($actions)->contains('reverse') && ! collect($actions)->contains('split')));
+});

@@ -38,6 +38,8 @@ use App\Services\CityLedger\CompanyOptions;
 use App\Services\Folio\AddOnBilling;
 use App\Services\Folio\FolioStatement;
 use App\Services\Folio\FolioVoucher;
+use App\Services\Folio\ManualFolioPage;
+use App\Services\Folio\ManualLineMenu;
 use App\Services\Folio\RoutingRuleList;
 use App\Services\FrontDesk\GroupCheckOutPreview;
 use App\Services\Guests\CountryOptions;
@@ -170,11 +172,11 @@ class ReservationController extends Controller
      * Reservation page, Folio tab. `?folio=` picks the folio (an id, or `u{unit id}` for a unit with no folio yet).
      * `routingRules` is an optional prop for the Routing rules Sheet, sent only to a user with `folio.transfer`. `creditInvoice` is an optional prop with the AR invoice page data of a settled folio, read when its credit note Dialog or void Dialog opens and null without the credit note permission or the void and reopen permissions.
      */
-    public function folio(Request $request, Property $property, Reservation $reservation, FolioStatement $statement, RoutingRuleList $routingRuleList, ArInvoiceDetail $invoiceDetail): Response
+    public function folio(Request $request, Property $property, Reservation $reservation, FolioStatement $statement, RoutingRuleList $routingRuleList, ArInvoiceDetail $invoiceDetail, ManualLineMenu $lineMenu, ManualFolioPage $manualPage): Response
     {
         $canManageRouting = $request->user()->can(PermissionEnum::FolioTransfer->value);
 
-        return $this->renderTab($request->user(), $property, $reservation, 'folio', function (array $units) use ($request, $property, $reservation, $statement, $routingRuleList, $canManageRouting, $invoiceDetail): array {
+        return $this->renderTab($request->user(), $property, $reservation, 'folio', function (array $units) use ($request, $property, $reservation, $statement, $routingRuleList, $canManageRouting, $invoiceDetail, $lineMenu, $manualPage): array {
             $folioProps = $statement->build($property, $reservation, $units, $request->string('folio')->toString(), [
                 'postCharge' => $request->user()->can(PermissionEnum::FolioPostCharge->value),
                 'reverse' => $request->user()->can(PermissionEnum::FolioReverse->value),
@@ -190,8 +192,14 @@ class ReservationController extends Controller
                 'viewManual' => $request->user()->can(PermissionEnum::FolioViewManualEntries->value),
             ], $request->user());
 
+            $folio = $folioProps['folio'] ?? null;
+            $manual = $folio?->canManageManually === true;
+
             return [
                 ...$folioProps,
+                'manualLines' => $manual ? $lineMenu->apply($request->user(), $folio, $property->id, true) : [],
+                'manualFolios' => Inertia::optional(fn (): array => $manual ? $manualPage->folioOptions($reservation) : []),
+                'manualTaxes' => Inertia::optional(fn (): array => $manual ? $manualPage->taxOptions($property) : []),
                 'voucher' => [
                     'kinds' => array_values(array_filter(TransactionKind::options(), fn (array $kind): bool => $kind['value'] !== TransactionKind::Payment->value)),
                     'maxLines' => FolioVoucher::MAX_LINES,

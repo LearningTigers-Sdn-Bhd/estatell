@@ -299,7 +299,10 @@ export function FolioRowsTable({
                                                     >
                                                         <MoreHorizontal />
                                                     </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end">
+                                                    <DropdownMenuContent
+                                                        align="end"
+                                                        className="min-w-52"
+                                                    >
                                                         {row.hasReceipt &&
                                                             row.paymentId !==
                                                                 null && (

@@ -7,6 +7,7 @@ import { FormOverlay } from '@/components/pms/form-overlay';
 import { MoneyInput } from '@/components/pms/money-input';
 import { MoneyText } from '@/components/pms/money-text';
 import { MultiCombobox } from '@/components/pms/multi-combobox';
+import { KEEP_OPTIONS } from '@/components/pms/use-form-options';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
 import { useRetainedValue } from '@/components/pms/use-retained-value';
 import { Button } from '@/components/ui/button';
@@ -25,7 +26,15 @@ import {
 } from '@/routes/reservations/folios/lines/tax';
 
 type Row = App.Data.Folio.FolioRowData;
-type Page = App.Data.Folio.ManualFolioPageData;
+/** What the Dialogs need from the page that holds them: the manual folio page or the folio tab. */
+export type ManualLineContext = {
+    reservationId: number;
+    folioId: number;
+    currency: App.Data.Property.CurrencyData | null;
+    folios: App.Data.Folio.ManualFolioOptionData[];
+    taxes: App.Data.Catalogues.ChargeItemTaxData[];
+};
+
 type Line = App.Data.Folio.ManualLineData;
 
 export type ManualLineAction =
@@ -39,7 +48,7 @@ type Target = { row: Row; line: Line; action: ManualLineAction };
 type FormProps = {
     open: boolean;
     onClose: () => void;
-    page: Page;
+    context: ManualLineContext;
     reason: string;
     row: Row;
     line: Line;
@@ -86,19 +95,24 @@ function useBatchKey(): string {
 
 /** Posts at once and keeps the page's draft rows. */
 function postOptions(onClose: () => void) {
-    return { preserveScroll: true, preserveState: true, onSuccess: onClose };
+    return {
+        preserveScroll: true,
+        preserveState: true,
+        except: KEEP_OPTIONS,
+        onSuccess: onClose,
+    };
 }
 
-function SplitForm({ open, onClose, page, reason, row, line }: FormProps) {
+function SplitForm({ open, onClose, context, reason, row, line }: FormProps) {
     const key = useBatchKey();
     const form = useForm({
         reason,
         parts: [
-            { folio_id: String(page.folioId), amount: '' },
+            { folio_id: String(context.folioId), amount: '' },
             {
                 folio_id: String(
-                    page.folios.find((one) => one.id !== page.folioId)?.id ??
-                        page.folioId,
+                    context.folios.find((one) => one.id !== context.folioId)
+                        ?.id ?? context.folioId,
                 ),
                 amount: '',
             },
@@ -113,7 +127,7 @@ function SplitForm({ open, onClose, page, reason, row, line }: FormProps) {
         left === 0 &&
         form.data.reason.trim() !== '' &&
         parts.every((part) => cents(part.amount || '0') > 0);
-    const options = page.folios.map((one) => ({
+    const options = context.folios.map((one) => ({
         value: String(one.id),
         label: one.label,
     }));
@@ -141,8 +155,8 @@ function SplitForm({ open, onClose, page, reason, row, line }: FormProps) {
                 }));
                 form.post(
                     split.url({
-                        reservation: page.reservationId,
-                        folio: page.folioId,
+                        reservation: context.reservationId,
+                        folio: context.folioId,
                         line: line.lineId,
                     }),
                     postOptions(onClose),
@@ -175,7 +189,7 @@ function SplitForm({ open, onClose, page, reason, row, line }: FormProps) {
                                     onChange={(value) =>
                                         setPart(index, { amount: value })
                                     }
-                                    currency={page.currency}
+                                    currency={context.currency}
                                     invalid={!!errors[`parts.${index}.amount`]}
                                 />
                             </div>
@@ -206,7 +220,10 @@ function SplitForm({ open, onClose, page, reason, row, line }: FormProps) {
                         onClick={() =>
                             form.setData('parts', [
                                 ...parts,
-                                { folio_id: String(page.folioId), amount: '' },
+                                {
+                                    folio_id: String(context.folioId),
+                                    amount: '',
+                                },
                             ])
                         }
                     >
@@ -217,7 +234,7 @@ function SplitForm({ open, onClose, page, reason, row, line }: FormProps) {
                         Line total{' '}
                         <MoneyText
                             amount={line.total}
-                            currency={page.currency}
+                            currency={context.currency}
                         />
                         {left !== 0 && (
                             <>
@@ -225,7 +242,7 @@ function SplitForm({ open, onClose, page, reason, row, line }: FormProps) {
                                 {left > 0 ? 'left' : 'over'}{' '}
                                 <MoneyText
                                     amount={(Math.abs(left) / 100).toFixed(2)}
-                                    currency={page.currency}
+                                    currency={context.currency}
                                 />
                             </>
                         )}
@@ -242,7 +259,14 @@ function SplitForm({ open, onClose, page, reason, row, line }: FormProps) {
     );
 }
 
-function RemoveTaxForm({ open, onClose, page, reason, row, line }: FormProps) {
+function RemoveTaxForm({
+    open,
+    onClose,
+    context,
+    reason,
+    row,
+    line,
+}: FormProps) {
     const key = useBatchKey();
     const form = useForm({ reason, tax_ids: [] as string[] });
     const errors = form.errors as Partial<Record<string, string>>;
@@ -262,8 +286,8 @@ function RemoveTaxForm({ open, onClose, page, reason, row, line }: FormProps) {
                 }));
                 form.post(
                     remove.url({
-                        reservation: page.reservationId,
-                        folio: page.folioId,
+                        reservation: context.reservationId,
+                        folio: context.folioId,
                         line: line.lineId,
                     }),
                     postOptions(onClose),
@@ -304,16 +328,18 @@ function RemoveTaxForm({ open, onClose, page, reason, row, line }: FormProps) {
     );
 }
 
-function AddTaxForm({ open, onClose, page, reason, row, line }: FormProps) {
+function AddTaxForm({ open, onClose, context, reason, row, line }: FormProps) {
     const key = useBatchKey();
     const form = useForm({ reason, tax_ids: [] as string[] });
     const errors = form.errors as Partial<Record<string, string>>;
     const onLine = new Set(line.taxes.map((tax) => tax.taxId));
-    const options = page.taxes
+    const options = context.taxes
         .filter((tax) => tax.enabled && !tax.isInclusive && !onLine.has(tax.id))
         .map((tax) => ({
             value: String(tax.id),
-            label: page.currency ? taxLabel(tax, page.currency) : tax.name,
+            label: context.currency
+                ? taxLabel(tax, context.currency)
+                : tax.name,
         }));
 
     return (
@@ -331,8 +357,8 @@ function AddTaxForm({ open, onClose, page, reason, row, line }: FormProps) {
                 }));
                 form.post(
                     add.url({
-                        reservation: page.reservationId,
-                        folio: page.folioId,
+                        reservation: context.reservationId,
+                        folio: context.folioId,
                         line: line.lineId,
                     }),
                     postOptions(onClose),
@@ -371,7 +397,7 @@ function AddTaxForm({ open, onClose, page, reason, row, line }: FormProps) {
 function RecalculateTaxForm({
     open,
     onClose,
-    page,
+    context,
     reason,
     row,
     line,
@@ -395,8 +421,8 @@ function RecalculateTaxForm({
                 }));
                 form.post(
                     recalculate.url({
-                        reservation: page.reservationId,
-                        folio: page.folioId,
+                        reservation: context.reservationId,
+                        folio: context.folioId,
                         line: line.lineId,
                     }),
                     postOptions(onClose),
@@ -421,12 +447,12 @@ function RecalculateTaxForm({
  * with its own reason, which starts as the page's reason. See docs/13-folio/08-manual-folio.md#row-menu-on-posted-lines.
  */
 export function ManualLineDialogs({
-    page,
+    context,
     reason,
     target,
     onClose,
 }: {
-    page: Page;
+    context: ManualLineContext;
     reason: string;
     target: Target | null;
     onClose: () => void;
@@ -443,7 +469,7 @@ export function ManualLineDialogs({
         key: `${kept.line.lineId}-${kept.action}-${fresh}`,
         open,
         onClose,
-        page,
+        context,
         reason,
         row: kept.row,
         line: kept.line,

@@ -14,34 +14,38 @@ use App\Models\User;
 use Brick\Math\BigDecimal;
 
 /**
- * The row menu of the Posted lines tab on the manual folio page. A live charge offers Reverse to a user with
- * `folio.reverse`, and, when it has no live discount, Split, Remove tax (when it has a tax), Add tax and Recalculate
- * tax. The other row actions of the folio tab (Move, Refund, Remove discount, Correct price) are not wired on this
- * page, so its rows get none of them. It changes the rows' `actions` and returns what the Dialogs need, by charge
- * line id. It writes nothing. See docs/13-folio/08-manual-folio.md#row-menu-on-posted-lines.
+ * The manual items of the row menu, on the manual folio page and on the folio tab. A live charge without a live
+ * discount offers Split, Remove tax (when it has a tax), Add tax and Recalculate tax. On the manual page the other row
+ * actions of the folio tab (Move, Refund, Remove discount, Correct price) are not wired, so its rows keep only Reverse
+ * (for a user with `folio.reverse`); on the folio tab (`$keepActions`) every row keeps its actions. It changes the
+ * rows' `actions` and returns what the Dialogs need, by charge line id. It writes nothing. See
+ * docs/13-folio/08-manual-folio.md#row-menu-on-posted-lines.
  */
 class ManualLineMenu
 {
     /**
      * @return array<int, ManualLineData>
      */
-    public function apply(User $user, FolioData $folio, int $propertyId): array
+    public function apply(User $user, FolioData $folio, int $propertyId, bool $keepActions = false): array
     {
         $charges = array_values(array_filter($folio->rows, fn (FolioRowData $row): bool => $row->state === 'posted' && $row->level === 0 && $row->kind === TransactionKind::Charge && $row->lineId !== null));
-        $lines = FolioLine::query()
-            ->whereIn('id', array_map(fn (FolioRowData $row): int => (int) $row->lineId, $charges))
-            ->whereNull('reversal_of_id')
-            ->whereDoesntHave('reversal')
-            ->with(['children' => fn ($query) => $query->whereDoesntHave('reversal')->orderBy('id')])
-            ->get()
-            ->keyBy('id');
-        $taxesByCode = Tax::query()->where('property_id', $propertyId)->get()->keyBy('transaction_code_id');
+        $ids = array_map(fn (FolioRowData $row): int => (int) $row->lineId, $charges);
+        $found = $ids === [] ? collect() : FolioLine::query()
+            ->where(fn ($query) => $query->whereIn('id', $ids)->orWhereIn('parent_line_id', $ids))
+            ->withExists('reversal')
+            ->orderBy('id')
+            ->get();
+        $lines = $found->whereIn('id', $ids)->whereNull('reversal_of_id')->where('reversal_exists', false)->keyBy('id');
+        $children = $found->whereIn('parent_line_id', $ids)->where('reversal_exists', false)->groupBy('parent_line_id');
+        $taxesByCode = $children->flatten()->contains('kind', TransactionKind::Tax)
+            ? Tax::query()->where('property_id', $propertyId)->get()->keyBy('transaction_code_id')
+            : collect();
         $data = [];
 
         $canReverse = $user->can(PermissionEnum::FolioReverse->value);
 
         foreach ($folio->rows as $row) {
-            $row->actions = [];
+            $row->actions = $keepActions ? $row->actions : [];
         }
 
         foreach ($charges as $row) {
@@ -51,13 +55,14 @@ class ManualLineMenu
                 continue;
             }
 
-            $row->actions = $canReverse ? ['reverse'] : [];
+            $lineChildren = $children->get($line->id, collect());
+            $row->actions = $keepActions ? $row->actions : ($canReverse ? ['reverse'] : []);
 
-            if ($line->children->contains('kind', TransactionKind::Adjustment)) {
+            if ($lineChildren->contains('kind', TransactionKind::Adjustment)) {
                 continue;
             }
 
-            $taxes = array_values($line->children->where('kind', TransactionKind::Tax)->map(fn (FolioLine $tax): ManualLineTaxData => new ManualLineTaxData(
+            $taxes = array_values($lineChildren->where('kind', TransactionKind::Tax)->map(fn (FolioLine $tax): ManualLineTaxData => new ManualLineTaxData(
                 $tax->id,
                 $taxesByCode->get($tax->transaction_code_id)?->id,
                 $tax->description,
