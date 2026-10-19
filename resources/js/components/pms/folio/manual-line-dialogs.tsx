@@ -159,6 +159,7 @@ function SplitForm({ open, onClose, page, reason, row, line }: FormProps) {
                         <div key={index} className="flex items-start gap-2">
                             <div className="min-w-0 flex-1">
                                 <EnumSelect
+                                    className="w-full"
                                     aria-label={`Folio of part ${index + 1}`}
                                     options={options}
                                     value={part.folio_id}
