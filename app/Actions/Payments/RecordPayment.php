@@ -51,7 +51,7 @@ class RecordPayment
      * CheckedOut unit at 0 (`CloseSettledUnitFolio`). An Old system payment (`folio.manual` and an open migration window) takes no receipt number and no surcharge, needs a
      * reference and a service date of any real day up to the business date, and prints as "Paid in old system · {reference}". A surcharge
      * posts as a charge on the same folio, and the payment line covers the amount, the fee and its tax, so the balance
-     * falls by the amount entered. The key `payment:{uuid}` makes a repeat return the existing payment. The route
+     * falls by the amount entered. The key `payment:{uuid}` (or the given `lineKey`) makes a repeat return the existing payment. The route
      * checks the permission and that the folio or unit belongs to the reservation's property.
      * See docs/14-payments/01-payments-and-refunds.md.
      */
@@ -63,7 +63,7 @@ class RecordPayment
 
         return DB::transaction(function () use ($actor, $reservation, $folio, $unit, $data): PaymentResult {
             [$lockedUnit, $target] = $unit === null ? [null, $this->lockFolio($reservation, $folio)] : $this->lockUnit($reservation, $unit);
-            $key = 'payment:'.$data->idempotencyKey;
+            $key = $data->lineKey ?? 'payment:'.$data->idempotencyKey;
             $existing = FolioLine::query()->where('idempotency_key', $key)->first();
 
             if ($existing !== null) {
@@ -149,6 +149,7 @@ class RecordPayment
             $line->posting_date = $postingDate;
             $line->service_date = $serviceDate;
             $line->manual_batch_id = $data->manualBatchId;
+            $line->migrated = $data->migrated;
             $line->idempotency_key = $key;
             $line->user_id = $actor->id;
             $line->save();

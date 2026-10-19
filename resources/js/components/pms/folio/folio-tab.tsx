@@ -18,6 +18,7 @@ import {
     Printer,
     ReceiptText,
     FileText,
+    History,
     Split,
     Ticket,
     UserPlus,
@@ -112,6 +113,7 @@ export function FolioTab({
     manualLines,
     manualFolios,
     manualTaxes,
+    oldFolioUrl = null,
     voucher,
     summaryHidden,
     onToggleSummary,
@@ -136,6 +138,8 @@ export function FolioTab({
     manualLines: Record<number, App.Data.Folio.ManualLineData>;
     manualFolios?: App.Data.Folio.ManualFolioOptionData[];
     manualTaxes?: App.Data.Catalogues.ChargeItemTaxData[];
+    /** The old folio page, for `folio.manual` inside the migration window on a stay that began before go-live. */
+    oldFolioUrl?: string | null;
     voucher: VoucherOptions;
     summaryHidden: boolean;
     onToggleSummary: () => void;
@@ -197,7 +201,10 @@ export function FolioTab({
 
     const canManageManually = folio?.canManageManually ?? false;
     const moreActions = (canMove: boolean) =>
-        (canMove || canManageRouting || canManageManually) && (
+        (canMove ||
+            canManageRouting ||
+            canManageManually ||
+            oldFolioUrl !== null) && (
             <DropdownMenu>
                 <DropdownMenuTrigger render={<Button variant="outline" />}>
                     <MoreHorizontal data-icon="inline-start" />
@@ -243,16 +250,29 @@ export function FolioTab({
                             </DropdownMenuItem>
                         </DropdownMenuGroup>
                     )}
-                    {(canMove || canManageRouting) && canManageManually && (
-                        <DropdownMenuSeparator />
-                    )}
-                    {canManageManually && (
+                    {(canMove || canManageRouting) &&
+                        (canManageManually || oldFolioUrl !== null) && (
+                            <DropdownMenuSeparator />
+                        )}
+                    {(canManageManually || oldFolioUrl !== null) && (
                         <DropdownMenuGroup>
                             <DropdownMenuLabel>Manual</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => setManaging(true)}>
-                                <PencilLine />
-                                Manage manually…
-                            </DropdownMenuItem>
+                            {canManageManually && (
+                                <DropdownMenuItem
+                                    onClick={() => setManaging(true)}
+                                >
+                                    <PencilLine />
+                                    Manage manually…
+                                </DropdownMenuItem>
+                            )}
+                            {oldFolioUrl !== null && (
+                                <DropdownMenuItem
+                                    render={<Link href={oldFolioUrl} />}
+                                >
+                                    <History />
+                                    Copy old folio
+                                </DropdownMenuItem>
+                            )}
                         </DropdownMenuGroup>
                     )}
                 </DropdownMenuContent>

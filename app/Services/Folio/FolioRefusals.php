@@ -2,10 +2,12 @@
 
 namespace App\Services\Folio;
 
+use App\Actions\Folio\AddOldFolio;
 use App\Actions\Folio\FolioStatusResult;
 use App\Actions\Folio\ManualBatchResult;
 use App\Actions\Folio\MoveChargesResult;
 use App\Actions\Folio\PostingResult;
+use App\Actions\Folio\SaveOldFoliosResult;
 use App\Services\Catalogues\TaxCalculator;
 
 /**
@@ -91,11 +93,20 @@ class FolioRefusals
             FolioStatusResult::REFUSAL_NOT_CLOSED => [self::FORM, __('Only a closed folio can be reopened.')],
             TaxCalculator::REFUSAL_NATIONALITY_REQUIRED => [self::FORM, __('This charge has a tax that depends on nationality. Add the booker\'s nationality to the guest first.')],
             TaxCalculator::REFUSAL_INCLUSIVE_TAX_EXCEEDS_AMOUNT => ['unit_amount', __('The tax in this price is more than the amount.')],
-            PostingResult::REFUSAL_MIGRATION_WINDOW_CLOSED => [self::FORM, __('The migration window is closed, so the opening balance cannot be changed. Correct it with a reversal or a refund.')],
+            PostingResult::REFUSAL_MIGRATION_WINDOW_CLOSED => [self::FORM, __('The migration window is closed, so entries from the old system cannot be added or changed. Correct a line with a reversal or a refund.')],
             PostingResult::REFUSAL_REASON_REQUIRED => ['reason', __('Describe the reason.')],
             PostingResult::REFUSAL_OPENING_AMOUNT_INVALID => ['amount', __('Enter an amount such as 1,080.00. A minus amount is a credit.')],
             PostingResult::REFUSAL_NOT_OPENING_BALANCE => [self::FORM, __('This line is not an opening balance.')],
             PostingResult::REFUSAL_OPENING_BALANCE_EXISTS => [self::FORM, __('This folio already has an opening balance. Change it instead.')],
+            SaveOldFoliosResult::REFUSAL_NOTHING_TO_SAVE => [self::FORM, __('Add at least one line.')],
+            SaveOldFoliosResult::REFUSAL_TOO_MANY_ROWS => [self::FORM, __('You can save up to :count lines at once.', ['count' => SaveOldFoliosResult::MAX_ROWS])],
+            SaveOldFoliosResult::REFUSAL_ALREADY_SAVED => [self::FORM, __('The old folios of this reservation are already saved. Editing them comes later.')],
+            SaveOldFoliosResult::REFUSAL_DATE_NOT_BEFORE_GO_LIVE => ['service_date', __('Pick a day before go-live. Lines from go-live on are posted by estatell.')],
+            SaveOldFoliosResult::REFUSAL_UNIT_NOT_FOUND => ['item', __('This room night does not belong to the reservation.')],
+            SaveOldFoliosResult::REFUSAL_FOLIO_NOT_FOUND => [self::FORM, __('This folio does not belong to the reservation.')],
+            SaveOldFoliosResult::REFUSAL_ITEM_REQUIRED => ['item', __('Pick an item, a tax or a payment method.')],
+            SaveOldFoliosResult::REFUSAL_DESCRIPTION_REQUIRED => ['description', __('Enter the old receipt number.')],
+            AddOldFolio::REFUSAL_MASTER_EXISTS => [self::FORM, __('This reservation already has a Master folio.')],
             default => [self::FORM, __('This could not be done.')],
         };
     }

@@ -26,7 +26,7 @@ class PostFolioCharge
      * `RecordPayment` (the payment surcharge) call it. See docs/13-folio/02-posting-charges.md.
      *
      * A `$manualBatchId` marks the charge line only, not its children. A `$transferGroupId` goes on every line written
-     * (`SplitLine` uses it).
+     * (`SplitLine` uses it). `$migrated` marks every line written as copied from the old system (`SaveOldFolios`).
      *
      * @param  list<QuotedDiscount>  $discounts  Each with its transaction code id resolved.
      * @return non-empty-list<FolioLine> the charge line first, then its discount lines, then its tax lines
@@ -47,6 +47,7 @@ class PostFolioCharge
         ?string $serviceDate = null,
         ?int $manualBatchId = null,
         ?string $transferGroupId = null,
+        bool $migrated = false,
     ): array {
         if (! $tax->isCalculated()) {
             throw new InvalidArgumentException('A refused tax calculation cannot be posted.');
@@ -62,7 +63,7 @@ class PostFolioCharge
             'amount' => (string) ($lineAmount ?? $tax->netAmount)?->getAmount(),
             'source_type' => $source?->getMorphClass(),
             'source_id' => $source?->getKey(),
-        ], $manualBatchId, $transferGroupId);
+        ], $manualBatchId, $transferGroupId, $migrated);
         $lines = [$charge];
 
         foreach ($discounts as $discount) {
@@ -74,7 +75,7 @@ class PostFolioCharge
                 'unit_amount' => (string) $discount->amount->negated()->getAmount(),
                 'amount' => (string) $discount->amount->negated()->getAmount(),
                 'parent_line_id' => $charge->id,
-            ], null, $transferGroupId);
+            ], null, $transferGroupId, $migrated);
         }
 
         foreach ($tax->taxes as $component) {
@@ -86,7 +87,7 @@ class PostFolioCharge
                 'unit_amount' => (string) $component->amount->getAmount(),
                 'amount' => (string) $component->amount->getAmount(),
                 'parent_line_id' => $charge->id,
-            ], null, $transferGroupId);
+            ], null, $transferGroupId, $migrated);
         }
 
         return $lines;
@@ -95,7 +96,7 @@ class PostFolioCharge
     /**
      * @param  array<string, mixed>  $attributes
      */
-    private function line(Folio $folio, ?User $actor, string $postingDate, string $serviceDate, string $key, array $attributes, ?int $manualBatchId = null, ?string $transferGroupId = null): FolioLine
+    private function line(Folio $folio, ?User $actor, string $postingDate, string $serviceDate, string $key, array $attributes, ?int $manualBatchId = null, ?string $transferGroupId = null, bool $migrated = false): FolioLine
     {
         $line = new FolioLine($attributes);
         $line->folio_id = $folio->id;
@@ -104,6 +105,7 @@ class PostFolioCharge
         $line->idempotency_key = $key;
         $line->manual_batch_id = $manualBatchId;
         $line->transfer_group_id = $transferGroupId;
+        $line->migrated = $migrated;
         $line->user_id = $actor?->id;
         $line->save();
 

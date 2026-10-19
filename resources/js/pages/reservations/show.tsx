@@ -75,6 +75,7 @@ type Props = {
     creditInvoice?: App.Data.CityLedger.ArInvoiceData | null;
     manualLines?: Record<number, App.Data.Folio.ManualLineData>;
     manualFolios?: App.Data.Folio.ManualFolioOptionData[];
+    oldFolioUrl?: string | null;
     manualTaxes?: App.Data.Catalogues.ChargeItemTaxData[];
     voucher: { kinds: { value: string; label: string }[]; maxLines: number };
     activity?: Illuminate.LengthAwarePaginator<
@@ -126,6 +127,7 @@ export default function ReservationShow({
     creditInvoice,
     manualLines = {},
     manualFolios,
+    oldFolioUrl = null,
     manualTaxes,
     voucher,
     activity,
@@ -336,6 +338,7 @@ export default function ReservationShow({
                                 creditInvoice={creditInvoice}
                                 manualLines={manualLines}
                                 manualFolios={manualFolios}
+                                oldFolioUrl={oldFolioUrl}
                                 manualTaxes={manualTaxes}
                                 voucher={voucher}
                                 summaryHidden={summaryHidden}

@@ -833,6 +833,57 @@ serviceDate: string | null,
 taxIds: number[] | null,
 manualBatchId: number | null,
 };
+export type OldFolioLineData = {
+id: number,
+serviceDate: string,
+item: string,
+description: string,
+quantity: number,
+amount: string,
+};
+export type OldFolioOptionData = {
+kind: string,
+id: number,
+label: string,
+};
+export type OldFolioPageData = {
+reservationId: number,
+reference: string,
+guest: string,
+title: string,
+goLiveDate: string,
+businessDate: string,
+currency: App.Data.Property.CurrencyData | null,
+readOnly: boolean,
+canAddMaster: boolean,
+canViewCompany: boolean,
+tabs: App.Data.Folio.OldFolioTabData[],
+items: App.Data.Folio.OldFolioOptionData[],
+maxRows: number,
+cancelUrl: string,
+};
+export type OldFolioRowData = {
+key: string,
+kind: App.Enums.OldFolioRowKind,
+serviceDate: string,
+folioId: number,
+unitId: number | null,
+chargeItemId: number | null,
+taxId: number | null,
+paymentMethodId: number | null,
+description: string | null,
+quantity: number,
+amount: string,
+lineId: number | null,
+};
+export type OldFolioTabData = {
+folioId: number,
+label: string,
+legacyNumber: string | null,
+rows: App.Data.Folio.OldFolioRowData[],
+lines: App.Data.Folio.OldFolioLineData[],
+total: string | null,
+};
 export type PostFolioOptionData = {
 id: number | null,
 label: string,
@@ -1446,6 +1497,8 @@ reference: string | null,
 idempotencyKey: string,
 serviceDate: string | null,
 manualBatchId: number | null,
+migrated: boolean,
+lineKey: string | null,
 };
 export type PaymentFormOptionsData = {
 methods: App.Data.Payments.PaymentMethodOptionData[],
@@ -3437,6 +3490,7 @@ export type NavigationContext = 'front-desk' | 'finance' | 'reports' | 'settings
 export type NotificationChannel = 'mail' | 'database';
 export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions' | 'night_audit_failed' | 'registration_card_link' | 'onboarding_reminder' | 'dorm_strategy_changed' | 'support_access_used' | 'go_live_approved' | 'go_live_rejected' | 'portal_booking_created' | 'portal_booking_cancelled' | 'portal_cancellation_requested';
 export type OldFolioMode = 'one_amount' | 'copy_line_by_line';
+export type OldFolioRowKind = 'room' | 'charge' | 'tax' | 'payment';
 export type OnboardingPhase = 'property' | 'rooms' | 'finance' | 'prices' | 'channels' | 'review';
 export type OnboardingStep = 'basics' | 'check_in_essentials' | 'team' | 'room_types' | 'rooms' | 'taxes' | 'payment_methods' | 'companies' | 'basic_rate' | 'charge_items' | 'discounts' | 'channel_manager' | 'review';
 export type OtaCredentialStatus = 'pending' | 'processed';

@@ -120,8 +120,8 @@ class ReservationBookingController extends Controller
 
     /**
      * Save a migrated stay. A refusal goes back to the form as errors. On success the folio tab opens, with the nights
-     * from go-live posted and the opening balance on the first unit's folio. Copy line by line has no old folio page
-     * yet, so it opens the folio tab with a note.
+     * from go-live posted and the opening balance on the first unit's folio. Copy line by line saves the stay with no
+     * opening line and opens the old folio page.
      */
     private function storeMigrated(StorePastStayRequest $request, Property $property, CreateMigratedStay $createMigratedStay, BookingErrorKeys $errorKeys): RedirectResponse
     {
@@ -133,9 +133,11 @@ class ReservationBookingController extends Controller
             );
         }
 
-        $note = $request->oldFolio() === OldFolioMode::CopyLineByLine ? ' '.__('The old folio page is not ready yet, so the stay has no opening balance.') : '';
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Migrated stay :reference created.', ['reference' => $result->reservation->reference])]);
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Migrated stay :reference created.', ['reference' => $result->reservation->reference]).$note]);
+        if ($request->oldFolio() === OldFolioMode::CopyLineByLine) {
+            return to_route('reservations.old-folio', ['property' => $property, 'reservation' => $result->reservation]);
+        }
 
         return to_route('reservations.folio', ['property' => $property, 'reservation' => $result->reservation]);
     }

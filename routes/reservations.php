@@ -14,6 +14,7 @@ use App\Http\Controllers\Reservations\ReservationFolioMoveController;
 use App\Http\Controllers\Reservations\ReservationGroupCheckOutController;
 use App\Http\Controllers\Reservations\ReservationGroupController;
 use App\Http\Controllers\Reservations\ReservationNightPriceController;
+use App\Http\Controllers\Reservations\ReservationOldFolioController;
 use App\Http\Controllers\Reservations\ReservationPaymentController;
 use App\Http\Controllers\Reservations\ReservationRoutingController;
 use App\Http\Controllers\Reservations\ReservationUnitAddOnController;
@@ -47,6 +48,12 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
             Route::get('folio', [ReservationController::class, 'folio'])->name('folio');
             Route::get('activity', [ReservationController::class, 'activity'])->name('activity');
             Route::get('booking-summary', BookingSummaryController::class)->name('booking-summary');
+
+            Route::middleware('can:'.PermissionEnum::FolioManual->value)->prefix('old-folio')->name('old-folio')->group(function () {
+                Route::get('/', [ReservationOldFolioController::class, 'show']);
+                Route::post('/', [ReservationOldFolioController::class, 'store'])->name('.store');
+                Route::post('folios', [ReservationOldFolioController::class, 'storeFolio'])->name('.folios.store');
+            });
 
             Route::prefix('folios/{folio}')->name('folios.')->group(function () {
                 Route::post('charges', [ReservationFolioController::class, 'storeCharge'])->middleware('can:'.PermissionEnum::FolioPostCharge->value)->name('charges.store');

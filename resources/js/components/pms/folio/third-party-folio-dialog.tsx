@@ -21,6 +21,8 @@ type Props = {
     reservationId: number;
     canViewCompany: boolean;
     companies?: Company[];
+    /** Where the folio is created. Defaults to the folio tab's third-party route. */
+    url?: string;
 };
 
 function ThirdPartyForm({
@@ -29,6 +31,7 @@ function ThirdPartyForm({
     reservationId,
     canViewCompany,
     companies,
+    url,
 }: Props) {
     useFormOptions(
         open && canViewCompany,
@@ -51,7 +54,7 @@ function ThirdPartyForm({
                 ? { payer_company_id: values.company || null }
                 : { payer_guest_id: values.payer?.id ?? null },
         );
-        form.post(store.url({ reservation: reservationId }), {
+        form.post(url ?? store.url({ reservation: reservationId }), {
             preserveScroll: true,
             except: KEEP_OPTIONS,
             onSuccess: () => onOpenChange(false),

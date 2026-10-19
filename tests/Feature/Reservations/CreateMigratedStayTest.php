@@ -134,14 +134,12 @@ test('saving a migrated stay posts to the past route with a mode and opens the f
         ->and(nightServiceDates())->toBe(['2026-10-10', '2026-10-11', '2026-10-12', '2026-10-13']);
 });
 
-test('Copy line by line saves no opening line and says the old folio page is not ready', function () {
+test('Copy line by line saves no opening line and opens the old folio page', function () {
     $setup = migratedStaySetup();
 
-    $this->actingAs($setup['user'])->post(route('reservations.store-past', ['property' => $setup['property']->code]), migratedStayBody($setup, ['old_folio' => 'copy_line_by_line', 'opening_amount' => '']))
-        ->assertRedirect();
+    $response = $this->actingAs($setup['user'])->post(route('reservations.store-past', ['property' => $setup['property']->code]), migratedStayBody($setup, ['old_folio' => 'copy_line_by_line', 'opening_amount' => '']));
 
-    expect(session('inertia.flash_data.toast.message') ?? '')->toContain('old folio page');
-
+    $response->assertRedirect(route('reservations.old-folio', ['property' => $setup['property']->code, 'reservation' => Reservation::query()->sole()]));
     expect(FolioLine::query()->where('idempotency_key', 'like', 'opening:%')->count())->toBe(0);
 });
 
