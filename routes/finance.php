@@ -48,7 +48,6 @@ Route::prefix('finance')->name('finance.')->group(function () {
 
             Route::middleware('can:'.PermissionEnum::CompanyManage->value)->group(function () {
                 Route::put('billing', [CompanyController::class, 'updateBilling'])->name('billing.update');
-                Route::put('rates', [CompanyController::class, 'updateRates'])->name('rates.update');
                 Route::post('portal/message', [CompanyPortalLoginController::class, 'message'])->name('portal.message');
                 Route::post('portal/reset', [CompanyPortalLoginController::class, 'reset'])->name('portal.reset');
                 Route::post('portal/resend', [CompanyPortalLoginController::class, 'resend'])->name('portal.resend');

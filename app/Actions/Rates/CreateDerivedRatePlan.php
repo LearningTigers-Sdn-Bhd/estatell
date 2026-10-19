@@ -2,6 +2,7 @@
 
 namespace App\Actions\Rates;
 
+use App\Enums\CompanyAccess;
 use App\Enums\CompanyStatus;
 use App\Enums\PricingBasis;
 use App\Enums\RateDerivation;
@@ -17,10 +18,12 @@ class CreateDerivedRatePlan
     public function __construct(
         private CreateRatePlan $createRatePlan,
         private SaveRatePlanDerivation $saveRatePlanDerivation,
+        private SetRatePlanCompanyAccess $setRatePlanCompanyAccess,
+        private AddRatePlanCompanies $addRatePlanCompanies,
     ) {}
 
     /**
-     * Create a plan that follows the parent, sell it on the chosen room types and link it to the chosen companies.
+     * Create a plan that follows the parent, sell it on the chosen room types and make it Only these companies for the chosen companies (Everyone when none are chosen).
      * See docs/08-rates/04-derived-rate-plans.md.
      *
      * A package parent gives a package. Its nights and charged unit are copied, and only a percent is allowed.
@@ -60,15 +63,15 @@ class CreateDerivedRatePlan
                 return null;
             }
 
-            foreach ($companies as $company) {
-                $company->ratePlans()->attach($ratePlan->id);
+            if ($companies->isNotEmpty()) {
+                $refusal = ($this->setRatePlanCompanyAccess)($actor, $ratePlan, CompanyAccess::Selected)
+                    ?? ($this->addRatePlanCompanies)($actor, $ratePlan, $companies->pluck('id')->all());
 
-                activity()
-                    ->performedOn($company)
-                    ->causedBy($actor)
-                    ->event('company.rates_updated')
-                    ->withProperties(['property_id' => $property->id, 'added' => [$ratePlan->id], 'removed' => []])
-                    ->log('Company rate plans updated');
+                if ($refusal !== null) {
+                    DB::rollBack();
+
+                    return null;
+                }
             }
 
             DB::commit();

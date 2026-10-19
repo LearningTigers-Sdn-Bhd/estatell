@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use App\Enums\CompanyAccess;
 use App\Enums\EarlyDeparturePolicy;
 use App\Enums\PackageUnit;
-use App\Enums\PortalAccess;
 use App\Enums\PricingBasis;
 use App\Enums\RateDerivation;
 use Carbon\CarbonImmutable;
@@ -38,7 +38,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $day_use_from
  * @property string|null $day_use_until
  * @property EarlyDeparturePolicy $early_departure_policy
- * @property PortalAccess $portal_access
+ * @property CompanyAccess $company_access
+ * @property bool $company_at_desk
+ * @property bool $company_in_portal
  * @property bool $needs_child_price_review
  * @property int $position
  * @property CarbonImmutable|null $archived_at
@@ -68,7 +70,9 @@ class RatePlan extends Model
             'derivation' => RateDerivation::class,
             'derivation_value' => 'decimal:2',
             'early_departure_policy' => EarlyDeparturePolicy::class,
-            'portal_access' => PortalAccess::class,
+            'company_access' => CompanyAccess::class,
+            'company_at_desk' => 'boolean',
+            'company_in_portal' => 'boolean',
             'extra_adult_amount' => 'decimal:2',
             'extra_child_amount' => 'decimal:2',
             'single_supplement' => 'decimal:2',
@@ -102,13 +106,14 @@ class RatePlan extends Model
     }
 
     /**
-     * The companies this plan is linked to. A plan with none is open to everyone.
+     * The companies listed on the plan, with their Front desk (`at_desk`) and Portal (`in_portal`) switches. They apply
+     * when `company_access` is Selected.
      *
      * @return BelongsToMany<Company, $this>
      */
     public function companies(): BelongsToMany
     {
-        return $this->belongsToMany(Company::class, 'company_rate_plans')->withTimestamps();
+        return $this->belongsToMany(Company::class, 'company_rate_plans')->withPivot(['at_desk', 'in_portal'])->withTimestamps();
     }
 
     /**

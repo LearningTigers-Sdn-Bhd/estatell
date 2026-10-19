@@ -1,10 +1,10 @@
 <?php
 
-use App\Actions\CityLedger\SyncCompanyRatePlans;
 use App\Actions\Reservations\AddUnit;
 use App\Actions\Reservations\ReservationResult;
 use App\Actions\Reservations\UpdateReservationCompany;
 use App\Data\Reservations\NewUnitData;
+use App\Enums\CompanyAccess;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\RateDerivation;
 use App\Models\Company;
@@ -18,7 +18,6 @@ use App\Models\RoomType;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Inertia\Testing\AssertableInertia as Assert;
-use Spatie\Activitylog\Models\Activity;
 
 /**
  * A property with a Basic plan and a derived Corporate plan (-15%) on one room type with rates for 8 nights, a
@@ -71,97 +70,52 @@ function negotiatedUnit(array $setup, RatePlan $plan): NewUnitData
     ]);
 }
 
-test('it links derived plans to a company and logs the change', function () {
-    $setup = negotiatedSetup();
-    $company = Company::factory()->for($setup['property'])->create();
-
-    $saved = app(SyncCompanyRatePlans::class)($setup['user'], $company, [$setup['corporate']->id]);
-
-    $activity = Activity::query()->where('event', 'company.rates_updated')->sole();
-
-    expect($saved)->toBeTrue()
-        ->and($company->ratePlans()->pluck('rate_plans.id')->all())->toBe([$setup['corporate']->id])
-        ->and($activity->properties['added'])->toBe([$setup['corporate']->id])
-        ->and($activity->properties['removed'])->toBe([]);
-
-    app(SyncCompanyRatePlans::class)($setup['user'], $company, []);
-
-    expect($company->ratePlans()->count())->toBe(0);
-});
-
-test('saving the same plans changes nothing and logs nothing', function () {
-    $setup = negotiatedSetup();
-    $company = Company::factory()->for($setup['property'])->create();
-    $company->ratePlans()->attach($setup['corporate']);
-
-    expect(app(SyncCompanyRatePlans::class)($setup['user'], $company, [$setup['corporate']->id]))->toBeTrue()
-        ->and(Activity::query()->count())->toBe(0);
-});
-
-test('it refuses a plan that is not an active derived plan of the property', function (string $kind) {
-    $setup = negotiatedSetup();
-    $company = Company::factory()->for($setup['property'])->create();
-    $plan = match ($kind) {
-        'not derived' => $setup['basic'],
-        'archived' => tap($setup['corporate'])->update(['archived_at' => now()]),
-        'foreign' => RatePlan::factory()->create(['parent_rate_plan_id' => $setup['basic']->id, 'derivation' => RateDerivation::Percent, 'derivation_value' => '-5']),
-    };
-
-    expect(app(SyncCompanyRatePlans::class)($setup['user'], $company, [$plan->id]))->toBeFalse()
-        ->and($company->ratePlans()->count())->toBe(0)
-        ->and(Activity::query()->count())->toBe(0);
-})->with(['not derived', 'archived', 'foreign']);
-
-test('a link to an archived plan survives a save', function () {
-    $setup = negotiatedSetup();
-    $company = Company::factory()->for($setup['property'])->create();
-    $company->ratePlans()->attach($setup['corporate']);
-    $setup['corporate']->update(['archived_at' => now()]);
-
-    app(SyncCompanyRatePlans::class)($setup['user'], $company, []);
-
-    expect($company->ratePlans()->count())->toBe(1);
-});
-
-test('AddUnit refuses a linked plan unless the reservation company is one of its companies', function () {
+test('AddUnit applies the desk rule of each choice', function (CompanyAccess $access, bool $atDesk, string $companyCase, bool $allowed) {
     $setup = negotiatedSetup();
     $company = Company::factory()->for($setup['property'])->create();
     $other = Company::factory()->for($setup['property'])->create();
-    $company->ratePlans()->attach($setup['corporate']);
-    $add = fn () => app(AddUnit::class)($setup['user'], $setup['reservation'], negotiatedUnit($setup, $setup['corporate']));
+    $setup['corporate']->forceFill(['company_access' => $access, 'company_at_desk' => $atDesk, 'company_in_portal' => true])->save();
 
-    expect($add()->refusal)->toBe(ReservationResult::REFUSAL_RATE_PLAN_NOT_LINKED_TO_COMPANY);
+    if ($access === CompanyAccess::Selected) {
+        $setup['corporate']->companies()->attach($company, ['at_desk' => $atDesk, 'in_portal' => true]);
+    }
 
-    $setup['reservation']->update(['company_id' => $other->id]);
+    $setup['reservation']->update(['company_id' => match ($companyCase) {
+        'none' => null,
+        'listed' => $company->id,
+        'other' => $other->id,
+    }]);
+    $result = app(AddUnit::class)($setup['user'], $setup['reservation'], negotiatedUnit($setup, $setup['corporate']));
 
-    expect($add()->refusal)->toBe(ReservationResult::REFUSAL_RATE_PLAN_NOT_LINKED_TO_COMPANY)
-        ->and($setup['reservation']->units()->count())->toBe(0);
+    expect($result->isRefused())->toBe(! $allowed)
+        ->and($allowed ? $result->refusal : $result->refusal)->toBe($allowed ? null : ReservationResult::REFUSAL_RATE_PLAN_NOT_LINKED_TO_COMPANY)
+        ->and($setup['reservation']->units()->count())->toBe($allowed ? 1 : 0);
+})->with([
+    'everyone, no company' => [CompanyAccess::Everyone, true, 'none', true],
+    'everyone, a company' => [CompanyAccess::Everyone, true, 'other', true],
+    'all, desk on, no company' => [CompanyAccess::All, true, 'none', false],
+    'all, desk on, a company' => [CompanyAccess::All, true, 'other', true],
+    'all, portal only, a company' => [CompanyAccess::All, false, 'other', false],
+    'selected, no company' => [CompanyAccess::Selected, true, 'none', false],
+    'selected, other company' => [CompanyAccess::Selected, true, 'other', false],
+    'selected, listed with desk on' => [CompanyAccess::Selected, true, 'listed', true],
+    'selected, listed with desk off' => [CompanyAccess::Selected, false, 'listed', false],
+]);
 
-    $setup['reservation']->update(['company_id' => $company->id]);
-
-    expect($add()->isRefused())->toBeFalse()
-        ->and($setup['reservation']->units()->count())->toBe(1);
-});
-
-test('an unlinked plan is open to everyone, and channel ingestion skips the company rule', function () {
+test('channel ingestion skips the company rule', function () {
     $setup = negotiatedSetup();
-    $company = Company::factory()->for($setup['property'])->create();
-
-    expect(app(AddUnit::class)($setup['user'], $setup['reservation'], negotiatedUnit($setup, $setup['corporate']))->isRefused())->toBeFalse();
-
-    $company->ratePlans()->attach($setup['corporate']);
+    $setup['corporate']->forceFill(['company_access' => CompanyAccess::Selected])->save();
 
     expect(app(AddUnit::class)($setup['user'], $setup['reservation'], negotiatedUnit($setup, $setup['corporate']), 0, true)->isRefused())->toBeFalse();
 });
 
-test('a company change is refused while a live unit uses a plan the new company cannot book', function () {
+test('a company change is refused while a live unit uses a plan the new company cannot use', function () {
     $setup = negotiatedSetup();
-    [$first, $second] = Company::factory()->count(2)->for($setup['property'])->create();
-    $first->ratePlans()->attach($setup['corporate']);
-    $second->ratePlans()->attach($setup['corporate']);
+    [$first, $second, $third] = Company::factory()->count(3)->for($setup['property'])->create();
+    $setup['corporate']->forceFill(['company_access' => CompanyAccess::Selected])->save();
+    $setup['corporate']->companies()->attach([$first->id, $second->id]);
     $setup['reservation']->update(['company_id' => $first->id]);
     app(AddUnit::class)($setup['user'], $setup['reservation'], negotiatedUnit($setup, $setup['corporate']));
-    $third = Company::factory()->for($setup['property'])->create();
     $action = app(UpdateReservationCompany::class);
 
     expect($action($setup['user'], $setup['reservation'], $third->id)->refusal)->toBe(ReservationResult::REFUSAL_COMPANY_PLAN_CONFLICT)
@@ -169,43 +123,59 @@ test('a company change is refused while a live unit uses a plan the new company 
         ->and($setup['reservation']->fresh()->company_id)->toBe($first->id)
         ->and($action($setup['user'], $setup['reservation'], $second->id)->isRefused())->toBeFalse()
         ->and($setup['reservation']->fresh()->company_id)->toBe($second->id);
+
+    $setup['corporate']->forceFill(['company_access' => CompanyAccess::All])->save();
+
+    expect($action($setup['user'], $setup['reservation'], $third->id)->isRefused())->toBeFalse()
+        ->and($action($setup['user'], $setup['reservation'], null)->refusal)->toBe(ReservationResult::REFUSAL_COMPANY_PLAN_CONFLICT);
 });
 
-test('the booking options carry the companies each plan is linked to', function () {
+test('the booking options carry the access of each plan and the companies with the desk on', function () {
     $setup = negotiatedSetup();
-    $company = Company::factory()->for($setup['property'])->create();
-    $company->ratePlans()->attach($setup['corporate']);
+    [$deskOn, $deskOff] = Company::factory()->count(2)->for($setup['property'])->create();
+    $setup['corporate']->forceFill(['company_access' => CompanyAccess::Selected])->save();
+    $setup['corporate']->companies()->attach($deskOn, ['at_desk' => true, 'in_portal' => false]);
+    $setup['corporate']->companies()->attach($deskOff, ['at_desk' => false, 'in_portal' => true]);
 
     $this->actingAs($setup['user'])
         ->get(route('reservations.new', ['property' => $setup['property']->code]))
         ->assertInertia(fn (Assert $page) => $page
+            ->where('addUnitOptions.ratePlans.0.companyAccess', 'everyone')
             ->where('addUnitOptions.ratePlans.0.companyIds', [])
-            ->where('addUnitOptions.ratePlans.1.companyIds', [$company->id]));
+            ->where('addUnitOptions.ratePlans.1.companyAccess', 'selected')
+            ->where('addUnitOptions.ratePlans.1.companyIds', [$deskOn->id]));
 });
 
-test('the Rates tab lists active derived plans and saves the links', function () {
+test('the Rates tab is read only and lists the plans the company can use', function () {
     $setup = negotiatedSetup();
     $company = Company::factory()->for($setup['property'])->create();
+    $other = Company::factory()->for($setup['property'])->create();
+    $everyone = RatePlan::factory()->for($setup['property'])->create(['name' => 'Walk-in']);
+    $all = RatePlan::factory()->for($setup['property'])->create(['name' => 'Agents', 'company_access' => CompanyAccess::All, 'company_at_desk' => false, 'company_in_portal' => true]);
+    $setup['corporate']->forceFill(['company_access' => CompanyAccess::Selected])->save();
+    $setup['corporate']->companies()->attach($company, ['at_desk' => true, 'in_portal' => false]);
+    $notMine = RatePlan::factory()->for($setup['property'])->create(['name' => 'Other deal', 'parent_rate_plan_id' => $setup['basic']->id, 'derivation' => RateDerivation::Percent, 'derivation_value' => '-5', 'company_access' => CompanyAccess::Selected]);
+    $notMine->companies()->attach($other);
+    $archived = RatePlan::factory()->for($setup['property'])->archived()->create(['name' => 'Old', 'company_access' => CompanyAccess::All]);
     $base = "/p/{$setup['property']->code}/finance/city-ledger/companies/{$company->id}/rates";
 
     $this->actingAs($setup['user'])->get($base)->assertInertia(fn (Assert $page) => $page
         ->component('finance/city-ledger/companies/show')
         ->where('tab', 'rates')
-        ->has('ratePlans', 1)
-        ->where('ratePlans.0.name', 'Corporate')
-        ->where('ratePlans.0.pricingLabel', 'Follows Basic Rate -15%')
-        ->where('linkedPlanIds', []));
+        ->has('rates', 2)
+        ->where('rates.0.name', 'Corporate')
+        ->where('rates.0.pricingLabel', 'Follows Basic Rate -15%')
+        ->where('rates.0.atDesk', true)
+        ->where('rates.0.inPortal', false)
+        ->where('rates.1.name', 'Agents')
+        ->where('rates.1.atDesk', false)
+        ->where('rates.1.inPortal', true)
+        ->where('canViewRatePlans', true));
 
-    $this->put($base, ['rate_plan_ids' => [$setup['corporate']->id]])->assertRedirect($base);
-
-    expect($company->ratePlans()->pluck('rate_plans.id')->all())->toBe([$setup['corporate']->id]);
-
-    $this->put($base, ['rate_plan_ids' => [$setup['basic']->id]])->assertRedirect($base);
-
-    expect($company->ratePlans()->count())->toBe(1);
+    $this->put($base, ['rate_plan_ids' => []])->assertStatus(405);
 });
 
-test('the Rates tab needs company.view and saving needs company.manage, within the property', function () {
+test('the Rates tab needs company.view, within the property', function () {
     $setup = negotiatedSetup();
     $company = Company::factory()->for($setup['property'])->create();
     $base = "/p/{$setup['property']->code}/finance/city-ledger/companies/{$company->id}/rates";
@@ -214,7 +184,6 @@ test('the Rates tab needs company.view and saving needs company.manage, within t
     $foreign = Company::factory()->create();
 
     $this->actingAs($housekeeping)->get($base)->assertForbidden();
-    $this->actingAs($frontDesk)->get($base)->assertOk();
-    $this->put($base, ['rate_plan_ids' => []])->assertForbidden();
+    $this->actingAs($frontDesk)->get($base)->assertInertia(fn (Assert $page) => $page->where('canViewRatePlans', false));
     $this->actingAs($setup['user'])->get("/p/{$setup['property']->code}/finance/city-ledger/companies/{$foreign->id}/rates")->assertNotFound();
 });

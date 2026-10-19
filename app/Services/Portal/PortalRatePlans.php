@@ -2,7 +2,7 @@
 
 namespace App\Services\Portal;
 
-use App\Enums\PortalAccess;
+use App\Enums\CompanyAccess;
 use App\Models\Company;
 use App\Models\RatePlan;
 use App\Models\RoomType;
@@ -10,9 +10,9 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Which rate plans a company can see in the portal: active nightly plans (Day use is never offered) with portal
- * access All and no link to another company, or Selected and linked to this company. It reads only. See
- * docs/23-company-portal/01-company-portal.md#rules.
+ * Which rate plans a company can see in the portal: active nightly plans (Day use is never offered) that are All
+ * companies with Portal on, or Only these companies with a row for this company that has Portal on. It reads only.
+ * See docs/23-company-portal/01-company-portal.md#rules.
  */
 class PortalRatePlans
 {
@@ -27,11 +27,13 @@ class PortalRatePlans
             ->nightly()
             ->where(fn (Builder $plans) => $plans
                 ->where(fn (Builder $open) => $open
-                    ->where('portal_access', PortalAccess::All->value)
-                    ->whereDoesntHave('companies', fn (Builder $links) => $links->where('companies.id', '<>', $company->id)))
+                    ->where('company_access', CompanyAccess::All->value)
+                    ->where('company_in_portal', true))
                 ->orWhere(fn (Builder $selected) => $selected
-                    ->where('portal_access', PortalAccess::Selected->value)
-                    ->whereHas('companies', fn (Builder $links) => $links->where('companies.id', $company->id))));
+                    ->where('company_access', CompanyAccess::Selected->value)
+                    ->whereHas('companies', fn (Builder $links) => $links
+                        ->where('companies.id', $company->id)
+                        ->where('company_rate_plans.in_portal', true))));
     }
 
     /**
@@ -54,23 +56,5 @@ class PortalRatePlans
     public function isVisible(Company $company, int $ratePlanId): bool
     {
         return $this->visibleTo($company)->whereKey($ratePlanId)->exists();
-    }
-
-    /**
-     * Whether saving `$wantedPlanIds` as the company's plans would take the last company away from a Selected plan.
-     * Only the plans the company loses count.
-     *
-     * @param  list<int>  $wantedPlanIds
-     */
-    public function wouldEmptySelectedPlan(Company $company, array $wantedPlanIds): bool
-    {
-        return RatePlan::query()
-            ->where('property_id', $company->property_id)
-            ->active()
-            ->where('portal_access', PortalAccess::Selected->value)
-            ->whereHas('companies', fn (Builder $links) => $links->where('companies.id', $company->id))
-            ->whereNotIn('rate_plans.id', $wantedPlanIds)
-            ->whereDoesntHave('companies', fn (Builder $links) => $links->where('companies.id', '<>', $company->id))
-            ->exists();
     }
 }

@@ -6,7 +6,7 @@ import { billingChoices } from '@/components/pms/city-ledger/billing-choices';
 import { CompanyStatement } from '@/components/pms/city-ledger/company-statement';
 import { ArPaymentsTab } from '@/components/pms/city-ledger/ar-payments-tab';
 import { CompanyPortalSection } from '@/components/pms/city-ledger/company-portal-section';
-import { CompanyRatesForm } from '@/components/pms/city-ledger/company-rates-form';
+import { CompanyRatesTable } from '@/components/pms/city-ledger/company-rates-table';
 import { CountrySelect } from '@/components/pms/country-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { MoneyText } from '@/components/pms/money-text';
@@ -420,8 +420,8 @@ export default function CompanyShow({
     canManage,
     types = [],
     countries = [],
-    ratePlans = [],
-    linkedPlanIds = [],
+    rates = [],
+    canViewRatePlans = false,
     payments = [],
     openInvoices = [],
     methods = [],
@@ -434,8 +434,8 @@ export default function CompanyShow({
     canManage: boolean;
     types?: EnumOption[];
     countries?: EnumOption[];
-    ratePlans?: App.Data.Rates.RatePlanData[];
-    linkedPlanIds?: number[];
+    rates?: App.Data.CityLedger.CompanyRateData[];
+    canViewRatePlans?: boolean;
     payments?: App.Data.CityLedger.ArPaymentRowData[];
     openInvoices?: App.Data.CityLedger.OpenArInvoiceData[];
     methods?: App.Data.CityLedger.ArPaymentMethodOptionData[];
@@ -664,12 +664,10 @@ export default function CompanyShow({
                         />
                     )}
                     {tab === 'rates' && (
-                        <CompanyRatesForm
+                        <CompanyRatesTable
                             key={`rates-${company.id}`}
-                            companyId={company.id}
-                            ratePlans={ratePlans}
-                            linkedPlanIds={linkedPlanIds}
-                            readOnly={readOnly}
+                            rates={rates}
+                            canViewRatePlans={canViewRatePlans}
                         />
                     )}
                 </TabLinks>

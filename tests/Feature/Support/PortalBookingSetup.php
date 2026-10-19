@@ -3,8 +3,8 @@
 require_once __DIR__.'/BookingSetup.php';
 require_once __DIR__.'/PortalSetup.php';
 
+use App\Enums\CompanyAccess;
 use App\Enums\PolicyScope;
-use App\Enums\PortalAccess;
 use App\Enums\SystemTransactionCode;
 use App\Models\BusinessDate;
 use App\Models\ChargeItem;
@@ -39,7 +39,7 @@ function portalBookingSetup(): array
     RoomRevenuePolicy::factory()->for($property)->fixed('75.00')->forCode(SystemTransactionCode::CancellationRevenue, PolicyScope::WholeStay)->create();
 
     foreach (['plan', 'bedPlan'] as $key) {
-        $setup[$key]->forceFill(['portal_access' => PortalAccess::All])->save();
+        $setup[$key]->forceFill(['company_access' => CompanyAccess::All, 'company_in_portal' => true])->save();
     }
 
     /** @var User $user */

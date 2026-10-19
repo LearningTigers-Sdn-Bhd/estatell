@@ -3,21 +3,21 @@
 namespace App\Enums;
 
 /**
- * Whether companies can book a rate plan in the company portal: not at all, every company, or only the companies
- * linked to the plan (Selected is only for derived plans). See docs/23-company-portal/01-company-portal.md.
+ * Who can use a rate plan: everyone (a normal plan), every company, or only the companies listed on the plan
+ * (Selected is only for derived plans). See docs/08-rates/01-rate-plans.md#who-can-use-this-rate.
  */
-enum PortalAccess: string
+enum CompanyAccess: string
 {
-    case Hidden = 'hidden';
+    case Everyone = 'everyone';
     case All = 'all';
     case Selected = 'selected';
 
     public function label(): string
     {
         return match ($this) {
-            self::Hidden => __('Hidden'),
+            self::Everyone => __('Everyone'),
             self::All => __('All companies'),
-            self::Selected => __('Selected companies'),
+            self::Selected => __('Only these companies'),
         };
     }
 

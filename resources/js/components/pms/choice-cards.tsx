@@ -16,6 +16,8 @@ export type Choice = {
     label: string;
     description: string;
     icon: LucideIcon;
+    /** Disables this choice only. */
+    disabled?: boolean;
 };
 
 /**
@@ -33,6 +35,7 @@ export function ChoiceCards({
     error,
     className,
     radioPosition = 'left',
+    columns = 2,
 }: {
     id: string;
     name?: string;
@@ -44,6 +47,7 @@ export function ChoiceCards({
     error?: string;
     className?: string;
     radioPosition?: 'left' | 'right';
+    columns?: 2 | 3;
 }) {
     return (
         <FieldSet className={className} data-invalid={!!error}>
@@ -53,7 +57,10 @@ export function ChoiceCards({
                 value={value}
                 onValueChange={(next) => onValueChange(String(next))}
                 disabled={disabled}
-                className="grid gap-3 sm:grid-cols-2"
+                className={cn(
+                    'grid gap-3',
+                    columns === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2',
+                )}
             >
                 {choices.map((choice) => (
                     <FieldLabel
@@ -64,6 +71,7 @@ export function ChoiceCards({
                             <RadioGroupItem
                                 id={`${id}-${choice.value}`}
                                 value={choice.value}
+                                disabled={choice.disabled}
                                 aria-invalid={!!error}
                                 className={cn(
                                     'mt-0.5',

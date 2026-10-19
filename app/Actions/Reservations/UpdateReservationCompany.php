@@ -12,6 +12,7 @@ use App\Models\Company;
 use App\Models\Reservation;
 use App\Models\User;
 use App\Services\CityLedger\CreditCheck;
+use App\Services\Rates\CompanyRateAccess;
 use App\Services\Reservations\StayTotal;
 use Illuminate\Support\Facades\DB;
 
@@ -22,12 +23,13 @@ class UpdateReservationCompany
         private CreditCheck $creditCheck,
         private RecordCreditOverride $recordCreditOverride,
         private StayTotal $stayTotal,
+        private CompanyRateAccess $companyRateAccess,
     ) {}
 
     /**
      * Set or clear the billed company. Refused when the reservation is closed (`reservation_closed`), when the company
      * is not an Active company of the property (`company_not_available`), or while the Master folio holds
-     * money (`master_has_payments`) or has an AR invoice that is not Void (`master_has_ar_invoice`), or while a live unit uses a plan the new company cannot book (`company_plan_conflict`), or when the stay total would take the company over its credit limit without an override reason (`credit_limit_exceeded`). The same company is not a change: nothing is written or logged, and a Suspended company a
+     * money (`master_has_payments`) or has an AR invoice that is not Void (`master_has_ar_invoice`), or while a live unit uses a plan the new company cannot use (`company_plan_conflict`), or when the stay total would take the company over its credit limit without an override reason (`credit_limit_exceeded`). The same company is not a change: nothing is written or logged, and a Suspended company a
      * reservation already holds can stay. The Master folio's payer follows with its charges, and `SyncRoutingRules` runs so a new
      * company gets its Master folio. See docs/15-city-ledger/01-companies.md.
      */
@@ -61,11 +63,9 @@ class UpdateReservationCompany
 
             $usesPlanOfOldCompany = $locked->units()
                 ->whereNotIn('status', [UnitStatus::Cancelled, UnitStatus::NoShow])
-                ->whereHas('ratePlan', fn ($plan) => $plan->whereHas('companies')->when(
-                    $companyId !== null,
-                    fn ($plans) => $plans->whereDoesntHave('companies', fn ($companies) => $companies->whereKey($companyId)),
-                ))
-                ->exists();
+                ->with('ratePlan')
+                ->get()
+                ->contains(fn ($unit): bool => ! $this->companyRateAccess->usableBy($unit->ratePlan, $companyId));
 
             if ($usesPlanOfOldCompany) {
                 return ReservationResult::refused(ReservationResult::REFUSAL_COMPANY_PLAN_CONFLICT);

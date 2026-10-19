@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\PortalAccess;
+use App\Enums\CompanyAccess;
 use App\Models\Company;
 use App\Models\Rate;
 use App\Models\RatePlan;
@@ -25,7 +25,7 @@ function portalOffers(array $setup, array $lines, array $overrides = []): TestRe
 
 test('the book page lists only room types that a visible plan sells', function () {
     $setup = portalBookingSetup();
-    $setup['bedPlan']->forceFill(['portal_access' => PortalAccess::Hidden])->save();
+    $setup['bedPlan']->forceFill(['company_access' => CompanyAccess::Everyone])->save();
 
     $this->actingAs($setup['portalUser'])
         ->get(route('portal.bookings.create', $setup['property']))
@@ -73,39 +73,39 @@ test('plan visibility follows portal access and company links', function (callab
     foreach (range(0, 6) as $night) {
         Rate::factory()->create(['rate_plan_id' => $plan->id, 'room_type_id' => $setup['roomType']->id, 'date' => '2026-10-'.(20 + $night), 'amount' => '90.00']);
     }
-    $setup['plan']->forceFill(['portal_access' => PortalAccess::Hidden])->save();
+    $setup['plan']->forceFill(['company_access' => CompanyAccess::Everyone])->save();
     $arrange($plan, $setup['company'], $other);
 
     $ids = collect(portalOffers($setup, [portalRoomLine($setup)])->json('lines.0.offers'))->pluck('ratePlanId')->all();
 
     expect(in_array($plan->id, $ids, true))->toBe($visible);
 })->with([
-    'hidden' => [fn ($plan) => null, false],
-    'all, open to everyone' => [fn ($plan) => $plan->forceFill(['portal_access' => PortalAccess::All])->save(), true],
-    'all, linked to another company' => [function ($plan, $company, $other) {
-        $plan->forceFill(['portal_access' => PortalAccess::All])->save();
-        $plan->companies()->attach($other);
+    'everyone' => [fn ($plan) => null, false],
+    'all, portal on' => [fn ($plan) => $plan->forceFill(['company_access' => CompanyAccess::All, 'company_in_portal' => true])->save(), true],
+    'all, front desk only' => [fn ($plan) => $plan->forceFill(['company_access' => CompanyAccess::All, 'company_at_desk' => true, 'company_in_portal' => false])->save(), false],
+    'selected, this company with portal on' => [function ($plan, $company) {
+        $plan->forceFill(['company_access' => CompanyAccess::Selected])->save();
+        $plan->companies()->attach($company, ['at_desk' => false, 'in_portal' => true]);
+    }, true],
+    'selected, this company front desk only' => [function ($plan, $company) {
+        $plan->forceFill(['company_access' => CompanyAccess::Selected])->save();
+        $plan->companies()->attach($company, ['at_desk' => true, 'in_portal' => false]);
     }, false],
-    'all, linked to this company only' => [function ($plan, $company) {
-        $plan->forceFill(['portal_access' => PortalAccess::All])->save();
-        $plan->companies()->attach($company);
-    }, true],
-    'selected, linked to this company' => [function ($plan, $company) {
-        $plan->forceFill(['portal_access' => PortalAccess::Selected])->save();
-        $plan->companies()->attach($company);
-    }, true],
-    'selected, linked to another company' => [function ($plan, $company, $other) {
-        $plan->forceFill(['portal_access' => PortalAccess::Selected])->save();
-        $plan->companies()->attach($other);
+    'selected, another company only' => [function ($plan, $company, $other) {
+        $plan->forceFill(['company_access' => CompanyAccess::Selected])->save();
+        $plan->companies()->attach($other, ['at_desk' => true, 'in_portal' => true]);
+    }, false],
+    'selected, nobody listed' => [function ($plan) {
+        $plan->forceFill(['company_access' => CompanyAccess::Selected])->save();
     }, false],
     'archived' => [function ($plan) {
-        $plan->forceFill(['portal_access' => PortalAccess::All, 'archived_at' => now()])->save();
+        $plan->forceFill(['company_access' => CompanyAccess::All, 'archived_at' => now()])->save();
     }, false],
 ]);
 
 test('a Day use plan is never offered', function () {
     $setup = portalBookingSetup();
-    $dayUse = RatePlan::factory()->for($setup['property'])->dayUse()->create(['portal_access' => PortalAccess::All]);
+    $dayUse = RatePlan::factory()->for($setup['property'])->dayUse()->create(['company_access' => CompanyAccess::All]);
     $dayUse->roomTypes()->attach($setup['roomType']);
 
     $ids = collect(portalOffers($setup, [portalRoomLine($setup)])->json('lines.0.offers'))->pluck('ratePlanId')->all();

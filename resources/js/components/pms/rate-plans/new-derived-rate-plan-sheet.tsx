@@ -375,9 +375,11 @@ export function NewDerivedRatePlanSheet({
                                     invalid={!!errors.company_ids}
                                 />
                                 <FieldDescription>
-                                    Optional. Only these companies can book the
-                                    plan. You can change this later on the
-                                    company's Rates tab.
+                                    Optional. Choose companies to limit the plan
+                                    to them, at the front desk and in the
+                                    portal. Leave empty for everyone. You can
+                                    change this later on the plan's Companies
+                                    tab.
                                 </FieldDescription>
                                 <FieldError>{errors.company_ids}</FieldError>
                             </Field>

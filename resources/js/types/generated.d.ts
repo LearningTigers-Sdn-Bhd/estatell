@@ -352,6 +352,13 @@ canResend: boolean,
 canReset: boolean,
 isDisabled: boolean,
 };
+export type CompanyRateData = {
+ratePlanId: number,
+name: string,
+pricingLabel: string,
+atDesk: boolean,
+inPortal: boolean,
+};
 export type CompanyRowData = {
 id: number,
 name: string,
@@ -1923,6 +1930,26 @@ maxAge: number,
 pricing: App.Enums.AgeBandPricing,
 value: string | null,
 };
+export type RatePlanCompaniesData = {
+companyAccess: App.Enums.CompanyAccess,
+isDerived: boolean,
+atDesk: boolean,
+inPortal: boolean,
+companies: App.Data.Rates.RatePlanCompanyRowData[],
+};
+export type RatePlanCompanyCandidateData = {
+id: number,
+name: string,
+type: string,
+};
+export type RatePlanCompanyRowData = {
+id: number,
+name: string,
+login: App.Data.Shared.BadgeData | null,
+hasActiveLogin: boolean,
+atDesk: boolean,
+inPortal: boolean,
+};
 export type RatePlanData = {
 id: number,
 name: string,
@@ -1993,15 +2020,6 @@ parentName: string,
 export type RatePlanParentOptionData = {
 id: number,
 name: string,
-};
-export type RatePlanPortalCompanyData = {
-id: number,
-name: string,
-};
-export type RatePlanPortalData = {
-portalAccess: App.Enums.PortalAccess,
-isDerived: boolean,
-companies: App.Data.Rates.RatePlanPortalCompanyData[],
 };
 export type RatePlanRoomTypeChoiceData = {
 id: number,
@@ -2792,6 +2810,8 @@ id: number,
 name: string,
 roomTypeIds: number[],
 fixedNights: number | null,
+companyAccess: App.Enums.CompanyAccess,
+companyAtDesk: boolean,
 companyIds: number[],
 isDayUse: boolean,
 dayUseMinHours: number | null,
@@ -3252,6 +3272,7 @@ export type BusinessDateStatus = 'open' | 'auditing' | 'closed';
 export type ChargingUnit = 'per_item' | 'per_night' | 'per_stay' | 'per_guest_night' | 'per_guest';
 export type CheckInRoomState = 'assigned' | 'auto' | 'none';
 export type ColumnAlign = 'left' | 'center' | 'right';
+export type CompanyAccess = 'everyone' | 'all' | 'selected';
 export type CompanyImportMode = 'simple' | 'detailed';
 export type CompanyLinkRefusal = 'not_pending' | 'company_suspended' | 'property_not_live' | 'login_not_available' | 'already_linked';
 export type CompanyStatus = 'active' | 'suspended';
@@ -3309,7 +3330,6 @@ export type PolicyChargeMode = 'free' | 'fixed_amount' | 'percentage';
 export type PolicyRateBasis = 'booked_rate' | 'current_rate';
 export type PolicyScope = 'first_night' | 'whole_stay' | 'unused_nights' | 'one_charge';
 export type PolicyTab = 'no-show' | 'cancellation' | 'early-departure' | 'late-checkout';
-export type PortalAccess = 'hidden' | 'all' | 'selected';
 export type PortalCancelMode = 'free' | 'request' | 'closed';
 export type PortalLoginOutcome = 'unchanged' | 'removed' | 'created' | 'invited' | 'refused';
 export type PortalLoginRefusal = 'other_kind_of_account' | 'taken_by_other_company' | 'not_available' | 'company_suspended';

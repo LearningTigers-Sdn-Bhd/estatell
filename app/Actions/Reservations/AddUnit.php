@@ -5,6 +5,7 @@ namespace App\Actions\Reservations;
 use App\Actions\Boats\SetBoatTrip;
 use App\Actions\Folio\SyncRoutingRules;
 use App\Data\Reservations\NewUnitData;
+use App\Enums\CompanyAccess;
 use App\Enums\DiscountScope;
 use App\Enums\PermissionEnum;
 use App\Enums\PricingBasis;
@@ -21,6 +22,7 @@ use App\Services\Availability\AvailabilityService;
 use App\Services\Availability\NightAvailability;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Property\PropertyToday;
+use App\Services\Rates\CompanyRateAccess;
 use App\Services\Rates\Pricing\NightPrice;
 use App\Services\Rates\Pricing\PackagePricing;
 use App\Services\Rates\Pricing\QuoteRefused;
@@ -47,6 +49,7 @@ class AddUnit
         private AddDayUseUnit $addDayUseUnit,
         private PackagePricing $packagePricing,
         private SetBoatTrip $setBoatTrip,
+        private CompanyRateAccess $companyRateAccess,
     ) {}
 
     /**
@@ -106,10 +109,10 @@ class AddUnit
             return $refuse(RateQuote::REFUSAL_PLAN_NOT_NIGHTLY);
         }
 
-        if (! $fromChannel && $ratePlan->companies()->exists()) {
+        if (! $fromChannel && $ratePlan->company_access !== CompanyAccess::Everyone) {
             $companyId = Reservation::query()->whereKey($reservation->id)->value('company_id');
 
-            if ($companyId === null || ! $ratePlan->companies()->whereKey($companyId)->exists()) {
+            if (! $this->companyRateAccess->deskAllows($ratePlan, $companyId)) {
                 return $refuse(ReservationResult::REFUSAL_RATE_PLAN_NOT_LINKED_TO_COMPANY);
             }
         }

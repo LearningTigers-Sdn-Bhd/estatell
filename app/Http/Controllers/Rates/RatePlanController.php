@@ -17,7 +17,6 @@ use App\Actions\Rates\SaveRatePlanStayDiscounts;
 use App\Actions\Rates\SaveRates;
 use App\Actions\Rates\SyncRatePlanRoomTypes;
 use App\Actions\Rates\UpdateRatePlan;
-use App\Actions\Rates\UpdateRatePlanPortalAccess;
 use App\Data\Property\CurrencyData;
 use App\Data\Property\PropertyAgeGroupData;
 use App\Data\Property\WeekendNightsOptionData;
@@ -32,7 +31,6 @@ use App\Data\Rates\RatePlanInclusionChargeItemData;
 use App\Data\Rates\RatePlanInclusionData;
 use App\Data\Rates\RatePlanInclusionMealPeriodData;
 use App\Data\Rates\RatePlanParentDiscountsData;
-use App\Data\Rates\RatePlanPortalData;
 use App\Data\Rates\RatePlanRoomTypeChoiceData;
 use App\Data\Rates\RatePlanStayDiscountData;
 use App\Data\Rates\RatePricingRoomTypeData;
@@ -43,7 +41,6 @@ use App\Enums\InclusionEnd;
 use App\Enums\InclusionStart;
 use App\Enums\PackageUnit;
 use App\Enums\PermissionEnum;
-use App\Enums\PortalAccess;
 use App\Enums\PricingBasis;
 use App\Enums\RateDerivation;
 use App\Enums\RatePlanStatus;
@@ -60,7 +57,6 @@ use App\Http\Requests\Rates\RatePlanChildPricesRequest;
 use App\Http\Requests\Rates\RatePlanDerivationRequest;
 use App\Http\Requests\Rates\RatePlanDiscountsPreviewRequest;
 use App\Http\Requests\Rates\RatePlanInclusionsRequest;
-use App\Http\Requests\Rates\RatePlanPortalRequest;
 use App\Http\Requests\Rates\RatePlanRequest;
 use App\Http\Requests\Rates\RatePlanRoomTypesRequest;
 use App\Http\Requests\Rates\RatePlanStayDiscountsRequest;
@@ -226,39 +222,6 @@ class RatePlanController extends Controller
             'endOptions' => InclusionEnd::options(),
             'currency' => CurrencyData::forProperty($property),
         ]);
-    }
-
-    /**
-     * The Portal tab: who can book the plan in the company portal. Day use plans are front desk only, so the tab is a
-     * 404 for them. The linked companies are read only; each company's Rates tab makes the links.
-     */
-    public function editPortal(Request $request, Property $property, RatePlan $ratePlan): Response
-    {
-        abort_if($ratePlan->pricing_basis === PricingBasis::DayUse, 404);
-
-        return Inertia::render('settings/rate-plans/portal', [
-            'ratePlan' => RatePlanData::fromModel($ratePlan->load('roomTypes')),
-            'portal' => RatePlanPortalData::fromModel($ratePlan->load('companies:id,name')),
-            'accessOptions' => PortalAccess::options(),
-            'canViewCompanies' => $request->user()->can(PermissionEnum::CompanyView->value),
-        ]);
-    }
-
-    public function updatePortal(RatePlanPortalRequest $request, Property $property, RatePlan $ratePlan, UpdateRatePlanPortalAccess $updateRatePlanPortalAccess): RedirectResponse
-    {
-        abort_if($ratePlan->pricing_basis === PricingBasis::DayUse, 404);
-
-        $refusal = $updateRatePlanPortalAccess($request->user(), $ratePlan, $request->portalAccess());
-
-        Inertia::flash('toast', $refusal === null
-            ? ['type' => 'success', 'message' => __('Portal access saved.')]
-            : ['type' => 'error', 'message' => match ($refusal) {
-                UpdateRatePlanPortalAccess::REFUSAL_NEEDS_COMPANY => __('Link at least one company first.'),
-                UpdateRatePlanPortalAccess::REFUSAL_NOT_DERIVED => __('Only a derived plan can be Selected for the portal.'),
-                default => __('The rate plan changed. Reload the page and try again.'),
-            }]);
-
-        return to_route('settings.rate-plans.portal.edit', ['property' => $property, 'ratePlan' => $ratePlan]);
     }
 
     /**

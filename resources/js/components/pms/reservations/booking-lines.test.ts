@@ -236,6 +236,8 @@ test('plans are split by stay type', () => {
             name: `P${id}`,
             roomTypeIds: [1],
             fixedNights: null,
+            companyAccess: 'everyone',
+            companyAtDesk: true,
             companyIds: [],
             isDayUse,
         }) as unknown as App.Data.Reservations.RatePlanOptionData;
@@ -243,6 +245,37 @@ test('plans are split by stay type', () => {
 
     expect(plansFor(plans, '1', '').map((one) => one.id)).toEqual([1]);
     expect(plansFor(plans, '1', '', true).map((one) => one.id)).toEqual([2]);
+});
+
+test('plans limited to companies show only to a company that can use them at the desk', () => {
+    const plan = (
+        id: number,
+        companyAccess: string,
+        companyAtDesk: boolean,
+        companyIds: number[],
+    ) =>
+        ({
+            id,
+            name: `P${id}`,
+            roomTypeIds: [1],
+            fixedNights: null,
+            companyAccess,
+            companyAtDesk,
+            companyIds,
+            isDayUse: false,
+        }) as unknown as App.Data.Reservations.RatePlanOptionData;
+    const plans = [
+        plan(1, 'everyone', true, []),
+        plan(2, 'all', true, []),
+        plan(3, 'all', false, []),
+        plan(4, 'selected', true, [7]),
+    ];
+    const ids = (companyId: string) =>
+        plansFor(plans, '1', companyId).map((one) => one.id);
+
+    expect(ids('')).toEqual([1]);
+    expect(ids('7')).toEqual([1, 2, 4]);
+    expect(ids('8')).toEqual([1, 2]);
 });
 
 const item = (overrides: Record<string, unknown>) => ({

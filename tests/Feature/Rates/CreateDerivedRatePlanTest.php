@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Rates\CreateDerivedRatePlan;
+use App\Enums\CompanyAccess;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\RateDerivation;
 use App\Models\Company;
@@ -47,14 +48,17 @@ test('it creates a plan that follows the parent on the chosen room types', funct
         ->and(Activity::query()->where('event', 'rate_plan.derivation_saved')->count())->toBe(1);
 });
 
-test('it links the chosen companies and logs each link', function () {
+test('it makes the plan Only these companies for the chosen companies and logs it', function () {
     [$owner, $property, $parent, $deluxe] = quickDerivedSetup();
     $companies = Company::factory()->count(2)->for($property)->create();
 
     $plan = app(CreateDerivedRatePlan::class)($owner, $parent, 'Petronas', RateDerivation::Percent, '-15', [$deluxe->id], $companies->pluck('id')->all());
 
     expect($plan->companies()->pluck('companies.id')->sort()->values()->all())->toBe($companies->pluck('id')->sort()->values()->all())
-        ->and(Activity::query()->where('event', 'company.rates_updated')->count())->toBe(2);
+        ->and($plan->company_access)->toBe(CompanyAccess::Selected)
+        ->and($plan->companies->every(fn ($company) => $company->pivot->at_desk && $company->pivot->in_portal))->toBeTrue()
+        ->and(Activity::query()->where('event', 'rate_plan.company_access_updated')->count())->toBe(1)
+        ->and(Activity::query()->where('event', 'rate_plan.companies_added')->count())->toBe(1);
 });
 
 test('it writes nothing when the request is refused', function (Closure $arrange) {
@@ -101,7 +105,17 @@ test('staff create a derived plan and are sent back to the list', function () {
     $plan = RatePlan::query()->where('name', 'Petronas')->sole();
     expect($plan->parent_rate_plan_id)->toBe($parent->id)
         ->and($plan->derivation_value)->toBe('-15.00')
+        ->and($plan->company_access)->toBe(CompanyAccess::Selected)
         ->and($plan->companies()->pluck('companies.id')->all())->toBe([$company->id]);
+});
+
+test('with no company chosen the plan stays Everyone', function () {
+    [$owner, $property, $parent, $deluxe] = quickDerivedSetup();
+
+    $plan = app(CreateDerivedRatePlan::class)($owner, $parent, 'Petronas', RateDerivation::Percent, '-15', [$deluxe->id]);
+
+    expect($plan->company_access)->toBe(CompanyAccess::Everyone)
+        ->and($plan->companies()->count())->toBe(0);
 });
 
 test('an up direction is saved as a positive value', function () {

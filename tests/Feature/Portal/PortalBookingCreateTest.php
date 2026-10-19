@@ -115,7 +115,7 @@ test('a refusal writes nothing and shows its message', function (string $case, s
             $body['expected_total'] = '199.00';
             break;
         case 'plan hidden':
-            $setup['plan']->forceFill(['portal_access' => 'hidden'])->save();
+            $setup['plan']->forceFill(['company_access' => 'everyone'])->save();
             break;
         case 'no guest name':
             $body['lines'][0]['guest_name'] = '  ';

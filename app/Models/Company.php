@@ -75,13 +75,13 @@ class Company extends Model
     }
 
     /**
-     * The derived plans only this company can book.
+     * The plans that list this company, with the Front desk (`at_desk`) and Portal (`in_portal`) switches of its row.
      *
      * @return BelongsToMany<RatePlan, $this>
      */
     public function ratePlans(): BelongsToMany
     {
-        return $this->belongsToMany(RatePlan::class, 'company_rate_plans')->withTimestamps();
+        return $this->belongsToMany(RatePlan::class, 'company_rate_plans')->withPivot(['at_desk', 'in_portal'])->withTimestamps();
     }
 
     /**

@@ -395,8 +395,9 @@ export function moveAddOn(
 }
 
 /**
- * The plans a line can pick: the ones sold for its room type, and a plan linked to companies only when the booking's
- * company is one of them. An empty `roomTypeId` keeps every room type. A day use booking offers only day use plans and an
+ * The plans a line can pick: the ones sold for its room type, and a plan limited to companies only when the booking's
+ * company can use it at the front desk (All companies with Front desk on once any company is picked; Only these
+ * companies when the company is listed with Front desk on). An empty `roomTypeId` keeps every room type. A day use booking offers only day use plans and an
  * overnight booking only the others.
  */
 export function plansFor(
@@ -410,8 +411,23 @@ export function plansFor(
             plan.isDayUse === dayUse &&
             (roomTypeId === '' ||
                 plan.roomTypeIds.includes(Number(roomTypeId))) &&
-            (plan.companyIds.length === 0 ||
-                (companyId !== '' &&
-                    plan.companyIds.includes(Number(companyId)))),
+            planOpenToCompany(plan, companyId),
     );
+}
+
+function planOpenToCompany(
+    plan: App.Data.Reservations.RatePlanOptionData,
+    companyId: string,
+): boolean {
+    if (plan.companyAccess === 'everyone') {
+        return true;
+    }
+
+    if (companyId === '') {
+        return false;
+    }
+
+    return plan.companyAccess === 'all'
+        ? plan.companyAtDesk
+        : plan.companyIds.includes(Number(companyId));
 }

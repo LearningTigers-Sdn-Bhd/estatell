@@ -2,7 +2,7 @@ import {
     Baby,
     Bed,
     CircleDollarSign,
-    DoorOpen,
+    Building2,
     FileText,
     PackagePlus,
     Percent,
@@ -16,7 +16,7 @@ import { edit, index } from '@/routes/settings/rate-plans';
 import { edit as editChildPrices } from '@/routes/settings/rate-plans/child-prices';
 import { edit as editDiscounts } from '@/routes/settings/rate-plans/discounts';
 import { edit as editInclusions } from '@/routes/settings/rate-plans/inclusions';
-import { edit as editPortal } from '@/routes/settings/rate-plans/portal';
+import { edit as editCompanies } from '@/routes/settings/rate-plans/companies';
 import { edit as editPricing } from '@/routes/settings/rate-plans/pricing';
 import { edit as editRoomTypes } from '@/routes/settings/rate-plans/room-types';
 
@@ -29,7 +29,7 @@ export type RatePlanTab =
     | 'children'
     | 'inclusions'
     | 'discounts'
-    | 'portal';
+    | 'companies';
 
 export function ratePlanBreadcrumbs(ratePlan: RatePlan) {
     return [
@@ -108,10 +108,10 @@ export function RatePlanShell({
         ...(ratePlan.pricingBasis !== 'day_use'
             ? [
                   {
-                      value: 'portal',
-                      label: 'Portal',
-                      icon: DoorOpen,
-                      href: editPortal.url({ ratePlan: ratePlan.id }),
+                      value: 'companies',
+                      label: 'Companies',
+                      icon: Building2,
+                      href: editCompanies.url({ ratePlan: ratePlan.id }),
                   },
               ]
             : []),

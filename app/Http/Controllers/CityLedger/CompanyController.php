@@ -3,30 +3,26 @@
 namespace App\Http\Controllers\CityLedger;
 
 use App\Actions\CityLedger\CreateCompany;
-use App\Actions\CityLedger\SyncCompanyRatePlans;
 use App\Actions\CityLedger\UpdateCompany;
 use App\Actions\CityLedger\UpdateCompanyBilling;
 use App\Data\CityLedger\CompanyData;
 use App\Data\CityLedger\CompanyRowData;
 use App\Data\CityLedger\CreditExposureData;
 use App\Data\Property\CurrencyData;
-use App\Data\Rates\RatePlanData;
 use App\Enums\CompanyStatus;
 use App\Enums\CompanyType;
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CityLedger\CompanyRequest;
-use App\Http\Requests\CityLedger\UpdateCompanyRatePlansRequest;
 use App\Models\Company;
 use App\Models\Property;
-use App\Models\RatePlan;
 use App\Services\CityLedger\ArInvoiceDirectory;
 use App\Services\CityLedger\ArPaymentLedger;
 use App\Services\CityLedger\CompanyPortalState;
 use App\Services\CityLedger\CreditExposure;
 use App\Services\CityLedger\StatementBuilder;
 use App\Services\Guests\CountryOptions;
-use App\Services\Portal\PortalRatePlans;
+use App\Services\Rates\CompanyRatePlans;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -84,14 +80,13 @@ class CompanyController extends Controller
     }
 
     /**
-     * Company page, Rates tab: the derived plans only this company can book.
+     * Company page, Rates tab: the plans this company can use, read only. Rates are set on each rate plan's Companies tab.
      */
-    public function rates(Request $request, Property $property, Company $company): Response
+    public function rates(Request $request, Property $property, Company $company, CompanyRatePlans $companyRatePlans): Response
     {
         return $this->renderTab($request, $property, $company, 'rates', [
-            'ratePlans' => $property->ratePlans()->active()->whereNotNull('parent_rate_plan_id')->with('roomTypes', 'parent')->ordered()->get()
-                ->map(fn (RatePlan $ratePlan): RatePlanData => RatePlanData::fromModel($ratePlan)),
-            'linkedPlanIds' => $company->ratePlans()->pluck('rate_plans.id')->all(),
+            'rates' => $companyRatePlans->forCompany($company),
+            'canViewRatePlans' => $request->user()->can(PermissionEnum::SettingsManage->value),
         ]);
     }
 
@@ -127,21 +122,6 @@ class CompanyController extends Controller
         return $this->renderTab($request, $property, $company, 'statement', [
             'statement' => $builder->build($company, $from, $to),
         ]);
-    }
-
-    public function updateRates(UpdateCompanyRatePlansRequest $request, Property $property, Company $company, SyncCompanyRatePlans $syncCompanyRatePlans, PortalRatePlans $portalRatePlans): RedirectResponse
-    {
-        if ($portalRatePlans->wouldEmptySelectedPlan($company, $request->ratePlanIds())) {
-            Inertia::flash('toast', ['type' => 'error', 'message' => __('This plan is Selected for the portal and needs a company.')]);
-
-            return to_route('finance.city-ledger.companies.rates', ['property' => $property, 'company' => $company]);
-        }
-
-        Inertia::flash('toast', $syncCompanyRatePlans($request->user(), $company, $request->ratePlanIds())
-            ? ['type' => 'success', 'message' => __('Rates saved.')]
-            : ['type' => 'error', 'message' => __('The rate plans changed. Reload the page and try again.')]);
-
-        return to_route('finance.city-ledger.companies.rates', ['property' => $property, 'company' => $company]);
     }
 
     public function update(CompanyRequest $request, Property $property, Company $company, string $section, UpdateCompany $updateCompany): RedirectResponse
