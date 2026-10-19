@@ -312,6 +312,8 @@ Arrivals     [ This week ▾ ]   [⚙ Layout]   [ Export ▾ ]  PDF · CSV · Ex
 
 - One class per report (query and data objects). The page controllers stay thin.
 - Every report query is scoped by `property_id`.
+- Reports count by `posting_date`. The Folio ledger has a hidden-by-default **Service date** column, and the By staff cash-up shows the service date of each payment.
+- Migrated lines, the Opening balance code and Old system payments stay out of Revenue, Occupancy, the dashboard, Payments and the cash-up. The Tax report shows migrated tax in a separate **Migrated from old system** row group outside the total. See [Migration › Reports](../17-onboarding/07-migration.md#reports).
 - Exports: PDF with dompdf, CSV and Excel streamed.
 - Report pages sort and page the `rows()` list on the server (not `spatie/laravel-query-builder`) and use `@tanstack/react-table` (`DataTable`) on the frontend.
 

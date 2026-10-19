@@ -9,12 +9,15 @@ Record what a company owes after direct-bill checkout, and correct it with credi
 ```
 ar_invoices    id, property_id, company_id, folio_id (nullable), credit_for_invoice_id (nullable),
                type (ArInvoiceType), number, issued_on, due_on (nullable), amount (signed),
-               reason (nullable), status (ArInvoiceStatus), created_by, timestamps
+               reason (nullable), status (ArInvoiceStatus), migrated (bool, default false),
+               created_by, timestamps
                UNIQUE (property_id, type, number) WHERE status <> 'void'
                UNIQUE (folio_id) WHERE type = 'invoice' AND status <> 'void'
                CHECK invoice: amount > 0, credit_for_invoice_id IS NULL, due_on IS NOT NULL
                CHECK credit note: amount < 0, credit_for_invoice_id IS NOT NULL, folio_id IS NULL
 ```
+
+A migrated invoice (`migrated`, no folio) is a company's unpaid invoice from the old PMS. See [Old system balances](05-old-system-balances.md).
 
 ## Enums
 

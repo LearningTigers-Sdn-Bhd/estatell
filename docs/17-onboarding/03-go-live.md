@@ -76,6 +76,10 @@ Document numbering needs no start step. `NextDocumentNumber` creates a sequence 
 
 `PropertyFactory` makes a Live property by default, because operational routes need `Live`. Use `->onboarding()` for a property that is still in setup.
 
+## Migration
+
+A property moving from another PMS gets a migration window after go-live (60 days by default) to bring in guests in the house, old-system deposits and company balances. See [Migration from another PMS](07-migration.md).
+
 ## After go-live
 
 Going live redirects to the dashboard with a `wentLive` flash. There is no separate go-live page: onboarding URLs redirect a Live property to the dashboard, and a property approved by an admin reaches the same cards on the owner's next visit.

@@ -20,7 +20,7 @@ Payments and allocations are never edited. Only the void and reversal columns ar
 
 ## Rules
 
-- **Methods:** an active payment method of the property, except OTA collected and City ledger. There is no surcharge, because there is no folio.
+- **Methods:** an active payment method of the property, except OTA collected and City ledger. There is no surcharge, because there is no folio. Inside the migration window, **Old system** is offered only through **Add from old system**, as credit on account with no receipt number ([Old system balances](05-old-system-balances.md#credit-on-account)).
 - **Receipt number:** from the property's `Receipt` sequence, the same one folio receipts use, so receipts run in one series. `ar_payments` has its own unique rule per property, and the shared sequence keeps the two tables from clashing.
 - **Date:** `received_on` is the business date unless staff pick an earlier one. A future date is refused (`date_in_future`), and so is a property with no business date (`no_business_date`).
 - **Repeat:** the form's UUID is the `idempotency_key`. A repeat returns the existing payment and writes nothing.

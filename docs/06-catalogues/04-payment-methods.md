@@ -32,7 +32,7 @@ payment_methods    id, property_id, transaction_code_id, name, type (PaymentMeth
 
 ## Enums
 
-- `PaymentMethodType`: Cash, Card, BankTransfer, EWallet, OtaCollected, DirectBill.
+- `PaymentMethodType`: Cash, Card, BankTransfer, EWallet, OtaCollected, DirectBill, OldSystem. OldSystem is system-only, seeded inactive and offered only inside the migration window ([Migration](../17-onboarding/07-migration.md#old-system-payment-method)).
 - `SurchargeType`: None, Fixed, Percent.
 
 ## Rules

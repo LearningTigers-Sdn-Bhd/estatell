@@ -26,7 +26,7 @@ transaction_codes    id, property_id, system_key (nullable), code, name,
 ## Enums
 
 - `TransactionKind`: Charge, Payment, Adjustment, Tax.
-- `TransactionCategory`: Room, FoodAndBeverage, Laundry, Minibar, Fee, Transport, Tax, Discount, Cash, Card, BankTransfer, EWallet, OtaCollected, DirectBill, Deposit, Refund, Adjustment, Other.
+- `TransactionCategory`: Room, FoodAndBeverage, Laundry, Minibar, Fee, Transport, Tax, Discount, Cash, Card, BankTransfer, EWallet, OtaCollected, DirectBill, Deposit, Refund, Adjustment, OpeningBalance, OldSystem, Other.
 
 ## Malaysia system codes
 
@@ -52,6 +52,8 @@ transaction_codes    id, property_id, system_key (nullable), code, name,
 | direct_bill_payment       | DIRECT_BILL      | City ledger             | Payment    | DirectBill      |
 | security_deposit          | SECURITY_DEPOSIT | Security deposit        | Payment    | Deposit         |
 | refund                    | REFUND           | Refund                  | Payment    | Refund          |
+| old_system_payment        | OLD_SYSTEM       | Old system              | Payment    | OldSystem       |
+| opening_balance           | OPENING_BAL      | Opening balance         | Adjustment | OpeningBalance  |
 | adjustment                | ADJUSTMENT       | Adjustment              | Adjustment | Adjustment      |
 | discount                  | DISCOUNT         | Discount                | Adjustment | Discount        |
 

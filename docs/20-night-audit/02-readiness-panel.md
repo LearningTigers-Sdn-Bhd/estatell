@@ -65,7 +65,7 @@ A `RoomCharge` exception means the night of that audit's business date was never
 `RetryRoomCharge` (`app/Actions/NightAudit/`) takes the user and the exception:
 
 1. The night is the unit's night on the business date of the exception's audit.
-2. It calls `PostRoomCharges` for that night, with the user as the actor. The lines are posted on the **current** business date, like every posting. The room line keeps its key `night:{unit_night_id}` and its source, the unit night. Its description adds the night: "Room · night of 8 Oct".
+2. It calls `PostRoomCharges` for that night, with the user as the actor. The lines are posted on the **current** business date, like every posting. The room line keeps its key `night:{unit_night_id}` and its source, the unit night. Its description adds the night: "Room · night of 8 Oct", and its `service_date` is the night.
 3. Posted, or already posted (the key exists): the exception is resolved (`resolved_at`, `resolved_by`) and leaves the panel.
 4. Refused: nothing is written or logged and the exception stays open. The answer gives the reason of this try in words.
 

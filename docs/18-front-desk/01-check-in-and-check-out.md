@@ -23,6 +23,8 @@ Move a unit through its stay.
 - Each transition is one Action, checked by `UnitStatus::canTransitionTo()`.
 - Group actions ("check in all") loop over units.
 - Credit exposure is checked at check-in for company-billed reservations.
+- A unit checked in after its arrival date (Keep as late arrival) also posts its missed nights through `PostMissedNights`, each with its own service date. See [Late arrival check-in](../12-reservations/12-past-and-migrated-stays.md#late-arrival-check-in).
+- A night before the property's first business date is never charged (`night_before_go_live`).
 
 ## Refusals
 

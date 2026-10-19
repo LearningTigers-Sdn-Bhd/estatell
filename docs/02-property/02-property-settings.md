@@ -17,10 +17,12 @@ property_settings    property_id (unique), currency, time_zone, default_locale,
                      allow_support_access (bool, default true),
                      allow_support_money_corrections (bool, default true),
                      weekend_nights (WeekendNights, default FriSat),
+                     migration_window_days (integer, default 60, 0 to 365),
                      timestamps
 ```
 
 - A 1:1 table with typed columns. New settings are new columns.
+- `migration_window_days` is on the Operations tab. It sets how long after go-live the migration tools stay open ([Migration](../17-onboarding/07-migration.md#migration-window)).
 - The first Basics save calls `SeedPropertyDefaults`, which creates the row from the Malaysia preset. The migration defaults stay aligned as a database fallback. Repeating Basics does not replace edited settings.
 - Current property staff can edit the page. Finer permissions arrive with the roles module.
 
