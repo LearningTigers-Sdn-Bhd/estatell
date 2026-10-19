@@ -65,22 +65,22 @@ company_rate_plans + at_desk, in_portal
 
 One optional field, **Portal login email**, wherever a company is added or edited. Next to it is **Free cancellation until [n] days before arrival** (`portal_cancel_cutoff_days`). Saving runs the same checks everywhere:
 
-| Email is…                                            | Result                                                                                                           |
-| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Empty                                                | No portal. An open link is revoked.                                                                              |
-| Unchanged                                            | Nothing happens.                                                                                                 |
-| New to estatell                                      | Creates the company user (named after the company) with a temp password, an unverified email and an Active link. |
-| An existing company user                             | Pending link. In-app and mail notification `CompanyLinkInvitation`.                                              |
-| A staff, admin or partner account                    | Error: "This email belongs to another kind of estatell account."                                                 |
-| An open staff or partner invitation                  | The same error as a staff, admin or partner account.                                                             |
-| A company user whose login an admin deactivated      | Error: "This login is not available."                                                                            |
-| The portal login of another company at this property | Error: "This email is already the portal login of another company here."                                         |
+| Email is…                                            | Result                                                                                                        |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Empty                                                | No portal. An open link is revoked.                                                                           |
+| Unchanged                                            | Nothing happens.                                                                                              |
+| New to estatell                                      | Creates the company user (named after the company) with a temp password, a verified email and an Active link. |
+| An existing company user                             | Pending link. In-app and mail notification `CompanyLinkInvitation`.                                           |
+| A staff, admin or partner account                    | Error: "This email belongs to another kind of estatell account."                                              |
+| An open staff or partner invitation                  | The same error as a staff, admin or partner account.                                                          |
+| A company user whose login an admin deactivated      | Error: "This login is not available."                                                                         |
+| The portal login of another company at this property | Error: "This email is already the portal login of another company here."                                      |
 
 - A changed email is checked first. A refusal keeps the old link; otherwise the old link is revoked, then the table applies.
 - A Suspended company shows the Portal fields disabled and keeps its link.
 - The portal login email may be the same as the contact email.
 - The messages never name another property or company.
-- **Email verification.** A login made by a property starts with `email_verified_at` empty. At first sign-in, after setting their own password, the agent gets a verification email, and every `/portal` page waits until the email is verified. This stops property staff from creating a login for an email they don't own and then accepting another property's invitation with it. The real owner of the email can always take the login back with Forgot password.
+- **Email verification.** A login made by a property is created with `email_verified_at` set, like staff and partner temp-password accounts. The company signs in with the temp password, sets its own password and uses the portal at once, with no email step. Many companies (for example in China) cannot receive our email. **Accepted risk:** property staff could create a login for an email they don't own, and if another property later sets the same email, accept that property's invitation with it. This needs dishonest staff and a guessed email; the real owner can take the login back with Forgot password. If it is ever abused, require a verified email only in `AcceptCompanyLink`.
 - A property can reset the temp password only while the user still has `must_change_password` and has no Active link at another property.
 
 **Company page → Portal tab** (`GET .../companies/{company}/portal`, the Globe icon, between Rates and Payments), a **Portal** form:
