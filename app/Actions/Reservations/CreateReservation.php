@@ -37,9 +37,9 @@ class CreateReservation
      * Create a reservation and its units in one transaction.
      *
      * A Bed room type line adds one unit for each bed. A reservation is all overnight or all day use (`stay_types_mixed`), and day use never comes from a channel. When any line is refused, nothing is saved, the reference
-     * number is not used up, nothing is logged, and the result names the line. `$fromChannel` is passed to `AddUnit`. `SyncRoutingRules` runs when the units are in, so a company or a group reservation gets its Master folio and rules. See docs/12-reservations/02-group-bookings.md.
+     * number is not used up, nothing is logged, and the result names the line. `$fromChannel` and `$allowPastArrival` are passed to `AddUnit`. `SyncRoutingRules` runs when the units are in, so a company or a group reservation gets its Master folio and rules. See docs/12-reservations/02-group-bookings.md.
      */
-    public function __invoke(User $actor, Property $property, NewReservationData $data, bool $fromChannel = false): ReservationResult
+    public function __invoke(User $actor, Property $property, NewReservationData $data, bool $fromChannel = false, bool $allowPastArrival = false): ReservationResult
     {
         if ($data->units === []) {
             return ReservationResult::refused(ReservationResult::REFUSAL_UNITS_REQUIRED);
@@ -68,7 +68,7 @@ class CreateReservation
         }
 
         try {
-            return DB::transaction(function () use ($actor, $property, $data, $fromChannel): ReservationResult {
+            return DB::transaction(function () use ($actor, $property, $data, $fromChannel, $allowPastArrival): ReservationResult {
                 $roomTypes = RoomType::query()
                     ->where('property_id', $property->id)
                     ->whereIn('id', array_unique(array_map(fn (NewUnitData $line): int => $line->roomTypeId, $data->units)))
@@ -95,7 +95,7 @@ class CreateReservation
 
                 foreach ($data->units as $index => $line) {
                     foreach (range(1, $this->unitCount($roomTypes->get($line->roomTypeId), $line, $index)) as $ignored) {
-                        $result = ($this->addUnit)($actor, $reservation, $line, $index, $fromChannel);
+                        $result = ($this->addUnit)($actor, $reservation, $line, $index, $fromChannel, $allowPastArrival);
 
                         if ($result->isRefused()) {
                             throw new ReservationRefused($result);

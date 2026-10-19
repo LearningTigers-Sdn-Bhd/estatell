@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Reservations;
 
 use App\Actions\Reservations\CreateBooking;
+use App\Actions\Reservations\CreatePastStay;
 use App\Data\Property\CurrencyData;
 use App\Enums\BillingMode;
 use App\Enums\BoatDirection;
@@ -16,6 +17,7 @@ use App\Http\Requests\Reservations\DayUseOffersRequest;
 use App\Http\Requests\Reservations\FreeUnitsRequest;
 use App\Http\Requests\Reservations\QuoteBookingLineRequest;
 use App\Http\Requests\Reservations\StoreBookingRequest;
+use App\Http\Requests\Reservations\StorePastStayRequest;
 use App\Models\Property;
 use App\Models\RatePlan;
 use App\Models\RoomType;
@@ -25,6 +27,7 @@ use App\Services\Boats\BoatSeats;
 use App\Services\CityLedger\CompanyOptions;
 use App\Services\Guests\CountryOptions;
 use App\Services\NightAudit\CurrentBusinessDate;
+use App\Services\NightAudit\FirstBusinessDate;
 use App\Services\Property\PropertyToday;
 use App\Services\Rates\DayUseOffers;
 use App\Services\Reservations\BookingErrorKeys;
@@ -55,6 +58,33 @@ class ReservationBookingController extends Controller
     public function walkIn(Request $request, Property $property, ReservationFormOptions $options, CurrentBusinessDate $businessDate, PropertyToday $today, BookingSourceOptions $sourceOptions): Response
     {
         return $this->form($request, $property, $options, $businessDate, $today, $sourceOptions, walkIn: true);
+    }
+
+    /**
+     * The same form as a past stay: a stay that began before the business date and is still in the house. Needs `folio.manual`.
+     */
+    public function past(Request $request, Property $property, ReservationFormOptions $options, CurrentBusinessDate $businessDate, PropertyToday $today, BookingSourceOptions $sourceOptions): Response
+    {
+        return $this->form($request, $property, $options, $businessDate, $today, $sourceOptions, walkIn: false, pastStay: true);
+    }
+
+    /**
+     * Save a past stay. A refusal goes back to the form as errors keyed by line, and nothing is saved. On success the
+     * folio tab opens, with the nights already posted.
+     */
+    public function storePast(StorePastStayRequest $request, Property $property, CreatePastStay $createPastStay, BookingErrorKeys $errorKeys): RedirectResponse
+    {
+        $result = $createPastStay($request->user(), $property, $request->toBookingData(), $request->reason(), $request->withoutCard());
+
+        if ($result->isRefused()) {
+            return back(fallback: route('reservations.past', ['property' => $property]))->withErrors(
+                $errorKeys->errors($result, $request->unitsPerLine(), $request->user()->can(PermissionEnum::RatesOverrideRestrictions->value)),
+            );
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Past stay :reference created.', ['reference' => $result->reservation->reference])]);
+
+        return to_route('reservations.folio', ['property' => $property, 'reservation' => $result->reservation]);
     }
 
     /**
@@ -168,13 +198,16 @@ class ReservationBookingController extends Controller
         return response()->json(['seats' => (object) $boatSeats->forDate($direction, $request->date('date', 'Y-m-d')->toImmutable(), $departureIds)]);
     }
 
-    private function form(Request $request, Property $property, ReservationFormOptions $options, CurrentBusinessDate $businessDate, PropertyToday $today, BookingSourceOptions $sourceOptions, bool $walkIn): Response
+    private function form(Request $request, Property $property, ReservationFormOptions $options, CurrentBusinessDate $businessDate, PropertyToday $today, BookingSourceOptions $sourceOptions, bool $walkIn, bool $pastStay = false): Response
     {
         $canManageGuests = $request->user()->can(PermissionEnum::GuestsManage->value);
         $companies = $request->user()->can(PermissionEnum::CompanyView->value) ? app(CompanyOptions::class)->active($property) : [];
 
         return Inertia::render('reservations/create', [
             'isWalkIn' => $walkIn,
+            'isPastStay' => $pastStay,
+            'goLiveDate' => (app(FirstBusinessDate::class)->date($property) ?? $today->date($property))->toDateString(),
+            'canEnterPastStay' => $request->user()->can(PermissionEnum::FolioManual->value),
             'sources' => $sourceOptions->forBooking($property, $walkIn, canUseCompany: $companies !== []),
             'today' => ($businessDate->date($property) ?? $today->date($property))->toDateString(),
             'checkInTime' => substr($property->settings->check_in_time ?? '15:00', 0, 5),

@@ -359,7 +359,7 @@ class StoreBookingRequest extends FormRequest
      */
     private ?array $bedTypes = null;
 
-    private function isBedLine(int $roomTypeId): bool
+    protected function isBedLine(int $roomTypeId): bool
     {
         if ($this->bedTypes === null) {
             /** @var Property $property */

@@ -58,12 +58,12 @@ class AddUnit
      * The room type row is locked before the availability check, so two staff cannot sell the last unit together.
      * Every check runs before the first write, so a refusal writes and logs nothing. `$lineIndex` is the index of
      * the line in the request, and comes back on a refusal. A Cancelled or Completed reservation is refused first. A day use line (`$data->stayType`) goes to `AddDayUseUnit`; a reservation is all overnight or all day use. Only
-     * `$fromChannel` (booking ingestion) skips the arrival date, restriction and availability checks. An add-on refusal rolls back the unit and comes back with the line index. Last, `SyncRoutingRules` makes the billing mode rules match the new unit count, and the result names units whose posted room lines stay on their folio. See docs/12-reservations/02-group-bookings.md.
+     * `$fromChannel` (booking ingestion) skips the arrival date, restriction and availability checks. `$allowPastArrival` (only `CreatePastStay` passes it) skips the arrival date check and the restriction check for a stay that began before the business date; availability is still checked. An add-on refusal rolls back the unit and comes back with the line index. Last, `SyncRoutingRules` makes the billing mode rules match the new unit count, and the result names units whose posted room lines stay on their folio. See docs/12-reservations/02-group-bookings.md.
      */
-    public function __invoke(User $actor, Reservation $reservation, NewUnitData $data, int $lineIndex = 0, bool $fromChannel = false): ReservationResult
+    public function __invoke(User $actor, Reservation $reservation, NewUnitData $data, int $lineIndex = 0, bool $fromChannel = false, bool $allowPastArrival = false): ReservationResult
     {
         try {
-            return DB::transaction(fn (): ReservationResult => $this->add($actor, $reservation, $data, $lineIndex, $fromChannel));
+            return DB::transaction(fn (): ReservationResult => $this->add($actor, $reservation, $data, $lineIndex, $fromChannel, $allowPastArrival));
         } catch (ReservationRefused $refused) {
             return $refused->result;
         }
@@ -72,7 +72,7 @@ class AddUnit
     /**
      * @throws ReservationRefused when an add-on is refused after the unit was written, so the transaction rolls back
      */
-    private function add(User $actor, Reservation $reservation, NewUnitData $data, int $lineIndex, bool $fromChannel): ReservationResult
+    private function add(User $actor, Reservation $reservation, NewUnitData $data, int $lineIndex, bool $fromChannel, bool $allowPastArrival): ReservationResult
     {
         $refuse = fn (string $code, $date = null): ReservationResult => ReservationResult::refused($code, $lineIndex, $date);
 
@@ -126,9 +126,9 @@ class AddUnit
 
         $property = $reservation->property;
 
-        if (! $fromChannel) {
-            $today = $this->currentBusinessDate->date($property) ?? $this->propertyToday->date($property);
+        $today = $this->currentBusinessDate->date($property) ?? $this->propertyToday->date($property);
 
+        if (! $fromChannel && ! $allowPastArrival) {
             if ($arrival->lt($today)) {
                 return $refuse(ReservationResult::REFUSAL_ARRIVAL_IN_PAST);
             }
@@ -148,7 +148,7 @@ class AddUnit
 
         $restrictionOverride = null;
 
-        if (! $fromChannel) {
+        if (! $fromChannel && ! ($allowPastArrival && $arrival->lt($today))) {
             $violations = $this->restrictionCheck->violations($ratePlan->id, $roomType->id, $arrival, $departure);
 
             if ($violations !== []) {

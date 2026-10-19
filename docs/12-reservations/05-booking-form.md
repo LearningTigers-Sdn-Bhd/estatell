@@ -39,14 +39,16 @@ Stay is always visible above the tabs. The tab strip uses the `line` variant of 
 
 The page header has a description in both modes: "Reserve rooms or beds for a guest who arrives on a later date." for a new booking, and "A guest at the desk now. Every unit needs a room or bed." for a walk-in. The Reservations page has `New ▾` with **New booking** and **Walk-in**. Walk-in opens the same page with the Walk-in [booking source](11-booking-sources.md) and today's business date as arrival. The **Reservation mode** field on the form switches between the two pages without losing what was typed (see [Stay](#sections)). The walk-in check-in itself comes with [Check-in and check-out](../18-front-desk/01-check-in-and-check-out.md).
 
-| URL                                         | Name                          | Needs                 |
-| ------------------------------------------- | ----------------------------- | --------------------- |
-| `GET /p/{code}/reservations/new`            | `reservations.new`            | `reservations.manage` |
-| `GET /p/{code}/reservations/walk-in`        | `reservations.walk-in`        | `reservations.manage` |
-| `POST /p/{code}/reservations`               | `reservations.store`          | `reservations.manage` |
-| `POST /p/{code}/reservations/quote`         | `reservations.quote`          | `reservations.manage` |
-| `GET /p/{code}/reservations/free-units`     | `reservations.free-units`     | `reservations.manage` |
-| `GET /p/{code}/reservations/day-use-offers` | `reservations.day-use-offers` | `reservations.manage` |
+| URL                                         | Name                          | Needs                                    |
+| ------------------------------------------- | ----------------------------- | ---------------------------------------- |
+| `GET /p/{code}/reservations/new`            | `reservations.new`            | `reservations.manage`                    |
+| `GET /p/{code}/reservations/walk-in`        | `reservations.walk-in`        | `reservations.manage`                    |
+| `GET /p/{code}/reservations/past`           | `reservations.past`           | `reservations.manage` and `folio.manual` |
+| `POST /p/{code}/reservations/past`          | `reservations.store-past`     | `reservations.manage` and `folio.manual` |
+| `POST /p/{code}/reservations`               | `reservations.store`          | `reservations.manage`                    |
+| `POST /p/{code}/reservations/quote`         | `reservations.quote`          | `reservations.manage`                    |
+| `GET /p/{code}/reservations/free-units`     | `reservations.free-units`     | `reservations.manage`                    |
+| `GET /p/{code}/reservations/day-use-offers` | `reservations.day-use-offers` | `reservations.manage`                    |
 
 `quote` and `free-units` also answer a day use line (`stay_type=day_use`, `start_time`, `hours`), and `day-use-offers` lists the hours a day use plan sells (see [Day use](10-day-use.md#booking-form)). `new` and `walk-in` render the same page (`pages/reservations/create.tsx`). All five sit before `{reservation}` in `routes/reservations.php`, so `new` is never read as a reservation id.
 

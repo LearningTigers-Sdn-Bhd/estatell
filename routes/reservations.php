@@ -27,6 +27,10 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
         Route::get('new', [ReservationBookingController::class, 'new'])->name('new');
         Route::get('walk-in', [ReservationBookingController::class, 'walkIn'])->name('walk-in');
         Route::post('/', [ReservationBookingController::class, 'store'])->name('store');
+        Route::middleware('can:'.PermissionEnum::FolioManual->value)->group(function () {
+            Route::get('past', [ReservationBookingController::class, 'past'])->name('past');
+            Route::post('past', [ReservationBookingController::class, 'storePast'])->name('store-past');
+        });
         Route::get('free-units', [ReservationBookingController::class, 'freeUnits'])->name('free-units');
         Route::get('day-use-offers', [ReservationBookingController::class, 'dayUseOffers'])->name('day-use-offers');
         Route::get('boat-seats', [ReservationBookingController::class, 'boatSeats'])->middleware('boats')->name('boat-seats');

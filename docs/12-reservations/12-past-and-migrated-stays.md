@@ -37,12 +37,7 @@ Both new modes post to `POST /p/{code}/reservations/past` (`reservations.store-p
 │  │ Departure     [12 Oct ▾] [12:00]                                           │ │
 │  │ Reason *      [e.g. Walk-in entered late                               ]   │ │
 │  └────────────────────────────────────────────────────────────────────────────┘ │
-│  Line 1   Standard Double · Room Only · 2 adults                                │
-│  Night    Room         Price                                                    │
-│  08 Oct   [103 ▾]      250.00   posts now                                       │
-│  09 Oct   [103 ▾]      250.00   posts now                                       │
-│  10 Oct   [103 ▾]      250.00   tonight's audit                                 │
-│  11 Oct   [103 ▾]      250.00   audit                                           │
+│  Line 1   Standard Double · Room Only · 2 adults · Room [103 ▾]                 │
 │                                        [Cancel]  [Save and open folio]          │
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -51,8 +46,8 @@ Both new modes post to `POST /p/{code}/reservations/past` (`reservations.store-p
 | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Status     | **Still in house**: the departure is after the business date. **Already checked out**: the departure is on or before the business date.                                                                           |
 | Checked in | Before the business date and on or after the go-live date (`arrival_before_go_live`, "This stay began before go-live. Use Migrated stay."). Not the business date: that is a normal walk-in (`arrival_not_past`). |
-| Rooms      | Every night has a room or bed. Past nights must be free in that room: the room-and-night constraint refuses a clash (`not_available` on the night).                                                               |
-| Prices     | Quoted by `RateQuoteService` as today. The ✎ override works as on a normal booking.                                                                                                                               |
+| Rooms      | Every line has a room or bed for the whole stay, as on a Walk-in (the form has one pick for each line, not one for each night). A night that is not free in that room is refused (`room_not_free` on the night).  |
+| Prices     | Quoted by `RateQuoteService` as today. The ✎ override works as on a normal booking. The booking summary on the right shows the nights as on any booking.                                                          |
 | Reason     | Required.                                                                                                                                                                                                         |
 | Source     | Any active source. Walk-in is the default.                                                                                                                                                                        |
 
@@ -62,9 +57,9 @@ Restrictions (min stay, closed to arrival) are not checked for the past nights. 
 
 `CreatePastStay` (`app/Actions/Reservations/`) runs the existing Actions in one transaction:
 
-1. `CreateBooking` with `allowPastArrival` (new flag, only this Action passes it), so the arrival check is skipped and the room picks are required.
-2. `CheckInUnit` for each unit, with `checked_in_at` set to the entered date and time, and the new `asOf` input that allows an arrival before the business date. The registration card and nationality checks run as at a normal check-in.
-3. `PostMissedNights` for each unit (below).
+1. `CreateBooking` with `allowPastArrival` (new flag, only this Action passes it), so the arrival check and the restriction check are skipped and the room picks are required. Availability is still checked.
+2. `CheckInUnit` for each unit, with `checked_in_at` set to the entered date and time through the new `asOf` input. The nationality check runs as at a normal check-in. The registration card rule is skipped for a user with `front-desk.check-in-without-card`, because no card can exist before the stay is saved.
+3. `PostMissedNights` for each unit (below). `CheckInUnit` calls it itself, so `CreatePastStay` does not call it twice.
 4. **Already checked out**: `CheckOutUnit` for each unit with `checked_out_at` set to the entered departure, skipping the balance check (`skipBalanceCheck`, only this Action passes it). The folio stays **Open** with its balance. The room is not marked Dirty: the stay ended in the past.
 5. Logs `reservation.past_stay_created` with the reason and the units.
 
@@ -77,7 +72,7 @@ No policy runs: no no-show, cancellation, early departure or late check-out fee.
 
 ### `PostMissedNights`
 
-`(?User $actor, ReservationUnit $unit): PostingResult`. Posts every night of the unit that is before the business date, on or after the go-live date, and has no `night:{unit_night_id}` line.
+`(?User $actor, ReservationUnit $unit): PostingResult` in `app/Actions/NightAudit/`. Posts every night of the unit that is before the business date, on or after the go-live date, and has no `night:{unit_night_id}` line.
 
 - Each night goes through `PostRoomCharges` with that night as `$date`, the same path a [Retry](../20-night-audit/02-readiness-panel.md#retry-a-room-charge) uses. `posting_date` is the business date and `service_date` is the night.
 - The key stays `night:{unit_night_id}`, so a rerun posts nothing twice and the next audit never charges the night again.
@@ -86,7 +81,7 @@ No policy runs: no no-show, cancellation, early departure or late check-out fee.
 
 ### Late arrival check-in
 
-With **Keep as late arrival**, a unit due on the 8th that checks in on the 10th today gets only the nights from the 10th. `CheckInUnit` now calls `PostMissedNights` after the check-in, so the 8th and 9th post too, each with its own service date. This closes a gap: before this change those nights were never charged (to confirm with a test first).
+With **Keep as late arrival**, a unit due on the 8th that checks in on the 10th today gets only the nights from the 10th. `CheckInUnit` now calls `PostMissedNights` after the check-in, so the 8th and 9th post too, each with its own service date. This closes a gap: before this change those nights were never charged (a test showed it, then the fix closed it).
 
 Staff who do not want to charge the missed nights reverse them on the folio, or use Change dates before check-in. No new choice is added to the check-in Dialog.
 

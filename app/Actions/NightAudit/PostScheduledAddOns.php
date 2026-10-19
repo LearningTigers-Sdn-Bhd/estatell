@@ -69,7 +69,11 @@ class PostScheduledAddOns
         return $results;
     }
 
-    private function post(?User $actor, Property $property, int $addOnId, CarbonImmutable $businessDate): PostingResult
+    /**
+     * Post one add-on on the business date, whatever its `service_date`. `PostMissedNights` uses it for an add-on dated
+     * before the business date.
+     */
+    public function post(?User $actor, Property $property, int $addOnId, CarbonImmutable $businessDate): PostingResult
     {
         return DB::transaction(function () use ($actor, $property, $addOnId, $businessDate): PostingResult {
             $unitId = UnitAddOn::query()->whereKey($addOnId)->value('reservation_unit_id');

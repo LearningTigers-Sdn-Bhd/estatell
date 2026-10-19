@@ -33,17 +33,17 @@ class CreateBooking
      * tabs (`CreateGuest` or `UpdateGuest`), `CreateReservation` with its lines, `AttachGuest` for each guest who stays,
      * then `AssignRoom` or `AssignBed` for each pick. It holds no rules of its own. When any step is refused,
      * everything rolls back, including new guests and the reference number, and the result names the step.
-     * `$fromChannel` is passed to `CreateReservation`. Permissions for creating guests are checked by the caller.
+     * `$fromChannel` and `$allowPastArrival` (only `CreatePastStay` passes it) are passed to `CreateReservation`. Permissions for creating guests are checked by the caller.
      * See docs/12-reservations/05-booking-form.md.
      */
-    public function __invoke(User $actor, Property $property, NewBookingData $data, bool $fromChannel = false): BookingResult
+    public function __invoke(User $actor, Property $property, NewBookingData $data, bool $fromChannel = false, bool $allowPastArrival = false): BookingResult
     {
         if ($data->guests === []) {
             return BookingResult::refused(BookingResult::REFUSAL_BOOKER_REQUIRED);
         }
 
         try {
-            return DB::transaction(function () use ($actor, $property, $data, $fromChannel): BookingResult {
+            return DB::transaction(function () use ($actor, $property, $data, $fromChannel, $allowPastArrival): BookingResult {
                 $guestIds = [];
 
                 foreach ($data->guests as $index => $tab) {
@@ -60,7 +60,7 @@ class CreateBooking
                     creditOverrideReason: $data->creditOverrideReason,
                     groupName: $data->groupName,
                     notes: $data->notes,
-                ), $fromChannel);
+                ), $fromChannel, $allowPastArrival);
 
                 if ($result->isRefused()) {
                     throw new BookingRefused(BookingResult::refused((string) $result->refusal, lineIndex: $result->lineIndex, date: $result->date, boatDirection: $result->boatDirection));

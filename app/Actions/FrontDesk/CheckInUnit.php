@@ -5,6 +5,7 @@ namespace App\Actions\FrontDesk;
 use App\Actions\CityLedger\RecordCreditOverride;
 use App\Actions\Folio\PostCharge;
 use App\Actions\Folio\PostDayUseBlock;
+use App\Actions\NightAudit\PostMissedNights;
 use App\Actions\Reservations\SyncReservationStatus;
 use App\Data\Folio\NewChargeData;
 use App\Enums\StayType;
@@ -17,6 +18,7 @@ use App\Services\CityLedger\CreditCheck;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Registration\RegistrationCardRequirement;
 use App\Services\Reservations\UnitNationality;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -32,6 +34,7 @@ class CheckInUnit
         private PostDayUseBlock $postDayUseBlock,
         private AutoAssignRooms $autoAssignRooms,
         private SyncReservationStatus $syncReservationStatus,
+        private PostMissedNights $postMissedNights,
     ) {}
 
     /**
@@ -48,12 +51,15 @@ class CheckInUnit
      * room from `unit_day_uses` (`no_room_assigned` without one). Its block is posted at check-in, because the guest
      * leaves before the night audit: first every unposted add-on of the unit, dated or not, then the block through
      * `PostDayUseBlock`. A posting refusal rolls the whole check-in back.
-     * Permissions are checked by the route. See docs/18-front-desk/01-check-in-and-check-out.md.
+     * A unit that arrives after its arrival date gets the nights it missed: `PostMissedNights` runs after the check-in,
+     * so each night before the business date posts with its own service date, and a refusal rolls the check-in back.
+     * `$asOf` is the moment the guest really checked in, for a past stay entered late (`CreatePastStay`); it only sets
+     * `checked_in_at`. Permissions are checked by the route. See docs/18-front-desk/01-check-in-and-check-out.md.
      */
-    public function __invoke(User $actor, ReservationUnit $unit, bool $withoutCard = false, ?string $creditOverrideReason = null): UnitStayResult
+    public function __invoke(User $actor, ReservationUnit $unit, bool $withoutCard = false, ?string $creditOverrideReason = null, ?CarbonImmutable $asOf = null): UnitStayResult
     {
         try {
-            return DB::transaction(function () use ($actor, $unit, $withoutCard, $creditOverrideReason): UnitStayResult {
+            return DB::transaction(function () use ($actor, $unit, $withoutCard, $creditOverrideReason, $asOf): UnitStayResult {
                 $locked = ReservationUnit::query()->lockForUpdate()->findOrFail($unit->id);
 
                 if (! $locked->status->canTransitionTo(UnitStatus::CheckedIn)) {
@@ -122,7 +128,7 @@ class CheckInUnit
                 }
 
                 $locked->status = UnitStatus::CheckedIn;
-                $locked->checked_in_at = now();
+                $locked->checked_in_at = $asOf ?? now();
                 $locked->save();
 
                 if ($isDayUse) {
@@ -130,6 +136,7 @@ class CheckInUnit
                     $this->postBlock($actor, $locked, $today);
                 } else {
                     $this->postAddOns($actor, $locked, $locked->addOns()->whereNull('service_date')->whereNull('folio_line_id')->orderBy('id')->get());
+                    $this->postMissedNights($actor, $locked);
                 }
 
                 if ($overridden) {
@@ -179,6 +186,18 @@ class CheckInUnit
             if ($result->isRefused()) {
                 throw new UnitStayRefused(UnitStayResult::refused((string) $result->refusal));
             }
+        }
+    }
+
+    /**
+     * @throws UnitStayRefused when a missed night is refused by `PostMissedNights`
+     */
+    private function postMissedNights(User $actor, ReservationUnit $unit): void
+    {
+        $result = ($this->postMissedNights)($actor, $unit);
+
+        if ($result->isRefused()) {
+            throw new UnitStayRefused(UnitStayResult::refused((string) $result->refusal));
         }
     }
 

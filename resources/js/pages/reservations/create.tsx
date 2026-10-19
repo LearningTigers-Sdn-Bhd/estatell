@@ -93,7 +93,14 @@ import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { cn } from '@/lib/utils';
 import { CreditOverrideField } from '@/components/pms/city-ledger/credit-override-field';
 import { CompanySelect } from '@/components/pms/company-select';
-import { index, newMethod, store, walkIn } from '@/routes/reservations';
+import {
+    index,
+    newMethod,
+    past,
+    store,
+    storePast,
+    walkIn,
+} from '@/routes/reservations';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
 
 /** How far ahead an arrival can be picked, and the longest stay the departure menu offers. */
@@ -110,6 +117,12 @@ type Quote = App.Data.Reservations.BookingQuoteData;
 
 type Props = {
     isWalkIn: boolean;
+    /** Past stay mode: a stay that began before the business date and is still in the house. */
+    isPastStay: boolean;
+    /** Whether the user may enter a past stay (`folio.manual`): it adds the mode to the select. */
+    canEnterPastStay: boolean;
+    /** The go-live date, `Y-m-d`: the earliest arrival of a past stay. */
+    goLiveDate: string;
     sources: App.Data.Reservations.BookingSourceOptionData[];
     /** The business date, `Y-m-d`. Not named `businessDate`: that is the shared prop the header indicator reads. */
     today: string;
@@ -167,6 +180,9 @@ function Section({
 
 export default function ReservationCreate({
     isWalkIn,
+    isPastStay,
+    canEnterPastStay,
+    goLiveDate,
     sources,
     today,
     checkInTime,
@@ -189,12 +205,19 @@ export default function ReservationCreate({
     genders,
     locales,
 }: Props) {
+    const defaultSourceId = (past: boolean) =>
+        String(
+            (past && sources.find((source) => source.type === 'walk_in')?.id) ||
+                sources[0]?.id ||
+                '',
+        );
     const form = useForm<BookingForm>({
         stay_type: 'overnight',
         start_time: '',
-        booking_source_id: String(sources[0]?.id ?? ''),
+        reason: '',
+        booking_source_id: defaultSourceId(isPastStay),
         external_reference: '',
-        arrival_date: today,
+        arrival_date: isPastStay ? addDays(today, -1) : today,
         departure_date: '',
         arrival_time: isWalkIn ? nowTime : checkInTime,
         departure_time: checkOutTime,
@@ -212,27 +235,42 @@ export default function ReservationCreate({
     const [quotes, setQuotes] = useState<Record<string, Quote>>({});
     const [tab, setTab] = useState<BookingTab>('rooms');
     const guard = useUnsavedChanges(form.isDirty && !form.processing);
-    const mode = isWalkIn ? 'walk-in' : 'new';
-    const lastMode = useRef(isWalkIn);
+    const mode = isPastStay ? 'past' : isWalkIn ? 'walk-in' : 'new';
+    const lastMode = useRef(mode);
+    const modeOptions = [
+        { value: 'new', label: 'New booking' },
+        { value: 'walk-in', label: 'Walk-in' },
+        ...(canEnterPastStay ? [{ value: 'past', label: 'Past stay' }] : []),
+    ];
 
     // A mode switch keeps the page mounted, so the form follows the new mode when the props change.
     useEffect(() => {
-        if (lastMode.current === isWalkIn) {
+        if (lastMode.current === mode) {
             return;
         }
 
-        lastMode.current = isWalkIn;
+        lastMode.current = mode;
         form.setData((current) => ({
             ...current,
-            booking_source_id: String(sources[0]?.id ?? ''),
-            arrival_date: isWalkIn ? today : current.arrival_date,
-            arrival_time: isWalkIn ? nowTime : current.arrival_time,
+            booking_source_id: defaultSourceId(isPastStay),
+            stay_type: isPastStay ? 'overnight' : current.stay_type,
+            arrival_date: isWalkIn
+                ? today
+                : isPastStay
+                  ? addDays(today, -1)
+                  : current.arrival_date,
+            arrival_time: isWalkIn
+                ? nowTime
+                : isPastStay
+                  ? checkInTime
+                  : current.arrival_time,
+            departure_date: isPastStay ? '' : current.departure_date,
             start_time:
-                current.stay_type === 'day_use'
+                current.stay_type === 'day_use' && !isPastStay
                     ? defaultStart(isWalkIn)
                     : current.start_time,
         }));
-    }, [isWalkIn]);
+    }, [mode]);
 
     /** A walk-in starts at the next half hour. A booking starts at 10:00 until staff pick another time. */
     function defaultStart(walkIn: boolean): string {
@@ -266,16 +304,19 @@ export default function ReservationCreate({
             return;
         }
 
-        guard.visitWithout((next === 'walk-in' ? walkIn : newMethod).url(), {
+        const target =
+            next === 'past' ? past : next === 'walk-in' ? walkIn : newMethod;
+
+        guard.visitWithout(target.url(), {
             preserveState: true,
             preserveScroll: true,
-            only: ['isWalkIn', 'sources', 'nowTime'],
+            only: ['isWalkIn', 'isPastStay', 'sources', 'nowTime'],
         });
     };
     const sourceType = sources.find(
         (source) => String(source.id) === data.booking_source_id,
     )?.type;
-    const isDayUse = data.stay_type === 'day_use';
+    const isDayUse = data.stay_type === 'day_use' && !isPastStay;
     // A refusal of the start of a block can come back on the form or on a line.
     const startError =
         errors.start_time ??
@@ -313,11 +354,12 @@ export default function ReservationCreate({
         : lockedNights !== null && data.arrival_date
           ? addDays(data.arrival_date, lockedNights)
           : data.departure_date;
-    const emptyPickLabel = isWalkIn
-        ? 'Select'
-        : autoAssignRooms
-          ? 'Auto-assign'
-          : 'Select later';
+    const emptyPickLabel =
+        isWalkIn || isPastStay
+            ? 'Select'
+            : autoAssignRooms
+              ? 'Auto-assign'
+              : 'Select later';
 
     // The seats are for the dates the stay takes: Boat in on the arrival, Boat out on the departure.
     const boatInSeats = useBoatSeats(
@@ -412,6 +454,12 @@ export default function ReservationCreate({
         0,
     );
 
+    const pageTitle = isPastStay
+        ? 'Past stay'
+        : isWalkIn
+          ? 'Walk-in'
+          : 'New booking';
+
     const submit = (event?: React.FormEvent) => {
         event?.preventDefault();
         form.transform(
@@ -421,7 +469,7 @@ export default function ReservationCreate({
                     roomTypes,
                 ) as unknown as BookingForm,
         );
-        form.post(store.url(), {
+        form.post((isPastStay ? storePast : store).url(), {
             preserveScroll: true,
             onError: (submitted) => {
                 const failing = firstErrorTab(errorTabs(submitted));
@@ -439,7 +487,7 @@ export default function ReservationCreate({
 
     return (
         <>
-            <Head title={isWalkIn ? 'Walk-in' : 'New booking'} />
+            <Head title={pageTitle} />
 
             <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
                 <div
@@ -447,11 +495,13 @@ export default function ReservationCreate({
                     className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-4 pb-12"
                 >
                     <PageHeader
-                        title={isWalkIn ? 'Walk-in' : 'New booking'}
+                        title={pageTitle}
                         description={
-                            isWalkIn
-                                ? 'A guest at the desk now. Every unit needs a room or bed.'
-                                : 'Reserve rooms or beds for a guest who arrives on a later date.'
+                            isPastStay
+                                ? 'A stay that began before today and is still in the house. Every unit needs a room or bed.'
+                                : isWalkIn
+                                  ? 'A guest at the desk now. Every unit needs a room or bed.'
+                                  : 'Reserve rooms or beds for a guest who arrives on a later date.'
                         }
                         back={{ href: index.url(), label: 'Reservations' }}
                     />
@@ -465,7 +515,7 @@ export default function ReservationCreate({
                                 description="The dates and expected times apply to every line."
                             >
                                 <FieldGroup>
-                                    {hasDayUse && (
+                                    {hasDayUse && !isPastStay && (
                                         <Field>
                                             <FieldLabel>Stay type</FieldLabel>
                                             <ToggleGroup
@@ -547,16 +597,7 @@ export default function ReservationCreate({
                                                 </FieldLabel>
                                                 <EnumSelect
                                                     id="booking-mode"
-                                                    options={[
-                                                        {
-                                                            value: 'new',
-                                                            label: 'New booking',
-                                                        },
-                                                        {
-                                                            value: 'walk-in',
-                                                            label: 'Walk-in',
-                                                        },
-                                                    ]}
+                                                    options={modeOptions}
                                                     value={mode}
                                                     onValueChange={switchMode}
                                                 />
@@ -582,8 +623,16 @@ export default function ReservationCreate({
                                                         data.boat_in,
                                                     )}
                                                     dateLocked={isWalkIn}
-                                                    min={today}
-                                                    max={lastBookable}
+                                                    min={
+                                                        isPastStay
+                                                            ? goLiveDate
+                                                            : today
+                                                    }
+                                                    max={
+                                                        isPastStay
+                                                            ? addDays(today, -1)
+                                                            : lastBookable
+                                                    }
                                                     onDateChange={(value) =>
                                                         form.setData(
                                                             'arrival_date',
@@ -659,7 +708,8 @@ export default function ReservationCreate({
                                                         lockedNights !== null
                                                     }
                                                     min={
-                                                        data.arrival_date
+                                                        data.arrival_date &&
+                                                        !isPastStay
                                                             ? addDays(
                                                                   data.arrival_date,
                                                                   1,
@@ -706,23 +756,43 @@ export default function ReservationCreate({
                                                 </FieldLabel>
                                                 <EnumSelect
                                                     id="booking-mode"
-                                                    options={[
-                                                        {
-                                                            value: 'new',
-                                                            label: 'New booking',
-                                                        },
-                                                        {
-                                                            value: 'walk-in',
-                                                            label: 'Walk-in',
-                                                        },
-                                                    ]}
+                                                    options={modeOptions}
                                                     value={mode}
                                                     onValueChange={switchMode}
                                                 />
                                             </Field>
                                         </div>
                                     )}
-                                    {!isDayUse && hasBoats && (
+                                    {isPastStay && (
+                                        <Field data-invalid={!!errors.reason}>
+                                            <FieldLabel htmlFor="booking-reason">
+                                                Reason
+                                            </FieldLabel>
+                                            <Input
+                                                id="booking-reason"
+                                                name="reason"
+                                                value={data.reason ?? ''}
+                                                onChange={(event) =>
+                                                    form.setData(
+                                                        'reason',
+                                                        event.target.value,
+                                                    )
+                                                }
+                                                placeholder="e.g. Walk-in entered late"
+                                                maxLength={500}
+                                                aria-invalid={!!errors.reason}
+                                            />
+                                            <FieldDescription>
+                                                Nights before {today} post now
+                                                with their own dates. The guest
+                                                is still in the house.
+                                            </FieldDescription>
+                                            <FieldError>
+                                                {errors.reason}
+                                            </FieldError>
+                                        </Field>
+                                    )}
+                                    {!isDayUse && hasBoats && !isPastStay && (
                                         <div className="grid gap-4 sm:grid-cols-2">
                                             <BookingBoatSelect
                                                 id="booking-boat-in"
@@ -1455,7 +1525,7 @@ export default function ReservationCreate({
                         ) : (
                             <CalendarPlus data-icon="inline-start" />
                         )}
-                        Create booking
+                        {isPastStay ? 'Save and open folio' : 'Create booking'}
                     </Button>
                 </FormActions>
             </form>
@@ -1472,6 +1542,7 @@ export default function ReservationCreate({
 
 ReservationCreate.layout = (props: {
     isWalkIn: boolean;
+    isPastStay: boolean;
     property: App.Data.Property.PropertySummaryData;
 }) => ({
     variant: 'fixed' as const,
@@ -1479,8 +1550,10 @@ ReservationCreate.layout = (props: {
     // render the same links.
     breadcrumbs: [
         { title: 'Reservations', href: index(props.property.code) },
-        props.isWalkIn
-            ? { title: 'Walk-in', href: walkIn(props.property.code) }
-            : { title: 'New booking', href: newMethod(props.property.code) },
+        props.isPastStay
+            ? { title: 'Past stay', href: past(props.property.code) }
+            : props.isWalkIn
+              ? { title: 'Walk-in', href: walkIn(props.property.code) }
+              : { title: 'New booking', href: newMethod(props.property.code) },
     ],
 });

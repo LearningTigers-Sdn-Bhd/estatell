@@ -254,7 +254,12 @@ class ReservationRefusals
             BookingResult::REFUSAL_BOOKER_REQUIRED => ['guest_id', __('Choose the booker.')],
             BookingResult::REFUSAL_GUEST_NAME_REQUIRED => ['full_name', __('Enter the guest\'s name or pick an existing guest.')],
             BookingResult::REFUSAL_UNIT_NOT_FOUND => [self::FORM, __('This unit is not on the booking.')],
-            default => [self::FORM, __('This change was refused.')],
+            BookingResult::REFUSAL_REASON_REQUIRED => ['reason', __('Enter a reason.')],
+            BookingResult::REFUSAL_PAST_STAY_NIGHTS_ONLY => [self::FORM, __('A past stay is for nights. Day use cannot be entered as a past stay.')],
+            BookingResult::REFUSAL_ARRIVAL_NOT_PAST => ['arrival_date', __('The stay starts today or later. Use New booking or Walk-in.')],
+            BookingResult::REFUSAL_ARRIVAL_BEFORE_GO_LIVE => ['arrival_date', __('This stay began before go-live. Use Migrated stay.')],
+            BookingResult::REFUSAL_DEPARTURE_NOT_AFTER_TODAY => ['departure_date', __('The guest is still in the house, so departure must be after today.')],
+            default => $this->unitEntry($code, $canOverrideRestrictions) ?? [self::FORM, __('This change was refused.')],
         };
     }
 }

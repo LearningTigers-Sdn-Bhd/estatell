@@ -54,6 +54,8 @@ export type BookingForm = {
     credit_override_reason: string;
     billing_mode: string;
     notes: string;
+    /** Past stay only: why the stay is entered late. */
+    reason?: string;
     guests: BookingGuest[];
     lines: BookingLine[];
     /** Overnight only: the Boat in and Boat out picks, applied to every line. A day use block takes none. */

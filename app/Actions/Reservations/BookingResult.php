@@ -18,6 +18,16 @@ class BookingResult
 
     public const REFUSAL_UNIT_NOT_FOUND = 'unit_not_found';
 
+    public const REFUSAL_REASON_REQUIRED = 'reason_required';
+
+    public const REFUSAL_PAST_STAY_NIGHTS_ONLY = 'past_stay_nights_only';
+
+    public const REFUSAL_ARRIVAL_NOT_PAST = 'arrival_not_past';
+
+    public const REFUSAL_ARRIVAL_BEFORE_GO_LIVE = 'arrival_before_go_live';
+
+    public const REFUSAL_DEPARTURE_NOT_AFTER_TODAY = 'departure_not_after_today';
+
     private function __construct(
         public readonly ?Reservation $reservation,
         public readonly ?string $refusal,
