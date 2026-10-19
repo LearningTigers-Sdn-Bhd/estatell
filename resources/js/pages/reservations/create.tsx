@@ -363,8 +363,7 @@ export default function ReservationCreate({
         (source) => String(source.id) === data.booking_source_id,
     )?.type;
     const isDayUse = data.stay_type === 'day_use' && !isPastStay;
-    const isCheckedOut =
-        isPastStay && !isMigratedStay && data.status === 'checked_out';
+    const isCheckedOut = isPastStay && data.status === 'checked_out';
     // A refusal of the start of a block can come back on the form or on a line.
     const startError =
         errors.start_time ??
@@ -778,10 +777,17 @@ export default function ReservationCreate({
                                                             isPastStay &&
                                                             !isCheckedOut
                                                         )
-                                                            ? addDays(
-                                                                  data.arrival_date,
-                                                                  1,
-                                                              )
+                                                            ? isMigratedStay &&
+                                                              goLiveDate >
+                                                                  addDays(
+                                                                      data.arrival_date,
+                                                                      1,
+                                                                  )
+                                                                ? goLiveDate
+                                                                : addDays(
+                                                                      data.arrival_date,
+                                                                      1,
+                                                                  )
                                                             : addDays(today, 1)
                                                     }
                                                     max={
@@ -835,7 +841,7 @@ export default function ReservationCreate({
                                             </Field>
                                         </div>
                                     )}
-                                    {isPastStay && !isMigratedStay && (
+                                    {isPastStay && (
                                         <Field>
                                             <FieldLabel>Status</FieldLabel>
                                             <ToggleGroup
@@ -865,7 +871,9 @@ export default function ReservationCreate({
                                             </ToggleGroup>
                                             <FieldDescription>
                                                 {isCheckedOut
-                                                    ? 'The guest has left. The folio stays open so you can enter the payments.'
+                                                    ? isMigratedStay
+                                                        ? 'The guest left on or after go-live. The folio stays open with the old balance.'
+                                                        : 'The guest has left. The folio stays open so you can enter the payments.'
                                                     : 'The guest is in the house now. Departure is after today.'}
                                             </FieldDescription>
                                         </Field>
@@ -1781,7 +1789,7 @@ export default function ReservationCreate({
                         ) : (
                             <CalendarPlus data-icon="inline-start" />
                         )}
-                        {isCheckedOut
+                        {isCheckedOut && !isMigratedStay
                             ? 'Save and open manual folio'
                             : isPastStay
                               ? 'Save and open folio'

@@ -34,6 +34,8 @@ class BookingResult
 
     public const REFUSAL_DEPARTURE_AFTER_TODAY = 'departure_after_today';
 
+    public const REFUSAL_DEPARTURE_BEFORE_GO_LIVE = 'departure_before_go_live';
+
     private function __construct(
         public readonly ?Reservation $reservation,
         public readonly ?string $refusal,

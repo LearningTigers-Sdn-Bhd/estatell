@@ -6,6 +6,7 @@ use App\Actions\Folio\PostingResult;
 use App\Actions\Folio\PostOpeningBalance;
 use App\Actions\Folio\PrepareOldFolios;
 use App\Actions\FrontDesk\CheckInUnit;
+use App\Actions\FrontDesk\CheckOutUnit;
 use App\Data\Reservations\NewBookingData;
 use App\Enums\OldFolioMode;
 use App\Enums\StayType;
@@ -22,6 +23,7 @@ class CreateMigratedStay
     public function __construct(
         private CreateBooking $createBooking,
         private CheckInUnit $checkInUnit,
+        private CheckOutUnit $checkOutUnit,
         private PostOpeningBalance $postOpeningBalance,
         private PrepareOldFolios $prepareOldFolios,
         private MigrationWindow $migrationWindow,
@@ -30,19 +32,23 @@ class CreateMigratedStay
     ) {}
 
     /**
-     * Bring in a guest who is in the house now and arrived before the go-live date, in one transaction:
+     * Bring in a guest who arrived before the go-live date and is in the house now (or, with `$checkedOut`, has left on
+     * or after the go-live date), in one transaction:
      * `CreateBooking` with `allowPastArrival`, `CheckInUnit` for each unit with `asOf` set to the arrival date and time
      * (its `PostMissedNights` posts the nights from go-live to yesterday, and never a night before go-live), then, for
      * One amount (an empty amount is zero), `PostOpeningBalance` on the folio of the first unit with the old folio number. Copy line by line
      * saves the stay with no opening line and gives each unit its own folio (`PrepareOldFolios`), so the old folio page has a tab for it. The nights before go-live keep their quoted amount and are never charged.
      * Only inside the migration window (`migration_window_closed`). The arrival must be before the go-live date
-     * (`arrival_not_before_go_live`) and the departure after the business date (`departure_not_after_today`). Every
+     * (`arrival_not_before_go_live`). Still in house ends after the business date (`departure_not_after_today`). With
+     * `$checkedOut` the departure is on or before the business date (`departure_after_today`) and not before the
+     * go-live date (`departure_before_go_live`); `CheckOutUnit` then checks each unit out with `asOf` set to the
+     * departure date and time and `skipBalanceCheck`, so the folios stay Open with their balance. Every
      * unit needs a room or bed pick, and a reason is required. A refusal rolls everything back and names the unit or
      * line. Logs `reservation.migrated_stay_created` with the reason and the units. `$withoutCard` is passed as in
      * `CreatePastStay`. Permissions (`folio.manual`) are checked by the route.
      * See docs/12-reservations/12-past-and-migrated-stays.md#migrated-stay.
      */
-    public function __invoke(User $actor, Property $property, NewBookingData $data, string $reason, OldFolioMode $oldFolio, ?string $openingAmount, ?string $legacyNumber, bool $withoutCard = false): BookingResult
+    public function __invoke(User $actor, Property $property, NewBookingData $data, string $reason, OldFolioMode $oldFolio, ?string $openingAmount, ?string $legacyNumber, bool $withoutCard = false, bool $checkedOut = false): BookingResult
     {
         if (trim($reason) === '') {
             return BookingResult::refused(BookingResult::REFUSAL_REASON_REQUIRED);
@@ -70,8 +76,18 @@ class CreateMigratedStay
             return BookingResult::refused(BookingResult::REFUSAL_ARRIVAL_NOT_BEFORE_GO_LIVE, lineIndex: 0);
         }
 
-        if ($line->departureDate->startOfDay()->lte($businessDate)) {
+        $departure = $line->departureDate->startOfDay();
+
+        if (! $checkedOut && $departure->lte($businessDate)) {
             return BookingResult::refused(BookingResult::REFUSAL_DEPARTURE_NOT_AFTER_TODAY, lineIndex: 0);
+        }
+
+        if ($checkedOut && $departure->gt($businessDate)) {
+            return BookingResult::refused(BookingResult::REFUSAL_DEPARTURE_AFTER_TODAY, lineIndex: 0);
+        }
+
+        if ($checkedOut && $departure->lt($goLive)) {
+            return BookingResult::refused(BookingResult::REFUSAL_DEPARTURE_BEFORE_GO_LIVE, lineIndex: 0);
         }
 
         $openingAmount = trim((string) $openingAmount) === '' ? '0' : (string) $openingAmount;
@@ -81,7 +97,7 @@ class CreateMigratedStay
         }
 
         try {
-            return DB::transaction(function () use ($actor, $property, $data, $reason, $withoutCard, $arrival, $line, $oldFolio, $openingAmount, $legacyNumber, $businessDate, $goLive): BookingResult {
+            return DB::transaction(function () use ($actor, $property, $data, $reason, $withoutCard, $arrival, $line, $oldFolio, $openingAmount, $legacyNumber, $businessDate, $goLive, $checkedOut, $departure): BookingResult {
                 $result = ($this->createBooking)($actor, $property, $data, allowPastArrival: true);
 
                 if ($result->isRefused()) {
@@ -97,6 +113,18 @@ class CreateMigratedStay
 
                     if ($stay->isRefused()) {
                         throw new BookingRefused(BookingResult::refused((string) $stay->refusal, unitIndex: $index));
+                    }
+                }
+
+                if ($checkedOut) {
+                    $checkedOutAt = CarbonImmutable::parse($departure->toDateString().' '.($line->departureTime ?? $property->settings->check_out_time ?? '11:00'));
+
+                    foreach ($units as $index => $unit) {
+                        $stay = ($this->checkOutUnit)($actor, $unit, $checkedOutAt, skipBalanceCheck: true);
+
+                        if ($stay->isRefused()) {
+                            throw new BookingRefused(BookingResult::refused((string) $stay->refusal, unitIndex: $index));
+                        }
                     }
                 }
 
@@ -119,6 +147,7 @@ class CreateMigratedStay
                         'reason' => trim($reason),
                         'units' => $units->pluck('id')->all(),
                         'old_folio' => $oldFolio->value,
+                        'checked_out' => $checkedOut,
                         'business_date' => $businessDate->toDateString(),
                         'go_live_date' => $goLive->toDateString(),
                     ])

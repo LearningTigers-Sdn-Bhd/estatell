@@ -31,14 +31,14 @@ function migratedStaySetup(int $windowDays = 60): array
  * @param  array<string, mixed>  $setup
  * @param  array<string, mixed>  $line
  */
-function createMigratedStay(array $setup, array $line = [], string $reason = 'Migrated from old PMS', OldFolioMode $mode = OldFolioMode::OneAmount, ?string $amount = '1080.00', ?string $number = 'F1203'): BookingResult
+function createMigratedStay(array $setup, array $line = [], string $reason = 'Migrated from old PMS', OldFolioMode $mode = OldFolioMode::OneAmount, ?string $amount = '1080.00', ?string $number = 'F1203', bool $checkedOut = false): BookingResult
 {
     return app(CreateMigratedStay::class)($setup['user'], $setup['property'], NewBookingData::from([
         'bookingSource' => BookingSourceFactory::systemFor($setup['property']->id, BookingSourceType::WalkIn),
         'units' => [['roomTypeId' => $setup['roomType']->id, 'ratePlanId' => $setup['plan']->id, 'arrivalDate' => '2026-10-08', 'arrivalTime' => '15:00', 'departureDate' => '2026-10-16', 'adults' => 2, ...$line]],
         'guests' => [['guestId' => $setup['guest']->id, 'unitIndex' => 0]],
         'picks' => [['unitIndex' => 0, 'roomId' => $setup['rooms'][0]->id]],
-    ]), $reason, $mode, $amount, $number, true);
+    ]), $reason, $mode, $amount, $number, true, $checkedOut);
 }
 
 /**

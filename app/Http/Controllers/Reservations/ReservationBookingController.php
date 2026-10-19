@@ -124,11 +124,12 @@ class ReservationBookingController extends Controller
     /**
      * Save a migrated stay. A refusal goes back to the form as errors. On success the folio tab opens, with the nights
      * from go-live posted and the opening balance on the first unit's folio. Copy line by line saves the stay with no
-     * opening line and opens the old folio page.
+     * opening line and opens the old folio page. A stay that is already checked out with One amount opens the folio tab with
+     * the settle prompt, as a checked out past stay does.
      */
     private function storeMigrated(StorePastStayRequest $request, Property $property, CreateMigratedStay $createMigratedStay, BookingErrorKeys $errorKeys): RedirectResponse
     {
-        $result = $createMigratedStay($request->user(), $property, $request->toBookingData(), $request->reason(), $request->oldFolio(), $request->openingAmount(), $request->legacyNumber(), $request->withoutCard());
+        $result = $createMigratedStay($request->user(), $property, $request->toBookingData(), $request->reason(), $request->oldFolio(), $request->openingAmount(), $request->legacyNumber(), $request->withoutCard(), $request->checkedOut());
 
         if ($result->isRefused()) {
             return back(fallback: route('reservations.migrated', ['property' => $property]))->withErrors(
@@ -140,6 +141,15 @@ class ReservationBookingController extends Controller
 
         if ($request->oldFolio() === OldFolioMode::CopyLineByLine) {
             return to_route('reservations.old-folio', ['property' => $property, 'reservation' => $result->reservation]);
+        }
+
+        if ($request->checkedOut()) {
+            $folio = $result->reservation->folios()->orderBy('id')->firstOrFail();
+
+            $request->session()->flash(ReservationFolioManualController::REASON_KEY, $request->reason());
+            $request->session()->flash(ReservationFolioManualController::SETTLE_PROMPT_KEY, $folio->id);
+
+            return to_route('reservations.folio', ['property' => $property, 'reservation' => $result->reservation, 'folio' => $folio->id]);
         }
 
         return to_route('reservations.folio', ['property' => $property, 'reservation' => $result->reservation]);

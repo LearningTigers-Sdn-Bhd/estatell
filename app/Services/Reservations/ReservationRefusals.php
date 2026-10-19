@@ -262,6 +262,7 @@ class ReservationRefusals
             BookingResult::REFUSAL_MIGRATION_WINDOW_CLOSED => [self::FORM, __('The migration window is closed, so a stay cannot be brought in from the old system.')],
             PostingResult::REFUSAL_OPENING_AMOUNT_INVALID => ['opening_amount', __('Enter an amount such as 1,080.00. A minus amount is a credit.')],
             BookingResult::REFUSAL_DEPARTURE_AFTER_TODAY => ['departure_date', __('The guest has left, so departure cannot be after today. Choose Still in house.')],
+            BookingResult::REFUSAL_DEPARTURE_BEFORE_GO_LIVE => ['departure_date', __('The guest left before go-live, so this stay is not brought in from the old system.')],
             BookingResult::REFUSAL_DEPARTURE_NOT_AFTER_TODAY => ['departure_date', __('The guest is still in the house, so departure must be after today.')],
             default => $this->unitEntry($code, $canOverrideRestrictions) ?? [self::FORM, __('This change was refused.')],
         };

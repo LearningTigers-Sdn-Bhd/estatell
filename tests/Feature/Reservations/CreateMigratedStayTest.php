@@ -4,6 +4,7 @@ require_once __DIR__.'/../Support/MigratedStaySetup.php';
 
 use App\Actions\Folio\PostingResult;
 use App\Actions\Reservations\BookingResult;
+use App\Enums\FolioStatus;
 use App\Enums\OldFolioMode;
 use App\Enums\UnitStatus;
 use App\Models\ChargeItem;
@@ -191,4 +192,63 @@ test('a migrated stay needs a reason and a room', function () {
     $this->actingAs($setup['user'])->post($url, migratedStayBody($setup, ['reason' => '']))->assertSessionHasErrors('reason');
     $this->post($url, $noRoom)->assertSessionHasErrors('lines.0.room_id');
     expect(Reservation::query()->count())->toBe(0);
+});
+
+test('a migrated stay that is already checked out is checked out on its departure, charges the nights from go-live and keeps the folio open', function () {
+    $setup = migratedStaySetup();
+
+    $result = createMigratedStay($setup, ['departureDate' => '2026-10-12', 'departureTime' => '11:00'], checkedOut: true);
+
+    $unit = $result->reservation->units()->sole();
+    $folio = Folio::query()->where('reservation_unit_id', $unit->id)->sole();
+
+    expect($result->refusal)->toBeNull()
+        ->and($unit->status)->toBe(UnitStatus::CheckedOut)
+        ->and($unit->checked_out_at->format('Y-m-d H:i'))->toBe('2026-10-12 11:00')
+        ->and($folio->status)->toBe(FolioStatus::Open)
+        ->and(nightServiceDates())->toBe(['2026-10-10', '2026-10-11'])
+        ->and(FolioLine::query()->where('idempotency_key', 'opening:'.$folio->id.':1')->sole()->amount)->toBe('1080.00')
+        ->and(Activity::query()->where('event', 'reservation.migrated_stay_created')->sole()->properties['checked_out'])->toBeTrue();
+});
+
+test('a migrated stay that checked out on the go-live date has no nights to charge', function () {
+    $setup = migratedStaySetup();
+
+    $result = createMigratedStay($setup, ['departureDate' => '2026-10-10'], checkedOut: true);
+
+    expect($result->refusal)->toBeNull()
+        ->and($result->reservation->units()->sole()->status)->toBe(UnitStatus::CheckedOut)
+        ->and(nightServiceDates())->toBe([]);
+});
+
+test('a checked out migrated stay cannot depart after the business date or before go-live, and Still in house cannot depart on or before it', function (array $line, bool $checkedOut, string $refusal) {
+    $setup = migratedStaySetup();
+
+    $result = createMigratedStay($setup, $line, checkedOut: $checkedOut);
+
+    expect($result->refusal)->toBe($refusal)
+        ->and(Reservation::query()->count())->toBe(0);
+})->with([
+    'after today' => [['departureDate' => '2026-10-16'], true, BookingResult::REFUSAL_DEPARTURE_AFTER_TODAY],
+    'before go-live' => [['departureDate' => '2026-10-09'], true, BookingResult::REFUSAL_DEPARTURE_BEFORE_GO_LIVE],
+    'in house but gone' => [['departureDate' => '2026-10-12'], false, BookingResult::REFUSAL_DEPARTURE_NOT_AFTER_TODAY],
+]);
+
+test('saving a checked out migrated stay with One amount opens the folio tab with the settle prompt, and Copy line by line opens the old folio page', function () {
+    $setup = migratedStaySetup();
+    $route = route('reservations.store-past', ['property' => $setup['property']->code]);
+
+    $response = $this->actingAs($setup['user'])->post($route, migratedStayBody($setup, ['status' => 'checked_out', 'departure_date' => '2026-10-12']));
+
+    $reservation = Reservation::query()->sole();
+    $folio = $reservation->folios()->sole();
+    $response->assertRedirect(route('reservations.folio', ['property' => $setup['property']->code, 'reservation' => $reservation, 'folio' => $folio->id]));
+
+    $this->get($response->headers->get('Location'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where('settlePastStayUrl', route('reservations.folios.manual', ['property' => $setup['property']->code, 'reservation' => $reservation, 'folio' => $folio])));
+
+    $copy = migratedStaySetup();
+    $this->actingAs($copy['user'])->post(route('reservations.store-past', ['property' => $copy['property']->code]), migratedStayBody($copy, ['status' => 'checked_out', 'departure_date' => '2026-10-12', 'old_folio' => 'copy_line_by_line']))
+        ->assertRedirect(route('reservations.old-folio', ['property' => $copy['property']->code, 'reservation' => Reservation::query()->latest('id')->firstOrFail()]));
 });
