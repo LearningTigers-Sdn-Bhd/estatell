@@ -97,3 +97,16 @@ test('the booking pages moved under bookings and the old book URLs are gone', fu
     $this->actingAs($setup['portalUser'])->postJson("/portal/{$code}/book/offers")->assertNotFound();
     $this->actingAs($setup['portalUser'])->post("/portal/{$code}/book")->assertNotFound();
 });
+
+test('the portal logo route is only for linked properties and the shared props carry its URL only with a logo', function () {
+    $user = portalUser();
+    $property = Property::factory()->create();
+    portalLinkFor($user, $property);
+
+    $this->actingAs($user)
+        ->get(route('portal.show', $property->code))
+        ->assertInertia(fn (Assert $page) => $page->where('portalCompany.logoUrl', null));
+
+    $this->actingAs($user)->get(route('portal.logo', $property->code))->assertNotFound();
+    $this->actingAs($user)->get(route('portal.logo', Property::factory()->create()->code))->assertNotFound();
+});

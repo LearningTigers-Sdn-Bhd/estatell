@@ -7,6 +7,7 @@ use App\Data\Navigation\StaffNavigationData;
 use App\Data\NightAudit\BusinessDateData;
 use App\Data\Onboarding\OnboardingProgressData;
 use App\Data\Platform\ImpersonationData;
+use App\Data\Portal\PortalSwitcherData;
 use App\Data\Property\PropertySummaryData;
 use App\Enums\PermissionEnum;
 use App\Enums\PropertyStatus;
@@ -198,14 +199,14 @@ class HandleInertiaRequests extends Middleware
     /**
      * The company and property of the open `/portal/{code}` page, from the link `EnsurePortalAccess` found.
      *
-     * @return array{companyName: string, propertyName: string, propertyCode: string}|null
+     * @return array{companyName: string, propertyName: string, propertyCode: string, logoUrl: string|null}|null
      */
     private function portalCompany(Request $request): ?array
     {
         $link = $request->attributes->get('portalLink');
 
         return $link instanceof CompanyUser
-            ? ['companyName' => $link->company->name, 'propertyName' => $link->property->name, 'propertyCode' => $link->property->code]
+            ? ['companyName' => $link->company->name, 'propertyName' => $link->property->name, 'propertyCode' => $link->property->code, 'logoUrl' => PortalSwitcherData::logoUrl($link->property)]
             : null;
     }
 

@@ -1,6 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import { ChevronsUpDown } from 'lucide-react';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -16,11 +16,25 @@ import {
 import { useInitials } from '@/hooks/use-initials';
 import { properties, show } from '@/routes/portal';
 
-function PropertyInitials({ name }: { name: string }) {
+function PropertyLogo({
+    name,
+    logoUrl,
+}: {
+    name: string;
+    logoUrl: string | null;
+}) {
     const getInitials = useInitials();
 
     return (
-        <Avatar className="rounded-md after:rounded-md">
+        <Avatar
+            key={logoUrl}
+            className="overflow-hidden rounded-md after:rounded-md"
+        >
+            <AvatarImage
+                src={logoUrl ?? undefined}
+                alt=""
+                className="rounded-md object-contain"
+            />
             <AvatarFallback className="rounded-md bg-primary text-xs font-semibold text-primary-foreground">
                 {getInitials(name)}
             </AvatarFallback>
@@ -52,7 +66,10 @@ export function PortalPropertySwitcher() {
                             />
                         }
                     >
-                        <PropertyInitials name={portalCompany.propertyName} />
+                        <PropertyLogo
+                            name={portalCompany.propertyName}
+                            logoUrl={portalCompany.logoUrl}
+                        />
                         <div className="grid min-w-0 flex-1 text-left text-sm leading-tight">
                             <span className="truncate font-semibold">
                                 {portalCompany.propertyName}
@@ -79,7 +96,10 @@ export function PortalPropertySwitcher() {
                                     />
                                 }
                             >
-                                <PropertyInitials name={item.propertyName} />
+                                <PropertyLogo
+                                    name={item.propertyName}
+                                    logoUrl={item.logoUrl}
+                                />
                                 <div className="grid min-w-0 text-left leading-tight">
                                     <span className="truncate font-medium">
                                         {item.propertyName}

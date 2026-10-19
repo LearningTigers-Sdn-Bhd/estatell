@@ -59,7 +59,7 @@ class PortalNavigation
             ->where('status', CompanyUserStatus::Active->value)
             ->where('property_id', '<>', $link->property_id)
             ->whereHas('property', fn ($query) => $query->where('status', PropertyStatus::Live->value))
-            ->with('company', 'property')
+            ->with('company', 'property.media')
             ->get()
             ->sortBy(fn (CompanyUser $other): string => mb_strtolower($other->property->name))
             ->map(fn (CompanyUser $other): PortalSwitcherData => PortalSwitcherData::fromLink($other))

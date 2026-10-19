@@ -1675,6 +1675,7 @@ export type PortalSwitcherData = {
 propertyName: string,
 propertyCode: string,
 companyName: string,
+logoUrl: string | null,
 };
 }
 namespace Property {

@@ -23,6 +23,7 @@ declare module '@inertiajs/core' {
                 companyName: string;
                 propertyName: string;
                 propertyCode: string;
+                logoUrl: string | null;
             } | null;
             portalSwitcher: App.Data.Portal.PortalSwitcherData[] | null;
             accountNavigation: App.Data.Navigation.NavItemData[] | null;

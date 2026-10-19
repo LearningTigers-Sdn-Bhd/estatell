@@ -6,6 +6,7 @@ use App\Http\Controllers\Portal\PortalCompanyController;
 use App\Http\Controllers\Portal\PortalController;
 use App\Http\Controllers\Portal\PortalLinkController;
 use App\Http\Controllers\Portal\PortalStatementController;
+use App\Http\Controllers\Property\PropertyLogoController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->prefix('portal')->name('portal.')->group(function () {
@@ -19,6 +20,7 @@ Route::middleware(['auth', 'verified'])->prefix('portal')->name('portal.')->grou
 
     Route::middleware('portal')->prefix('{property:code}')->where(['property' => '[A-Za-z]{2}[0-9]{5,}'])->group(function () {
         Route::get('/', [PortalController::class, 'show'])->name('show');
+        Route::get('logo', [PropertyLogoController::class, 'show'])->name('logo');
 
         Route::prefix('bookings')->name('bookings.')->group(function () {
             Route::get('/', [PortalBookingController::class, 'index'])->name('index');
