@@ -22,7 +22,7 @@ test('a company user with an Active link at a Live property opens the dashboard'
         ->assertInertia(fn (Assert $page) => $page
             ->component('portal/show')
             ->where('companyName', 'Borneo Travel')
-            ->where('openBalance', '0.00')
+            ->where('stats.openBalance', '0.00')
             ->where('portalCompany.companyName', 'Borneo Travel')
             ->where('portalCompany.propertyCode', $this->property->code)
             ->where('portalNavigation.0.title', 'Dashboard')

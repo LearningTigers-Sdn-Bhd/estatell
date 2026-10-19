@@ -1601,6 +1601,16 @@ billingStateCode: string | null,
 billingPostalCode: string | null,
 billingCountryCode: string | null,
 };
+export type PortalDashboardStatsData = {
+openBalance: string,
+openInvoices: number,
+overdue: string,
+overdueInvoices: number,
+arrivals: number,
+inHouse: number,
+creditLimit: string | null,
+creditAvailable: string | null,
+};
 export type PortalGuestData = {
 guestId: number,
 fullName: string,

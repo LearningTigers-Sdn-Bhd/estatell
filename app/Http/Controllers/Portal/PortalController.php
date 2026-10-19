@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Portal;
 
 use App\Data\Property\CurrencyData;
+use App\Data\Shared\BadgeData;
+use App\Enums\CompanyStatus;
 use App\Http\Controllers\Controller;
 use App\Models\CompanyUser;
 use App\Models\Property;
 use App\Services\Portal\PortalArrivals;
 use App\Services\Portal\PortalProperties;
+use App\Services\Portal\PortalPropertyDashboard;
 use App\Services\Portal\PortalRecentBookings;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -42,23 +45,31 @@ class PortalController extends Controller
     }
 
     /**
-     * The small dashboard of one property: the company, its status and its open balance. `EnsurePortalAccess` has
-     * checked the link.
+     * The dashboard of one property: the company, four figures, the upcoming arrivals, the open invoices and the newest
+     * bookings, all for the company of the link. `EnsurePortalAccess` has checked the link.
      */
-    public function show(Request $request, Property $property, PortalProperties $portalProperties): Response
+    public function show(Request $request, Property $property, PortalPropertyDashboard $dashboard, PortalArrivals $portalArrivals, PortalRecentBookings $recentBookings): Response
     {
         $link = $request->attributes->get('portalLink');
         $property->loadMissing('settings');
 
         abort_unless($link instanceof CompanyUser, 404);
 
+        $company = $link->company;
+        $arrivals = $portalArrivals->for($request->user(), $property->id);
+        $openInvoices = $dashboard->openInvoices($property, $company);
+
         return Inertia::render('portal/show', [
-            'companyName' => $link->company->name,
-            'companyStatus' => $link->company->status->label(),
-            'companySuspended' => $link->company->status->value === 'suspended',
             'propertyName' => $property->name,
             'propertyCode' => $property->code,
-            'openBalance' => $portalProperties->openBalance($link->company_id),
+            'companyName' => $company->name,
+            'companyStatus' => BadgeData::fromCompanyStatus($company->status),
+            'companySuspended' => $company->status === CompanyStatus::Suspended,
+            'cancelCutoffDays' => $company->portal_cancel_cutoff_days,
+            'stats' => $dashboard->stats($company, $openInvoices, count($arrivals)),
+            'arrivals' => array_slice($arrivals, 0, PortalPropertyDashboard::LIST_LIMIT),
+            'openInvoices' => array_slice($openInvoices, 0, PortalPropertyDashboard::LIST_LIMIT),
+            'recentBookings' => $recentBookings->for($request->user(), $property->id),
             'currency' => CurrencyData::forProperty($property),
         ]);
     }

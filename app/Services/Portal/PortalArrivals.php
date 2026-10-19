@@ -19,9 +19,10 @@ use Illuminate\Support\Facades\DB;
 class PortalArrivals
 {
     /**
+     * @param  int|null  $propertyId  Only this property, for its dashboard.
      * @return list<PortalArrivalData>
      */
-    public function for(User $user): array
+    public function for(User $user, ?int $propertyId = null): array
     {
         return DB::table('company_users')
             ->join('companies', 'companies.id', '=', 'company_users.company_id')
@@ -37,6 +38,7 @@ class PortalArrivals
                     ->where('business_dates.status', '<>', 'closed');
             })
             ->where('company_users.user_id', $user->id)
+            ->when($propertyId !== null, fn ($query) => $query->where('company_users.property_id', $propertyId))
             ->where('company_users.status', CompanyUserStatus::Active->value)
             ->where('properties.status', PropertyStatus::Live->value)
             ->where('reservations.status', ReservationStatus::Confirmed->value)

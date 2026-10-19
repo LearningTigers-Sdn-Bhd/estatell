@@ -18,13 +18,15 @@ class PortalRecentBookings
     public const int LIMIT = 5;
 
     /**
+     * @param  int|null  $propertyId  Only this property, for its dashboard.
      * @return list<PortalRecentBookingData>
      */
-    public function for(User $user): array
+    public function for(User $user, ?int $propertyId = null): array
     {
         $links = CompanyUser::query()
             ->where('user_id', $user->id)
             ->active()
+            ->when($propertyId !== null, fn ($query) => $query->where('property_id', $propertyId))
             ->whereHas('property', fn ($query) => $query->where('status', PropertyStatus::Live->value))
             ->get(['company_id', 'property_id']);
 
