@@ -2,6 +2,7 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import {
     History,
     ListPlus,
+    Plus,
     PanelRightClose,
     PanelRightOpen,
     Pencil,
@@ -232,29 +233,52 @@ export default function ManualFolio({ manual: page }: Props) {
                                         {page.posted?.lineCount ?? 0})
                                     </TabsTrigger>
                                 </TabsList>
-                                <Tooltip>
-                                    <TooltipTrigger
-                                        render={
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="icon"
-                                                aria-label={summaryLabel}
-                                                aria-pressed={summaryHidden}
-                                                onClick={toggleSummary}
-                                            />
-                                        }
-                                    >
-                                        {summaryHidden ? (
-                                            <PanelRightOpen />
-                                        ) : (
-                                            <PanelRightClose />
-                                        )}
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        {summaryLabel}
-                                    </TooltipContent>
-                                </Tooltip>
+                                <div className="flex items-center gap-2">
+                                    {tab === 'new' && (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() =>
+                                                setRows((all) => [
+                                                    ...all,
+                                                    newDraft(
+                                                        page,
+                                                        page.folioId,
+                                                    ),
+                                                ])
+                                            }
+                                            disabled={
+                                                rows.length >= page.maxRows
+                                            }
+                                        >
+                                            <Plus data-icon="inline-start" />
+                                            Add line
+                                        </Button>
+                                    )}
+                                    <Tooltip>
+                                        <TooltipTrigger
+                                            render={
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="icon"
+                                                    aria-label={summaryLabel}
+                                                    aria-pressed={summaryHidden}
+                                                    onClick={toggleSummary}
+                                                />
+                                            }
+                                        >
+                                            {summaryHidden ? (
+                                                <PanelRightOpen />
+                                            ) : (
+                                                <PanelRightClose />
+                                            )}
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            {summaryLabel}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </div>
                             </div>
                             <TabsContent value="new">
                                 <ManualFolioRows
@@ -262,12 +286,6 @@ export default function ManualFolio({ manual: page }: Props) {
                                     folioId={page.folioId}
                                     rows={rows}
                                     onChange={change}
-                                    onAdd={() =>
-                                        setRows((all) => [
-                                            ...all,
-                                            newDraft(page, page.folioId),
-                                        ])
-                                    }
                                     onRemove={(key) =>
                                         setRows((all) =>
                                             all.filter(

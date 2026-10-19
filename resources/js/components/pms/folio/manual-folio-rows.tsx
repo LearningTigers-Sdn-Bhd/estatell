@@ -1,4 +1,4 @@
-import { Info, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Info, Pencil, Trash2 } from 'lucide-react';
 import { DatePicker } from '@/components/pms/date-picker';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { taxLabel } from '@/components/pms/charge-item-taxes-field';
@@ -142,7 +142,6 @@ export function ManualFolioRows({
     folioId,
     rows,
     onChange,
-    onAdd,
     onRemove,
     preview,
     serverErrors,
@@ -152,7 +151,6 @@ export function ManualFolioRows({
     folioId: number;
     rows: ManualDraft[];
     onChange: (key: string, patch: Partial<ManualDraft>) => void;
-    onAdd: () => void;
     onRemove: (key: string) => void;
     preview: App.Data.Folio.ManualPreviewData;
     serverErrors: Record<string, string | undefined>;
@@ -195,8 +193,8 @@ export function ManualFolioRows({
             <Table>
                 <TableHeader className="hidden xl:table-header-group">
                     <TableRow>
-                        <TableHead>Type</TableHead>
-                        <TableHead>
+                        <TableHead className="min-w-28">Type</TableHead>
+                        <TableHead className="min-w-40">
                             <span className="inline-flex items-center gap-1">
                                 Date
                                 <Tooltip>
@@ -219,13 +217,19 @@ export function ManualFolioRows({
                                 </Tooltip>
                             </span>
                         </TableHead>
-                        <TableHead>Item / method</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead>Qty</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Taxes</TableHead>
-                        <TableHead className="text-right">Total</TableHead>
-                        {showRoom && <TableHead>Room</TableHead>}
+                        <TableHead className="min-w-44">
+                            Item / method
+                        </TableHead>
+                        <TableHead className="min-w-48">Description</TableHead>
+                        <TableHead className="min-w-20">Qty</TableHead>
+                        <TableHead className="min-w-32">Amount</TableHead>
+                        <TableHead className="min-w-48">Taxes</TableHead>
+                        <TableHead className="min-w-28 text-center">
+                            Total
+                        </TableHead>
+                        {showRoom && (
+                            <TableHead className="min-w-40">Room</TableHead>
+                        )}
                         <TableHead>
                             <span className="sr-only">Remove</span>
                         </TableHead>
@@ -470,18 +474,27 @@ export function ManualFolioRows({
                                         )}
                                     </Cell>
                                     <Cell label="Amount">
-                                        <MoneyInput
-                                            id={`manual-${row.key}-amount`}
-                                            value={row.amount}
-                                            onChange={(value) =>
-                                                onChange(row.key, {
-                                                    amount: value,
-                                                })
+                                        <div
+                                            className="xl:min-w-(--amount-width)"
+                                            style={
+                                                {
+                                                    '--amount-width': `${Math.max(8, row.amount.length + 8)}ch`,
+                                                } as React.CSSProperties
                                             }
-                                            currency={currency}
-                                            disabled={fixedAmount}
-                                            invalid={invalid('amount')}
-                                        />
+                                        >
+                                            <MoneyInput
+                                                id={`manual-${row.key}-amount`}
+                                                value={row.amount}
+                                                onChange={(value) =>
+                                                    onChange(row.key, {
+                                                        amount: value,
+                                                    })
+                                                }
+                                                currency={currency}
+                                                disabled={fixedAmount}
+                                                invalid={invalid('amount')}
+                                            />
+                                        </div>
                                     </Cell>
                                     <Cell label="Taxes">
                                         {row.type === 'charge' ? (
@@ -535,7 +548,7 @@ export function ManualFolioRows({
                                     </Cell>
                                     <Cell
                                         label="Total"
-                                        className="xl:text-right"
+                                        className="xl:text-center"
                                     >
                                         {answer?.total != null &&
                                         !isIncomplete(row) ? (
@@ -588,7 +601,11 @@ export function ManualFolioRows({
                                                 )}
                                             </span>
                                         ) : (
-                                            <Dot />
+                                            <MoneyText
+                                                amount="0.00"
+                                                currency={currency}
+                                                plain
+                                            />
                                         )}
                                     </Cell>
                                     {showRoom && (
@@ -660,19 +677,7 @@ export function ManualFolioRows({
                                           ? `${rows.length} of ${page.maxRows} lines`
                                           : `${shown.length} here · ${rows.length} of ${page.maxRows} lines in all`}
                                 </span>
-                                <span className="flex items-center gap-2">
-                                    {processing && <Spinner />}
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        className="max-xl:w-full"
-                                        onClick={onAdd}
-                                        disabled={rows.length >= page.maxRows}
-                                    >
-                                        <Plus data-icon="inline-start" />
-                                        Add line
-                                    </Button>
-                                </span>
+                                {processing && <Spinner />}
                             </div>
                         </TableCell>
                     </TableRow>
