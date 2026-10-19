@@ -31,6 +31,7 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
         Route::middleware('can:'.PermissionEnum::FolioManual->value)->group(function () {
             Route::get('past', [ReservationBookingController::class, 'past'])->name('past');
             Route::get('migrated', [ReservationBookingController::class, 'migrated'])->name('migrated');
+            Route::get('old', [ReservationBookingController::class, 'old'])->name('old');
             Route::post('past', [ReservationBookingController::class, 'storePast'])->name('store-past');
         });
         Route::get('free-units', [ReservationBookingController::class, 'freeUnits'])->name('free-units');

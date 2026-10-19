@@ -99,6 +99,7 @@ import {
     index,
     migrated,
     newMethod,
+    old,
     past,
     store,
     storePast,
@@ -128,6 +129,10 @@ type Props = {
     canEnterPastStay: boolean;
     /** Whether Migrated stay shows in the select: `folio.manual` inside the migration window. */
     canEnterMigratedStay: boolean;
+    /** Old stay mode (it shares the Past stay form): a stay that began and ended before go-live, kept for history only. */
+    isOldStay: boolean;
+    /** Whether Old stay shows in the select: `folio.manual` inside the migration window. */
+    canEnterOldStay: boolean;
     /** The ways to carry the old folio over, from `OldFolioMode::options()`. */
     oldFolioModes: EnumOption[];
     /** The go-live date, `Y-m-d`: the earliest arrival of a past stay. */
@@ -191,8 +196,10 @@ export default function ReservationCreate({
     isWalkIn,
     isPastStay,
     isMigratedStay,
+    isOldStay,
     canEnterPastStay,
     canEnterMigratedStay,
+    canEnterOldStay,
     oldFolioModes,
     goLiveDate,
     sources,
@@ -228,17 +235,19 @@ export default function ReservationCreate({
         start_time: '',
         reason: '',
         status: 'in_house',
-        mode: isMigratedStay ? 'migrated' : 'past',
+        mode: isOldStay ? 'old' : isMigratedStay ? 'migrated' : 'past',
         old_folio: 'one_amount',
         opening_amount: '',
         legacy_number: '',
         booking_source_id: defaultSourceId(isPastStay),
         external_reference: '',
-        arrival_date: isMigratedStay
-            ? addDays(goLiveDate, -1)
-            : isPastStay
-              ? addDays(today, -1)
-              : today,
+        arrival_date: isOldStay
+            ? addDays(goLiveDate, -2)
+            : isMigratedStay
+              ? addDays(goLiveDate, -1)
+              : isPastStay
+                ? addDays(today, -1)
+                : today,
         departure_date: '',
         arrival_time: isWalkIn ? nowTime : checkInTime,
         departure_time: checkOutTime,
@@ -256,13 +265,15 @@ export default function ReservationCreate({
     const [quotes, setQuotes] = useState<Record<string, Quote>>({});
     const [tab, setTab] = useState<BookingTab>('rooms');
     const guard = useUnsavedChanges(form.isDirty && !form.processing);
-    const mode = isMigratedStay
-        ? 'migrated'
-        : isPastStay
-          ? 'past'
-          : isWalkIn
-            ? 'walk-in'
-            : 'new';
+    const mode = isOldStay
+        ? 'old'
+        : isMigratedStay
+          ? 'migrated'
+          : isPastStay
+            ? 'past'
+            : isWalkIn
+              ? 'walk-in'
+              : 'new';
     const lastMode = useRef(mode);
     const modeOptions = [
         { value: 'new', label: 'New booking' },
@@ -271,6 +282,7 @@ export default function ReservationCreate({
         ...(canEnterMigratedStay
             ? [{ value: 'migrated', label: 'Migrated stay' }]
             : []),
+        ...(canEnterOldStay ? [{ value: 'old', label: 'Old stay' }] : []),
     ];
 
     // A mode switch keeps the page mounted, so the form follows the new mode when the props change.
@@ -284,15 +296,17 @@ export default function ReservationCreate({
             ...current,
             booking_source_id: defaultSourceId(isPastStay),
             stay_type: isPastStay ? 'overnight' : current.stay_type,
-            mode: isMigratedStay ? 'migrated' : 'past',
+            mode: isOldStay ? 'old' : isMigratedStay ? 'migrated' : 'past',
             status: 'in_house',
             arrival_date: isWalkIn
                 ? today
-                : isMigratedStay
-                  ? addDays(goLiveDate, -1)
-                  : isPastStay
-                    ? addDays(today, -1)
-                    : current.arrival_date,
+                : isOldStay
+                  ? addDays(goLiveDate, -2)
+                  : isMigratedStay
+                    ? addDays(goLiveDate, -1)
+                    : isPastStay
+                      ? addDays(today, -1)
+                      : current.arrival_date,
             arrival_time: isWalkIn
                 ? nowTime
                 : isPastStay
@@ -339,13 +353,15 @@ export default function ReservationCreate({
         }
 
         const target =
-            next === 'migrated'
-                ? migrated
-                : next === 'past'
-                  ? past
-                  : next === 'walk-in'
-                    ? walkIn
-                    : newMethod;
+            next === 'old'
+                ? old
+                : next === 'migrated'
+                  ? migrated
+                  : next === 'past'
+                    ? past
+                    : next === 'walk-in'
+                      ? walkIn
+                      : newMethod;
 
         guard.visitWithout(target.url(), {
             preserveState: true,
@@ -354,6 +370,7 @@ export default function ReservationCreate({
                 'isWalkIn',
                 'isPastStay',
                 'isMigratedStay',
+                'isOldStay',
                 'sources',
                 'nowTime',
             ],
@@ -501,13 +518,15 @@ export default function ReservationCreate({
         0,
     );
 
-    const pageTitle = isMigratedStay
-        ? 'Migrated stay'
-        : isPastStay
-          ? 'Past stay'
-          : isWalkIn
-            ? 'Walk-in'
-            : 'New booking';
+    const pageTitle = isOldStay
+        ? 'Old stay'
+        : isMigratedStay
+          ? 'Migrated stay'
+          : isPastStay
+            ? 'Past stay'
+            : isWalkIn
+              ? 'Walk-in'
+              : 'New booking';
 
     const submit = (event?: React.FormEvent) => {
         event?.preventDefault();
@@ -546,13 +565,15 @@ export default function ReservationCreate({
                     <PageHeader
                         title={pageTitle}
                         description={
-                            isMigratedStay
-                                ? 'A guest who arrived before go-live and is in the house now. Every unit needs a room or bed.'
-                                : isPastStay
-                                  ? 'A stay that began before today and is still in the house. Every unit needs a room or bed.'
-                                  : isWalkIn
-                                    ? 'A guest at the desk now. Every unit needs a room or bed.'
-                                    : 'Reserve rooms or beds for a guest who arrives on a later date.'
+                            isOldStay
+                                ? 'A stay that began and ended before go-live, kept for history only. Every unit needs a room or bed.'
+                                : isMigratedStay
+                                  ? 'A guest who arrived before go-live. Every unit needs a room or bed.'
+                                  : isPastStay
+                                    ? 'A stay that began before today and is still in the house. Every unit needs a room or bed.'
+                                    : isWalkIn
+                                      ? 'A guest at the desk now. Every unit needs a room or bed.'
+                                      : 'Reserve rooms or beds for a guest who arrives on a later date.'
                         }
                         back={{ href: index.url(), label: 'Reservations' }}
                     />
@@ -675,7 +696,8 @@ export default function ReservationCreate({
                                                     )}
                                                     dateLocked={isWalkIn}
                                                     min={
-                                                        isMigratedStay
+                                                        isMigratedStay ||
+                                                        isOldStay
                                                             ? addDays(
                                                                   goLiveDate,
                                                                   -LONGEST_STAY_DAYS,
@@ -685,17 +707,22 @@ export default function ReservationCreate({
                                                               : today
                                                     }
                                                     max={
-                                                        isMigratedStay
+                                                        isOldStay
                                                             ? addDays(
                                                                   goLiveDate,
-                                                                  -1,
+                                                                  -2,
                                                               )
-                                                            : isPastStay
+                                                            : isMigratedStay
                                                               ? addDays(
-                                                                    today,
+                                                                    goLiveDate,
                                                                     -1,
                                                                 )
-                                                              : lastBookable
+                                                              : isPastStay
+                                                                ? addDays(
+                                                                      today,
+                                                                      -1,
+                                                                  )
+                                                                : lastBookable
                                                     }
                                                     onDateChange={(value) =>
                                                         form.setData(
@@ -775,7 +802,8 @@ export default function ReservationCreate({
                                                         data.arrival_date &&
                                                         !(
                                                             isPastStay &&
-                                                            !isCheckedOut
+                                                            !isCheckedOut &&
+                                                            !isOldStay
                                                         )
                                                             ? isMigratedStay &&
                                                               goLiveDate >
@@ -791,13 +819,18 @@ export default function ReservationCreate({
                                                             : addDays(today, 1)
                                                     }
                                                     max={
-                                                        isCheckedOut
-                                                            ? today
-                                                            : addDays(
-                                                                  data.arrival_date ||
-                                                                      today,
-                                                                  LONGEST_STAY_DAYS,
+                                                        isOldStay
+                                                            ? addDays(
+                                                                  goLiveDate,
+                                                                  -1,
                                                               )
+                                                            : isCheckedOut
+                                                              ? today
+                                                              : addDays(
+                                                                    data.arrival_date ||
+                                                                        today,
+                                                                    LONGEST_STAY_DAYS,
+                                                                )
                                                     }
                                                     onDateChange={(value) =>
                                                         form.setData(
@@ -841,7 +874,7 @@ export default function ReservationCreate({
                                             </Field>
                                         </div>
                                     )}
-                                    {isPastStay && (
+                                    {isPastStay && !isOldStay && (
                                         <Field>
                                             <FieldLabel>Status</FieldLabel>
                                             <ToggleGroup
@@ -877,6 +910,12 @@ export default function ReservationCreate({
                                                     : 'The guest is in the house now. Departure is after today.'}
                                             </FieldDescription>
                                         </Field>
+                                    )}
+                                    {isOldStay && (
+                                        <p className="text-sm text-muted-foreground">
+                                            History only. Nothing is charged and
+                                            no folio lines are made.
+                                        </p>
                                     )}
                                     {isMigratedStay && (
                                         <div className="flex flex-col gap-4 rounded-lg border p-4">
@@ -1033,14 +1072,16 @@ export default function ReservationCreate({
                                                     )
                                                 }
                                                 placeholder={
-                                                    isMigratedStay
-                                                        ? 'e.g. Migrated from old PMS'
-                                                        : 'e.g. Walk-in entered late'
+                                                    isOldStay
+                                                        ? 'e.g. Stay before go-live, from old PMS'
+                                                        : isMigratedStay
+                                                          ? 'e.g. Migrated from old PMS'
+                                                          : 'e.g. Walk-in entered late'
                                                 }
                                                 maxLength={500}
                                                 aria-invalid={!!errors.reason}
                                             />
-                                            {!isMigratedStay && (
+                                            {!isMigratedStay && !isOldStay && (
                                                 <FieldDescription>
                                                     Nights before {today} post
                                                     now with their own dates.
@@ -1444,7 +1485,8 @@ export default function ReservationCreate({
                                                                             errors
                                                                         }
                                                                         goLiveDate={
-                                                                            isMigratedStay
+                                                                            isMigratedStay ||
+                                                                            isOldStay
                                                                                 ? goLiveDate
                                                                                 : null
                                                                         }
@@ -1789,11 +1831,13 @@ export default function ReservationCreate({
                         ) : (
                             <CalendarPlus data-icon="inline-start" />
                         )}
-                        {isCheckedOut && !isMigratedStay
-                            ? 'Save and open manual folio'
-                            : isPastStay
-                              ? 'Save and open folio'
-                              : 'Create booking'}
+                        {isOldStay
+                            ? 'Save old stay'
+                            : isCheckedOut && !isMigratedStay
+                              ? 'Save and open manual folio'
+                              : isPastStay
+                                ? 'Save and open folio'
+                                : 'Create booking'}
                     </Button>
                 </FormActions>
             </form>
@@ -1812,6 +1856,7 @@ ReservationCreate.layout = (props: {
     isWalkIn: boolean;
     isPastStay: boolean;
     isMigratedStay: boolean;
+    isOldStay: boolean;
     property: App.Data.Property.PropertySummaryData;
 }) => ({
     variant: 'fixed' as const,
@@ -1819,15 +1864,17 @@ ReservationCreate.layout = (props: {
     // render the same links.
     breadcrumbs: [
         { title: 'Reservations', href: index(props.property.code) },
-        props.isMigratedStay
-            ? { title: 'Migrated stay', href: migrated(props.property.code) }
-            : props.isPastStay
-              ? { title: 'Past stay', href: past(props.property.code) }
-              : props.isWalkIn
-                ? { title: 'Walk-in', href: walkIn(props.property.code) }
-                : {
-                      title: 'New booking',
-                      href: newMethod(props.property.code),
-                  },
+        props.isOldStay
+            ? { title: 'Old stay', href: old(props.property.code) }
+            : props.isMigratedStay
+              ? { title: 'Migrated stay', href: migrated(props.property.code) }
+              : props.isPastStay
+                ? { title: 'Past stay', href: past(props.property.code) }
+                : props.isWalkIn
+                  ? { title: 'Walk-in', href: walkIn(props.property.code) }
+                  : {
+                        title: 'New booking',
+                        href: newMethod(props.property.code),
+                    },
     ],
 });

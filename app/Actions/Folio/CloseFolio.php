@@ -27,12 +27,13 @@ class CloseFolio
      * Scheduled rows to it (`folio_receives_scheduled_charges`, naming the rooms and dates), or the next night audit
      * would fail those nights. The folio row is locked first, and every check runs before the first
      * write, so a refusal writes and logs nothing. Closing changes the status and assigns `invoice_number` once: a
-     * folio that was reopened keeps its number. Ledger lines are never touched. Permissions are checked by the route.
+     * folio that was reopened keeps its number. `$issueInvoiceNumber` false (only `CreateOldStay` passes it) closes
+     * an empty folio without using a number of the invoice sequence; a later close with lines issues one. Ledger lines are never touched. Permissions are checked by the route.
      * See docs/13-folio/01-folios-and-lines.md.
      */
-    public function __invoke(User $actor, Folio $folio): FolioStatusResult
+    public function __invoke(User $actor, Folio $folio, bool $issueInvoiceNumber = true): FolioStatusResult
     {
-        return DB::transaction(function () use ($actor, $folio): FolioStatusResult {
+        return DB::transaction(function () use ($actor, $folio, $issueInvoiceNumber): FolioStatusResult {
             $current = Folio::query()->lockForUpdate()->findOrFail($folio->id);
 
             if (! $current->status->canTransitionTo(FolioStatus::Closed)) {
@@ -59,7 +60,7 @@ class CloseFolio
                 'status' => FolioStatus::Closed,
                 'closed_at' => now(),
                 'closed_by' => $actor->id,
-                'invoice_number' => $current->invoice_number ?? ($this->nextDocumentNumber)($current->property, DocumentType::Invoice)->reference,
+                'invoice_number' => $current->invoice_number ?? ($issueInvoiceNumber ? ($this->nextDocumentNumber)($current->property, DocumentType::Invoice)->reference : null),
             ])->save();
 
             activity()

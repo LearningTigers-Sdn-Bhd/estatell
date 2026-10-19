@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Reservations;
 use App\Actions\Reservations\BookingResult;
 use App\Actions\Reservations\CreateBooking;
 use App\Actions\Reservations\CreateMigratedStay;
+use App\Actions\Reservations\CreateOldStay;
 use App\Actions\Reservations\CreatePastStay;
 use App\Data\Property\CurrencyData;
 use App\Enums\BillingMode;
@@ -89,12 +90,31 @@ class ReservationBookingController extends Controller
     }
 
     /**
-     * Save a past stay or, with `mode` = migrated, a migrated stay. A refusal goes back to the form as errors keyed by line, and nothing is saved. On success the
+     * The same form as an old stay: a stay that began and ended before go-live, kept for history only. Needs
+     * `folio.manual` and an open migration window; after it the booking form opens in Past stay with an error toast.
+     */
+    public function old(Request $request, Property $property, ReservationFormOptions $options, CurrentBusinessDate $businessDate, PropertyToday $today, BookingSourceOptions $sourceOptions, MigrationWindow $migrationWindow, ReservationRefusals $refusals): Response|RedirectResponse
+    {
+        if (! $migrationWindow->isOpen($property)) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => $refusals->errors(BookingResult::REFUSAL_MIGRATION_WINDOW_CLOSED)[ReservationRefusals::FORM]]);
+
+            return to_route('reservations.past', ['property' => $property]);
+        }
+
+        return $this->form($request, $property, $options, $businessDate, $today, $sourceOptions, walkIn: false, pastStay: true, oldStay: true);
+    }
+
+    /**
+     * Save a past stay or, with `mode` = migrated, a migrated stay, or, with `mode` = old, an old stay. A refusal goes back to the form as errors keyed by line, and nothing is saved. On success the
      * folio tab opens, with the nights already posted. A stay that is already checked out opens the manual folio page
      * with the reason filled in, so staff enter the payments and close the folio.
      */
-    public function storePast(StorePastStayRequest $request, Property $property, CreatePastStay $createPastStay, CreateMigratedStay $createMigratedStay, BookingErrorKeys $errorKeys): RedirectResponse
+    public function storePast(StorePastStayRequest $request, Property $property, CreatePastStay $createPastStay, CreateMigratedStay $createMigratedStay, CreateOldStay $createOldStay, BookingErrorKeys $errorKeys): RedirectResponse
     {
+        if ($request->isOld()) {
+            return $this->storeOld($request, $property, $createOldStay, $errorKeys);
+        }
+
         if ($request->isMigrated()) {
             return $this->storeMigrated($request, $property, $createMigratedStay, $errorKeys);
         }
@@ -119,6 +139,25 @@ class ReservationBookingController extends Controller
         }
 
         return to_route('reservations.folio', ['property' => $property, 'reservation' => $result->reservation]);
+    }
+
+    /**
+     * Save an old stay. A refusal goes back to the form as errors. On success the reservation page opens: the stay is
+     * history only, with a closed folio and no lines.
+     */
+    private function storeOld(StorePastStayRequest $request, Property $property, CreateOldStay $createOldStay, BookingErrorKeys $errorKeys): RedirectResponse
+    {
+        $result = $createOldStay($request->user(), $property, $request->toBookingData(), $request->reason(), $request->withoutCard());
+
+        if ($result->isRefused()) {
+            return back(fallback: route('reservations.old', ['property' => $property]))->withErrors(
+                $errorKeys->errors($result, $request->unitsPerLine(), $request->user()->can(PermissionEnum::RatesOverrideRestrictions->value)),
+            );
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Old stay :reference created.', ['reference' => $result->reservation->reference])]);
+
+        return to_route('reservations.show', ['property' => $property, 'reservation' => $result->reservation]);
     }
 
     /**
@@ -266,7 +305,7 @@ class ReservationBookingController extends Controller
         return response()->json(['seats' => (object) $boatSeats->forDate($direction, $request->date('date', 'Y-m-d')->toImmutable(), $departureIds)]);
     }
 
-    private function form(Request $request, Property $property, ReservationFormOptions $options, CurrentBusinessDate $businessDate, PropertyToday $today, BookingSourceOptions $sourceOptions, bool $walkIn, bool $pastStay = false, bool $migratedStay = false): Response
+    private function form(Request $request, Property $property, ReservationFormOptions $options, CurrentBusinessDate $businessDate, PropertyToday $today, BookingSourceOptions $sourceOptions, bool $walkIn, bool $pastStay = false, bool $migratedStay = false, bool $oldStay = false): Response
     {
         $canManageGuests = $request->user()->can(PermissionEnum::GuestsManage->value);
         $companies = $request->user()->can(PermissionEnum::CompanyView->value) ? app(CompanyOptions::class)->active($property) : [];
@@ -275,7 +314,9 @@ class ReservationBookingController extends Controller
             'isWalkIn' => $walkIn,
             'isPastStay' => $pastStay,
             'isMigratedStay' => $migratedStay,
+            'isOldStay' => $oldStay,
             'canEnterMigratedStay' => $request->user()->can(PermissionEnum::FolioManual->value) && app(MigrationWindow::class)->isOpen($property),
+            'canEnterOldStay' => $request->user()->can(PermissionEnum::FolioManual->value) && app(MigrationWindow::class)->isOpen($property),
             'oldFolioModes' => OldFolioMode::options(),
             'goLiveDate' => (app(FirstBusinessDate::class)->date($property) ?? $today->date($property))->toDateString(),
             'canEnterPastStay' => $request->user()->can(PermissionEnum::FolioManual->value),

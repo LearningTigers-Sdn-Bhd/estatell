@@ -58,8 +58,8 @@ export type BookingForm = {
     reason?: string;
     /** Past stay only: still in the house, or already checked out. */
     status?: 'in_house' | 'checked_out';
-    /** Past stay and Migrated stay: which of the two the form saves. */
-    mode?: 'past' | 'migrated';
+    /** Past stay, Migrated stay and Old stay: which of the three the form saves. */
+    mode?: 'past' | 'migrated' | 'old';
     /** Migrated stay only: `one_amount` or `copy_line_by_line`. */
     old_folio?: string;
     /** Migrated stay, One amount: what the guest still owes in the old system. Minus is a credit. */

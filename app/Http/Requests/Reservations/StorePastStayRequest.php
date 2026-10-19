@@ -20,7 +20,7 @@ class StorePastStayRequest extends StoreBookingRequest
             ...parent::rules(),
             'reason' => ['required', 'string', 'max:500'],
             'status' => ['nullable', Rule::in(['in_house', 'checked_out'])],
-            'mode' => ['nullable', Rule::in(['past', 'migrated'])],
+            'mode' => ['nullable', Rule::in(['past', 'migrated', 'old'])],
             'old_folio' => ['required_if:mode,migrated', 'nullable', Rule::enum(OldFolioMode::class)],
             'opening_amount' => ['nullable', 'string', 'max:20'],
             'legacy_number' => ['nullable', 'string', 'max:50'],
@@ -90,6 +90,14 @@ class StorePastStayRequest extends StoreBookingRequest
     public function isMigrated(): bool
     {
         return $this->validated('mode') === 'migrated';
+    }
+
+    /**
+     * Old stay mode: the stay began and ended in the old system, before the go-live date. History only.
+     */
+    public function isOld(): bool
+    {
+        return $this->validated('mode') === 'old';
     }
 
     public function oldFolio(): OldFolioMode
