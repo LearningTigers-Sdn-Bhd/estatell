@@ -66,7 +66,7 @@ The reference is stored on each document when it is issued. A later prefix chang
 
 - The first business date is created by `GoLive`, through `OpenBusinessDate`.
 - Closed dates are immutable. `PostCharge` rejects them. Corrections post to the current date.
-- A line can record an earlier day in `service_date` ([Manual folio](../13-folio/08-manual-folio.md#two-dates-on-a-line)). That never changes a closed date: reports count by `posting_date`.
+- A line can record an earlier day in `service_date` ([Manual Folio Editor](../13-folio/08-manual-folio.md#two-dates-on-a-line)). That never changes a closed date: reports count by `posting_date`.
 - There is no "undo audit".
 
 ## Display

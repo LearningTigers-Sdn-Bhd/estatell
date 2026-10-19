@@ -80,7 +80,7 @@ Restrictions (min stay, closed to arrival) are not checked for the past nights. 
 Any refusal rolls everything back and names the line. On success:
 
 - **Still in house** opens the folio tab.
-- **Already checked out** opens the Folio tab on the first folio of the stay, with an alert dialog: "Settle the folio now?". **Settle now** opens the [manual folio page](../13-folio/08-manual-folio.md) on that folio, with the past stay reason as the page reason, so staff enter the payments and close the folio. **Later** (or Esc) closes the dialog and leaves the folio Open with its balance. The dialog shows once, for users with `folio.manual`. A departure after the business date is refused (`departure_after_today`, "Choose Still in house."). The form shows Guest status as a switch with an icon on each button; changing it clears the departure date.
+- **Already checked out** opens the Folio tab on the first folio of the stay, with an alert dialog: "Settle the folio now?". **Settle now** opens the [Manual Folio Editor](../13-folio/08-manual-folio.md) on that folio, with the past stay reason as the page reason, so staff enter the payments and close the folio. **Later** (or Esc) closes the dialog and leaves the folio Open with its balance. The dialog shows once, for users with `folio.manual`. A departure after the business date is refused (`departure_after_today`, "Choose Still in house."). The form shows Guest status as a switch with an icon on each button; changing it clears the departure date.
 
 No policy runs: no no-show, cancellation, early departure or late check-out fee.
 
@@ -174,7 +174,7 @@ For a stay that started and ended before go-live. It keeps room history, the pol
 - On success the reservation page opens, with the toast "Old stay {reference} created."
 - The room is not marked Dirty.
 - No Settle dialog, no opening balance and no old folio page.
-- If staff later need a line, they reopen the folio with the existing rules and use the [manual folio page](../13-folio/08-manual-folio.md).
+- If staff later need a line, they reopen the folio with the existing rules and use the [Manual Folio Editor](../13-folio/08-manual-folio.md).
 - Guest profiles still come in through the guest list. This mode adds the stay to a guest's history.
 
 ## Nights without a rate
@@ -211,7 +211,7 @@ A payment made in the old system is part of this amount. A payment received afte
 
 ### Copy line by line
 
-The **old folio page** (`GET /p/{code}/reservations/{reservation}/old-folio`, `reservations.old-folio`, `folio.manual`, inside the window) uses the same page shell as the [manual folio page](../13-folio/08-manual-folio.md#page). Its tabs are the reservation's folios instead of New and Posted lines.
+The **old folio page** (`GET /p/{code}/reservations/{reservation}/old-folio`, `reservations.old-folio`, `folio.manual`, inside the window) uses the same page shell as the [Manual Folio Editor](../13-folio/08-manual-folio.md#page). Its tabs are the reservation's folios instead of New and Posted lines.
 
 ```
 ┌─ Copy old folio · GRH-26100231 · Ahmad Faiz ───────────────────────────────────────┐
@@ -264,7 +264,7 @@ Copied lines sit in their own section above POSTED:
 | Item | Commit                                                                | Covers                                                                                                                                                                               |
 | ---- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 1    | `feat(reservations): add past stays still in house`                   | The Past stay mode and route, `CreatePastStay` (still in house), `allowPastArrival`, `CheckInUnit` `asOf`, `PostMissedNights`, the late-arrival catch-up                             |
-| 2    | `feat(reservations): add past stays already checked out`              | Already checked out, `CheckOutUnit` `skipBalanceCheck`, opening the manual folio page. Needs: the manual folio page                                                                  |
+| 2    | `feat(reservations): add past stays already checked out`              | Already checked out, `CheckOutUnit` `skipBalanceCheck`, opening the Manual Folio Editor. Needs: the Manual Folio Editor                                                              |
 | 3    | `feat(reservations): add migrated stays with one amount`              | The Migrated stay mode and route, `CreateMigratedStay`, `night_before_go_live`, `PostOpeningBalance`, `ChangeOpeningBalance`. Needs: the migration window                            |
 | 4    | `feat(reservations): copy old folios line by line`                    | The old folio page, folio tabs, `SaveOldFolios`, `folio_lines.migrated`, top-level copied Tax lines. The first save only: saved lines are read only                                  |
 | 5    | `feat(reservations): edit old folios and show the old system section` | Editing inside the window, switching between One amount and Copy line by line, the OLD SYSTEM section on the folio tab, the invoice and the voucher, Move charges keeping `migrated` |

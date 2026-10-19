@@ -47,7 +47,7 @@ erDiagram
 - `description` and `kind` are copied at posting time.
 - **Source names the unit.** Every charge line sets `source_type` and `source_id` so the folio page can show its unit, also on a Master or Third party folio. A night and its inclusions name the unit night, an add-on names the add-on, and a manual charge or a policy fee names the reservation unit. A reversal and a transfer copy keep the source of their original line. A child line (tax, discount) has no source and takes its parent's. A payment has none. See [Posting charges](02-posting-charges.md#line-sources).
 - Postings use the current business date, never the calendar date. Closed dates reject postings.
-- **Two dates.** `posting_date` is the business date the line counts in. `service_date` is the day it really happened: equal to `posting_date` unless a night, a manual line or a migrated line sets it earlier (CHECK `service_date <= posting_date`). Pages and documents sort by `service_date`; reports count by `posting_date`. See [Manual folio](08-manual-folio.md#two-dates-on-a-line).
+- **Two dates.** `posting_date` is the business date the line counts in. `service_date` is the day it really happened: equal to `posting_date` unless a night, a manual line or a migrated line sets it earlier (CHECK `service_date <= posting_date`). Pages and documents sort by `service_date`; reports count by `posting_date`. See [Manual Folio Editor](08-manual-folio.md#two-dates-on-a-line).
 - `manual_batch_id` links a line to its `folio_manual_batches` row (reason, user). `migrated` marks a line copied from the old PMS, and `legacy_number` the old folio number ([Past and migrated stays](../12-reservations/12-past-and-migrated-stays.md#old-folio)).
 - A unit can check out only when its folio balance is 0 or transferred to the master folio.
 - A reservation closes only when all its folios are closed.
@@ -65,7 +65,7 @@ erDiagram
 - `RepointGuestFolios` (built): called by `MergeGuests`.
 - `PostCharge`, `ReverseLine`, `TransferLines` (built): see [Posting charges](02-posting-charges.md).
 - `CloseFolio`, `ReopenFolio` (built): see [Close and reopen](#close-and-reopen).
-- `PostManualBatch`, `SplitLine`, `RemoveLineTax`, `AddLineTax`, `RecalculateLineTax`: see [Manual folio](08-manual-folio.md).
+- `PostManualBatch`, `SplitLine`, `RemoveLineTax`, `AddLineTax`, `RecalculateLineTax`: see [Manual Folio Editor](08-manual-folio.md).
 - `PostOpeningBalance`, `ChangeOpeningBalance`, `SaveOldFolios`: see [Past and migrated stays](../12-reservations/12-past-and-migrated-stays.md#old-folio).
 - `FolioInvoice` (service): prints a Closed folio with its `invoice_number`. See [Folio invoice](06-folio-invoice.md).
 - `CreateFolio` (built): a unit folio is created the first time a unit receives a posting, by `PostCharge`. Nothing creates folios at booking time. See [Posting charges](02-posting-charges.md).

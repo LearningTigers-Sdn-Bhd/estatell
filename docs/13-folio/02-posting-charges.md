@@ -52,7 +52,7 @@ All Actions return a result and write nothing on a refusal. Each one is one tran
 - It posts the charge line, then one Tax child line per `TaxCalculator` component (`parent_line_id`). `kind` is Charge for the charge and Tax for the children. `posting_date` is the business date.
 - With `unit_add_on_id`, the key is `addon:{id}`, `source_type` and `source_id` name the add-on, and `unit_add_ons.folio_line_id` is set to the charge line.
 - The target folio comes from `FolioRouter`.
-- Optional inputs from the [manual folio page](08-manual-folio.md#preview-and-post) only: `service_date` (refusal `service_date_invalid`), `tax_ids` (the chosen taxes replace the item's own) and `manual_batch_id`. Without them, `service_date` equals `posting_date`.
+- Optional inputs from the [Manual Folio Editor](08-manual-folio.md#preview-and-post) only: `service_date` (refusal `service_date_invalid`), `tax_ids` (the chosen taxes replace the item's own) and `manual_batch_id`. Without them, `service_date` equals `posting_date`.
 
 ### `PostFolioCharge`
 
@@ -72,7 +72,7 @@ All Actions return a result and write nothing on a refusal. Each one is one tran
 | Its folio is Open                                          | `folio_not_open`   |
 
 - The key is `reverse:{line_id}`. A discount child line reverses with its parent, so it needs no extra rule.
-- **Tax children alone.** `ReverseLine` still refuses a child (`line_is_child`). Only `RemoveLineTax` and `RecalculateLineTax` ([Manual folio](08-manual-folio.md#row-menu-on-posted-lines)) reverse a tax child without its parent. A reversal copies the `service_date` of the line it reverses.
+- **Tax children alone.** `ReverseLine` still refuses a child (`line_is_child`). Only `RemoveLineTax` and `RecalculateLineTax` ([Manual Folio Editor](08-manual-folio.md#row-menu-on-posted-lines)) reverse a tax child without its parent. A reversal copies the `service_date` of the line it reverses.
 - A reversal of a posted add-on leaves `folio_line_id` as it is. The row stays as history.
 
 ### `TransferLines`
