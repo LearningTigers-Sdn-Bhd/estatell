@@ -729,6 +729,7 @@ unitId: number,
 nightId: number,
 price: string,
 canChangePrice: boolean,
+hasDiscount: boolean,
 };
 export type ManualLineTaxData = {
 lineId: number,

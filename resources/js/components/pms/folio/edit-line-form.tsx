@@ -181,6 +181,12 @@ export function EditLineForm({
                     <FieldError>
                         {errors.unit_amount ?? errors.price}
                     </FieldError>
+                    {night?.hasDiscount && (
+                        <FieldDescription>
+                            This night&apos;s discount is replaced by the new
+                            price.
+                        </FieldDescription>
+                    )}
                     {night !== null && !night.canChangePrice && (
                         <FieldDescription>
                             You cannot change the price of a booked night.

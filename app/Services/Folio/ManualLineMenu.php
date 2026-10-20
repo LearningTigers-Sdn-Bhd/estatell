@@ -19,7 +19,8 @@ use Closure;
 
 /**
  * The manual items of the row menu, on the manual folio page and on the folio tab. A live charge without a live
- * discount offers Split, Remove tax (when it has a tax), Add tax and Recalculate tax. On the manual page the other row
+ * discount offers Edit line, Split, Remove tax (when it has a tax), Add tax and Recalculate tax. A live room night with a
+ * discount offers Edit line only, because its price goes through Change price, which replaces the discount. On the manual page the other row
  * actions of the folio tab (Move, Refund, Remove discount, Correct price) are not wired, so its rows keep only Reverse
  * (for a user with `folio.reverse`); on the folio tab (`$keepActions`) every row keeps its actions. With
  * `$changeOpeningBalance` (the tab: a check that the migration window is open, asked only when the folio has an
@@ -69,7 +70,10 @@ class ManualLineMenu
             $lineChildren = $children->get($line->id, collect());
             $row->actions = $keepActions ? $row->actions : ($canReverse ? ['reverse'] : []);
 
-            if ($lineChildren->contains('kind', TransactionKind::Adjustment)) {
+            $discounted = $lineChildren->contains('kind', TransactionKind::Adjustment);
+            $night = $nights->get($this->editLinePreview->nightId($line));
+
+            if ($discounted && $night === null) {
                 continue;
             }
 
@@ -79,7 +83,6 @@ class ManualLineMenu
                 $tax->description,
                 $tax->amount,
             ))->all());
-            $night = $nights->get($this->editLinePreview->nightId($line));
             $isInclusion = $night === null && str_starts_with((string) $line->idempotency_key, 'night:');
             $data[$line->id] = new ManualLineData(
                 $line->id,
@@ -89,9 +92,9 @@ class ManualLineMenu
                 (string) BigDecimal::of($line->unit_amount)->toScale(2),
                 (int) $line->quantity,
                 array_values(array_filter(array_map(fn (ManualLineTaxData $tax): ?int => $tax->taxId, $taxes))),
-                $night === null ? null : new ManualLineNightData($night->reservation_unit_id, $night->id, (string) $night->amount, $canChangePrice),
+                $night === null ? null : new ManualLineNightData($night->reservation_unit_id, $night->id, (string) $night->amount, $canChangePrice, $discounted),
             );
-            $row->actions = [...($isInclusion ? [] : ['edit']), ...$row->actions, 'split', ...($taxes === [] ? [] : ['remove_tax']), 'add_tax', 'recalculate_tax'];
+            $row->actions = $discounted ? ['edit', ...$row->actions] : [...($isInclusion ? [] : ['edit']), ...$row->actions, 'split', ...($taxes === [] ? [] : ['remove_tax']), 'add_tax', 'recalculate_tax'];
         }
 
         if ($keepActions && $changeOpeningBalance !== null) {

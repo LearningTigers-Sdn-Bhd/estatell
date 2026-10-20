@@ -183,7 +183,34 @@ test('a room night line carries its night and its price, and an inclusion line o
 
     $this->actingAs($setup['user'])->get(route('reservations.folios.manual', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id, 'folio' => $setup['folio']->id]))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('manual.lines.'.$room->id.'.night', ['unitId' => $setup['unit']->id, 'nightId' => $night->id, 'price' => '250.00', 'canChangePrice' => true])
+            ->where('manual.lines.'.$room->id.'.night', ['unitId' => $setup['unit']->id, 'nightId' => $night->id, 'price' => '250.00', 'canChangePrice' => true, 'hasDiscount' => false])
             ->where('manual.posted.rows', fn ($rows): bool => in_array('edit', collect($rows)->firstWhere('lineId', $room->id)['actions'], true)
                 && ! in_array('edit', collect($rows)->firstWhere('lineId', $inclusion->id)['actions'], true)));
+});
+
+test('a room night with a discount offers only Edit line and Reverse, and other discounted charges offer Reverse only', function () {
+    $setup = mfSetup();
+    $night = UnitNight::factory()->create(['reservation_unit_id' => $setup['unit']->id, 'date' => '2026-10-13', 'base_amount' => '250.00', 'amount' => '250.00']);
+    $room = elCharge($setup, '250.00', 'night:'.$night->id);
+    $plain = elCharge($setup);
+
+    foreach ([$room, $plain] as $charge) {
+        FolioLine::factory()->create([
+            'folio_id' => $setup['folio']->id,
+            'parent_line_id' => $charge->id,
+            'transaction_code_id' => $charge->transaction_code_id,
+            'kind' => TransactionKind::Adjustment,
+            'amount' => '-10.00',
+            'unit_amount' => '-10.00',
+            'quantity' => 1,
+            'idempotency_key' => 'discount:'.$charge->id,
+        ]);
+    }
+
+    $this->actingAs($setup['user'])->get(route('reservations.folios.manual', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id, 'folio' => $setup['folio']->id]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('manual.lines.'.$room->id.'.night.hasDiscount', true)
+            ->missing('manual.lines.'.$plain->id)
+            ->where('manual.posted.rows', fn ($rows): bool => collect($rows)->firstWhere('lineId', $room->id)['actions'] === ['edit', 'reverse']
+                && collect($rows)->firstWhere('lineId', $plain->id)['actions'] === ['reverse']));
 });

@@ -7,7 +7,7 @@ use Spatie\LaravelData\Data;
 /**
  * The room night behind a live room line: its unit, its id and its price per night. The Edit line Dialog changes this
  * price through Change price. `canChangePrice` is false for a user without `reservations.change-price`, which makes the
- * price read only.
+ * price read only. `hasDiscount` says the night has a live discount line, which the new price replaces.
  */
 class ManualLineNightData extends Data
 {
@@ -16,5 +16,6 @@ class ManualLineNightData extends Data
         public int $nightId,
         public string $price,
         public bool $canChangePrice,
+        public bool $hasDiscount = false,
     ) {}
 }
