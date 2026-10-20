@@ -66,6 +66,7 @@ const MODE_ICONS: Record<Mode, LucideIcon> = {
 type Fields = {
     name: string;
     type: string;
+    market: string;
     contact_email: string;
     contact_phone: string;
     credit_limit: string;
@@ -88,13 +89,17 @@ type Row = Fields & { key: string };
 type ImportedRow = Fields & { problems: Partial<Record<keyof Fields, string>> };
 type TextField = Exclude<
     keyof Fields,
-    'type' | 'direct_bill_enabled' | 'billing_country_code'
+    'type' | 'market' | 'direct_bill_enabled' | 'billing_country_code'
 >;
 
 type Column =
     | { field: TextField; label: string; placeholder: string; width: string }
     | {
-          field: 'type' | 'direct_bill_enabled' | 'billing_country_code';
+          field:
+              | 'type'
+              | 'market'
+              | 'direct_bill_enabled'
+              | 'billing_country_code';
           label: string;
           width: string;
       };
@@ -107,6 +112,7 @@ const SIMPLE_COLUMNS: Column[] = [
         width: 'min-w-48',
     },
     { field: 'type', label: 'Type', width: 'min-w-40' },
+    { field: 'market', label: 'Market', width: 'min-w-40' },
     {
         field: 'contact_email',
         label: 'Email',
@@ -214,6 +220,7 @@ function emptyRow(): Row {
         key: `row-${nextKey}`,
         name: '',
         type: 'corporate',
+        market: '',
         contact_email: '',
         contact_phone: '',
         credit_limit: '',
@@ -324,12 +331,14 @@ function AddedResult({
 
 export default function CompaniesBulkAdd({
     types,
+    markets,
     countries,
     modes,
     maxRows,
     exportFormats,
 }: {
     types: EnumOption[];
+    markets: EnumOption[];
     countries: EnumOption[];
     modes: EnumOption[];
     maxRows: number;
@@ -478,6 +487,22 @@ export default function CompaniesBulkAdd({
                     aria-invalid={!!error}
                     className="w-full"
                     onValueChange={(value) => updateRow(row.key, 'type', value)}
+                />
+            );
+        }
+
+        if (column.field === 'market') {
+            return (
+                <EnumSelect
+                    options={markets}
+                    value={row.market}
+                    allLabel="Not set"
+                    aria-label={label}
+                    aria-invalid={!!error}
+                    className="w-full"
+                    onValueChange={(value) =>
+                        updateRow(row.key, 'market', value)
+                    }
                 />
             );
         }

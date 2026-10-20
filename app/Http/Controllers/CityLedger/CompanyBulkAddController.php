@@ -4,6 +4,7 @@ namespace App\Http\Controllers\CityLedger;
 
 use App\Actions\CityLedger\BulkCreateCompanies;
 use App\Enums\CompanyImportMode;
+use App\Enums\CompanyMarket;
 use App\Enums\CompanyType;
 use App\Enums\SpreadsheetFormat;
 use App\Enums\TemporaryPasswordExportFormat;
@@ -31,6 +32,7 @@ class CompanyBulkAddController extends Controller
     {
         return Inertia::render('finance/city-ledger/companies/bulk', [
             'types' => CompanyType::options(),
+            'markets' => CompanyMarket::options(),
             'countries' => app(CountryOptions::class)->options(),
             'modes' => CompanyImportMode::options(),
             'maxRows' => CompanyImportReader::MAX_ROWS,

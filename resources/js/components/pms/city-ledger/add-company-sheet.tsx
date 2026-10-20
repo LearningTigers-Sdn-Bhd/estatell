@@ -23,13 +23,21 @@ type Props = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     types: EnumOption[];
+    markets: EnumOption[];
     currency: App.Data.Property.CurrencyData | null;
 };
 
-function AddCompanyForm({ open, onOpenChange, types, currency }: Props) {
+function AddCompanyForm({
+    open,
+    onOpenChange,
+    types,
+    markets,
+    currency,
+}: Props) {
     const form = useForm({
         name: '',
         type: 'corporate',
+        market: '',
         contact_email: '',
         contact_phone: '',
         credit_limit: '',
@@ -90,6 +98,23 @@ function AddCompanyForm({ open, onOpenChange, types, currency }: Props) {
                         className="w-full"
                     />
                     <FieldError>{errors.type}</FieldError>
+                </Field>
+                <Field data-invalid={!!errors.market}>
+                    <FieldLabel htmlFor="add-company-market">Market</FieldLabel>
+                    <EnumSelect
+                        id="add-company-market"
+                        options={markets}
+                        value={data.market}
+                        allLabel="Not set"
+                        onValueChange={(value) => form.setData('market', value)}
+                        aria-invalid={!!errors.market}
+                        className="w-full"
+                    />
+                    <FieldDescription>
+                        Local or international. It decides which rates the
+                        company is offered.
+                    </FieldDescription>
+                    <FieldError>{errors.market}</FieldError>
                 </Field>
                 <Field data-invalid={!!errors.contact_email}>
                     <FieldLabel htmlFor="add-company-email">

@@ -3,6 +3,7 @@
 namespace App\Services\CityLedger;
 
 use App\Enums\CompanyImportMode;
+use App\Enums\CompanyMarket;
 use App\Enums\CompanyType;
 use App\Enums\SpreadsheetFormat;
 use App\Services\Guests\CountryOptions;
@@ -24,7 +25,7 @@ class CompanyImportReader
     public function __construct(private CountryOptions $countryOptions) {}
 
     /**
-     * Headers match ignoring case; only `name` is required and unknown columns are ignored. Type, direct billing and
+     * Headers match ignoring case; only `name` is required and unknown columns are ignored. Type, market, direct billing and
      * country are read leniently; a value that cannot be read is left empty with a problem for its field. Blank lines
      * are skipped.
      *
@@ -96,6 +97,11 @@ class CompanyImportReader
                 : __('Unknown type ":type".', ['type' => $values['type']]);
         }
 
+        $market = CompanyMarket::tryFrom(Str::lower($values['market']));
+        if ($market === null && $values['market'] !== '') {
+            $problems['market'] = __('Unknown market ":market". Write local or international.', ['market' => $values['market']]);
+        }
+
         $directBill = $this->yesNo($values['direct_bill_enabled']);
         if ($directBill === null) {
             $problems['direct_bill_enabled'] = __('Write yes or no.');
@@ -109,6 +115,7 @@ class CompanyImportReader
         return [
             ...$values,
             'type' => $type->value ?? '',
+            'market' => $market->value ?? '',
             'contact_email' => Str::lower($values['contact_email']),
             'portal_email' => Str::lower($values['portal_email']),
             'direct_bill_enabled' => $directBill ?? true,

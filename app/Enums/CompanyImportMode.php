@@ -19,6 +19,7 @@ enum CompanyImportMode: string
     private const array SIMPLE_COLUMNS = [
         'name' => 'name',
         'type' => 'type',
+        'market' => 'market',
         'email' => 'contact_email',
         'phone' => 'contact_phone',
         'credit_limit' => 'credit_limit',
