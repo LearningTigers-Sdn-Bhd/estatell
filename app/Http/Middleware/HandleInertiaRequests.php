@@ -18,6 +18,7 @@ use App\Navigation\AdminNavigation;
 use App\Navigation\PartnerNavigation;
 use App\Navigation\PortalNavigation;
 use App\Navigation\StaffNavigation;
+use App\Services\Channels\ChannelRemovalProgress;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Onboarding\GoLiveRequests;
 use App\Services\Onboarding\OnboardingProgress;
@@ -73,6 +74,7 @@ class HandleInertiaRequests extends Middleware
             'partnerNavigation' => fn () => $request->user()?->partner_id !== null ? app(PartnerNavigation::class)->items() : null,
             'accountNavigation' => fn () => $request->user() !== null && $request->routeIs('account.*') ? app(AccountNavigation::class)->items($request) : null,
             'navigation' => fn () => $this->staffNavigation($request),
+            'channelRemovals' => fn () => app(ChannelRemovalProgress::class)->forUser($request->user()),
             'commandShortcuts' => fn () => $this->commandShortcuts($request),
             'csrfToken' => fn () => csrf_token(),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',

@@ -3,6 +3,7 @@
 namespace App\Actions\Channels;
 
 use App\Enums\ChannelRemovalKind;
+use App\Enums\ChannelRemovalState;
 use App\Jobs\ChannelRemovalJob;
 use App\Models\RatePlan;
 use App\Models\RoomType;
@@ -16,7 +17,7 @@ class QueueChannelRemoval
     /** Minutes a queued removal blocks a second one for the same thing. */
     private const PENDING_MINUTES = 10;
 
-    public function __construct(private ChannelArchiveGuard $guard) {}
+    public function __construct(private ChannelArchiveGuard $guard, private RecordChannelRemovalProgress $recordProgress) {}
 
     /**
      * Archive a rate plan or a room type, or unlink room types from a plan, when the channel manager still has it. The
@@ -54,6 +55,7 @@ class QueueChannelRemoval
             return ChannelActionResult::failed(__(':name is already being removed from the channels.', ['name' => $subject->name]));
         }
 
+        ($this->recordProgress)($actor->id, $kind, $subject->id, $subject->name, ChannelRemovalState::Pending);
         ChannelRemovalJob::dispatch($kind, $subject->id, $actor->id, $wantedRoomTypeIds, $removedRoomTypeIds);
 
         return ChannelActionResult::ok(__(':name is on the channels. It is being removed there first and the change applies in a moment.', ['name' => $subject->name]));

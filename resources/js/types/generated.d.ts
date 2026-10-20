@@ -224,6 +224,14 @@ bookingId: string | null,
 detail: string | null,
 createdAt: string,
 };
+export type ChannelRemovalData = {
+key: string,
+kind: App.Enums.ChannelRemovalKind,
+name: string,
+state: App.Enums.ChannelRemovalState,
+message: string | null,
+updatedAt: string,
+};
 export type ChannelRevisionData = {
 id: number,
 bookingCode: string,
@@ -3562,6 +3570,7 @@ export type ChannelAlertEvent = 'non_acked_booking' | 'booking_unmapped_room' | 
 export type ChannelPropertyStatus = 'not_synced' | 'synced' | 'paused' | 'error';
 export type ChannelProvider = 'channex';
 export type ChannelRemovalKind = 'rate_plan' | 'room_type' | 'unlink';
+export type ChannelRemovalState = 'pending' | 'done' | 'blocked';
 export type ChannelSellMode = 'per_room' | 'per_person';
 export type ChannelSupport = 'full' | 'flattened' | 'unsupported';
 export type ChannelSyncState = 'idle' | 'queued' | 'running' | 'done' | 'failed';

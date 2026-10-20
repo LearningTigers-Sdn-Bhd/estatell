@@ -59,8 +59,30 @@ class ChannexDriver implements ChannelManagerDriver
         return ['property_id' => $propertyId, 'room_types' => $partial['room_types']];
     }
 
+    /**
+     * Channex deletes a plan that an OTA channel has mapped, and the mapping is lost (seen on staging 2026-10-21), so the
+     * check is ours: a plan that any channel of the property maps is not deleted. A plan Channex no longer has is gone.
+     * A plan whose property cannot be found is not deleted either, because the check cannot be made.
+     */
     public function removeRatePlan(string $externalRatePlanId): void
     {
+        try {
+            $plan = $this->client->get("/rate_plans/{$externalRatePlanId}");
+        } catch (ChannexRequestFailed $exception) {
+            if ($exception->status === 404) {
+                return;
+            }
+
+            throw $exception;
+        }
+
+        $propertyId = $plan['data']['relationships']['property']['data']['id'] ?? null;
+
+        if (! is_string($propertyId)) {
+            throw new ChannexRequestFailed('Channex did not say which property the rate plan belongs to.', 422);
+        }
+
+        $this->assertNotMappedToChannel($externalRatePlanId, $propertyId);
         $this->remove("/rate_plans/{$externalRatePlanId}");
     }
 
@@ -243,6 +265,78 @@ class ChannexDriver implements ChannelManagerDriver
     }
 
     /**
+     * Refuse to delete a rate plan that a channel (an OTA connection) of the property has mapped, or whose child plan a
+     * channel has mapped: Channex would delete it and drop the OTA mapping. Mapping one occupancy of a per-person plan
+     * in the Channex dashboard makes Channex create a hidden child plan of ours (derived, one occupancy) and map the OTA
+     * rate to that child, so the channel lists the child's id, not ours, and no list of rate plans shows the child. For
+     * every id a channel maps, the plan is read and its parents followed up to ours. Throws a 409 that names the channel.
+     *
+     * @throws ChannexRequestFailed
+     */
+    private function assertNotMappedToChannel(string $externalRatePlanId, string $propertyId): void
+    {
+        $parents = [];
+
+        for ($page = 1; $page <= 20; $page++) {
+            $response = $this->client->get('/channels', ['filter' => ['property_id' => $propertyId], 'pagination' => ['page' => $page, 'limit' => 100]]);
+            $channels = $response['data'] ?? [];
+
+            foreach ($channels as $channel) {
+                if (! is_array($channel)) {
+                    continue;
+                }
+
+                foreach ($channel['attributes']['rate_plans'] ?? [] as $mapping) {
+                    $mappedId = $mapping['rate_plan_id'] ?? null;
+
+                    if (is_string($mappedId) && $this->isSelfOrChildOf($mappedId, $externalRatePlanId, $parents)) {
+                        $title = (string) ($channel['attributes']['title'] ?? $channel['attributes']['channel'] ?? 'a channel');
+
+                        throw new ChannexRequestFailed("The rate plan is mapped on {$title}.", 409, ['details' => ['channel' => ["is mapped on {$title}"]]]);
+                    }
+                }
+            }
+
+            if (count($channels) < 100) {
+                return;
+            }
+        }
+    }
+
+    /**
+     * Whether a rate plan is the given plan or one of its descendants, following `parent_rate_plan` up at most 5 steps.
+     * `$parents` remembers what was read: plan id => parent id or null.
+     *
+     * @param  array<string, string|null>  $parents
+     */
+    private function isSelfOrChildOf(string $planId, string $ancestorId, array &$parents): bool
+    {
+        for ($step = 0; $step < 5 && $planId !== null; $step++) {
+            if ($planId === $ancestorId) {
+                return true;
+            }
+
+            if (! array_key_exists($planId, $parents)) {
+                try {
+                    $plan = $this->client->get("/rate_plans/{$planId}");
+                    $parent = $plan['data']['relationships']['parent_rate_plan']['data']['id'] ?? null;
+                    $parents[$planId] = is_string($parent) ? $parent : null;
+                } catch (ChannexRequestFailed $exception) {
+                    if ($exception->status !== 404) {
+                        throw $exception;
+                    }
+
+                    $parents[$planId] = null;
+                }
+            }
+
+            $planId = $parents[$planId];
+        }
+
+        return false;
+    }
+
+    /**
      * Update a rate plan, or create it. Channex does not allow `sell_mode` to change on a plan, so a plan that Channex
      * holds in another mode is deleted and created again under the same title (the delete comes first, because titles
      * are unique per property). Channex refuses the delete while an OTA uses the plan, and `force` is never sent: the
@@ -257,6 +351,7 @@ class ChannexDriver implements ChannelManagerDriver
         $found = $existing['by_id'][$ratePlan['external_id']] ?? $existing['by_title'][$payload['title']] ?? null;
 
         if ($found !== null && $found['sell_mode'] !== $payload['sell_mode']) {
+            $this->assertNotMappedToChannel($found['id'], $propertyId);
             $this->remove("/rate_plans/{$found['id']}");
             $found = null;
         }

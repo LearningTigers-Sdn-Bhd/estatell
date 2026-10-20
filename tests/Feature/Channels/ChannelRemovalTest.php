@@ -38,11 +38,39 @@ function channelRemovalScene(): array
     return [$owner, $property, $channelProperty, $deluxe, $suite, $standard, $breakfast, $mappings];
 }
 
+/**
+ * Channex as it answers a removal: the plan belongs to the property, the property has the given channels (each a list
+ * of the Channex rate plan ids it maps), and a DELETE answers with the status.
+ *
+ * @param  array<string, list<string>>  $channels  Channel title => mapped Channex rate plan ids.
+ * @param  array<string, string>  $parents  Channex rate plan id => the id of its parent plan (a plan Channex made from ours).
+ */
+function channexAnswersRemoval(int $deleteStatus = 200, array $channels = [], array $parents = []): void
+{
+    Http::fake(function ($request) use ($deleteStatus, $channels, $parents) {
+        $path = (string) parse_url($request->url(), PHP_URL_PATH);
+
+        return match (true) {
+            $request->method() === 'DELETE' => $deleteStatus === 200
+                ? Http::response(['meta' => ['message' => 'Success']], 200)
+                : Http::response(['errors' => ['code' => 'validation_error', 'details' => ['base' => ['is used by a channel']]]], $deleteStatus),
+            $request->method() === 'GET' && str_contains($path, '/channels') => Http::response(['data' => array_map(
+                fn (string $title, array $planIds): array => ['id' => "channel-{$title}", 'attributes' => ['title' => $title, 'rate_plans' => array_map(fn (string $id): array => ['id' => "map-{$id}", 'rate_plan_id' => $id], $planIds)]],
+                array_keys($channels),
+                array_values($channels),
+            )], 200),
+            $request->method() === 'GET' => Http::response(['data' => ['id' => basename($path), 'relationships' => [
+                'property' => ['data' => ['id' => 'properties-1']],
+                ...(isset($parents[basename($path)]) ? ['parent_rate_plan' => ['data' => ['id' => $parents[basename($path)]]]] : []),
+            ]]], 200),
+            default => Http::response(['data' => []], 200),
+        };
+    });
+}
+
 function channexRefusesDeletes(int $status = 422): void
 {
-    Http::fake(fn ($request) => $request->method() === 'DELETE'
-        ? Http::response(['errors' => ['code' => 'validation_error', 'details' => ['base' => ['is used by a channel']]]], $status)
-        : Http::response(['data' => []], 200));
+    channexAnswersRemoval($status);
 }
 
 test('a rate plan is removed from Channex, then archived', function () {
@@ -56,6 +84,54 @@ test('a rate plan is removed from Channex, then archived', function () {
         ->and(ChannelRatePlanMapping::query()->count())->toBe(2)
         ->and(collect(channexRequests())->filter(fn ($request) => $request->method() === 'DELETE')->count())->toBe(2)
         ->and(collect(channexRequests())->contains(fn ($request) => str_contains($request->url(), 'force')))->toBeFalse();
+});
+
+test('a plan that an OTA channel has mapped is never deleted, because Channex would drop the mapping', function () {
+    Notification::fake();
+    [$owner, , $channelProperty, , , , $breakfast] = channelRemovalScene();
+    $mappedId = ChannelRatePlanMapping::query()->where('rate_plan_id', $breakfast->id)->first()->external_rate_plan_id;
+    channexAnswersRemoval(channels: ['Booking.com' => [$mappedId]]);
+
+    ChannelRemovalJob::dispatchSync(ChannelRemovalKind::RatePlan, $breakfast->id, $owner->id);
+
+    expect($breakfast->refresh()->archived_at)->toBeNull()
+        ->and(ChannelRatePlanMapping::query()->where('rate_plan_id', $breakfast->id)->count())->toBe(2)
+        ->and(collect(channexRequests())->filter(fn ($request) => $request->method() === 'DELETE')->count())->toBe(0)
+        ->and(ChannelAlert::query()->sole()->event)->toBe(ChannelAlertEvent::RemovalBlocked)
+        ->and(ChannelAlert::query()->sole()->channel_property_id)->toBe($channelProperty->id);
+    Notification::assertSentTo($owner, ChannelRemovalBlocked::class);
+});
+
+test('a plan is not deleted when a channel maps a plan Channex made from it', function () {
+    Notification::fake();
+    [$owner, , , , , , $breakfast] = channelRemovalScene();
+    $ourId = ChannelRatePlanMapping::query()->where('rate_plan_id', $breakfast->id)->first()->external_rate_plan_id;
+    channexAnswersRemoval(channels: ['Booking.com' => ['hidden-child']], parents: ['hidden-child' => $ourId]);
+
+    ChannelRemovalJob::dispatchSync(ChannelRemovalKind::RatePlan, $breakfast->id, $owner->id);
+
+    expect($breakfast->refresh()->archived_at)->toBeNull()
+        ->and(collect(channexRequests())->filter(fn ($request) => $request->method() === 'DELETE')->count())->toBe(0)
+        ->and(ChannelAlert::query()->sole()->event)->toBe(ChannelAlertEvent::RemovalBlocked);
+});
+
+test('a plan is not deleted when a channel maps a grandchild of it', function () {
+    [$owner, , , , , , $breakfast] = channelRemovalScene();
+    $ourId = ChannelRatePlanMapping::query()->where('rate_plan_id', $breakfast->id)->first()->external_rate_plan_id;
+    channexAnswersRemoval(channels: ['Booking.com' => ['grandchild']], parents: ['grandchild' => 'child', 'child' => $ourId]);
+
+    ChannelRemovalJob::dispatchSync(ChannelRemovalKind::RatePlan, $breakfast->id, $owner->id);
+
+    expect($breakfast->refresh()->archived_at)->toBeNull();
+});
+
+test('a plan that no channel maps is removed even when other plans are mapped', function () {
+    [$owner, , , , , , $breakfast] = channelRemovalScene();
+    channexAnswersRemoval(channels: ['Booking.com' => ['some-other-plan']]);
+
+    ChannelRemovalJob::dispatchSync(ChannelRemovalKind::RatePlan, $breakfast->id, $owner->id);
+
+    expect($breakfast->refresh()->archived_at)->not->toBeNull();
 });
 
 test('a room type is removed after its rate plans, then archived', function () {
@@ -100,11 +176,10 @@ test('an OTA that still uses the plan stops the archive, tells the admins and te
 
 test('a rate limit tries again later and changes nothing', function () {
     Notification::fake();
-    Queue::fake();
     [$owner, , , , , , $breakfast] = channelRemovalScene();
     channexRefusesDeletes(429);
 
-    ChannelRemovalJob::dispatchSync(ChannelRemovalKind::RatePlan, $breakfast->id, $owner->id);
+    app()->call([new ChannelRemovalJob(ChannelRemovalKind::RatePlan, $breakfast->id, $owner->id), 'handle']);
 
     expect($breakfast->refresh()->archived_at)->toBeNull()
         ->and(ChannelAlert::query()->count())->toBe(0);
@@ -136,4 +211,35 @@ test('without a Channex key the archive is refused and nothing is queued', funct
         ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'Channex is not set up on this server.']);
 
     Queue::assertNothingPushed();
+});
+
+test('the staff member who asked sees pending, then the result, in the shared props', function () {
+    Queue::fake();
+    [$owner, $property, , , , , $breakfast] = channelRemovalScene();
+    $this->actingAs($owner);
+
+    $this->post(route('settings.rate-plans.archive', [$property->code, $breakfast]))->assertRedirect();
+    $this->get(route('settings.rate-plans.index', $property->code))
+        ->assertInertia(fn ($page) => $page->has('channelRemovals', 1)->where('channelRemovals.0.state', 'pending')->where('channelRemovals.0.name', 'Breakfast')->where('channelRemovals.0.kind', 'rate_plan'));
+
+    fakeChannex();
+    app()->call([new ChannelRemovalJob(ChannelRemovalKind::RatePlan, $breakfast->id, $owner->id), 'handle']);
+
+    $this->get(route('settings.rate-plans.index', $property->code))
+        ->assertInertia(fn ($page) => $page->has('channelRemovals', 1)->where('channelRemovals.0.state', 'done')->where('channelRemovals.0.message', 'Breakfast archived.'));
+});
+
+test('a blocked removal shows as not done, with why, and only to the staff member who asked', function () {
+    Queue::fake();
+    [$owner, $property, , , , , $breakfast] = channelRemovalScene();
+    $other = User::factory()->for($property)->create();
+    channexRefusesDeletes();
+    $this->actingAs($owner)->post(route('settings.rate-plans.archive', [$property->code, $breakfast]));
+
+    app()->call([new ChannelRemovalJob(ChannelRemovalKind::RatePlan, $breakfast->id, $owner->id), 'handle']);
+
+    $this->get(route('settings.rate-plans.index', $property->code))
+        ->assertInertia(fn ($page) => $page->where('channelRemovals.0.state', 'blocked')->where('channelRemovals.0.message', fn (string $message) => str_contains($message, 'still used by an OTA')));
+    $this->actingAs($other)->get(route('dashboard', $property->code))
+        ->assertInertia(fn ($page) => $page->where('channelRemovals', []));
 });

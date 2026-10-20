@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Actions\Channels\QueueChannelRemoval;
 use App\Actions\Channels\RecordChannelAlert;
+use App\Actions\Channels\RecordChannelRemovalProgress;
 use App\Actions\Channels\RemoveChannelRatePlan;
 use App\Actions\Channels\RemoveChannelRoomType;
 use App\Actions\Rates\ArchiveRatePlan;
@@ -11,6 +12,7 @@ use App\Actions\Rates\SyncRatePlanRoomTypes;
 use App\Actions\Rooms\ArchiveRoomType;
 use App\Enums\ChannelAlertEvent;
 use App\Enums\ChannelRemovalKind;
+use App\Enums\ChannelRemovalState;
 use App\Models\ChannelProperty;
 use App\Models\ChannelRatePlanMapping;
 use App\Models\ChannelRoomTypeMapping;
@@ -51,7 +53,7 @@ class ChannelRemovalJob implements ShouldQueue
         public readonly array $removedRoomTypeIds = [],
     ) {}
 
-    public function handle(RemoveChannelRatePlan $removeRatePlan, RemoveChannelRoomType $removeRoomType, ArchiveRatePlan $archiveRatePlan, ArchiveRoomType $archiveRoomType, SyncRatePlanRoomTypes $syncRoomTypes, RecordChannelAlert $recordAlert): void
+    public function handle(RemoveChannelRatePlan $removeRatePlan, RemoveChannelRoomType $removeRoomType, ArchiveRatePlan $archiveRatePlan, ArchiveRoomType $archiveRoomType, SyncRatePlanRoomTypes $syncRoomTypes, RecordChannelAlert $recordAlert, RecordChannelRemovalProgress $recordProgress): void
     {
         $actor = User::query()->find($this->actorId);
         $subject = $this->kind === ChannelRemovalKind::RoomType ? RoomType::query()->find($this->subjectId) : RatePlan::query()->find($this->subjectId);
@@ -72,6 +74,7 @@ class ChannelRemovalJob implements ShouldQueue
 
         if ($failure !== null) {
             $this->block($actor, $subject, $failure->message, $recordAlert);
+            $recordProgress($actor->id, $this->kind, $this->subjectId, $subject->name, ChannelRemovalState::Blocked, __(':name is still used by an OTA, so it was not archived. The estatell team has been told.', ['name' => $subject->name]));
             $this->forget();
 
             return;
@@ -83,8 +86,11 @@ class ChannelRemovalJob implements ShouldQueue
             ChannelRemovalKind::Unlink => $syncRoomTypes($actor, $subject, $this->wantedRoomTypeIds),
         };
 
-        if (! $done) {
+        if ($done) {
+            $recordProgress($actor->id, $this->kind, $this->subjectId, $subject->name, ChannelRemovalState::Done, $this->kind === ChannelRemovalKind::Unlink ? __('Room types saved.') : __(':name archived.', ['name' => $subject->name]));
+        } else {
             $this->block($actor, $subject, __('It was removed from the channels, but the change could not be applied. Open it and try again.'), $recordAlert);
+            $recordProgress($actor->id, $this->kind, $this->subjectId, $subject->name, ChannelRemovalState::Blocked, __('It was removed from the channels, but the change could not be applied. Open it and try again.'));
         }
 
         $this->forget();

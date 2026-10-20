@@ -79,6 +79,14 @@ function fakeChannex(int $maxRoomTypes = 20, int $maxRatePlans = 200, array $rat
         $segments = explode('/', trim(Str::after((string) parse_url($request->url(), PHP_URL_PATH), '/api/v1'), '/'));
         $isRatePlan = $segments[0] === 'rate_plans';
 
+        if ($segments[0] === 'channels' && $request->method() === 'GET') {
+            return Http::response(['data' => []], 200);
+        }
+
+        if ($isRatePlan && $request->method() === 'GET' && isset($segments[1])) {
+            return Http::response(['data' => ['id' => $segments[1], 'type' => 'rate_plan', 'relationships' => ['property' => ['data' => ['id' => 'properties-1', 'type' => 'property']]]]], 200);
+        }
+
         if ($isRatePlan && $request->method() === 'GET') {
             return Http::response(['data' => array_values(array_map(
                 fn (string $id, array $plan): array => ['id' => $id, 'type' => 'rate_plan', 'attributes' => $plan],

@@ -167,6 +167,29 @@ test('a plan that changes sell mode on a later sync is replaced at Channex and i
     Queue::assertPushed(FlushChannelAriJob::class);
 });
 
+test('a plan that an OTA channel maps is not replaced when its sell mode changes', function () {
+    $property = channelProperty();
+    $garden = channelRoomType($property, 'Garden Room', 2, ['max_adults' => 3, 'base_occupancy' => 2]);
+    $plan = channelRatePlan($property, [$garden], 'Room Only');
+    fakeChannex();
+    syncStructure($property);
+    $mapping = ChannelRatePlanMapping::query()->sole();
+    $plan->update(['extra_adult_amount' => '60.00']);
+    resetChannexFake();
+    Http::fake(fn ($request) => match (true) {
+        $request->method() === 'GET' && str_contains($request->url(), '/rate_plans') => Http::response(['data' => [['id' => $mapping->external_rate_plan_id, 'type' => 'rate_plan', 'attributes' => ['title' => 'Room Only · Garden Room', 'sell_mode' => 'per_room']]]], 200),
+        $request->method() === 'GET' && str_contains($request->url(), '/channels') => Http::response(['data' => [['id' => 'ch-1', 'attributes' => ['title' => 'Booking.com', 'rate_plans' => [['rate_plan_id' => $mapping->external_rate_plan_id]]]]]], 200),
+        default => Http::response(['data' => ['id' => 'x', 'attributes' => ['max_count_of_room_types' => 20, 'max_count_of_rate_plans' => 200]]], 200),
+    });
+
+    $result = syncStructure($property);
+
+    expect($result->ok)->toBeFalse()
+        ->and($result->message)->toContain('is mapped on Booking.com')
+        ->and(collect(channexRequests())->filter(fn ($request) => $request->method() === 'DELETE')->count())->toBe(0)
+        ->and($mapping->fresh()->sell_mode)->toBe(ChannelSellMode::PerRoom);
+});
+
 test('a plan that Channex refuses to delete keeps its mapping and the sync reports why', function () {
     $property = channelProperty();
     $garden = channelRoomType($property, 'Garden Room', 2, ['max_adults' => 3, 'base_occupancy' => 2]);
