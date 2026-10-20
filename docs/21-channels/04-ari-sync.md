@@ -61,6 +61,7 @@ Channex allows one full sync per property per 24 hours, off-peak. A full sync on
 
 - Channex limit: 10 restriction/price calls and 10 availability calls per minute per property.
 - `ChannexClient` allows 5 calls per minute per endpoint per property (from wastays' `AriRateLimiter`): any 60-second window spans at most two clock minutes, so it never passes 10.
+- `ChannexClient` is stateless. It counts calls with Laravel's `RateLimiter` (key `channex:ari:{channex property id}:{path}`, read from `values[0].property_id`). When the budget is used up, or on a 429 (it honours `Retry-After`), a 5xx or a network error, it sends nothing more and throws `ChannexRetryLater` with `retryAfter` (60 s by default). A 422 or other 4xx throws `ChannexRequestFailed` with the errors and is not retried. The client writes no pause; the flush job catches the exception and does the steps below.
 - On 429, 5xx or a network error: `sent_at` stays null, `attempts` goes up, `channel_properties.paused_until` is set 60 seconds ahead, and the retry backs off exponentially. **Changes are never dropped.**
 - After repeated failures the admin Channels tab shows "Paused after a rate limit (429). 6 changes waiting, none lost." and an alert.
 - A 422 (validation) keeps `last_error` and shows as a Rate error alert with **Retry**.

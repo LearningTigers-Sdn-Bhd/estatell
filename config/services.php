@@ -18,6 +18,12 @@ return [
         'key' => env('POSTMARK_API_KEY'),
     ],
 
+    'channex' => [
+        'base_url' => env('CHANNEX_BASE_URL', 'https://staging.channex.io/api/v1'),
+        'api_key' => env('CHANNEX_API_KEY'),
+        'group_id' => env('CHANNEX_GROUP_ID'),
+    ],
+
     'resend' => [
         'key' => env('RESEND_API_KEY'),
     ],

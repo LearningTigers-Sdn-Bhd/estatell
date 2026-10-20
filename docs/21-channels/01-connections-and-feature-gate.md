@@ -98,7 +98,9 @@ ota_channels   id, code (unique, lower), name, channex_code (nullable), sort_ord
 ## Driver design
 
 - `ChannelManagerDriver` interface: `syncStructure`, `pushAri`, `fetchRevisions`, `acknowledge`, plus the Channel API calls `adapter`, `testConnection`, `mappingDetails`, `createChannel`, `updateChannel`, `activate`, `deactivate`, `loadFutureReservations`.
-- A Laravel `Manager` class selects the driver per provider.
+- `ChannelDriverManager` (a Laravel `Manager`) selects the driver per provider. `ChannexDriver` builds `adapter` first. Its other methods throw "Not built yet" until the commit that needs them.
+- Config lives in `config/services.php` under `channex`. The default base URL is staging; production is `https://app.channex.io/api/v1`.
+- The `channels` middleware alias (`EnsureChannelManagerIsActive`) returns 404 when the flag is off.
 - Channex pieces: `ChannexClient` (HTTP client, limiter, backoff; see [ARI sync](04-ari-sync.md#limits-and-failures)), `ChannexStructureMapper`, `ChannexAriPayloadBuilder`, `ChannexBookingMapper`, `ChannexChannelMapper`.
 
 ## Actions

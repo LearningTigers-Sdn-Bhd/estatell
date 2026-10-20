@@ -4,6 +4,7 @@ use App\Http\Middleware\BlockDuringImpersonation;
 use App\Http\Middleware\BlockOnDemo;
 use App\Http\Middleware\EndExpiredImpersonationSession;
 use App\Http\Middleware\EnsureBoatsIsActive;
+use App\Http\Middleware\EnsureChannelManagerIsActive;
 use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\EnsureOnboarding;
 use App\Http\Middleware\EnsurePasswordChanged;
@@ -42,6 +43,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'block.impersonation' => BlockDuringImpersonation::class,
             'support.2fa' => RequireSupportTwoFactor::class,
             'boats' => EnsureBoatsIsActive::class,
+            'channels' => EnsureChannelManagerIsActive::class,
             'live' => EnsurePropertyIsLive::class,
             'onboarding.activity' => TrackOnboardingActivity::class,
             'onboarding.only' => EnsureOnboarding::class,
@@ -56,6 +58,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureOnboarding::class);
         $middleware->appendToPriorityList(EnsureOnboarding::class, TrackOnboardingActivity::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureBoatsIsActive::class);
+        $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureChannelManagerIsActive::class);
 
         $middleware->web(append: [
             AuthenticateSession::class,

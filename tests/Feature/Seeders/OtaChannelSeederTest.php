@@ -27,3 +27,16 @@ test('running the seeder again keeps six rows and leaves a deactivated channel o
     expect(OtaChannel::query()->count())->toBe(6)
         ->and(OtaChannel::query()->where('code', 'expedia')->value('is_active'))->toBeFalse();
 });
+
+test('the seeder sets the Channex adapter codes and leaves Other without one', function () {
+    $this->seed(OtaChannelSeeder::class);
+
+    expect(OtaChannel::query()->ordered()->pluck('channex_code', 'code')->all())->toBe([
+        'agoda' => 'Agoda',
+        'booking_com' => 'BookingCom',
+        'hostelworld' => 'Hostelworld',
+        'expedia' => 'Expedia',
+        'airbnb' => 'AirBNB',
+        'other' => null,
+    ]);
+});

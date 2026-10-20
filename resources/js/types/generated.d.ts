@@ -3490,6 +3490,7 @@ export type BoatMode = 'scheduled' | 'charter' | 'own';
 export type BookingSourceIcon = 'phone' | 'message-circle' | 'mail' | 'globe' | 'users' | 'handshake' | 'briefcase-business' | 'building-2' | 'footprints' | 'ticket' | 'megaphone' | 'star';
 export type BookingSourceType = 'direct' | 'ota' | 'company' | 'walk_in';
 export type BusinessDateStatus = 'open' | 'auditing' | 'closed';
+export type ChannelProvider = 'channex';
 export type ChargingUnit = 'per_item' | 'per_night' | 'per_stay' | 'per_guest_night' | 'per_guest';
 export type CheckInRoomState = 'assigned' | 'auto' | 'none';
 export type ColumnAlign = 'left' | 'center' | 'right';
