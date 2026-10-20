@@ -3,7 +3,15 @@ ARG NODE_VERSION=22
 
 FROM node:${NODE_VERSION}-bookworm-slim AS node
 
-FROM serversideup/php:${PHP_VERSION}-frankenphp-bookworm AS build
+FROM serversideup/php:${PHP_VERSION}-frankenphp-bookworm AS php-base
+
+USER root
+
+RUN install-php-extensions exif
+
+USER www-data
+
+FROM php-base AS build
 
 USER root
 
@@ -43,7 +51,7 @@ ENV VITE_APP_NAME=${VITE_APP_NAME}
 RUN npm run build
 RUN rm -rf node_modules
 
-FROM serversideup/php:${PHP_VERSION}-frankenphp-bookworm AS runtime
+FROM php-base AS runtime
 
 ENV APP_ENV=production \
     APP_DEBUG=false \
