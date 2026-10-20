@@ -180,13 +180,18 @@ test('the folio invoice and booking summary rows print Paid in old system and no
 });
 
 test('the folio tab shows the line as Paid in old system and offers no receipt', function () {
+    Inertia\Inertia::disableSsr();
+
     $setup = osSetup();
     $payment = osPay($setup)->payment;
 
     $this->actingAs($setup['user'])
         ->get(route('reservations.folio', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id, 'folio' => $setup['folio']->id]))
         ->assertOk()
-        ->assertSee('Paid in old system · OR-1203', false);
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('reservations/show')
+            ->where('folio.rows.0.description', 'Paid in old system · OR-1203')
+            ->where('folio.rows.0.hasReceipt', false));
 
     $this->actingAs($setup['user'])
         ->get(route('reservations.folios.payments.receipt', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id, 'folio' => $setup['folio']->id, 'payment' => $payment->id]))
