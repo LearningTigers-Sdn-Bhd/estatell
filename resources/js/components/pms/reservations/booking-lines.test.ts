@@ -241,6 +241,8 @@ test('plans are split by stay type', () => {
             companyAccess: 'everyone',
             companyAtDesk: true,
             companyIds: [],
+            companyMarket: 'all',
+            marketCompanyIds: [],
             isDayUse,
         }) as unknown as App.Data.Reservations.RatePlanOptionData;
     const plans = [plan(1, false), plan(2, true)];
@@ -264,6 +266,8 @@ test('plans limited to companies show only to a company that can use them at the
             companyAccess,
             companyAtDesk,
             companyIds,
+            companyMarket: 'all',
+            marketCompanyIds: [],
             isDayUse: false,
         }) as unknown as App.Data.Reservations.RatePlanOptionData;
     const plans = [
@@ -278,6 +282,37 @@ test('plans limited to companies show only to a company that can use them at the
     expect(ids('')).toEqual([1]);
     expect(ids('7')).toEqual([1, 2, 4]);
     expect(ids('8')).toEqual([1, 2]);
+});
+
+test('a plan limited to a market shows only to a company in that market', () => {
+    const plan = (
+        id: number,
+        companyMarket: string,
+        marketCompanyIds: number[],
+    ) =>
+        ({
+            id,
+            name: `P${id}`,
+            roomTypeIds: [1],
+            fixedNights: null,
+            companyAccess: 'all',
+            companyAtDesk: true,
+            companyIds: [],
+            companyMarket,
+            marketCompanyIds,
+            isDayUse: false,
+        }) as unknown as App.Data.Reservations.RatePlanOptionData;
+    const plans = [
+        plan(1, 'all', []),
+        plan(2, 'local', [7]),
+        plan(3, 'international', [8]),
+    ];
+    const ids = (companyId: string) =>
+        plansFor(plans, '1', companyId).map((one) => one.id);
+
+    expect(ids('7')).toEqual([1, 2]);
+    expect(ids('8')).toEqual([1, 3]);
+    expect(ids('9')).toEqual([1]);
 });
 
 const item = (overrides: Record<string, unknown>) => ({

@@ -53,6 +53,12 @@ export function CompanySelect({
                     {(item: Company) => (
                         <ComboboxItem key={item.id} value={item}>
                             {item.name}
+                            {item.marketLabel && (
+                                <span className="text-muted-foreground">
+                                    {' '}
+                                    ({item.marketLabel})
+                                </span>
+                            )}
                         </ComboboxItem>
                     )}
                 </ComboboxList>

@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\CompanyMarket;
 use App\Enums\CompanyType;
 use App\Enums\DefaultRoleEnum;
 use App\Models\Company;
@@ -164,6 +165,39 @@ test('a simple file fills rows and reads types, yes and no leniently', function 
     expect(Company::query()->count())->toBe(0);
 });
 
+test('a file reads the market leniently and flags one it cannot read', function () {
+    $owner = User::factory()->owner()->create();
+
+    $this->actingAs($owner)
+        ->post(bulkCompaniesUrl($owner->property, '/import'), ['file' => companyImportFile([
+            ['name', 'type', 'market'],
+            ['Borneo Travel', 'travel_agent', ' International '],
+            ['JKR Sabah', 'government', 'overseas'],
+            ['Kota Tours', 'travel_agent', ''],
+        ])])
+        ->assertOk()
+        ->assertJsonPath('rows.0.market', 'international')
+        ->assertJsonPath('rows.0.problems', [])
+        ->assertJsonPath('rows.1.market', '')
+        ->assertJsonPath('rows.1.problems.market', 'Unknown market "overseas". Write local or international.')
+        ->assertJsonPath('rows.2.market', '')
+        ->assertJsonPath('rows.2.problems', []);
+});
+
+test('bulk add saves the market of each row', function () {
+    $owner = User::factory()->owner()->create();
+
+    $this->actingAs($owner)
+        ->post(bulkCompaniesUrl($owner->property, '/bulk'), ['rows' => [
+            bulkCompanyRow(['name' => 'Local Co', 'market' => 'local']),
+            bulkCompanyRow(['name' => 'No Market Co', 'market' => '']),
+        ]])
+        ->assertSessionHasNoErrors();
+
+    expect(Company::query()->where('name', 'Local Co')->value('market'))->toBe(CompanyMarket::Local)
+        ->and(Company::query()->where('name', 'No Market Co')->value('market'))->toBeNull();
+});
+
 test('a file with detailed columns switches to detailed and reads countries by name', function () {
     $owner = User::factory()->owner()->create();
 
@@ -211,11 +245,11 @@ test('the import template has the columns of the chosen mode', function (string 
     $headers = SimpleExcelReader::create($copy)->getHeaders();
 
     expect($headers)->toHaveCount($columns)
-        ->and(array_slice($headers, 0, 9))->toBe(['name', 'type', 'email', 'phone', 'credit_limit', 'terms_days', 'direct_billing', 'portal_email', 'cancel_days']);
+        ->and(array_slice($headers, 0, 10))->toBe(['name', 'type', 'market', 'email', 'phone', 'credit_limit', 'terms_days', 'direct_billing', 'portal_email', 'cancel_days']);
 })->with([
-    ['csv', 'simple', 9],
-    ['xlsx', 'simple', 9],
-    ['csv', 'detailed', 18],
+    ['csv', 'simple', 10],
+    ['xlsx', 'simple', 10],
+    ['csv', 'detailed', 19],
 ]);
 
 test('the import template only comes as csv or xlsx', function () {

@@ -11,6 +11,7 @@ export default function RatePlanCompanies({
     ratePlan,
     access,
     accessOptions,
+    marketOptions,
     candidates,
     canManageCompanies,
     canViewCompanies,
@@ -18,6 +19,7 @@ export default function RatePlanCompanies({
     ratePlan: RatePlan;
     access: App.Data.Rates.RatePlanCompaniesData;
     accessOptions: { value: string; label: string }[];
+    marketOptions: { value: string; label: string }[];
     candidates: App.Data.Rates.RatePlanCompanyCandidateData[];
     canManageCompanies: boolean;
     canViewCompanies: boolean;
@@ -31,6 +33,7 @@ export default function RatePlanCompanies({
                     ratePlan={ratePlan}
                     access={access}
                     accessOptions={accessOptions}
+                    marketOptions={marketOptions}
                     candidates={candidates}
                     canManageCompanies={canManageCompanies}
                     canViewCompanies={canViewCompanies}

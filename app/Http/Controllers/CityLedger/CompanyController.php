@@ -9,6 +9,7 @@ use App\Data\CityLedger\CompanyData;
 use App\Data\CityLedger\CompanyRowData;
 use App\Data\CityLedger\CreditExposureData;
 use App\Data\Property\CurrencyData;
+use App\Enums\CompanyMarket;
 use App\Enums\CompanyStatus;
 use App\Enums\CompanyType;
 use App\Enums\PermissionEnum;
@@ -44,6 +45,7 @@ class CompanyController extends Controller
             'companies' => $companies
                 ->map(fn (Company $company): CompanyRowData => CompanyRowData::fromModel($company, $creditExposure->isOverLimit($figures[$company->id]))),
             'types' => CompanyType::options(),
+            'markets' => CompanyMarket::options(),
             'statuses' => CompanyStatus::options(),
             'currency' => CurrencyData::forProperty($property),
             'canManage' => $request->user()->can(PermissionEnum::CompanyManage->value),
@@ -68,6 +70,7 @@ class CompanyController extends Controller
     {
         return $this->renderTab($request, $property, $company, 'details', [
             'types' => CompanyType::options(),
+            'markets' => CompanyMarket::options(),
             'countries' => app(CountryOptions::class)->options(),
         ]);
     }

@@ -32,12 +32,14 @@ type Company = App.Data.CityLedger.CompanyRowData;
 export default function CompaniesIndex({
     companies,
     types,
+    markets,
     statuses,
     currency,
     canManage,
 }: {
     companies: Company[];
     types: EnumOption[];
+    markets: EnumOption[];
     statuses: EnumOption[];
     currency: App.Data.Property.CurrencyData | null;
     canManage: boolean;
@@ -239,6 +241,7 @@ export default function CompaniesIndex({
                     open={adding}
                     onOpenChange={setAdding}
                     types={types}
+                    markets={markets}
                     currency={currency}
                 />
             )}

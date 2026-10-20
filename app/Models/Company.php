@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\CompanyMarket;
 use App\Enums\CompanyStatus;
 use App\Enums\CompanyType;
 use Carbon\CarbonImmutable;
@@ -24,6 +25,7 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
  * @property int $property_id
  * @property string $name
  * @property CompanyType $type
+ * @property CompanyMarket|null $market
  * @property string|null $brn
  * @property string|null $tin
  * @property string|null $sst_registration_number
@@ -46,7 +48,7 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
  * @property-read Pivot&object{at_desk: bool, in_portal: bool} $pivot The company_rate_plans row when loaded through RatePlan::companies().
  */
 #[Fillable([
-    'name', 'type', 'brn', 'tin', 'sst_registration_number', 'contact_email', 'contact_phone',
+    'name', 'type', 'market', 'brn', 'tin', 'sst_registration_number', 'contact_email', 'contact_phone',
     'billing_address_line1', 'billing_address_line2', 'billing_city', 'billing_state_code',
     'billing_postal_code', 'billing_country_code', 'credit_limit', 'payment_terms_days',
     'direct_bill_enabled', 'portal_cancel_cutoff_days', 'status', 'profile_managed_by_company',
@@ -61,6 +63,7 @@ class Company extends Model
     {
         return [
             'type' => CompanyType::class,
+            'market' => CompanyMarket::class,
             'status' => CompanyStatus::class,
             'credit_limit' => 'decimal:2',
             'payment_terms_days' => 'integer',

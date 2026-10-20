@@ -28,8 +28,8 @@ class CompanyRequest extends FormRequest
      * @var array<string, list<string>>
      */
     private const array FIELDS = [
-        'add' => ['name', 'type', 'contact_email', 'contact_phone', 'credit_limit', 'payment_terms_days', 'direct_bill_enabled', 'portal_email', 'portal_cancel_cutoff_days'],
-        'details' => ['name', 'type', 'contact_email', 'contact_phone'],
+        'add' => ['name', 'type', 'market', 'contact_email', 'contact_phone', 'credit_limit', 'payment_terms_days', 'direct_bill_enabled', 'portal_email', 'portal_cancel_cutoff_days'],
+        'details' => ['name', 'type', 'market', 'contact_email', 'contact_phone'],
         'credit' => ['credit_limit', 'payment_terms_days', 'direct_bill_enabled'],
         'portal' => ['portal_email', 'portal_cancel_cutoff_days'],
         'billing' => [

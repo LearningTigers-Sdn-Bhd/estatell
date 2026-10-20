@@ -13,10 +13,11 @@ class CompanyOptionData extends Data
     public function __construct(
         public int $id,
         public string $name,
+        public ?string $marketLabel = null,
     ) {}
 
     public static function fromModel(Company $company): self
     {
-        return new self($company->id, $company->name);
+        return new self($company->id, $company->name, $company->market?->label());
     }
 }

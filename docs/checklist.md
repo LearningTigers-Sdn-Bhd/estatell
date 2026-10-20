@@ -759,7 +759,7 @@ Smaller fixes and reverts are in `git log`.
 - [x] `feat(meals): count meals by arrival and departure time` — `MealCounts` passes the unit times when the feature is on, and the resolver trims the first and last day. Needs: set boat trips. Docs: [Meal entitlements](07-meals/02-meal-entitlements.md#arrival-and-departure-times).
 - [x] `feat(front-desk): show boat times on arrivals and departures` — the Boat column on Arrivals and Departures. Needs: set boat trips. Docs: [Boat trips](24-boats/02-boat-trips.md#front-desk).
 - [x] `feat(boats): show boat in and out on the reservation card` — the boat line on the reservations list card (`ReservationBoatSummary`, `boatIn` and `boatOut` on `ReservationListItemData`), and the card uses tighter padding. Needs: show boat times on arrivals and departures. Docs: [Boat trips](24-boats/02-boat-trips.md#front-desk).
-- [ ] `feat(company-market): offer rates by company market` — `companies.market` (`CompanyMarket`), `rate_plans.company_market` (`CompanyRateMarket`), the check in `CompanyRateAccess`, `CompanyRatePlans` and `PortalRatePlans`, the Market field on the company and the Market radio on the plan's Companies tab, and the `market` import column. Needs: company access on rate plans. Docs: [Market](08-rates/01-rate-plans.md#market).
+- [x] `feat(company-market): offer rates by company market` — `companies.market` (`CompanyMarket`), `rate_plans.company_market` (`CompanyRateMarket`), the check in `CompanyRateAccess`, `CompanyRatePlans` and `PortalRatePlans`, the Market field on the company and the Market radio on the plan's Companies tab, and the `market` import column. Needs: company access on rate plans. Docs: [Market](08-rates/01-rate-plans.md#market).
 
 ### Deferred items to pick up along the way
 

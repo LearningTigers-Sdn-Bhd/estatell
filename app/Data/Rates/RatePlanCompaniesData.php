@@ -3,12 +3,13 @@
 namespace App\Data\Rates;
 
 use App\Enums\CompanyAccess;
+use App\Enums\CompanyRateMarket;
 use App\Models\RatePlan;
 use Spatie\LaravelData\Data;
 
 /**
  * The values of the plan editor's Companies tab: who can use the rate, the Front desk and Portal choice for All
- * companies, and the companies listed for Only these companies.
+ * companies, the market the plan is offered to, and the companies listed for Only these companies.
  */
 class RatePlanCompaniesData extends Data
 {
@@ -20,6 +21,7 @@ class RatePlanCompaniesData extends Data
         public bool $isDerived,
         public bool $atDesk,
         public bool $inPortal,
+        public CompanyRateMarket $companyMarket,
         public array $companies,
     ) {}
 
@@ -33,6 +35,7 @@ class RatePlanCompaniesData extends Data
             isDerived: $ratePlan->parent_rate_plan_id !== null,
             atDesk: $ratePlan->company_at_desk,
             inPortal: $ratePlan->company_in_portal,
+            companyMarket: $ratePlan->company_market,
             companies: array_values($ratePlan->companies->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)
                 ->map(RatePlanCompanyRowData::fromModel(...))->all()),
         );

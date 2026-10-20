@@ -3,6 +3,7 @@
 namespace App\Services\Portal;
 
 use App\Enums\CompanyAccess;
+use App\Enums\CompanyRateMarket;
 use App\Models\Company;
 use App\Models\RatePlan;
 use App\Models\RoomType;
@@ -11,7 +12,8 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Which rate plans a company can see in the portal: active nightly plans (Day use is never offered) that are All
- * companies with Portal on, or Only these companies with a row for this company that has Portal on. It reads only.
+ * companies with Portal on, or Only these companies with a row for this company that has Portal on, and whose market is
+ * open to the company's market. It reads only.
  * See docs/23-company-portal/01-company-portal.md#rules.
  */
 class PortalRatePlans
@@ -25,6 +27,7 @@ class PortalRatePlans
             ->where('rate_plans.property_id', $company->property_id)
             ->active()
             ->nightly()
+            ->whereIn('company_market', CompanyRateMarket::valuesOfferedTo($company->market))
             ->where(fn (Builder $plans) => $plans
                 ->where(fn (Builder $open) => $open
                     ->where('company_access', CompanyAccess::All->value)

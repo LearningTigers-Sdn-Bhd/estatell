@@ -10,6 +10,7 @@ use App\Data\Rates\RatePlanCompaniesData;
 use App\Data\Rates\RatePlanCompanyCandidateData;
 use App\Data\Rates\RatePlanData;
 use App\Enums\CompanyAccess;
+use App\Enums\CompanyRateMarket;
 use App\Enums\CompanyStatus;
 use App\Enums\PermissionEnum;
 use App\Enums\PricingBasis;
@@ -42,6 +43,7 @@ class RatePlanCompanyController extends Controller
             'ratePlan' => RatePlanData::fromModel($ratePlan),
             'access' => RatePlanCompaniesData::fromModel($ratePlan),
             'accessOptions' => CompanyAccess::options(),
+            'marketOptions' => CompanyRateMarket::options(),
             'candidates' => $canManageCompanies && $ratePlan->company_access === CompanyAccess::Selected
                 ? array_values($property->companies()
                     ->where('status', CompanyStatus::Active)
@@ -58,7 +60,7 @@ class RatePlanCompanyController extends Controller
     {
         abort_if($ratePlan->pricing_basis === PricingBasis::DayUse, 404);
 
-        $refusal = $setRatePlanCompanyAccess($request->user(), $ratePlan, $request->companyAccess(), $request->atDesk(), $request->inPortal());
+        $refusal = $setRatePlanCompanyAccess($request->user(), $ratePlan, $request->companyAccess(), $request->atDesk(), $request->inPortal(), $request->companyMarket());
 
         return $this->back($property, $ratePlan, $refusal, __('Company access saved.'), [
             SetRatePlanCompanyAccess::REFUSAL_NOT_DERIVED => __('Only a derived plan can be limited to some companies.'),

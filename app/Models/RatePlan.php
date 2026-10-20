@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\CompanyAccess;
+use App\Enums\CompanyRateMarket;
 use App\Enums\EarlyDeparturePolicy;
 use App\Enums\PackageUnit;
 use App\Enums\PricingBasis;
@@ -41,6 +42,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CompanyAccess $company_access
  * @property bool $company_at_desk
  * @property bool $company_in_portal
+ * @property CompanyRateMarket $company_market
  * @property bool $needs_child_price_review
  * @property int $position
  * @property CarbonImmutable|null $archived_at
@@ -74,6 +76,7 @@ class RatePlan extends Model
             'company_access' => CompanyAccess::class,
             'company_at_desk' => 'boolean',
             'company_in_portal' => 'boolean',
+            'company_market' => CompanyRateMarket::class,
             'extra_adult_amount' => 'decimal:2',
             'extra_child_amount' => 'decimal:2',
             'single_supplement' => 'decimal:2',

@@ -485,6 +485,7 @@ export default function CompanyShow({
     canManage,
     canAddOldSystem = false,
     types = [],
+    markets = [],
     countries = [],
     rates = [],
     canViewRatePlans = false,
@@ -500,6 +501,7 @@ export default function CompanyShow({
     canManage: boolean;
     canAddOldSystem?: boolean;
     types?: EnumOption[];
+    markets?: EnumOption[];
     countries?: EnumOption[];
     rates?: App.Data.CityLedger.CompanyRateData[];
     canViewRatePlans?: boolean;
@@ -618,6 +620,16 @@ export default function CompanyShow({
                                         options={types}
                                         disabled={readOnly}
                                         error={errors.type}
+                                    />
+                                    <SettingsSelect
+                                        name="market"
+                                        label="Market"
+                                        value={company.market ?? ''}
+                                        options={markets}
+                                        allLabel="Not set"
+                                        disabled={readOnly}
+                                        error={errors.market}
+                                        description="Local companies see local rates and international companies see international rates. Not set: only plans open to every market show."
                                     />
                                     <SettingsInput
                                         name="contact_email"
@@ -743,6 +755,7 @@ export default function CompanyShow({
                         <CompanyRatesTable
                             key={`rates-${company.id}`}
                             rates={rates}
+                            marketLabel={company.marketLabel}
                             canViewRatePlans={canViewRatePlans}
                         />
                     )}
