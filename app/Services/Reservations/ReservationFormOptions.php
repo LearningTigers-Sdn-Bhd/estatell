@@ -18,6 +18,7 @@ use App\Enums\PaymentMethodType;
 use App\Enums\TransactionKind;
 use App\Models\BoatDeparture;
 use App\Models\ChargeItem;
+use App\Models\Company;
 use App\Models\Discount;
 use App\Models\PaymentMethod;
 use App\Models\Property;
@@ -35,11 +36,17 @@ class ReservationFormOptions
 {
     public function addUnit(Property $property): AddUnitOptionsData
     {
+        $companyIdsByMarket = Company::query()->where('property_id', $property->id)->whereNotNull('market')
+            ->get(['id', 'market'])
+            ->groupBy(fn (Company $company): string => $company->market->value)
+            ->map(fn ($companies): array => array_values($companies->pluck('id')->map(intval(...))->all()))
+            ->all();
+
         return new AddUnitOptionsData(
             roomTypes: array_values(RoomType::query()->where('property_id', $property->id)->active()->ordered()->get()
                 ->map(RoomTypeOptionData::fromModel(...))->all()),
             ratePlans: array_values(RatePlan::query()->where('property_id', $property->id)->active()->ordered()->with('roomTypes:id', 'companies:id')->get()
-                ->map(RatePlanOptionData::fromModel(...))->all()),
+                ->map(fn (RatePlan $ratePlan): RatePlanOptionData => RatePlanOptionData::fromModel($ratePlan, $companyIdsByMarket[$ratePlan->company_market->value] ?? []))->all()),
         );
     }
 

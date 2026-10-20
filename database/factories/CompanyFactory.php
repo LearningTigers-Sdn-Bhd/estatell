@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\CompanyMarket;
 use App\Enums\CompanyStatus;
 use App\Enums\CompanyType;
 use App\Models\Company;
@@ -30,6 +31,11 @@ class CompanyFactory extends Factory
             'direct_bill_enabled' => true,
             'status' => CompanyStatus::Active,
         ];
+    }
+
+    public function inMarket(CompanyMarket $market): static
+    {
+        return $this->state(fn (array $attributes) => ['market' => $market]);
     }
 
     public function travelAgent(): static

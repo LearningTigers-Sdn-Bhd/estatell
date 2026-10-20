@@ -65,11 +65,14 @@ export function SettingsSelect({
     error,
     disabled,
     description,
+    allLabel,
 }: {
     name: string;
     label: string;
     value: string;
     options: EnumOption[];
+    /** Label for the empty value, for example "Not set". */
+    allLabel?: string;
     error?: string;
     disabled?: boolean;
     description?: string;
@@ -82,6 +85,7 @@ export function SettingsSelect({
                 name={name}
                 options={options}
                 defaultValue={value}
+                allLabel={allLabel}
                 disabled={disabled}
                 aria-invalid={!!error}
             />

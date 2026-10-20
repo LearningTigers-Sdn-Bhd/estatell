@@ -3,6 +3,7 @@
 namespace App\Data\CityLedger;
 
 use App\Data\Shared\BadgeData;
+use App\Enums\CompanyMarket;
 use App\Enums\CompanyType;
 use App\Models\Company;
 use App\Services\Guests\CountryOptions;
@@ -19,6 +20,8 @@ class CompanyData extends Data
         public string $name,
         public CompanyType $type,
         public string $typeLabel,
+        public ?CompanyMarket $market,
+        public ?string $marketLabel,
         public ?string $brn,
         public ?string $tin,
         public ?string $sstRegistrationNumber,
@@ -48,6 +51,8 @@ class CompanyData extends Data
             name: $company->name,
             type: $company->type,
             typeLabel: $company->type->label(),
+            market: $company->market,
+            marketLabel: $company->market?->label(),
             brn: $company->brn,
             tin: $company->tin,
             sstRegistrationNumber: $company->sst_registration_number,

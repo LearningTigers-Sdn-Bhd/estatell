@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\CityLedger;
 
+use App\Enums\CompanyMarket;
 use App\Enums\CompanyType;
 use App\Models\Company;
 use App\Models\Property;
@@ -27,6 +28,7 @@ class CompanyRules
         return [
             'name' => ['required', 'string', 'max:150', self::nameIsFree($property, $current)],
             'type' => ['required', Rule::enum(CompanyType::class)],
+            'market' => ['nullable', Rule::enum(CompanyMarket::class)],
             'contact_email' => ['nullable', 'email:rfc', 'max:255'],
             'contact_phone' => ['nullable', 'string', 'max:30', (new Phone)->country(self::phoneRegion($property))->international()],
             'credit_limit' => ['nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:9999999999.99'],

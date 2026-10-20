@@ -21,9 +21,12 @@ type Rate = App.Data.CityLedger.CompanyRateData;
  */
 export function CompanyRatesTable({
     rates,
+    marketLabel,
     canViewRatePlans,
 }: {
     rates: Rate[];
+    /** The company's market, or null when none is set. */
+    marketLabel: string | null;
     canViewRatePlans: boolean;
 }) {
     const manage = canViewRatePlans && (
@@ -57,8 +60,8 @@ export function CompanyRatesTable({
         <section className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm text-muted-foreground">
-                    The rates this company can use. Set them on each rate plan's
-                    Companies tab.
+                    Market: {marketLabel ?? 'Not set'}. The rates this company
+                    can use. Set them on each rate plan's Companies tab.
                 </p>
                 {manage}
             </div>

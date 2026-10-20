@@ -318,6 +318,8 @@ id: number,
 name: string,
 type: App.Enums.CompanyType,
 typeLabel: string,
+market: App.Enums.CompanyMarket | null,
+marketLabel: string | null,
 brn: string | null,
 tin: string | null,
 sstRegistrationNumber: string | null,
@@ -342,6 +344,7 @@ credit: App.Data.CityLedger.CreditExposureData | null,
 export type CompanyOptionData = {
 id: number,
 name: string,
+marketLabel: string | null,
 };
 export type CompanyPortalData = {
 email: string | null,
@@ -2149,6 +2152,7 @@ companyAccess: App.Enums.CompanyAccess,
 isDerived: boolean,
 atDesk: boolean,
 inPortal: boolean,
+companyMarket: App.Enums.CompanyRateMarket,
 companies: App.Data.Rates.RatePlanCompanyRowData[],
 };
 export type RatePlanCompanyCandidateData = {
@@ -3028,6 +3032,8 @@ fixedNights: number | null,
 companyAccess: App.Enums.CompanyAccess,
 companyAtDesk: boolean,
 companyIds: number[],
+companyMarket: App.Enums.CompanyRateMarket,
+marketCompanyIds: number[],
 isDayUse: boolean,
 dayUseMinHours: number | null,
 dayUseMaxHours: number | null,
@@ -3490,6 +3496,8 @@ export type ColumnAlign = 'left' | 'center' | 'right';
 export type CompanyAccess = 'everyone' | 'all' | 'selected';
 export type CompanyImportMode = 'simple' | 'detailed';
 export type CompanyLinkRefusal = 'not_pending' | 'company_suspended' | 'property_not_live' | 'login_not_available' | 'already_linked';
+export type CompanyMarket = 'local' | 'international';
+export type CompanyRateMarket = 'all' | 'local' | 'international';
 export type CompanyStatus = 'active' | 'suspended';
 export type CompanyType = 'corporate' | 'travel_agent' | 'government';
 export type CompanyUserStatus = 'pending' | 'active' | 'revoked';

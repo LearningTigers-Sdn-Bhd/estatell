@@ -77,6 +77,7 @@ A plan with `pricing_basis = DayUse` sells a room for a number of hours on one d
 - `AgeBandPricing`: Free, Percent, Fixed.
 - `StayDiscountType`: Percent, Amount.
 - `CompanyAccess`: Everyone, All, Selected (shown as "Only these companies"), with `label()` and `options()`. See [Who can use this rate](#who-can-use-this-rate).
+- `CompanyRateMarket`: All, Local, International, with `label()` and `options()`. The market a plan is offered to. See [Market](#market). The company side is `CompanyMarket` (Local, International) in [Companies](../15-city-ledger/01-companies.md#enums).
 
 ## Who can use this rate
 
@@ -95,11 +96,30 @@ One setting on the rate plan owns it: **Who can use this rate** (`rate_plans.com
 - **Day use, channels and rates:** the choice never changes price. A plan priced for companies is still priced by `RateQuoteService`. Channel ingestion skips the front desk check (`fromChannel`).
 - **Bookings already made** keep their plan and price when access changes.
 
+### Market
+
+A plan that is All companies or Only these companies can also be limited to local or international companies. This is a second filter on top of the access choice: both must pass, at the front desk and in the portal.
+
+| Plan market             | Local company | International company | Company with no market |
+| ----------------------- | ------------- | --------------------- | ---------------------- |
+| Local and international | Yes           | Yes                   | Yes                    |
+| Local only              | Yes           | No                    | No                     |
+| International only      | No            | Yes                   | No                     |
+
+- **Column:** `rate_plans.company_market` (`CompanyRateMarket`, default all, not null, CHECK in all, local, international). The company's market is `companies.market`, set by staff, never derived from the billing country.
+- **Everyone plans** ignore the market. The radio is hidden for them and the value stays `all`.
+- **Day use plans** are Everyone, so the market never applies.
+- **Check:** `CompanyRateAccess` applies the market in `deskAllows` and `usableBy`. `CompanyRatePlans` and `PortalRatePlans` apply the same rule in their queries, so the lists and the checks agree.
+- **Bookings already made** keep their plan and price when a plan's or a company's market changes. Changing the company on a booking re-checks each unit with `usableBy`, as for access.
+- **Pickers:** the company combobox on the booking form and the Change company Dialog shows the market after the name, for example "Acme (Local)". The booking form gets `companyMarket` and `marketCompanyIds` on each plan option, so the browser filters the plan list without another request.
+- **Existing plans** become `all` in the migration, so nothing changes on production until staff set a market on a company and a plan.
+
 ### Companies tab
 
 The tab replaces the Portal tab in the same position. A radio group "Who can use this rate" holds the three choices.
 
 - **All companies:** a "Where" radio: Front desk and portal, Front desk only, Portal only, and a Save button. Saving sets `company_at_desk` and `company_in_portal`.
+- **Market** (shown for All companies and Only these companies): a radio below the choice: Local and international (default), Local companies only, International companies only. The hint reads: "A plan marked local or international is hidden from the other market, and from companies with no market set." For All companies it saves with the Save button. For Only these companies it saves as soon as it is picked.
 - **Only these companies:** a table with the columns Company (name, with a link that opens that company's Rates tab), Login, Front desk, Portal and a ⋯ menu. Login is the company's portal login status: Active, Waiting, Temp password or —. Front desk and Portal are switches that save at once. Turning both off is refused: "Turn on at least one, or remove the company." The ⋯ menu has **Remove**.
 - **Add companies** is a Dialog with a search box and a checklist of the Active companies not yet listed (name, type). Confirming adds them with both switches on and shows a toast.
 - **Remove** is an AlertDialog "Remove {company} from this rate?" It says: "Staff won't see "{plan}" at the front desk for this company", then ", and the company can't book it in the portal" only when the row's Portal is on and the company has an Active login, then ". Bookings already made keep their price." The Remove button is destructive.
@@ -110,12 +130,12 @@ The tab replaces the Portal tab in the same position. A radio group "Who can use
 
 All in `app/Actions/Rates/`. Each returns null when done, or a refusal code when the state refuses, and writes nothing then. Each logs one activity entry.
 
-| Action                     | Does                                                                                                                                                                    | Log                                |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| `SetRatePlanCompanyAccess` | Saves `company_access` and, for All companies, the two switches. Refuses an archived or Day use plan, non derived plan with Only these companies, and both switches off | `rate_plan.company_access_updated` |
-| `AddRatePlanCompanies`     | Adds Active companies of the property to an Only these companies plan, both switches on. Skips companies already listed                                                 | `rate_plan.companies_added`        |
-| `UpdateRatePlanCompany`    | Saves `at_desk` and `in_portal` of one row. Refuses both off                                                                                                            | `rate_plan.company_updated`        |
-| `RemoveRatePlanCompany`    | Deletes the row. Allowed for the last one                                                                                                                               | `rate_plan.company_removed`        |
+| Action                     | Does                                                                                                                                                                                                                         | Log                                |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| `SetRatePlanCompanyAccess` | Saves `company_access`, `company_market` and, for All companies, the two switches. Refuses an archived or Day use plan, non derived plan with Only these companies, and both switches off. Everyone resets the market to all | `rate_plan.company_access_updated` |
+| `AddRatePlanCompanies`     | Adds Active companies of the property to an Only these companies plan, both switches on. Skips companies already listed                                                                                                      | `rate_plan.companies_added`        |
+| `UpdateRatePlanCompany`    | Saves `at_desk` and `in_portal` of one row. Refuses both off                                                                                                                                                                 | `rate_plan.company_updated`        |
+| `RemoveRatePlanCompany`    | Deletes the row. Allowed for the last one                                                                                                                                                                                    | `rate_plan.company_removed`        |
 
 `CompanyRateAccess` (a Service in `app/Services/Rates/`) answers the read side: `deskAllows($plan, $companyId)` for the front desk and `usableBy($plan, $companyId)` (any company the plan is open to, desk or portal) for the company change check. `PortalRatePlans` answers the portal side.
 

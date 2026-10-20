@@ -5,13 +5,14 @@ namespace App\Services\Rates;
 use App\Data\CityLedger\CompanyRateData;
 use App\Data\Rates\RatePlanData;
 use App\Enums\CompanyAccess;
+use App\Enums\CompanyRateMarket;
 use App\Models\Company;
 use App\Models\RatePlan;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
  * The active rate plans a company can use, for its read-only Rates tab: the plans that list it (Only these companies)
- * and the All companies plans, with where each applies. It reads only. See docs/15-city-ledger/01-companies.md.
+ * and the All companies plans, left out when the plan's market does not match the company's, with where each applies. It reads only. See docs/15-city-ledger/01-companies.md.
  */
 class CompanyRatePlans
 {
@@ -23,6 +24,7 @@ class CompanyRatePlans
         $plans = RatePlan::query()
             ->where('property_id', $company->property_id)
             ->active()
+            ->whereIn('company_market', CompanyRateMarket::valuesOfferedTo($company->market))
             ->where(fn (Builder $query) => $query
                 ->where('company_access', CompanyAccess::All->value)
                 ->orWhere(fn (Builder $selected) => $selected

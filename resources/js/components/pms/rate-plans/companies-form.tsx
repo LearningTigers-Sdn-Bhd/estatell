@@ -7,6 +7,8 @@ import {
     Globe,
     Layers,
     ListChecks,
+    MapPin,
+    Plane,
     Trash2,
     UserRound,
     Users,
@@ -101,6 +103,24 @@ const WHERE: Choice[] = [
     },
 ];
 
+const MARKET_CHOICES: Record<string, Pick<Choice, 'icon' | 'description'>> = {
+    all: {
+        icon: Layers,
+        description: 'Every company, whatever its market.',
+    },
+    local: {
+        icon: MapPin,
+        description: 'Only companies marked Local.',
+    },
+    international: {
+        icon: Plane,
+        description: 'Only companies marked International.',
+    },
+};
+
+const MARKET_HINT =
+    'A plan marked local or international is hidden from the other market, and from companies with no market set.';
+
 function whereOf(access: Access): string {
     if (access.atDesk && access.inPortal) {
         return 'both';
@@ -118,6 +138,7 @@ export function RatePlanCompaniesForm({
     ratePlan,
     access,
     accessOptions,
+    marketOptions,
     candidates,
     canManageCompanies,
     canViewCompanies,
@@ -125,6 +146,7 @@ export function RatePlanCompaniesForm({
     ratePlan: RatePlan;
     access: Access;
     accessOptions: { value: string; label: string }[];
+    marketOptions: { value: string; label: string }[];
     candidates: Candidate[];
     canManageCompanies: boolean;
     canViewCompanies: boolean;
@@ -133,6 +155,7 @@ export function RatePlanCompaniesForm({
     const form = useForm({
         company_access: 'all',
         where: whereOf(access),
+        market: access.companyMarket as string,
     });
     const [adding, setAdding] = useState(false);
     const url = update.url({ ratePlan: ratePlan.id });
@@ -149,9 +172,28 @@ export function RatePlanCompaniesForm({
         }
     };
 
+    const pickMarket = (value: string) => {
+        form.setData('market', value);
+
+        if (choice === 'selected') {
+            router.put(
+                url,
+                { company_access: 'selected', company_market: value },
+                { preserveScroll: true },
+            );
+        }
+    };
+
+    const marketChoices: Choice[] = marketOptions.map((option) => ({
+        value: option.value,
+        label: option.label,
+        ...MARKET_CHOICES[option.value],
+    }));
+
     const saveAll = () => {
         form.transform((data) => ({
             company_access: 'all',
+            company_market: data.market,
             company_at_desk: data.where !== 'portal',
             company_in_portal: data.where !== 'desk',
         }));
@@ -200,6 +242,22 @@ export function RatePlanCompaniesForm({
                         }
                         columns={3}
                     />
+                    <ChoiceCards
+                        id="company-market"
+                        name="market"
+                        legend="Market"
+                        choices={marketChoices}
+                        value={form.data.market}
+                        onValueChange={pickMarket}
+                        error={
+                            (form.errors as Record<string, string>)
+                                .company_market
+                        }
+                        columns={3}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                        {MARKET_HINT}
+                    </p>
                     <footer className="flex justify-end">
                         <Button
                             type="submit"
@@ -213,6 +271,23 @@ export function RatePlanCompaniesForm({
                         </Button>
                     </footer>
                 </form>
+            )}
+
+            {choice === 'selected' && access.companyAccess === 'selected' && (
+                <div className="flex flex-col gap-2">
+                    <ChoiceCards
+                        id="company-market"
+                        name="market"
+                        legend="Market"
+                        choices={marketChoices}
+                        value={form.data.market}
+                        onValueChange={pickMarket}
+                        columns={3}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                        {MARKET_HINT}
+                    </p>
+                </div>
             )}
 
             {choice === 'selected' && access.companyAccess === 'selected' && (
