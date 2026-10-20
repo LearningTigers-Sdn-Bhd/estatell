@@ -258,6 +258,7 @@ done: number,
 total: number,
 message: string | null,
 updatedAt: string | null,
+waiting: boolean,
 };
 export type ChannelSyncedRoomTypeData = {
 mappingId: number,
@@ -3557,9 +3558,10 @@ export type BoatMode = 'scheduled' | 'charter' | 'own';
 export type BookingSourceIcon = 'phone' | 'message-circle' | 'mail' | 'globe' | 'users' | 'handshake' | 'briefcase-business' | 'building-2' | 'footprints' | 'ticket' | 'megaphone' | 'star';
 export type BookingSourceType = 'direct' | 'ota' | 'company' | 'walk_in';
 export type BusinessDateStatus = 'open' | 'auditing' | 'closed';
-export type ChannelAlertEvent = 'non_acked_booking' | 'booking_unmapped_room' | 'booking_unmapped_rate' | 'sync_error' | 'rate_error';
+export type ChannelAlertEvent = 'non_acked_booking' | 'booking_unmapped_room' | 'booking_unmapped_rate' | 'sync_error' | 'rate_error' | 'structure_sync_failed' | 'removal_blocked';
 export type ChannelPropertyStatus = 'not_synced' | 'synced' | 'paused' | 'error';
 export type ChannelProvider = 'channex';
+export type ChannelRemovalKind = 'rate_plan' | 'room_type' | 'unlink';
 export type ChannelSellMode = 'per_room' | 'per_person';
 export type ChannelSupport = 'full' | 'flattened' | 'unsupported';
 export type ChannelSyncState = 'idle' | 'queued' | 'running' | 'done' | 'failed';
@@ -3605,7 +3607,7 @@ export type MediaDisk = 'local' | 'r2';
 export type MissedArrivalPolicy = 'mark_no_show' | 'keep_as_late_arrival';
 export type NavigationContext = 'front-desk' | 'finance' | 'reports' | 'settings';
 export type NotificationChannel = 'mail' | 'database';
-export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions' | 'night_audit_failed' | 'registration_card_link' | 'onboarding_reminder' | 'dorm_strategy_changed' | 'support_access_used' | 'go_live_approved' | 'go_live_rejected' | 'portal_booking_created' | 'portal_booking_cancelled' | 'portal_cancellation_requested' | 'channel_booking_received' | 'channel_booking_cancelled';
+export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions' | 'night_audit_failed' | 'registration_card_link' | 'onboarding_reminder' | 'dorm_strategy_changed' | 'support_access_used' | 'go_live_approved' | 'go_live_rejected' | 'portal_booking_created' | 'portal_booking_cancelled' | 'portal_cancellation_requested' | 'channel_booking_received' | 'channel_booking_cancelled' | 'channel_removal_blocked';
 export type OldFolioMode = 'one_amount' | 'copy_line_by_line';
 export type OldFolioRowKind = 'room' | 'charge' | 'tax' | 'payment';
 export type OnboardingPhase = 'property' | 'rooms' | 'finance' | 'prices' | 'channels' | 'review';

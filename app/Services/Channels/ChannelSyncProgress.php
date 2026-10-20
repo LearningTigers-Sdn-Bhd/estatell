@@ -2,6 +2,7 @@
 
 namespace App\Services\Channels;
 
+use App\Actions\Channels\ScheduleChannelStructureSync;
 use App\Enums\ChannelSyncState;
 use Illuminate\Support\Facades\Cache;
 
@@ -46,6 +47,14 @@ class ChannelSyncProgress
             'message' => $stored['message'] ?? null,
             'updated_at' => $updatedAt,
         ];
+    }
+
+    /**
+     * Whether staff changed the structure and the automatic sync is waiting its couple of minutes.
+     */
+    public function isWaiting(int $propertyId): bool
+    {
+        return Cache::has(ScheduleChannelStructureSync::key($propertyId));
     }
 
     public function isActive(int $propertyId): bool

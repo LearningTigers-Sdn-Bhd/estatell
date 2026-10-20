@@ -4,6 +4,7 @@ namespace App\Actions\Rates;
 
 use App\Enums\PricingBasis;
 use App\Enums\Weekday;
+use App\Events\ChannelStructureChanged;
 use App\Events\RatesChanged;
 use App\Models\RatePlan;
 use App\Models\User;
@@ -94,6 +95,10 @@ class SavePackagePricing
             }
 
             event(RatesChanged::forPlan($ratePlan));
+
+            if ($changed) {
+                event(new ChannelStructureChanged($ratePlan->property_id));
+            }
 
             return true;
         });

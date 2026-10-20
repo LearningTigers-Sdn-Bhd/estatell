@@ -23,6 +23,7 @@ class ChannelAlertData extends Data
     {
         $payload = $alert->payload;
         $detail = match (true) {
+            isset($payload['message']) => (string) $payload['message'],
             isset($payload['channel_name']) => trim($payload['channel_name'].' '.($payload['error_type'] ?? '')),
             isset($payload['booking_unique_id']) => (string) $payload['booking_unique_id'],
             default => null,

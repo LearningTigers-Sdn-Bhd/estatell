@@ -18,6 +18,7 @@ enum NotificationType: string
     case PortalCancellationRequested = 'portal_cancellation_requested';
     case ChannelBookingReceived = 'channel_booking_received';
     case ChannelBookingCancelled = 'channel_booking_cancelled';
+    case ChannelRemovalBlocked = 'channel_removal_blocked';
 
     public function label(): string
     {
@@ -36,6 +37,7 @@ enum NotificationType: string
             self::PortalCancellationRequested => __('Company cancellation request'),
             self::ChannelBookingReceived => __('Channel booking received'),
             self::ChannelBookingCancelled => __('Channel booking cancelled'),
+            self::ChannelRemovalBlocked => __('Archive blocked by a channel'),
         };
     }
 
@@ -63,7 +65,7 @@ enum NotificationType: string
 
         return match ($this) {
             self::RegistrationCardLink => false,
-            self::NightAuditFailed, self::SupportAccessUsed, self::GoLiveApproved, self::GoLiveRejected, self::PortalCancellationRequested => $channel === NotificationChannel::Mail,
+            self::NightAuditFailed, self::SupportAccessUsed, self::GoLiveApproved, self::GoLiveRejected, self::PortalCancellationRequested, self::ChannelRemovalBlocked => $channel === NotificationChannel::Mail,
             default => true,
         };
     }

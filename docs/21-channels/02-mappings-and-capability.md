@@ -64,6 +64,18 @@ Checked against the Channex docs on 2026-10-20.
 - **Limits.** Channex reports `max_count_of_room_types`, `max_count_of_rate_plans` and `max_count_of_occupancies` with the property (20 and 200 on staging). The preview blocks above 20 and 200. The sync stops again, after the property is saved, if Channex reports lower numbers.
 - **Sync again** updates with PUT and never sends `force`, so Channex refuses an occupancy cut that an OTA mapping uses. To verify on staging: Sync again does not reset rates already sent.
 
+## Automatic sync after staff change something
+
+A change that the Channex structure shows sends the structure again by itself, so an admin does not have to press **Sync again**:
+
+- A rate plan is created or restored, or its name, pricing basis, extra adult or child amount, the plan it follows, fixed nights or package unit change.
+- A room type is created or restored, or its name, description, adults, children, base occupancy or sell unit change.
+- The room types a rate plan sells change, or its package pricing is saved.
+
+Each such change fires `ChannelStructureChanged`. `ScheduleChannelStructureSync` then queues `AutoSyncChannelStructureJob` with a token and a 2-minute delay, and stores the token in the cache. A later change replaces the token, so only the job of the last change runs: edits in a row make one sync, and the staff are never blocked. The job is the same sync as the admin's (progress, the replacement of a plan that changes mode, rates queued again), without an admin as the causer in the activity log.
+
+It does nothing for a property that is not yet on Channex (an admin starts the first sync) or that has `ChannelManager` off. It waits a minute and tries again while another sync is running. A failure records a **Structure sync failed** alert on the Channels tab. The tab shows "Changes are waiting to sync" during the 2 minutes. Prices, restrictions and availability are not part of this: they follow the outbox in [ARI sync](04-ari-sync.md). Removals are not automatic here either: they go through the archive guard above.
+
 ## Service
 
 `ChannelCapability`: returns Full, Flattened or Unsupported (`ChannelSupport`) with a reason for each room type and rate plan pair. The admin sync preview, the admin mapping step and the owner's "What is on channels" list all show the same reasons. For a Day use plan it returns `PricingBasis::channelRefusal()`. For a Bed room type it returns "Dorm beds are not on channels yet." until the dorm work. A room type with no active rooms, and a package with no price or a price that varies by arrival, are not sent either.
@@ -101,17 +113,21 @@ POST /channels/{id}/deactivate               pause
 
 ## Archive guard
 
-A room type or rate plan that Channex knows about is not archived blindly. `ChannelArchiveGuard` checks the mapping tables, in the Form Request and again in the Action.
+A room type or rate plan that Channex knows about is not archived blindly. `ChannelArchiveGuard` checks the mapping tables.
 
-An admin removes the item from Channex first, on the Channels tab under **On Channex** (`RemoveChannelRatePlan`, `RemoveChannelRoomType`, behind `support.2fa` and logged). A room type is removed only after its rate plans. Channex refuses a removal while an OTA uses the item, and then nothing changes. Removal never sends `force`.
+Staff archive as usual. When the item is on Channex, the request does not archive it at once. It queues `ChannelRemovalJob` (`QueueChannelRemoval`) and tells staff: "…is on the channels. It is being removed there first and the change applies in a moment." The job removes it from Channex (`RemoveChannelRatePlan`, `RemoveChannelRoomType`; a room type only after its rate plans; never `force`), and only then archives it as the staff member (`ArchiveRatePlan`, `ArchiveRoomType`). The Actions still refuse an item that is on Channex, as a last check.
 
-| State                               | Archive                                                                                                         |
-| ----------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| Not synced                          | Normal                                                                                                          |
-| Synced, not mapped on an active OTA | ":name is on the channel manager. Ask the estatell team to remove it there first." Remove it, then archive here |
-| Mapped on an active OTA (item 5)    | Refused: "This rate plan is mapped on Agoda. Ask the estatell team to remove the mapping first."                |
+| State                                          | Archive                                                                                                                                                                                                               |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Not synced                                     | Normal, at once                                                                                                                                                                                                       |
+| Synced                                         | Queued: removed from Channex, then archived. Usually a few seconds.                                                                                                                                                   |
+| An OTA still uses it (Channex refuses)         | Not archived. The item stays active and on sale. The Channels tab gets a **Removal blocked** alert with the reason, and the staff member who asked gets the `ChannelRemovalBlocked` notification (in-app, mandatory). |
+| A rate limit or outage                         | The job tries again after 2 minutes, up to 5 tries. Nothing changes meanwhile.                                                                                                                                        |
+| Mapped on an active OTA (the OTA mapping item) | Refused the same way, with the OTA named.                                                                                                                                                                             |
 
-The same guard applies to unlinking a room type from a rate plan. See [Rate plan guards](../08-rates/01-rate-plans.md#guards).
+The archive waits for the removal, because an item that was archived in estatell but is still bookable on an OTA would be worse than a few seconds of waiting. The same removal cannot be queued twice (10 minutes). The admin tab's **Remove** buttons stay as a fallback for an item the automatic removal could not clear.
+
+Unlinking a room type from a rate plan follows the same steps for the pair: the pair is removed from Channex first, then the link changes. See [Rate plan guards](../08-rates/01-rate-plans.md#guards).
 
 ## Lessons from wastays
 

@@ -12,6 +12,8 @@ enum ChannelAlertEvent: string
     case BookingUnmappedRate = 'booking_unmapped_rate';
     case SyncError = 'sync_error';
     case RateError = 'rate_error';
+    case StructureSyncFailed = 'structure_sync_failed';
+    case RemovalBlocked = 'removal_blocked';
 
     public function label(): string
     {
@@ -21,6 +23,8 @@ enum ChannelAlertEvent: string
             self::BookingUnmappedRate => __('Unmapped rate'),
             self::SyncError => __('Sync error'),
             self::RateError => __('Rate error'),
+            self::StructureSyncFailed => __('Structure sync failed'),
+            self::RemovalBlocked => __('Removal blocked'),
         };
     }
 
@@ -28,7 +32,8 @@ enum ChannelAlertEvent: string
     {
         return match ($this) {
             self::NonAckedBooking => Tone::Warning,
-            self::BookingUnmappedRoom, self::BookingUnmappedRate, self::SyncError, self::RateError => Tone::Danger,
+            self::BookingUnmappedRoom, self::BookingUnmappedRate, self::SyncError, self::RateError, self::StructureSyncFailed => Tone::Danger,
+            self::RemovalBlocked => Tone::Warning,
         };
     }
 }

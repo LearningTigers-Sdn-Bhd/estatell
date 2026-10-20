@@ -31,7 +31,7 @@ class RemoveChannelRoomType
         try {
             $this->drivers->forProvider(ChannelProvider::Channex)->removeRoomType($mapping->external_room_type_id);
         } catch (ChannexRetryLater) {
-            return ChannelActionResult::failed(__('Channex is busy or not reachable. Try again in a minute.'));
+            return ChannelActionResult::failedForNow(__('Channex is busy or not reachable. Try again in a minute.'));
         } catch (ChannexRequestFailed) {
             return ChannelActionResult::failed(__(':name could not be removed. An OTA may still use it.', ['name' => $name]));
         }

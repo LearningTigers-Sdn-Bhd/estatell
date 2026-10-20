@@ -130,7 +130,7 @@ class PropertyController extends Controller
         $property->load('settings');
 
         return $this->renderTab($property, 'channels', [
-            'channel' => ChannelTabData::forProperty($property->channelProperty, $channelStructurePreview->forProperty($property), ChannelSyncProgressData::fromProgress($channelSyncProgress->forProperty($property->id))),
+            'channel' => ChannelTabData::forProperty($property->channelProperty, $channelStructurePreview->forProperty($property), ChannelSyncProgressData::fromProgress($channelSyncProgress->forProperty($property->id), $channelSyncProgress->isWaiting($property->id))),
         ]);
     }
 

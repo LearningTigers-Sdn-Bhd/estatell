@@ -37,12 +37,14 @@ class SyncChannelStructure
      * Send the property, its room types and its rate plans to the channel manager. Running it again updates the same
      * records and never duplicates them. The Channex ids are saved even when the sync stops part-way.
      *
+     * `$admin` is null for the automatic sync after staff changed the structure (the activity log then has no causer).
+     *
      * Returns a failed result, without writing, when the channel manager is not set up, another sync of this property
      * is running or the preview is blocked. A Channex failure saves what was done and records the error. `$onProgress`
      * is passed to the driver and called with the steps done and the steps in all. The sync runs in the background
      * (`StartChannelStructureSync` queues it), and the lock outlasts the job's timeout.
      */
-    public function __invoke(User $admin, Property $property, ?Closure $onProgress = null): ChannelActionResult
+    public function __invoke(?User $admin, Property $property, ?Closure $onProgress = null): ChannelActionResult
     {
         if (blank(config('services.channex.api_key'))) {
             return ChannelActionResult::failed(__('Channex is not set up on this server.'));
@@ -61,7 +63,7 @@ class SyncChannelStructure
         }
     }
 
-    private function sync(User $admin, Property $property, ?Closure $onProgress): ChannelActionResult
+    private function sync(?User $admin, Property $property, ?Closure $onProgress): ChannelActionResult
     {
         $property->loadMissing('settings');
         $structure = $this->preview->forProperty($property);
@@ -136,7 +138,7 @@ class SyncChannelStructure
      * @param  array<string, ChannelSellMode>  $sellModes
      * @param  bool  $firstSync  The first sync queues the full sync. After it, a plan that is new, in another mode or under another id has its rates queued again, because a new Channex plan starts at rate 0.
      */
-    private function save(User $admin, Property $property, array $result, ChannelPropertyStatus $status, ?string $error, array $sellModes, bool $firstSync): void
+    private function save(?User $admin, Property $property, array $result, ChannelPropertyStatus $status, ?string $error, array $sellModes, bool $firstSync): void
     {
         if ($result['property_id'] === null) {
             return;

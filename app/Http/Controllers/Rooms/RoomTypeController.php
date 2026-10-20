@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Rooms;
 
+use App\Actions\Channels\QueueChannelRemoval;
 use App\Actions\Rooms\ArchiveRoomType;
 use App\Actions\Rooms\AssignRoomTypeRooms;
 use App\Actions\Rooms\CreateRoomType;
@@ -12,6 +13,7 @@ use App\Data\Rooms\RoomData;
 use App\Data\Rooms\RoomGroupData;
 use App\Data\Rooms\RoomTypeData;
 use App\Data\Rooms\RoomTypeRoomChoiceData;
+use App\Enums\ChannelRemovalKind;
 use App\Enums\PermissionEnum;
 use App\Enums\SellUnit;
 use App\Http\Controllers\Controller;
@@ -122,8 +124,16 @@ class RoomTypeController extends Controller
         return to_route('settings.room-types.index', $property);
     }
 
-    public function archive(Request $request, Property $property, RoomType $roomType, ArchiveRoomType $archiveRoomType, ChannelArchiveGuard $channelGuard): RedirectResponse
+    public function archive(Request $request, Property $property, RoomType $roomType, ArchiveRoomType $archiveRoomType, ChannelArchiveGuard $channelGuard, QueueChannelRemoval $queueChannelRemoval): RedirectResponse
     {
+        $queued = $queueChannelRemoval($request->user(), ChannelRemovalKind::RoomType, $roomType);
+
+        if ($queued !== null) {
+            Inertia::flash('toast', ['type' => $queued->ok ? 'info' : 'error', 'message' => $queued->message]);
+
+            return back(fallback: route('settings.room-types.index', $property));
+        }
+
         Inertia::flash('toast', $archiveRoomType($request->user(), $roomType)
             ? ['type' => 'success', 'message' => __(':name archived.', ['name' => $roomType->name])]
             : ['type' => 'error', 'message' => $channelGuard->roomTypeMessage($roomType) ?? __(':name is already archived.', ['name' => $roomType->name])]);

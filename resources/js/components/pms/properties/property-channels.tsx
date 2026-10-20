@@ -99,6 +99,18 @@ export function PropertyChannels({
                         </Progress>
                     </CardContent>
                 )}
+                {channel.sync.waiting && !syncing && (
+                    <CardContent>
+                        <Alert>
+                            <AlertTitle>Changes are waiting to sync</AlertTitle>
+                            <AlertDescription>
+                                Staff changed rooms or rates. They are sent to
+                                Channex in about 2 minutes, after the last
+                                change.
+                            </AlertDescription>
+                        </Alert>
+                    </CardContent>
+                )}
                 {channel.pausedUntil && (
                     <CardContent>
                         <Alert>
@@ -396,8 +408,10 @@ function SyncedItems({
             <CardHeader>
                 <CardTitle>On Channex</CardTitle>
                 <CardDescription>
-                    Staff cannot archive these until you remove them here.
-                    Channex refuses a removal while an OTA still uses the item.
+                    When staff archive a room type or rate plan, it is removed
+                    here first, automatically. Remove an item by hand only if
+                    that did not work. Channex refuses a removal while an OTA
+                    still uses the item.
                 </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">

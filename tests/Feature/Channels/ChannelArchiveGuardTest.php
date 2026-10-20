@@ -3,10 +3,13 @@
 use App\Actions\Rates\ArchiveRatePlan;
 use App\Actions\Rates\SyncRatePlanRoomTypes;
 use App\Actions\Rooms\ArchiveRoomType;
+use App\Enums\ChannelRemovalKind;
+use App\Jobs\ChannelRemovalJob;
 use App\Models\ChannelRatePlanMapping;
 use App\Models\ChannelRoomTypeMapping;
 use App\Models\Room;
 use App\Models\User;
+use Illuminate\Support\Facades\Queue;
 
 require_once __DIR__.'/../Support/ChannelStructure.php';
 
@@ -26,14 +29,16 @@ function channelGuardScene(): array
     return [$owner, $property, $deluxe, $suite, $standard, $breakfast];
 }
 
-test('a room type that is on Channex cannot be archived', function () {
+test('a room type that is on Channex is not archived at once: its removal is queued first', function () {
+    Queue::fake();
     [$owner, $property, $deluxe] = channelGuardScene();
 
     $this->actingAs($owner)
         ->post(route('settings.room-types.archive', [$property->code, $deluxe]))
-        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'Deluxe King is on the channel manager. Ask the estatell team to remove it there first.']);
+        ->assertInertiaFlash('toast', ['type' => 'info', 'message' => 'Deluxe King is on the channels. It is being removed there first and the change applies in a moment.']);
 
     expect($deluxe->refresh()->archived_at)->toBeNull();
+    Queue::assertPushed(ChannelRemovalJob::class, fn (ChannelRemovalJob $job) => $job->kind === ChannelRemovalKind::RoomType && $job->subjectId === $deluxe->id && $job->actorId === $owner->id);
 });
 
 test('a room type that is not on Channex is archived as before', function () {
@@ -46,14 +51,16 @@ test('a room type that is not on Channex is archived as before', function () {
     expect($suite->refresh()->archived_at)->not->toBeNull();
 });
 
-test('a rate plan that is on Channex cannot be archived', function () {
+test('a rate plan that is on Channex is not archived at once: its removal is queued first', function () {
+    Queue::fake();
     [$owner, $property, , , , $breakfast] = channelGuardScene();
 
     $this->actingAs($owner)
         ->post(route('settings.rate-plans.archive', [$property->code, $breakfast]))
-        ->assertSessionHasErrors(['rate_plan' => 'Breakfast is on the channel manager. Ask the estatell team to remove it there first.']);
+        ->assertInertiaFlash('toast', ['type' => 'info', 'message' => 'Breakfast is on the channels. It is being removed there first and the change applies in a moment.']);
 
     expect($breakfast->refresh()->archived_at)->toBeNull();
+    Queue::assertPushed(ChannelRemovalJob::class, fn (ChannelRemovalJob $job) => $job->kind === ChannelRemovalKind::RatePlan && $job->subjectId === $breakfast->id);
 });
 
 test('a rate plan that is not on Channex is archived as before', function () {
@@ -66,12 +73,15 @@ test('a rate plan that is not on Channex is archived as before', function () {
     expect($standard->refresh()->archived_at)->not->toBeNull();
 });
 
-test('a room type cannot be unlinked from a plan while the pair is on Channex', function () {
+test('a room type is not unlinked from a plan at once while the pair is on Channex: the removal is queued first', function () {
+    Queue::fake();
     [$owner, $property, $deluxe, $suite, , $breakfast] = channelGuardScene();
 
     $this->actingAs($owner)
         ->put(route('settings.rate-plans.room-types.update', [$property->code, $breakfast]), ['room_type_ids' => [$suite->id]])
-        ->assertSessionHasErrors(['room_type_ids' => 'Breakfast is on the channel manager. Ask the estatell team to remove it there first.']);
+        ->assertInertiaFlash('toast', ['type' => 'info', 'message' => 'Breakfast is on the channels. It is being removed there first and the change applies in a moment.']);
+
+    Queue::assertPushed(ChannelRemovalJob::class, fn (ChannelRemovalJob $job) => $job->kind === ChannelRemovalKind::Unlink && $job->wantedRoomTypeIds === [$suite->id] && $job->removedRoomTypeIds === [$deluxe->id]);
 
     expect($breakfast->roomTypes()->pluck('room_types.id')->sort()->values()->all())->toBe(collect([$deluxe->id, $suite->id])->sort()->values()->all());
 });

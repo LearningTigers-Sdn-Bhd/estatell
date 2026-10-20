@@ -8,22 +8,41 @@ use App\Models\RatePlan;
 use App\Models\RoomType;
 
 /**
- * Stops staff from archiving or unlinking a room type or rate plan that the channel manager still has. An admin removes
- * it from the channel manager first. Mapped OTA rates are checked here too once OTAs can be connected.
+ * Knows whether a room type, rate plan or pair is still on the channel manager. Staff cannot archive or unlink it
+ * until it is removed there: a request that finds it on the channel manager queues the removal first
+ * (`QueueChannelRemoval`), and the Actions refuse it as a last check. Mapped OTA rates are checked here too once OTAs
+ * can be connected.
  */
 class ChannelArchiveGuard
 {
+    public function roomTypeOnChannel(RoomType $roomType): bool
+    {
+        return ChannelRoomTypeMapping::query()->where('room_type_id', $roomType->id)->exists()
+            || ChannelRatePlanMapping::query()->where('room_type_id', $roomType->id)->exists();
+    }
+
+    public function ratePlanOnChannel(RatePlan $ratePlan): bool
+    {
+        return ChannelRatePlanMapping::query()->where('rate_plan_id', $ratePlan->id)->exists();
+    }
+
+    /**
+     * @param  list<int>  $removedRoomTypeIds
+     */
+    public function unlinkOnChannel(RatePlan $ratePlan, array $removedRoomTypeIds): bool
+    {
+        return $removedRoomTypeIds !== []
+            && ChannelRatePlanMapping::query()->where('rate_plan_id', $ratePlan->id)->whereIn('room_type_id', $removedRoomTypeIds)->exists();
+    }
+
     public function roomTypeMessage(RoomType $roomType): ?string
     {
-        $synced = ChannelRoomTypeMapping::query()->where('room_type_id', $roomType->id)->exists()
-            || ChannelRatePlanMapping::query()->where('room_type_id', $roomType->id)->exists();
-
-        return $synced ? $this->message($roomType->name) : null;
+        return $this->roomTypeOnChannel($roomType) ? $this->message($roomType->name) : null;
     }
 
     public function ratePlanMessage(RatePlan $ratePlan): ?string
     {
-        return ChannelRatePlanMapping::query()->where('rate_plan_id', $ratePlan->id)->exists() ? $this->message($ratePlan->name) : null;
+        return $this->ratePlanOnChannel($ratePlan) ? $this->message($ratePlan->name) : null;
     }
 
     /**
@@ -33,16 +52,7 @@ class ChannelArchiveGuard
      */
     public function unlinkMessage(RatePlan $ratePlan, array $removedRoomTypeIds): ?string
     {
-        if ($removedRoomTypeIds === []) {
-            return null;
-        }
-
-        $synced = ChannelRatePlanMapping::query()
-            ->where('rate_plan_id', $ratePlan->id)
-            ->whereIn('room_type_id', $removedRoomTypeIds)
-            ->exists();
-
-        return $synced ? $this->message($ratePlan->name) : null;
+        return $this->unlinkOnChannel($ratePlan, $removedRoomTypeIds) ? $this->message($ratePlan->name) : null;
     }
 
     private function message(string $name): string

@@ -59,6 +59,10 @@ Below **On Channex** the tab shows **Alerts** and **Recent bookings from channel
 
 **Sync to Channex** (and **Sync again**) queue the sync and close the Dialog. The Channex card then shows a progress bar and the line "Syncing to Channex: 12 of 26 steps. You can leave this page.", the sync buttons are off, and one toast keeps the same count until the sync ends. The toast then becomes "Synced to Channex" or "Sync to Channex failed" with the reason. If the admin was not on the page when it ended, the card shows the result (status and last error) and no toast. See [Background sync](02-mappings-and-capability.md#payloads).
 
+### Automatic sync and removals
+
+When staff change a room type, a rate plan or the room types a plan sells, the card shows "Changes are waiting to sync" for about 2 minutes, then the sync runs by itself with the same progress and toast (see [Automatic sync](02-mappings-and-capability.md#automatic-sync-after-staff-change-something)). When staff archive an item that is on Channex, it is removed there first (see the [archive guard](02-mappings-and-capability.md#archive-guard)). Two kinds of alert come from this: **Structure sync failed** and **Removal blocked** (an OTA still uses the item). Both have **Close**. The **Remove** buttons under **On Channex** stay for an item that could not be cleared.
+
 ### Live
 
 ```

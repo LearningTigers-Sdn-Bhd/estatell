@@ -2,6 +2,7 @@
 
 namespace App\Actions\Rates;
 
+use App\Events\ChannelStructureChanged;
 use App\Models\Property;
 use App\Models\RatePlan;
 use App\Models\User;
@@ -66,6 +67,8 @@ class SyncRatePlanRoomTypes
                 ->event('rate_plan.room_types_updated')
                 ->withProperties(['property_id' => $ratePlan->property_id, 'added' => $added, 'removed' => $removed])
                 ->log('Rate plan room types updated');
+
+            event(new ChannelStructureChanged($ratePlan->property_id));
 
             return true;
         });

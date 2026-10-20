@@ -49,6 +49,7 @@ test('notification types define their delivery rules', function (
     'portal cancellation requested' => [NotificationType::PortalCancellationRequested, ['mail', 'database'], ['mail' => true, 'database' => false], 'reservations.manage'],
     'channel booking received' => [NotificationType::ChannelBookingReceived, ['mail', 'database'], ['mail' => true, 'database' => true], 'reservations.manage'],
     'channel booking cancelled' => [NotificationType::ChannelBookingCancelled, ['mail', 'database'], ['mail' => true, 'database' => true], 'reservations.manage'],
+    'channel removal blocked' => [NotificationType::ChannelRemovalBlocked, ['mail', 'database'], ['mail' => true, 'database' => false], null],
 ]);
 
 test('notification enums expose labelled options', function () {
@@ -70,6 +71,7 @@ test('notification enums expose labelled options', function () {
         ['value' => 'portal_cancellation_requested', 'label' => 'Company cancellation request'],
         ['value' => 'channel_booking_received', 'label' => 'Channel booking received'],
         ['value' => 'channel_booking_cancelled', 'label' => 'Channel booking cancelled'],
+        ['value' => 'channel_removal_blocked', 'label' => 'Archive blocked by a channel'],
     ]);
 });
 
