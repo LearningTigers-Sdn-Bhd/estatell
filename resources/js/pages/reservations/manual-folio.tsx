@@ -75,7 +75,7 @@ export default function ManualFolio({ manual: page, companies }: Props) {
     const reasonLabel = reasonText(reason, page.reasonOptions);
     const [reasonOpen, setReasonOpen] = useState(page.reason === null);
     const [rows, setRows] = useState<ManualDraft[]>(() => [
-        newDraft(page, page.folioId),
+        newDraft(page, page.folioId, 'charge', 'first'),
     ]);
     const [tab, setTab] = useState('new');
     const [addingFolio, setAddingFolio] = useState(false);

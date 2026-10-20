@@ -76,7 +76,7 @@ export function EditLineForm({
         folio: context.folioId,
         line: line.lineId,
     };
-    const preview = useLinePreview<Preview>(
+    const { preview, failure } = useLinePreview<Preview>(
         editPreview.url(lineRoute),
         open && night === null,
         {
@@ -86,14 +86,15 @@ export function EditLineForm({
             tax_ids: data.tax_ids.map(Number),
         },
     );
-    const nightPreview = useLinePreview<NightPreview>(
-        nightPricePreview.url({
-            reservation: context.reservationId,
-            unit: night?.unitId ?? 0,
-        }),
-        open && night !== null,
-        { night_ids: night ? [night.nightId] : [], price: data.amount },
-    );
+    const { preview: nightPreview, failure: nightFailure } =
+        useLinePreview<NightPreview>(
+            nightPricePreview.url({
+                reservation: context.reservationId,
+                unit: night?.unitId ?? 0,
+            }),
+            open && night !== null,
+            { night_ids: night ? [night.nightId] : [], price: data.amount },
+        );
     const priceReady =
         night !== null
             ? night.canChangePrice &&
@@ -103,7 +104,8 @@ export function EditLineForm({
             : preview !== null && preview.refusal === null;
     const reasonText = data.reason.trim();
     const message =
-        night !== null ? nightPreview?.error : (preview?.refusal ?? null);
+        (night !== null ? nightPreview?.error : preview?.refusal) ??
+        (night !== null ? nightFailure : failure);
 
     const submit = () => {
         if (night !== null) {

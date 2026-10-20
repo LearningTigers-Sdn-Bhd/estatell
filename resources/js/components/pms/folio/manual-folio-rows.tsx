@@ -59,16 +59,20 @@ const TYPES: { value: RowType; label: string }[] = [
     { value: 'refund', label: 'Refund' },
 ];
 
-/** A new row dated today, on the given folio. */
+/**
+ * A new row dated today, on the given folio. The first row of a page is made while rendering, on the server and again
+ * in the browser, so it takes a fixed `key`; a row the user adds takes a fresh one.
+ */
 export function newDraft(
     page: Page,
     folioId: number,
     type: RowType = 'charge',
+    key: string = crypto.randomUUID(),
 ): ManualDraft {
     const own = page.folios.find((folio) => folio.id === folioId);
 
     return {
-        key: crypto.randomUUID(),
+        key,
         type,
         service_date: page.businessDate,
         folio_id: String(folioId),
