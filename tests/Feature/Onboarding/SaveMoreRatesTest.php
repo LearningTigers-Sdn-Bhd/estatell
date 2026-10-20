@@ -63,6 +63,18 @@ function ownRow(array $prices, array $overrides = []): array
     ];
 }
 
+test('more rates save with the unused empty arrays sent by the browser', function () {
+    ($this->save)([
+        followerRow(['room_type_ids' => [$this->chalet->id], 'prices' => []]),
+        ownRow([
+            ['room_type_id' => $this->longhouse->id, 'price_by' => 'per_room', 'weekday' => '150.00', 'weekend' => '170.00'],
+        ], ['room_type_ids' => []]),
+    ])->assertSessionHasNoErrors();
+
+    $this->assertDatabaseHas('rate_plans', ['property_id' => $this->property->id, 'name' => 'Room with breakfast']);
+    $this->assertDatabaseHas('rate_plans', ['property_id' => $this->property->id, 'name' => 'Long stay']);
+});
+
 test('a follower is created under the Basic Rate plan with its change and room types', function () {
     ($this->save)([followerRow(['room_type_ids' => [$this->chalet->id]])])->assertSessionHasNoErrors();
 

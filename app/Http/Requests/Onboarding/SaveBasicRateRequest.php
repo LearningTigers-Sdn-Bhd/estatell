@@ -92,9 +92,9 @@ class SaveBasicRateRequest extends OnboardingStepRequest
             'more_rates.*.direction' => ['required_if:more_rates.*.mode,follows', 'nullable', Rule::in(['up', 'down'])],
             'more_rates.*.unit' => ['required_if:more_rates.*.mode,follows', 'nullable', Rule::in(['amount', 'percent'])],
             'more_rates.*.amount' => ['required_if:more_rates.*.mode,follows', 'nullable', ...$price],
-            'more_rates.*.room_type_ids' => ['required_if:more_rates.*.mode,follows', 'nullable', 'array', 'min:1'],
+            'more_rates.*.room_type_ids' => ['required_if:more_rates.*.mode,follows', 'nullable', 'array'],
             'more_rates.*.room_type_ids.*' => ['integer', $this->roomTypeExists($property)],
-            'more_rates.*.prices' => ['required_if:more_rates.*.mode,own', 'nullable', 'array', 'min:1'],
+            'more_rates.*.prices' => ['required_if:more_rates.*.mode,own', 'nullable', 'array'],
             'more_rates.*.prices.*.room_type_id' => ['required', 'integer', $this->roomTypeExists($property)],
             'more_rates.*.prices.*.price_by' => ['required', Rule::enum(PricingBasis::class)->only([PricingBasis::PerRoom, PricingBasis::PerGuest])],
             'more_rates.*.prices.*.weekday' => ['required', ...$price],
@@ -124,9 +124,7 @@ class SaveBasicRateRequest extends OnboardingStepRequest
     {
         return [
             'more_rates.*.room_type_ids.required_if' => __('Pick at least one room type'),
-            'more_rates.*.room_type_ids.min' => __('Pick at least one room type'),
             'more_rates.*.prices.required_if' => __('Pick at least one room type'),
-            'more_rates.*.prices.min' => __('Pick at least one room type'),
         ];
     }
 
