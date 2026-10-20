@@ -2,6 +2,7 @@
 
 namespace App\Services\Platform;
 
+use App\Enums\PropertyStatus;
 use App\Models\Partner;
 use App\Models\Property;
 use Illuminate\Database\Eloquent\Builder;
@@ -18,9 +19,10 @@ class PartnerProperties
     /**
      * @return LengthAwarePaginator<int, Property>
      */
-    public function paginate(Partner $partner): LengthAwarePaginator
+    public function paginate(Partner $partner, ?PropertyStatus $status = null): LengthAwarePaginator
     {
         return $this->query($partner)
+            ->when($status !== null, fn (Builder $query) => $query->where('properties.status', $status))
             ->latest('created_at')
             ->latest('id')
             ->paginate(self::PER_PAGE)

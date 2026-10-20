@@ -9,12 +9,14 @@ use App\Data\Platform\DemoAccessData;
 use App\Data\Platform\PartnerPropertyRowData;
 use App\Data\Platform\PropertyFeatureData;
 use App\Enums\OwnerSetupMethod;
+use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Partner\StorePartnerPropertyRequest;
 use App\Models\Property;
 use App\Models\User;
 use App\Services\Guests\CountryOptions;
+use App\Services\Onboarding\OnboardingBoard;
 use App\Services\Platform\PartnerProperties;
 use App\Services\Staff\PropertyOwners;
 use Illuminate\Http\RedirectResponse;
@@ -30,15 +32,20 @@ class PartnerPropertyController extends Controller
      * The partner's properties and the signup link card. The create form options are sent only when the admin
      * switched on "Can create properties".
      */
-    public function index(Request $request, PartnerProperties $partnerProperties): Response
+    public function index(Request $request, PartnerProperties $partnerProperties, OnboardingBoard $onboardingBoard): Response
     {
         $partner = $request->user()->partner;
+        $onboardingTab = $request->string('status')->toString() === PropertyStatus::Onboarding->value;
+        $properties = $partnerProperties->paginate($partner, $onboardingTab ? PropertyStatus::Onboarding : null);
+        $onboarding = $onboardingTab ? $onboardingBoard->rows($properties->items()) : [];
 
         return Inertia::render('partner/properties/index', [
             'partnerName' => $partner->name,
             'signupUrl' => route('join', $partner->signup_code),
             'canCreateProperties' => $partner->can_create_properties,
-            'properties' => PartnerPropertyRowData::collect($partnerProperties->paginate($partner), PaginatedDataCollection::class),
+            'properties' => PartnerPropertyRowData::collect($properties, PaginatedDataCollection::class),
+            'onboardingTab' => $onboardingTab,
+            'onboarding' => $onboarding,
             'demoAccess' => DemoAccessData::fromConfig(),
             ...($partner->can_create_properties ? [
                 'types' => PropertyType::options(),

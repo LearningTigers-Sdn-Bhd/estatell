@@ -103,6 +103,33 @@ class OnboardingProgress
     }
 
     /**
+     * The required steps Done, the total, and the current step, from one calculation of the states. For lists of
+     * many properties, where calling requiredCounts() and currentStep() would calculate the states twice.
+     *
+     * @return array{done: int, total: int, current: OnboardingStep}
+     */
+    public function summary(Property $property): array
+    {
+        $states = $this->states($property);
+        $required = $this->requiredSteps();
+        $current = OnboardingStep::Review;
+
+        foreach ($required as $step) {
+            if (! in_array($states[$step->value], [StepState::Done, StepState::Locked], true)) {
+                $current = $step;
+
+                break;
+            }
+        }
+
+        return [
+            'done' => count(array_filter($required, fn (OnboardingStep $step): bool => $states[$step->value] === StepState::Done)),
+            'total' => count($required),
+            'current' => $current,
+        ];
+    }
+
+    /**
      * The estimated minutes left for the required steps that are not Done.
      */
     public function remainingMinutes(Property $property): int

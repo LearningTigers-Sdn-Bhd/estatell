@@ -48,7 +48,7 @@ Build in this order. Docs: [Manual Folio Editor](13-folio/08-manual-folio.md), [
 
 Build in this order. Each item is one commit. Docs: [Wizard steps](17-onboarding/02-wizard-steps.md), [Go live](17-onboarding/03-go-live.md), [Demo properties](01-platform/06-demo-properties.md), [Seed property defaults](02-property/03-seed-property-defaults.md).
 
-- [ ] `feat(onboarding): add the admin onboarding board` — every onboarding property with step, completion percentage and last activity (`onboarding_last_activity_at`), the **Waiting for approval** tab, **View as** with the reason Onboarding help, and the partner's own board on their Properties page. Needs: reminders. Docs: [Admin board](17-onboarding/04-engagement-and-admin-board.md#admin-board).
+- [x] `feat(onboarding): add the admin onboarding board` — every onboarding property with step, completion percentage and last activity (`onboarding_last_activity_at`), the **Waiting for approval** tab, **View as** with the reason Onboarding help, and the partner's own board on their Properties page. Needs: reminders. Docs: [Admin board](17-onboarding/04-engagement-and-admin-board.md#admin-board).
 
 ## Next
 

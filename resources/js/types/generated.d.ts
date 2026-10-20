@@ -1673,6 +1673,11 @@ codePrefix: string,
 name: string,
 email: string,
 };
+export type OnboardingBoardRowData = {
+currentStep: string,
+percent: number,
+lastActivity: string,
+};
 export type PartnerInvitationPreviewData = {
 email: string,
 partnerName: string,

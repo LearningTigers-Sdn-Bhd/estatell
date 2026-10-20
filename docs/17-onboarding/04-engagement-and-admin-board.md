@@ -29,7 +29,18 @@ Make owners finish onboarding, and let the platform see who is stuck.
 
 ## Admin board
 
-Lists every onboarding property with current step, completion percentage and last activity (`onboarding_last_activity_at`). Admins can offer help to stuck properties. Partners see the same board on their Properties page, limited to their own properties (see [Partners](05-partners.md#partner-portal)). Each row has a **[View as]** button (see [Impersonation](../01-platform/04-impersonation.md)), which pre-selects the "Onboarding help" reason. The board also gets the **Waiting for approval** tab (see [Approval](03-go-live.md#approval)).
+The board is the **Onboarding** tab on the admin Properties list (`filter[status]=onboarding`). It lists every property in `Onboarding` with:
+
+| Column        | Source                                                                                                                             |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Current step  | `OnboardingProgress::summary()`: the first required step that is open. Review when all are done.                                   |
+| Progress      | Required steps Done out of all required steps, rounded down to a whole percent.                                                    |
+| Last activity | `onboarding_last_activity_at`, then `onboarding_started_at` when the owner has not done anything yet.                              |
+| **View as**   | Opens the view-as page with the **Onboarding help** reason pre-selected (see [Impersonation](../01-platform/04-impersonation.md)). |
+
+`OnboardingBoard` builds the rows, keyed by property code, for the properties on the open page only. The other tabs send no rows. The board also has the **Waiting for approval** tab (see [Approval](03-go-live.md#approval)).
+
+Partners see the same board on their Properties page as an **Onboarding** tab (`?status=onboarding`), limited to their own properties (see [Partners](05-partners.md#partner-portal)). The tab has no Waiting for approval view for partners yet.
 
 ## Analytics
 

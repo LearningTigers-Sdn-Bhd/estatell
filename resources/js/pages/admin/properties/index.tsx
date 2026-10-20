@@ -1,5 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { Building2, Hourglass, List } from 'lucide-react';
+import { Building2, Hourglass, List, Rocket } from 'lucide-react';
 import { useCallback, useMemo } from 'react';
 import { DataTable, dataTableColumns } from '@/components/pms/data-table';
 import { DateText } from '@/components/pms/date-text';
@@ -16,9 +16,11 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { dashboard } from '@/routes/admin';
 import { index, show, store } from '@/routes/admin/properties';
 import { show as goLive } from '@/routes/admin/properties/go-live';
+import { show as viewAs } from '@/routes/view-as';
 
 type Row = App.Data.Platform.AdminPropertyRowData;
 type Waiting = App.Data.Platform.AdminWaitingPropertyData;
+type Board = App.Data.Platform.OnboardingBoardRowData;
 type Filters = {
     search: string;
     status: string;
@@ -29,6 +31,7 @@ type Filters = {
 type Props = {
     properties: Illuminate.LengthAwarePaginator<number, Row>;
     waiting: Record<string, Waiting>;
+    onboarding: Record<string, Board>;
     filters: Filters;
     sort: string;
     statuses: EnumOption[];
@@ -98,6 +101,7 @@ const columns = [
 export default function PropertiesIndex({
     properties,
     waiting,
+    onboarding,
     filters,
     sort,
     statuses,
@@ -133,40 +137,55 @@ export default function PropertiesIndex({
     );
 
     const waitingTab = filters.status === 'pending_approval';
+    const onboardingTab = filters.status === 'onboarding';
     const tableColumns = useMemo(
         () =>
-            waitingTab
+            onboardingTab
                 ? [
                       ...columns,
                       column.display({
-                          id: 'sent',
-                          header: 'Sent',
+                          id: 'current_step',
+                          header: 'Current step',
                           cell: (info) =>
-                              waiting[info.row.original.code]?.sentOn ?? '—',
+                              onboarding[info.row.original.code]?.currentStep ??
+                              '—',
                       }),
                       column.display({
-                          id: 'warnings',
-                          header: 'Warnings',
+                          id: 'progress',
+                          header: 'Progress',
                           cell: (info) => (
                               <span className="tabular-nums">
-                                  {waiting[info.row.original.code]
-                                      ?.warningsCount ?? 0}
+                                  {onboarding[info.row.original.code]
+                                      ?.percent ?? 0}
+                                  %
                               </span>
                           ),
                       }),
                       column.display({
-                          id: 'review',
+                          id: 'last_activity',
+                          header: 'Last activity',
+                          cell: (info) => (
+                              <span className="tabular-nums">
+                                  {onboarding[info.row.original.code]
+                                      ?.lastActivity ?? '—'}
+                              </span>
+                          ),
+                      }),
+                      column.display({
+                          id: 'view_as',
                           header: '',
                           cell: (info) => (
                               <Link
-                                  href={goLive(info.row.original.code)}
+                                  href={viewAs(info.row.original.code, {
+                                      query: { reason: 'onboarding_help' },
+                                  })}
                                   className={buttonVariants({
                                       variant: 'outline',
                                       size: 'sm',
                                   })}
                                   onClick={(event) => event.stopPropagation()}
                               >
-                                  Review
+                                  View as
                                   <span className="sr-only">
                                       {' '}
                                       {info.row.original.name}
@@ -175,8 +194,48 @@ export default function PropertiesIndex({
                           ),
                       }),
                   ]
-                : columns,
-        [waitingTab, waiting],
+                : waitingTab
+                  ? [
+                        ...columns,
+                        column.display({
+                            id: 'sent',
+                            header: 'Sent',
+                            cell: (info) =>
+                                waiting[info.row.original.code]?.sentOn ?? '—',
+                        }),
+                        column.display({
+                            id: 'warnings',
+                            header: 'Warnings',
+                            cell: (info) => (
+                                <span className="tabular-nums">
+                                    {waiting[info.row.original.code]
+                                        ?.warningsCount ?? 0}
+                                </span>
+                            ),
+                        }),
+                        column.display({
+                            id: 'review',
+                            header: '',
+                            cell: (info) => (
+                                <Link
+                                    href={goLive(info.row.original.code)}
+                                    className={buttonVariants({
+                                        variant: 'outline',
+                                        size: 'sm',
+                                    })}
+                                    onClick={(event) => event.stopPropagation()}
+                                >
+                                    Review
+                                    <span className="sr-only">
+                                        {' '}
+                                        {info.row.original.name}
+                                    </span>
+                                </Link>
+                            ),
+                        }),
+                    ]
+                  : columns,
+        [onboardingTab, onboarding, waitingTab, waiting],
     );
 
     const hasFilters = Boolean(
@@ -202,7 +261,13 @@ export default function PropertiesIndex({
                 />
 
                 <TabLinks
-                    activeTab={waitingTab ? 'waiting' : 'all'}
+                    activeTab={
+                        waitingTab
+                            ? 'waiting'
+                            : onboardingTab
+                              ? 'onboarding'
+                              : 'all'
+                    }
                     panelWidth="full"
                     className="gap-4"
                     triggerClassName="min-w-0 px-0 mr-6"
@@ -213,6 +278,14 @@ export default function PropertiesIndex({
                             label: 'All',
                             icon: List,
                             href: index(),
+                        },
+                        {
+                            value: 'onboarding',
+                            label: 'Onboarding',
+                            icon: Rocket,
+                            href: index({
+                                query: { filter: { status: 'onboarding' } },
+                            }),
                         },
                         {
                             value: 'waiting',
