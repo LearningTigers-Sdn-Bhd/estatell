@@ -9,7 +9,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 
 require_once __DIR__.'/../Support/PortalSetup.php';
 
-function dashboardSetup(): array
+function portalDashboardSetup(): array
 {
     $user = portalUser();
     $property = Property::factory()->create();
@@ -28,7 +28,7 @@ function dashboardBooking(Property $property, $company, string $date, string $st
 }
 
 test('the stats show the balance, overdue, arrivals, in-house and credit of the company', function () {
-    ['user' => $user, 'property' => $property, 'company' => $company] = dashboardSetup();
+    ['user' => $user, 'property' => $property, 'company' => $company] = portalDashboardSetup();
     $company->forceFill(['credit_limit' => '1000.00'])->save();
     ArInvoice::factory()->for($property)->create(['company_id' => $company->id, 'amount' => '300.00', 'due_on' => '2026-10-01']);
     ArInvoice::factory()->for($property)->create(['company_id' => $company->id, 'amount' => '200.00', 'due_on' => '2026-11-03']);
@@ -55,7 +55,7 @@ test('the stats show the balance, overdue, arrivals, in-house and credit of the 
 });
 
 test('a company with no credit limit shows none, and available credit is never below 0', function () {
-    ['user' => $user, 'property' => $property, 'company' => $company] = dashboardSetup();
+    ['user' => $user, 'property' => $property, 'company' => $company] = portalDashboardSetup();
 
     $this->actingAs($user)
         ->get(route('portal.show', $property->code))
@@ -73,7 +73,7 @@ test('a company with no credit limit shows none, and available credit is never b
 });
 
 test('the lists leave out another company\'s and another property\'s rows', function () {
-    ['user' => $user, 'property' => $property, 'company' => $company] = dashboardSetup();
+    ['user' => $user, 'property' => $property, 'company' => $company] = portalDashboardSetup();
     $own = dashboardBooking($property, $company, '2026-10-16');
     ArInvoice::factory()->for($property)->create(['company_id' => $company->id, 'number' => 'AR-OWN']);
 
@@ -100,7 +100,7 @@ test('the lists leave out another company\'s and another property\'s rows', func
 });
 
 test('the lists are limited to 5 while the stats count everything', function () {
-    ['user' => $user, 'property' => $property, 'company' => $company] = dashboardSetup();
+    ['user' => $user, 'property' => $property, 'company' => $company] = portalDashboardSetup();
 
     foreach (range(1, 6) as $number) {
         dashboardBooking($property, $company, '2026-10-16');
@@ -119,7 +119,7 @@ test('the lists are limited to 5 while the stats count everything', function () 
 });
 
 test('a Suspended company still sees its figures and lists but no booking', function () {
-    ['user' => $user, 'property' => $property, 'company' => $company] = dashboardSetup();
+    ['user' => $user, 'property' => $property, 'company' => $company] = portalDashboardSetup();
     $company->forceFill(['status' => 'suspended'])->save();
     dashboardBooking($property, $company, '2026-10-16');
 
