@@ -175,14 +175,17 @@ Plans fall into two families: room plans and bed plans. Package is the only basi
 
 ## Guards
 
-| Guard                                                                 | Message                                                        |
-| --------------------------------------------------------------------- | -------------------------------------------------------------- |
-| Every room type keeps at least one active linked plan                 | "6-bed Dorm would have no rate plan. Link another plan first." |
-| A parent cannot be archived while active plans follow it              | "Breakfast and Corporate follow this plan."                    |
-| A plan used by a reservation cannot be deleted. Archive it instead.   | "Used by 42 reservations. Archive instead."                    |
-| A room type cannot be unlinked while future reservations use the pair | "3 upcoming bookings use this."                                |
+| Guard                                                                 | Message                                                                                 |
+| --------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Every room type keeps at least one active linked plan                 | "6-bed Dorm would have no rate plan. Link another plan first."                          |
+| A parent cannot be archived while active plans follow it              | "Breakfast and Corporate follow this plan."                                             |
+| A plan used by a reservation cannot be deleted. Archive it instead.   | "Used by 42 reservations. Archive instead."                                             |
+| A room type cannot be unlinked while future reservations use the pair | "3 upcoming bookings use this."                                                         |
+| A plan or pair mapped on an active OTA cannot be archived or unlinked | "This rate plan is mapped on Agoda. Ask the estatell team to remove the mapping first." |
 
 Unlinking a room type with no future reservations deletes the pair's future `rates` rows. Past rows stay.
+
+A plan or pair synced to Channex but not mapped on an active OTA is removed from Channex first, then archived or unlinked. See [Archive guard](../21-channels/02-mappings-and-capability.md#archive-guard).
 
 ## Long-stay discounts
 

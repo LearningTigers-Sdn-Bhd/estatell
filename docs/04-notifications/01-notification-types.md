@@ -31,10 +31,15 @@ Define every notification once, with its channels, defaults and recipients.
 | GoLiveRequested             | On   | On            | Both       | Platform admins, and the partner         |
 | GoLiveApproved              | On   | On, mandatory | Mail only  | Owner                                    |
 | GoLiveRejected              | On   | On, mandatory | Mail only  | Owner                                    |
+| ChannelBookingReceived      | On   | On            | Both       | Reservation staff (module 12 permission) |
+| ChannelBookingCancelled     | On   | On            | Both       | Reservation staff (module 12 permission) |
+| ChannelHelpRequested        | On   | On, mandatory | Mail only  | Owner                                    |
 
 `PortalBookingCreated`, `PortalBookingCancelled` and `PortalCancellationRequested` are built (`PortalReservationNotification`, sent by `NotifyReservationStaff` after the save). The recipients are the active staff of the property with `reservations.manage`; each message names the company and the reference and links to the reservation. The matrix check constraints list the three types.
 
 `GoLiveRequested` goes to platform admins and the partner, who have no property, so it skips the preference matrix and is always sent by mail and in-app. `CompanyLinkInvitation` does the same for company users, who also have no property: it is a plain notification class, not a `NotificationType` case, and always goes by mail and in-app. `GoLiveApproved` and `GoLiveRejected` are `NotificationType` cases for the owner.
+
+`ChannelBookingReceived`, `ChannelBookingCancelled` and `ChannelHelpRequested` are planned with the [Channels](../21-channels/) module. The booking types are sent after the reservation is saved. The help type is sent when an admin asks the owner for help with a channel.
 
 `SupportAccessUsed` is sent when a support session ends (Stop, the 30-minute expiry, a switch to another property, or logout), because it names the duration. The recipient is the property's first active Owner. The data is copied into the notification, because the session is gone when the message is built. It lists the money corrections made in the session (refunds, voids, credit notes, allocation reversals), read from the activity log by the session's support user and time window; the list is left out when there are none.
 
