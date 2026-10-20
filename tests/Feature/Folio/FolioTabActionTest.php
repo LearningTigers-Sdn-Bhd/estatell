@@ -268,7 +268,7 @@ test('rows carry only the actions the user may take on them', function () {
         ->where('folio.postFolios', fn ($folios) => collect($folios)->pluck('id')->sort()->values()->all() === collect([$setup['folio']->id, $master->id])->sort()->values()->all())
         ->where('folio.postRooms.0.id', $setup['unit']->id)
         ->where('folio.rows', fn ($rows) => collect($rows)->map(fn ($row) => [$row['lineId'] === $charge->id, $row['actions']])->take(2)->all() === [
-            [true, ['reverse', 'move', 'split', 'remove_tax', 'add_tax', 'recalculate_tax']],
+            [true, ['edit', 'reverse', 'move', 'split', 'remove_tax', 'add_tax', 'recalculate_tax']],
             [false, []],
         ])
         ->where('folio.rows', fn ($rows) => collect($rows)->every(fn ($row) => $row['tags'] === [] || $row['actions'] === [])));

@@ -5,12 +5,14 @@ namespace App\Services\Folio;
 use App\Data\Folio\FolioData;
 use App\Data\Folio\FolioRowData;
 use App\Data\Folio\ManualLineData;
+use App\Data\Folio\ManualLineNightData;
 use App\Data\Folio\ManualLineTaxData;
 use App\Enums\PermissionEnum;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TransactionKind;
 use App\Models\FolioLine;
 use App\Models\Tax;
+use App\Models\UnitNight;
 use App\Models\User;
 use Brick\Math\BigDecimal;
 use Closure;
@@ -27,6 +29,8 @@ use Closure;
  */
 class ManualLineMenu
 {
+    public function __construct(private EditLinePreview $editLinePreview) {}
+
     /**
      * @return array<int, ManualLineData>
      */
@@ -47,6 +51,9 @@ class ManualLineMenu
         $data = [];
 
         $canReverse = $user->can(PermissionEnum::FolioReverse->value);
+        $canChangePrice = $user->can(PermissionEnum::ReservationsChangePrice->value);
+        $nightIds = array_values(array_filter(array_map(fn (FolioLine $line): ?int => $this->editLinePreview->nightId($line), $lines->all())));
+        $nights = $nightIds === [] ? collect() : UnitNight::query()->whereIn('id', $nightIds)->get()->keyBy('id');
 
         foreach ($folio->rows as $row) {
             $row->actions = $keepActions ? $row->actions : [];
@@ -72,8 +79,19 @@ class ManualLineMenu
                 $tax->description,
                 $tax->amount,
             ))->all());
-            $data[$line->id] = new ManualLineData($line->id, (string) BigDecimal::of($line->unit_amount)->multipliedBy($line->quantity)->toScale(2), $taxes);
-            $row->actions = [...$row->actions, 'split', ...($taxes === [] ? [] : ['remove_tax']), 'add_tax', 'recalculate_tax'];
+            $night = $nights->get($this->editLinePreview->nightId($line));
+            $isInclusion = $night === null && str_starts_with((string) $line->idempotency_key, 'night:');
+            $data[$line->id] = new ManualLineData(
+                $line->id,
+                (string) BigDecimal::of($line->unit_amount)->multipliedBy($line->quantity)->toScale(2),
+                $taxes,
+                $line->description,
+                (string) BigDecimal::of($line->unit_amount)->toScale(2),
+                (int) $line->quantity,
+                array_values(array_filter(array_map(fn (ManualLineTaxData $tax): ?int => $tax->taxId, $taxes))),
+                $night === null ? null : new ManualLineNightData($night->reservation_unit_id, $night->id, (string) $night->amount, $canChangePrice),
+            );
+            $row->actions = [...($isInclusion ? [] : ['edit']), ...$row->actions, 'split', ...($taxes === [] ? [] : ['remove_tax']), 'add_tax', 'recalculate_tax'];
         }
 
         if ($keepActions && $changeOpeningBalance !== null) {

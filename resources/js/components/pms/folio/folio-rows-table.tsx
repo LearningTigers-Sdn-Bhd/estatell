@@ -154,6 +154,7 @@ export function FolioRowsTable({
             | 'remove_discount'
             | 'refund'
             | 'correct_price'
+            | 'edit'
             | 'split'
             | 'remove_tax'
             | 'add_tax'
@@ -439,6 +440,21 @@ export function FolioRowsTable({
                                                             >
                                                                 <Tag />
                                                                 Correct price…
+                                                            </DropdownMenuItem>
+                                                        )}
+                                                        {row.actions.includes(
+                                                            'edit',
+                                                        ) && (
+                                                            <DropdownMenuItem
+                                                                onClick={() =>
+                                                                    onAction(
+                                                                        row,
+                                                                        'edit',
+                                                                    )
+                                                                }
+                                                            >
+                                                                <Pencil />
+                                                                Edit line…
                                                             </DropdownMenuItem>
                                                         )}
                                                         {row.actions.includes(

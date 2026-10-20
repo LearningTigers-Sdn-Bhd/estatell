@@ -85,6 +85,12 @@ class PostingResult
 
     public const REFUSAL_REASON_REQUIRED = 'reason_required';
 
+    public const REFUSAL_NOTHING_CHANGED = 'nothing_changed';
+
+    public const REFUSAL_EDIT_INVALID = 'edit_invalid';
+
+    public const REFUSAL_NIGHT_LINE = 'night_line';
+
     public const REFUSAL_OPENING_AMOUNT_INVALID = 'opening_amount_invalid';
 
     /**

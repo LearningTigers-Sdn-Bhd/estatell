@@ -568,6 +568,24 @@ description: string,
 netAmount: string,
 share: string | null,
 };
+export type EditLineData = {
+description: string,
+amount: string,
+quantity: number,
+taxIds: number[],
+};
+export type EditLinePreviewData = {
+beforeNet: string,
+beforeTax: string,
+beforeTotal: string,
+afterNet: string | null,
+afterTax: string | null,
+afterTotal: string | null,
+difference: string | null,
+taxes: App.Data.Folio.ManualTaxData[],
+refusal: string | null,
+field: string | null,
+};
 export type FolioData = {
 key: string,
 kind: string,
@@ -700,6 +718,17 @@ export type ManualLineData = {
 lineId: number,
 total: string,
 taxes: App.Data.Folio.ManualLineTaxData[],
+description: string,
+unitAmount: string,
+quantity: number,
+taxIds: number[],
+night: App.Data.Folio.ManualLineNightData | null,
+};
+export type ManualLineNightData = {
+unitId: number,
+nightId: number,
+price: string,
+canChangePrice: boolean,
 };
 export type ManualLineTaxData = {
 lineId: number,

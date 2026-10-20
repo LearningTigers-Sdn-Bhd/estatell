@@ -42,7 +42,7 @@ Build in this order. Docs: [Manual Folio Editor](13-folio/08-manual-folio.md), [
 - [x] `feat(folio): choose the purpose of a manual payment` — the Purpose select on Payment rows from the folio type (`PaymentPurpose::forManualFolio()`), `purpose_not_offered`, `PostManualBatch` passing it to `RecordPayment`. Needs: the rename. Docs: [Payment purpose](13-folio/08-manual-folio.md#payment-purpose).
 - [x] `feat(folio): show scheduled lines in the Manual Folio Editor` — the read-only Scheduled tab (shown when the folio has Scheduled rows, no row menu). Docs: [Scheduled lines](13-folio/08-manual-folio.md#scheduled-lines).
 - [x] `feat(folio): add third party folios and a Move link in the editor` — **+ Add folio** in the rail (`ThirdPartyFolioDialog`, `reservations.folios.manual.folios.store`, the page keeps its drafts), the **Move charges…** link on Posted lines. Docs: [Add a Third party folio](13-folio/08-manual-folio.md#add-a-third-party-folio), [Move charges link](13-folio/08-manual-folio.md#move-charges-link).
-- [ ] `feat(folio): edit a charge line in one dialog` — `EditLine`, the Edit line Dialog with Before / After, a live night's rate through `ChangeNightPrice` so `unit_nights.amount` follows, `folio.line_edited`. Needs: the rename. Docs: [Edit line](13-folio/08-manual-folio.md#edit-line).
+- [x] `feat(folio): edit a charge line in one dialog` — `EditLine` and `EditLinePreview`, the Edit line Dialog with Before / After, a live night's price through the Change price routes so `unit_nights.amount` follows, `folio.line_edited`. Needs: the rename. Docs: [Edit line](13-folio/08-manual-folio.md#edit-line).
 
 ### 17 Onboarding
 

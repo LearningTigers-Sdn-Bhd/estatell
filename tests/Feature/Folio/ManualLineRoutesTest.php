@@ -36,7 +36,7 @@ test('the posted lines of the manual page offer the row menu and what its Dialog
             ->where('manual.lines.'.$line->id.'.total', '100.00')
             ->where('manual.lines.'.$line->id.'.taxes.0.lineId', $taxLine->id)
             ->where('manual.lines.'.$line->id.'.taxes.0.taxId', $setup['sst']->id)
-            ->where('manual.posted.rows.0.actions', ['reverse', 'split', 'remove_tax', 'add_tax', 'recalculate_tax'])
+            ->where('manual.posted.rows.0.actions', ['edit', 'reverse', 'split', 'remove_tax', 'add_tax', 'recalculate_tax'])
             ->where('manual.posted.rows.1.actions', []));
 });
 

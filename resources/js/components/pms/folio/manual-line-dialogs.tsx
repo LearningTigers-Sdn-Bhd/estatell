@@ -1,13 +1,17 @@
 import { useForm } from '@inertiajs/react';
 import { Plus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
 import { taxLabel } from '@/components/pms/charge-item-taxes-field';
+import { EditLineForm } from '@/components/pms/folio/edit-line-form';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { MoneyInput } from '@/components/pms/money-input';
 import { MoneyText } from '@/components/pms/money-text';
 import { MultiCombobox } from '@/components/pms/multi-combobox';
-import { KEEP_OPTIONS } from '@/components/pms/use-form-options';
+import {
+    postOptions,
+    ReasonField,
+    useBatchKey,
+} from '@/components/pms/folio/manual-line-shared';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
 import { useRetainedValue } from '@/components/pms/use-retained-value';
 import { Button } from '@/components/ui/button';
@@ -17,7 +21,6 @@ import {
     FieldError,
     FieldLabel,
 } from '@/components/ui/field';
-import { Textarea } from '@/components/ui/textarea';
 import { openingBalance, split } from '@/routes/reservations/folios/lines';
 import {
     add,
@@ -38,6 +41,7 @@ export type ManualLineContext = {
 type Line = App.Data.Folio.ManualLineData;
 
 export type ManualLineAction =
+    | 'edit'
     | 'split'
     | 'remove_tax'
     | 'add_tax'
@@ -56,53 +60,6 @@ type FormProps = {
 };
 
 const cents = (amount: string): number => Math.round(Number(amount) * 100);
-
-function ReasonField({
-    id,
-    value,
-    onChange,
-    error,
-}: {
-    id: string;
-    value: string;
-    onChange: (value: string) => void;
-    error?: string;
-}) {
-    return (
-        <Field data-invalid={!!error}>
-            <FieldLabel htmlFor={id}>Reason</FieldLabel>
-            <Textarea
-                id={id}
-                rows={2}
-                maxLength={500}
-                placeholder="e.g. Guest paid cash to the night staff"
-                value={value}
-                onChange={(event) => onChange(event.target.value)}
-                aria-invalid={!!error}
-            />
-            <FieldError>{error}</FieldError>
-        </Field>
-    );
-}
-
-/**
- * The Dialog's UUID is the batch key, so a second click writes nothing twice.
- */
-function useBatchKey(): string {
-    const [key] = useState(() => crypto.randomUUID());
-
-    return key;
-}
-
-/** Posts at once and keeps the page's draft rows. */
-function postOptions(onClose: () => void) {
-    return {
-        preserveScroll: true,
-        preserveState: true,
-        except: KEEP_OPTIONS,
-        onSuccess: onClose,
-    };
-}
 
 function SplitForm({ open, onClose, context, reason, row, line }: FormProps) {
     const key = useBatchKey();
@@ -508,7 +465,7 @@ function ChangeOpeningBalanceForm({
 }
 
 /**
- * The Dialogs of the manual folio page's row menu: Split, Remove tax, Add tax and Recalculate tax. Each posts at once
+ * The Dialogs of the manual folio page's row menu: Edit line, Split, Remove tax, Add tax and Recalculate tax. Each posts at once
  * with its own reason, which starts as the page's reason. See docs/13-folio/08-manual-folio.md#row-menu-on-posted-lines.
  */
 export function ManualLineDialogs({
@@ -541,6 +498,8 @@ export function ManualLineDialogs({
     };
 
     switch (kept.action) {
+        case 'edit':
+            return <EditLineForm key={key} {...props} />;
         case 'split':
             return <SplitForm key={key} {...props} />;
         case 'remove_tax':
