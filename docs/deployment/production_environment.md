@@ -16,6 +16,27 @@ The shared PHP base stage installs `exif` for Spatie Media Library and `intl` fo
 
 `APP_ENV=production` turns on `DB::prohibitDestructiveCommands` (`AppServiceProvider::configureDefaults`), so `migrate:fresh`, `db:wipe` and similar commands refuse to run.
 
+## Boreno Hotel for internal use
+
+Boreno can also exist in production as a normal property with the full sample data. It has no internal flag or schema changes. The public demo remains separate.
+
+Set `BORENO_SEED_PASSWORD` as a runtime variable in Coolify, then redeploy. Use a strong password, different from `DEMO_PASSWORD`. All four Boreno staff accounts use this password initially.
+
+Run this command once in the production `web` container:
+
+```sh
+php artisan db:seed --class=BorenoProductionSeeder --force --no-interaction
+```
+
+- Owner: `owner@boreno.com`.
+- Other staff: `manager@boreno.com`, `frontdesk@boreno.com`, `housekeeping@boreno.com`.
+- Data: 30 rooms, rates, taxes, guests, 18 reservations, payments and city ledger invoices.
+- The seeder uses one transaction. A failed step leaves no partial property.
+- If a property named Boreno Hotel already exists, the seeder skips it without changing data or passwords.
+- The seeder does not reset production. Never use `migrate:fresh` for this property.
+
+This property has normal production behavior. Demo account restrictions and the nightly demo reset do not apply. No mail, jobs or reports exclude it automatically.
+
 ## Scheduled tasks
 
 From `routes/console.php`.

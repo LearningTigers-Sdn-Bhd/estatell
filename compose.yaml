@@ -33,6 +33,7 @@ x-app: &app
         # Partner Demo access card. See docs/deployment/production_environment.md.
         DEMO_URL: ${DEMO_URL:-}
         DEMO_PASSWORD: ${DEMO_PASSWORD:-}
+        BORENO_SEED_PASSWORD: ${BORENO_SEED_PASSWORD:-}
         AUTORUN_ENABLED: 'false'
     volumes:
         # Media stored on "This server" (ID scans, signatures, photos). Shared by all services.

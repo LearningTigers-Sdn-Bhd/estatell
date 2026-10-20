@@ -196,7 +196,7 @@ class BorenoSeeder extends Seeder
         $users = [];
 
         foreach ([DefaultRoleEnum::Owner, DefaultRoleEnum::Manager, DefaultRoleEnum::FrontDesk, DefaultRoleEnum::Housekeeping] as $role) {
-            $user = new User(['name' => $names[$role->value], 'email' => DemoSeeder::loginEmail('boreno', $role), 'password' => DemoSeeder::password()]);
+            $user = new User(['name' => $names[$role->value], 'email' => $this->staffEmail($role), 'password' => $this->staffPassword()]);
             $user->property_id = $property->id;
             $user->email_verified_at = now();
             $user->save();
@@ -215,6 +215,16 @@ class BorenoSeeder extends Seeder
         }
 
         return $owner;
+    }
+
+    protected function staffEmail(DefaultRoleEnum $role): string
+    {
+        return DemoSeeder::loginEmail('boreno', $role);
+    }
+
+    protected function staffPassword(): string
+    {
+        return DemoSeeder::password();
     }
 
     /**
