@@ -5,7 +5,7 @@ URL shape, route groups, names and middleware for estatell. Wayfinder generates 
 ## Principles
 
 - **Property code in the URL.** Staff routes live under `/p/{property:code}`, for example `app.example.com/p/ES10142/front-desk/stay-view`.
-- **One app domain.** Staff app, admin and guest links share `app.example.com`, so impersonation works within one session. The marketing site is `example.com`.
+- **One app domain.** Staff app, admin and guest links share `app.example.com`, so impersonation works within one session. The marketing site is `example.com`. The app is `app.estatell.com` and the landing page is a separate site, so `/` is only a redirect: `Route::redirect('/', '/dashboard')` (`home`). Guests go on to sign-in through `auth`, and signed-in users reach their home through `home.redirect`.
 - **Names match folders.** The URL prefix, route name prefix, page folder and `pms/{feature}` folder use the same word, for example `front-desk`.
 - Error-page previews use `GET /_preview/errors/{status}` (`errors.preview`) for 403, 404, 419, 500 and 503. They are available only when `APP_ENV=local`; other environments return 404.
 - **Dot names per level.** Resource routes use Laravel's verbs: `index`, `create`, `store`, `show`, `edit`, `update`, `destroy`.
@@ -45,7 +45,7 @@ URL shape, route groups, names and middleware for estatell. Wayfinder generates 
 
 | Group              | URL prefix                                                                    | Name prefix           | Middleware                                                                               | Route file         |
 | ------------------ | ----------------------------------------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------- | ------------------ |
-| Public and auth    | `/`, Fortify routes                                                           | `home`, Fortify names | –                                                                                        | `web.php`          |
+| Public and auth    | `/` (redirect), Fortify routes                                                | `home`, Fortify names | –                                                                                        | `web.php`          |
 | Onboarding         | `/p/{code}/onboarding`                                                        | `onboarding.`         | property.access, verified, onboarding.only                                               | `onboarding.php`   |
 | Dashboard          | `/p/{code}/dashboard`                                                         | `dashboard`           | + live                                                                                   | `web.php`          |
 | Suspension notice  | `/p/{code}/suspended`                                                         | `property.suspended`  | property.access, verified                                                                | `web.php`          |

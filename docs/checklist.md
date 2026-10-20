@@ -56,7 +56,7 @@ Needed for go-live.
 
 ### 01 Platform
 
-- [ ] `feat(platform): redirect the root URL to sign-in` — the app runs at `app.estatell.com` and the landing page is a separate site, so `/` sends guests to login and signed-in users to their home; remove the starter `welcome.tsx` and its Register link; record the domain in `docs/routing.md`. Docs: [Routing](routing.md).
+- [x] `feat(platform): redirect the root URL to sign-in` — the app runs at `app.estatell.com` and the landing page is a separate site, so `/` sends guests to login and signed-in users to their home; remove the starter `welcome.tsx` and its Register link; record the domain in `docs/routing.md`. Docs: [Routing](routing.md).
 
 ### 08 Rates
 

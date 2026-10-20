@@ -157,6 +157,6 @@ test('the shared business date is null before go live and for admins', function 
     $admin = User::factory()->admin()->create();
 
     $this->actingAs($admin)
-        ->get(route('home'))
+        ->get(route('admin.dashboard'))
         ->assertInertia(fn (Assert $page) => $page->where('businessDate', null));
 });
