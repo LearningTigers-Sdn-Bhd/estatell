@@ -46,6 +46,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CarbonImmutable|null $archived_at
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
+ * @property-read RatePlan|null $parent
  */
 #[Fillable([
     'name', 'description', 'pricing_basis', 'fixed_nights', 'package_unit', 'day_use_min_hours', 'day_use_max_hours', 'day_use_from', 'day_use_until', 'extra_adult_amount', 'extra_child_amount', 'single_supplement',

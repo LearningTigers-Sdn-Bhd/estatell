@@ -113,7 +113,7 @@ class EditLinePreview
             $text($afterTax),
             $text($after),
             $text($after->minus($plan->before)),
-            array_values(array_map(fn ($component): ManualTaxData => new ManualTaxData($component->name, $text($component->amount), false), $plan->tax->taxes)),
+            array_map(fn ($component): ManualTaxData => new ManualTaxData($component->name, $text($component->amount), false), $plan->tax->taxes),
             null,
             null,
         );

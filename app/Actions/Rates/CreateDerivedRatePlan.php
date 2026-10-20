@@ -65,7 +65,7 @@ class CreateDerivedRatePlan
 
             if ($companies->isNotEmpty()) {
                 $refusal = ($this->setRatePlanCompanyAccess)($actor, $ratePlan, CompanyAccess::Selected)
-                    ?? ($this->addRatePlanCompanies)($actor, $ratePlan, $companies->pluck('id')->all());
+                    ?? ($this->addRatePlanCompanies)($actor, $ratePlan, array_values($companies->map(fn (Company $company): int => $company->id)->all()));
 
                 if ($refusal !== null) {
                     DB::rollBack();

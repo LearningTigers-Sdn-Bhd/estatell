@@ -195,7 +195,7 @@ return new class extends Migration
         }
     }
 
-    private function otherChannel(): object
+    private function otherChannel(): stdClass
     {
         $other = DB::table('ota_channels')->where('is_other', true)->first();
 

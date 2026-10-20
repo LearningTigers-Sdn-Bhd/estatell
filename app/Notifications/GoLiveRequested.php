@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -28,6 +29,9 @@ class GoLiveRequested extends Notification implements ShouldQueue
         return ['mail', 'database'];
     }
 
+    /**
+     * @param  User  $notifiable
+     */
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
@@ -53,6 +57,9 @@ class GoLiveRequested extends Notification implements ShouldQueue
         ];
     }
 
+    /**
+     * @param  User  $notifiable
+     */
     private function reviewUrl(object $notifiable): string
     {
         return $notifiable->is_admin

@@ -5,6 +5,7 @@ namespace App\Http\Requests\Rooms;
 use App\Models\Property;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 
 class AssignRoomTypeRoomsRequest extends FormRequest
@@ -19,7 +20,7 @@ class AssignRoomTypeRoomsRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $rows = collect($this->input('rooms', []))
+        $rows = (new Collection($this->input('rooms', [])))
             ->map(fn (mixed $row): mixed => is_array($row)
                 ? [...$row, 'room_group_id' => filled($row['room_group_id'] ?? null) ? $row['room_group_id'] : null]
                 : $row)

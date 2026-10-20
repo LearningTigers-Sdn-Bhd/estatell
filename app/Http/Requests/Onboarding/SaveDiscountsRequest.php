@@ -160,7 +160,7 @@ class SaveDiscountsRequest extends OnboardingStepRequest
                 'scope' => DiscountScope::from($row['scope']),
                 'active' => (bool) $row['active'],
                 'room_charges' => (bool) $row['room_charges'],
-                'transaction_code_ids' => array_map(fn (mixed $id): int => (int) $id, $row['transaction_code_ids']),
+                'transaction_code_ids' => array_values(array_map(fn (mixed $id): int => (int) $id, $row['transaction_code_ids'])),
             ];
         }, array_values($this->validated('rows')));
     }

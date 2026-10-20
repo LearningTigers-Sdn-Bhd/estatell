@@ -24,7 +24,7 @@ class PortalArrivals
      */
     public function for(User $user, ?int $propertyId = null): array
     {
-        return DB::table('company_users')
+        return array_values(DB::table('company_users')
             ->join('companies', 'companies.id', '=', 'company_users.company_id')
             ->join('properties', 'properties.id', '=', 'companies.property_id')
             ->join('reservations', function ($join): void {
@@ -58,6 +58,6 @@ class PortalArrivals
                 title: $row->title,
                 arrivalDate: (string) $row->arrival_date,
             ))
-            ->all();
+            ->all());
     }
 }

@@ -36,7 +36,7 @@ class GoLiveWarnings
     {
         $chargeCodeIds = $property->chargeItems()->active()->pluck('transaction_code_id')->all();
 
-        return $property->taxes()
+        return array_values($property->taxes()
             ->where('enabled', true)
             ->get()
             ->reject(fn ($tax): bool => $tax->applicableTransactionCodes()
@@ -50,7 +50,7 @@ class GoLiveWarnings
                 "{$tax->name} is not applied to any charge item.",
             ))
             ->values()
-            ->all();
+            ->all());
     }
 
     /**
@@ -91,7 +91,7 @@ class GoLiveWarnings
         $warnings = [];
 
         foreach ($followers as $follower) {
-            $missing = ($follower->parent?->roomTypes ?? collect())
+            $missing = ($follower->parent->roomTypes ?? collect())
                 ->reject(fn ($roomType): bool => $follower->roomTypes->contains('id', $roomType->id));
 
             if ($missing->isNotEmpty()) {

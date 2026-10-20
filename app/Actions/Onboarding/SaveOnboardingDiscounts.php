@@ -75,10 +75,10 @@ class SaveOnboardingDiscounts
      */
     private function roomCodeIds(Property $property): array
     {
-        return $property->transactionCodes()
+        return array_values($property->transactionCodes()
             ->whereIn('system_key', SystemTransactionCode::roomRevenueKeys())
             ->pluck('id')
             ->map(fn (mixed $id): int => (int) $id)
-            ->all();
+            ->all());
     }
 }

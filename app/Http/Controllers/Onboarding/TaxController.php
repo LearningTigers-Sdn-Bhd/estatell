@@ -101,8 +101,8 @@ class TaxController extends Controller
     /**
      * @param  array<string, string>  $query
      */
-    private function urlOf(OnboardingStep $step, Property $property, array $query = []): ?string
+    private function urlOf(OnboardingStep $step, Property $property, array $query = []): string
     {
-        return $step->routeName() === null ? null : route($step->routeName(), ['property' => $property->code, ...$query], absolute: false);
+        return route($step->routeName(), ['property' => $property->code, ...$query], absolute: false);
     }
 }

@@ -128,8 +128,8 @@ class ManualFolioPage
     {
         $byCode = $property->taxes()->with('applicableTransactionCodes:id')->get()
             ->flatMap(fn ($tax) => $tax->applicableTransactionCodes->map(fn ($code): array => [$code->id, $tax->id]))
-            ->groupBy(0)
-            ->map(fn ($pairs): array => $pairs->pluck(1)->sort()->values()->all());
+            ->groupBy(fn (array $pair): int => $pair[0])
+            ->map(fn ($pairs): array => array_values($pairs->map(fn (array $pair): int => $pair[1])->sort()->values()->all()));
 
         return ChargeItem::query()->where('property_id', $property->id)->active()->pluck('transaction_code_id', 'id')
             ->map(fn (int $codeId): array => $byCode->get($codeId, []))

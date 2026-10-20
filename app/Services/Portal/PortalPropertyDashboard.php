@@ -62,7 +62,7 @@ class PortalPropertyDashboard
         $today = $this->directory->today($property);
         $figures = $this->directory->balanceFigureSubqueries();
 
-        return ArInvoice::query()
+        return array_values(ArInvoice::query()
             ->where('ar_invoices.property_id', $property->id)
             ->where('ar_invoices.company_id', $company->id)
             ->where('ar_invoices.type', ArInvoiceType::Invoice->value)
@@ -77,7 +77,7 @@ class PortalPropertyDashboard
             ->map(fn (ArInvoice $invoice): ArInvoiceRowData => $this->directory->row($invoice, $today))
             ->filter(fn (ArInvoiceRowData $row): bool => $row->balance !== null && BigDecimal::of($row->balance)->isPositive())
             ->values()
-            ->all();
+            ->all());
     }
 
     /**

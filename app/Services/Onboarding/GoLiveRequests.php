@@ -75,6 +75,6 @@ class GoLiveRequests
      */
     public function flaggedSteps(Property $property): array
     {
-        return $this->sentBack($property)?->flags->map(fn ($flag): string => $flag->step->value)->values()->all() ?? [];
+        return array_values($this->sentBack($property)?->flags->map(fn ($flag): string => $flag->step->value)->values()->all() ?? []);
     }
 }

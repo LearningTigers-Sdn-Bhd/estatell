@@ -15,7 +15,7 @@ Feature tests inherit RefreshDatabase from tests/Pest.php. Do not add database-r
 tests/TestCase.php freezes time at 2026-10-14 12:00 UTC for every feature test. Write fixed dates relative to that day. A test that needs another moment calls `$this->travelTo(...)` itself.
 
 ## Tests run in parallel
-`composer test` (Pint, PHPStan, then the suite) and CI run `php artisan test --parallel --recreate-databases`, one process per CPU core. Each process gets its own database (`db_estatell_test_test_N`) and loads only its own test files, so tests must not depend on order or on rows left by another test. Keep `--recreate-databases`: without it every process drops about 100 leftover tables at once, and a default Postgres (`max_locks_per_transaction` = 64) runs out of locks on machines with many cores.
+`composer test` (Pint, PHPStan, then the suite) and CI run `php artisan test --parallel --processes=4 --recreate-databases`, four processes. Each process gets its own database (`db_estatell_test_test_N`) and loads only its own test files, so tests must not depend on order or on rows left by another test. Keep `--recreate-databases`: without it every process drops about 100 leftover tables at once, and a default Postgres (`max_locks_per_transaction` = 64) runs out of locks on machines with many cores.
 
 ## Shared helpers live in Support files
 A helper function used by more than one test file goes in `tests/Feature/Support/*.php`, and every file that calls it adds `require_once __DIR__.'/Support/{File}.php';`. A helper defined in one test file and called from another works in a serial run only by luck and fails in parallel.

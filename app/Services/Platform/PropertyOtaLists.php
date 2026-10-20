@@ -16,10 +16,10 @@ class PropertyOtaLists
      */
     public function forProperty(Property $property): array
     {
-        return $property->otaCredentials()->with('channel')->orderBy('id')->get()
+        return array_values($property->otaCredentials()->with('channel')->orderBy('id')->get()
             ->map(fn (PropertyOtaCredential $credential): AdminOtaListRowData => AdminOtaListRowData::fromModel($credential))
             ->values()
-            ->all();
+            ->all());
     }
 
     /**

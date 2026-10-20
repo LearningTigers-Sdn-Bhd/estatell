@@ -25,11 +25,11 @@ class CompanyReferences
             return [];
         }
 
-        return collect([
+        return array_values(collect([
             Reservation::query()->whereIn('company_id', $ids)->distinct()->pluck('company_id'),
             Folio::query()->whereIn('payer_company_id', $ids)->distinct()->pluck('payer_company_id'),
             ArInvoice::query()->whereIn('company_id', $ids)->distinct()->pluck('company_id'),
             ArPayment::query()->whereIn('company_id', $ids)->distinct()->pluck('company_id'),
-        ])->flatten()->map(fn (mixed $id): int => (int) $id)->unique()->values()->all();
+        ])->flatten()->map(fn (mixed $id): int => (int) $id)->unique()->values()->all());
     }
 }

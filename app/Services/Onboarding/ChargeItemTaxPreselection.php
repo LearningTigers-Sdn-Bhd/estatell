@@ -17,7 +17,7 @@ class ChargeItemTaxPreselection
      */
     public function forProperty(Property $property): array
     {
-        return $property->taxes()
+        return array_values($property->taxes()
             ->where('enabled', true)
             ->where('rate_type', TaxRateType::Percent->value)
             ->where('foreign_guests_only', false)
@@ -25,6 +25,6 @@ class ChargeItemTaxPreselection
             ->pluck('id')
             ->map(fn (mixed $id): int => (int) $id)
             ->values()
-            ->all();
+            ->all());
     }
 }

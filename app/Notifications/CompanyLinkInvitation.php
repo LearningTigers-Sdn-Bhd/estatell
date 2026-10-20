@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -29,6 +30,9 @@ class CompanyLinkInvitation extends Notification implements ShouldQueue
         return ['mail', 'database'];
     }
 
+    /**
+     * @param  User  $notifiable
+     */
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)

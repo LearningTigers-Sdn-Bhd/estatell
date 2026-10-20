@@ -18,9 +18,9 @@ class RoomCommandSearch
     /** @return list<CommandResultData> */
     public function search(Property $property, string $text): array
     {
-        return $this->matching($property, $text)->select('id', 'number', 'room_type_id', 'room_group_id')
+        return array_values($this->matching($property, $text)->select('id', 'number', 'room_type_id', 'room_group_id')
             ->with(['roomType:id,name', 'roomGroup:id,name', 'status:room_id,status'])
             ->orderByRaw('lower(number) = lower(?) desc', [$text])->orderBy('number')->orderBy('id')->limit(5)->get()
-            ->map(fn (Room $room): CommandResultData => CommandResultData::fromRoom($room, $property))->all();
+            ->map(fn (Room $room): CommandResultData => CommandResultData::fromRoom($room, $property))->all());
     }
 }

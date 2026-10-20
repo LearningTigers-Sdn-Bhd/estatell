@@ -54,7 +54,7 @@ class PortalNavigation
             return null;
         }
 
-        return CompanyUser::query()
+        return array_values(CompanyUser::query()
             ->where('user_id', $user->id)
             ->where('status', CompanyUserStatus::Active->value)
             ->where('property_id', '<>', $link->property_id)
@@ -63,7 +63,6 @@ class PortalNavigation
             ->get()
             ->sortBy(fn (CompanyUser $other): string => mb_strtolower($other->property->name))
             ->map(fn (CompanyUser $other): PortalSwitcherData => PortalSwitcherData::fromLink($other))
-            ->values()
-            ->all();
+            ->all());
     }
 }

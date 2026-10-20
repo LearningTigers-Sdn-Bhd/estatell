@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 
 /**
  * A corporate, travel agent or government body that stays now and pays later through the city ledger.
@@ -42,6 +43,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property CompanyStatus $status
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
+ * @property-read Pivot&object{at_desk: bool, in_portal: bool} $pivot The company_rate_plans row when loaded through RatePlan::companies().
  */
 #[Fillable([
     'name', 'type', 'brn', 'tin', 'sst_registration_number', 'contact_email', 'contact_phone',

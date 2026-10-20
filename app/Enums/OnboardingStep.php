@@ -136,9 +136,9 @@ enum OnboardingStep: string
     }
 
     /**
-     * The route name of the step's page, or null while the page does not exist.
+     * The route name of the step's page.
      */
-    public function routeName(): ?string
+    public function routeName(): string
     {
         return match ($this) {
             self::Basics => 'onboarding.basics.edit',
@@ -154,7 +154,6 @@ enum OnboardingStep: string
             self::Team => 'onboarding.team.edit',
             self::ChannelManager => 'onboarding.channel-manager.edit',
             self::Review => 'onboarding.go-live.show',
-            default => null,
         };
     }
 
@@ -165,10 +164,7 @@ enum OnboardingStep: string
      */
     public static function listed(): array
     {
-        return array_values(array_filter(
-            self::cases(),
-            fn (self $step): bool => $step->routeName() !== null,
-        ));
+        return self::cases();
     }
 
     /**

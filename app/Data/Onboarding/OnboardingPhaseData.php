@@ -18,6 +18,9 @@ class OnboardingPhaseData extends Data
         public array $steps,
     ) {}
 
+    /**
+     * @param  list<OnboardingStepData>  $steps
+     */
     public static function fromPhase(OnboardingPhase $phase, StepState $state, array $steps): self
     {
         return new self(

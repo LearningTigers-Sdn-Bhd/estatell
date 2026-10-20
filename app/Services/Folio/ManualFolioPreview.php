@@ -91,7 +91,7 @@ class ManualFolioPreview
         }
 
         $touched = collect([$folio->id, ...array_map(fn (array $answer): ?int => $answer['folio'], $answers)])->filter()->unique()->sort()->values();
-        $now = $this->figures($touched->all(), $currency);
+        $now = $this->figures(array_values($touched->all()), $currency);
         $after = $now;
 
         foreach ($answers as $answer) {

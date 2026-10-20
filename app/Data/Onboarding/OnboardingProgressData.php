@@ -39,10 +39,6 @@ class OnboardingProgressData extends Data
             $steps = [];
 
             foreach ($phase->steps() as $step) {
-                if ($step->routeName() === null) {
-                    continue;
-                }
-
                 $steps[] = OnboardingStepData::fromStep(
                     $step,
                     $property,

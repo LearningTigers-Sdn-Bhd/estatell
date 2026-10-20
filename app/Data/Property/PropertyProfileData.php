@@ -58,9 +58,9 @@ class PropertyProfileData extends Data
             tin: $property->tin,
             tinLabel: $profile->tinLabel(),
             logoUrl: $logo === null ? null : route('settings.logo', ['property' => $property->code, 'v' => $logo->id], absolute: false),
-            printedLicences: $property->licences()->ordered()->where('show_on_documents', true)->get()
+            printedLicences: array_values($property->licences()->ordered()->where('show_on_documents', true)->get()
                 ->map(fn (PropertyLicence $licence): string => $licence->issuer.' '.$licence->number)
-                ->all(),
+                ->all()),
         );
     }
 }

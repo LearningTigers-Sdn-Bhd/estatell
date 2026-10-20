@@ -110,7 +110,13 @@ class SaveCompaniesRequest extends OnboardingStepRequest
      */
     public function rows(): array
     {
-        return array_map(function (array $row): array {
+        $property = $this->route('property');
+
+        if (! $property instanceof Property) {
+            throw new LogicException('The property route binding is missing.');
+        }
+
+        return array_map(function (array $row) use ($property): array {
             $fields = [];
 
             foreach (self::FIELDS as $field) {
@@ -121,7 +127,7 @@ class SaveCompaniesRequest extends OnboardingStepRequest
             return [
                 'id' => isset($row['id']) ? (int) $row['id'] : null,
                 'name' => $row['name'],
-                ...CompanyRules::normalized($fields, $this->route('property')),
+                ...CompanyRules::normalized($fields, $property),
                 'direct_bill_enabled' => (bool) $row['direct_bill_enabled'],
             ];
         }, array_values($this->validated('rows')));
@@ -134,7 +140,12 @@ class SaveCompaniesRequest extends OnboardingStepRequest
     {
         $id = data_get((array) $this->input('rows'), explode('.', $attribute)[1].'.id');
 
-        return filled($id) ? $property->companies()->find($id) : null;
+        return filled($id) ? $this->findCompany($property, $id) : null;
+    }
+
+    private function findCompany(Property $property, int|string $id): ?Company
+    {
+        return $property->companies()->find($id);
     }
 
     /**

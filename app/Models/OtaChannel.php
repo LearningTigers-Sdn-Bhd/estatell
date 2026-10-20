@@ -44,6 +44,8 @@ class OtaChannel extends Model
 
     /**
      * Only the channels that owners can pick.
+     *
+     * @param  Builder<OtaChannel>  $query
      */
     public function scopeActive(Builder $query): void
     {
@@ -52,6 +54,8 @@ class OtaChannel extends Model
 
     /**
      * The admin list order: sort order first, then id.
+     *
+     * @param  Builder<OtaChannel>  $query
      */
     public function scopeOrdered(Builder $query): void
     {

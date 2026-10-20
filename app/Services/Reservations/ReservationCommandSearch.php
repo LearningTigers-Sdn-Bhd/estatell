@@ -8,7 +8,7 @@ use App\Models\Reservation;
 use App\Services\Guests\GuestCommandSearch;
 use App\Services\Rooms\RoomCommandSearch;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\Relation;
 
 class ReservationCommandSearch
 {
@@ -38,10 +38,10 @@ class ReservationCommandSearch
         });
 
         if (! $support) {
-            $query->with(['booker' => fn (BelongsTo $guests) => $guests->where('property_id', $property->id)->select('id', 'full_name')]);
+            $query->with(['booker' => fn (Relation $guests) => $guests->where('property_id', $property->id)->select('id', 'full_name')]);
         }
 
-        return $query->orderByRaw('reference = ? desc', [mb_strtoupper($text)])->orderBy('reference')->orderBy('id')->limit(5)->get()
-            ->map(fn (Reservation $reservation): CommandResultData => CommandResultData::fromReservation($reservation, $property, $support))->all();
+        return array_values($query->orderByRaw('reference = ? desc', [mb_strtoupper($text)])->orderBy('reference')->orderBy('id')->limit(5)->get()
+            ->map(fn (Reservation $reservation): CommandResultData => CommandResultData::fromReservation($reservation, $property, $support))->all());
     }
 }

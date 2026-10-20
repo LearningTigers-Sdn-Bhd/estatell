@@ -33,12 +33,11 @@ class OnboardingChargeItemData extends Data
     public static function fromModel(ChargeItem $chargeItem, array $presetTaxIds): self
     {
         $isStarter = $chargeItem->transactionCode->system_key !== null;
-        $taxIds = $chargeItem->transactionCode->applicableTaxes
+        $taxIds = array_values($chargeItem->transactionCode->applicableTaxes
             ->pluck('id')
             ->map(fn (mixed $id): int => (int) $id)
             ->sort()
-            ->values()
-            ->all();
+            ->all());
 
         return new self(
             id: $chargeItem->id,

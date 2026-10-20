@@ -31,11 +31,11 @@ class DiscountController extends Controller
     public function edit(Property $property, OnboardingProgress $progress): Response
     {
         $blockingStep = $progress->blockingStep($property, OnboardingStep::Discounts);
-        $roomCodeIds = $property->transactionCodes()
+        $roomCodeIds = array_values($property->transactionCodes()
             ->whereIn('system_key', SystemTransactionCode::roomRevenueKeys())
             ->pluck('id')
             ->map(fn (mixed $id): int => (int) $id)
-            ->all();
+            ->all());
         $discounts = $property->discounts()
             ->with(['transactionCode', 'selectedTransactionCodes'])
             ->orderByDesc('active')
@@ -60,7 +60,7 @@ class DiscountController extends Controller
             'locked' => $blockingStep !== null,
             'blockedBy' => $blockingStep === null ? null : [
                 'label' => $blockingStep->label(),
-                'url' => $blockingStep->routeName() === null ? null : route($blockingStep->routeName(), ['property' => $property->code], absolute: false),
+                'url' => route($blockingStep->routeName(), ['property' => $property->code], absolute: false),
             ],
         ]);
     }

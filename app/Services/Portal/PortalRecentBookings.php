@@ -34,7 +34,7 @@ class PortalRecentBookings
             return [];
         }
 
-        return Reservation::query()
+        return array_values(Reservation::query()
             ->where(function ($query) use ($links): void {
                 foreach ($links as $link) {
                     $query->orWhere(fn ($pair) => $pair
@@ -50,6 +50,6 @@ class PortalRecentBookings
             ->get()
             ->map(fn (Reservation $reservation): PortalRecentBookingData => PortalRecentBookingData::fromReservation($reservation))
             ->values()
-            ->all();
+            ->all());
     }
 }

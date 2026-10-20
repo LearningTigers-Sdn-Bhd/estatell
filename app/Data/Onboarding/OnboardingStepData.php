@@ -34,7 +34,7 @@ class OnboardingStepData extends Data
             state: $states[$step->value],
             isRequired: $step->isRequired(),
             isSkippable: $step->isSkippable(),
-            url: $step->routeName() === null ? null : route($step->routeName(), ['property' => $property->code], absolute: false),
+            url: route($step->routeName(), ['property' => $property->code], absolute: false),
             blockedBy: $blockingStep?->label(),
             blockedByUrl: $blockingStep?->routeName() === null ? null : route($blockingStep->routeName(), ['property' => $property->code], absolute: false),
             flagged: $flagged,

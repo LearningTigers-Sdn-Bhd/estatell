@@ -105,4 +105,4 @@ jobs:
 
       - name: Tests
         if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
-        run: php artisan test --parallel --recreate-databases
+        run: php artisan test --parallel --processes=4 --recreate-databases

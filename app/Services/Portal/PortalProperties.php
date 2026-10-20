@@ -42,11 +42,11 @@ class PortalProperties
     public function for(User $user): array
     {
         $active = $this->links($user)->where('status', CompanyUserStatus::Active)->values();
-        $companyIds = $active->pluck('company_id')->all();
+        $companyIds = array_values($active->map(fn (CompanyUser $link): int => $link->company_id)->all());
         $balances = $companyIds === [] ? [] : $this->creditExposure->openAr($companyIds);
         $arrivals = $companyIds === [] ? [] : $this->arrivals($companyIds);
 
-        return $active
+        return array_values($active
             ->sortBy(fn (CompanyUser $link): string => mb_strtolower($link->property->name))
             ->map(fn (CompanyUser $link): PortalPropertyData => PortalPropertyData::fromLink(
                 $link,
@@ -55,7 +55,7 @@ class PortalProperties
                 arrivals: $arrivals[$link->company_id] ?? 0,
             ))
             ->values()
-            ->all();
+            ->all());
     }
 
     /**
@@ -65,10 +65,10 @@ class PortalProperties
      */
     public function invitations(User $user): array
     {
-        return $this->links($user)->where('status', CompanyUserStatus::Pending)
+        return array_values($this->links($user)->where('status', CompanyUserStatus::Pending)
             ->map(fn (CompanyUser $link): PortalInvitationData => PortalInvitationData::fromLink($link))
             ->values()
-            ->all();
+            ->all());
     }
 
     /**

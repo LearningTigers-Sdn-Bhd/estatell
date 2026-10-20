@@ -47,7 +47,7 @@ class CompanyController extends Controller
             'locked' => $blockingStep !== null,
             'blockedBy' => $blockingStep === null ? null : [
                 'label' => $blockingStep->label(),
-                'url' => $blockingStep->routeName() === null ? null : route($blockingStep->routeName(), ['property' => $property->code], absolute: false),
+                'url' => route($blockingStep->routeName(), ['property' => $property->code], absolute: false),
             ],
         ]);
     }

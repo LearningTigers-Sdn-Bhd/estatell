@@ -21,10 +21,10 @@ class PropertyCommandSearch
     {
         $prefix = addcslashes($text, '\\%_').'%';
 
-        return $this->visibleTo($user)->select('id', 'code', 'name', 'city', 'status', 'partner_id')
+        return array_values($this->visibleTo($user)->select('id', 'code', 'name', 'city', 'status', 'partner_id')
             ->where(fn (Builder $query) => $query->where('code', 'like', mb_strtoupper($prefix))->orWhereLike('name', $prefix)->orWhereLike('city', $prefix))
             ->orderByRaw('code = ? desc', [mb_strtoupper($text)])->orderBy('name')->orderBy('id')->limit(5)->get()
-            ->map(fn (Property $property): CommandResultData => CommandResultData::fromProperty($property, $user->is_admin, Gate::forUser($user)->allows('viewAs', $property)))->all();
+            ->map(fn (Property $property): CommandResultData => CommandResultData::fromProperty($property, $user->is_admin, Gate::forUser($user)->allows('viewAs', $property)))->all());
     }
 
     public function forReference(User $user, string $text): ?Property

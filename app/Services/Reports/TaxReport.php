@@ -131,7 +131,7 @@ class TaxReport implements HasBreakdown, HasTotals, Report
         return new ReportBreakdown(
             title: __('Migrated from old system (not in the total above)'),
             headings: [__('Tax'), __('Lines'), __('Amount')],
-            rows: $lines,
+            rows: array_values($lines),
             total: [
                 __('Total'),
                 (string) $migrated->sum(fn (FolioLine $line): int => (int) $line->getAttribute('line_count')),

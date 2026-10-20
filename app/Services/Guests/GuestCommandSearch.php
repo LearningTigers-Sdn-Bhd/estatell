@@ -21,8 +21,8 @@ class GuestCommandSearch
     /** @return list<CommandResultData> */
     public function search(Property $property, string $text): array
     {
-        return $this->matching($property, $text)->select('id', 'full_name', 'phone', 'email')
+        return array_values($this->matching($property, $text)->select('id', 'full_name', 'phone', 'email')
             ->orderByRaw('lower(full_name) = lower(?) desc', [$text])->orderBy('full_name')->orderBy('id')->limit(5)->get()
-            ->map(fn (Guest $guest): CommandResultData => CommandResultData::fromGuest($guest, $property))->all();
+            ->map(fn (Guest $guest): CommandResultData => CommandResultData::fromGuest($guest, $property))->all());
     }
 }

@@ -127,7 +127,7 @@ class CompanyController extends Controller
 
     public function update(CompanyRequest $request, Property $property, Company $company, string $section, UpdateCompany $updateCompany): RedirectResponse
     {
-        $linksBefore = $company->companyUsers()->pluck('id')->all();
+        $linksBefore = array_values($company->companyUsers()->pluck('id')->map(fn (mixed $id): int => (int) $id)->all());
 
         $updateCompany($request->user(), $company, $request->companyAttributes());
 

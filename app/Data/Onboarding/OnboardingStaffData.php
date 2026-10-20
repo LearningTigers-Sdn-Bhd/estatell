@@ -23,7 +23,7 @@ class OnboardingStaffData extends Data
             id: $user->id,
             name: $user->name,
             email: $user->email,
-            roleName: $user->roles->first()?->name ?? '',
+            roleName: $user->roles->first()->name ?? '',
         );
     }
 }

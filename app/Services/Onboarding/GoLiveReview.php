@@ -43,11 +43,11 @@ class GoLiveReview
     {
         $flagged = $this->requests->flaggedSteps($property);
         $states = $this->progress->states($property);
-        $skipped = OnboardingSkip::query()
+        $skipped = array_values(OnboardingSkip::query()
             ->where('property_id', $property->id)
             ->get()
             ->map(fn (OnboardingSkip $skip): string => $skip->step->value)
-            ->all();
+            ->all());
 
         $phases = [];
 
@@ -55,7 +55,7 @@ class GoLiveReview
             $rows = [];
 
             foreach ($phase->steps() as $step) {
-                if ($step === OnboardingStep::Review || $step->routeName() === null) {
+                if ($step === OnboardingStep::Review) {
                     continue;
                 }
 
@@ -67,11 +67,11 @@ class GoLiveReview
             }
         }
 
-        $missing = collect($this->readiness->checks($property))
+        $missing = array_values(collect($this->readiness->checks($property))
             ->reject(fn ($check): bool => $check->done)
-            ->pluck('label')
+            ->map(fn ($check): string => $check->label)
             ->values()
-            ->all();
+            ->all());
 
         return new GoLiveReviewData(
             phases: $phases,

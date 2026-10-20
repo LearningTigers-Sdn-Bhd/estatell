@@ -69,7 +69,7 @@ class ArInvoiceDirectory
      * allocations (`allocated`). Add them with `selectSub()` beside `ar_invoices.*`, so the list and the portal read
      * every balance in the same query and never run one query per invoice.
      *
-     * @return array{credited: Builder, allocated: Builder}
+     * @return array{credited: Builder<ArInvoice>, allocated: Builder<ArAllocation>}
      */
     public function balanceFigureSubqueries(): array
     {

@@ -48,6 +48,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property PropertyStatus|null $suspended_from_status
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
+ * @property-read PropertySetting|null $settings
  */
 #[Fillable([
     'name', 'type', 'status',

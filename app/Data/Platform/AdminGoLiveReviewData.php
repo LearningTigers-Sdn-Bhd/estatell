@@ -29,7 +29,7 @@ class AdminGoLiveReviewData extends Data
             code: $property->code,
             name: $property->name,
             partnerName: $property->partner?->name,
-            submittedBy: $request->submitter?->name ?? __('Unknown'),
+            submittedBy: $request->submitter->name ?? __('Unknown'),
             sentOn: $request->submitted_at->translatedFormat('j M Y, H:i'),
             today: $today,
             review: $review,

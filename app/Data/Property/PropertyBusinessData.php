@@ -35,9 +35,9 @@ class PropertyBusinessData extends Data
             registrationNumberLabel: $profile->registrationNumberLabel(),
             tin: $property->tin,
             tinLabel: $profile->tinLabel(),
-            licences: $property->licences()->ordered()->get()
+            licences: array_values($property->licences()->ordered()->get()
                 ->map(fn (PropertyLicence $licence): PropertyLicenceData => PropertyLicenceData::fromModel($licence))
-                ->all(),
+                ->all()),
         );
     }
 }

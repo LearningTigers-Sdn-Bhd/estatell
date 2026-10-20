@@ -56,7 +56,7 @@ class CommandResultData extends Data
             id: 'reservation-'.$reservation->id,
             group: __('Reservations'),
             label: $reservation->reference,
-            description: $support ? $property->code.' · '.$property->name : ($reservation->booker?->full_name ?? ''),
+            description: $support ? $property->code.' · '.$property->name : ($reservation->booker->full_name ?? ''),
             href: $support ? route('view-as.show', ['property' => $property->code, 'to' => $destination], absolute: false) : $destination,
             icon: 'calendar-check',
             status: $support ? null : BadgeData::fromReservationStatus($reservation->status),

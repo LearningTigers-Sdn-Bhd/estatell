@@ -37,10 +37,10 @@ class EnsurePropertyIsLive
     }
 
     /**
-     * The page of the wizard's current step. Falls back to Basics while the step has no page yet.
+     * The page of the wizard's current step.
      */
     private function currentStepRoute(Property $property): string
     {
-        return $this->progress->currentStep($property)->routeName() ?? 'onboarding.basics.edit';
+        return $this->progress->currentStep($property)->routeName();
     }
 }

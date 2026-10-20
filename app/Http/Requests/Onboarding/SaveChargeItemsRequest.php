@@ -138,7 +138,7 @@ class SaveChargeItemsRequest extends OnboardingStepRequest
             'charging_unit' => ChargingUnit::from($row['charging_unit']),
             'allow_override' => (bool) $row['allow_override'],
             'active' => (bool) $row['active'],
-            'tax_ids' => array_map(fn (mixed $id): int => (int) $id, $row['tax_ids']),
+            'tax_ids' => array_values(array_map(fn (mixed $id): int => (int) $id, $row['tax_ids'])),
         ], array_values($this->validated('rows')));
     }
 

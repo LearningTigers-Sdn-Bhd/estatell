@@ -68,9 +68,9 @@ class PropertyBasicsData extends Data
             legalName: $property->legal_name,
             registrationNumber: $property->registration_number,
             tin: $property->tin,
-            licences: $property->licences()->ordered()->get()
+            licences: array_values($property->licences()->ordered()->get()
                 ->map(fn (PropertyLicence $licence): PropertyLicenceData => PropertyLicenceData::fromModel($licence))
-                ->all(),
+                ->all()),
         );
     }
 }
