@@ -40,7 +40,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { sync } from '@/routes/admin/properties/channels';
+import { fullRefresh, sync } from '@/routes/admin/properties/channels';
 import { destroy as destroyRatePlan } from '@/routes/admin/properties/channels/rate-plans';
 import { destroy as destroyRoomType } from '@/routes/admin/properties/channels/room-types';
 
@@ -73,6 +73,23 @@ export function PropertyChannels({
                             : syncedLine(channel)}
                     </CardDescription>
                 </CardHeader>
+                {channel.pausedUntil && (
+                    <CardContent>
+                        <Alert>
+                            <AlertTitle>
+                                Paused until{' '}
+                                {new Date(
+                                    channel.pausedUntil,
+                                ).toLocaleTimeString('en-GB')}
+                            </AlertTitle>
+                            <AlertDescription>
+                                Channex asked us to wait.{' '}
+                                {channel.waitingChanges} changes waiting, none
+                                lost.
+                            </AlertDescription>
+                        </Alert>
+                    </CardContent>
+                )}
                 {channel.lastError && (
                     <CardContent>
                         <Alert variant="destructive">
@@ -85,7 +102,8 @@ export function PropertyChannels({
                         </Alert>
                     </CardContent>
                 )}
-                <CardFooter className="justify-end">
+                <CardFooter className="justify-end gap-2">
+                    {channel.canFullRefresh && <FullRefresh code={code} />}
                     <SyncPreview
                         code={code}
                         preview={channel.preview}
@@ -116,7 +134,32 @@ function syncedLine(channel: Channel): string {
         ? `Structure synced ${new Date(channel.structureSyncedAt).toLocaleString('en-GB')}`
         : 'Structure not synced yet';
 
-    return `${when} · ${roomTypes} room types · ${ratePlans} rate plans · ${skipped} skipped`;
+    const sent = channel.changesSentAt
+        ? ` · Changes sent ${new Date(channel.changesSentAt).toLocaleString('en-GB')}`
+        : '';
+    const full = channel.fullSyncedAt
+        ? ` · Full refresh ${new Date(channel.fullSyncedAt).toLocaleString('en-GB')}`
+        : '';
+
+    return `${when} · ${roomTypes} room types · ${ratePlans} rate plans · ${skipped} skipped${sent}${full}`;
+}
+
+function FullRefresh({ code }: { code: string }) {
+    return (
+        <Form {...fullRefresh.form(code)} options={{ preserveScroll: true }}>
+            {({ processing }) => (
+                <Button
+                    type="submit"
+                    variant="outline"
+                    disabled={processing}
+                    focusableWhenDisabled
+                >
+                    {processing && <Spinner data-icon="inline-start" />}
+                    Full refresh (500 days)
+                </Button>
+            )}
+        </Form>
+    );
 }
 
 function SyncPreview({

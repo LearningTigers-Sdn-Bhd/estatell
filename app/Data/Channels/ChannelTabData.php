@@ -20,6 +20,11 @@ class ChannelTabData extends Data
     public function __construct(
         public BadgeData $status,
         public ?string $structureSyncedAt,
+        public ?string $changesSentAt,
+        public ?string $fullSyncedAt,
+        public ?string $pausedUntil,
+        public int $waitingChanges,
+        public bool $canFullRefresh,
         public ?string $lastError,
         public ChannelStructurePreviewData $preview,
         public array $synced,
@@ -30,6 +35,11 @@ class ChannelTabData extends Data
         return new self(
             status: BadgeData::fromChannelPropertyStatus($channelProperty === null ? ChannelPropertyStatus::NotSynced : $channelProperty->status),
             structureSyncedAt: $channelProperty?->structure_synced_at?->toIso8601String(),
+            changesSentAt: $channelProperty?->changes_sent_at?->toIso8601String(),
+            fullSyncedAt: $channelProperty?->full_synced_at?->toIso8601String(),
+            pausedUntil: $channelProperty?->paused_until?->isFuture() ? $channelProperty->paused_until->toIso8601String() : null,
+            waitingChanges: $channelProperty === null ? 0 : $channelProperty->ariChanges()->waiting()->count(),
+            canFullRefresh: $channelProperty?->status === ChannelPropertyStatus::Synced,
             lastError: $channelProperty?->last_error,
             preview: ChannelStructurePreviewData::fromStructure($structure),
             synced: $channelProperty === null ? [] : self::synced($channelProperty),

@@ -53,3 +53,5 @@ Schedule::call(fn (): int => app(PurgeExpiredIdentityScans::class)())->name('pur
 Schedule::command('night-audit:dispatch-scheduled')->everyFiveMinutes()->withoutOverlapping()->onOneServer();
 
 Schedule::command('onboarding:send-reminders')->hourly()->withoutOverlapping()->onOneServer();
+
+Schedule::command('channels:full-sync')->dailyAt('03:00')->timezone('Asia/Kuala_Lumpur')->onOneServer();

@@ -2,6 +2,9 @@
 
 namespace App\Services\Channels;
 
+use App\Services\Channels\Channex\ChannexRequestFailed;
+use App\Services\Channels\Channex\ChannexRetryLater;
+
 /**
  * What every channel manager provider must do. The signatures are a first cut: the commits that build each call
  * (structure sync, ARI, bookings, the Channel API) may tighten the array shapes but keep the names.
@@ -31,12 +34,25 @@ interface ChannelManagerDriver
     public function removeRoomType(string $externalRoomTypeId): void;
 
     /**
-     * Send availability and restriction/price changes for one provider property.
+     * Send rates and restrictions in one call: the `values` of the provider's `/restrictions` message. Returns the
+     * provider's task id, if any.
      *
-     * @param  list<array<string, mixed>>  $restrictions
-     * @param  list<array<string, mixed>>  $availability
+     * @param  list<array<string, mixed>>  $values
+     *
+     * @throws ChannexRetryLater when the provider cannot take it now
+     * @throws ChannexRequestFailed when the provider refuses it
      */
-    public function pushAri(string $externalPropertyId, array $restrictions, array $availability): void;
+    public function pushRestrictions(array $values): ?string;
+
+    /**
+     * Send free units in one call: the `values` of the provider's `/availability` message. Returns the task id.
+     *
+     * @param  list<array<string, mixed>>  $values
+     *
+     * @throws ChannexRetryLater when the provider cannot take it now
+     * @throws ChannexRequestFailed when the provider refuses it
+     */
+    public function pushAvailability(array $values): ?string;
 
     /**
      * Get the booking revisions that are not acknowledged yet.

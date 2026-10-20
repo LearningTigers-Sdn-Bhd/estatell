@@ -12,6 +12,39 @@ channel_ari_changes    id, channel_property_id, room_type_id, rate_plan_id (null
                        sent_at (nullable), task_id (nullable), attempts, last_error, created_at
 ```
 
+Timestamps here and on `channel_properties` are `timestamp` (UTC), like most tables. A `timestamptz` column read back wrong on a database whose time zone is not UTC.
+
+## Built
+
+| Piece                                                    | Role                                                                                                                                |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `RatesChanged`, `InventoryChanged`, `ReservationChanged` | Events in `app/Events`. Each carries the property, the nights (both included), and optionally the room type and plan.               |
+| `RecordChannelAriChange`                                 | Turns an event into outbox lines for every mapped pair it touches and starts the delayed flush. Registered in `AppServiceProvider`. |
+| `ChannelAriWindow`                                       | Today in the property time zone and the next 499 days. Past and far dates are cut off.                                              |
+| `ChannelAriValues`                                       | Calculates availability and per-pair rate and restrictions at send time.                                                            |
+| `ChannelAriRanges`                                       | Merges overlapping ranges and joins consecutive equal dates.                                                                        |
+| `FlushChannelAri`                                        | Sends one `/restrictions` and one `/availability` call; marks, defers or refuses the lines.                                         |
+| `FlushChannelAriJob`                                     | Unique per property and kind, `WithoutOverlapping`. Puts itself back with the wait on a limit.                                      |
+| `QueueChannelFullSync`, `channels:full-sync`             | The 500-day full sync: first sync, admin **Full refresh**, nightly 03:00 MYT, 5 s apart.                                            |
+
+### Where the events are dispatched
+
+- `RatesChanged`: `UpsertRates` (every rate and restriction save, with the dates and room type), and the plan-wide rules `SavePackagePricing`, `SaveRatePlanDerivation`, `UpdateRatePlan`, `SaveRatePlanChildPrices` and `ChangeRatePlanBasis` (all 500 days). A change to a parent plan also records its derived plans.
+- `InventoryChanged`: room block create, update, end and cancel (the block nights), and room create, generate, archive, restore and room type change (all 500 days).
+- `ReservationChanged`: `AddUnit`, `CancelUnit` (also `MarkNoShow`), `ReinstateUnit`, `ChangeUnitDates` and `ProcessEarlyDeparture` (new and old nights).
+- Not hooked, so the nightly full sync repairs them: a change to the rate plan's room types, extra adult and child amounts that arrive through other Actions, and beds (dorm beds are not on channels yet).
+
+### Decisions made while building
+
+- A date with no price (or a price of 0) is sent as `stop_sell: true` with no `rate`, because Channex refuses a rate of 0 and estatell cannot sell the date.
+- Every restriction field is sent on every range, so a value removed in estatell clears at Channex: a missing min stay is sent as 1 and a missing max stay as 0.
+- A flat package is sent as its stay price divided by its nights, rounded to 2 decimals. The total can differ by a few cents when the price does not divide evenly.
+- A per-guest plan sends one price for each adult count (1 to the room type's max adults); a per-room plan sends the price for the top count, which is the one option the structure sync creates.
+- Channex answers 200 with `meta.warnings` for a rejected value. That counts as a refusal, so the line is not marked sent.
+- A refused line keeps `last_error` and is left out of normal flushes. A full run (admin **Full refresh** or nightly) sends it again.
+- Admin **Full refresh** is refused inside 24 hours of the last full sync. The nightly run skips a property fully synced in the last 12 hours, such as one that was first synced that evening.
+- Backoff after a limit is the larger of `Retry-After` and 60 s × 2^(attempts − 1), up to 15 minutes. The property is paused for that time (`paused_until`) and the admin tab shows the paused line.
+
 ## Enums
 
 `AriChangeKind`: Availability, Rates, Restrictions.

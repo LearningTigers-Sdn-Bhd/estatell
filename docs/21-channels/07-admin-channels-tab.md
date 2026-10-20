@@ -49,7 +49,7 @@ Results and reasons come from `ChannelCapability` (see [Mappings and capability]
 
 ### Built with the structure sync
 
-The tab has three parts so far: the Channex card (status, the last sync, the last error, **Preview sync** or **Sync again**), the preview Dialog above (the sync button is off while the preview is blocked), and **On Channex**, which lists the room types and rate plans Channex has with a **Remove** button on each (an AlertDialog). The OTAs card says "Sync to Channex first." until a property is synced; connecting OTAs, Alerts, Recent bookings, **Pause sync** and **Full refresh** come later. The tab and its routes return 404 while `ChannelManager` is off.
+The tab has three parts so far: the Channex card (status, the last sync, the last error, **Preview sync** or **Sync again**), the preview Dialog above (the sync button is off while the preview is blocked), and **On Channex**, which lists the room types and rate plans Channex has with a **Remove** button on each (an AlertDialog). The Channex card also shows when changes were last sent and the last full refresh, the paused line ("Paused until 09:12. 6 changes waiting, none lost.") while `paused_until` is in the future, and a **Full refresh (500 days)** button (see [ARI sync](04-ari-sync.md#full-sync)). The OTAs card says "Sync to Channex first." until a property is synced; connecting OTAs, Alerts, Recent bookings and **Pause sync** come later. The tab and its routes return 404 while `ChannelManager` is off.
 
 ### Live
 

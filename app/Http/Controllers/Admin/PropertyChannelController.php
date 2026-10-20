@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\Channels\QueueChannelFullSync;
 use App\Actions\Channels\RemoveChannelRatePlan;
 use App\Actions\Channels\RemoveChannelRoomType;
 use App\Actions\Channels\SyncChannelStructure;
@@ -22,6 +23,18 @@ class PropertyChannelController extends Controller
     public function sync(Request $request, Property $property, SyncChannelStructure $syncChannelStructure): RedirectResponse
     {
         return $this->respond($property, $syncChannelStructure($request->user(), $property));
+    }
+
+    /**
+     * Send the next 500 days of availability, rates and restrictions again.
+     */
+    public function fullRefresh(Request $request, Property $property, QueueChannelFullSync $queueChannelFullSync): RedirectResponse
+    {
+        $channelProperty = $property->channelProperty()->with('property')->first();
+
+        return $this->respond($property, $channelProperty === null
+            ? ChannelActionResult::failed(__('Sync the structure to Channex first.'))
+            : $queueChannelFullSync($channelProperty, $request->user()));
     }
 
     /**

@@ -12,6 +12,7 @@ use App\Enums\PricingBasis;
 use App\Enums\ReservationStatus;
 use App\Enums\StayType;
 use App\Enums\UnitStatus;
+use App\Events\ReservationChanged;
 use App\Models\Discount;
 use App\Models\RatePlan;
 use App\Models\Reservation;
@@ -228,6 +229,7 @@ class AddUnit
             'late_arrival_expected' => $data->lateArrivalExpected,
         ]);
         $unit->forceFill(['property_id' => $reservation->property_id, 'status' => UnitStatus::Confirmed])->save();
+        event(ReservationChanged::forUnit($unit));
 
         $unit->nights()->createMany(array_map(
             fn (NightPrice $night, int $index): array => [

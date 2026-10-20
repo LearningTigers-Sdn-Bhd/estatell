@@ -2,6 +2,7 @@
 
 namespace App\Actions\Rooms;
 
+use App\Events\InventoryChanged;
 use App\Models\Room;
 use App\Models\User;
 use App\Services\Property\PropertyToday;
@@ -29,6 +30,8 @@ class ArchiveRoom
             $room->forceFill(['archived_at' => now()])->save();
 
             $room->blocks()->open()->whereDate('ends_on', '>=', $this->today->date($room->property)->toDateString())->update(['completed_at' => now()]);
+
+            event(InventoryChanged::forRoomType($room->property_id, $room->room_type_id));
 
             activity()
                 ->performedOn($room)

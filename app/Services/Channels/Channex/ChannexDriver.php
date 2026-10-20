@@ -7,7 +7,7 @@ use App\Services\Channels\ChannelStructureSyncFailed;
 use LogicException;
 
 /**
- * The Channex implementation. `adapter` and the structure calls are built. The other calls arrive with the commit that
+ * The Channex implementation. `adapter`, the structure calls and the ARI pushes are built. The other calls arrive with the commit that
  * needs them and throw until then, so the interface stays stable.
  */
 class ChannexDriver implements ChannelManagerDriver
@@ -59,9 +59,14 @@ class ChannexDriver implements ChannelManagerDriver
         $this->remove("/room_types/{$externalRoomTypeId}");
     }
 
-    public function pushAri(string $externalPropertyId, array $restrictions, array $availability): void
+    public function pushRestrictions(array $values): ?string
     {
-        $this->notBuilt('sync availability, rates and restrictions');
+        return $this->push('/restrictions', $values);
+    }
+
+    public function pushAvailability(array $values): ?string
+    {
+        return $this->push('/availability', $values);
     }
 
     public function fetchRevisions(string $externalPropertyId): array
@@ -107,6 +112,26 @@ class ChannexDriver implements ChannelManagerDriver
     public function loadFutureReservations(string $externalChannelId): void
     {
         $this->notBuilt('connect and map OTAs through the Channel API');
+    }
+
+    /**
+     * Channex answers 200 even when it rejects a value, and lists the rejects in `meta.warnings`. A warning is a
+     * refusal here, so the change is not marked sent.
+     *
+     * @param  list<array<string, mixed>>  $values
+     */
+    private function push(string $path, array $values): ?string
+    {
+        $response = $this->client->post($path, ['values' => $values]);
+        $warnings = $response['meta']['warnings'] ?? [];
+
+        if ($warnings !== []) {
+            throw new ChannexRequestFailed('Channex rejected some values.', 422, ['details' => $warnings]);
+        }
+
+        $taskId = $response['data'][0]['id'] ?? null;
+
+        return is_string($taskId) ? $taskId : null;
     }
 
     private function notBuilt(string $commit): never

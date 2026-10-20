@@ -27,6 +27,7 @@ class SyncChannelStructure
         private ChannelCapability $capability,
         private ChannexStructureMapper $mapper,
         private ChannelDriverManager $drivers,
+        private QueueChannelFullSync $queueFullSync,
     ) {}
 
     /**
@@ -77,7 +78,7 @@ class SyncChannelStructure
         $this->save($admin, $property, $result, ChannelPropertyStatus::Synced, null);
 
         if ($channelProperty === null) {
-            $this->queueFullSync();
+            $this->queueFullSync($property);
         }
 
         return ChannelActionResult::ok(__(':rooms room types and :plans rate plans sent to Channex.', ['rooms' => $structure->roomTypeCount(), 'plans' => $structure->ratePlanCount()]));
@@ -169,10 +170,14 @@ class SyncChannelStructure
     }
 
     /**
-     * The first sync queues the 500-day full sync. That job arrives with the availability and rates commit.
+     * The first sync queues the 500-day full sync.
      */
-    private function queueFullSync(): void
+    private function queueFullSync(Property $property): void
     {
-        // Wired in "sync availability, rates and restrictions".
+        $channelProperty = $property->channelProperty()->with('property')->first();
+
+        if ($channelProperty !== null) {
+            ($this->queueFullSync)($channelProperty);
+        }
     }
 }

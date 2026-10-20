@@ -2,9 +2,11 @@
 
 namespace App\Actions\Rates;
 
+use App\Events\RatesChanged;
 use App\Models\Rate;
 use App\Models\RateHourPrice;
 use App\Models\RateOccupancyPrice;
+use App\Models\RatePlan;
 use Illuminate\Support\Collection;
 
 class UpsertRates
@@ -47,6 +49,10 @@ class UpsertRates
         if ($hours !== []) {
             $this->replaceHourPrices($ratePlanId, $rows, $hours, $minHours ?? 1, $maxHours ?? 24, $now);
         }
+
+        $roomTypeIds = array_unique(array_column($rows, 'room_type_id'));
+        $dates = array_column($rows, 'date');
+        RatesChanged::dispatch(RatePlan::query()->whereKey($ratePlanId)->value('property_id'), min($dates), max($dates), count($roomTypeIds) === 1 ? $roomTypeIds[0] : null, $ratePlanId);
 
         return count($rows);
     }

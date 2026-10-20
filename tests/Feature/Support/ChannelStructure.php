@@ -5,6 +5,7 @@ use App\Enums\ChannelProvider;
 use App\Models\ChannelProperty;
 use App\Models\Property;
 use App\Models\PropertySetting;
+use App\Models\Rate;
 use App\Models\RatePlan;
 use App\Models\Room;
 use App\Models\RoomType;
@@ -107,4 +108,27 @@ function channexRequests(): array
 function channexCalls(): array
 {
     return array_values(array_filter(channexRequests(), fn (Request $request): bool => str_contains($request->url(), 'channex.io')));
+}
+
+/**
+ * A synced property with one room type and one rate plan, both already on Channex ('prop-1', 'room-1', 'plan-1').
+ *
+ * @return array{property: Property, channelProperty: ChannelProperty, roomType: RoomType, ratePlan: RatePlan}
+ */
+function channelAriSetup(int $rooms = 2, string $state = 'create', array $planAttributes = [], array $roomTypeAttributes = [], string $externalId = 'prop-1'): array
+{
+    $property = channelProperty();
+    $roomType = channelRoomType($property, 'Deluxe King', $rooms, $roomTypeAttributes);
+    $ratePlan = channelRatePlan($property, [$roomType], 'Standard', $state, $planAttributes)->refresh();
+    $channelProperty = channelSyncedProperty($property, $externalId);
+    $channelProperty->roomTypeMappings()->create(['room_type_id' => $roomType->id, 'external_room_type_id' => 'room-1']);
+    $channelProperty->ratePlanMappings()->create(['room_type_id' => $roomType->id, 'rate_plan_id' => $ratePlan->id, 'external_rate_plan_id' => 'plan-1']);
+
+    return compact('property', 'channelProperty', 'roomType', 'ratePlan');
+}
+
+/** A rate row for the plan and room type on a date. */
+function channelRate(RatePlan $ratePlan, RoomType $roomType, string $date, ?string $amount, array $attributes = []): void
+{
+    Rate::factory()->create(['rate_plan_id' => $ratePlan->id, 'room_type_id' => $roomType->id, 'date' => $date, 'amount' => $amount, ...$attributes]);
 }

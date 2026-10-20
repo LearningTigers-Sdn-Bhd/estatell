@@ -5,6 +5,7 @@ namespace App\Actions\FrontDesk;
 use App\Actions\Reservations\SyncReservationStatus;
 use App\Enums\StayType;
 use App\Enums\UnitStatus;
+use App\Events\ReservationChanged;
 use App\Models\ReservationUnit;
 use App\Models\Room;
 use App\Models\RoomType;
@@ -123,6 +124,7 @@ class ReinstateUnit
             $previousStatus = $locked->status;
             $locked->status = UnitStatus::Confirmed;
             $locked->save();
+            event(ReservationChanged::forUnit($locked));
 
             activity()
                 ->performedOn($locked->reservation)

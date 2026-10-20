@@ -4,6 +4,7 @@ namespace App\Actions\Rates;
 
 use App\Enums\PricingBasis;
 use App\Enums\RateDerivation;
+use App\Events\RatesChanged;
 use App\Models\Property;
 use App\Models\Rate;
 use App\Models\RateOccupancyPrice;
@@ -77,6 +78,8 @@ class SaveRatePlanDerivation
                 ])
                 ->log('Rate plan follows another plan');
 
+            event(RatesChanged::forPlan($ratePlan));
+
             return true;
         });
     }
@@ -96,6 +99,8 @@ class SaveRatePlanDerivation
             ->event('rate_plan.derivation_removed')
             ->withProperties(['property_id' => $ratePlan->property_id, 'parent_rate_plan_id' => $parentId])
             ->log('Rate plan stopped following another plan');
+
+        event(RatesChanged::forPlan($ratePlan));
 
         return true;
     }

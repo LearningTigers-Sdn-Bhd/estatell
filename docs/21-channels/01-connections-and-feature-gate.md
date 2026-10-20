@@ -97,7 +97,7 @@ ota_channels   id, code (unique, lower), name, channex_code (nullable), sort_ord
 
 ## Driver design
 
-- `ChannelManagerDriver` interface: `syncStructure`, `removeRatePlan`, `removeRoomType`, `pushAri`, `fetchRevisions`, `acknowledge`, plus the Channel API calls `adapter`, `testConnection`, `mappingDetails`, `createChannel`, `updateChannel`, `activate`, `deactivate`, `loadFutureReservations`.
+- `ChannelManagerDriver` interface: `syncStructure`, `removeRatePlan`, `removeRoomType`, `pushRestrictions`, `pushAvailability`, `fetchRevisions`, `acknowledge`, plus the Channel API calls `adapter`, `testConnection`, `mappingDetails`, `createChannel`, `updateChannel`, `activate`, `deactivate`, `loadFutureReservations`.
 - `ChannelDriverManager` (a Laravel `Manager`) selects the driver per provider. `ChannexDriver` builds `adapter`, `syncStructure`, `removeRatePlan` and `removeRoomType`. Its other methods throw "Not built yet" until the commit that needs them.
 - Config lives in `config/services.php` under `channex`. The default base URL is staging; production is `https://app.channex.io/api/v1`.
 - The `channels` middleware alias (`EnsureChannelManagerIsActive`) returns 404 when the flag is off.

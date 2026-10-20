@@ -59,6 +59,14 @@ class ChannelProperty extends Model
     }
 
     /**
+     * @return HasMany<ChannelAriChange, $this>
+     */
+    public function ariChanges(): HasMany
+    {
+        return $this->hasMany(ChannelAriChange::class);
+    }
+
+    /**
      * @return HasMany<ChannelRoomTypeMapping, $this>
      */
     public function roomTypeMappings(): HasMany

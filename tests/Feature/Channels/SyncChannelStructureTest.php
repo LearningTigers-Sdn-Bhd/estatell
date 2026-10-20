@@ -4,12 +4,14 @@ use App\Actions\Channels\SyncChannelStructure;
 use App\Enums\ChannelPropertyStatus;
 use App\Enums\PackageUnit;
 use App\Enums\Weekday;
+use App\Jobs\FlushChannelAriJob;
 use App\Models\ChannelProperty;
 use App\Models\ChannelRatePlanMapping;
 use App\Models\ChannelRoomTypeMapping;
 use App\Models\PackagePrice;
 use App\Models\User;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Spatie\Activitylog\Models\Activity;
 
 require_once __DIR__.'/../Support/ChannelStructure.php';
@@ -258,4 +260,17 @@ test('archived room types and rate plans are not sent', function () {
     syncStructure($property);
 
     expect(collect(channexBodies('POST', '/room_types'))->pluck('room_type.title')->all())->toBe(['Active']);
+});
+
+test('the first sync queues the 500-day full sync and a second sync does not', function () {
+    Queue::fake();
+    $property = channelProperty();
+    channelRatePlan($property, [channelRoomType($property)], 'Standard');
+    fakeChannex();
+
+    syncStructure($property);
+    syncStructure($property->refresh());
+
+    Queue::assertPushed(FlushChannelAriJob::class, 1);
+    Queue::assertPushed(FlushChannelAriJob::class, fn (FlushChannelAriJob $job): bool => $job->full);
 });

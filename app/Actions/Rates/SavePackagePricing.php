@@ -4,6 +4,7 @@ namespace App\Actions\Rates;
 
 use App\Enums\PricingBasis;
 use App\Enums\Weekday;
+use App\Events\RatesChanged;
 use App\Models\RatePlan;
 use App\Models\User;
 use App\Services\Packages\PackagePriceOverlap;
@@ -91,6 +92,8 @@ class SavePackagePricing
                     ->withProperties(['property_id' => $ratePlan->property_id])
                     ->log('Package pricing updated');
             }
+
+            event(RatesChanged::forPlan($ratePlan));
 
             return true;
         });

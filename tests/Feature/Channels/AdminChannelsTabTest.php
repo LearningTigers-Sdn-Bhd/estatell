@@ -2,12 +2,15 @@
 
 use App\Enums\ChannelPropertyStatus;
 use App\Features\ChannelManager;
+use App\Jobs\FlushChannelAriJob;
+use App\Models\ChannelAriChange;
 use App\Models\ChannelProperty;
 use App\Models\ChannelRatePlanMapping;
 use App\Models\ChannelRoomTypeMapping;
 use App\Models\Property;
 use App\Models\User;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Pennant\Feature;
 use Spatie\Activitylog\Models\Activity;
@@ -214,4 +217,46 @@ test('the status badge of an error shows the last error on the tab', function ()
         ->assertInertia(fn (Assert $page) => $page
             ->where('channel.status.value', 'error')
             ->where('channel.lastError', 'Channex refused the request (422).'));
+});
+
+test('Full refresh queues the 500-day sync, is logged, and is refused inside a day', function () {
+    Queue::fake();
+    $setup = channelAriSetup();
+    channelOn($setup['property']);
+    $admin = channelAdmin();
+
+    $this->actingAs($admin)->post(route('admin.properties.channels.full-refresh', $setup['property']->code))->assertRedirect();
+
+    Queue::assertPushed(FlushChannelAriJob::class, fn (FlushChannelAriJob $job): bool => $job->full && $job->channelPropertyId === $setup['channelProperty']->id);
+    expect(Activity::query()->where('event', 'channel.full_refresh_queued')->sole()->causer_id)->toBe($admin->id);
+
+    $setup['channelProperty']->update(['full_synced_at' => now()->subHours(3)]);
+    $this->post(route('admin.properties.channels.full-refresh', $setup['property']->code))->assertRedirect();
+    Queue::assertPushed(FlushChannelAriJob::class, 1);
+});
+
+test('Full refresh is a 404 for a property with the feature off and refused when nothing is synced', function () {
+    Queue::fake();
+    $property = channelProperty();
+
+    $this->actingAs(channelAdmin())->post(route('admin.properties.channels.full-refresh', $property->code))->assertNotFound();
+
+    channelOn($property);
+    $this->post(route('admin.properties.channels.full-refresh', $property->code))->assertRedirect();
+    Queue::assertNothingPushed();
+});
+
+test('the tab shows when changes were sent, the pause and how many changes wait', function () {
+    $setup = channelAriSetup();
+    channelOn($setup['property']);
+    $setup['channelProperty']->update(['changes_sent_at' => now()->subMinute(), 'paused_until' => now()->addSeconds(60)]);
+    ChannelAriChange::factory()->count(2)->create(['channel_property_id' => $setup['channelProperty']->id, 'room_type_id' => $setup['roomType']->id]);
+
+    $this->actingAs(channelAdmin())
+        ->get(route('admin.properties.channels', $setup['property']->code))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('channel.waitingChanges', 2)
+            ->where('channel.canFullRefresh', true)
+            ->whereNot('channel.pausedUntil', null)
+            ->whereNot('channel.changesSentAt', null));
 });

@@ -2,8 +2,12 @@
 
 namespace App\Providers;
 
+use App\Actions\Channels\RecordChannelAriChange;
 use App\Actions\Platform\RecordImpersonationEnd;
 use App\Enums\PartnerStatus;
+use App\Events\InventoryChanged;
+use App\Events\RatesChanged;
+use App\Events\ReservationChanged;
 use App\Models\Property;
 use App\Models\User;
 use App\Services\Platform\Impersonation;
@@ -54,6 +58,16 @@ class AppServiceProvider extends ServiceProvider
         $this->configureFeatures();
         $this->configureSupportSessions();
         $this->configureMailBranding();
+        $this->configureChannelEvents();
+    }
+
+    /**
+     * Rates, rooms and bookings tell the channels module what changed through events. One Action turns each event into
+     * lines of the ARI outbox. See docs/21-channels/04-ari-sync.md.
+     */
+    protected function configureChannelEvents(): void
+    {
+        Event::listen([RatesChanged::class, InventoryChanged::class, ReservationChanged::class], fn (RatesChanged|InventoryChanged|ReservationChanged $event) => app(RecordChannelAriChange::class)($event));
     }
 
     protected function configureMailBranding(): void

@@ -32,6 +32,7 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
     Route::middleware('channels')->group(function () {
         Route::get('properties/{property:code}/channels', [PropertyController::class, 'channels'])->where(['property' => '[A-Za-z]{2}[0-9]{5,}'])->name('properties.channels');
         Route::post('properties/{property:code}/channels/sync', [PropertyChannelController::class, 'sync'])->where(['property' => '[A-Za-z]{2}[0-9]{5,}'])->middleware('support.2fa')->name('properties.channels.sync');
+        Route::post('properties/{property:code}/channels/full-refresh', [PropertyChannelController::class, 'fullRefresh'])->where(['property' => '[A-Za-z]{2}[0-9]{5,}'])->middleware('support.2fa')->name('properties.channels.full-refresh');
         Route::delete('properties/{property:code}/channels/rate-plans/{ratePlanMapping}', [PropertyChannelController::class, 'destroyRatePlan'])->where(['property' => '[A-Za-z]{2}[0-9]{5,}', 'ratePlanMapping' => '[0-9]+'])->middleware('support.2fa')->name('properties.channels.rate-plans.destroy');
         Route::delete('properties/{property:code}/channels/room-types/{roomTypeMapping}', [PropertyChannelController::class, 'destroyRoomType'])->where(['property' => '[A-Za-z]{2}[0-9]{5,}', 'roomTypeMapping' => '[0-9]+'])->middleware('support.2fa')->name('properties.channels.room-types.destroy');
     });
