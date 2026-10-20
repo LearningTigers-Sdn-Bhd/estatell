@@ -12,6 +12,7 @@ import { OnboardingTopBar } from '@/components/pms/onboarding/onboarding-top-bar
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { setUrlDefaults } from '@/wayfinder';
 
 /**
  * The layout of the setup wizard. It replaces the PMS sidebar while a property is being set up. The content column
@@ -26,7 +27,11 @@ export default function OnboardingLayout({
     primaryAction = null,
     children,
 }: Partial<OnboardingLayoutProps> & { children: React.ReactNode }) {
-    const { onboarding } = usePage().props;
+    const { onboarding, property } = usePage().props;
+
+    // Mirrors AppLayout. withApp only runs once, so after login (no property yet) the default would stay unset and
+    // onboarding routes would be written as `/p/$property/...`.
+    setUrlDefaults({ property: property?.code });
 
     if (!onboarding) {
         return <>{children}</>;
