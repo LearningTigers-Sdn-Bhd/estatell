@@ -890,7 +890,7 @@ class SandbaySeeder extends Seeder
             throw new RuntimeException("The routing rule was refused: {$rule->refusal}.");
         }
 
-        $this->pay($owner, $reservations['dive'], $clubFolio, $methods[PaymentMethodType::BankTransfer->value], PaymentPurpose::Advance, '1000.00');
+        $this->pay($owner, $reservations['dive'], $clubFolio, $methods[PaymentMethodType::BankTransfer->value], PaymentPurpose::Settlement, '1000.00');
     }
 
     private int $sourceCursor = 0;
