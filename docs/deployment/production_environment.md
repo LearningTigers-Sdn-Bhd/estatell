@@ -6,6 +6,8 @@ The live app at `app.estatell.com`. The marketing site is a separate site on ano
 
 Deployed with Coolify (Docker Compose build pack): `compose.yaml` builds the `Dockerfile` (`serversideup/php` FrankenPHP). PostgreSQL and Redis are external. Set env vars in the Coolify UI; give the domain to `web` on port 8080. Do not publish ports.
 
+The shared PHP base stage installs `exif`, which Spatie Media Library requires. Both the build and runtime stages inherit this extension.
+
 | Service     | Command                 | Notes                                              |
 | ----------- | ----------------------- | -------------------------------------------------- |
 | `web`       | FrankenPHP on `:8080`   | Runs migrations on start (`AUTORUN_ENABLED=true`). |
