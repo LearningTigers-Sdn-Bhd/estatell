@@ -89,7 +89,7 @@ ota_channels   id, code (unique, lower), name, channex_code (nullable), sort_ord
 
 ## Rules
 
-- One platform Channex account and one Channex group ("User Group" on staging). Config: `CHANNEX_BASE_URL`, `CHANNEX_API_KEY`, `CHANNEX_GROUP_ID`. Never per property.
+- One platform Channex account and one Channex group ("User Group" on staging). Config: `CHANNEX_BASE_URL`, `CHANNEX_API_KEY`, `CHANNEX_GROUP_ID`, and `CHANNEX_WEBHOOK_SECRET` (the HMAC secret of the webhook). Never per property.
 - Owners hand over OTA logins in [onboarding](../17-onboarding/02-wizard-steps.md#channel-manager-table). They are stored in `property_ota_credentials`, encrypted, with no feature gate.
 - OTA lists is a **reference**. The Connect form pre-fills the hotel ID from its Property ID and shows the row in a rail. Nothing writes back to it.
 - Only admins read the logins: **Reveal** is a POST returning JSON, needs `support.2fa` and is logged. No code uses them. Admins use them to sign in to the OTA extranet.

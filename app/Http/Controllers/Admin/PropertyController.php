@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Actions\Onboarding\CreatePropertyForOwner;
+use App\Data\Channels\ChannelSyncProgressData;
 use App\Data\Channels\ChannelTabData;
 use App\Data\Platform\AdminPropertyData;
 use App\Data\Platform\AdminPropertyRowData;
@@ -17,6 +18,7 @@ use App\Http\Requests\Admin\CreatePropertyForOwnerRequest;
 use App\Models\Property;
 use App\Models\User;
 use App\Services\Channels\ChannelStructurePreview;
+use App\Services\Channels\ChannelSyncProgress;
 use App\Services\Guests\CountryOptions;
 use App\Services\Onboarding\GoLiveRequests;
 use App\Services\Onboarding\OnboardingBoard;
@@ -123,12 +125,12 @@ class PropertyController extends Controller
     /**
      * Property page, Channels tab. Shown only while the Channel manager feature is on (the `channels` middleware).
      */
-    public function channels(Property $property, ChannelStructurePreview $channelStructurePreview): Response
+    public function channels(Property $property, ChannelStructurePreview $channelStructurePreview, ChannelSyncProgress $channelSyncProgress): Response
     {
         $property->load('settings');
 
         return $this->renderTab($property, 'channels', [
-            'channel' => ChannelTabData::forProperty($property->channelProperty, $channelStructurePreview->forProperty($property)),
+            'channel' => ChannelTabData::forProperty($property->channelProperty, $channelStructurePreview->forProperty($property), ChannelSyncProgressData::fromProgress($channelSyncProgress->forProperty($property->id))),
         ]);
     }
 

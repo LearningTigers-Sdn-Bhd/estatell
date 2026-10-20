@@ -39,7 +39,7 @@ Timestamps here and on `channel_properties` are `timestamp` (UTC), like most tab
 - A date with no price (or a price of 0) is sent as `stop_sell: true` with no `rate`, because Channex refuses a rate of 0 and estatell cannot sell the date.
 - Every restriction field is sent on every range, so a value removed in estatell clears at Channex: a missing min stay is sent as 1 and a missing max stay as 0.
 - A flat package is sent as its stay price divided by its nights, rounded to 2 decimals. The total can differ by a few cents when the price does not divide evenly.
-- A per-guest plan sends one price for each adult count (1 to the room type's max adults); a per-room plan sends the price for the top count, which is the one option the structure sync creates.
+- A pair sent per person (a per-guest plan, or a per-room plan whose price depends on the adults) sends one price for each adult count (1 to the room type's max adults). A pair sent per room sends the price for the top count, which is the one option the structure sync creates. The pair's `sell_mode` on `channel_rate_plan_mappings` decides, not the plan as it is today. If an owner starts charging extra adults on a plan, the ARI keeps sending the old shape until an admin runs **Sync again**, which also queues the new prices.
 - Channex answers 200 with `meta.warnings` for a rejected value. That counts as a refusal, so the line is not marked sent.
 - A refused line keeps `last_error` and is left out of normal flushes. A full run (admin **Full refresh** or nightly) sends it again.
 - Admin **Full refresh** is refused inside 24 hours of the last full sync. The nightly run skips a property fully synced in the last 12 hours, such as one that was first synced that evening.

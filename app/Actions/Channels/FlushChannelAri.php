@@ -220,7 +220,7 @@ class FlushChannelAri
                 $dates = [];
 
                 foreach ($this->ranges->merge($group->map(fn (ChannelAriChange $change): array => [$change->date_from->max($first)->toDateString(), $change->date_to->min($last)->toDateString()])->all()) as [$from, $to]) {
-                    $dates += $this->values->restrictions($plan, $roomType, CarbonImmutable::parse($from), CarbonImmutable::parse($to), $currency);
+                    $dates += $this->values->restrictions($plan, $roomType, CarbonImmutable::parse($from), CarbonImmutable::parse($to), $currency, $mapping->sell_mode);
                 }
 
                 foreach ($this->ranges->compress($dates) as $range) {

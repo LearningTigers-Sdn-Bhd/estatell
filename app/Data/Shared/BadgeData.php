@@ -4,6 +4,7 @@ namespace App\Data\Shared;
 
 use App\Enums\ArInvoiceStatus;
 use App\Enums\AuditStatus;
+use App\Enums\ChannelAlertEvent;
 use App\Enums\ChannelPropertyStatus;
 use App\Enums\ChannelSupport;
 use App\Enums\CompanyStatus;
@@ -16,6 +17,7 @@ use App\Enums\PropertyStatus;
 use App\Enums\RatePlanStatus;
 use App\Enums\RegistrationCardStatus;
 use App\Enums\ReservationStatus;
+use App\Enums\RevisionKind;
 use App\Enums\Tone;
 use App\Enums\UnitStatus;
 use Spatie\LaravelData\Data;
@@ -69,6 +71,16 @@ class BadgeData extends Data
     public static function fromChannelPropertyStatus(ChannelPropertyStatus $status): self
     {
         return new self($status->value, $status->label(), $status->tone());
+    }
+
+    public static function fromRevisionKind(RevisionKind $kind): self
+    {
+        return new self($kind->value, $kind->label(), $kind->tone());
+    }
+
+    public static function fromChannelAlertEvent(ChannelAlertEvent $event): self
+    {
+        return new self($event->value, $event->label(), $event->tone());
     }
 
     public static function fromChannelSupport(ChannelSupport $support): self

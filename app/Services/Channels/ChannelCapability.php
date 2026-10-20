@@ -2,13 +2,17 @@
 
 namespace App\Services\Channels;
 
+use App\Enums\ChannelSellMode;
 use App\Enums\ChannelSupport;
 use App\Enums\PackageUnit;
 use App\Enums\PricingBasis;
 use App\Enums\SellUnit;
 use App\Enums\Weekday;
+use App\Models\RateOccupancyPrice;
 use App\Models\RatePlan;
 use App\Models\RoomType;
+use Brick\Math\BigDecimal;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
 
 /**
@@ -84,6 +88,53 @@ class ChannelCapability
         $days = $ratePlan->loadMissing('arrivalWeekdays')->arrivalWeekdays->pluck('weekday')->all();
 
         return $days === [] || count($days) === 7 ? null : array_values($days);
+    }
+
+    /**
+     * How a pair is sold on the channel manager. A per-guest plan, and a per-room plan or per-room package whose price
+     * depends on the number of adults, send one price for each adult count (Channex PerRoom holds one price for any
+     * number of guests). The price depends on adults when the room type holds more adults than its base occupancy and
+     * the plan (or the plan it follows) charges extra adults or sets a price for an adult count. Every other plan is
+     * one price for the room.
+     */
+    public function sellMode(RatePlan $ratePlan, RoomType $roomType): ChannelSellMode
+    {
+        if ($this->isPerGuestPackage($ratePlan) || $ratePlan->pricing_basis === PricingBasis::PerGuest) {
+            return ChannelSellMode::PerPerson;
+        }
+
+        $pricingPlan = $ratePlan->loadMissing('parent')->parent ?? $ratePlan;
+        $perRoom = $pricingPlan->pricing_basis === PricingBasis::PerRoom
+            || ($pricingPlan->pricing_basis === PricingBasis::Package && $pricingPlan->package_unit === PackageUnit::PerRoom);
+
+        if (! $perRoom || $roomType->max_adults <= $roomType->base_occupancy) {
+            return ChannelSellMode::PerRoom;
+        }
+
+        return BigDecimal::of($pricingPlan->extra_adult_amount ?? '0')->isPositive() || $this->hasAdultCountPrices($pricingPlan, $roomType)
+            ? ChannelSellMode::PerPerson
+            : ChannelSellMode::PerRoom;
+    }
+
+    /**
+     * The flat extra a child adds to a night, as a decimal string. Per-room plans and per-room packages charge it for
+     * every child. A plan that follows another uses the amount of the plan it follows, before its own discount. Other
+     * plans have no flat child amount here.
+     */
+    public function childFee(RatePlan $ratePlan): string
+    {
+        $pricingPlan = $ratePlan->loadMissing('parent')->parent ?? $ratePlan;
+        $perRoom = $pricingPlan->pricing_basis === PricingBasis::PerRoom
+            || ($pricingPlan->pricing_basis === PricingBasis::Package && $pricingPlan->package_unit === PackageUnit::PerRoom);
+
+        return $perRoom ? number_format((float) ($pricingPlan->extra_child_amount ?? 0), 2, '.', '') : '0.00';
+    }
+
+    private function hasAdultCountPrices(RatePlan $pricingPlan, RoomType $roomType): bool
+    {
+        return RateOccupancyPrice::query()
+            ->whereHas('rate', fn (Builder $query) => $query->where('rate_plan_id', $pricingPlan->id)->where('room_type_id', $roomType->id))
+            ->exists();
     }
 
     /**

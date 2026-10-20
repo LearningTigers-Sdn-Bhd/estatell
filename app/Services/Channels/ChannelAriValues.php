@@ -2,6 +2,7 @@
 
 namespace App\Services\Channels;
 
+use App\Enums\ChannelSellMode;
 use App\Enums\PackageUnit;
 use App\Enums\PricingBasis;
 use App\Enums\Weekday;
@@ -56,11 +57,11 @@ class ChannelAriValues
     }
 
     /**
-     * The values of one pair by date: `rate` (per room) or `rates` (per person, by adults), and the restrictions.
+     * The values of one pair by date: `rate` (per room) or `rates` (per person, by adults), and the restrictions. `$sellMode` is how the pair was sent to the channel manager (the mapping's), not what the plan would be sent as today.
      *
      * @return array<string, array<string, mixed>>
      */
-    public function restrictions(RatePlan $plan, RoomType $roomType, CarbonImmutable $from, CarbonImmutable $to, string $currency): array
+    public function restrictions(RatePlan $plan, RoomType $roomType, CarbonImmutable $from, CarbonImmutable $to, string $currency, ChannelSellMode $sellMode = ChannelSellMode::PerRoom): array
     {
         $plan->loadMissing(['parent.childPrices', 'childPrices', 'arrivalWeekdays']);
         $isPackage = $plan->pricing_basis === PricingBasis::Package;
@@ -72,8 +73,8 @@ class ChannelAriValues
             ->whereBetween('date', [$from->toDateString(), $to->toDateString()])
             ->get()
             ->keyBy(fn (Rate $rate): string => $rate->date->toDateString());
-        $prices = $isPackage ? $this->packagePrices($plan, $roomType, $from, $to, $currency) : $this->nightlyPrices($plan, $roomType, $from, $to, $currency);
-        $occupancies = $this->occupancies($plan, $roomType);
+        $occupancies = $this->occupancies($sellMode, $roomType);
+        $prices = $isPackage ? $this->packagePrices($plan, $roomType, $from, $to, $currency, $occupancies) : $this->nightlyPrices($plan, $roomType, $from, $to, $currency, $occupancies);
         $values = [];
 
         for ($date = $from; $date->lte($to); $date = $date->addDay()) {
@@ -92,7 +93,7 @@ class ChannelAriValues
             ];
 
             if ($price !== null) {
-                $value += $this->isPerPerson($plan)
+                $value += $sellMode === ChannelSellMode::PerPerson
                     ? ['rates' => array_map(fn (int $adults): array => ['occupancy' => $adults, 'rate' => $price[$adults]], $occupancies)]
                     : ['rate' => $price[$roomType->max_adults]];
             }
@@ -103,17 +104,12 @@ class ChannelAriValues
         return $values;
     }
 
-    public function isPerPerson(RatePlan $plan): bool
-    {
-        return $this->capability->isPerGuestPackage($plan) || $plan->pricing_basis === PricingBasis::PerGuest;
-    }
-
     /**
      * Prices of an own-rate or derived plan, by date then adults. A date without a rate amount has none.
      *
      * @return array<string, array<int, string>>
      */
-    private function nightlyPrices(RatePlan $plan, RoomType $roomType, CarbonImmutable $from, CarbonImmutable $to, string $currency): array
+    private function nightlyPrices(RatePlan $plan, RoomType $roomType, CarbonImmutable $from, CarbonImmutable $to, string $currency, array $occupancies): array
     {
         $pricingPlan = $plan->parent ?? $plan;
         $dates = Rate::query()
@@ -128,7 +124,7 @@ class ChannelAriValues
         $prices = [];
 
         foreach ($this->runs($dates->values()->all()) as [$start, $end]) {
-            foreach ($this->occupancies($plan, $roomType) as $adults) {
+            foreach ($occupancies as $adults) {
                 $stay = new StayContext($pricingPlan, $roomType, $adults, [], 1, $currency);
 
                 try {
@@ -152,7 +148,7 @@ class ChannelAriValues
      *
      * @return array<string, array<int, string>>
      */
-    private function packagePrices(RatePlan $plan, RoomType $roomType, CarbonImmutable $from, CarbonImmutable $to, string $currency): array
+    private function packagePrices(RatePlan $plan, RoomType $roomType, CarbonImmutable $from, CarbonImmutable $to, string $currency, array $occupancies): array
     {
         $pricingPlan = $plan->parent ?? $plan;
         $nights = max(1, (int) $plan->fixed_nights);
@@ -168,7 +164,7 @@ class ChannelAriValues
             $start = CarbonImmutable::parse($period->arrival_from)->max($from);
             $end = CarbonImmutable::parse($period->arrival_to)->min($to);
 
-            foreach ($this->occupancies($plan, $roomType) as $adults) {
+            foreach ($occupancies as $adults) {
                 $stayTotal = $this->packageStay($pricingPlan, $roomType, $period, $adults, $currency, $plan);
 
                 for ($date = $start; $date->lte($end); $date = $date->addDay()) {
@@ -203,9 +199,9 @@ class ChannelAriValues
      *
      * @return list<int>
      */
-    private function occupancies(RatePlan $plan, RoomType $roomType): array
+    private function occupancies(ChannelSellMode $sellMode, RoomType $roomType): array
     {
-        return $this->isPerPerson($plan) ? range(1, $roomType->max_adults) : [$roomType->max_adults];
+        return $sellMode === ChannelSellMode::PerPerson ? range(1, $roomType->max_adults) : [$roomType->max_adults];
     }
 
     /**

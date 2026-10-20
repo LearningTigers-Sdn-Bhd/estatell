@@ -4,10 +4,11 @@ namespace App\Services\Channels\Channex;
 
 use App\Services\Channels\ChannelManagerDriver;
 use App\Services\Channels\ChannelStructureSyncFailed;
+use Closure;
 use LogicException;
 
 /**
- * The Channex implementation. `adapter`, the structure calls and the ARI pushes are built. The other calls arrive with the commit that
+ * The Channex implementation. `adapter`, the structure calls, the ARI pushes and the booking feed are built. The other calls arrive with the commit that
  * needs them and throw until then, so the interface stays stable.
  */
 class ChannexDriver implements ChannelManagerDriver
@@ -19,25 +20,34 @@ class ChannexDriver implements ChannelManagerDriver
         return $this->client->get('/channels/adapter', ['code' => $adapterCode])['data'] ?? [];
     }
 
-    public function syncStructure(array $structure): array
+    public function syncStructure(array $structure, ?Closure $onProgress = null): array
     {
         $partial = ['property_id' => null, 'room_types' => []];
+        $total = 1 + count($structure['room_types']) + array_sum(array_map(fn (array $roomType): int => count($roomType['rate_plans']), $structure['room_types']));
+        $done = 0;
+        $progress = function () use (&$done, $total, $onProgress): void {
+            $done++;
+
+            if ($onProgress !== null) {
+                $onProgress($done, $total);
+            }
+        };
 
         try {
             ['id' => $propertyId, 'max_room_types' => $maxRoomTypes, 'max_rate_plans' => $maxRatePlans] = $this->upsertProperty($structure['property']);
             $partial['property_id'] = $propertyId;
             $this->assertWithinLimits($structure, $maxRoomTypes, $maxRatePlans, $partial);
+            $progress();
+            $existingPlans = $this->existingRatePlans($propertyId);
 
             foreach ($structure['room_types'] as $roomTypeKey => $roomType) {
                 $roomTypeId = $this->upsert('/room_types', 'room_type', $roomType['external_id'], [...$roomType['payload'], 'property_id' => $propertyId]);
                 $partial['room_types'][$roomTypeKey] = ['id' => $roomTypeId, 'rate_plans' => []];
+                $progress();
 
                 foreach ($roomType['rate_plans'] as $ratePlanKey => $ratePlan) {
-                    $partial['room_types'][$roomTypeKey]['rate_plans'][$ratePlanKey] = $this->upsert('/rate_plans', 'rate_plan', $ratePlan['external_id'], [
-                        ...$ratePlan['payload'],
-                        'property_id' => $propertyId,
-                        'room_type_id' => $roomTypeId,
-                    ]);
+                    $partial['room_types'][$roomTypeKey]['rate_plans'][$ratePlanKey] = $this->upsertRatePlan($existingPlans, $ratePlan, $propertyId, $roomTypeId);
+                    $progress();
                 }
             }
         } catch (ChannexRetryLater $exception) {
@@ -71,12 +81,29 @@ class ChannexDriver implements ChannelManagerDriver
 
     public function fetchRevisions(string $externalPropertyId): array
     {
-        $this->notBuilt('ingest channel bookings');
+        $response = $this->client->get('/booking_revisions/feed', [
+            'filter' => ['property_id' => $externalPropertyId],
+            'order' => ['inserted_at' => 'asc'],
+        ]);
+
+        return array_values(array_map(
+            fn (array $revision): array => ['id' => $revision['id'] ?? null, ...($revision['attributes'] ?? [])],
+            $response['data'] ?? [],
+        ));
     }
 
+    /**
+     * A 404 means Channex no longer has the revision, so there is nothing left to acknowledge.
+     */
     public function acknowledge(string $externalRevisionId): void
     {
-        $this->notBuilt('ingest channel bookings');
+        try {
+            $this->client->post("/booking_revisions/{$externalRevisionId}/ack");
+        } catch (ChannexRequestFailed $exception) {
+            if ($exception->status !== 404) {
+                throw $exception;
+            }
+        }
     }
 
     public function testConnection(string $externalPropertyId, string $adapterCode, array $settings): array
@@ -186,15 +213,78 @@ class ChannexDriver implements ChannelManagerDriver
     }
 
     /**
+     * The rate plans Channex holds for the property, as the truth for this sync: by id and by title. A plan is found by
+     * its saved id, or by its title when the id is lost (a sync that stopped before it saved the new id, or a plan made
+     * by hand). Titles are unique per property at Channex.
+     *
+     * @return array{by_id: array<string, array{id: string, title: string, sell_mode: string}>, by_title: array<string, array{id: string, title: string, sell_mode: string}>}
+     */
+    private function existingRatePlans(string $propertyId): array
+    {
+        $byId = [];
+        $byTitle = [];
+
+        for ($page = 1; $page <= 20; $page++) {
+            $response = $this->client->get('/rate_plans', ['filter' => ['property_id' => $propertyId], 'pagination' => ['page' => $page, 'limit' => 100]]);
+            $items = $response['data'] ?? [];
+
+            foreach ($items as $item) {
+                $plan = ['id' => (string) $item['id'], 'title' => (string) ($item['attributes']['title'] ?? ''), 'sell_mode' => (string) ($item['attributes']['sell_mode'] ?? '')];
+                $byId[$plan['id']] = $plan;
+                $byTitle[$plan['title']] = $plan;
+            }
+
+            if (count($items) < 100) {
+                break;
+            }
+        }
+
+        return ['by_id' => $byId, 'by_title' => $byTitle];
+    }
+
+    /**
+     * Update a rate plan, or create it. Channex does not allow `sell_mode` to change on a plan, so a plan that Channex
+     * holds in another mode is deleted and created again under the same title (the delete comes first, because titles
+     * are unique per property). Channex refuses the delete while an OTA uses the plan, and `force` is never sent: the
+     * refusal is the admin's cue to unmap it first.
+     *
+     * @param  array{by_id: array<string, array{id: string, title: string, sell_mode: string}>, by_title: array<string, array{id: string, title: string, sell_mode: string}>}  $existing
+     * @param  array{external_id: string|null, payload: array<string, mixed>}  $ratePlan
+     */
+    private function upsertRatePlan(array $existing, array $ratePlan, string $propertyId, string $roomTypeId): string
+    {
+        $payload = [...$ratePlan['payload'], 'property_id' => $propertyId, 'room_type_id' => $roomTypeId];
+        $found = $existing['by_id'][$ratePlan['external_id']] ?? $existing['by_title'][$payload['title']] ?? null;
+
+        if ($found !== null && $found['sell_mode'] !== $payload['sell_mode']) {
+            $this->remove("/rate_plans/{$found['id']}");
+            $found = null;
+        }
+
+        return $found === null
+            ? $this->idOf($this->client->post('/rate_plans', ['rate_plan' => $payload]))
+            : $this->idOf($this->client->put("/rate_plans/{$found['id']}", ['rate_plan' => $payload]));
+    }
+
+    /**
+     * Update a record, or create it. A record that Channex no longer has (removed by hand in its dashboard) is created
+     * again instead of failing the whole sync.
+     *
      * @param  array<string, mixed>  $payload
      */
     private function upsert(string $path, string $key, ?string $externalId, array $payload): string
     {
-        $response = $externalId === null
-            ? $this->client->post($path, [$key => $payload])
-            : $this->client->put("{$path}/{$externalId}", [$key => $payload]);
+        if ($externalId !== null) {
+            try {
+                return $this->idOf($this->client->put("{$path}/{$externalId}", [$key => $payload]));
+            } catch (ChannexRequestFailed $exception) {
+                if ($exception->status !== 404) {
+                    throw $exception;
+                }
+            }
+        }
 
-        return $this->idOf($response);
+        return $this->idOf($this->client->post($path, [$key => $payload]));
     }
 
     /**

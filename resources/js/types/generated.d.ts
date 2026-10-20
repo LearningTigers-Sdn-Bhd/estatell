@@ -217,6 +217,27 @@ enabled: boolean,
 };
 }
 namespace Channels {
+export type ChannelAlertData = {
+id: number,
+event: App.Data.Shared.BadgeData,
+bookingId: string | null,
+detail: string | null,
+createdAt: string,
+};
+export type ChannelRevisionData = {
+id: number,
+bookingCode: string,
+channel: string,
+kind: App.Data.Shared.BadgeData,
+guest: string | null,
+arrival: string | null,
+departure: string | null,
+rooms: number,
+reservationReference: string | null,
+error: string | null,
+saved: boolean,
+receivedAt: string,
+};
 export type ChannelStructurePreviewData = {
 rows: App.Data.Channels.ChannelStructureRowData[],
 roomTypes: number,
@@ -230,6 +251,13 @@ ratePlan: string,
 sellMode: string,
 support: App.Data.Shared.BadgeData,
 detail: string | null,
+};
+export type ChannelSyncProgressData = {
+state: App.Enums.ChannelSyncState,
+done: number,
+total: number,
+message: string | null,
+updatedAt: string | null,
 };
 export type ChannelSyncedRoomTypeData = {
 mappingId: number,
@@ -249,7 +277,11 @@ waitingChanges: number,
 canFullRefresh: boolean,
 lastError: string | null,
 preview: App.Data.Channels.ChannelStructurePreviewData,
+sync: App.Data.Channels.ChannelSyncProgressData,
 synced: App.Data.Channels.ChannelSyncedRoomTypeData[],
+failedBookings: App.Data.Channels.ChannelRevisionData[],
+alerts: App.Data.Channels.ChannelAlertData[],
+recentBookings: App.Data.Channels.ChannelRevisionData[],
 };
 export type OtaChannelData = {
 id: number,
@@ -3525,9 +3557,12 @@ export type BoatMode = 'scheduled' | 'charter' | 'own';
 export type BookingSourceIcon = 'phone' | 'message-circle' | 'mail' | 'globe' | 'users' | 'handshake' | 'briefcase-business' | 'building-2' | 'footprints' | 'ticket' | 'megaphone' | 'star';
 export type BookingSourceType = 'direct' | 'ota' | 'company' | 'walk_in';
 export type BusinessDateStatus = 'open' | 'auditing' | 'closed';
+export type ChannelAlertEvent = 'non_acked_booking' | 'booking_unmapped_room' | 'booking_unmapped_rate' | 'sync_error' | 'rate_error';
 export type ChannelPropertyStatus = 'not_synced' | 'synced' | 'paused' | 'error';
 export type ChannelProvider = 'channex';
+export type ChannelSellMode = 'per_room' | 'per_person';
 export type ChannelSupport = 'full' | 'flattened' | 'unsupported';
+export type ChannelSyncState = 'idle' | 'queued' | 'running' | 'done' | 'failed';
 export type ChargingUnit = 'per_item' | 'per_night' | 'per_stay' | 'per_guest_night' | 'per_guest';
 export type CheckInRoomState = 'assigned' | 'auto' | 'none';
 export type ColumnAlign = 'left' | 'center' | 'right';
@@ -3570,7 +3605,7 @@ export type MediaDisk = 'local' | 'r2';
 export type MissedArrivalPolicy = 'mark_no_show' | 'keep_as_late_arrival';
 export type NavigationContext = 'front-desk' | 'finance' | 'reports' | 'settings';
 export type NotificationChannel = 'mail' | 'database';
-export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions' | 'night_audit_failed' | 'registration_card_link' | 'onboarding_reminder' | 'dorm_strategy_changed' | 'support_access_used' | 'go_live_approved' | 'go_live_rejected' | 'portal_booking_created' | 'portal_booking_cancelled' | 'portal_cancellation_requested';
+export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions' | 'night_audit_failed' | 'registration_card_link' | 'onboarding_reminder' | 'dorm_strategy_changed' | 'support_access_used' | 'go_live_approved' | 'go_live_rejected' | 'portal_booking_created' | 'portal_booking_cancelled' | 'portal_cancellation_requested' | 'channel_booking_received' | 'channel_booking_cancelled';
 export type OldFolioMode = 'one_amount' | 'copy_line_by_line';
 export type OldFolioRowKind = 'room' | 'charge' | 'tax' | 'payment';
 export type OnboardingPhase = 'property' | 'rooms' | 'finance' | 'prices' | 'channels' | 'review';
@@ -3613,6 +3648,7 @@ export type ReportGroup = 'day' | 'month' | 'method' | 'staff';
 export type ReportKey = 'arrivals' | 'departures' | 'in-house' | 'occupancy' | 'revenue' | 'payments' | 'folio-ledger' | 'tax' | 'meal-counts' | 'night-audit-history' | 'outstanding-balance' | 'deposit-liability' | 'non-national-guests' | 'police-report' | 'housekeeping-tasks' | 'boat-manifest';
 export type ReservationRoomBoxState = 'assigned' | 'unassigned' | 'auto_assign' | 'cancelled' | 'no_show';
 export type ReservationStatus = 'confirmed' | 'in_house' | 'completed' | 'cancelled';
+export type RevisionKind = 'new' | 'modified' | 'cancelled';
 export type RoomBlockReason = 'maintenance' | 'owner_use' | 'out_of_order' | 'other';
 export type RoutingRuleSource = 'billing_mode' | 'manual';
 export type SellUnit = 'room' | 'bed';

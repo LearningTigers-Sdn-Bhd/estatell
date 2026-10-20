@@ -49,7 +49,15 @@ Results and reasons come from `ChannelCapability` (see [Mappings and capability]
 
 ### Built with the structure sync
 
-The tab has three parts so far: the Channex card (status, the last sync, the last error, **Preview sync** or **Sync again**), the preview Dialog above (the sync button is off while the preview is blocked), and **On Channex**, which lists the room types and rate plans Channex has with a **Remove** button on each (an AlertDialog). The Channex card also shows when changes were last sent and the last full refresh, the paused line ("Paused until 09:12. 6 changes waiting, none lost.") while `paused_until` is in the future, and a **Full refresh (500 days)** button (see [ARI sync](04-ari-sync.md#full-sync)). The OTAs card says "Sync to Channex first." until a property is synced; connecting OTAs, Alerts, Recent bookings and **Pause sync** come later. The tab and its routes return 404 while `ChannelManager` is off.
+The tab has three parts so far: the Channex card (status, the last sync, the last error, **Preview sync** or **Sync again**), the preview Dialog above (the sync button is off while the preview is blocked), and **On Channex**, which lists the room types and rate plans Channex has with a **Remove** button on each (an AlertDialog). The Channex card also shows when changes were last sent and the last full refresh, the paused line ("Paused until 09:12. 6 changes waiting, none lost.") while `paused_until` is in the future, and a **Full refresh (500 days)** button (see [ARI sync](04-ari-sync.md#full-sync)). The OTAs card says "Sync to Channex first." until a property is synced; connecting OTAs and **Pause sync** come later. The tab and its routes return 404 while `ChannelManager` is off.
+
+### Built with booking ingestion
+
+Below **On Channex** the tab shows **Alerts** and **Recent bookings from channels**. Alerts lists the revisions that were not saved (**Retry**) and the open alert webhooks (**Close**). Recent bookings lists the last 20 revisions with the Channex booking code, channel, kind, guest, stay, room count and the reservation reference. Both are read-only apart from the buttons. **Fix mapping** comes with the OTA mapping screen. The routes are `admin.properties.channels.revisions.retry` and `admin.properties.channels.alerts.resolve` (POST, `support.2fa`).
+
+### Sync in the background
+
+**Sync to Channex** (and **Sync again**) queue the sync and close the Dialog. The Channex card then shows a progress bar and the line "Syncing to Channex: 12 of 26 steps. You can leave this page.", the sync buttons are off, and one toast keeps the same count until the sync ends. The toast then becomes "Synced to Channex" or "Sync to Channex failed" with the reason. If the admin was not on the page when it ended, the card shows the result (status and last error) and no toast. See [Background sync](02-mappings-and-capability.md#payloads).
 
 ### Live
 

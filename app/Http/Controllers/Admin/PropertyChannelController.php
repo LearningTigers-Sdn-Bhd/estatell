@@ -5,8 +5,12 @@ namespace App\Http\Controllers\Admin;
 use App\Actions\Channels\QueueChannelFullSync;
 use App\Actions\Channels\RemoveChannelRatePlan;
 use App\Actions\Channels\RemoveChannelRoomType;
-use App\Actions\Channels\SyncChannelStructure;
+use App\Actions\Channels\ResolveChannelAlert;
+use App\Actions\Channels\RetryChannelRevision;
+use App\Actions\Channels\StartChannelStructureSync;
 use App\Http\Controllers\Controller;
+use App\Models\ChannelAlert;
+use App\Models\ChannelBookingRevision;
 use App\Models\ChannelRatePlanMapping;
 use App\Models\ChannelRoomTypeMapping;
 use App\Models\Property;
@@ -18,11 +22,14 @@ use Inertia\Inertia;
 class PropertyChannelController extends Controller
 {
     /**
-     * Send the property's room types and rate plans to Channex, or update them.
+     * Queue the sync of the property's room types and rate plans to Channex. It runs in the background and the tab
+     * shows its progress, so a started sync gives no toast: the progress toast is the feedback. A refusal does.
      */
-    public function sync(Request $request, Property $property, SyncChannelStructure $syncChannelStructure): RedirectResponse
+    public function sync(Request $request, Property $property, StartChannelStructureSync $startChannelStructureSync): RedirectResponse
     {
-        return $this->respond($property, $syncChannelStructure($request->user(), $property));
+        $result = $startChannelStructureSync($request->user(), $property);
+
+        return $result->ok ? back(fallback: route('admin.properties.channels', $property)) : $this->respond($property, $result);
     }
 
     /**
@@ -55,6 +62,26 @@ class PropertyChannelController extends Controller
         abort_unless($roomTypeMapping->channelProperty->property_id === $property->id, 404);
 
         return $this->respond($property, $removeChannelRoomType($request->user(), $roomTypeMapping));
+    }
+
+    /**
+     * Try again to save a booking that was refused.
+     */
+    public function retryRevision(Request $request, Property $property, ChannelBookingRevision $revision, RetryChannelRevision $retryChannelRevision): RedirectResponse
+    {
+        abort_unless($revision->channelProperty->property_id === $property->id, 404);
+
+        return $this->respond($property, $retryChannelRevision($request->user(), $revision));
+    }
+
+    /**
+     * Close an alert.
+     */
+    public function resolveAlert(Request $request, Property $property, ChannelAlert $alert, ResolveChannelAlert $resolveChannelAlert): RedirectResponse
+    {
+        abort_unless($alert->channelProperty->property_id === $property->id, 404);
+
+        return $this->respond($property, $resolveChannelAlert($request->user(), $alert));
     }
 
     private function respond(Property $property, ChannelActionResult $result): RedirectResponse

@@ -4,6 +4,7 @@ use App\Actions\Channels\FlushChannelAri;
 use App\Actions\Channels\QueueChannelFullSync;
 use App\Enums\AriChangeKind;
 use App\Enums\ChannelPropertyStatus;
+use App\Enums\ChannelSellMode;
 use App\Features\ChannelManager;
 use App\Jobs\FlushChannelAriJob;
 use App\Models\ChannelAriChange;
@@ -239,4 +240,35 @@ test('the nightly command queues synced properties with the feature on, a few se
 
     Queue::assertPushed(FlushChannelAriJob::class, 1);
     Queue::assertPushed(FlushChannelAriJob::class, fn (FlushChannelAriJob $job): bool => $job->channelPropertyId === $first['channelProperty']->id && $job->full);
+});
+
+test('a pair synced per person sends one rate for each adult count in the one restrictions call', function () {
+    $setup = channelAriSetup(rooms: 2, planAttributes: ['extra_adult_amount' => '60.00'], roomTypeAttributes: ['max_adults' => 3, 'base_occupancy' => 2]);
+    $setup['channelProperty']->ratePlanMappings()->update(['sell_mode' => ChannelSellMode::PerPerson]);
+    channelRate($setup['ratePlan'], $setup['roomType'], '2026-10-20', '200.00');
+    waitingChange($setup, AriChangeKind::Rates, '2026-10-20', '2026-10-20');
+    fakeChannexAri();
+
+    expect(runFlush($setup))->toBeNull();
+
+    expect(channexCalls())->toHaveCount(1);
+    $value = channexBodies('POST', '/restrictions')[0]['values'][0];
+    expect($value)->not->toHaveKey('rate')
+        ->and($value['rates'])->toBe([
+            ['occupancy' => 1, 'rate' => '200.00'],
+            ['occupancy' => 2, 'rate' => '200.00'],
+            ['occupancy' => 3, 'rate' => '260.00'],
+        ]);
+});
+
+test('a pair synced per room keeps sending one rate until the structure is synced again', function () {
+    $setup = channelAriSetup(rooms: 2, planAttributes: ['extra_adult_amount' => '60.00'], roomTypeAttributes: ['max_adults' => 3, 'base_occupancy' => 2]);
+    channelRate($setup['ratePlan'], $setup['roomType'], '2026-10-20', '200.00');
+    waitingChange($setup, AriChangeKind::Rates, '2026-10-20', '2026-10-20');
+    fakeChannexAri();
+
+    runFlush($setup);
+
+    $value = channexBodies('POST', '/restrictions')[0]['values'][0];
+    expect($value['rate'])->toBe('260.00')->and($value)->not->toHaveKey('rates');
 });

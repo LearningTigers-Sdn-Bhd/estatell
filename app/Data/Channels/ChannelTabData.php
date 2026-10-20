@@ -16,6 +16,9 @@ class ChannelTabData extends Data
 {
     /**
      * @param  list<ChannelSyncedRoomTypeData>  $synced
+     * @param  list<ChannelRevisionData>  $failedBookings
+     * @param  list<ChannelAlertData>  $alerts
+     * @param  list<ChannelRevisionData>  $recentBookings
      */
     public function __construct(
         public BadgeData $status,
@@ -27,10 +30,14 @@ class ChannelTabData extends Data
         public bool $canFullRefresh,
         public ?string $lastError,
         public ChannelStructurePreviewData $preview,
+        public ChannelSyncProgressData $sync,
         public array $synced,
+        public array $failedBookings,
+        public array $alerts,
+        public array $recentBookings,
     ) {}
 
-    public static function forProperty(?ChannelProperty $channelProperty, ChannelStructure $structure): self
+    public static function forProperty(?ChannelProperty $channelProperty, ChannelStructure $structure, ChannelSyncProgressData $sync): self
     {
         return new self(
             status: BadgeData::fromChannelPropertyStatus($channelProperty === null ? ChannelPropertyStatus::NotSynced : $channelProperty->status),
@@ -42,8 +49,28 @@ class ChannelTabData extends Data
             canFullRefresh: $channelProperty?->status === ChannelPropertyStatus::Synced,
             lastError: $channelProperty?->last_error,
             preview: ChannelStructurePreviewData::fromStructure($structure),
+            sync: $sync,
             synced: $channelProperty === null ? [] : self::synced($channelProperty),
+            failedBookings: $channelProperty === null ? [] : self::failedBookings($channelProperty),
+            alerts: $channelProperty === null ? [] : $channelProperty->alerts()->open()->latest('id')->get()->map(ChannelAlertData::fromModel(...))->all(),
+            recentBookings: $channelProperty === null ? [] : self::recentBookings($channelProperty),
         );
+    }
+
+    /**
+     * @return list<ChannelRevisionData>
+     */
+    private static function failedBookings(ChannelProperty $channelProperty): array
+    {
+        return $channelProperty->bookingRevisions()->failed()->with('reservation')->oldest('id')->get()->map(ChannelRevisionData::fromModel(...))->all();
+    }
+
+    /**
+     * @return list<ChannelRevisionData>
+     */
+    private static function recentBookings(ChannelProperty $channelProperty): array
+    {
+        return $channelProperty->bookingRevisions()->with('reservation')->latest('id')->limit(20)->get()->map(ChannelRevisionData::fromModel(...))->all();
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Services\Channels\Channex;
 
+use App\Enums\ChannelSellMode;
 use App\Enums\ChannelSupport;
 use App\Enums\Weekday;
 use App\Models\Property;
@@ -75,16 +76,16 @@ class ChannexStructureMapper
      */
     public function ratePlan(RatePlan $ratePlan, RoomType $roomType, ChannelCapabilityResult $result, string $currency): array
     {
-        $perPerson = $this->capability->isPerGuestPackage($ratePlan) || $ratePlan->pricing_basis->value === 'per_guest';
+        $sellMode = $this->capability->sellMode($ratePlan, $roomType);
         $nights = $result->support === ChannelSupport::Flattened ? (int) $ratePlan->fixed_nights : null;
 
         return [
             'title' => $this->ratePlanTitle($ratePlan, $roomType),
             'currency' => $currency,
-            'sell_mode' => $perPerson ? 'per_person' : 'per_room',
+            'sell_mode' => $sellMode->value,
             'rate_mode' => 'manual',
-            'options' => $this->options($roomType, $perPerson),
-            'children_fee' => '0.00',
+            'options' => $this->options($roomType, $sellMode),
+            'children_fee' => $this->capability->childFee($ratePlan),
             'infant_fee' => '0.00',
             'min_stay_arrival' => array_fill(0, 7, $nights ?? 1),
             'min_stay_through' => array_fill(0, 7, $nights ?? 1),
@@ -96,14 +97,14 @@ class ChannexStructureMapper
     }
 
     /**
-     * Per room: one option at the top occupancy. Per person: one option for each adult count, the top one primary.
+     * Per room: one option at the top occupancy. Per person (a per-guest plan, or a per-room plan whose price depends on the adults): one option for each adult count, the top one primary.
      * Prices are sent with availability and rates, so each option starts at 0.
      *
      * @return list<array{occupancy: int, is_primary: bool, rate: int}>
      */
-    private function options(RoomType $roomType, bool $perPerson): array
+    private function options(RoomType $roomType, ChannelSellMode $sellMode): array
     {
-        $occupancies = $perPerson ? range(1, $roomType->max_adults) : [$roomType->max_adults];
+        $occupancies = $sellMode === ChannelSellMode::PerPerson ? range(1, $roomType->max_adults) : [$roomType->max_adults];
 
         return array_map(
             fn (int $occupancy): array => ['occupancy' => $occupancy, 'is_primary' => $occupancy === $roomType->max_adults, 'rate' => 0],

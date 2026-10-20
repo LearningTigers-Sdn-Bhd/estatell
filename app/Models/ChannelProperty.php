@@ -67,6 +67,22 @@ class ChannelProperty extends Model
     }
 
     /**
+     * @return HasMany<ChannelBookingRevision, $this>
+     */
+    public function bookingRevisions(): HasMany
+    {
+        return $this->hasMany(ChannelBookingRevision::class);
+    }
+
+    /**
+     * @return HasMany<ChannelAlert, $this>
+     */
+    public function alerts(): HasMany
+    {
+        return $this->hasMany(ChannelAlert::class);
+    }
+
+    /**
      * @return HasMany<ChannelRoomTypeMapping, $this>
      */
     public function roomTypeMappings(): HasMany

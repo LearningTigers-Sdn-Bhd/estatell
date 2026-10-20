@@ -55,3 +55,4 @@ Schedule::command('night-audit:dispatch-scheduled')->everyFiveMinutes()->without
 Schedule::command('onboarding:send-reminders')->hourly()->withoutOverlapping()->onOneServer();
 
 Schedule::command('channels:full-sync')->dailyAt('03:00')->timezone('Asia/Kuala_Lumpur')->onOneServer();
+Schedule::command('channels:pull-revisions')->everyFiveMinutes()->onOneServer();

@@ -4,6 +4,7 @@ namespace App\Services\Channels;
 
 use App\Services\Channels\Channex\ChannexRequestFailed;
 use App\Services\Channels\Channex\ChannexRetryLater;
+use Closure;
 
 /**
  * What every channel manager provider must do. The signatures are a first cut: the commits that build each call
@@ -17,11 +18,13 @@ interface ChannelManagerDriver
      * `ChannelStructureSyncFailed` with the ids saved so far.
      *
      * @param  array{property: array{external_id: string|null, payload: array<string, mixed>}, room_types: array<int, array{external_id: string|null, payload: array<string, mixed>, rate_plans: array<int, array{external_id: string|null, payload: array<string, mixed>}>}>}  $structure
+     *                                                                                                                                                                                                                                                                                      `$onProgress` is called with the steps done and the steps in all, after the property, each room type and each rate plan.
+     * @param  (Closure(int, int): void)|null  $onProgress
      * @return array{property_id: string, room_types: array<int, array{id: string, rate_plans: array<int, string>}>}
      *
      * @throws ChannelStructureSyncFailed
      */
-    public function syncStructure(array $structure): array;
+    public function syncStructure(array $structure, ?Closure $onProgress = null): array;
 
     /**
      * Remove a rate plan at the provider. The provider refuses while an OTA still uses it.

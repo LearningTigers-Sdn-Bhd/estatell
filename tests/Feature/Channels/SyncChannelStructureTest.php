@@ -1,10 +1,13 @@
 <?php
 
 use App\Actions\Channels\SyncChannelStructure;
+use App\Enums\AriChangeKind;
 use App\Enums\ChannelPropertyStatus;
+use App\Enums\ChannelSellMode;
 use App\Enums\PackageUnit;
 use App\Enums\Weekday;
 use App\Jobs\FlushChannelAriJob;
+use App\Models\ChannelAriChange;
 use App\Models\ChannelProperty;
 use App\Models\ChannelRatePlanMapping;
 use App\Models\ChannelRoomTypeMapping;
@@ -80,9 +83,10 @@ test('syncing again updates the same records and never duplicates them', functio
 
     syncStructure($property);
     $roomTypeId = ChannelRoomTypeMapping::query()->value('external_room_type_id');
+    $ratePlanId = ChannelRatePlanMapping::query()->value('external_rate_plan_id');
     $deluxe->update(['name' => 'Deluxe King Plus']);
     resetChannexFake();
-    fakeChannex();
+    fakeChannex(ratePlans: [$ratePlanId => ['title' => 'Standard · Deluxe King', 'sell_mode' => 'per_room']]);
 
     $result = syncStructure($property->refresh());
 
@@ -114,6 +118,165 @@ test('a per guest plan is sent per person with one price option for each adult',
             ['occupancy' => 2, 'is_primary' => false, 'rate' => 0],
             ['occupancy' => 3, 'is_primary' => true, 'rate' => 0],
         ]);
+});
+
+test('a per room plan that charges extra adults is sent per person, with the child fee, and the sell mode is saved', function () {
+    $property = channelProperty();
+    $garden = channelRoomType($property, 'Garden Room', 2, ['max_adults' => 3, 'base_occupancy' => 2]);
+    $twin = channelRoomType($property, 'Twin Room', 2, ['max_adults' => 2, 'base_occupancy' => 2]);
+    $plan = channelRatePlan($property, [$garden, $twin], 'Room Only');
+    $plan->update(['extra_adult_amount' => '60.00', 'extra_child_amount' => '30.00']);
+    fakeChannex();
+
+    syncStructure($property);
+
+    $bodies = collect(channexBodies('POST', '/rate_plans'))->pluck('rate_plan')->keyBy('title');
+    expect($bodies['Room Only · Garden Room']['sell_mode'])->toBe('per_person')
+        ->and($bodies['Room Only · Garden Room']['children_fee'])->toBe('30.00')
+        ->and(collect($bodies['Room Only · Garden Room']['options'])->pluck('occupancy')->all())->toBe([1, 2, 3])
+        ->and($bodies['Room Only · Twin Room']['sell_mode'])->toBe('per_room')
+        ->and($bodies['Room Only · Twin Room']['options'])->toBe([['occupancy' => 2, 'is_primary' => true, 'rate' => 0]]);
+    expect(ChannelRatePlanMapping::query()->where('room_type_id', $garden->id)->sole()->sell_mode)->toBe(ChannelSellMode::PerPerson)
+        ->and(ChannelRatePlanMapping::query()->where('room_type_id', $twin->id)->sole()->sell_mode)->toBe(ChannelSellMode::PerRoom);
+});
+
+test('a plan that changes sell mode on a later sync is replaced at Channex and its rates are queued again', function () {
+    Queue::fake();
+    $property = channelProperty();
+    $garden = channelRoomType($property, 'Garden Room', 2, ['max_adults' => 3, 'base_occupancy' => 2]);
+    $plan = channelRatePlan($property, [$garden], 'Room Only');
+    fakeChannex();
+    syncStructure($property);
+    $mapping = ChannelRatePlanMapping::query()->sole();
+    $oldId = $mapping->external_rate_plan_id;
+    expect($mapping->sell_mode)->toBe(ChannelSellMode::PerRoom)
+        ->and(ChannelAriChange::query()->where('rate_plan_id', $plan->id)->where('kind', AriChangeKind::Rates)->count())->toBe(0);
+
+    $plan->update(['extra_adult_amount' => '60.00']);
+    syncStructure($property);
+
+    $requests = collect(channexRequests())->filter(fn ($request) => str_contains($request->url(), '/rate_plans'))->values();
+    $deleteAt = $requests->search(fn ($request) => $request->method() === 'DELETE' && str_ends_with($request->url(), "/rate_plans/{$oldId}"));
+    $createAt = $requests->search(fn ($request) => $request->method() === 'POST' && ($request->data()['rate_plan']['sell_mode'] ?? null) === 'per_person');
+    expect($deleteAt)->not->toBeFalse()
+        ->and($createAt)->toBeGreaterThan($deleteAt)
+        ->and($requests->filter(fn ($request) => $request->method() === 'PUT')->count())->toBe(0)
+        ->and($mapping->fresh()->sell_mode)->toBe(ChannelSellMode::PerPerson)
+        ->and($mapping->fresh()->external_rate_plan_id)->not->toBe($oldId)
+        ->and(ChannelAriChange::query()->where('rate_plan_id', $plan->id)->where('kind', AriChangeKind::Rates)->waiting()->count())->toBe(1);
+    Queue::assertPushed(FlushChannelAriJob::class);
+});
+
+test('a plan that Channex refuses to delete keeps its mapping and the sync reports why', function () {
+    $property = channelProperty();
+    $garden = channelRoomType($property, 'Garden Room', 2, ['max_adults' => 3, 'base_occupancy' => 2]);
+    $plan = channelRatePlan($property, [$garden], 'Room Only');
+    fakeChannex();
+    syncStructure($property);
+    $mapping = ChannelRatePlanMapping::query()->sole();
+    $plan->update(['extra_adult_amount' => '60.00']);
+    resetChannexFake();
+    Http::fake(fn ($request) => match (true) {
+        $request->method() === 'GET' && str_contains($request->url(), '/rate_plans') => Http::response(['data' => [['id' => $mapping->external_rate_plan_id, 'type' => 'rate_plan', 'attributes' => ['title' => 'Room Only · Garden Room', 'sell_mode' => 'per_room']]]], 200),
+        $request->method() === 'DELETE' => Http::response(['errors' => ['code' => 'validation_error', 'details' => ['base' => ['is used by a channel']]]], 422),
+        default => Http::response(['data' => ['id' => 'x', 'attributes' => ['max_count_of_room_types' => 20, 'max_count_of_rate_plans' => 200]]], 200),
+    });
+
+    $result = syncStructure($property);
+
+    expect($result->ok)->toBeFalse()
+        ->and($result->message)->toContain('is used by a channel')
+        ->and($mapping->fresh()->sell_mode)->toBe(ChannelSellMode::PerRoom)
+        ->and(ChannelProperty::query()->sole()->status)->toBe(ChannelPropertyStatus::Error);
+});
+
+test('a plan that Channex no longer holds is created again instead of failing the sync', function () {
+    $property = channelProperty();
+    $roomType = channelRoomType($property);
+    channelRatePlan($property, [$roomType], 'Standard');
+    fakeChannex();
+    syncStructure($property);
+    resetChannexFake();
+    fakeChannex();
+
+    $result = syncStructure($property);
+
+    expect($result->ok)->toBeTrue()
+        ->and(channexBodies('POST', '/rate_plans'))->toHaveCount(1)
+        ->and(ChannelRatePlanMapping::query()->sole()->external_rate_plan_id)->toStartWith('rate_plans-');
+});
+
+test('a plan Channex holds under the title but the mapping lost is updated in place and its id saved again', function () {
+    $property = channelProperty();
+    $garden = channelRoomType($property, 'Garden Room', 2, ['max_adults' => 3, 'base_occupancy' => 2]);
+    $plan = channelRatePlan($property, [$garden], 'Room Only');
+    $plan->update(['extra_adult_amount' => '60.00']);
+    fakeChannex();
+    syncStructure($property);
+    $mapping = ChannelRatePlanMapping::query()->sole();
+    $mapping->update(['external_rate_plan_id' => 'a-deleted-id', 'sell_mode' => ChannelSellMode::PerRoom]);
+    resetChannexFake();
+    fakeChannex(ratePlans: ['held-id' => ['title' => 'Room Only · Garden Room', 'sell_mode' => 'per_person']]);
+
+    $result = syncStructure($property);
+
+    $requests = collect(channexRequests())->filter(fn ($request) => str_contains($request->url(), '/rate_plans') && $request->method() !== 'GET')->values();
+    expect($result->ok)->toBeTrue()
+        ->and($requests->map(fn ($request) => $request->method().' '.basename($request->url()))->all())->toBe(['PUT held-id'])
+        ->and($mapping->fresh()->external_rate_plan_id)->toBe('held-id')
+        ->and($mapping->fresh()->sell_mode)->toBe(ChannelSellMode::PerPerson);
+});
+
+test('a sync that stopped after replacing plans is repaired: the new plans are found by title and the old ids replaced', function () {
+    Queue::fake();
+    $property = channelProperty();
+    $garden = channelRoomType($property, 'Garden Room', 2, ['max_adults' => 3, 'base_occupancy' => 2]);
+    $plan = channelRatePlan($property, [$garden], 'Room Only');
+    fakeChannex();
+    syncStructure($property);
+    $mapping = ChannelRatePlanMapping::query()->sole();
+    $plan->update(['extra_adult_amount' => '60.00']);
+    resetChannexFake();
+    // What Channex holds after the lost request: the plan was deleted and created again per person, under a new id.
+    fakeChannex(ratePlans: ['new-id' => ['title' => 'Room Only · Garden Room', 'sell_mode' => 'per_person']]);
+
+    $result = syncStructure($property);
+
+    expect($result->ok)->toBeTrue()
+        ->and(channexBodies('POST', '/rate_plans'))->toBeEmpty()
+        ->and(collect(channexRequests())->filter(fn ($request) => $request->method() === 'DELETE')->count())->toBe(0)
+        ->and($mapping->fresh()->external_rate_plan_id)->toBe('new-id')
+        ->and($mapping->fresh()->sell_mode)->toBe(ChannelSellMode::PerPerson)
+        ->and(ChannelAriChange::query()->where('rate_plan_id', $plan->id)->where('kind', AriChangeKind::Rates)->waiting()->count())->toBe(1);
+});
+
+test('a plan added on a later sync has its rates queued, and the first sync queues none of its own', function () {
+    Queue::fake();
+    $property = channelProperty();
+    $roomType = channelRoomType($property);
+    channelRatePlan($property, [$roomType], 'Standard');
+    fakeChannex();
+    syncStructure($property);
+    expect(ChannelAriChange::query()->where('kind', AriChangeKind::Rates)->count())->toBe(0);
+    $added = channelRatePlan($property, [$roomType], 'Breakfast');
+
+    syncStructure($property->refresh());
+
+    expect(ChannelAriChange::query()->where('kind', AriChangeKind::Rates)->waiting()->pluck('rate_plan_id')->all())->toBe([$added->id]);
+});
+
+test('a plan that keeps its sell mode on a later sync queues no rates', function () {
+    Queue::fake();
+    $property = channelProperty();
+    $garden = channelRoomType($property, 'Garden Room', 2, ['max_adults' => 3, 'base_occupancy' => 2]);
+    channelRatePlan($property, [$garden], 'Room Only');
+    fakeChannex();
+    syncStructure($property);
+    ChannelAriChange::query()->delete();
+
+    syncStructure($property);
+
+    expect(ChannelAriChange::query()->count())->toBe(0);
 });
 
 test('a flat package is sent with min stay equal to max stay and closed arrival on other days', function () {
@@ -151,11 +314,12 @@ test('a refusal part-way saves the ids so far and the next sync updates instead 
     $property = channelProperty();
     $roomType = channelRoomType($property);
     channelRatePlan($property, [$roomType], 'Standard');
-    Http::fake([
-        '*/properties' => Http::response(['data' => ['id' => 'properties-1', 'attributes' => ['max_count_of_room_types' => 20, 'max_count_of_rate_plans' => 200]]], 201),
-        '*/room_types' => Http::response(['data' => ['id' => 'rt-1']], 201),
-        '*/rate_plans' => Http::response(['errors' => ['code' => 'validation_error', 'details' => ['title' => ['is taken']]]], 422),
-    ]);
+    Http::fake(fn ($request) => match (true) {
+        str_ends_with($request->url(), '/properties') => Http::response(['data' => ['id' => 'properties-1', 'attributes' => ['max_count_of_room_types' => 20, 'max_count_of_rate_plans' => 200]]], 201),
+        str_ends_with($request->url(), '/room_types') => Http::response(['data' => ['id' => 'rt-1']], 201),
+        $request->method() === 'GET' => Http::response(['data' => []], 200),
+        default => Http::response(['errors' => ['code' => 'validation_error', 'details' => ['title' => ['is taken']]]], 422),
+    });
 
     $result = syncStructure($property);
 
@@ -185,10 +349,11 @@ test('a rate limit or outage asks the admin to try again and keeps the error on 
     $property = channelProperty();
     $roomType = channelRoomType($property);
     channelRatePlan($property, [$roomType]);
-    Http::fake([
-        '*/properties' => Http::response(['data' => ['id' => 'prop-1', 'attributes' => []]], 201),
-        '*/room_types' => Http::response([], 429),
-    ]);
+    Http::fake(fn ($request) => match (true) {
+        str_ends_with($request->url(), '/properties') => Http::response(['data' => ['id' => 'prop-1', 'attributes' => []]], 201),
+        $request->method() === 'GET' => Http::response(['data' => []], 200),
+        default => Http::response([], 429),
+    });
 
     $result = syncStructure($property);
 

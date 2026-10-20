@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\ChannelSellMode;
 use App\Models\ChannelProperty;
 use App\Models\ChannelRatePlanMapping;
 use App\Models\RatePlan;
@@ -23,6 +24,7 @@ class ChannelRatePlanMappingFactory extends Factory
             'rate_plan_id' => RatePlan::factory(),
             'room_type_id' => RoomType::factory(),
             'external_rate_plan_id' => fake()->unique()->uuid(),
+            'sell_mode' => ChannelSellMode::PerRoom,
         ];
     }
 }

@@ -65,15 +65,38 @@ function channelSyncedProperty(Property $property, string $externalId = 'prop-1'
 }
 
 /**
- * Answer every Channex call like the real API: a POST makes `{resource}-{n}`, a PUT or DELETE keeps the id in the URL.
+ * Answer every Channex call like the real API: a POST makes `{resource}-{n}`, a PUT or DELETE keeps the id in the URL,
+ * and `GET /rate_plans` lists the rate plans created or updated so far (with their title and sell mode). Pass
+ * `$ratePlans` to start with plans Channex already holds: `['id' => ['title' => '…', 'sell_mode' => 'per_room']]`.
+ *
+ * @param  array<string, array{title: string, sell_mode: string}>  $ratePlans
  */
-function fakeChannex(int $maxRoomTypes = 20, int $maxRatePlans = 200): void
+function fakeChannex(int $maxRoomTypes = 20, int $maxRatePlans = 200, array $ratePlans = []): void
 {
     $counter = 0;
 
-    Http::fake(function (Request $request) use (&$counter, $maxRoomTypes, $maxRatePlans) {
+    Http::fake(function (Request $request) use (&$counter, &$ratePlans, $maxRoomTypes, $maxRatePlans) {
         $segments = explode('/', trim(Str::after((string) parse_url($request->url(), PHP_URL_PATH), '/api/v1'), '/'));
+        $isRatePlan = $segments[0] === 'rate_plans';
+
+        if ($isRatePlan && $request->method() === 'GET') {
+            return Http::response(['data' => array_values(array_map(
+                fn (string $id, array $plan): array => ['id' => $id, 'type' => 'rate_plan', 'attributes' => $plan],
+                array_keys($ratePlans),
+                $ratePlans,
+            ))], 200);
+        }
+
         $id = $request->method() === 'POST' ? $segments[0].'-'.(++$counter) : ($segments[1] ?? null);
+
+        if ($isRatePlan && $request->method() === 'DELETE') {
+            unset($ratePlans[$id]);
+        }
+
+        if ($isRatePlan && in_array($request->method(), ['POST', 'PUT'], true)) {
+            $plan = $request->data()['rate_plan'] ?? [];
+            $ratePlans[$id] = ['title' => $plan['title'] ?? '', 'sell_mode' => $plan['sell_mode'] ?? 'per_room'];
+        }
 
         return Http::response(['data' => ['id' => $id, 'attributes' => [
             'max_count_of_room_types' => $maxRoomTypes,

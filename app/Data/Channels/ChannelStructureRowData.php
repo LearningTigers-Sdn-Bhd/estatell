@@ -3,7 +3,9 @@
 namespace App\Data\Channels;
 
 use App\Data\Shared\BadgeData;
+use App\Enums\ChannelSellMode;
 use App\Enums\PricingBasis;
+use App\Services\Channels\ChannelCapability;
 use App\Services\Channels\ChannelStructurePair;
 use Spatie\LaravelData\Data;
 
@@ -34,10 +36,12 @@ class ChannelStructureRowData extends Data
     private static function sellMode(ChannelStructurePair $pair): string
     {
         $basis = $pair->ratePlan->pricing_basis;
+        $perAdultCount = app(ChannelCapability::class)->sellMode($pair->ratePlan, $pair->roomType) === ChannelSellMode::PerPerson;
 
-        return match ($basis) {
-            PricingBasis::PerGuest => __('Per guest (1–:max)', ['max' => $pair->roomType->max_adults]),
-            PricingBasis::Package => __('Package'),
+        return match (true) {
+            $basis === PricingBasis::PerGuest => __('Per guest (1–:max)', ['max' => $pair->roomType->max_adults]),
+            $basis === PricingBasis::Package => $perAdultCount ? __('Package, by adults (1–:max)', ['max' => $pair->roomType->max_adults]) : __('Package'),
+            $perAdultCount => __('Per room, by adults (1–:max)', ['max' => $pair->roomType->max_adults]),
             default => $basis->label(),
         };
     }

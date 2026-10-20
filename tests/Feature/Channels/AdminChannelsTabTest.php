@@ -1,14 +1,23 @@
 <?php
 
+use App\Actions\Channels\IngestChannelBooking;
+use App\Actions\Channels\RecordChannelSyncProgress;
+use App\Actions\Channels\SyncChannelStructure;
+use App\Enums\ChannelAlertEvent;
 use App\Enums\ChannelPropertyStatus;
+use App\Enums\ChannelSyncState;
 use App\Features\ChannelManager;
 use App\Jobs\FlushChannelAriJob;
+use App\Jobs\SyncChannelStructureJob;
+use App\Models\ChannelAlert;
 use App\Models\ChannelAriChange;
 use App\Models\ChannelProperty;
 use App\Models\ChannelRatePlanMapping;
 use App\Models\ChannelRoomTypeMapping;
 use App\Models\Property;
+use App\Models\Reservation;
 use App\Models\User;
+use App\Services\Channels\ChannelSyncProgress;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -84,18 +93,86 @@ test('a synced property lists what Channex has', function () {
             ]]));
 });
 
-test('an admin syncs the structure and sees a toast', function () {
+test('an admin starts the sync, which is queued and gives no toast', function () {
+    Queue::fake();
+    $property = channelOn(channelProperty());
+    $roomType = channelRoomType($property);
+    channelRatePlan($property, [$roomType]);
+    Http::fake();
+
+    $this->actingAs(channelAdmin())
+        ->post(route('admin.properties.channels.sync', $property->code))
+        ->assertRedirect();
+
+    Queue::assertPushed(SyncChannelStructureJob::class, fn (SyncChannelStructureJob $job) => $job->propertyId === $property->id);
+    expect(channexCalls())->toBe([]);
+    $this->get(route('admin.properties.channels', $property->code))
+        ->assertInertia(fn (Assert $page) => $page->where('channel.sync.state', 'queued'));
+});
+
+test('the sync job syncs the structure and reports each step until it is done', function () {
     $property = channelOn(channelProperty());
     $roomType = channelRoomType($property);
     channelRatePlan($property, [$roomType]);
     fakeChannex();
+    $admin = channelAdmin();
+    app(RecordChannelSyncProgress::class)($property->id, ChannelSyncState::Queued);
 
-    $this->actingAs(channelAdmin())
-        ->post(route('admin.properties.channels.sync', $property->code))
-        ->assertRedirect()
-        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => '1 room types and 1 rate plans sent to Channex.']);
+    (new SyncChannelStructureJob($property->id, $admin->id))->handle(app(SyncChannelStructure::class), app(RecordChannelSyncProgress::class));
 
     expect(ChannelProperty::query()->where('property_id', $property->id)->exists())->toBeTrue();
+    $this->actingAs($admin)->get(route('admin.properties.channels', $property->code))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('channel.status.value', 'synced')
+            ->where('channel.sync.state', 'done')
+            ->where('channel.sync.message', '1 room types and 1 rate plans sent to Channex.'));
+});
+
+test('the sync job reports steps while it runs', function () {
+    $property = channelOn(channelProperty());
+    $roomType = channelRoomType($property);
+    channelRatePlan($property, [$roomType]);
+    fakeChannex();
+    $steps = [];
+    $record = new class($steps) extends RecordChannelSyncProgress
+    {
+        public function __construct(public array &$steps) {}
+
+        public function __invoke(int $propertyId, ChannelSyncState $state, int $done = 0, int $total = 0, ?string $message = null): void
+        {
+            $this->steps[] = [$state->value, $done, $total];
+            parent::__invoke($propertyId, $state, $done, $total, $message);
+        }
+    };
+
+    (new SyncChannelStructureJob($property->id, channelAdmin()->id))->handle(app(SyncChannelStructure::class), $record);
+
+    expect($steps)->toBe([['running', 0, 0], ['running', 1, 3], ['running', 2, 3], ['running', 3, 3], ['done', 0, 0]]);
+});
+
+test('a second start is refused while a sync waits or runs, and a lost sync does not block', function () {
+    Queue::fake();
+    $property = channelOn(channelProperty());
+    channelRatePlan($property, [channelRoomType($property)]);
+    $admin = channelAdmin();
+    $this->actingAs($admin);
+
+    $this->post(route('admin.properties.channels.sync', $property->code))->assertRedirect();
+    $this->post(route('admin.properties.channels.sync', $property->code))
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'A sync of this property is already running.']);
+    Queue::assertPushed(SyncChannelStructureJob::class, 1);
+
+    $this->travel(20)->minutes();
+    $this->post(route('admin.properties.channels.sync', $property->code))->assertRedirect();
+    Queue::assertPushed(SyncChannelStructureJob::class, 2);
+});
+
+test('a job that crashes records the failure so the button works again', function () {
+    $property = channelOn(channelProperty());
+
+    (new SyncChannelStructureJob($property->id, channelAdmin()->id))->failed(new RuntimeException('boom'));
+
+    expect(app(ChannelSyncProgress::class)->forProperty($property->id)['state'])->toBe(ChannelSyncState::Failed);
 });
 
 test('a failed sync shows the reason as an error toast', function () {
@@ -259,4 +336,96 @@ test('the tab shows when changes were sent, the pause and how many changes wait'
             ->where('channel.canFullRefresh', true)
             ->whereNot('channel.pausedUntil', null)
             ->whereNot('channel.changesSentAt', null));
+});
+
+require_once __DIR__.'/../Support/ChannelBooking.php';
+
+test('the tab lists the bookings that were not saved, the open alerts and the recent bookings', function () {
+    $setup = channelBookingSetup();
+    channelOn($setup['property']);
+    fakeChannexAck();
+    $saved = storeChannelRevision($setup, ['id' => 'rev-1', 'booking_id' => 'b-1']);
+    app(IngestChannelBooking::class)($saved);
+    $failed = storeChannelRevision($setup, ['id' => 'rev-2', 'booking_id' => 'b-2', 'unique_id' => 'BDC-2', 'rooms' => [channelRevisionRoom(['room_type_id' => null])]]);
+    app(IngestChannelBooking::class)($failed);
+    $open = ChannelAlert::factory()->create(['channel_property_id' => $setup['channelProperty']->id, 'event' => ChannelAlertEvent::RateError]);
+    ChannelAlert::factory()->create(['channel_property_id' => $setup['channelProperty']->id, 'resolved_at' => now()]);
+
+    $this->actingAs(channelAdmin())
+        ->get(route('admin.properties.channels', $setup['property']->code))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('channel.failedBookings', 1)
+            ->where('channel.failedBookings.0.id', $failed->id)
+            ->where('channel.failedBookings.0.bookingCode', 'BDC-2')
+            ->where('channel.failedBookings.0.error', fn (string $error) => str_contains($error, 'not mapped'))
+            ->has('channel.alerts', 1)
+            ->where('channel.alerts.0.id', $open->id)
+            ->where('channel.alerts.0.event.value', 'rate_error')
+            ->has('channel.recentBookings', 2)
+            ->where('channel.recentBookings.1.reservationReference', fn (string $reference) => $reference !== '')
+            ->where('channel.recentBookings.0.reservationReference', null));
+});
+
+test('an admin retries a refused booking after fixing the mapping', function () {
+    $setup = channelBookingSetup();
+    channelOn($setup['property']);
+    fakeChannexAck();
+    $setup['channelProperty']->ratePlanMappings()->delete();
+    $revision = storeChannelRevision($setup);
+    app(IngestChannelBooking::class)($revision);
+    $setup['channelProperty']->ratePlanMappings()->create(['room_type_id' => $setup['roomType']->id, 'rate_plan_id' => $setup['plan']->id, 'external_rate_plan_id' => 'plan-1']);
+
+    $this->actingAs(channelAdmin())
+        ->post(route('admin.properties.channels.revisions.retry', [$setup['property']->code, $revision->id]))
+        ->assertRedirect()
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Booking saved.']);
+
+    expect($revision->fresh()->acknowledged_at)->not->toBeNull()
+        ->and(Reservation::query()->count())->toBe(1);
+    expect(Activity::query()->where('event', 'channel_revision.retried')->count())->toBe(1);
+});
+
+test('retrying a booking that is already saved is refused with a toast', function () {
+    $setup = channelBookingSetup();
+    channelOn($setup['property']);
+    fakeChannexAck();
+    $revision = storeChannelRevision($setup);
+    app(IngestChannelBooking::class)($revision);
+
+    $this->actingAs(channelAdmin())
+        ->post(route('admin.properties.channels.revisions.retry', [$setup['property']->code, $revision->id]))
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'The booking is already saved.']);
+});
+
+test('an admin closes an alert once, and another property alert is a 404', function () {
+    $setup = channelBookingSetup();
+    channelOn($setup['property']);
+    $alert = ChannelAlert::factory()->create(['channel_property_id' => $setup['channelProperty']->id]);
+    $other = channelOn(channelProperty());
+    $otherAlert = ChannelAlert::factory()->create(['channel_property_id' => channelSyncedProperty($other, 'prop-2')->id]);
+
+    $this->actingAs(channelAdmin())
+        ->post(route('admin.properties.channels.alerts.resolve', [$setup['property']->code, $alert->id]))
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Alert closed.']);
+    $this->post(route('admin.properties.channels.alerts.resolve', [$setup['property']->code, $alert->id]))
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'The alert is already closed.']);
+    $this->post(route('admin.properties.channels.alerts.resolve', [$setup['property']->code, $otherAlert->id]))->assertNotFound();
+
+    expect($alert->fresh()->resolved_at)->not->toBeNull()
+        ->and($otherAlert->fresh()->resolved_at)->toBeNull();
+});
+
+test('the booking routes need two-factor and the feature', function () {
+    config(['estatell.support_require_two_factor' => true]);
+    $setup = channelBookingSetup();
+    $revision = storeChannelRevision($setup);
+
+    $this->actingAs(User::factory()->admin()->create())
+        ->post(route('admin.properties.channels.revisions.retry', [$setup['property']->code, $revision->id]))
+        ->assertNotFound();
+
+    channelOn($setup['property']);
+    $this->post(route('admin.properties.channels.revisions.retry', [$setup['property']->code, $revision->id]))
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'Two-factor required for this action.']);
+    expect($revision->fresh()->processed_at)->toBeNull();
 });
