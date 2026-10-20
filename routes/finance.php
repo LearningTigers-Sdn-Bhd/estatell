@@ -5,6 +5,7 @@ use App\Http\Controllers\CityLedger\AgingController;
 use App\Http\Controllers\CityLedger\ArInvoiceController;
 use App\Http\Controllers\CityLedger\CompanyBulkAddController;
 use App\Http\Controllers\CityLedger\CompanyController;
+use App\Http\Controllers\CityLedger\CompanyOldSystemController;
 use App\Http\Controllers\CityLedger\CompanyPaymentController;
 use App\Http\Controllers\CityLedger\CompanyPortalLoginController;
 use App\Http\Controllers\CityLedger\CompanyStatementController;
@@ -44,6 +45,11 @@ Route::prefix('finance')->name('finance.')->group(function () {
                 Route::post('{payment}/void', [CompanyPaymentController::class, 'void'])->middleware('can:'.PermissionEnum::CityLedgerPayment->value)->name('void');
                 Route::post('{payment}/allocations', [CompanyPaymentController::class, 'allocate'])->middleware('can:'.PermissionEnum::CityLedgerAllocate->value)->name('allocations.store');
                 Route::post('{payment}/allocations/{allocation}/reverse', [CompanyPaymentController::class, 'reverse'])->middleware('can:'.PermissionEnum::CityLedgerAllocate->value)->name('allocations.reverse');
+            });
+
+            Route::prefix('old-system')->name('old-system.')->middleware('can:'.PermissionEnum::FolioManual->value)->group(function () {
+                Route::post('invoices', [CompanyOldSystemController::class, 'storeInvoice'])->name('invoices.store');
+                Route::post('credits', [CompanyOldSystemController::class, 'storeCredit'])->name('credits.store');
             });
 
             Route::middleware('can:'.PermissionEnum::CompanyManage->value)->group(function () {

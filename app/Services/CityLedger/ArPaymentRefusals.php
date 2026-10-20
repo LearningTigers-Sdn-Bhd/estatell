@@ -46,6 +46,9 @@ class ArPaymentRefusals
             ArPaymentResult::REFUSAL_REASON_REQUIRED => ['reason', __('Enter a reason for the reversal.')],
             ArPaymentResult::REFUSAL_HAS_ALLOCATIONS => [self::FORM, __('Reverse the allocations of this payment first.')],
             ArPaymentResult::REFUSAL_ALREADY_VOID => [self::FORM, __('This payment is already void.')],
+            ArPaymentResult::REFUSAL_MIGRATION_WINDOW_CLOSED => [self::FORM, __('The migration window is closed, so old system balances cannot be added.')],
+            ArPaymentResult::REFUSAL_COMPANY_NOT_AVAILABLE => [self::FORM, __('This company is not active.')],
+            ArPaymentResult::REFUSAL_DATE_NOT_BEFORE_GO_LIVE => ['received_on', __('The old receipt must be dated before the go-live date.')],
             default => [self::FORM, __('This could not be done.')],
         };
     }

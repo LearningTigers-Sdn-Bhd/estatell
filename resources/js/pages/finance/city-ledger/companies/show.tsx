@@ -1,7 +1,19 @@
-import { Form, Head } from '@inertiajs/react';
-import { CreditCard, FileText, Globe, Info, Tag, Wallet } from 'lucide-react';
+import { Form, Head, router } from '@inertiajs/react';
+import {
+    CreditCard,
+    FileText,
+    Globe,
+    History,
+    Info,
+    MoreHorizontal,
+    Pause,
+    Play,
+    Tag,
+    Wallet,
+} from 'lucide-react';
 import { useState } from 'react';
 import { ChoiceCards } from '@/components/pms/choice-cards';
+import { AddOldSystemBalanceDialog } from '@/components/pms/city-ledger/add-old-system-balance-dialog';
 import { billingChoices } from '@/components/pms/city-ledger/billing-choices';
 import { CompanyStatement } from '@/components/pms/city-ledger/company-statement';
 import { ArPaymentsTab } from '@/components/pms/city-ledger/ar-payments-tab';
@@ -26,11 +38,16 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-    AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -349,67 +366,115 @@ function CreditFigure({
     );
 }
 
-function StatusAction({ company }: { company: Company }) {
-    const [open, setOpen] = useState(false);
-
-    if (company.status.value === 'suspended') {
-        return (
-            <Form
-                {...reactivate.form({ company: company.id })}
-                options={{ preserveScroll: true }}
-            >
-                {({ processing }) => (
-                    <Button
-                        type="submit"
-                        variant="outline"
-                        disabled={processing}
-                        focusableWhenDisabled
-                    >
-                        {processing && <Spinner data-icon="inline-start" />}
-                        Reactivate
-                    </Button>
-                )}
-            </Form>
-        );
-    }
+/**
+ * The header menu of a company: Suspend or Reactivate for staff with `company.manage`, and Add from old system inside
+ * the migration window. Suspend asks for confirmation in an AlertDialog; the other two act at once or open a Dialog.
+ */
+function CompanyActionsMenu({
+    company,
+    currency,
+    canManage,
+    canAddOldSystem,
+}: {
+    company: Company;
+    currency: App.Data.Property.CurrencyData | null;
+    canManage: boolean;
+    canAddOldSystem: boolean;
+}) {
+    const [suspendOpen, setSuspendOpen] = useState(false);
+    const [oldSystemOpen, setOldSystemOpen] = useState(false);
+    const suspended = company.status.value === 'suspended';
 
     return (
-        <AlertDialog open={open} onOpenChange={setOpen}>
-            <AlertDialogTrigger render={<Button variant="outline" />}>
-                Suspend
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Suspend {company.name}?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        The company cannot be picked on new bookings. Existing
-                        reservations keep it. You can reactivate it later.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <Form
-                    {...suspend.form({ company: company.id })}
-                    options={{ preserveScroll: true }}
-                    onSuccess={() => setOpen(false)}
-                >
-                    {({ processing }) => (
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <Button
-                                type="submit"
-                                variant="destructive"
-                                disabled={processing}
-                                focusableWhenDisabled
-                            >
-                                {processing && (
-                                    <Spinner data-icon="inline-start" />
-                                )}
-                                Suspend company
-                            </Button>
-                        </AlertDialogFooter>
+        <>
+            <DropdownMenu>
+                <DropdownMenuTrigger render={<Button variant="outline" />}>
+                    <MoreHorizontal data-icon="inline-start" />
+                    More actions
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    {canAddOldSystem && (
+                        <DropdownMenuItem
+                            onClick={() => setOldSystemOpen(true)}
+                        >
+                            <History />
+                            Add from old system
+                        </DropdownMenuItem>
                     )}
-                </Form>
-            </AlertDialogContent>
-        </AlertDialog>
+                    {canManage && suspended && (
+                        <DropdownMenuItem
+                            onClick={() =>
+                                router.post(
+                                    reactivate.url({ company: company.id }),
+                                    {},
+                                    { preserveScroll: true },
+                                )
+                            }
+                        >
+                            <Play />
+                            Reactivate
+                        </DropdownMenuItem>
+                    )}
+                    {canManage && !suspended && (
+                        <DropdownMenuItem
+                            variant="destructive"
+                            onClick={() => setSuspendOpen(true)}
+                        >
+                            <Pause />
+                            Suspend
+                        </DropdownMenuItem>
+                    )}
+                </DropdownMenuContent>
+            </DropdownMenu>
+
+            {canAddOldSystem && (
+                <AddOldSystemBalanceDialog
+                    open={oldSystemOpen}
+                    onOpenChange={setOldSystemOpen}
+                    companyId={company.id}
+                    companyName={company.name}
+                    currency={currency}
+                    headroom={company.credit?.headroom ?? null}
+                />
+            )}
+
+            <AlertDialog open={suspendOpen} onOpenChange={setSuspendOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>
+                            Suspend {company.name}?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            The company cannot be picked on new bookings.
+                            Existing reservations keep it. You can reactivate it
+                            later.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <Form
+                        {...suspend.form({ company: company.id })}
+                        options={{ preserveScroll: true }}
+                        onSuccess={() => setSuspendOpen(false)}
+                    >
+                        {({ processing }) => (
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <Button
+                                    type="submit"
+                                    variant="destructive"
+                                    disabled={processing}
+                                    focusableWhenDisabled
+                                >
+                                    {processing && (
+                                        <Spinner data-icon="inline-start" />
+                                    )}
+                                    Suspend company
+                                </Button>
+                            </AlertDialogFooter>
+                        )}
+                    </Form>
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
     );
 }
 
@@ -418,6 +483,7 @@ export default function CompanyShow({
     tab,
     currency,
     canManage,
+    canAddOldSystem = false,
     types = [],
     countries = [],
     rates = [],
@@ -432,6 +498,7 @@ export default function CompanyShow({
     tab: Tab;
     currency: App.Data.Property.CurrencyData | null;
     canManage: boolean;
+    canAddOldSystem?: boolean;
     types?: EnumOption[];
     countries?: EnumOption[];
     rates?: App.Data.CityLedger.CompanyRateData[];
@@ -463,7 +530,16 @@ export default function CompanyShow({
                             )}
                         </>
                     }
-                    actions={canManage && <StatusAction company={company} />}
+                    actions={
+                        (canManage || canAddOldSystem) && (
+                            <CompanyActionsMenu
+                                company={company}
+                                currency={currency}
+                                canManage={canManage}
+                                canAddOldSystem={canAddOldSystem}
+                            />
+                        )
+                    }
                 />
 
                 <TabLinks

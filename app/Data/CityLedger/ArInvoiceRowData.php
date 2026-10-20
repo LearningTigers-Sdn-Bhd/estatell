@@ -28,6 +28,7 @@ class ArInvoiceRowData extends Data
         public ?string $balance,
         public BadgeData $status,
         public bool $overdue,
+        public bool $migrated,
     ) {}
 
     /**
@@ -56,6 +57,7 @@ class ArInvoiceRowData extends Data
                 && BigDecimal::of($balance)->isPositive()
                 && $invoice->due_on !== null
                 && $invoice->due_on->toDateString() < $today,
+            migrated: $invoice->migrated,
         );
     }
 }

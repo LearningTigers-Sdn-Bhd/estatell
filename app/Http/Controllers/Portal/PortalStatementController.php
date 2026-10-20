@@ -71,7 +71,10 @@ class PortalStatementController extends Controller
      */
     public function invoicePdf(Request $request, Property $property, int $invoice, PortalStatements $statements, ArInvoicePrinter $printer, PrintedPdf $printedPdf): HttpResponse
     {
-        $document = $printer->forInvoice($statements->invoice($property, $this->company($request), $invoice));
+        $arInvoice = $statements->invoice($property, $this->company($request), $invoice);
+        abort_if($arInvoice->migrated, 404);
+
+        $document = $printer->forInvoice($arInvoice);
 
         return $printedPdf->make($property, 'pdf.ar-invoice', ['document' => $document, 'settings' => $property->printSetting])
             ->stream('ar-'.$document->number.'.pdf');
@@ -82,7 +85,10 @@ class PortalStatementController extends Controller
      */
     public function receipt(Request $request, Property $property, int $payment, PortalStatements $statements, ArPaymentReceipt $arPaymentReceipt, PrintedPdf $printedPdf): HttpResponse
     {
-        $receipt = $arPaymentReceipt->forPayment($statements->payment($property, $this->company($request), $payment));
+        $arPayment = $statements->payment($property, $this->company($request), $payment);
+        abort_unless($arPayment->hasReceipt(), 404);
+
+        $receipt = $arPaymentReceipt->forPayment($arPayment);
 
         return $printedPdf->make($property, 'pdf.ar-receipt', ['receipt' => $receipt])
             ->stream('receipt-'.$receipt->receiptNumber.'.pdf');

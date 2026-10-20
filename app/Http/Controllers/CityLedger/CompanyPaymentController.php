@@ -92,7 +92,7 @@ class CompanyPaymentController extends Controller
 
         Inertia::flash('toast', $result->isRefused()
             ? ['type' => 'error', 'message' => $refusals->message((string) $result->refusal)]
-            : ['type' => 'success', 'message' => __('Payment :receipt voided.', ['receipt' => $payment->receipt_number])]);
+            : ['type' => 'success', 'message' => __('Payment :receipt voided.', ['receipt' => $payment->displayNumber()])]);
 
         return back(fallback: $this->page($property, $company));
     }
@@ -102,6 +102,8 @@ class CompanyPaymentController extends Controller
      */
     public function receipt(Property $property, Company $company, ArPayment $payment, ArPaymentReceipt $arPaymentReceipt, PrintedPdf $printedPdf): Response
     {
+        abort_unless($payment->hasReceipt(), 404);
+
         $receipt = $arPaymentReceipt->forPayment($payment);
 
         return $printedPdf->make($property, 'pdf.ar-receipt', ['receipt' => $receipt])

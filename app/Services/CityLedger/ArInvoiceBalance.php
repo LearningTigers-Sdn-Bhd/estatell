@@ -56,10 +56,10 @@ class ArInvoiceBalance
         return array_values(ArAllocation::query()
             ->where('ar_invoice_id', $invoice->id)
             ->active()
-            ->with('payment:id,receipt_number')
+            ->with('payment:id,receipt_number,reference')
             ->orderBy('id')
             ->get()
-            ->map(fn (ArAllocation $allocation): string => $allocation->payment->receipt_number)
+            ->map(fn (ArAllocation $allocation): string => $allocation->payment->displayNumber())
             ->all());
     }
 }

@@ -33,7 +33,7 @@ class ArAllocationRowData extends Data
             id: $allocation->id,
             paymentId: $allocation->ar_payment_id,
             companyId: $allocation->payment->company_id,
-            receiptNumber: $allocation->payment->receipt_number,
+            receiptNumber: $allocation->payment->displayNumber(),
             receivedOn: $allocation->payment->received_on->toDateString(),
             amount: $allocation->amount,
             isReversed: $isReversed,

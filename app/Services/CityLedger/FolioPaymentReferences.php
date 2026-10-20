@@ -86,7 +86,7 @@ class FolioPaymentReferences
                 'date' => $payment->received_on,
                 'order' => 1_000_000_000 + $payment->id,
                 'folio' => null,
-                'receipt' => $payment->receipt_number,
+                'receipt' => $payment->displayNumber(),
             ]);
     }
 }

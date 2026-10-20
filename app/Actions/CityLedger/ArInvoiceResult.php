@@ -35,6 +35,18 @@ class ArInvoiceResult
 
     public const REFUSAL_ALREADY_VOID = 'already_void';
 
+    public const REFUSAL_MIGRATION_WINDOW_CLOSED = 'migration_window_closed';
+
+    public const REFUSAL_COMPANY_NOT_AVAILABLE = 'company_not_available';
+
+    public const REFUSAL_ISSUED_AFTER_GO_LIVE = 'issued_after_go_live';
+
+    public const REFUSAL_DUE_BEFORE_ISSUE = 'due_before_issue';
+
+    public const REFUSAL_NUMBER_REQUIRED = 'number_required';
+
+    public const REFUSAL_NUMBER_TAKEN = 'number_taken';
+
     private function __construct(
         public readonly ?ArInvoice $invoice,
         public readonly ?string $refusal,

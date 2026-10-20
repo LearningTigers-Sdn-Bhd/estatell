@@ -84,22 +84,27 @@ export function PortalInvoicesTable({
                 id: 'pdf',
                 header: 'PDF',
                 enableSorting: false,
-                cell: (info) => (
-                    <a
-                        href={invoicePdf.url({
-                            property: propertyCode,
-                            invoice: info.getValue(),
-                        })}
-                        target="_blank"
-                        rel="noreferrer"
-                        className={buttonVariants({
-                            variant: 'outline',
-                            size: 'sm',
-                        })}
-                    >
-                        PDF
-                    </a>
-                ),
+                cell: (info) =>
+                    info.row.original.migrated ? (
+                        <span className="text-muted-foreground">
+                            Old system
+                        </span>
+                    ) : (
+                        <a
+                            href={invoicePdf.url({
+                                property: propertyCode,
+                                invoice: info.getValue(),
+                            })}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={buttonVariants({
+                                variant: 'outline',
+                                size: 'sm',
+                            })}
+                        >
+                            PDF
+                        </a>
+                    ),
             }),
         ],
         [currency, propertyCode],

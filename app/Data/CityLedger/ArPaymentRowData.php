@@ -15,6 +15,7 @@ class ArPaymentRowData extends Data
     public function __construct(
         public int $id,
         public string $receiptNumber,
+        public bool $hasReceipt,
         public string $receivedOn,
         public string $methodName,
         public ?string $reference,
@@ -36,7 +37,8 @@ class ArPaymentRowData extends Data
 
         return new self(
             id: $payment->id,
-            receiptNumber: $payment->receipt_number,
+            receiptNumber: $payment->displayNumber(),
+            hasReceipt: $payment->hasReceipt(),
             receivedOn: $payment->received_on->toDateString(),
             methodName: $payment->paymentMethod->name,
             reference: $payment->reference,

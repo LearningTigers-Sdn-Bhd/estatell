@@ -15,7 +15,7 @@ class ArPaymentReceipt
         $payment->loadMissing(['property.settings', 'company:id,name', 'paymentMethod:id,name', 'receiver:id,name']);
 
         return new ArReceiptDocument(
-            receiptNumber: $payment->receipt_number,
+            receiptNumber: (string) $payment->receipt_number,
             receivedOn: $payment->received_on->format('j M Y'),
             companyName: $payment->company->name,
             method: $payment->paymentMethod->name,

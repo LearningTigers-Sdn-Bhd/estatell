@@ -18,6 +18,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
     Table,
@@ -151,20 +152,29 @@ export default function InvoiceShow({
                         </Link>
                     }
                     back={{ href: index(), label: 'Invoices' }}
-                    badge={<StatusBadge status={row.status} />}
+                    badge={
+                        <>
+                            <StatusBadge status={row.status} />
+                            {row.migrated && (
+                                <Badge variant="secondary">Migrated</Badge>
+                            )}
+                        </>
+                    }
                     actions={
                         <>
-                            <a
-                                href={pdf.url({ invoice: row.id })}
-                                target="_blank"
-                                rel="noreferrer"
-                                className={buttonVariants({
-                                    variant: 'outline',
-                                })}
-                            >
-                                <Printer data-icon="inline-start" />
-                                Download PDF
-                            </a>
+                            {!row.migrated && (
+                                <a
+                                    href={pdf.url({ invoice: row.id })}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className={buttonVariants({
+                                        variant: 'outline',
+                                    })}
+                                >
+                                    <Printer data-icon="inline-start" />
+                                    Download PDF
+                                </a>
+                            )}
                             {invoice.canCreditNote && canCorrectMoney && (
                                 <Button
                                     variant="outline"
@@ -232,6 +242,12 @@ export default function InvoiceShow({
                             >
                                 {invoice.creditForNumber}
                             </Link>
+                        </Figure>
+                    )}
+                    {row.migrated && (
+                        <Figure label="Source">
+                            Old system · {row.number}. The PDF is in the old
+                            PMS.
                         </Figure>
                     )}
                     {invoice.reason && (

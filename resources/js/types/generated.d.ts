@@ -289,6 +289,7 @@ amount: string,
 balance: string | null,
 status: App.Data.Shared.BadgeData,
 overdue: boolean,
+migrated: boolean,
 };
 export type ArPaymentMethodOptionData = {
 id: number,
@@ -301,6 +302,7 @@ warning: string | null,
 export type ArPaymentRowData = {
 id: number,
 receiptNumber: string,
+hasReceipt: boolean,
 receivedOn: string,
 methodName: string,
 reference: string | null,
@@ -1840,6 +1842,7 @@ reason: string | null,
 export type PortalPaymentRowData = {
 id: number,
 receiptNumber: string,
+hasReceipt: boolean,
 receivedOn: string,
 methodName: string,
 reference: string | null,

@@ -58,22 +58,27 @@ export function PortalPaymentsTable({
                 id: 'receipt',
                 header: 'Receipt PDF',
                 enableSorting: false,
-                cell: (info) => (
-                    <a
-                        href={receipt.url({
-                            property: propertyCode,
-                            payment: info.getValue(),
-                        })}
-                        target="_blank"
-                        rel="noreferrer"
-                        className={buttonVariants({
-                            variant: 'outline',
-                            size: 'sm',
-                        })}
-                    >
-                        Receipt
-                    </a>
-                ),
+                cell: (info) =>
+                    info.row.original.hasReceipt ? (
+                        <a
+                            href={receipt.url({
+                                property: propertyCode,
+                                payment: info.getValue(),
+                            })}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={buttonVariants({
+                                variant: 'outline',
+                                size: 'sm',
+                            })}
+                        >
+                            Receipt
+                        </a>
+                    ) : (
+                        <span className="text-muted-foreground">
+                            Old system
+                        </span>
+                    ),
             }),
         ],
         [currency, propertyCode],

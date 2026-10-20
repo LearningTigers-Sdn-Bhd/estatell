@@ -45,7 +45,7 @@ class StatementBuilder
                 'date' => $document->issued_on->toDateString(),
                 'kind' => $isInvoice ? 'invoice' : 'credit_note',
                 'label' => $document->type->label(),
-                'number' => $document->number,
+                'number' => $document->migrated ? __('Old system · :number', ['number' => $document->number]) : $document->number,
                 'description' => $document->reason,
                 'amount' => (string) $document->amount,
             ];
@@ -63,7 +63,7 @@ class StatementBuilder
                 'date' => $payment->received_on->toDateString(),
                 'kind' => 'payment',
                 'label' => __('Payment'),
-                'number' => $payment->receipt_number,
+                'number' => $payment->displayNumber(),
                 'description' => trim($payment->paymentMethod->name.' '.($payment->reference ?? '')),
                 'amount' => (string) BigDecimal::of((string) $payment->amount)->negated()->toScale(2),
             ];

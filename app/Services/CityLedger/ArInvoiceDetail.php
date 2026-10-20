@@ -69,7 +69,7 @@ class ArInvoiceDetail
 
         return array_values(ArAllocation::query()
             ->where('ar_invoice_id', $invoice->id)
-            ->with('payment:id,company_id,receipt_number,received_on')
+            ->with('payment:id,company_id,receipt_number,reference,received_on')
             ->latest('id')
             ->get()
             ->map(fn (ArAllocation $allocation): ArAllocationRowData => ArAllocationRowData::fromModel($allocation, $mayReverse))

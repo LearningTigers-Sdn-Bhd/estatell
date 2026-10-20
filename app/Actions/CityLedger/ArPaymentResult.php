@@ -37,6 +37,12 @@ class ArPaymentResult
 
     public const REFUSAL_ALREADY_VOID = 'already_void';
 
+    public const REFUSAL_MIGRATION_WINDOW_CLOSED = 'migration_window_closed';
+
+    public const REFUSAL_COMPANY_NOT_AVAILABLE = 'company_not_available';
+
+    public const REFUSAL_DATE_NOT_BEFORE_GO_LIVE = 'date_not_before_go_live';
+
     /**
      * @param  list<ArAllocation>  $allocations
      */

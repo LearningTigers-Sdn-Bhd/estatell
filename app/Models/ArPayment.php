@@ -23,7 +23,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CarbonImmutable $received_on
  * @property string|null $reference
  * @property string|null $notes
- * @property string $receipt_number
+ * @property string|null $receipt_number Null only for money recorded from the old system, which has no receipt here.
  * @property string $idempotency_key
  * @property int $received_by
  * @property CarbonImmutable|null $voided_at
@@ -80,5 +80,22 @@ class ArPayment extends Model
     public function allocations(): HasMany
     {
         return $this->hasMany(ArAllocation::class);
+    }
+
+    /**
+     * What staff and statements call this payment: the receipt number, or "Old system · {reference}" for money recorded
+     * from the old system, which has no receipt here.
+     */
+    public function displayNumber(): string
+    {
+        return $this->receipt_number ?? __('Old system · :reference', ['reference' => $this->reference]);
+    }
+
+    /**
+     * Whether a receipt PDF exists for it. Money recorded from the old system has none.
+     */
+    public function hasReceipt(): bool
+    {
+        return $this->receipt_number !== null;
     }
 }

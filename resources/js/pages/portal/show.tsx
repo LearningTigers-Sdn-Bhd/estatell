@@ -283,25 +283,34 @@ export default function PortalShow({
                                                     />
                                                 </TableCell>
                                                 <TableCell>
-                                                    <a
-                                                        href={invoicePdf.url({
-                                                            property:
-                                                                propertyCode,
-                                                            invoice: invoice.id,
-                                                        })}
-                                                        target="_blank"
-                                                        rel="noreferrer"
-                                                        className={buttonVariants(
-                                                            {
-                                                                variant:
-                                                                    'outline',
-                                                                size: 'sm',
-                                                            },
-                                                        )}
-                                                    >
-                                                        <Download data-icon="inline-start" />
-                                                        PDF
-                                                    </a>
+                                                    {invoice.migrated ? (
+                                                        <span className="text-muted-foreground">
+                                                            Old system
+                                                        </span>
+                                                    ) : (
+                                                        <a
+                                                            href={invoicePdf.url(
+                                                                {
+                                                                    property:
+                                                                        propertyCode,
+                                                                    invoice:
+                                                                        invoice.id,
+                                                                },
+                                                            )}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className={buttonVariants(
+                                                                {
+                                                                    variant:
+                                                                        'outline',
+                                                                    size: 'sm',
+                                                                },
+                                                            )}
+                                                        >
+                                                            <Download data-icon="inline-start" />
+                                                            PDF
+                                                        </a>
+                                                    )}
                                                 </TableCell>
                                             </TableRow>
                                         ))}

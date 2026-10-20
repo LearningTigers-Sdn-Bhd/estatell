@@ -76,6 +76,12 @@ class ArInvoiceRefusals
             ArInvoiceResult::REFUSAL_CREDIT_EXCEEDS_BALANCE => ['amount', __('The credit cannot be more than the invoice balance.')],
             ArInvoiceResult::REFUSAL_NOT_VOIDABLE => [self::FORM, __('Only an open invoice with no credit notes can be voided.')],
             ArInvoiceResult::REFUSAL_ALREADY_VOID => [self::FORM, __('This document is already void.')],
+            ArInvoiceResult::REFUSAL_MIGRATION_WINDOW_CLOSED => [self::FORM, __('The migration window is closed, so old system balances cannot be added.')],
+            ArInvoiceResult::REFUSAL_COMPANY_NOT_AVAILABLE => [self::FORM, __('This company is not active.')],
+            ArInvoiceResult::REFUSAL_ISSUED_AFTER_GO_LIVE => ['issued_on', __('The old invoice must be issued before the go-live date.')],
+            ArInvoiceResult::REFUSAL_DUE_BEFORE_ISSUE => ['due_on', __('The due date cannot be before the issue date.')],
+            ArInvoiceResult::REFUSAL_NUMBER_REQUIRED => ['number', __('Enter the old invoice number.')],
+            ArInvoiceResult::REFUSAL_NUMBER_TAKEN => ['number', __('Another invoice already has this number.')],
             default => [self::FORM, __('This could not be done.')],
         };
     }

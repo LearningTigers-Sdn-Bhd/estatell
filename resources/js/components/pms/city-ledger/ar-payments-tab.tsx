@@ -172,23 +172,27 @@ export function ArPaymentsTab({
                                                         Allocate
                                                     </DropdownMenuItem>
                                                 )}
-                                                <DropdownMenuItem
-                                                    render={
-                                                        <a
-                                                            href={receipt.url({
-                                                                company:
-                                                                    companyId,
-                                                                payment:
-                                                                    payment.id,
-                                                            })}
-                                                            target="_blank"
-                                                            rel="noreferrer"
-                                                        />
-                                                    }
-                                                >
-                                                    <Printer />
-                                                    Receipt
-                                                </DropdownMenuItem>
+                                                {payment.hasReceipt && (
+                                                    <DropdownMenuItem
+                                                        render={
+                                                            <a
+                                                                href={receipt.url(
+                                                                    {
+                                                                        company:
+                                                                            companyId,
+                                                                        payment:
+                                                                            payment.id,
+                                                                    },
+                                                                )}
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                            />
+                                                        }
+                                                    >
+                                                        <Printer />
+                                                        Receipt
+                                                    </DropdownMenuItem>
+                                                )}
                                                 {payment.canVoid &&
                                                     canCorrectMoney && (
                                                         <DropdownMenuItem

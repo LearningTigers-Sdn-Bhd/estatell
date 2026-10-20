@@ -22,6 +22,7 @@ use App\Services\CityLedger\CompanyPortalState;
 use App\Services\CityLedger\CreditExposure;
 use App\Services\CityLedger\StatementBuilder;
 use App\Services\Guests\CountryOptions;
+use App\Services\Property\MigrationWindow;
 use App\Services\Rates\CompanyRatePlans;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -182,6 +183,9 @@ class CompanyController extends Controller
             'tab' => $tab,
             'currency' => CurrencyData::forProperty($property),
             'canManage' => $request->user()->can(PermissionEnum::CompanyManage->value),
+            'canAddOldSystem' => $company->status === CompanyStatus::Active
+                && $request->user()->can(PermissionEnum::FolioManual->value)
+                && app(MigrationWindow::class)->isOpen($property),
             ...$tabProps,
         ]);
     }

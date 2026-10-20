@@ -28,6 +28,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CarbonImmutable|null $due_on
  * @property string $amount
  * @property string|null $reason
+ * @property bool $migrated True for an invoice brought in from the old system. It has no folio and no PDF.
  * @property ArInvoiceStatus $status
  * @property int $created_by
  * @property CarbonImmutable|null $created_at
@@ -35,7 +36,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 #[Fillable([
     'company_id', 'folio_id', 'credit_for_invoice_id', 'type', 'number', 'issued_on', 'due_on', 'amount', 'reason',
-    'status', 'created_by',
+    'migrated', 'status', 'created_by',
 ])]
 class ArInvoice extends Model
 {
@@ -53,6 +54,7 @@ class ArInvoice extends Model
             'issued_on' => 'date',
             'due_on' => 'date',
             'amount' => 'decimal:2',
+            'migrated' => 'boolean',
         ];
     }
 

@@ -8,7 +8,7 @@ Without them the first bank transfer after go-live has no invoice to match, the 
 
 ## Entry
 
-On the company page, the header ⋯ menu gains **Add from old system** (inside the [migration window](../17-onboarding/07-migration.md#migration-window), `folio.manual`).
+On the company page, the header **More actions** menu (icon and label) holds **Add from old system** (inside the [migration window](../17-onboarding/07-migration.md#migration-window), `folio.manual`) together with **Suspend** or **Reactivate** (`company.manage`). The menu shows when the user may do at least one of them.
 
 ```
 ┌─ Add from old system · Acme Sdn Bhd ────────────────────────────────┐
@@ -54,7 +54,7 @@ Logged on the company: `city_ledger.old_invoice_added`.
 
 `AddOldSystemCredit` creates an `ar_payments` row with the [Old system](../17-onboarding/07-migration.md#old-system-payment-method) method, `received_on` = the old date, `reference` = the old receipt number, and no receipt number. It stays unallocated, so it is credit on the company, as the [balance rules](03-ar-payments.md#rules) already say. It can be allocated to an invoice later, like any AR payment.
 
-`ar_payments.receipt_number` becomes nullable for this method only (CHECK: null only when the method type is OldSystem).
+`ar_payments.receipt_number` becomes nullable. A CHECK cannot read the method type, so it is `receipt_number IS NOT NULL OR reference IS NOT NULL`: an AR payment with no receipt number must carry the old receipt number as its reference. Only `AddOldSystemCredit` writes a null receipt number. Screens and statements show it as "Old system · {reference}" (`ArPayment::displayNumber()`), and it has no receipt PDF (a 404, no Receipt link, also on the company portal). Logged: `city_ledger.old_credit_added`. A repeated form key returns the same payment.
 
 ## Edge cases
 

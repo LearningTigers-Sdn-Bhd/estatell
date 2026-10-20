@@ -10,6 +10,7 @@ import { FilterBar } from '@/components/pms/filter-bar';
 import { MoneyText } from '@/components/pms/money-text';
 import { PageHeader } from '@/components/pms/page-header';
 import { StatusBadge } from '@/components/pms/status-badge';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { index, show } from '@/routes/finance/city-ledger/invoices';
@@ -41,8 +42,13 @@ export default function InvoicesIndex({
             column.accessor('number', {
                 header: 'Number',
                 cell: (info) => (
-                    <span className="font-medium group-hover/row:underline">
-                        {info.getValue()}
+                    <span className="flex items-center gap-2">
+                        <span className="font-medium group-hover/row:underline">
+                            {info.getValue()}
+                        </span>
+                        {info.row.original.migrated && (
+                            <Badge variant="secondary">Migrated</Badge>
+                        )}
                     </span>
                 ),
             }),
