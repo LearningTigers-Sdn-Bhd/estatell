@@ -4,6 +4,8 @@ namespace App\Data\Shared;
 
 use App\Enums\ArInvoiceStatus;
 use App\Enums\AuditStatus;
+use App\Enums\ChannelPropertyStatus;
+use App\Enums\ChannelSupport;
 use App\Enums\CompanyStatus;
 use App\Enums\FolioRowTag;
 use App\Enums\FolioStatus;
@@ -62,6 +64,16 @@ class BadgeData extends Data
     public static function fromFolioRowTag(FolioRowTag $tag): self
     {
         return new self($tag->value, $tag->label(), $tag->tone());
+    }
+
+    public static function fromChannelPropertyStatus(ChannelPropertyStatus $status): self
+    {
+        return new self($status->value, $status->label(), $status->tone());
+    }
+
+    public static function fromChannelSupport(ChannelSupport $support): self
+    {
+        return new self($support->value, $support->label(), $support->tone());
     }
 
     public static function fromOtaCredentialStatus(OtaCredentialStatus $status): self

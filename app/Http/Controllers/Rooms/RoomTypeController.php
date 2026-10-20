@@ -22,6 +22,7 @@ use App\Models\Property;
 use App\Models\Room;
 use App\Models\RoomGroup;
 use App\Models\RoomType;
+use App\Services\Channels\ChannelArchiveGuard;
 use App\Services\Rooms\RoomNumberGenerator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -121,11 +122,11 @@ class RoomTypeController extends Controller
         return to_route('settings.room-types.index', $property);
     }
 
-    public function archive(Request $request, Property $property, RoomType $roomType, ArchiveRoomType $archiveRoomType): RedirectResponse
+    public function archive(Request $request, Property $property, RoomType $roomType, ArchiveRoomType $archiveRoomType, ChannelArchiveGuard $channelGuard): RedirectResponse
     {
         Inertia::flash('toast', $archiveRoomType($request->user(), $roomType)
             ? ['type' => 'success', 'message' => __(':name archived.', ['name' => $roomType->name])]
-            : ['type' => 'error', 'message' => __(':name is already archived.', ['name' => $roomType->name])]);
+            : ['type' => 'error', 'message' => $channelGuard->roomTypeMessage($roomType) ?? __(':name is already archived.', ['name' => $roomType->name])]);
 
         return back(fallback: route('settings.room-types.index', $property));
     }

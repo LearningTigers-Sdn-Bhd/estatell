@@ -9,12 +9,26 @@ namespace App\Services\Channels;
 interface ChannelManagerDriver
 {
     /**
-     * Create or update the property, room types and rate plans at the provider.
+     * Create or update the property, its room types and its rate plans at the provider. A missing `external_id`
+     * creates, a present one updates. It never removes anything. If it stops part-way it throws
+     * `ChannelStructureSyncFailed` with the ids saved so far.
      *
-     * @param  array<string, mixed>  $structure
-     * @return array<string, mixed>
+     * @param  array{property: array{external_id: string|null, payload: array<string, mixed>}, room_types: array<int, array{external_id: string|null, payload: array<string, mixed>, rate_plans: array<int, array{external_id: string|null, payload: array<string, mixed>}>}>}  $structure
+     * @return array{property_id: string, room_types: array<int, array{id: string, rate_plans: array<int, string>}>}
+     *
+     * @throws ChannelStructureSyncFailed
      */
     public function syncStructure(array $structure): array;
+
+    /**
+     * Remove a rate plan at the provider. The provider refuses while an OTA still uses it.
+     */
+    public function removeRatePlan(string $externalRatePlanId): void;
+
+    /**
+     * Remove a room type at the provider. The provider refuses while an OTA still uses it.
+     */
+    public function removeRoomType(string $externalRoomTypeId): void;
 
     /**
      * Send availability and restriction/price changes for one provider property.

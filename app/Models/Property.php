@@ -350,6 +350,12 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
         return $this->hasMany(PropertyDocumentPrefixHistory::class);
     }
 
+    /** @return HasOne<ChannelProperty, $this> */
+    public function channelProperty(): HasOne
+    {
+        return $this->hasOne(ChannelProperty::class);
+    }
+
     /** @return HasOne<PropertySetting, $this> */
     public function settings(): HasOne
     {

@@ -94,66 +94,70 @@ After login, an Owner of a non-live property is redirected to `/p/{their code}/o
 
 Guest bulk actions use `POST /p/{code}/guests/bulk/{operation}`: `mark-vip`, `unmark-vip`, `blacklist`, `unblacklist` and `anonymize` (`guests.bulk.*`). Each checks its existing guest permission and resolves the whole selection within the property before writes. See [Bulk selection](11-guests/01-guest-profiles.md#bulk-selection-and-actions).
 
-| URL                                                                | Name                                   | Page                                            |
-| ------------------------------------------------------------------ | -------------------------------------- | ----------------------------------------------- |
-| `GET /p/ES10142/front-desk/stay-view`                              | `front-desk.stay-view`                 | `pages/front-desk/stay-view.tsx`                |
-| `GET /p/ES10142/front-desk/stay-view/version`                      | `front-desk.stay-view.version`         | – (JSON)                                        |
-| `GET /p/ES10142/front-desk/room-blocks`                            | `front-desk.room-blocks.index`         | `pages/front-desk/room-blocks/index.tsx`        |
-| `POST /p/ES10142/front-desk/room-blocks/{roomBlock}/end`           | `front-desk.room-blocks.end`           | – (Action)                                      |
-| `GET /p/ES10142/reservations/create`                               | `reservations.create`                  | `pages/reservations/create.tsx`                 |
-| `POST /p/ES10142/reservations/{reservation}/units/{unit}/check-in` | `reservations.units.check-in`          | – (Action)                                      |
-| `GET /p/ES10142/finance/folios/{folio}`                            | `finance.folios.show`                  | `pages/finance/folios/show.tsx`                 |
-| `GET /p/ES10142/finance/city-ledger/companies`                     | `finance.city-ledger.companies.index`  | `pages/finance/city-ledger/companies/index.tsx` |
-| `GET /p/ES10142/finance/city-ledger/aging`                         | `finance.city-ledger.aging`            | `pages/finance/city-ledger/aging.tsx`           |
-| `GET /p/ES10142/settings/room-types`                               | `settings.room-types.index`            | `pages/settings/room-types/index.tsx`           |
-| `GET /p/ES10142/settings/room-types/{roomType}`                    | `settings.room-types.edit`             | `pages/settings/room-types/edit.tsx`            |
-| `GET /p/ES10142/settings/room-types/{roomType}/rooms`              | `settings.room-types.rooms.edit`       | `pages/settings/room-types/rooms.tsx`           |
-| `PUT /p/ES10142/settings/room-types/{roomType}/rooms`              | `settings.room-types.rooms.update`     | Save the room type's rooms and groups           |
-| `GET /p/ES10142/settings/ota-lists`                                | `settings.ota-lists.edit`              | `pages/settings/ota-lists.tsx`                  |
-| `GET /p/ES10142/onboarding/rooms`                                  | `onboarding.rooms.edit`                | `pages/onboarding/rooms.tsx`                    |
-| `GET /p/ES10142/onboarding/taxes`                                  | `onboarding.taxes.edit`                | `pages/onboarding/taxes.tsx`                    |
-| `POST /p/ES10142/onboarding/taxes/preview`                         | `onboarding.taxes.preview`             | Example night for the unsaved table (JSON)      |
-| `PUT /p/ES10142/onboarding/taxes`                                  | `onboarding.taxes.update`              | Save the Taxes table                            |
-| `DELETE /p/ES10142/onboarding/taxes/{tax}`                         | `onboarding.taxes.destroy`             | Remove a custom tax                             |
-| `GET /p/ES10142/onboarding/payment-methods`                        | `onboarding.payment-methods.edit`      | `pages/onboarding/payment-methods.tsx`          |
-| `PUT /p/ES10142/onboarding/payment-methods`                        | `onboarding.payment-methods.update`    | Save the Payment methods table                  |
-| `GET /p/ES10142/onboarding/companies`                              | `onboarding.companies.edit`            | `pages/onboarding/companies.tsx`                |
-| `PUT /p/ES10142/onboarding/companies`                              | `onboarding.companies.update`          | Save the Companies table                        |
-| `DELETE /p/ES10142/onboarding/companies/{company}`                 | `onboarding.companies.destroy`         | Remove a company nothing refers to              |
-| `POST /p/ES10142/onboarding/companies/import`                      | `onboarding.companies.import`          | Read a CSV or XLSX file into rows (JSON)        |
-| `GET /p/ES10142/onboarding/companies/import-template.csv`          | `onboarding.companies.template`        | Download the empty Simple file                  |
-| `GET /p/ES10142/onboarding/basic-rate`                             | `onboarding.basic-rate.edit`           | `pages/onboarding/basic-rate.tsx`               |
-| `PUT /p/ES10142/onboarding/basic-rate`                             | `onboarding.basic-rate.update`         | Save the Basic rate table                       |
-| `POST /p/ES10142/onboarding/basic-rate/preview`                    | `onboarding.basic-rate.preview`        | What the guest pays for the rows (JSON)         |
-| `GET /admin`                                                       | `admin.dashboard`                      | `pages/admin/dashboard.tsx`                     |
-| `GET /admin/settings`                                              | `admin.settings.edit`                  | `pages/admin/settings/edit.tsx`                 |
-| `GET /admin/properties`                                            | `admin.properties.index`               | `pages/admin/properties/index.tsx`              |
-| `POST /admin/properties`                                           | `admin.properties.store`               | –                                               |
-| `GET /admin/properties/ES10142`                                    | `admin.properties.show`                | `pages/admin/properties/show.tsx`               |
-| `GET /admin/properties/ES10142/ota-lists`                          | `admin.properties.ota-lists`           | `pages/admin/properties/show.tsx`               |
-| `POST /admin/properties/ES10142/ota-lists/3/reveal`                | `admin.properties.ota-lists.reveal`    | –                                               |
-| `PUT /admin/properties/ES10142/ota-lists/3/processed`              | `admin.properties.ota-lists.processed` | –                                               |
-| `POST /admin/properties/ES10142/owner/setup-link`                  | `admin.properties.owner.setup-link`    | –                                               |
-| `GET /admin/partners`                                              | `admin.partners.index`                 | `pages/admin/partners/index.tsx`                |
-| `GET /admin/partners/invited`                                      | `admin.partners.invited`               | `pages/admin/partners/index.tsx`                |
-| `GET /admin/partners/bulk`                                         | `admin.partners.bulk.create`           | `pages/admin/partners/bulk.tsx`                 |
-| `GET /admin/channels`                                              | `admin.channels.index`                 | `pages/admin/channels/index.tsx`                |
-| `POST /admin/channels`                                             | `admin.channels.store`                 | –                                               |
-| `PUT /admin/channels/order`                                        | `admin.channels.reorder`               | –                                               |
-| `PUT /admin/channels/3`                                            | `admin.channels.update`                | –                                               |
-| `PUT /admin/channels/3/active`                                     | `admin.channels.active.update`         | –                                               |
-| `GET /partner-invitations/{token}`                                 | `partner-invitations.show`             | `pages/partner-invitations/accept.tsx`          |
-| `GET /command-search?q=ah`                                         | `command-search`                       | – (JSON, grouped palette results)               |
-| `GET /view-as/ES10142`                                             | `view-as.show`                         | `pages/view-as/show.tsx`                        |
-| `GET /partner`                                                     | `partner.properties.index`             | `pages/partner/properties/index.tsx`            |
-| `GET /join/K7Q2MX`                                                 | `join`                                 | Redirects to `/register`                        |
-| `GET /g/cards/5821?expires=…&signature=…`                          | `guest.cards.show`                     | `pages/guest/cards/show.tsx`                    |
-| `GET /g/owners/82/setup?expires=…&signature=…`                     | `guest.owner-setup.show`               | `pages/auth/owner-setup.tsx`                    |
-| `POST /g/owners/82/setup?expires=…&signature=…`                    | `guest.owner-setup.store`              | –                                               |
-| `GET /p/ES10142/channels`                                          | `channels.index`                       | `pages/channels/index.tsx`                      |
-| `GET /admin/properties/ES10142/channels`                           | `admin.properties.channels`            | `pages/admin/properties/show.tsx`               |
-| `GET /admin/properties/ES10142/channels/connect/agoda`             | `admin.properties.channels.connect`    | `pages/admin/properties/channels/connect.tsx`   |
-| `POST /webhooks/channex`                                           | `webhooks.channex`                     | –                                               |
+| URL                                                                | Name                                           | Page                                             |
+| ------------------------------------------------------------------ | ---------------------------------------------- | ------------------------------------------------ |
+| `GET /p/ES10142/front-desk/stay-view`                              | `front-desk.stay-view`                         | `pages/front-desk/stay-view.tsx`                 |
+| `GET /p/ES10142/front-desk/stay-view/version`                      | `front-desk.stay-view.version`                 | – (JSON)                                         |
+| `GET /p/ES10142/front-desk/room-blocks`                            | `front-desk.room-blocks.index`                 | `pages/front-desk/room-blocks/index.tsx`         |
+| `POST /p/ES10142/front-desk/room-blocks/{roomBlock}/end`           | `front-desk.room-blocks.end`                   | – (Action)                                       |
+| `GET /p/ES10142/reservations/create`                               | `reservations.create`                          | `pages/reservations/create.tsx`                  |
+| `POST /p/ES10142/reservations/{reservation}/units/{unit}/check-in` | `reservations.units.check-in`                  | – (Action)                                       |
+| `GET /p/ES10142/finance/folios/{folio}`                            | `finance.folios.show`                          | `pages/finance/folios/show.tsx`                  |
+| `GET /p/ES10142/finance/city-ledger/companies`                     | `finance.city-ledger.companies.index`          | `pages/finance/city-ledger/companies/index.tsx`  |
+| `GET /p/ES10142/finance/city-ledger/aging`                         | `finance.city-ledger.aging`                    | `pages/finance/city-ledger/aging.tsx`            |
+| `GET /p/ES10142/settings/room-types`                               | `settings.room-types.index`                    | `pages/settings/room-types/index.tsx`            |
+| `GET /p/ES10142/settings/room-types/{roomType}`                    | `settings.room-types.edit`                     | `pages/settings/room-types/edit.tsx`             |
+| `GET /p/ES10142/settings/room-types/{roomType}/rooms`              | `settings.room-types.rooms.edit`               | `pages/settings/room-types/rooms.tsx`            |
+| `PUT /p/ES10142/settings/room-types/{roomType}/rooms`              | `settings.room-types.rooms.update`             | Save the room type's rooms and groups            |
+| `GET /p/ES10142/settings/ota-lists`                                | `settings.ota-lists.edit`                      | `pages/settings/ota-lists.tsx`                   |
+| `GET /p/ES10142/onboarding/rooms`                                  | `onboarding.rooms.edit`                        | `pages/onboarding/rooms.tsx`                     |
+| `GET /p/ES10142/onboarding/taxes`                                  | `onboarding.taxes.edit`                        | `pages/onboarding/taxes.tsx`                     |
+| `POST /p/ES10142/onboarding/taxes/preview`                         | `onboarding.taxes.preview`                     | Example night for the unsaved table (JSON)       |
+| `PUT /p/ES10142/onboarding/taxes`                                  | `onboarding.taxes.update`                      | Save the Taxes table                             |
+| `DELETE /p/ES10142/onboarding/taxes/{tax}`                         | `onboarding.taxes.destroy`                     | Remove a custom tax                              |
+| `GET /p/ES10142/onboarding/payment-methods`                        | `onboarding.payment-methods.edit`              | `pages/onboarding/payment-methods.tsx`           |
+| `PUT /p/ES10142/onboarding/payment-methods`                        | `onboarding.payment-methods.update`            | Save the Payment methods table                   |
+| `GET /p/ES10142/onboarding/companies`                              | `onboarding.companies.edit`                    | `pages/onboarding/companies.tsx`                 |
+| `PUT /p/ES10142/onboarding/companies`                              | `onboarding.companies.update`                  | Save the Companies table                         |
+| `DELETE /p/ES10142/onboarding/companies/{company}`                 | `onboarding.companies.destroy`                 | Remove a company nothing refers to               |
+| `POST /p/ES10142/onboarding/companies/import`                      | `onboarding.companies.import`                  | Read a CSV or XLSX file into rows (JSON)         |
+| `GET /p/ES10142/onboarding/companies/import-template.csv`          | `onboarding.companies.template`                | Download the empty Simple file                   |
+| `GET /p/ES10142/onboarding/basic-rate`                             | `onboarding.basic-rate.edit`                   | `pages/onboarding/basic-rate.tsx`                |
+| `PUT /p/ES10142/onboarding/basic-rate`                             | `onboarding.basic-rate.update`                 | Save the Basic rate table                        |
+| `POST /p/ES10142/onboarding/basic-rate/preview`                    | `onboarding.basic-rate.preview`                | What the guest pays for the rows (JSON)          |
+| `GET /admin`                                                       | `admin.dashboard`                              | `pages/admin/dashboard.tsx`                      |
+| `GET /admin/settings`                                              | `admin.settings.edit`                          | `pages/admin/settings/edit.tsx`                  |
+| `GET /admin/properties`                                            | `admin.properties.index`                       | `pages/admin/properties/index.tsx`               |
+| `POST /admin/properties`                                           | `admin.properties.store`                       | –                                                |
+| `GET /admin/properties/ES10142`                                    | `admin.properties.show`                        | `pages/admin/properties/show.tsx`                |
+| `GET /admin/properties/ES10142/ota-lists`                          | `admin.properties.ota-lists`                   | `pages/admin/properties/show.tsx`                |
+| `POST /admin/properties/ES10142/ota-lists/3/reveal`                | `admin.properties.ota-lists.reveal`            | –                                                |
+| `PUT /admin/properties/ES10142/ota-lists/3/processed`              | `admin.properties.ota-lists.processed`         | –                                                |
+| `POST /admin/properties/ES10142/owner/setup-link`                  | `admin.properties.owner.setup-link`            | –                                                |
+| `GET /admin/partners`                                              | `admin.partners.index`                         | `pages/admin/partners/index.tsx`                 |
+| `GET /admin/partners/invited`                                      | `admin.partners.invited`                       | `pages/admin/partners/index.tsx`                 |
+| `GET /admin/partners/bulk`                                         | `admin.partners.bulk.create`                   | `pages/admin/partners/bulk.tsx`                  |
+| `GET /admin/properties/AB00001/channels`                           | `admin.properties.channels`                    | `pages/admin/properties/show.tsx` (Channels tab) |
+| `POST /admin/properties/AB00001/channels/sync`                     | `admin.properties.channels.sync`               | –                                                |
+| `DELETE /admin/properties/AB00001/channels/rate-plans/5`           | `admin.properties.channels.rate-plans.destroy` | –                                                |
+| `DELETE /admin/properties/AB00001/channels/room-types/5`           | `admin.properties.channels.room-types.destroy` | –                                                |
+| `GET /admin/channels`                                              | `admin.channels.index`                         | `pages/admin/channels/index.tsx`                 |
+| `POST /admin/channels`                                             | `admin.channels.store`                         | –                                                |
+| `PUT /admin/channels/order`                                        | `admin.channels.reorder`                       | –                                                |
+| `PUT /admin/channels/3`                                            | `admin.channels.update`                        | –                                                |
+| `PUT /admin/channels/3/active`                                     | `admin.channels.active.update`                 | –                                                |
+| `GET /partner-invitations/{token}`                                 | `partner-invitations.show`                     | `pages/partner-invitations/accept.tsx`           |
+| `GET /command-search?q=ah`                                         | `command-search`                               | – (JSON, grouped palette results)                |
+| `GET /view-as/ES10142`                                             | `view-as.show`                                 | `pages/view-as/show.tsx`                         |
+| `GET /partner`                                                     | `partner.properties.index`                     | `pages/partner/properties/index.tsx`             |
+| `GET /join/K7Q2MX`                                                 | `join`                                         | Redirects to `/register`                         |
+| `GET /g/cards/5821?expires=…&signature=…`                          | `guest.cards.show`                             | `pages/guest/cards/show.tsx`                     |
+| `GET /g/owners/82/setup?expires=…&signature=…`                     | `guest.owner-setup.show`                       | `pages/auth/owner-setup.tsx`                     |
+| `POST /g/owners/82/setup?expires=…&signature=…`                    | `guest.owner-setup.store`                      | –                                                |
+| `GET /p/ES10142/channels`                                          | `channels.index`                               | `pages/channels/index.tsx`                       |
+| `GET /admin/properties/ES10142/channels`                           | `admin.properties.channels`                    | `pages/admin/properties/show.tsx`                |
+| `GET /admin/properties/ES10142/channels/connect/agoda`             | `admin.properties.channels.connect`            | `pages/admin/properties/channels/connect.tsx`    |
+| `POST /webhooks/channex`                                           | `webhooks.channex`                             | –                                                |
 
 The full list of admin channel routes is in [Admin Channels tab](21-channels/07-admin-channels-tab.md#routes).
 

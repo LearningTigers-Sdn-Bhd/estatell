@@ -47,6 +47,10 @@ The one place where the estatell team syncs a property to Channex, connects and 
 
 Results and reasons come from `ChannelCapability` (see [Mappings and capability](02-mappings-and-capability.md#service)).
 
+### Built with the structure sync
+
+The tab has three parts so far: the Channex card (status, the last sync, the last error, **Preview sync** or **Sync again**), the preview Dialog above (the sync button is off while the preview is blocked), and **On Channex**, which lists the room types and rate plans Channex has with a **Remove** button on each (an AlertDialog). The OTAs card says "Sync to Channex first." until a property is synced; connecting OTAs, Alerts, Recent bookings, **Pause sync** and **Full refresh** come later. The tab and its routes return 404 while `ChannelManager` is off.
+
 ### Live
 
 ```

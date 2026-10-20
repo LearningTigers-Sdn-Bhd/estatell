@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Rates;
 
 use App\Models\RatePlan;
+use App\Services\Channels\ChannelArchiveGuard;
 use App\Services\Rates\DerivedRatePlans;
 use App\Services\Rates\RatePlanCoverage;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -70,7 +71,7 @@ class RatePlanRoomTypesRequest extends FormRequest
                 }
 
                 $removed = array_diff($ratePlan->roomTypes()->active()->pluck('room_types.id')->all(), $ids);
-                $message = app(DerivedRatePlans::class)->unlinkMessage($ratePlan, array_values($removed)) ?? $coverage->message($ratePlan, $ids);
+                $message = app(DerivedRatePlans::class)->unlinkMessage($ratePlan, array_values($removed)) ?? $coverage->message($ratePlan, $ids) ?? app(ChannelArchiveGuard::class)->unlinkMessage($ratePlan, array_values($removed));
 
                 if ($message !== null) {
                     $validator->errors()->add('room_type_ids', $message);

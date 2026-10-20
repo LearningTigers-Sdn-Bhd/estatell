@@ -217,6 +217,35 @@ enabled: boolean,
 };
 }
 namespace Channels {
+export type ChannelStructurePreviewData = {
+rows: App.Data.Channels.ChannelStructureRowData[],
+roomTypes: number,
+ratePlans: number,
+skipped: number,
+blockedReason: string | null,
+};
+export type ChannelStructureRowData = {
+roomType: string,
+ratePlan: string,
+sellMode: string,
+support: App.Data.Shared.BadgeData,
+detail: string | null,
+};
+export type ChannelSyncedRoomTypeData = {
+mappingId: number,
+name: string,
+ratePlans: {
+id: number,
+name: string,
+}[],
+};
+export type ChannelTabData = {
+status: App.Data.Shared.BadgeData,
+structureSyncedAt: string | null,
+lastError: string | null,
+preview: App.Data.Channels.ChannelStructurePreviewData,
+synced: App.Data.Channels.ChannelSyncedRoomTypeData[],
+};
 export type OtaChannelData = {
 id: number,
 code: string,
@@ -3490,7 +3519,9 @@ export type BoatMode = 'scheduled' | 'charter' | 'own';
 export type BookingSourceIcon = 'phone' | 'message-circle' | 'mail' | 'globe' | 'users' | 'handshake' | 'briefcase-business' | 'building-2' | 'footprints' | 'ticket' | 'megaphone' | 'star';
 export type BookingSourceType = 'direct' | 'ota' | 'company' | 'walk_in';
 export type BusinessDateStatus = 'open' | 'auditing' | 'closed';
+export type ChannelPropertyStatus = 'not_synced' | 'synced' | 'paused' | 'error';
 export type ChannelProvider = 'channex';
+export type ChannelSupport = 'full' | 'flattened' | 'unsupported';
 export type ChargingUnit = 'per_item' | 'per_night' | 'per_stay' | 'per_guest_night' | 'per_guest';
 export type CheckInRoomState = 'assigned' | 'auto' | 'none';
 export type ColumnAlign = 'left' | 'center' | 'right';

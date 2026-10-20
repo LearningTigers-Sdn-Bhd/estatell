@@ -5,20 +5,21 @@ namespace App\Actions\Rates;
 use App\Models\Property;
 use App\Models\RatePlan;
 use App\Models\User;
+use App\Services\Channels\ChannelArchiveGuard;
 use App\Services\Rates\DerivedRatePlans;
 use App\Services\Rates\RatePlanCoverage;
 use Illuminate\Support\Facades\DB;
 
 class SyncRatePlanRoomTypes
 {
-    public function __construct(private RatePlanCoverage $coverage, private DerivedRatePlans $derivedRatePlans) {}
+    public function __construct(private RatePlanCoverage $coverage, private DerivedRatePlans $derivedRatePlans, private ChannelArchiveGuard $channelGuard) {}
 
     /**
      * Set which active room types the plan sells. Links to archived room types are left alone.
      *
      * Returns false for an archived plan, for a room type that is not an active room type of the property whose sell unit
      * fits the plan's pricing basis, when unlinking would leave an active room type with no active plan,
-     * when unlinking a room type that an active follower sells, or when a derived plan adds a room type its parent does not sell.
+     * when unlinking a room type that an active follower sells, when unlinking a pair the channel manager still has, or when a derived plan adds a room type its parent does not sell.
      * A save that changes nothing is not logged.
      *
      * @param  list<int>  $roomTypeIds
@@ -44,7 +45,7 @@ class SyncRatePlanRoomTypes
             $added = array_values(array_diff($wanted, $current));
             $removed = array_values(array_diff($current, $wanted));
 
-            if ($this->derivedRatePlans->unlinkMessage($ratePlan, $removed) !== null) {
+            if ($this->derivedRatePlans->unlinkMessage($ratePlan, $removed) !== null || $this->channelGuard->unlinkMessage($ratePlan, $removed) !== null) {
                 return false;
             }
 

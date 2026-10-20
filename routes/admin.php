@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\PartnerInvitationController;
 use App\Http\Controllers\Admin\PartnerStatusController;
 use App\Http\Controllers\Admin\PartnerTemporaryPasswordController;
 use App\Http\Controllers\Admin\PlatformSettingsController;
+use App\Http\Controllers\Admin\PropertyChannelController;
 use App\Http\Controllers\Admin\PropertyController;
 use App\Http\Controllers\Admin\PropertyFeatureController;
 use App\Http\Controllers\Admin\PropertyGoLiveController;
@@ -28,6 +29,12 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
     Route::get('properties/{property:code}/ota-lists', [PropertyController::class, 'otaLists'])->where(['property' => '[A-Za-z]{2}[0-9]{5,}'])->name('properties.ota-lists');
     Route::post('properties/{property:code}/ota-lists/{credential}/reveal', [PropertyOtaListController::class, 'reveal'])->where(['property' => '[A-Za-z]{2}[0-9]{5,}', 'credential' => '[0-9]+'])->middleware('support.2fa')->name('properties.ota-lists.reveal');
     Route::put('properties/{property:code}/ota-lists/{credential}/processed', [PropertyOtaListController::class, 'markProcessed'])->where(['property' => '[A-Za-z]{2}[0-9]{5,}', 'credential' => '[0-9]+'])->middleware('support.2fa')->name('properties.ota-lists.processed');
+    Route::middleware('channels')->group(function () {
+        Route::get('properties/{property:code}/channels', [PropertyController::class, 'channels'])->where(['property' => '[A-Za-z]{2}[0-9]{5,}'])->name('properties.channels');
+        Route::post('properties/{property:code}/channels/sync', [PropertyChannelController::class, 'sync'])->where(['property' => '[A-Za-z]{2}[0-9]{5,}'])->middleware('support.2fa')->name('properties.channels.sync');
+        Route::delete('properties/{property:code}/channels/rate-plans/{ratePlanMapping}', [PropertyChannelController::class, 'destroyRatePlan'])->where(['property' => '[A-Za-z]{2}[0-9]{5,}', 'ratePlanMapping' => '[0-9]+'])->middleware('support.2fa')->name('properties.channels.rate-plans.destroy');
+        Route::delete('properties/{property:code}/channels/room-types/{roomTypeMapping}', [PropertyChannelController::class, 'destroyRoomType'])->where(['property' => '[A-Za-z]{2}[0-9]{5,}', 'roomTypeMapping' => '[0-9]+'])->middleware('support.2fa')->name('properties.channels.room-types.destroy');
+    });
     Route::put('properties/{property:code}/features/{feature}', [PropertyFeatureController::class, 'update'])->where(['property' => '[A-Za-z]{2}[0-9]{5,}'])->middleware('support.2fa')->name('properties.features.update');
     Route::get('properties/{property:code}/go-live', [PropertyGoLiveController::class, 'show'])->where(['property' => '[A-Za-z]{2}[0-9]{5,}'])->name('properties.go-live.show');
     Route::post('properties/{property:code}/go-live/approve', [PropertyGoLiveController::class, 'approve'])->where(['property' => '[A-Za-z]{2}[0-9]{5,}'])->middleware('support.2fa')->name('properties.go-live.approve');

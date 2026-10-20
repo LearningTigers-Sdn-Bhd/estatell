@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Rates;
 
 use App\Models\RatePlan;
+use App\Services\Channels\ChannelArchiveGuard;
 use App\Services\Rates\DerivedRatePlans;
 use App\Services\Rates\RatePlanCoverage;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -38,7 +39,7 @@ class ArchiveRatePlanRequest extends FormRequest
             function (Validator $validator): void {
                 /** @var RatePlan $ratePlan */
                 $ratePlan = $this->route('ratePlan');
-                $message = app(DerivedRatePlans::class)->followersMessage($ratePlan) ?? app(RatePlanCoverage::class)->message($ratePlan);
+                $message = app(DerivedRatePlans::class)->followersMessage($ratePlan) ?? app(RatePlanCoverage::class)->message($ratePlan) ?? app(ChannelArchiveGuard::class)->ratePlanMessage($ratePlan);
 
                 if ($message !== null) {
                     $validator->errors()->add('rate_plan', $message);

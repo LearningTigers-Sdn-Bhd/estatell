@@ -4,21 +4,24 @@ namespace App\Actions\Rooms;
 
 use App\Models\RoomType;
 use App\Models\User;
+use App\Services\Channels\ChannelArchiveGuard;
 use Illuminate\Support\Facades\DB;
 
 class ArchiveRoomType
 {
+    public function __construct(private ChannelArchiveGuard $channelGuard) {}
+
     /**
      * Hide a room type from new work. Existing records keep pointing at it.
      *
-     * Returns false when it is already archived.
+     * Returns false when it is already archived or when the channel manager still has it.
      */
     public function __invoke(User $actor, RoomType $roomType): bool
     {
         return DB::transaction(function () use ($actor, $roomType): bool {
             $roomType = RoomType::query()->lockForUpdate()->findOrFail($roomType->id);
 
-            if ($roomType->archived_at !== null) {
+            if ($roomType->archived_at !== null || $this->channelGuard->roomTypeMessage($roomType) !== null) {
                 return false;
             }
 
