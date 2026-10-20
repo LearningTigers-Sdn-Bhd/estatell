@@ -5,6 +5,7 @@ namespace App\Services\Reports;
 use App\Data\Reports\ReportBreakdown;
 use App\Data\Reports\ReportFilters;
 use App\Data\Reports\ReportRow;
+use App\Models\Property;
 
 /**
  * A report with a small summary table under its main table (Payments: the total for each method or the cash-up for each staff member). The screen and the
@@ -18,5 +19,5 @@ interface HasBreakdown
      *
      * @param  list<ReportRow>  $rows
      */
-    public function breakdown(array $rows, ReportFilters $filters): ReportBreakdown;
+    public function breakdown(Property $property, array $rows, ReportFilters $filters): ReportBreakdown;
 }

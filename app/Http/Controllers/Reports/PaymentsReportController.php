@@ -42,7 +42,7 @@ class PaymentsReportController extends Controller
         return Inertia::render('reports/payments', [
             'rows' => PaymentRow::collect($rows->withQueryString(), PaginatedDataCollection::class),
             'totals' => $key->totals($allRows),
-            'breakdown' => $key->breakdown($allRows, $filters),
+            'breakdown' => $key->breakdown($property, $allRows, $filters),
             'sort' => $sort,
             'layout' => $layout,
             'orientationOptions' => PageOrientation::options(),

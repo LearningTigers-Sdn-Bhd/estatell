@@ -17,7 +17,8 @@ use Illuminate\Support\Collection;
  * Revenue by transaction code, read live from the folio ledger by posting date. Every revenue figure comes from
  * here: the live daily revenue report reads it for any range, and the night audit copies one closed date into
  * `daily_revenue`. A line counts on its posting date, so a reversal reduces the date it was posted on. Payment lines
- * are not revenue and are left out; charges, taxes and adjustments (discounts) are in. It reads only.
+ * are not revenue and are left out; charges, taxes and adjustments (discounts) are in. Migrated lines and the Opening
+ * balance code are left out too. It reads only.
  * See docs/20-night-audit/05-statistics.md.
  */
 class DailyRevenueQuery
@@ -125,7 +126,8 @@ class DailyRevenueQuery
     }
 
     /**
-     * The ledger lines of the property posted from one date to another, both included.
+     * The ledger lines of the property posted from one date to another, both included. Lines copied from the old system
+     * and the Opening balance code are left out: those days belong to the old PMS.
      *
      * @return Builder<FolioLine>
      */
@@ -134,6 +136,11 @@ class DailyRevenueQuery
         return FolioLine::query()
             ->join('folios', 'folios.id', '=', 'folio_lines.folio_id')
             ->where('folios.property_id', $property->id)
+            ->where('folio_lines.migrated', false)
+            ->whereNotIn('folio_lines.transaction_code_id', TransactionCode::query()
+                ->where('property_id', $property->id)
+                ->where('system_key', SystemTransactionCode::OpeningBalance->value)
+                ->select('id'))
             ->whereBetween('folio_lines.posting_date', [$from->toDateString(), $to->toDateString()]);
     }
 

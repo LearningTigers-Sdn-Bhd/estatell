@@ -52,7 +52,7 @@ class ReportPdf
                 'rows' => array_values(array_filter($rows, fn (ReportRow $row): bool => in_array($row->key, $section->rowKeys, true))),
             ], $sections),
             'totals' => $report->totals($rows),
-            'breakdown' => $report->breakdown($rows, $filters),
+            'breakdown' => $report->breakdown($property, $rows, $filters),
             'selectedOnly' => $rowKeys !== null,
         ], $layout->orientation->value);
     }

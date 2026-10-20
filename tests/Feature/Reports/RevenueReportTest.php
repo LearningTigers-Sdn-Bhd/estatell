@@ -3,6 +3,7 @@
 require_once __DIR__.'/../Support/ReportSetup.php';
 
 use App\Enums\DefaultRoleEnum;
+use App\Enums\SystemTransactionCode;
 use App\Enums\TransactionKind;
 use App\Models\Folio;
 use App\Models\FolioLine;
@@ -17,7 +18,7 @@ beforeEach(function () {
     $this->travelTo(now()->setDate(2026, 10, 10)->setTime(12, 0));
 });
 
-function revenueLine(Property $property, TransactionCode $code, string $amount, string $date, TransactionKind $kind = TransactionKind::Charge): FolioLine
+function revenueLine(Property $property, TransactionCode $code, string $amount, string $date, TransactionKind $kind = TransactionKind::Charge, bool $migrated = false): FolioLine
 {
     $folio = Folio::factory()->create(['property_id' => $property->id]);
 
@@ -28,6 +29,7 @@ function revenueLine(Property $property, TransactionCode $code, string $amount, 
         'amount' => $amount,
         'unit_amount' => $amount,
         'posting_date' => $date,
+        'migrated' => $migrated,
     ]);
 }
 
@@ -166,4 +168,15 @@ test('the sidebar lists Occupancy, Revenue, Tax and Non-national guests under th
     $this->actingAs($user)->get(revenueUrl($property))->assertInertia(fn (Assert $page) => $page
         ->where('navigation.contexts.2.groups', fn ($groups) => collect($groups)->firstWhere('label', 'Revenue') !== null
             && collect(collect($groups)->firstWhere('label', 'Revenue')['items'])->pluck('title')->all() === ['Occupancy', 'Revenue', 'Tax', 'Non-national guests']));
+});
+
+test('migrated lines and the opening balance code are not revenue', function () {
+    [$user, $property] = reportSetup();
+    [$room] = revenueLines($property);
+    $opening = TransactionCode::factory()->for($property)->system(SystemTransactionCode::OpeningBalance)->create();
+    revenueLine($property, $room, '999.00', '2026-10-09', migrated: true);
+    revenueLine($property, $opening, '777.00', '2026-10-09', TransactionKind::Adjustment);
+
+    $this->actingAs($user)->get(revenueUrl($property, '?from=2026-10-09&to=2026-10-09'))->assertInertia(fn (Assert $page) => $page
+        ->where('rows.data', fn ($rows) => collect($rows)->pluck('amount', 'code')->sortKeys()->all() === ['MEAL' => '30.00', 'ROOM' => '250.00']));
 });

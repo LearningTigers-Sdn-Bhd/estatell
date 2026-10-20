@@ -136,7 +136,7 @@ class PaymentsReport implements HasBreakdown, HasTotals, Report
      *
      * @param  list<PaymentRow>  $rows
      */
-    public function breakdown(array $rows, ReportFilters $filters): ReportBreakdown
+    public function breakdown(Property $property, array $rows, ReportFilters $filters): ReportBreakdown
     {
         return $filters->group === ReportGroup::Staff ? $this->byStaff($rows) : $this->byMethod($rows);
     }

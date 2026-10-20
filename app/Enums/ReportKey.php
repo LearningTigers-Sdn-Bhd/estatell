@@ -584,11 +584,11 @@ enum ReportKey: string
      *
      * @param  list<ReportRow>  $rows
      */
-    public function breakdown(array $rows, ReportFilters $filters): ?ReportBreakdown
+    public function breakdown(Property $property, array $rows, ReportFilters $filters): ?ReportBreakdown
     {
         $report = $this->report();
 
-        return $report instanceof HasBreakdown ? $report->breakdown($rows, $filters) : null;
+        return $report instanceof HasBreakdown ? $report->breakdown($property, $rows, $filters) : null;
     }
 
     /**

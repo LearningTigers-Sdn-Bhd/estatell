@@ -15,6 +15,7 @@ type Layout = App.Data.Reports.ReportLayoutData;
 type Props = {
     rows: Illuminate.LengthAwarePaginator<number, Row>;
     totals: App.Data.Reports.ReportTotals;
+    breakdown: App.Data.Reports.ReportBreakdown;
     sort: string;
     layout: Layout;
     canEditLayout: boolean;

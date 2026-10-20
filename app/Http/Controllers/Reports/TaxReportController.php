@@ -41,6 +41,7 @@ class TaxReportController extends Controller
         return Inertia::render('reports/tax', [
             'rows' => TaxRow::collect($rows->withQueryString(), PaginatedDataCollection::class),
             'totals' => $key->totals($allRows),
+            'breakdown' => $key->breakdown($property, $allRows, $filters),
             'sort' => $sort,
             'layout' => $layout,
             'orientationOptions' => PageOrientation::options(),

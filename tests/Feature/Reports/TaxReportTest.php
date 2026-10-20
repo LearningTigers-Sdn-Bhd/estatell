@@ -20,7 +20,7 @@ function taxUrl(Property $property, string $query = ''): string
     return "/p/{$property->code}/reports/tax".$query;
 }
 
-function taxLine(Property $property, Tax $tax, string $amount, string $date, TransactionKind $kind = TransactionKind::Tax): FolioLine
+function taxLine(Property $property, Tax $tax, string $amount, string $date, TransactionKind $kind = TransactionKind::Tax, bool $migrated = false): FolioLine
 {
     $folio = Folio::factory()->create(['property_id' => $property->id]);
 
@@ -31,6 +31,7 @@ function taxLine(Property $property, Tax $tax, string $amount, string $date, Tra
         'amount' => $amount,
         'unit_amount' => $amount,
         'posting_date' => $date,
+        'migrated' => $migrated,
     ]);
 }
 
@@ -122,7 +123,7 @@ test('the PDF and CSV keep the group and total only the selected rows', function
     expect($captured->data['group'])->toBe('Month')
         ->and($captured->data['rows'])->toHaveCount(2)
         ->and($captured->data['totals']->figures['amount'])->toBe('24.00')
-        ->and($captured->data['breakdown'])->toBeNull();
+        ->and($captured->data['breakdown']->rows)->toBe([]);
 
     $response = $this->actingAs($user)->post("/p/{$property->code}/reports/tax/spreadsheet", [...$base, 'format' => 'csv']);
     $rows = array_map('str_getcsv', array_values(array_filter(explode("\n", ltrim($response->streamedContent(), "\xEF\xBB\xBF")))));
@@ -130,4 +131,23 @@ test('the PDF and CSV keep the group and total only the selected rows', function
     expect($rows)->toHaveCount(4)
         ->and($rows[0])->toBe(['Date / month', 'Tax', 'Lines', 'Tax amount'])
         ->and(end($rows))->toBe(['Total', '', '4', '24']);
+});
+
+test('tax on migrated lines is a separate group outside the rows and the total', function () {
+    [$user, $property] = reportSetup();
+    ['sst' => $sst, 'tourism' => $tourism] = taxData($property);
+    taxLine($property, $sst, '100.00', '2026-10-05', migrated: true);
+    taxLine($property, $sst, '55.52', '2026-10-06', migrated: true);
+    taxLine($property, $tourism, '5.00', '2026-10-06', migrated: true);
+
+    $this->actingAs($user)->get(taxUrl($property, '?from=2026-10-01&to=2026-10-31'))->assertInertia(fn (Assert $page) => $page
+        ->where('rows.meta.total', 3)
+        ->where('totals.figures.amount', '26.00')
+        ->where('breakdown.title', 'Migrated from old system (not in the total above)')
+        ->where('breakdown.headings', ['Tax', 'Lines', 'Amount'])
+        ->where('breakdown.rows', [['SST', '2', '155.52'], ['Tourism tax', '1', '5.00']])
+        ->where('breakdown.total', ['Total', '3', '160.52']));
+
+    $this->actingAs($user)->get(taxUrl($property, '?from=2026-10-09&to=2026-10-10'))->assertInertia(fn (Assert $page) => $page
+        ->where('breakdown.rows', []));
 });
