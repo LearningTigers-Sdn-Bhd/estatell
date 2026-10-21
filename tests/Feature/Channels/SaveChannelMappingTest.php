@@ -131,7 +131,7 @@ test('a line for another property or an occupancy the plan does not have is refu
 
     expect(saveMapping($connection, [line($foreign, 2, '586818903|16385046')])->ok)->toBeFalse()
         ->and(saveMapping($connection, [line($mapping, 4, '586818903|16385046')])->ok)->toBeFalse()
-        ->and(saveMapping($connection, [line($mapping, 2, '586818903|16385046'), line($mapping, 2, '586818903|16385047')])->message)->toContain('mapped twice');
+        ->and(saveMapping($connection, [line($mapping, 2, '586818903|16385046'), line($mapping, 2, '586818903|16385046')])->message)->toContain('mapped twice');
     expect(channexBodies('PUT', '/channels/channel-1'))->toBe([]);
 });
 
@@ -171,6 +171,17 @@ test('Hostelworld sends a type and no primary flag', function () {
 
     expect(channexBodies('PUT', '/channels/channel-1')[0]['channel']['rate_plans'][0]['settings'])->toBe(['room_type_code' => 586818903, 'rate_plan_code' => 16385046, 'occupancy' => 3, 'type' => 'private'])
         ->and($connection->otaMappings()->sole()->only(['is_primary', 'rate_type']))->toBe(['is_primary' => null, 'rate_type' => 'private']);
+});
+
+test('one plan occupancy can take several OTA lines', function () {
+    ['connection' => $connection, 'mapping' => $mapping] = mapReadySetup();
+    fakeChannexMapping();
+
+    $result = saveMapping($connection, [line($mapping, 2, '586818903|16385046', true), line($mapping, 2, '586818903|16385047', true)]);
+
+    expect($result->ok)->toBeTrue()
+        ->and($connection->otaMappings()->count())->toBe(2)
+        ->and(channexBodies('PUT', '/channels/channel-1')[0]['channel']['rate_plans'])->toHaveCount(2);
 });
 
 test('the map page lists each OTA line from the top guest count, suggests matches by name and marks one primary', function () {

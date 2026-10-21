@@ -70,19 +70,11 @@ function withPrimaries(rows: Row[]): Row[] {
 }
 
 /** The Estatell plans a line can take: the same guest count, or the top one when the OTA lists no guest counts. */
-function choicesFor(row: Row, options: Option[], rows: Row[]): Option[] {
-    const taken = new Set(
-        rows
-            .filter((other) => other.key !== row.key && other.estatell)
-            .map((other) => other.estatell),
-    );
-
-    return options.filter(
-        (option) =>
-            !taken.has(option.value) &&
-            (row.occupancy === null
-                ? option.isTop
-                : option.occupancy === row.occupancy),
+function choicesFor(row: Row, options: Option[]): Option[] {
+    return options.filter((option) =>
+        row.occupancy === null
+            ? option.isTop
+            : option.occupancy === row.occupancy,
     );
 }
 
@@ -304,32 +296,13 @@ export default function ChannelMap({
                                                 value: NONE,
                                                 label: 'Not mapped',
                                             },
-                                            ...choicesFor(
-                                                row,
-                                                map.options,
-                                                rows,
-                                            ).map((option) => ({
-                                                value: option.value,
-                                                label: option.label,
-                                            })),
+                                            ...choicesFor(row, map.options).map(
+                                                (option) => ({
+                                                    value: option.value,
+                                                    label: option.label,
+                                                }),
+                                            ),
                                         ];
-                                        const own = map.options.find(
-                                            (option) =>
-                                                option.value === row.estatell,
-                                        );
-
-                                        if (
-                                            own &&
-                                            !choices.some(
-                                                (c) => c.value === own.value,
-                                            )
-                                        ) {
-                                            choices.push({
-                                                value: own.value,
-                                                label: own.label,
-                                            });
-                                        }
-
                                         return (
                                             <Fragment key={row.key}>
                                                 {startsRoom && (

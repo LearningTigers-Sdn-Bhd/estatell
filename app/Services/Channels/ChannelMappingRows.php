@@ -22,6 +22,7 @@ class ChannelMappingRows
         $hasSaved = $saved->isNotEmpty();
         $choices = $this->choices($connection);
         $used = [];
+        $taken = [];
         $rows = [];
 
         foreach ($catalogue->rooms as $room) {
@@ -34,7 +35,11 @@ class ChannelMappingRows
                     $existing = $saved->first(fn ($mapping): bool => (string) $mapping->ota_room_code === $roomCode
                         && (string) $mapping->ota_rate_code === $rateCode
                         && ($occupancy === null || $mapping->occupancy === $occupancy)
-                        && ! isset($used[$mapping->channel_rate_plan_mapping_id.'-'.$mapping->occupancy]));
+                        && ! isset($taken[$mapping->id]));
+
+                    if ($existing !== null) {
+                        $taken[$existing->id] = true;
+                    }
 
                     $value = $existing !== null
                         ? $existing->channel_rate_plan_mapping_id.'-'.$existing->occupancy

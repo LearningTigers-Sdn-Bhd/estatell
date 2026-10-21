@@ -40,8 +40,8 @@ class SaveChannelMapping
             }
         }
 
-        if (count(array_unique(array_map(fn (array $line): string => $line['rate_plan_mapping_id'].'-'.$line['occupancy'], $mapped))) !== count($mapped)) {
-            return ChannelActionResult::failed(__('A rate plan occupancy is mapped twice. Reload the page and try again.'));
+        if (count(array_unique(array_map(fn (array $line): string => $line['ota'].'|'.$line['occupancy'], $mapped))) !== count($mapped)) {
+            return ChannelActionResult::failed(__('An OTA line is mapped twice. Reload the page and try again.'));
         }
 
         $catalogue = ($this->catalogueLoader)($connection);
