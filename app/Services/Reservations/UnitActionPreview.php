@@ -41,6 +41,7 @@ use App\Services\CityLedger\CreditCheck;
 use App\Services\FrontDesk\CheckInCollection;
 use App\Services\FrontDesk\CheckOutSettlement;
 use App\Services\FrontDesk\EarlyCheckOutRule;
+use App\Services\FrontDesk\StayDay;
 use App\Services\FrontDesk\UndoCheckInRule;
 use App\Services\FrontDesk\UndoCheckOutRule;
 use App\Services\Guests\CountryOptions;
@@ -83,6 +84,7 @@ class UnitActionPreview
         private EarlyCheckOutRule $earlyCheckOutRule,
         private UndoCheckInRule $undoCheckInRule,
         private UndoCheckOutRule $undoCheckOutRule,
+        private StayDay $stayDay,
     ) {}
 
     /**
@@ -97,7 +99,7 @@ class UnitActionPreview
             return UnitCheckInPreviewData::refused($this->refusals->message(UnitStayResult::REFUSAL_NO_BUSINESS_DATE));
         }
 
-        $tonight = $unit->nights()->with(['room', 'bed'])->whereDate('date', $businessDate->toDateString())->first();
+        $tonight = $unit->nights()->with(['room', 'bed'])->whereDate('date', $this->stayDay->forCheckIn($unit, $businessDate)->toDateString())->first();
         $room = $tonight->room->number ?? $tonight?->bed?->label;
         $cardRequired = (bool) $property->settings?->card_required_for_check_in;
         $needsNationality = $this->unitNationality->for($unit) === null
@@ -145,14 +147,15 @@ class UnitActionPreview
 
         $units = $reservation->units()
             ->where('status', UnitStatus::Confirmed)
-            ->with(['roomType', 'guests.guest', 'nights' => fn ($nights) => $nights->whereDate('date', $today), 'nights.room', 'nights.bed'])
+            ->with(['roomType', 'guests.guest', 'nights' => fn ($nights) => $nights->whereBetween('date', [$today, $businessDate->addDay()->toDateString()]), 'nights.room', 'nights.bed'])
             ->orderBy('id')
             ->get();
 
         foreach ($units as $unit) {
-            $tonight = $unit->nights->first();
+            $day = $this->stayDay->forCheckIn($unit, $businessDate)->toDateString();
+            $tonight = $unit->nights->first(fn ($night): bool => $night->date->toDateString() === $day);
             $arrival = $unit->arrival_date->toDateString();
-            $ready = $today >= $arrival && $today < $unit->departure_date->toDateString();
+            $ready = $day >= $arrival && $day < $unit->departure_date->toDateString();
             $room = $tonight->room->number ?? $tonight?->bed?->label;
 
             $rows[] = [
@@ -163,7 +166,7 @@ class UnitActionPreview
                 'cardsMissing' => $cardRequired ? $this->registrationCardRequirement->missingFor($unit, $property)->count() : 0,
                 'ready' => $ready,
                 'note' => match (true) {
-                    ! $ready && $today < $arrival => $this->notArrivedNote($unit, $businessDate),
+                    ! $ready && $day < $arrival => $this->notArrivedNote($unit, $businessDate),
                     ! $ready => __('Cannot check in: the stay ended on :date.', ['date' => $unit->departure_date->format('d M Y')]),
                     $room === null && $autoAssign => __('No room yet. One is given at check-in.'),
                     $room === null => __('No room for tonight. Assign a room before check-in.'),

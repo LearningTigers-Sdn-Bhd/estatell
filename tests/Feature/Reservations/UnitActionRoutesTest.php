@@ -721,6 +721,18 @@ test('the menu offers check-out, late check-out and no check-in on the departure
         ->assertInertia(fn (Assert $page) => $page->where('unit.actions', fn ($actions) => collect($actions)->pluck('key')->all() === ['check-out', 'late-check-out', 'change-dates']));
 });
 
+test('check in is offered for a calendar-date arrival while the audit is pending and not when it is overdue', function () {
+    $setup = uaSetup();
+    $show = fn () => $this->actingAs($setup['user'])
+        ->get(route('reservations.show', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]));
+
+    BusinessDate::query()->update(['date' => today()->subDay()->toDateString()]);
+    $show()->assertInertia(fn (Assert $page) => $page->where('unit.actions', fn ($actions) => collect($actions)->pluck('key')->contains('check-in')));
+
+    BusinessDate::query()->update(['date' => today()->subDays(2)->toDateString()]);
+    $show()->assertInertia(fn (Assert $page) => $page->where('unit.actions', fn ($actions) => ! collect($actions)->pluck('key')->contains('check-in')));
+});
+
 test('check in is not offered before the arrival date or on the departure date', function () {
     $setup = uaSetup(unit: ['arrival_date' => today()->addDay()->toDateString(), 'departure_date' => today()->addDays(3)->toDateString()]);
 
