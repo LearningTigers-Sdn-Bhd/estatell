@@ -110,7 +110,10 @@ POST /channels/{id}/deactivate               pause
 - Only visible adapter params are sent. `hidden` params (`machine_account`, the payout flags) are Channex's own. A param a rule hides (Property email while Send booking emails is off) is dropped.
 - Channex allows one connection per hotel ID on the whole account. A hotel ID used by another property is refused at create, and nothing is saved here.
 - The channel currency comes from the OTA hotel. Channex converts prices when it pushes, so a MYR property can map to a GBP hotel.
-- `SaveChannelMapping` sends `rate_plans[]` built from `channel_ota_mappings` and stores them.
+- `SaveChannelMapping` reads the OTA's rooms and rates again, so a line that names a room or rate the OTA does not have is refused. It sends the whole mapping as `rate_plans[]` in a `PUT /channels/{id}` that has the same shape as the create body (Channex replaces the stored set), and saves `channel_ota_mappings` only after Channex accepted it. A line with no OTA room and rate is left out. No line at all puts a `Mapped` connection back to `Draft`. An `Active` or `Paused` connection keeps its status.
+- One line for each occupancy of each Channex rate plan: one at the top adult count for a per-room plan, one for each adult count for a per-person plan (the same options the structure sync sends, `ChannelSellMode::occupancies`).
+- Where the adapter lists `primary_occ`, each OTA room and rate has exactly one primary line: the flagged line with the highest occupancy, else the highest occupancy. Where it lists `type` (Hostelworld), the line carries a type and no primary flag. The code sends only the `rate_params` the adapter lists, and `pricing_type` and `readonly` come from the OTA's own rate (to verify for adapters other than Booking.com and Expedia).
+- Lines are pre-filled when a room type name and a rate plan name equal an OTA room title and rate title (ignoring case and punctuation), and the OTA rate takes that occupancy. A hotel with per-room pricing gets only the top occupancy suggested.
 - `ActivateChannel` refuses a connection with no mapped rate plan.
 - An OTA room or rate with no match shows a warning, because Channex says unmapped OTA rates cause booking errors.
 

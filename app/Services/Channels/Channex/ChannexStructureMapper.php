@@ -104,11 +104,9 @@ class ChannexStructureMapper
      */
     private function options(RoomType $roomType, ChannelSellMode $sellMode): array
     {
-        $occupancies = $sellMode === ChannelSellMode::PerPerson ? range(1, $roomType->max_adults) : [$roomType->max_adults];
-
         return array_map(
             fn (int $occupancy): array => ['occupancy' => $occupancy, 'is_primary' => $occupancy === $roomType->max_adults, 'rate' => 0],
-            $occupancies,
+            $sellMode->occupancies($roomType),
         );
     }
 

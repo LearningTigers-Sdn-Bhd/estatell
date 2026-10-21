@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * One OTA connected to a property through the channel manager. `settings` is the adapter payload sent to Channex
@@ -49,6 +50,14 @@ class ChannelConnection extends Model
     public function channelProperty(): BelongsTo
     {
         return $this->belongsTo(ChannelProperty::class);
+    }
+
+    /**
+     * @return HasMany<ChannelOtaMapping, $this>
+     */
+    public function otaMappings(): HasMany
+    {
+        return $this->hasMany(ChannelOtaMapping::class);
     }
 
     /**

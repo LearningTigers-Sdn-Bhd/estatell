@@ -179,7 +179,10 @@ When staff change a room type, a rate plan or the room types a plan sells, the c
 └────────────────────────────────────────────────────────────────────────────┘
 ```
 
-- Rows: one per Channex rate plan and occupancy. Columns come from `rate_params`. Hostelworld shows **Type** instead of **Primary**.
+- Rows: one per Channex rate plan and occupancy, highest occupancy first. Columns come from `rate_params`. Hostelworld shows **Type** instead of **Primary**.
+- **Primary** is one checkbox per OTA room and rate: ticking one clears the others of that group, and a group with none gets its highest occupancy.
+- The page reads the OTA again on every visit and on **Fetch again**. An OTA that does not answer sends the admin back to the tab with the reason.
+- The unmatched rate warning is worked out in the browser from the chosen lines. **Ask owner for help** arrives with the owner help item.
 - Selects are pre-filled by matching names. The admin confirms every row.
 
 ## Connect, step 3: activate
@@ -224,6 +227,7 @@ All are `auth`, `can:admin`, return 404 when `ChannelManager` is off, and need `
 | `POST /admin/properties/{code}/channels/connect/{otaChannel}/test`    | `admin.properties.channels.test` (JSON)          |
 | `POST /admin/properties/{code}/channels/connect/{otaChannel}/details` | `admin.properties.channels.details` (JSON)       |
 | `POST /admin/properties/{code}/channels/connections`                  | `admin.properties.channels.connections.store`    |
+| `GET …/connections/{connection}/map`                                  | `admin.properties.channels.connections.map`      |
 | `PUT /admin/properties/{code}/channels/connections/{connection}`      | `admin.properties.channels.connections.update`   |
 | `POST …/connections/{connection}/activate`                            | `admin.properties.channels.connections.activate` |
 | `PUT …/connections/{connection}/paused`                               | `admin.properties.channels.connections.paused`   |

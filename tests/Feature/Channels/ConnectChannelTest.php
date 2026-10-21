@@ -199,14 +199,14 @@ test('Test connection needs two-factor like every admin write', function () {
         ->assertForbidden();
 });
 
-test('saving the connection redirects to the tab with a toast', function () {
+test('saving the connection goes on to the map step', function () {
     $property = connectReadyProperty();
     $ota = bookingChannel();
     fakeChannexConnect();
 
     $this->actingAs(User::factory()->admin()->withTwoFactor()->create())
         ->post(route('admin.properties.channels.connections.store', $property->code), ['ota_channel_id' => $ota->id, 'settings' => ['hotel_id' => '5868189']])
-        ->assertRedirect(route('admin.properties.channels', $property->code));
+        ->assertRedirect(route('admin.properties.channels.connections.map', [$property->code, ChannelConnection::query()->sole()]));
 
     expect(ChannelConnection::query()->sole()->status)->toBe(ChannelConnectionStatus::Draft);
 });

@@ -246,6 +246,31 @@ ownerName: string | null,
 ownerEmail: string | null,
 ownerPhone: string | null,
 };
+export type ChannelMapPageData = {
+connectionId: number,
+otaName: string,
+hotelId: string | null,
+usesPrimary: boolean,
+usesType: boolean,
+pricingType: string,
+rows: App.Data.Channels.ChannelMapRowData[],
+options: App.Data.Channels.ChannelOtaOptionData[],
+notOnChannels: number,
+};
+export type ChannelMapRowData = {
+key: string,
+ratePlanMappingId: number,
+roomType: string,
+ratePlan: string,
+occupancy: number,
+ota: string | null,
+isPrimary: boolean,
+rateType: string | null,
+};
+export type ChannelOtaOptionData = {
+value: string,
+label: string,
+};
 export type ChannelOtaRowData = {
 otaChannelId: number,
 name: string,

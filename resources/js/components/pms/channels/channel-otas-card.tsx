@@ -17,6 +17,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { connect } from '@/routes/admin/properties/channels';
+import { map } from '@/routes/admin/properties/channels/connections';
 
 type OtaRow = App.Data.Channels.ChannelOtaRowData;
 
@@ -95,6 +96,23 @@ export function ChannelOtasCard({
                                         )}
                                     </TableCell>
                                     <TableCell className="text-right">
+                                        {ota.connectionId !== null && (
+                                            <Link
+                                                href={map({
+                                                    property: code,
+                                                    connection:
+                                                        ota.connectionId,
+                                                })}
+                                                className={buttonVariants({
+                                                    variant: 'outline',
+                                                    size: 'sm',
+                                                })}
+                                            >
+                                                {ota.status?.value === 'draft'
+                                                    ? 'Continue'
+                                                    : 'Mapping'}
+                                            </Link>
+                                        )}
                                         {ota.canConnect && (
                                             <Link
                                                 href={connect({

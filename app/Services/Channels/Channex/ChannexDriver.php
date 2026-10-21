@@ -8,7 +8,7 @@ use Closure;
 use LogicException;
 
 /**
- * The Channex implementation. `adapter`, the structure calls, the ARI pushes, the booking feed, `testConnection` and `createChannel` are built. The other calls arrive with the commit that
+ * The Channex implementation. `adapter`, the structure calls, the ARI pushes, the booking feed, `testConnection`, `createChannel`, `mappingDetails` and `updateChannel` are built. The other calls arrive with the commit that
  * needs them and throw until then, so the interface stays stable.
  */
 class ChannexDriver implements ChannelManagerDriver
@@ -135,9 +135,9 @@ class ChannexDriver implements ChannelManagerDriver
         return ['success' => ($data['success'] ?? false) === true, 'errors' => $data['errors'] ?? null];
     }
 
-    public function mappingDetails(string $externalChannelId): array
+    public function mappingDetails(string $adapterCode, array $settings): array
     {
-        $this->notBuilt('connect and map OTAs through the Channel API');
+        return $this->client->post('/channels/mapping_details', ['channel' => $adapterCode, 'settings' => $settings])['data'] ?? [];
     }
 
     public function createChannel(array $payload): array
@@ -149,7 +149,9 @@ class ChannexDriver implements ChannelManagerDriver
 
     public function updateChannel(string $externalChannelId, array $payload): array
     {
-        $this->notBuilt('connect and map OTAs through the Channel API');
+        $data = $this->client->put("/channels/{$externalChannelId}", ['channel' => $payload])['data'] ?? [];
+
+        return ['id' => $data['id'] ?? $externalChannelId, ...($data['attributes'] ?? [])];
     }
 
     public function activate(string $externalChannelId): void

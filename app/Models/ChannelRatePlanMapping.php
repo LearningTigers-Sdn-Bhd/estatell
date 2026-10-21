@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Links a rate plan and room type pair to its rate plan at the channel manager.
@@ -58,5 +59,13 @@ class ChannelRatePlanMapping extends Model
     public function roomType(): BelongsTo
     {
         return $this->belongsTo(RoomType::class);
+    }
+
+    /**
+     * @return HasMany<ChannelOtaMapping, $this>
+     */
+    public function otaMappings(): HasMany
+    {
+        return $this->hasMany(ChannelOtaMapping::class);
     }
 }

@@ -214,7 +214,7 @@ export default function ChannelConnect({
                                 {form.processing && (
                                     <Spinner data-icon="inline-start" />
                                 )}
-                                Save connection
+                                Next: map
                             </Button>
                         </FormActions>
                     </form>

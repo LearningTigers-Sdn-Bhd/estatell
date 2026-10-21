@@ -88,11 +88,16 @@ interface ChannelManagerDriver
     public function testConnection(string $adapterCode, array $settings): array;
 
     /**
-     * The OTA rooms and rates a connection can map to.
+     * The OTA rooms and rates a connection can map to, read from the OTA with the connection settings. It needs no
+     * channel at the provider. The shape follows Channex: `pricing_type` and `rooms`, each with its `rates`.
      *
+     * @param  array<string, mixed>  $settings
      * @return array<string, mixed>
+     *
+     * @throws ChannexRetryLater when the provider cannot take it now
+     * @throws ChannexRequestFailed when the provider refuses it
      */
-    public function mappingDetails(string $externalChannelId): array;
+    public function mappingDetails(string $adapterCode, array $settings): array;
 
     /**
      * Create the OTA connection at the provider. It starts disabled. Returns the provider's channel with its `id`.
@@ -106,8 +111,13 @@ interface ChannelManagerDriver
     public function createChannel(array $payload): array;
 
     /**
+     * Change the OTA connection at the provider. A `rate_plans` list replaces the whole mapping set there.
+     *
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
+     *
+     * @throws ChannexRetryLater when the provider cannot take it now
+     * @throws ChannexRequestFailed when the provider refuses it
      */
     public function updateChannel(string $externalChannelId, array $payload): array;
 

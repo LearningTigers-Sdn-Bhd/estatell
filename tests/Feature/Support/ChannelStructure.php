@@ -209,3 +209,35 @@ function bookingChannel(array $attributes = []): OtaChannel
 {
     return OtaChannel::factory()->create(['code' => 'booking_com', 'name' => 'Booking.com', 'channex_code' => 'BookingCom', ...$attributes]);
 }
+
+/**
+ * Answer the Channel API calls of the map step: the adapter, `mapping_details` (Booking.com's shape: one room with one
+ * rate that takes 1 to 3 guests), and `PUT /channels/{id}`.
+ *
+ * @param  array<string, mixed>|null  $details
+ * @param  array<string, mixed>|null  $adapter
+ */
+function fakeChannexMapping(?array $details = null, int $updateStatus = 200, ?array $adapter = null, int $detailsStatus = 200): void
+{
+    Http::fake([
+        '*/channels/adapter*' => Http::response(['data' => $adapter ?? channexBookingAdapter()], 200),
+        '*/channels/mapping_details' => Http::response($detailsStatus === 200 ? ['data' => $details ?? channexBookingDetails()] : ['errors' => ['code' => 'bad_request']], $detailsStatus),
+        '*/channels/*' => Http::response($updateStatus === 200
+            ? ['data' => ['id' => 'channel-1', 'type' => 'channel', 'attributes' => ['id' => 'channel-1']]]
+            : ['errors' => ['code' => 'validation_error', 'details' => ['rate_plans' => ['bad occupancy']]]], $updateStatus),
+    ]);
+}
+
+/** The OTA rooms and rates `mapping_details` answers with. @return array<string, mixed> */
+function channexBookingDetails(): array
+{
+    return [
+        'pricing_type' => 'OBP',
+        'rooms' => [
+            ['id' => 586818903, 'title' => 'Deluxe King', 'max_children' => 0, 'rates' => [
+                ['id' => 16385046, 'title' => 'Standard', 'max_persons' => 3, 'occupancies' => [1, 2, 3], 'pricing' => 'OBP', 'readonly' => false],
+                ['id' => 16385047, 'title' => 'Non-refundable', 'max_persons' => 3, 'occupancies' => [1, 2, 3], 'pricing' => 'OBP', 'readonly' => false],
+            ]],
+        ],
+    ];
+}

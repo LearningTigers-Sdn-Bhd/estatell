@@ -88,4 +88,35 @@ class ChannexChannelMapper
 
         return false;
     }
+
+    /**
+     * One `rate_plans` entry: an occupancy of a Channex rate plan mapped to an OTA room and rate. `room` and `rate` are
+     * the OTA's own arrays from the mapping details, so the codes keep their type. Only the params the adapter lists
+     * in `rate_params` are sent.
+     *
+     * @param  array<string, mixed>  $adapter
+     * @param  array<string, mixed>  $room
+     * @param  array<string, mixed>  $rate
+     * @return array{rate_plan_id: string, settings: array<string, mixed>}
+     */
+    public function rateMapping(array $adapter, string $externalRatePlanId, array $room, array $rate, int $occupancy, bool $isPrimary, ?string $rateType, string $pricingType): array
+    {
+        $params = $adapter['rate_params'] ?? [];
+        $settings = ['room_type_code' => $room['id'], 'rate_plan_code' => $rate['id'], 'occupancy' => $occupancy];
+
+        $optional = [
+            'pricing_type' => $rate['pricing'] ?? $pricingType,
+            'primary_occ' => $isPrimary,
+            'readonly' => (bool) ($rate['readonly'] ?? false),
+            'type' => $rateType,
+        ];
+
+        foreach ($optional as $name => $value) {
+            if (array_key_exists($name, $params) && $value !== null && $value !== '') {
+                $settings[$name] = $value;
+            }
+        }
+
+        return ['rate_plan_id' => $externalRatePlanId, 'settings' => $settings];
+    }
 }
