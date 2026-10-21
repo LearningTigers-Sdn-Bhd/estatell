@@ -139,6 +139,24 @@ test('the calculator counts supply, sold units, revenue and front desk events fo
         ->and($figures->inHouseGuests)->toBe(4);
 });
 
+test('a unit checked out before the audit counts in rooms and beds sold, one with no night on the date does not', function () {
+    ['property' => $property] = statsProperty();
+    $roomType = RoomType::factory()->for($property)->create();
+    $rooms = Room::factory()->count(2)->for($property)->create(['room_type_id' => $roomType->id]);
+    $dorm = RoomType::factory()->bed()->for($property)->create();
+    $dormRoom = Room::factory()->for($property)->create(['room_type_id' => $dorm->id]);
+    $beds = Bed::factory()->count(2)->create(['room_id' => $dormRoom->id]);
+
+    statsUnit($property, $roomType, 'checkedOut', '2026-10-12', $rooms[0]);
+    statsUnit($property, $dorm, 'checkedOut', '2026-10-12', $beds[0]);
+    statsUnit($property, $roomType, 'checkedOut', '2026-10-11', $rooms[1]);
+
+    $figures = app(StatisticsCalculator::class)->forDate($property, CarbonImmutable::parse('2026-10-12'));
+
+    expect($figures->roomsSold)->toBe(1)
+        ->and($figures->bedsSold)->toBe(1);
+});
+
 test('day use is counted apart from the overnight figures and is saved by the snapshot', function () {
     ['property' => $property, 'room' => $room, 'discount' => $discount] = statsProperty();
     $dayUseCode = TransactionCode::factory()->for($property)->system(SystemTransactionCode::DayUseRevenue)->create();
