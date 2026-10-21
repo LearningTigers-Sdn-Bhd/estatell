@@ -91,7 +91,7 @@ Production sends through MillionSend, a Resend-compatible email API. Set `MAIL_M
 
 - All recipients suppressed (HTTP 422, `all_recipients_suppressed`): the address bounced or complained before. The transport logs the recipient count and skips the send. It does not fail the queued notification.
 - Any other API error throws a `TransportException`. The queued job fails and Horizon retries it.
-- The log never holds addresses or subjects.
+- The app log never holds addresses or subjects. Each attempt is recorded in the [Mail log](03-mail-log.md).
 
 ## Viewing mail in development
 

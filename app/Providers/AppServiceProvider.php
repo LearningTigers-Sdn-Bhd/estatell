@@ -4,7 +4,9 @@ namespace App\Providers;
 
 use App\Actions\Channels\RecordChannelAriChange;
 use App\Actions\Channels\ScheduleChannelStructureSync;
+use App\Actions\Notifications\RecordMailEvent;
 use App\Actions\Platform\RecordImpersonationEnd;
+use App\Enums\MailStatus;
 use App\Enums\PartnerStatus;
 use App\Events\ChannelStructureChanged;
 use App\Events\InventoryChanged;
@@ -24,6 +26,8 @@ use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Middleware\TrustProxies;
+use Illuminate\Mail\Events\MessageSending;
+use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Routing\Route as RoutingRoute;
 use Illuminate\Support\Facades\Auth;
@@ -42,6 +46,7 @@ use Laravel\Pennant\Feature;
 use Spatie\Activitylog\Actions\LogActivityAction;
 use Spatie\Activitylog\Contracts\Activity;
 use Spatie\Activitylog\Models\Activity as ActivityModel;
+use Symfony\Component\Mime\Email;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -65,6 +70,7 @@ class AppServiceProvider extends ServiceProvider
         $this->configureFeatures();
         $this->configureSupportSessions();
         $this->configureMailBranding();
+        $this->configureMailLog();
         $this->configureChannelEvents();
     }
 
@@ -91,6 +97,36 @@ class AppServiceProvider extends ServiceProvider
             if ($roomType->wasRecentlyCreated || $restored || $roomType->wasChanged(['name', 'description', 'max_adults', 'max_children', 'base_occupancy', 'sell_unit'])) {
                 event(new ChannelStructureChanged($roomType->property_id));
             }
+        });
+    }
+
+    /**
+     * Every message the mailer sends leaves a mail log row. The notification class travels in the mail data, so it is
+     * copied into a header before the transport runs. See docs/04-notifications/03-mail-log.md.
+     */
+    protected function configureMailLog(): void
+    {
+        Event::listen(MessageSending::class, function (MessageSending $event): void {
+            if (is_string($notification = $event->data['__laravel_notification'] ?? null)) {
+                $event->message->getHeaders()->addTextHeader(MillionSendTransport::NOTIFICATION_HEADER, $notification);
+            }
+        });
+
+        Event::listen(MessageSent::class, function (MessageSent $event): void {
+            $original = $event->sent->getOriginalMessage();
+
+            if (! $original instanceof Email) {
+                return;
+            }
+
+            $header = fn (string $name): ?string => $original->getHeaders()->get($name)?->getBodyAsString();
+
+            app(RecordMailEvent::class)(
+                $original,
+                MailStatus::tryFrom((string) $header(MillionSendTransport::STATUS_HEADER)) ?? MailStatus::Sent,
+                $header(MillionSendTransport::NOTIFICATION_HEADER),
+                $header(MillionSendTransport::PROVIDER_ID_HEADER),
+            );
         });
     }
 

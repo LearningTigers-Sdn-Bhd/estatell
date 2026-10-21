@@ -2,6 +2,8 @@
 
 namespace App\Services\Notifications;
 
+use App\Actions\Notifications\RecordMailEvent;
+use App\Enums\MailStatus;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\Mailer\Exception\TransportException;
@@ -17,6 +19,12 @@ use Symfony\Component\Mime\MessageConverter;
  */
 class MillionSendTransport extends AbstractTransport
 {
+    public const string STATUS_HEADER = 'X-Estatell-Mail-Status';
+
+    public const string PROVIDER_ID_HEADER = 'X-Estatell-Provider-Message-Id';
+
+    public const string NOTIFICATION_HEADER = 'X-Estatell-Notification';
+
     public function __construct(protected string $baseUrl, protected string $apiKey)
     {
         parent::__construct();
@@ -38,11 +46,17 @@ class MillionSendTransport extends AbstractTransport
             ->post(rtrim($this->baseUrl, '/').'/emails', $this->payload($email));
 
         if ($response->successful()) {
+            if (is_string($id = $response->json('id'))) {
+                $original->getHeaders()->addTextHeader(self::PROVIDER_ID_HEADER, $id);
+            }
+
             return;
         }
 
         if ($response->status() === 422 && $response->json('name') === 'all_recipients_suppressed') {
             // No address or subject: both can be personal data.
+            $original->getHeaders()->addTextHeader(self::STATUS_HEADER, MailStatus::Suppressed->value);
+
             Log::warning('MillionSend skipped delivery, all recipients suppressed', [
                 'recipients' => count($email->getTo()),
                 'message_id' => $email->getHeaders()->get('Message-ID')?->getBodyAsString(),
@@ -51,7 +65,11 @@ class MillionSendTransport extends AbstractTransport
             return;
         }
 
-        throw new TransportException('MillionSend '.$response->status().': '.str($response->body())->limit(300), $response->status());
+        $error = 'MillionSend '.$response->status().': '.str($response->body())->limit(300);
+
+        app(RecordMailEvent::class)($email, MailStatus::Failed, $original->getHeaders()->get(self::NOTIFICATION_HEADER)?->getBodyAsString(), error: $error);
+
+        throw new TransportException($error, $response->status());
     }
 
     /**
