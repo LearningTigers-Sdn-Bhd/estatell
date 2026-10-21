@@ -28,6 +28,7 @@ declare module '@inertiajs/core' {
             portalSwitcher: App.Data.Portal.PortalSwitcherData[] | null;
             accountNavigation: App.Data.Navigation.NavItemData[] | null;
             navigation: App.Data.Navigation.StaffNavigationData | null;
+            channelRemovals: App.Data.Channels.ChannelRemovalData[];
             commandShortcuts: App.Data.Navigation.NavItemData[];
             sidebarOpen: boolean;
             onboarding?: App.Data.Onboarding.OnboardingProgressData | null;

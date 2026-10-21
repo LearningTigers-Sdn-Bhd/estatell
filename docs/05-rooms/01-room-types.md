@@ -30,7 +30,7 @@ room_types    id, property_id, name, description, sell_unit (SellUnit),
 - Photos use media library. No `photo_order` array columns. The `photos` collection is registered on the model; the upload UI is not built yet.
 - Names are unique per property among active room types, ignoring case. An archived room type frees its name.
 - `terms_document_id` has a foreign key to `terms_documents` (null on delete). The room type form has a **Terms document** Select, shown when the property has a second document. See [Terms documents](../16-registration/02-terms-documents-and-presets.md#ui).
-- Archive hides a room type without deleting it. Restore puts it at the end of the list, and is refused when an active room type has the same name. The guard against future reservations arrives with reservations.
+- Archive hides a room type without deleting it. Restore puts it at the end of the list, and is refused when an active room type has the same name. The guard against future reservations arrives with reservations. A room type mapped on an active OTA cannot be archived (see [Archive guard](../21-channels/02-mappings-and-capability.md#archive-guard)).
 - `sell_unit` is locked once the room type has any room (see [Rooms](02-rooms-and-groups.md)).
 
 ## Permissions

@@ -16,13 +16,14 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $id
  * @property string $code
  * @property string $name
+ * @property string|null $channex_code
  * @property int $sort_order
  * @property bool $is_active
  * @property bool $is_other
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['code', 'name', 'sort_order', 'is_active', 'is_other'])]
+#[Fillable(['code', 'name', 'channex_code', 'sort_order', 'is_active', 'is_other'])]
 class OtaChannel extends Model
 {
     /** @use HasFactory<OtaChannelFactory> */

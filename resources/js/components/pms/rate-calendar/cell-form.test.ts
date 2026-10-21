@@ -1,7 +1,7 @@
 import { expect, test } from 'vite-plus/test';
 import {
     adultCounts,
-    buildCellPayload,
+    buildCellChange,
     cellFormProblem,
     cellFormValues,
     isCellFormDirty,
@@ -124,14 +124,15 @@ test('a price by adults with no price is a problem, and so is clearing a price',
 test('sends the price and prices by adults only when they changed', () => {
     const initial = cellFormValues(cell({ minStay: 3 }), true);
 
-    const restrictionOnly = buildCellPayload(
+    const restrictionOnly = buildCellChange(
         target,
         initial,
         { ...initial, stopSell: true, minStay: '' },
         true,
     );
 
-    expect(restrictionOnly.room_types[0].days).toEqual([]);
+    expect(restrictionOnly.amount).toBeUndefined();
+    expect(restrictionOnly.occupancy).toBeUndefined();
     expect(restrictionOnly.restrictions).toEqual({
         stop_sell: true,
         closed_to_arrival: false,
@@ -140,7 +141,7 @@ test('sends the price and prices by adults only when they changed', () => {
         max_stay: null,
     });
 
-    const priced = buildCellPayload(
+    const priced = buildCellChange(
         target,
         initial,
         {
@@ -151,19 +152,14 @@ test('sends the price and prices by adults only when they changed', () => {
         true,
     );
 
-    expect(priced.from).toBe('2026-10-05');
-    expect(priced.to).toBe('2026-10-05');
-    expect(priced.room_types[0]).toEqual({
+    expect(priced).toMatchObject({
+        rate_plan_id: 10,
         room_type_id: 1,
-        days: [
-            {
-                weekday: 1,
-                amount: '210',
-                occupancy: [
-                    { adults: 1, amount: '150.50' },
-                    { adults: 2, amount: '260.00' },
-                ],
-            },
+        date: '2026-10-05',
+        amount: '210',
+        occupancy: [
+            { adults: 1, amount: '150.50' },
+            { adults: 2, amount: '260.00' },
         ],
     });
 });
@@ -172,16 +168,16 @@ test('never sends a price for a plan that has none of its own', () => {
     const initial = cellFormValues(cell(), false);
 
     expect(
-        buildCellPayload(target, initial, { ...initial, amount: '99' }, false)
-            .room_types[0].days,
-    ).toEqual([]);
+        buildCellChange(target, initial, { ...initial, amount: '99' }, false)
+            .amount,
+    ).toBeUndefined();
 });
 
 test('sends stay limits as numbers', () => {
     const initial = cellFormValues(undefined, true);
 
     expect(
-        buildCellPayload(
+        buildCellChange(
             target,
             initial,
             { ...initial, minStay: '2', maxStay: ' 7 ' },

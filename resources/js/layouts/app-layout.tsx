@@ -1,4 +1,5 @@
 import { usePage } from '@inertiajs/react';
+import { useChannelRemovalToasts } from '@/hooks/use-channel-removal-toasts';
 import AppLayoutTemplate from '@/layouts/app/app-sidebar-layout';
 import type { BreadcrumbItem, PageLayoutVariant } from '@/types';
 import { setUrlDefaults } from '@/wayfinder';
@@ -13,6 +14,9 @@ export default function AppLayout({
     children: React.ReactNode;
 }) {
     const { property } = usePage().props;
+
+    // The result of an archive that waited for the channel manager, as a toast.
+    useChannelRemovalToasts();
 
     // Mirrors URL::defaults in EnsurePropertyAccess, so property routes need no code.
     // Set during render so the sidebar and page below already see it.

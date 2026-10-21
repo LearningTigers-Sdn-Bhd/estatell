@@ -3,6 +3,7 @@
 namespace App\Actions\Rooms;
 
 use App\Data\Rooms\RoomBlockInputData;
+use App\Events\InventoryChanged;
 use App\Models\Room;
 use App\Models\RoomBlock;
 use App\Models\User;
@@ -41,7 +42,10 @@ class UpdateRoomBlock
                 'notes' => $data->notes,
             ]);
             $changes = $block->getDirty();
+            $previous = new InventoryChanged($block->property_id, $block->getOriginal('starts_on')->toDateString(), $block->getOriginal('ends_on')->toDateString(), $room->room_type_id);
             $block->save();
+            event($previous);
+            event(InventoryChanged::forBlock($block));
 
             activity()
                 ->performedOn($block)

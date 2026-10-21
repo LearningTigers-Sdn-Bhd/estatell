@@ -22,6 +22,20 @@ enum PropertyType: string
     }
 
     /**
+     * The Channex property type. It affects Channex billing. The serviced apartment mapping is to verify.
+     */
+    public function channexType(): string
+    {
+        return match ($this) {
+            self::Hotel => 'hotel',
+            self::Hostel => 'hostel',
+            self::Resort => 'resort',
+            self::ServicedApartment => 'apart_hotel',
+            self::Homestay => 'homestay',
+        };
+    }
+
+    /**
      * @return list<array{value: string, label: string}>
      */
     public static function options(): array

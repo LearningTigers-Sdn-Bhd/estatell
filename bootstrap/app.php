@@ -4,6 +4,7 @@ use App\Http\Middleware\BlockDuringImpersonation;
 use App\Http\Middleware\BlockOnDemo;
 use App\Http\Middleware\EndExpiredImpersonationSession;
 use App\Http\Middleware\EnsureBoatsIsActive;
+use App\Http\Middleware\EnsureChannelManagerIsActive;
 use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\EnsureOnboarding;
 use App\Http\Middleware\EnsurePasswordChanged;
@@ -22,6 +23,7 @@ use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\AuthenticateSession;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
 use Inertia\ExceptionResponse;
 use Inertia\Inertia;
@@ -32,6 +34,9 @@ return Application::configure(basePath: dirname(__DIR__))
         web: __DIR__.'/../routes/web.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
+        then: function (): void {
+            Route::prefix('webhooks')->name('webhooks.')->group(base_path('routes/webhooks.php'));
+        },
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
@@ -42,6 +47,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'block.impersonation' => BlockDuringImpersonation::class,
             'support.2fa' => RequireSupportTwoFactor::class,
             'boats' => EnsureBoatsIsActive::class,
+            'channels' => EnsureChannelManagerIsActive::class,
             'live' => EnsurePropertyIsLive::class,
             'onboarding.activity' => TrackOnboardingActivity::class,
             'onboarding.only' => EnsureOnboarding::class,
@@ -56,6 +62,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureOnboarding::class);
         $middleware->appendToPriorityList(EnsureOnboarding::class, TrackOnboardingActivity::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureBoatsIsActive::class);
+        $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureChannelManagerIsActive::class);
 
         $middleware->web(append: [
             AuthenticateSession::class,

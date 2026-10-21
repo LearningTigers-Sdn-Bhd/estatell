@@ -12,6 +12,7 @@ use App\Enums\PricingBasis;
 use App\Enums\ReservationStatus;
 use App\Enums\StayType;
 use App\Enums\UnitStatus;
+use App\Events\ReservationChanged;
 use App\Models\Discount;
 use App\Models\RatePlan;
 use App\Models\Reservation;
@@ -32,6 +33,7 @@ use App\Services\Rates\RateQuoteService;
 use App\Services\Rates\RestrictionCheck;
 use Brick\Math\RoundingMode;
 use Brick\Money\Money;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 
 class AddUnit
@@ -58,7 +60,7 @@ class AddUnit
      * The room type row is locked before the availability check, so two staff cannot sell the last unit together.
      * Every check runs before the first write, so a refusal writes and logs nothing. `$lineIndex` is the index of
      * the line in the request, and comes back on a refusal. A Cancelled or Completed reservation is refused first. A day use line (`$data->stayType`) goes to `AddDayUseUnit`; a reservation is all overnight or all day use. Only
-     * `$fromChannel` (booking ingestion) skips the arrival date, restriction and availability checks. `$allowPastArrival` (only `CreatePastStay` passes it) skips the arrival date check and the restriction check for a stay that began before the business date; availability is still checked. An add-on refusal rolls back the unit and comes back with the line index. Last, `SyncRoutingRules` makes the billing mode rules match the new unit count, and the result names units whose posted room lines stay on their folio. See docs/12-reservations/02-group-bookings.md.
+     * `$fromChannel` (booking ingestion) skips the arrival date, restriction and availability checks, and accepts a stay the rate quote refuses when `overrideTotal` is set: its nights then carry no calculated price and the override total is spread over them. `$allowPastArrival` (only `CreatePastStay` passes it) skips the arrival date check and the restriction check for a stay that began before the business date; availability is still checked. An add-on refusal rolls back the unit and comes back with the line index. Last, `SyncRoutingRules` makes the billing mode rules match the new unit count, and the result names units whose posted room lines stay on their folio. See docs/12-reservations/02-group-bookings.md.
      */
     public function __invoke(User $actor, Reservation $reservation, NewUnitData $data, int $lineIndex = 0, bool $fromChannel = false, bool $allowPastArrival = false): ReservationResult
     {
@@ -197,18 +199,22 @@ class AddUnit
             1,
         ));
 
-        if ($quote->isRefused()) {
+        $unpricedChannelStay = $fromChannel && $data->overrideTotal !== null && $quote->isRefused();
+
+        if ($quote->isRefused() && ! $unpricedChannelStay) {
             return $refuse((string) $quote->refusal, $quote->refusalDate);
         }
 
+        $nightDates = $unpricedChannelStay ? $this->stayDates($arrival, $departure) : array_map(fn (NightPrice $night): string => $night->date->toDateString(), $quote->nights);
+
         if ($data->overrideTotal !== null) {
-            $overrideTotal = Money::of($data->overrideTotal, $quote->total->getCurrency());
+            $overrideTotal = Money::of($data->overrideTotal, $unpricedChannelStay ? $property->settings->currency : $quote->total->getCurrency());
         }
 
         try {
-            $overrides = $overrideTotal === null ? null : ($ratePlan->pricing_basis === PricingBasis::Package
+            $overrides = $overrideTotal === null ? null : ($ratePlan->pricing_basis === PricingBasis::Package && ! $unpricedChannelStay
                 ? $this->packagePricing->spreadByInclusions($overrideTotal, array_map(fn (int $index): bool => $index === 0, array_keys($quote->nights)), $ratePlan->inclusions, $data->adults + count($data->childAges))
-                : $this->spread($overrideTotal, count($quote->nights)));
+                : $this->spread($overrideTotal, count($nightDates)));
         } catch (QuoteRefused $refused) {
             return $refuse($refused->reason);
         }
@@ -228,21 +234,37 @@ class AddUnit
             'late_arrival_expected' => $data->lateArrivalExpected,
         ]);
         $unit->forceFill(['property_id' => $reservation->property_id, 'status' => UnitStatus::Confirmed])->save();
+        event(ReservationChanged::forUnit($unit));
 
-        $unit->nights()->createMany(array_map(
-            fn (NightPrice $night, int $index): array => [
-                'date' => $night->date->toDateString(),
-                'rate_plan_id' => $ratePlan->id,
-                'base_amount' => (string) $night->base->getAmount(),
-                'extra_amount' => (string) $night->extra->getAmount(),
-                'supplement_amount' => (string) $night->supplement->getAmount(),
-                'discount_amount' => (string) $night->discountAmount->getAmount(),
-                'override_amount' => $overrides === null ? null : (string) $overrides[$index]->getAmount(),
-                'amount' => (string) ($overrides === null ? $night->net() : $overrides[$index])->getAmount(),
-            ],
-            $quote->nights,
-            array_keys($quote->nights),
-        ));
+        $unit->nights()->createMany($unpricedChannelStay
+            ? array_map(
+                fn (string $date, int $index): array => [
+                    'date' => $date,
+                    'rate_plan_id' => $ratePlan->id,
+                    'base_amount' => '0.00',
+                    'extra_amount' => '0.00',
+                    'supplement_amount' => '0.00',
+                    'discount_amount' => '0.00',
+                    'override_amount' => (string) $overrides[$index]->getAmount(),
+                    'amount' => (string) $overrides[$index]->getAmount(),
+                ],
+                $nightDates,
+                array_keys($nightDates),
+            )
+            : array_map(
+                fn (NightPrice $night, int $index): array => [
+                    'date' => $night->date->toDateString(),
+                    'rate_plan_id' => $ratePlan->id,
+                    'base_amount' => (string) $night->base->getAmount(),
+                    'extra_amount' => (string) $night->extra->getAmount(),
+                    'supplement_amount' => (string) $night->supplement->getAmount(),
+                    'discount_amount' => (string) $night->discountAmount->getAmount(),
+                    'override_amount' => $overrides === null ? null : (string) $overrides[$index]->getAmount(),
+                    'amount' => (string) ($overrides === null ? $night->net() : $overrides[$index])->getAmount(),
+                ],
+                $quote->nights,
+                array_keys($quote->nights),
+            ));
 
         $unit->childAges()->createMany(array_map(fn (int $age): array => ['age' => $age], $data->childAges));
 
@@ -300,6 +322,22 @@ class AddUnit
             setPermissionsTeamId($previousTeamId);
             $actor->unsetRelation('roles')->unsetRelation('permissions');
         }
+    }
+
+    /**
+     * The stay dates, one for each night from arrival up to the day before departure.
+     *
+     * @return list<string>
+     */
+    private function stayDates(CarbonInterface $arrival, CarbonInterface $departure): array
+    {
+        $dates = [];
+
+        for ($date = $arrival; $date->lt($departure); $date = $date->addDay()) {
+            $dates[] = $date->toDateString();
+        }
+
+        return $dates;
     }
 
     /**

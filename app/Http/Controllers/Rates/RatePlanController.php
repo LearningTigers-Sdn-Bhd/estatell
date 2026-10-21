@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Rates;
 
+use App\Actions\Channels\QueueChannelRemoval;
 use App\Actions\Rates\ArchiveRatePlan;
 use App\Actions\Rates\CopyParentStayDiscounts;
 use App\Actions\Rates\CreateDerivedRatePlan;
@@ -36,6 +37,7 @@ use App\Data\Rates\RatePlanStayDiscountData;
 use App\Data\Rates\RatePricingRoomTypeData;
 use App\Data\Rates\StayDiscountPreviewData;
 use App\Enums\AgeBandPricing;
+use App\Enums\ChannelRemovalKind;
 use App\Enums\ChargingUnit;
 use App\Enums\InclusionEnd;
 use App\Enums\InclusionStart;
@@ -340,8 +342,17 @@ class RatePlanController extends Controller
         return to_route('settings.rate-plans.edit', ['property' => $property, 'ratePlan' => $ratePlan]);
     }
 
-    public function updateRoomTypes(RatePlanRoomTypesRequest $request, Property $property, RatePlan $ratePlan, SyncRatePlanRoomTypes $syncRatePlanRoomTypes): RedirectResponse
+    public function updateRoomTypes(RatePlanRoomTypesRequest $request, Property $property, RatePlan $ratePlan, SyncRatePlanRoomTypes $syncRatePlanRoomTypes, QueueChannelRemoval $queueChannelRemoval): RedirectResponse
     {
+        $removed = array_values(array_diff($ratePlan->roomTypes()->active()->pluck('room_types.id')->all(), $request->roomTypeIds()));
+        $queued = $queueChannelRemoval($request->user(), ChannelRemovalKind::Unlink, $ratePlan, $request->roomTypeIds(), $removed);
+
+        if ($queued !== null) {
+            Inertia::flash('toast', ['type' => $queued->ok ? 'info' : 'error', 'message' => $queued->message]);
+
+            return to_route('settings.rate-plans.room-types.edit', ['property' => $property, 'ratePlan' => $ratePlan]);
+        }
+
         Inertia::flash('toast', $syncRatePlanRoomTypes($request->user(), $ratePlan, $request->roomTypeIds())
             ? ['type' => 'success', 'message' => __('Room types saved.')]
             : ['type' => 'error', 'message' => __('The rate plan or room types changed. Reload the page and try again.')]);
@@ -459,8 +470,16 @@ class RatePlanController extends Controller
         return to_route('settings.rate-plans.index', $property);
     }
 
-    public function archive(ArchiveRatePlanRequest $request, Property $property, RatePlan $ratePlan, ArchiveRatePlan $archiveRatePlan, DerivedRatePlans $derivedRatePlans): RedirectResponse
+    public function archive(ArchiveRatePlanRequest $request, Property $property, RatePlan $ratePlan, ArchiveRatePlan $archiveRatePlan, DerivedRatePlans $derivedRatePlans, QueueChannelRemoval $queueChannelRemoval): RedirectResponse
     {
+        $queued = $queueChannelRemoval($request->user(), ChannelRemovalKind::RatePlan, $ratePlan);
+
+        if ($queued !== null) {
+            Inertia::flash('toast', ['type' => $queued->ok ? 'info' : 'error', 'message' => $queued->message]);
+
+            return to_route('settings.rate-plans.index', $property);
+        }
+
         Inertia::flash('toast', $archiveRatePlan($request->user(), $ratePlan)
             ? ['type' => 'success', 'message' => __(':name archived.', ['name' => $ratePlan->name])]
             : ['type' => 'error', 'message' => $derivedRatePlans->followersMessage($ratePlan) ?? __(':name cannot be archived. Reload the page and try again.', ['name' => $ratePlan->name])]);

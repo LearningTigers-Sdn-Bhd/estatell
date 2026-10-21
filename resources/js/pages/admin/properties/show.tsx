@@ -1,10 +1,18 @@
 import { Form, Head, Link } from '@inertiajs/react';
-import { Hourglass, Info, Store, ToggleRight, Users } from 'lucide-react';
+import {
+    Cable,
+    Hourglass,
+    Info,
+    Store,
+    ToggleRight,
+    Users,
+} from 'lucide-react';
 import { useState } from 'react';
 import { DetailLayout } from '@/components/pms/detail-layout';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { PageHeader } from '@/components/pms/page-header';
 import { MovePropertyPartner } from '@/components/pms/properties/move-property-partner';
+import { PropertyChannels } from '@/components/pms/properties/property-channels';
 import { PropertyFeatures } from '@/components/pms/properties/property-features';
 import { PropertyOtaLists } from '@/components/pms/properties/property-ota-lists';
 import { PropertyOverview } from '@/components/pms/properties/property-overview';
@@ -28,6 +36,7 @@ import { dashboard } from '@/routes/admin';
 import { show as goLive } from '@/routes/admin/properties/go-live';
 import { show as viewAs } from '@/routes/view-as';
 import {
+    channels as channelsTab,
     features as featuresTab,
     index,
     otaLists as otaListsTab,
@@ -41,7 +50,8 @@ type Property = App.Data.Platform.AdminPropertyData;
 type PropertyFeature = App.Data.Platform.PropertyFeatureData;
 type StaffMember = App.Data.Platform.AdminPropertyStaffData;
 type OtaListRow = App.Data.Platform.AdminOtaListRowData;
-type Tab = 'overview' | 'staff' | 'features' | 'ota-lists';
+type Channel = App.Data.Channels.ChannelTabData;
+type Tab = 'overview' | 'staff' | 'features' | 'ota-lists' | 'channels';
 
 export default function PropertyShow({
     property,
@@ -49,6 +59,8 @@ export default function PropertyShow({
     staff = [],
     features = [],
     otaLists = [],
+    channel,
+    channelManagerOn,
     partnerOptions,
 }: {
     property: Property;
@@ -56,6 +68,8 @@ export default function PropertyShow({
     staff?: StaffMember[];
     features?: PropertyFeature[];
     otaLists?: OtaListRow[];
+    channel?: Channel;
+    channelManagerOn: boolean;
     partnerOptions: EnumOption[];
 }) {
     const [suspendOpen, setSuspendOpen] = useState(false);
@@ -206,6 +220,16 @@ export default function PropertyShow({
                             icon: Store,
                             href: otaListsTab(property.code),
                         },
+                        ...(channelManagerOn
+                            ? [
+                                  {
+                                      value: 'channels' as const,
+                                      label: 'Channels',
+                                      icon: Cable,
+                                      href: channelsTab(property.code),
+                                  },
+                              ]
+                            : []),
                     ]}
                     summary={
                         <PropertySummary property={property} showPartner />
@@ -227,6 +251,12 @@ export default function PropertyShow({
                         <PropertyOtaLists
                             code={property.code}
                             rows={otaLists}
+                        />
+                    )}
+                    {tab === 'channels' && channel && (
+                        <PropertyChannels
+                            code={property.code}
+                            channel={channel}
                         />
                     )}
                 </DetailLayout>

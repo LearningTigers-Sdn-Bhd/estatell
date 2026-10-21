@@ -34,7 +34,7 @@ import { useManualPreview } from '@/components/pms/folio/use-manual-preview';
 import { FormActions } from '@/components/pms/form-actions';
 import { FormError } from '@/components/pms/form-error';
 import { PageHeader } from '@/components/pms/page-header';
-import { ReservationWorkspace } from '@/components/pms/reservations/reservation-workspace';
+import { Workspace } from '@/components/pms/workspace';
 import { useSummaryHidden } from '@/components/pms/reservations/use-summary-hidden';
 import { ThirdPartyFolioDialog } from '@/components/pms/folio/third-party-folio-dialog';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
@@ -209,7 +209,8 @@ export default function ManualFolio({ manual: page, companies }: Props) {
 
                     <FormError errors={errors} />
 
-                    <ReservationWorkspace
+                    <Workspace
+                        asideLabel="Reservation summary"
                         list={
                             <FolioRail
                                 reservationId={page.reservationId}
@@ -400,7 +401,7 @@ export default function ManualFolio({ manual: page, companies }: Props) {
                                 )}
                             </TabsContent>
                         </Tabs>
-                    </ReservationWorkspace>
+                    </Workspace>
                 </div>
 
                 <FormActions fixed>

@@ -11,6 +11,7 @@ use App\Enums\PolicyScope;
 use App\Enums\PricingBasis;
 use App\Enums\SystemTransactionCode;
 use App\Enums\UnitStatus;
+use App\Events\ReservationChanged;
 use App\Models\BusinessDate;
 use App\Models\ChargeItem;
 use App\Models\FolioLine;
@@ -29,6 +30,7 @@ use App\Models\UnitAddOn;
 use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Event;
 use Spatie\Activitylog\Models\Activity;
 
 /**
@@ -448,3 +450,14 @@ test('a late check-out is refused and writes nothing', function (string $case, s
     ['policy missing', UnitStayResult::REFUSAL_POLICY_NOT_FOUND],
     ['stale fee', UnitStayResult::REFUSAL_FEE_CHANGED],
 ]);
+
+test('changing the dates tells the channels about the old and the new nights', function () {
+    Event::fake([ReservationChanged::class]);
+    $setup = datesSetup();
+
+    changeDates($setup, departure: today()->addDays(6));
+
+    Event::assertDispatched(ReservationChanged::class, fn (ReservationChanged $event): bool => $event->roomTypeId === $setup['roomType']->id
+        && $event->dateFrom === today()->addDay()->toDateString()
+        && $event->dateTo === today()->addDays(5)->toDateString());
+});

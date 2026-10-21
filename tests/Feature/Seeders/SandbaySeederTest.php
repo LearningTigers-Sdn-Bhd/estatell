@@ -24,7 +24,7 @@ test('the Sandbay seeder builds a live resort with rooms, plans, guests and rese
     expect($property->status)->toBe(PropertyStatus::Live)
         ->and($property->businessDates()->count())->toBe(1)
         ->and(Room::query()->where('property_id', $property->id)->count())->toBe(30)
-        ->and(RatePlan::query()->where('property_id', $property->id)->pluck('name')->all())
+        ->and(RatePlan::query()->where('property_id', $property->id)->orderBy('id')->pluck('name')->all())
         ->toBe(['Room Only', 'Bed & Breakfast', 'Half Board', 'Dive Package', 'Day use'])
         ->and(Guest::query()->where('property_id', $property->id)->count())->toBe(25)
         ->and(User::query()->where('property_id', $property->id)->count())->toBe(4)

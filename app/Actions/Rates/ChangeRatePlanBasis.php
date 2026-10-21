@@ -5,6 +5,7 @@ namespace App\Actions\Rates;
 use App\Enums\AgeBandPricing;
 use App\Enums\PricingBasis;
 use App\Enums\PropertyStatus;
+use App\Events\RatesChanged;
 use App\Models\Property;
 use App\Models\Rate;
 use App\Models\RatePlan;
@@ -69,6 +70,8 @@ class ChangeRatePlanBasis
                 ->event('rate_plan.basis_changed')
                 ->withProperties(['property_id' => $property->id, 'from' => $from->value, 'to' => $basis->value])
                 ->log('Rate plan basis changed');
+
+            event(RatesChanged::forPlan($ratePlan));
 
             return true;
         });

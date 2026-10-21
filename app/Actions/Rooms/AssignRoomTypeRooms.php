@@ -3,6 +3,7 @@
 namespace App\Actions\Rooms;
 
 use App\Enums\SellUnit;
+use App\Events\InventoryChanged;
 use App\Models\Room;
 use App\Models\RoomType;
 use App\Models\User;
@@ -72,7 +73,13 @@ class AssignRoomTypeRooms
             }
 
             foreach ($changes as [$room, $changed]) {
+                $previousTypeId = $room->getOriginal('room_type_id');
                 $room->save();
+
+                if ($room->wasChanged('room_type_id')) {
+                    event(InventoryChanged::forRoomType($room->property_id, $previousTypeId));
+                    event(InventoryChanged::forRoomType($room->property_id, $room->room_type_id));
+                }
 
                 activity()
                     ->performedOn($room)

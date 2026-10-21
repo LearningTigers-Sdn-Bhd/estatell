@@ -9,6 +9,7 @@ use App\Enums\PolicyScope;
 use App\Enums\ReservationStatus;
 use App\Enums\SystemTransactionCode;
 use App\Enums\UnitStatus;
+use App\Events\ReservationChanged;
 use App\Models\BusinessDate;
 use App\Models\Folio;
 use App\Models\FolioLine;
@@ -26,6 +27,7 @@ use App\Models\Tax;
 use App\Models\TransactionCode;
 use App\Models\UnitAddOn;
 use App\Models\User;
+use Illuminate\Support\Facades\Event;
 use Spatie\Activitylog\Models\Activity;
 
 /**
@@ -385,3 +387,14 @@ test('reinstate is refused and writes nothing', function (string $case, string $
     ['sold out', UnitStayResult::REFUSAL_NOT_AVAILABLE],
     ['no rate', 'rate_missing'],
 ]);
+
+test('cancelling a unit tells the channels its nights are free again', function () {
+    Event::fake([ReservationChanged::class]);
+    $setup = cancellationSetup();
+
+    app(CancelUnit::class)($setup['actor'], $setup['unit']);
+
+    Event::assertDispatched(ReservationChanged::class, fn (ReservationChanged $event): bool => $event->roomTypeId === $setup['roomType']->id
+        && $event->dateFrom === $setup['unit']->arrival_date->toDateString()
+        && $event->dateTo === $setup['unit']->departure_date->subDay()->toDateString());
+});

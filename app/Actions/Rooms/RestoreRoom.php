@@ -2,6 +2,7 @@
 
 namespace App\Actions\Rooms;
 
+use App\Events\InventoryChanged;
 use App\Models\Room;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -36,6 +37,8 @@ class RestoreRoom
                 'archived_at' => null,
                 'position' => ((int) Room::query()->where('property_id', $room->property_id)->max('position')) + 1,
             ])->save();
+
+            event(InventoryChanged::forRoomType($room->property_id, $room->room_type_id));
 
             activity()
                 ->performedOn($room)
