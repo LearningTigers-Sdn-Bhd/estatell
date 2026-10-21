@@ -134,17 +134,21 @@ Staff can check guests in and out before the night audit runs. They never need t
 Example: business date **20 Oct**, the property's calendar date **21 Oct**, audit not run yet.
 
 - **When it applies.** The property's calendar date (`PropertyToday`, its time zone) is 1 day after the business date: the Audit pending state of the [business date indicator](../design-system/09-app-shell.md#business-date-and-system-date). An Overdue audit (2 or more days behind) keeps the old rules, and early check-out refuses `night_audit_pending` there.
-- **Stay day.** The day check-in and check-out work on: the calendar date while the audit is pending, otherwise the business date. Every posting still uses the business date.
+- **When it applies, running audit.** A date that is Auditing counts as pending too: the calendar date is still 1 day after it. Nothing is refused. The audit locks each unit row and every key is idempotent, so a check-out before the room charge step is skipped by it, and one after it replays the posted night. The strip says "Night audit running" instead of "not run yet".
+- **Stay day.** `StayDay` (`app/Services/FrontDesk/`) holds the rule. For check-out, early check-out, late check-out and the menu it is the calendar date while the audit is pending, otherwise the business date. For check-in it is the calendar date only when the unit arrives on the calendar date, otherwise the business date, so a guest booked 20 → 21 Oct who arrives after midnight still checks in for the night of 20 Oct. Every posting still uses the business date.
+- **Not affected.** Day use units keep the business date. Past and migrated stays (`$asOf`, `$skipBalanceCheck`) post no pending night and keep their own day. The dashboard's arrivals and departures still show the business date: a later topic.
 - **The pending night.** A guest still checked in on 21 Oct slept the night of 20 Oct. Before the check-out, the same transaction posts that night through `PostRoomCharges` and its add-ons dated 20 Oct through `PostScheduledAddOns::post()`. The keys are the audit's (`night:{unit_night_id}`, `addon:{id}`), so the audit finds the lines and writes nothing. The night must post **before** the status changes: `PostRoomCharges` refuses a CheckedOut unit for the night of the business date, and the audit never posts add-ons of a CheckedOut unit. A refusal of either posting rolls the check-out back.
+- **`PostPendingNight`** (Action) does this posting. It does nothing unless the audit is pending, the unit is CheckedIn and it has a night on the business date, so a unit that arrived on the calendar date or departs on the business date is skipped, not refused. It runs at the start of `CheckOutAndRefund` and `EarlyCheckOut`, before the payment and the refund, so the balance they settle includes the night. `CheckOutUnit` calls it too, for `CheckOutGroup` and other direct callers. A second call writes nothing. The preview reads the same lines through `NightChargeQuote`, so the Dialog's balance includes them.
 
-| Case                                          | What happens                                                                                  |
-| --------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| Check-out, departure 21 Oct                   | Post the 20 Oct night and add-ons, then check out                                             |
-| Early check-out, departure 23 Oct             | New departure 21 Oct. Post the 20 Oct night and add-ons, remove 21 and 22 Oct, then check out |
-| Early check-out, **Guest left yesterday**     | New departure 20 Oct. Nothing posts for 20 Oct. Reason required                               |
-| Overdue guest, departure 20 Oct               | The Dialog asks (below)                                                                       |
-| Check-in, arrival 21 Oct                      | Allowed. The room is the one on the night of 21 Oct. Tonight's audit posts 21 Oct             |
-| Check-in, arrival 20 Oct (arrives after 0:00) | As today: the business date is the arrival date                                               |
+| Case                                          | What happens                                                                                                                                                                                                             |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Check-out, departure 21 Oct                   | Post the 20 Oct night and add-ons, then check out                                                                                                                                                                        |
+| Early check-out, departure 23 Oct             | New departure 21 Oct. Post the 20 Oct night and add-ons, remove 21 and 22 Oct, then check out                                                                                                                            |
+| Early check-out, **Guest left yesterday**     | New departure 20 Oct. Nothing posts for 20 Oct. Reason required. The early departure fee is read with the 20 Oct departure; Do not charge stays available. A unit that arrived on 20 Oct is refused with `arrived_today` |
+| Late check-out, departure 21 Oct              | Offered: the departure is the stay day                                                                                                                                                                                   |
+| Overdue guest, departure 20 Oct               | The Dialog asks (below)                                                                                                                                                                                                  |
+| Check-in, arrival 21 Oct                      | Allowed. The room is the one on the night of 21 Oct. Tonight's audit posts 21 Oct                                                                                                                                        |
+| Check-in, arrival 20 Oct (arrives after 0:00) | As today: the check-in day is the business date, so the room is the one on the night of 20 Oct                                                                                                                           |
 
 **Overdue guest.** A guest booked to 20 Oct who is still checked in may have stayed, or staff forgot to check them out. Only staff know, so the check-out Dialog asks:
 
@@ -158,7 +162,9 @@ This guest was due to leave yesterday (20 Oct). What happened?
 └─────────────────────────┘  └─────────────────────────┘
 ```
 
-**They stayed** runs `ExtendStay` to 21 Oct, posts the night of 20 Oct and checks out, in one transaction. **They left** is the normal check-out on the business date.
+**They stayed** runs `ExtendStay` to 21 Oct, posts the night of 20 Oct and checks out, in one transaction (`CheckOutOverdueStay`, request field `stayed_last_night`). Restrictions are passed with a fixed reason, "Guest stayed the night", because the guest already slept there. `not_available` is still refused: "Room 204 is booked by another guest for 20 Oct. Move one of them first." **They left** is the normal check-out on the business date.
+
+**Group check-out.** The [group check-out page](05-group-check-out.md) follows the same rules: a row that departs on the stay day is ready, and `CheckOutGroup` posts its pending night before it moves charges or settles. The `night_audit_pending` row note stays only for an Overdue audit.
 
 **Dialogs.** Check in, Check out and Check out early show a `warning` strip at the top of the body while the audit is pending: "Hotel day 20 Oct · Today 21 Oct. Night audit not run yet." It uses the sidebar's word "Night audit". An ⓘ line under the stay says what it means for this guest: "Last night (20 Oct) is added to the bill now. The night audit will skip it." or "That's fine. Tonight's night audit charges 21 Oct." The bill marks the posted lines **(added now)**. The preview sends the strip, the line and the lines to post, so the browser has no date rules of its own.
 
@@ -174,7 +180,6 @@ This guest was due to leave yesterday (20 Oct). What happened?
 - **Statistics.** A CheckedOut unit keeps only the nights it slept (an early check-out deletes the rest), so counting its nights as sold changes nothing that works today. See [Statistics](../20-night-audit/05-statistics.md).
 - **Undo check-out** before the audit sets the unit back to CheckedIn. The night stays posted and the audit skips it.
 - **Undo check-in, known gap.** A guest checked in at 1:00 on 21 Oct cannot be undone after the audit runs at 3:00, although no night is posted: `UndoCheckInRule` compares `checked_in_at` with `opened_at` of 21 Oct. Accepted for now.
-- **Open: the audit is running.** A check-in or check-out while the date is Auditing is not decided yet. To verify how the unit lock and the steps interact before building.
 - **Replaces** the plain `night_audit_pending` refusal of early check-out (`d88ba864`) for the Audit pending state.
 
 ### Cancel, no-show and reinstate
