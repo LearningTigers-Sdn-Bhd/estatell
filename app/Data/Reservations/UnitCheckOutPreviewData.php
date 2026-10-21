@@ -16,7 +16,9 @@ use Spatie\LaravelData\Data;
  * can give back in all (the deposit and any other payment), and `refundParts` lists each payment the default refund
  * takes money from, in refund order. A credit above the deposit is refunded as a whole. `charges` (every line that is
  * not a payment) and `paid` (every payment and refund but the deposit held, negative) break the balance down for the
- * Dialog: `charges + paid - depositHeld = balance`.
+ * Dialog: `charges + paid - depositHeld = balance`. `pendingLines` are the lines the check-out posts first for the night
+ * of the business date while the night audit is pending (shown as added now), and `pendingTotal` is their sum, already
+ * inside `balance` and `charges`.
  */
 class UnitCheckOutPreviewData extends Data
 {
@@ -42,6 +44,9 @@ class UnitCheckOutPreviewData extends Data
         public array $refundParts = [],
         public string $charges = '0.00',
         public string $paid = '0.00',
+        /** @var list<UnitPendingLineData> */
+        public array $pendingLines = [],
+        public string $pendingTotal = '0.00',
     ) {}
 
     public static function refused(string $error): self

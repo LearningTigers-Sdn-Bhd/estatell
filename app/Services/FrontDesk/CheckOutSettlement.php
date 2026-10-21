@@ -5,6 +5,7 @@ namespace App\Services\FrontDesk;
 use App\Data\Reservations\CheckOutRefundPartData;
 use App\Data\Reservations\CheckOutRoomShareData;
 use App\Data\Reservations\UnitCheckOutPreviewData;
+use App\Data\Reservations\UnitPendingLineData;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
 use App\Enums\PaymentPurpose;
@@ -35,14 +36,21 @@ class CheckOutSettlement
         private IncomingScheduledCharges $incomingScheduledCharges,
     ) {}
 
-    public function for(ReservationUnit $unit, bool $canRefund, bool $canCollect = false, bool $canMoveCharges = false): UnitCheckOutPreviewData
+    /**
+     * `$pending` is what the check-out posts first for the pending night (`PendingNightQuote`): it joins the balance
+     * and the charges, so the amounts the form collects and refunds settle the folio after that posting.
+     *
+     * @param  list<UnitPendingLineData>  $pendingLines
+     */
+    public function for(ReservationUnit $unit, bool $canRefund, bool $canCollect = false, bool $canMoveCharges = false, array $pendingLines = []): UnitCheckOutPreviewData
     {
         $folios = $this->folios($unit);
-        $balance = $this->balance($folios);
+        $pending = array_reduce($pendingLines, fn (BigDecimal $sum, UnitPendingLineData $line): BigDecimal => $sum->plus($line->amount), BigDecimal::zero());
+        $balance = $this->balance($folios)->plus($pending);
         $deposits = $this->heldDeposits($folios);
         $held = $deposits->reduce(fn (BigDecimal $sum, Payment $payment): BigDecimal => $sum->plus($this->refundable($payment)), BigDecimal::zero());
         $refunds = $this->refunds($folios, $balance);
-        $charges = $this->charges($folios);
+        $charges = $this->charges($folios)->plus($pending);
         $incoming = $this->incomingScheduled($unit, $folios);
         $messages = array_filter([
             $incoming === [] ? null : IncomingScheduledCharges::message($incoming),
@@ -73,6 +81,8 @@ class CheckOutSettlement
             refundParts: $refunds['parts'],
             charges: (string) $charges->toScale(2),
             paid: (string) $balance->minus($charges)->plus($held)->toScale(2),
+            pendingLines: $pendingLines,
+            pendingTotal: (string) $pending->toScale(2),
         );
     }
 

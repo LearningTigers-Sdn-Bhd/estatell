@@ -41,6 +41,7 @@ use App\Services\CityLedger\CreditCheck;
 use App\Services\FrontDesk\CheckInCollection;
 use App\Services\FrontDesk\CheckOutSettlement;
 use App\Services\FrontDesk\EarlyCheckOutRule;
+use App\Services\FrontDesk\PendingNightQuote;
 use App\Services\FrontDesk\StayDay;
 use App\Services\FrontDesk\UndoCheckInRule;
 use App\Services\FrontDesk\UndoCheckOutRule;
@@ -85,6 +86,7 @@ class UnitActionPreview
         private UndoCheckInRule $undoCheckInRule,
         private UndoCheckOutRule $undoCheckOutRule,
         private StayDay $stayDay,
+        private PendingNightQuote $pendingNightQuote,
     ) {}
 
     /**
@@ -261,10 +263,11 @@ class UnitActionPreview
      */
     public function checkOut(ReservationUnit $unit, User $user): UnitCheckOutPreviewData
     {
-        $preview = $this->checkOutSettlement->for($unit, $this->impersonation->mayRefund($user), $user->can(PermissionEnum::PaymentRecord->value), $user->can(PermissionEnum::FolioTransfer->value));
         $businessDate = $this->currentBusinessDate->date($unit->property()->firstOrFail());
+        $pendingLines = $businessDate === null ? [] : $this->pendingNightQuote->lines($unit, $businessDate);
+        $preview = $this->checkOutSettlement->for($unit, $this->impersonation->mayRefund($user), $user->can(PermissionEnum::PaymentRecord->value), $user->can(PermissionEnum::FolioTransfer->value), $pendingLines);
 
-        if ($unit->status !== UnitStatus::CheckedIn || $businessDate === null || $businessDate->toDateString() >= $unit->departure_date->toDateString()) {
+        if ($unit->status !== UnitStatus::CheckedIn || $businessDate === null || $this->stayDay->forCheckOut($unit->property()->firstOrFail(), $businessDate)->toDateString() >= $unit->departure_date->toDateString()) {
             return $preview;
         }
 

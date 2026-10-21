@@ -10,6 +10,7 @@ use App\Models\RoomRevenuePolicy;
 use App\Models\User;
 use App\Services\Availability\DayUseAvailability;
 use App\Services\Catalogues\PolicyChargeCalculator;
+use App\Services\FrontDesk\StayDay;
 use App\Services\NightAudit\CurrentBusinessDate;
 use Brick\Math\BigDecimal;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +23,7 @@ class ExtendDepartureTime
         private DayUseAvailability $dayUseAvailability,
         private PostUnitPolicyFee $postUnitPolicyFee,
         private SyncReservationStatus $syncReservationStatus,
+        private StayDay $stayDay,
     ) {}
 
     /**
@@ -49,7 +51,7 @@ class ExtendDepartureTime
                 return UnitStayResult::refused(UnitStayResult::REFUSAL_NO_BUSINESS_DATE);
             }
 
-            if ($businessDate->toDateString() !== $locked->departure_date->toDateString()) {
+            if ($this->stayDay->forCheckOut($locked->property, $businessDate)->toDateString() !== $locked->departure_date->toDateString()) {
                 return UnitStayResult::refused(UnitStayResult::REFUSAL_NOT_DEPARTURE_DATE);
             }
 

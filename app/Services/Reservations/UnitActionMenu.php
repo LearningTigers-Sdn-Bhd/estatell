@@ -73,11 +73,12 @@ class UnitActionMenu
         }
 
         $departure = $unit->departure_date->toDateString();
+        $stayDay = $this->stayDay->forCheckOut($unit->property, CarbonImmutable::parse($businessDate))->toDateString();
 
         return match ($action) {
             UnitAction::CheckIn => $this->checkInDay($unit, $current) >= $arrival && $this->checkInDay($unit, $current) < $departure,
-            UnitAction::CheckOut => $businessDate >= $departure || $this->isEarlyCheckOut($unit, $businessDate, $user),
-            UnitAction::LateCheckOut => $businessDate === $departure,
+            UnitAction::CheckOut => $stayDay >= $departure || $this->isEarlyCheckOut($unit, $businessDate, $user),
+            UnitAction::LateCheckOut => $stayDay === $departure,
             UnitAction::Reinstate, UnitAction::MoveRoom => $businessDate < $departure,
             default => true,
         };

@@ -1,7 +1,10 @@
 <?php
 
 use App\Actions\Folio\CreateFolio;
+use App\Actions\FrontDesk\CheckOutAndRefund;
+use App\Actions\FrontDesk\PostPendingNight;
 use App\Actions\NightAudit\NightAuditResult;
+use App\Actions\NightAudit\PostRoomCharges;
 use App\Actions\NightAudit\RunNightAudit;
 use App\Actions\NightAudit\SnapshotStatistics;
 use App\Actions\NightAudit\Steps\AuditStepRunner;
@@ -9,6 +12,7 @@ use App\Actions\NightAudit\Steps\ResolveOverdueDepartures;
 use App\Actions\NightAudit\Steps\SnapshotStatisticsStep;
 use App\Actions\NightAudit\Steps\StepOutcome;
 use App\Actions\NightAudit\Steps\UpdateRoomStatuses;
+use App\Data\Reservations\CheckOutCollectData;
 use App\Enums\AuditExceptionType;
 use App\Enums\AuditStatus;
 use App\Enums\AuditStep;
@@ -19,6 +23,7 @@ use App\Enums\FolioStatus;
 use App\Enums\HousekeepingStatus;
 use App\Enums\MissedArrivalPolicy;
 use App\Enums\OverdueDeparturePolicy;
+use App\Enums\PaymentMethodType;
 use App\Enums\PolicyScope;
 use App\Enums\SystemTransactionCode;
 use App\Enums\UnitStatus;
@@ -28,6 +33,7 @@ use App\Models\DailyRevenue;
 use App\Models\DailyStatistic;
 use App\Models\FolioLine;
 use App\Models\NightAudit;
+use App\Models\PaymentMethod;
 use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\Rate;
@@ -40,6 +46,7 @@ use App\Models\RoomType;
 use App\Models\TransactionCode;
 use App\Models\UnitAddOn;
 use App\Models\User;
+use App\Services\Reservations\UnitActionPreview;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Bus;
@@ -393,4 +400,63 @@ test('a property without a business date or with a run in progress is refused', 
     expect(runAudit($other)->refusal)->toBe(NightAuditResult::REFUSAL_NO_BUSINESS_DATE)
         ->and(runAudit($setup['property'])->refusal)->toBe(NightAuditResult::REFUSAL_ALREADY_RUNNING)
         ->and($audit->fresh()->status)->toBe(AuditStatus::Running);
+});
+
+/**
+ * Check a unit out through `CheckOutAndRefund`, collecting what the check-out preview says the guest owes.
+ *
+ * @param  array{property: Property}  $setup
+ */
+function auditCheckOut(array $setup, ReservationUnit $unit): bool
+{
+    $user = User::factory()->for($setup['property'])->withPermissions(['reservations.view', 'front-desk.check-out', 'payment.record'])->create();
+    $method = PaymentMethod::factory()->create(['property_id' => $setup['property']->id, 'type' => PaymentMethodType::Cash, 'requires_reference' => false, 'position' => 1]);
+    $owing = app(UnitActionPreview::class)->checkOut($unit, $user)->owing;
+
+    return ! app(CheckOutAndRefund::class)($user, $unit, null, new CheckOutCollectData($method->id, $owing, null, fake()->uuid()), fake()->uuid())->isRefused();
+}
+
+test('a unit checked out before the audit has its night posted once, and the audit replays it', function () {
+    $setup = auditSetup();
+    $unit = auditUnit($setup, 'checkedIn', '2026-10-11', '2026-10-13');
+    $night = $unit->nights()->whereDate('date', '2026-10-12')->sole();
+    $addOn = UnitAddOn::factory()->for($unit, 'reservationUnit')->create(['service_date' => '2026-10-12']);
+
+    expect(auditCheckOut($setup, $unit))->toBeTrue()
+        ->and($unit->fresh()->status)->toBe(UnitStatus::CheckedOut)
+        ->and(FolioLine::query()->where('idempotency_key', 'night:'.$night->id)->count())->toBe(1)
+        ->and(FolioLine::query()->where('idempotency_key', 'addon:'.$addOn->id)->count())->toBe(1);
+
+    $lines = FolioLine::query()->count();
+    $result = runAudit($setup['property']);
+
+    expect($result->isCompleted())->toBeTrue()
+        ->and(FolioLine::query()->count())->toBe($lines)
+        ->and($result->audit->exceptions()->count())->toBe(0)
+        ->and(DailyStatistic::query()->where('business_date', '2026-10-12')->sole()->rooms_sold)->toBe(1);
+});
+
+test('a check-out while the date is Auditing replays a night the audit already posted', function () {
+    $setup = auditSetup();
+    $unit = auditUnit($setup, 'checkedIn', '2026-10-11', '2026-10-13');
+    app(PostRoomCharges::class)(null, $unit, CarbonImmutable::parse('2026-10-12'));
+    BusinessDate::query()->update(['status' => BusinessDateStatus::Auditing]);
+    $lines = FolioLine::query()->count();
+
+    expect(auditCheckOut($setup, $unit))->toBeTrue()
+        ->and($unit->fresh()->status)->toBe(UnitStatus::CheckedOut)
+        ->and(nightLineCount())->toBe(1)
+        ->and(FolioLine::query()->where('kind', '!=', 'payment')->count())->toBe($lines);
+});
+
+test('the pending night posts once: a second call writes nothing', function () {
+    $setup = auditSetup();
+    $unit = auditUnit($setup, 'checkedIn', '2026-10-11', '2026-10-13');
+
+    $first = app(PostPendingNight::class)(null, $unit);
+    $second = app(PostPendingNight::class)(null, $unit);
+
+    expect($first)->not->toBeEmpty()
+        ->and($second)->toBe([])
+        ->and(nightLineCount())->toBe(1);
 });

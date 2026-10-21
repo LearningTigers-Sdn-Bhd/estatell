@@ -3436,6 +3436,8 @@ refundable: string,
 refundParts: App.Data.Reservations.CheckOutRefundPartData[],
 charges: string,
 paid: string,
+pendingLines: App.Data.Reservations.UnitPendingLineData[],
+pendingTotal: string,
 };
 export type UnitDatesPreviewData = {
 previousTotal: string | null,
@@ -3481,6 +3483,11 @@ units: App.Data.Reservations.FreeUnitData[],
 error: string | null,
 isDayUse: boolean,
 hoursLabel: string | null,
+};
+export type UnitPendingLineData = {
+description: string,
+amount: string,
+level: number,
 };
 export type UnitPickData = {
 unitIndex: number,

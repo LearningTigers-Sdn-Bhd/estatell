@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Folio\CreateFolio;
 use App\Actions\FrontDesk\CheckInUnit;
 use App\Actions\FrontDesk\UndoCheckIn;
 use App\Actions\FrontDesk\UndoCheckOut;
@@ -690,6 +691,101 @@ test('early check-out collects the balance with the fee in one step', function (
 
     expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedOut)
         ->and(Payment::query()->where('purpose', PaymentPurpose::Settlement)->sole()->amount)->toBe('240.00');
+});
+
+/**
+ * A CheckedIn unit that arrived yesterday and departs today (one night, dated yesterday), while the business date is
+ * yesterday: the night audit has not run, and the guest sleeps the night of the business date.
+ *
+ * @return array{user: User, property: Property, reservation: Reservation, unit: ReservationUnit}
+ */
+function uaPendingSetup(): array
+{
+    $setup = uaDepartingSetup(withDeposit: false);
+    BusinessDate::query()->update(['date' => today()->subDay()->toDateString()]);
+
+    return $setup;
+}
+
+test('the check-out preview includes the pending night in the balance', function () {
+    $setup = uaPendingSetup();
+    UnitAddOn::factory()->for($setup['unit'], 'reservationUnit')->create(['service_date' => today()->subDay()->toDateString(), 'unit_amount' => '25.00']);
+
+    $preview = $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-out-preview'))->assertOk()->json();
+
+    expect(collect($preview['pendingLines'])->pluck('description')->filter(fn ($description): bool => str_starts_with($description, 'Room'))->count())->toBe(1)
+        ->and((float) $preview['pendingTotal'])->toBeGreaterThan(25.0)
+        ->and($preview['balance'])->toBe($preview['pendingTotal'])
+        ->and($preview['owing'])->toBe($preview['pendingTotal'])
+        ->and($preview['charges'])->toBe($preview['pendingTotal']);
+});
+
+test('check out while the audit is pending posts the night and its add-on with the audit keys', function () {
+    $setup = uaPendingSetup();
+    $addOn = UnitAddOn::factory()->for($setup['unit'], 'reservationUnit')->create(['service_date' => today()->subDay()->toDateString(), 'unit_amount' => '25.00']);
+    $night = $setup['unit']->nights()->sole();
+    $owing = $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-out-preview'))->json('owing');
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'check-out'), ['collect_amount' => $owing, 'payment_method_id' => PaymentMethod::query()->sole()->id, 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasNoErrors();
+
+    $log = Activity::query()->where('event', 'reservation.unit_checked_out')->sole();
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedOut)
+        ->and(Folio::query()->where('reservation_unit_id', $setup['unit']->id)->sole()->status)->toBe(FolioStatus::Closed)
+        ->and(FolioLine::query()->where('idempotency_key', 'night:'.$night->id)->sole()->posting_date->toDateString())->toBe(today()->subDay()->toDateString())
+        ->and(FolioLine::query()->where('idempotency_key', 'addon:'.$addOn->id)->count())->toBe(1)
+        ->and($log->properties['business_date'])->toBe(today()->toDateString());
+});
+
+test('a posting that is refused rolls the check-out and the payment back', function () {
+    $setup = uaPendingSetup();
+    $owing = $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-out-preview'))->json('owing');
+    app(CreateFolio::class)($setup['reservation'], $setup['unit'])->forceFill(['status' => FolioStatus::Closed])->save();
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'check-out'), ['collect_amount' => $owing, 'payment_method_id' => PaymentMethod::query()->sole()->id, 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasErrors();
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn)
+        ->and(Payment::query()->count())->toBe(0)
+        ->and(FolioLine::query()->where('idempotency_key', 'like', 'night:%')->count())->toBe(0);
+});
+
+test('a unit with no night on the business date posts nothing when it checks out', function () {
+    $setup = uaPendingSetup();
+    $setup['unit']->forceFill(['arrival_date' => today()->subDays(3)->toDateString(), 'departure_date' => today()->subDay()->toDateString()])->save();
+    $setup['unit']->nights()->delete();
+
+    $this->actingAs($setup['user'])->post(uaUrl($setup, 'check-out'), [])->assertSessionHasNoErrors();
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedOut)
+        ->and(FolioLine::query()->where('idempotency_key', 'like', 'night:%')->count())->toBe(0);
+});
+
+test('an overdue audit still refuses a check-out before the departure date and posts nothing', function () {
+    $setup = uaPendingSetup();
+    BusinessDate::query()->update(['date' => today()->subDays(2)->toDateString()]);
+
+    $this->actingAs($setup['user'])->post(uaUrl($setup, 'check-out'), [])->assertSessionHasErrors();
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn)
+        ->and(FolioLine::query()->where('idempotency_key', 'like', 'night:%')->count())->toBe(0);
+});
+
+test('the menu offers check-out and late check-out on the stay day, and late check-out is accepted', function () {
+    $setup = uaPendingSetup();
+    TransactionCode::factory()->for($setup['property'])->system(SystemTransactionCode::LateCheckoutRevenue)->create();
+    RoomRevenuePolicy::factory()->for($setup['property'])->fixed('30.00')->forCode(SystemTransactionCode::LateCheckoutRevenue, PolicyScope::OneCharge)->create();
+
+    $this->actingAs($setup['user'])
+        ->get(route('reservations.show', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]))
+        ->assertInertia(fn (Assert $page) => $page->where('unit.actions', fn ($actions) => collect($actions)->pluck('key')->intersect(['check-out', 'late-check-out'])->values()->all() === ['check-out', 'late-check-out']));
+
+    $this->actingAs($setup['user'])->post(uaUrl($setup, 'late-check-out'), ['new_time' => '16:00', 'expected_fee' => '30.00'])->assertSessionHasNoErrors();
+
+    expect(substr($setup['unit']->fresh()->departure_time, 0, 5))->toBe('16:00');
 });
 
 test('late check-out previews the fee and posts it with a later time', function () {

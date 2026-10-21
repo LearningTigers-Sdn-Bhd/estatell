@@ -17,6 +17,7 @@ use App\Models\RoomStatus;
 use App\Models\User;
 use App\Services\Folio\FolioBalance;
 use App\Services\FrontDesk\CheckOutSettlement;
+use App\Services\FrontDesk\StayDay;
 use App\Services\NightAudit\CurrentBusinessDate;
 use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
@@ -31,6 +32,8 @@ class CheckOutUnit
         private SyncReservationStatus $syncReservationStatus,
         private CloseFolio $closeFolio,
         private CheckOutSettlement $checkOutSettlement,
+        private StayDay $stayDay,
+        private PostPendingNight $postPendingNight,
     ) {}
 
     /**
@@ -42,7 +45,10 @@ class CheckOutUnit
      * against charges first. After the status change it closes each Open Unit folio of the unit through `CloseFolio`
      * (at 0 by the check above), which issues the folio's invoice number once. A close that is refused (a posting raced
      * in) rolls the check-out back as `balance_not_settled`. Master and ThirdParty folios stay Open. No `folio.close`
-     * is needed: closing is part of check-out. A stay is checked out on or after its departure date. A shorter stay is changed first
+     * is needed: closing is part of check-out. A stay is checked out on or after its departure date, counted on the stay
+     * day (`StayDay`): the calendar date while the night audit is pending. Then `PostPendingNight` posts the night of the
+     * business date first, so the balance check sees it, and the log carries the stay day as `business_date`. A past stay
+     * (`$asOf`, `$skipBalanceCheck`) keeps the business date and posts no pending night. A shorter stay is changed first
      * with `ChangeUnitDates`. `$asOf` is the moment the guest really left, for a past stay entered after it ended
      * (`CreatePastStay`); it sets `checked_out_at`. `$skipBalanceCheck` (only `CreatePastStay` passes it) leaves the
      * balance, the scheduled-charge check and the folios alone: the folios stay Open with their balance, and the
@@ -73,9 +79,14 @@ class CheckOutUnit
             }
 
             $today = $businessDate->toDateString();
+            $stayDay = $skipBalanceCheck || $asOf !== null || $locked->stay_type === StayType::DayUse ? $today : $this->stayDay->forCheckOut($locked->property, $businessDate)->toDateString();
 
-            if ($today < $locked->departure_date->toDateString()) {
+            if ($stayDay < $locked->departure_date->toDateString()) {
                 return UnitStayResult::refused(UnitStayResult::REFUSAL_BEFORE_DEPARTURE_DATE);
+            }
+
+            if (! $skipBalanceCheck && $asOf === null) {
+                ($this->postPendingNight)($actor, $locked);
             }
 
             if (! $skipBalanceCheck) {
@@ -125,7 +136,7 @@ class CheckOutUnit
                     'property_id' => $locked->property_id,
                     'reservation_unit_id' => $locked->id,
                     'room_id' => $roomId,
-                    'business_date' => $today,
+                    'business_date' => $stayDay,
                 ])
                 ->log('Unit checked out');
 

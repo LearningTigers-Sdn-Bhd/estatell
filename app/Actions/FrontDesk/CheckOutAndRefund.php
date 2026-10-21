@@ -21,6 +21,7 @@ class CheckOutAndRefund
         private RecordPayment $recordPayment,
         private RefundPayment $refundPayment,
         private CheckOutSettlement $checkOutSettlement,
+        private PostPendingNight $postPendingNight,
     ) {}
 
     /**
@@ -33,7 +34,8 @@ class CheckOutAndRefund
      * A refusal of the payment, the refund or the check-out (for example `balance_not_settled` when the amount no
      * longer settles the folio) comes back as the refusal code and rolls every step back. `$idempotencyKey` is a UUID
      * from the form: the payment uses `{uuid}:collect` and each refund `{uuid}:{payment id}`. Permissions are checked
-     * by the route and the Form Request. See docs/18-front-desk/01-check-in-and-check-out.md#check-out.
+     * by the route and the Form Request. While the night audit is pending, `PostPendingNight` runs first, so the balance
+     * the payment and the refund settle includes the night of the business date. See docs/18-front-desk/01-check-in-and-check-out.md#check-out.
      */
     public function __invoke(User $actor, ReservationUnit $unit, ?string $refundAmount = null, ?CheckOutCollectData $collect = null, ?string $idempotencyKey = null): UnitStayResult
     {
@@ -54,6 +56,12 @@ class CheckOutAndRefund
 
     private function run(User $actor, ReservationUnit $unit, ?string $refundAmount, ?CheckOutCollectData $collect, ?string $idempotencyKey): UnitStayResult
     {
+        try {
+            ($this->postPendingNight)($actor, $unit->refresh());
+        } catch (UnitStayRefused $refused) {
+            return $refused->result;
+        }
+
         if ($collect !== null) {
             $payment = ($this->recordPayment)($actor, $unit->reservation, null, $unit, new NewPaymentData(
                 $collect->paymentMethodId,
