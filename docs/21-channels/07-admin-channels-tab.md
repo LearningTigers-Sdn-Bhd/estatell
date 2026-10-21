@@ -127,7 +127,7 @@ When staff change a room type, a rate plan or the room types a plan sells, the c
 └───────────────────────────────────────────────────────────────────────────┴──────────────────────────────────┘
 ```
 
-- The connect and map pages use the `fixed` layout and `Workspace` (header with a `Stepper`, a centre panel, a right panel, and `FormActions` always visible). The connect form is in the centre and the OTA lists rail on the right. The map table is in the centre and a mapping summary is on the right. **Next: map** ends with an arrow.
+- The connect and map pages use the `fixed` layout and `Workspace` (header with a `Stepper`, a centre panel, a right panel, and `FormActions` always visible). The connect form is in the centre and the OTA lists rail on the right. The map table is in the centre (one heading row per OTA room, then a row for each rate and guest count with a select of estatell plans) and a mapping summary is on the right. **Next: map** ends with an arrow.
 - The OTA comes from the Connect button on the OTAs card, so the form has no Channel select.
 - Hotel ID is required. **Save connection** tests the settings again and creates the Channex channel as a `Draft`, then goes back to the tab. The map commit turns it into **Next: map**.
 - A property that is not on Channex, an OTA with no adapter and Airbnb go back to the tab with the reason.

@@ -128,7 +128,7 @@ class PropertyChannelConnectionController extends Controller
 
         return Inertia::render('admin/properties/channels/map', [
             'property' => ['code' => $property->code, 'name' => $property->name],
-            'map' => ChannelMapPageData::forConnection($connection, $catalogue, $adapter, $channelMappingRows->forConnection($connection, $catalogue), $channelStructurePreview->forProperty($property)->skippedCount()),
+            'map' => ChannelMapPageData::forConnection($connection, $catalogue, $adapter, $channelMappingRows->forConnection($connection, $catalogue), $channelMappingRows->options($connection), $channelStructurePreview->forProperty($property)->skippedCount()),
         ]);
     }
 

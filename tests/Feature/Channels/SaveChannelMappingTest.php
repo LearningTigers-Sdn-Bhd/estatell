@@ -173,7 +173,7 @@ test('Hostelworld sends a type and no primary flag', function () {
         ->and($connection->otaMappings()->sole()->only(['is_primary', 'rate_type']))->toBe(['is_primary' => null, 'rate_type' => 'private']);
 });
 
-test('the map page lists each occupancy from the top, suggests matches by name and marks one primary', function () {
+test('the map page lists each OTA line from the top guest count, suggests matches by name and marks one primary', function () {
     ['connection' => $connection, 'property' => $property] = mapReadySetup();
     fakeChannexMapping();
     $admin = User::factory()->admin()->withTwoFactor()->create();
@@ -186,34 +186,35 @@ test('the map page lists each occupancy from the top, suggests matches by name a
             ->where('map.usesPrimary', true)
             ->where('map.usesType', false)
             ->where('map.pricingType', 'OBP')
-            ->has('map.rows', 3)
+            ->has('map.rows', 6)
+            ->where('map.rows.0.roomTitle', 'Deluxe King')
+            ->where('map.rows.0.rateTitle', 'Standard')
             ->where('map.rows.0.occupancy', 3)
-            ->where('map.rows.0.roomType', 'Deluxe King')
-            ->where('map.rows.0.ratePlan', 'Standard')
-            ->where('map.rows.0.ota', '586818903|16385046')
+            ->where('map.rows.0.estatell', fn ($value) => str_ends_with($value, '-3'))
             ->where('map.rows.0.isPrimary', true)
-            ->where('map.rows.1.ota', '586818903|16385046')
+            ->where('map.rows.1.occupancy', 2)
             ->where('map.rows.1.isPrimary', false)
             ->where('map.rows.2.occupancy', 1)
-            ->has('map.options', 2)
-            ->where('map.options.0.value', '586818903|16385046')
-            ->where('map.options.0.label', 'Deluxe King (586818903) · Standard'));
+            ->where('map.rows.3.rateTitle', 'Non-refundable')
+            ->where('map.rows.3.estatell', null)
+            ->has('map.options', 3)
+            ->where('map.options.0.label', 'Deluxe King · Standard')
+            ->where('map.options.0.occupancy', 1)
+            ->where('map.options.2.isTop', true));
 });
 
-test('a hotel with per-room pricing is suggested only the top occupancy, and a saved mapping beats suggestions', function () {
-    ['connection' => $connection, 'property' => $property, 'mapping' => $mapping] = mapReadySetup();
-    $standard = channexBookingDetails();
-    $standard['pricing_type'] = 'Standard';
-    fakeChannexMapping($standard);
+test('a plan sold per room is offered only at its top occupancy, and a saved mapping beats suggestions', function () {
+    ['connection' => $connection, 'property' => $property, 'mapping' => $mapping] = mapReadySetup('per_room');
+    fakeChannexMapping();
     $admin = User::factory()->admin()->withTwoFactor()->create();
 
     $this->actingAs($admin)->get(route('admin.properties.channels.connections.map', [$property->code, $connection]))
-        ->assertInertia(fn (Assert $page) => $page->where('map.rows.0.ota', '586818903|16385046')->where('map.rows.1.ota', null)->where('map.rows.2.ota', null));
+        ->assertInertia(fn (Assert $page) => $page->has('map.options', 1)->where('map.rows.0.estatell', "{$mapping->id}-3")->where('map.rows.1.estatell', null)->where('map.rows.2.estatell', null));
 
-    ChannelOtaMapping::factory()->create(['channel_connection_id' => $connection->id, 'channel_rate_plan_mapping_id' => $mapping->id, 'occupancy' => 1, 'ota_room_code' => '586818903', 'ota_rate_code' => '16385047', 'is_primary' => true]);
+    ChannelOtaMapping::factory()->create(['channel_connection_id' => $connection->id, 'channel_rate_plan_mapping_id' => $mapping->id, 'occupancy' => 3, 'ota_room_code' => '586818903', 'ota_rate_code' => '16385047', 'is_primary' => true]);
 
     $this->get(route('admin.properties.channels.connections.map', [$property->code, $connection]))
-        ->assertInertia(fn (Assert $page) => $page->where('map.rows.0.ota', null)->where('map.rows.2.ota', '586818903|16385047')->where('map.rows.2.isPrimary', true));
+        ->assertInertia(fn (Assert $page) => $page->where('map.rows.0.estatell', null)->where('map.rows.3.estatell', "{$mapping->id}-3")->where('map.rows.3.isPrimary', true));
 });
 
 test('the map page is closed to other properties and goes back to the tab when the OTA does not answer', function () {

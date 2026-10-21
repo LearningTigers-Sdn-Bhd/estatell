@@ -14,7 +14,7 @@ class ChannelMapPageData extends Data
 {
     /**
      * @param  list<ChannelMapRowData>  $rows
-     * @param  list<ChannelOtaOptionData>  $options
+     * @param  list<ChannelEstatellOptionData>  $options
      */
     public function __construct(
         public int $connectionId,
@@ -33,20 +33,10 @@ class ChannelMapPageData extends Data
      *
      * @param  array<string, mixed>  $adapter
      * @param  list<ChannelMapRowData>  $rows
+     * @param  list<ChannelEstatellOptionData>  $options
      */
-    public static function forConnection(ChannelConnection $connection, ChannelOtaCatalogue $catalogue, array $adapter, array $rows, int $notOnChannels): self
+    public static function forConnection(ChannelConnection $connection, ChannelOtaCatalogue $catalogue, array $adapter, array $rows, array $options, int $notOnChannels): self
     {
-        $options = [];
-
-        foreach ($catalogue->rooms as $room) {
-            foreach ($room['rates'] ?? [] as $rate) {
-                $options[] = new ChannelOtaOptionData(
-                    value: ($room['id'] ?? '').'|'.($rate['id'] ?? ''),
-                    label: ($room['title'] ?? __('Room')).' ('.($room['id'] ?? '').') · '.($rate['title'] ?? __('Rate')),
-                );
-            }
-        }
-
         $params = $adapter['rate_params'] ?? [];
 
         return new self(

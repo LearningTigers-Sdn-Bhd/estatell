@@ -5,18 +5,20 @@ namespace App\Data\Channels;
 use Spatie\LaravelData\Data;
 
 /**
- * One line of the map page: an occupancy of one of our Channex rate plans, and the OTA room and rate it maps to. `ota` is
- * `{roomCode}|{rateCode}` of one `ChannelOtaOptionData`, or null while unmapped.
+ * One line of the map page: an OTA room, rate and guest count, and the estatell plan it maps to. `occupancy` is null when
+ * the OTA lists no guest counts for the rate (per-room pricing). `estatell` is the `value` of one
+ * `ChannelEstatellOptionData`, or null while unmapped.
  */
 class ChannelMapRowData extends Data
 {
     public function __construct(
         public string $key,
-        public int $ratePlanMappingId,
-        public string $roomType,
-        public string $ratePlan,
-        public int $occupancy,
-        public ?string $ota,
+        public string $roomCode,
+        public string $roomTitle,
+        public string $rateCode,
+        public string $rateTitle,
+        public ?int $occupancy,
+        public ?string $estatell,
         public bool $isPrimary,
         public ?string $rateType,
     ) {}

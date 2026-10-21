@@ -1,6 +1,6 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ArrowLeft, RefreshCw, Save, TriangleAlert } from 'lucide-react';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { FormActions } from '@/components/pms/form-actions';
 import { PageHeader } from '@/components/pms/page-header';
 import { Stepper } from '@/components/pms/stepper';
@@ -36,32 +36,54 @@ import { update } from '@/routes/admin/properties/channels/connections';
 
 type MapData = App.Data.Channels.ChannelMapPageData;
 type Row = App.Data.Channels.ChannelMapRowData;
+type Option = App.Data.Channels.ChannelEstatellOptionData;
 
 const NONE = '__none__';
 const STEPS = ['Connect', 'Map', 'Activate'];
 
+const groupOf = (row: Row) => `${row.roomCode}|${row.rateCode}`;
+
 /**
- * Each OTA room and rate that has lines needs exactly one primary line. A group with none gets its first line, which is
- * the highest occupancy because the rows come in that order. The server applies the same rule.
+ * Each OTA room and rate that has mapped lines needs exactly one primary line. A group with none gets its first mapped
+ * line, which is the highest guest count because the rows come in that order. The server applies the same rule.
  */
 function withPrimaries(rows: Row[]): Row[] {
     const primary = new Set(
-        rows.filter((row) => row.ota && row.isPrimary).map((row) => row.ota),
+        rows
+            .filter((row) => row.estatell && row.isPrimary)
+            .map((row) => groupOf(row)),
     );
 
     return rows.map((row) => {
-        if (!row.ota) {
+        if (!row.estatell) {
             return { ...row, isPrimary: false };
         }
 
-        if (primary.has(row.ota)) {
+        if (primary.has(groupOf(row))) {
             return row;
         }
 
-        primary.add(row.ota);
+        primary.add(groupOf(row));
 
         return { ...row, isPrimary: true };
     });
+}
+
+/** The Estatell plans a line can take: the same guest count, or the top one when the OTA lists no guest counts. */
+function choicesFor(row: Row, options: Option[], rows: Row[]): Option[] {
+    const taken = new Set(
+        rows
+            .filter((other) => other.key !== row.key && other.estatell)
+            .map((other) => other.estatell),
+    );
+
+    return options.filter(
+        (option) =>
+            !taken.has(option.value) &&
+            (row.occupancy === null
+                ? option.isTop
+                : option.occupancy === row.occupancy),
+    );
 }
 
 export default function ChannelMap({
@@ -74,18 +96,10 @@ export default function ChannelMap({
     const form = useForm<{ rows: Row[] }>({ rows: map.rows });
     const [fetching, setFetching] = useState(false);
     const rows = form.data.rows;
-    const mapped = rows.filter((row) => row.ota !== null);
-    const selected = new Set(mapped.map((row) => row.ota));
-    const unmatched = map.options.filter(
-        (option) => !selected.has(option.value),
-    );
-    const options = [
-        { value: NONE, label: 'Not mapped' },
-        ...map.options.map((option) => ({
-            value: option.value,
-            label: option.label,
-        })),
-    ];
+    const mapped = rows.filter((row) => row.estatell !== null);
+    const unmapped = rows.filter((row) => row.estatell === null);
+    const label = (row: Row) =>
+        `${row.roomTitle} · ${row.rateTitle}${row.occupancy ? `, ${row.occupancy} guests` : ''}`;
 
     const setRows = (next: Row[]) => form.setData('rows', withPrimaries(next));
     const change = (key: string, values: Partial<Row>) =>
@@ -95,7 +109,7 @@ export default function ChannelMap({
     const makePrimary = (target: Row) =>
         setRows(
             rows.map((row) =>
-                row.ota === target.ota
+                groupOf(row) === groupOf(target)
                     ? { ...row, isPrimary: row.key === target.key }
                     : row,
             ),
@@ -110,13 +124,21 @@ export default function ChannelMap({
                 onSubmit={(event) => {
                     event.preventDefault();
                     form.transform((data) => ({
-                        lines: data.rows.map((row) => ({
-                            rate_plan_mapping_id: row.ratePlanMappingId,
-                            occupancy: row.occupancy,
-                            ota: row.ota,
-                            is_primary: row.isPrimary,
-                            rate_type: row.rateType,
-                        })),
+                        lines: data.rows
+                            .filter((row) => row.estatell)
+                            .map((row) => {
+                                const [mappingId, occupancy] = (
+                                    row.estatell as string
+                                ).split('-');
+
+                                return {
+                                    rate_plan_mapping_id: Number(mappingId),
+                                    occupancy: Number(occupancy),
+                                    ota: `${row.roomCode}|${row.rateCode}`,
+                                    is_primary: row.isPrimary,
+                                    rate_type: row.rateType,
+                                };
+                            }),
                     }));
                     form.put(
                         update({
@@ -220,140 +242,232 @@ export default function ChannelMap({
                                     </p>
                                 )}
 
-                                {unmatched.length > 0 && (
+                                {unmapped.length > 0 && (
                                     <Alert>
                                         <TriangleAlert />
                                         <AlertDescription>
-                                            {map.otaName} has {unmatched.length}{' '}
-                                            {unmatched.length === 1
-                                                ? 'rate'
-                                                : 'rates'}{' '}
-                                            with no match:{' '}
-                                            {unmatched
-                                                .slice(0, 6)
-                                                .map((option) => option.label)
-                                                .join(', ')}
-                                            {unmatched.length > 6 ? ', …' : ''}.
-                                            Unmapped {map.otaName} rates cause
-                                            booking errors. Map each one, or
-                                            remove it in the extranet.
+                                            {unmapped.length} {map.otaName}{' '}
+                                            {unmapped.length === 1
+                                                ? 'line is'
+                                                : 'lines are'}{' '}
+                                            not mapped. Unmapped {map.otaName}{' '}
+                                            rates cause booking errors. Map each
+                                            one, or remove it in the extranet.
                                         </AlertDescription>
                                     </Alert>
                                 )}
                             </div>
                         }
                     >
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>estatell room · rate</TableHead>
-                                    <TableHead>Occ</TableHead>
-                                    <TableHead>
-                                        {map.otaName} room · rate
-                                    </TableHead>
-                                    {map.usesPrimary && (
-                                        <TableHead>Primary</TableHead>
-                                    )}
-                                    {map.usesType && (
-                                        <TableHead>Type</TableHead>
-                                    )}
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {rows.length === 0 && (
+                        <div className="overflow-hidden rounded-lg border">
+                            <Table>
+                                <TableHeader>
                                     <TableRow>
-                                        <TableCell
-                                            colSpan={5}
-                                            className="py-6 text-center text-muted-foreground"
-                                        >
-                                            No rate plans are on Channex yet.
-                                            Sync the structure first.
-                                        </TableCell>
-                                    </TableRow>
-                                )}
-                                {rows.map((row) => (
-                                    <TableRow key={row.key}>
-                                        <TableCell className="font-medium">
-                                            {row.roomType} · {row.ratePlan}
-                                        </TableCell>
-                                        <TableCell className="tabular-nums">
-                                            {row.occupancy}
-                                        </TableCell>
-                                        <TableCell className="min-w-64">
-                                            <Select
-                                                items={options}
-                                                value={row.ota ?? NONE}
-                                                onValueChange={(value) =>
-                                                    change(row.key, {
-                                                        ota:
-                                                            value === NONE
-                                                                ? null
-                                                                : (value as string),
-                                                    })
-                                                }
-                                            >
-                                                <SelectTrigger
-                                                    aria-label={`${map.otaName} room and rate for ${row.roomType} · ${row.ratePlan}, ${row.occupancy} guests`}
-                                                    className="w-full"
-                                                >
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectGroup>
-                                                        {options.map(
-                                                            (option) => (
-                                                                <SelectItem
-                                                                    key={
-                                                                        option.value
-                                                                    }
-                                                                    value={
-                                                                        option.value
-                                                                    }
-                                                                >
-                                                                    {
-                                                                        option.label
-                                                                    }
-                                                                </SelectItem>
-                                                            ),
-                                                        )}
-                                                    </SelectGroup>
-                                                </SelectContent>
-                                            </Select>
-                                        </TableCell>
+                                        <TableHead>
+                                            {map.otaName} rate
+                                        </TableHead>
+                                        <TableHead>Guests</TableHead>
+                                        <TableHead>
+                                            Estatell room · rate
+                                        </TableHead>
                                         {map.usesPrimary && (
-                                            <TableCell>
-                                                <Checkbox
-                                                    aria-label={`Primary occupancy for ${row.roomType} · ${row.ratePlan}, ${row.occupancy} guests`}
-                                                    checked={row.isPrimary}
-                                                    disabled={row.ota === null}
-                                                    onCheckedChange={() =>
-                                                        makePrimary(row)
-                                                    }
-                                                />
-                                            </TableCell>
+                                            <TableHead>Primary</TableHead>
                                         )}
                                         {map.usesType && (
-                                            <TableCell>
-                                                <Input
-                                                    aria-label={`Type for ${row.roomType} · ${row.ratePlan}`}
-                                                    value={row.rateType ?? ''}
-                                                    placeholder="e.g. private"
-                                                    disabled={row.ota === null}
-                                                    onChange={(event) =>
-                                                        change(row.key, {
-                                                            rateType:
-                                                                event.target
-                                                                    .value ||
-                                                                null,
-                                                        })
-                                                    }
-                                                />
-                                            </TableCell>
+                                            <TableHead>Type</TableHead>
                                         )}
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                                </TableHeader>
+                                <TableBody>
+                                    {rows.length === 0 && (
+                                        <TableRow>
+                                            <TableCell
+                                                colSpan={
+                                                    3 +
+                                                    Number(map.usesPrimary) +
+                                                    Number(map.usesType)
+                                                }
+                                                className="py-6 text-center text-muted-foreground"
+                                            >
+                                                {map.otaName} lists no rooms or
+                                                rates for this hotel.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                    {rows.map((row, index) => {
+                                        const startsRoom =
+                                            index === 0 ||
+                                            rows[index - 1].roomCode !==
+                                                row.roomCode;
+                                        const choices = [
+                                            {
+                                                value: NONE,
+                                                label: 'Not mapped',
+                                            },
+                                            ...choicesFor(
+                                                row,
+                                                map.options,
+                                                rows,
+                                            ).map((option) => ({
+                                                value: option.value,
+                                                label: option.label,
+                                            })),
+                                        ];
+                                        const own = map.options.find(
+                                            (option) =>
+                                                option.value === row.estatell,
+                                        );
+
+                                        if (
+                                            own &&
+                                            !choices.some(
+                                                (c) => c.value === own.value,
+                                            )
+                                        ) {
+                                            choices.push({
+                                                value: own.value,
+                                                label: own.label,
+                                            });
+                                        }
+
+                                        return (
+                                            <Fragment key={row.key}>
+                                                {startsRoom && (
+                                                    <TableRow className="hover:bg-transparent">
+                                                        <TableCell
+                                                            colSpan={
+                                                                3 +
+                                                                Number(
+                                                                    map.usesPrimary,
+                                                                ) +
+                                                                Number(
+                                                                    map.usesType,
+                                                                )
+                                                            }
+                                                            className="bg-muted/50 font-medium"
+                                                        >
+                                                            {row.roomTitle}{' '}
+                                                            <span className="font-normal text-muted-foreground">
+                                                                ({row.roomCode})
+                                                            </span>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                )}
+                                                <TableRow>
+                                                    <TableCell className="pl-6">
+                                                        {row.rateTitle}
+                                                    </TableCell>
+                                                    <TableCell className="tabular-nums">
+                                                        {row.occupancy ?? '—'}
+                                                    </TableCell>
+                                                    <TableCell className="min-w-64">
+                                                        <Select
+                                                            items={choices}
+                                                            value={
+                                                                row.estatell ??
+                                                                NONE
+                                                            }
+                                                            onValueChange={(
+                                                                value,
+                                                            ) =>
+                                                                change(
+                                                                    row.key,
+                                                                    {
+                                                                        estatell:
+                                                                            value ===
+                                                                            NONE
+                                                                                ? null
+                                                                                : (value as string),
+                                                                    },
+                                                                )
+                                                            }
+                                                        >
+                                                            <SelectTrigger
+                                                                aria-label={`Estatell room and rate for ${label(row)}`}
+                                                                className="w-full"
+                                                            >
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectGroup>
+                                                                    {choices.map(
+                                                                        (
+                                                                            choice,
+                                                                        ) => (
+                                                                            <SelectItem
+                                                                                key={
+                                                                                    choice.value
+                                                                                }
+                                                                                value={
+                                                                                    choice.value
+                                                                                }
+                                                                            >
+                                                                                {
+                                                                                    choice.label
+                                                                                }
+                                                                            </SelectItem>
+                                                                        ),
+                                                                    )}
+                                                                </SelectGroup>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </TableCell>
+                                                    {map.usesPrimary && (
+                                                        <TableCell>
+                                                            <Checkbox
+                                                                aria-label={`Primary line for ${label(row)}`}
+                                                                checked={
+                                                                    row.isPrimary
+                                                                }
+                                                                disabled={
+                                                                    row.estatell ===
+                                                                    null
+                                                                }
+                                                                onCheckedChange={() =>
+                                                                    makePrimary(
+                                                                        row,
+                                                                    )
+                                                                }
+                                                            />
+                                                        </TableCell>
+                                                    )}
+                                                    {map.usesType && (
+                                                        <TableCell>
+                                                            <Input
+                                                                aria-label={`Type for ${label(row)}`}
+                                                                value={
+                                                                    row.rateType ??
+                                                                    ''
+                                                                }
+                                                                placeholder="e.g. private"
+                                                                disabled={
+                                                                    row.estatell ===
+                                                                    null
+                                                                }
+                                                                onChange={(
+                                                                    event,
+                                                                ) =>
+                                                                    change(
+                                                                        row.key,
+                                                                        {
+                                                                            rateType:
+                                                                                event
+                                                                                    .target
+                                                                                    .value ||
+                                                                                null,
+                                                                        },
+                                                                    )
+                                                                }
+                                                            />
+                                                        </TableCell>
+                                                    )}
+                                                </TableRow>
+                                            </Fragment>
+                                        );
+                                    })}
+                                </TableBody>
+                            </Table>
+                        </div>
                     </Workspace>
                 </div>
 
