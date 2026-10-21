@@ -639,9 +639,9 @@ test('a room that arrived today departs later without a Check out early button',
         ->and($rows[$yesterday->id]['note'])->toBe('Departs 15 Oct');
 });
 
-test('a room that departs later while the night audit is pending says why it cannot leave early', function () {
+test('a room that departs later while the night audit is overdue says why it cannot leave early', function () {
     $s = gcSetup(1);
-    $this->travelTo(now()->addDay());
+    $this->travelTo(now()->addDays(2));
     $unit = ReservationUnit::factory()->for($s['reservation'])->checkedIn()->create(['room_type_id' => $s['units'][0]->room_type_id, 'arrival_date' => '2026-10-09', 'departure_date' => '2026-10-15']);
     app(CreateFolio::class)($s['reservation'], $unit);
 

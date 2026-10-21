@@ -3455,6 +3455,8 @@ nightsRemoved: number,
 fee: string,
 feeTotal: string,
 withinFreeWindow: boolean,
+newDeparture: string | null,
+leftYesterdayAvailable: boolean,
 };
 export type UnitFeePreviewData = {
 fee: string | null,

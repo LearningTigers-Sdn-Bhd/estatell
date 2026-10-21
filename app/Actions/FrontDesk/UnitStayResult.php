@@ -72,6 +72,8 @@ class UnitStayResult
 
     public const REFUSAL_NIGHT_AUDIT_PENDING = 'night_audit_pending';
 
+    public const REFUSAL_LEFT_YESTERDAY_UNAVAILABLE = 'left_yesterday_unavailable';
+
     public const REFUSAL_UNDO_TOO_LATE = 'undo_too_late';
 
     public const REFUSAL_NIGHT_POSTED = 'night_posted';

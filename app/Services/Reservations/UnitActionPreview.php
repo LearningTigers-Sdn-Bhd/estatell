@@ -261,25 +261,28 @@ class UnitActionPreview
      * The unit folio balance split by room, the security deposit held, another room's scheduled nights still charged
      * here, and whether the user may collect, refund and move charges.
      */
-    public function checkOut(ReservationUnit $unit, User $user): UnitCheckOutPreviewData
+    public function checkOut(ReservationUnit $unit, User $user, bool $leftYesterday = false): UnitCheckOutPreviewData
     {
-        $businessDate = $this->currentBusinessDate->date($unit->property()->firstOrFail());
-        $pendingLines = $businessDate === null ? [] : $this->pendingNightQuote->lines($unit, $businessDate);
+        $property = $unit->property()->firstOrFail();
+        $businessDate = $this->currentBusinessDate->date($property);
+        $pendingLines = $businessDate === null || $leftYesterday ? [] : $this->pendingNightQuote->lines($unit, $businessDate);
         $preview = $this->checkOutSettlement->for($unit, $this->impersonation->mayRefund($user), $user->can(PermissionEnum::PaymentRecord->value), $user->can(PermissionEnum::FolioTransfer->value), $pendingLines);
 
-        if ($unit->status !== UnitStatus::CheckedIn || $businessDate === null || $this->stayDay->forCheckOut($unit->property()->firstOrFail(), $businessDate)->toDateString() >= $unit->departure_date->toDateString()) {
+        if ($unit->status !== UnitStatus::CheckedIn || $businessDate === null || (! $leftYesterday && $this->stayDay->forCheckOut($property, $businessDate)->toDateString() >= $unit->departure_date->toDateString())) {
             return $preview;
         }
 
-        return $this->earlyCheckOut($unit, $businessDate->toImmutable(), $preview);
+        return $this->earlyCheckOut($unit, $businessDate->toImmutable(), $preview, $leftYesterday);
     }
 
     /**
-     * The early departure fee `EarlyCheckOut` will post, with its tax, and the nights it removes.
+     * The early departure fee `EarlyCheckOut` will post, with its tax, and the nights it removes. The new departure is
+     * the stay day, or the business date for Guest actually left yesterday (`$leftYesterday`). `leftYesterdayAvailable`
+     * says whether that choice is open for this unit.
      */
-    private function earlyCheckOut(ReservationUnit $unit, CarbonImmutable $businessDate, UnitCheckOutPreviewData $preview): UnitCheckOutPreviewData
+    private function earlyCheckOut(ReservationUnit $unit, CarbonImmutable $businessDate, UnitCheckOutPreviewData $preview, bool $leftYesterday): UnitCheckOutPreviewData
     {
-        $refusal = $this->earlyCheckOutRule->refusal($unit, $businessDate->toDateString());
+        $refusal = $this->earlyCheckOutRule->refusal($unit, $businessDate->toDateString(), $leftYesterday);
 
         if ($refusal !== null) {
             return UnitCheckOutPreviewData::refused($this->refusals->message($refusal, $businessDate, $refusal === UnitStayResult::REFUSAL_NIGHT_AUDIT_PENDING ? [$businessDate->format('j M')] : []));
@@ -293,7 +296,8 @@ class UnitActionPreview
             return UnitCheckOutPreviewData::refused($this->refusals->message(UnitStayResult::REFUSAL_POLICY_NOT_FOUND));
         }
 
-        $charge = $this->policyChargeCalculator->calculate($policy, $unit, $businessDate);
+        $newDeparture = $this->earlyCheckOutRule->newDeparture($property, $businessDate, $leftYesterday);
+        $charge = $this->policyChargeCalculator->calculate($policy, $unit, $newDeparture);
         $tax = $this->taxCalculator->calculate($property, $code, $charge->amount, '1', $this->unitNationality->for($unit));
 
         if (! $tax->isCalculated()) {
@@ -305,10 +309,12 @@ class UnitActionPreview
 
         $preview->early = new UnitEarlyDepartureData(
             departure: $unit->departure_date->toDateString(),
-            nightsRemoved: $unit->nights()->whereDate('date', '>=', $businessDate->toDateString())->count(),
+            nightsRemoved: $unit->nights()->whereDate('date', '>=', $newDeparture->toDateString())->count(),
             fee: (string) $charge->amount->getAmount(),
             feeTotal: $feeTotal,
             withinFreeWindow: $charge->withinFreeWindow,
+            newDeparture: $newDeparture->toDateString(),
+            leftYesterdayAvailable: $this->earlyCheckOutRule->isOffered($unit, $businessDate->toDateString(), true),
         );
 
         // The fee is posted before the refund, so the credit the refund gives back is the one after the fee.

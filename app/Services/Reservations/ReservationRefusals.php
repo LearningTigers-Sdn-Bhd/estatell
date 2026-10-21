@@ -150,6 +150,7 @@ class ReservationRefusals
             UnitStayResult::REFUSAL_ROOM_TAKEN => [self::FORM, __('Another guest holds this room tonight, so the check-out cannot be undone.')],
             FolioStatusResult::REFUSAL_HAS_AR_INVOICE => [self::FORM, __('A folio of this unit was settled to the city ledger, so the check-out cannot be undone. Issue a credit note on its AR invoice instead.')],
             UnitStayResult::REFUSAL_NIGHT_POSTED => [self::FORM, __('A night or day use block is already posted for this unit, so the check-in cannot be undone.')],
+            UnitStayResult::REFUSAL_LEFT_YESTERDAY_UNAVAILABLE => [self::FORM, __('The night of yesterday is already charged or the night audit has run, so the guest cannot be checked out for yesterday. Check them out today.')],
             UnitStayResult::REFUSAL_NOT_EARLY => [self::FORM, __('The departure date is today or past, so check out the normal way.')],
             UnitStayResult::REFUSAL_NOT_DEPARTURE_DATE => [self::FORM, __('A late check-out is only for the departure date.')],
             UnitStayResult::REFUSAL_TIME_NOT_LATER => ['new_time', __('Choose a time later than the current departure time.')],

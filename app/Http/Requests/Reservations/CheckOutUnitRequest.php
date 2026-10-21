@@ -38,6 +38,7 @@ class CheckOutUnitRequest extends FormRequest
             'reference' => ['nullable', 'string', 'max:100'],
             'idempotency_key' => ['nullable', 'required_with:refund_amount,collect_amount', 'uuid'],
             'do_not_charge' => ['boolean'],
+            'left_yesterday' => ['boolean'],
             'reason' => ['nullable', 'string', 'max:500'],
             'expected_fee' => ['nullable', 'regex:/^\d+(\.\d{1,2})?$/'],
         ];
@@ -79,6 +80,11 @@ class CheckOutUnitRequest extends FormRequest
     public function doNotCharge(): bool
     {
         return $this->boolean('do_not_charge') && $this->user()->can(PermissionEnum::FrontDeskWaiveFees->value);
+    }
+
+    public function leftYesterday(): bool
+    {
+        return $this->boolean('left_yesterday');
     }
 
     public function reason(): ?string

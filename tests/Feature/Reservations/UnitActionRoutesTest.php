@@ -40,6 +40,7 @@ use App\Models\TransactionCode;
 use App\Models\UnitAddOn;
 use App\Models\UnitGuest;
 use App\Models\User;
+use Brick\Math\BigDecimal;
 use Illuminate\Database\Eloquent\Model;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
@@ -1207,11 +1208,11 @@ test('a unit that arrived yesterday is still offered an early check-out', functi
         ->assertInertia(fn (Assert $page) => $page->where('unit.actions', fn ($actions) => collect($actions)->pluck('key')->contains('check-out')));
 });
 
-test('early check-out is refused while the night audit is pending and writes nothing', function () {
+test('early check-out is refused while the night audit is overdue and writes nothing', function () {
     $setup = uaEarlySetup();
     $departure = today()->addDays(2)->toDateString();
-    $this->travelTo(now()->addDay());
-    $message = 'The night audit for 10 Oct has not run. Run it first, so the night of 10 Oct is charged.';
+    $this->travelTo(now()->addDays(2));
+    $message = 'The night audit for '.today()->subDays(2)->format('j M').' has not run. Run it first, so the night of '.today()->subDays(2)->format('j M').' is charged.';
 
     $this->actingAs($setup['user'])
         ->post(uaUrl($setup, 'early-check-out'), ['expected_fee' => '40.00', 'refund_amount' => '60.00', 'idempotency_key' => fake()->uuid()])
@@ -1236,14 +1237,130 @@ test('early check-out passes when the property calendar date is the business dat
     expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedOut);
 });
 
-test('the early check-out preview carries the night audit message while the audit is pending', function () {
+test('the early check-out preview carries the night audit message while the audit is overdue', function () {
     $setup = uaEarlySetup();
-    $this->travelTo(now()->addDay());
+    $this->travelTo(now()->addDays(2));
 
     $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-out-preview'))
         ->assertOk()
-        ->assertJsonPath('error', 'The night audit for 10 Oct has not run. Run it first, so the night of 10 Oct is charged.')
+        ->assertJsonPath('error', 'The night audit for '.today()->subDays(2)->format('j M').' has not run. Run it first, so the night of '.today()->subDays(2)->format('j M').' is charged.')
         ->assertJsonPath('early', null);
+});
+
+/**
+ * An early departure set-up while the audit is pending: the unit arrived on the business date (yesterday) and departs in
+ * two days, with no deposit. The calendar date is today.
+ *
+ * @return array{user: User, property: Property, reservation: Reservation, unit: ReservationUnit}
+ */
+function uaEarlyPendingSetup(): array
+{
+    $setup = uaEarlySetup(withDeposit: false);
+    BusinessDate::query()->update(['date' => today()->subDay()->toDateString()]);
+
+    return $setup;
+}
+
+test('early check-out while the audit is pending keeps and posts the night of the business date and removes the rest', function () {
+    $setup = uaEarlyPendingSetup();
+    $addOn = UnitAddOn::factory()->for($setup['unit'], 'reservationUnit')->create(['service_date' => today()->subDay()->toDateString(), 'unit_amount' => '25.00']);
+    $later = UnitAddOn::factory()->for($setup['unit'], 'reservationUnit')->create(['service_date' => today()->addDay()->toDateString(), 'unit_amount' => '25.00']);
+    $night = $setup['unit']->nights()->whereDate('date', today()->subDay()->toDateString())->sole();
+
+    $preview = $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-out-preview'))->assertOk()->json();
+    $collect = (string) BigDecimal::of($preview['owing'])->plus($preview['early']['feeTotal'])->toScale(2);
+
+    expect($preview['early']['newDeparture'])->toBe(today()->toDateString())
+        ->and($preview['early']['nightsRemoved'])->toBe(2)
+        ->and($preview['early']['leftYesterdayAvailable'])->toBeFalse()
+        ->and($preview['pendingLines'])->not->toBeEmpty();
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'early-check-out'), ['expected_fee' => '40.00', 'collect_amount' => $collect, 'payment_method_id' => PaymentMethod::query()->sole()->id, 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasNoErrors();
+
+    $unit = $setup['unit']->fresh();
+
+    expect($unit->status)->toBe(UnitStatus::CheckedOut)
+        ->and($unit->departure_date->toDateString())->toBe(today()->toDateString())
+        ->and($unit->nights()->pluck('id')->all())->toBe([$night->id])
+        ->and(FolioLine::query()->where('idempotency_key', 'night:'.$night->id)->count())->toBe(1)
+        ->and(FolioLine::query()->where('idempotency_key', 'addon:'.$addOn->id)->count())->toBe(1)
+        ->and(UnitAddOn::query()->whereKey($later->id)->exists())->toBeFalse()
+        ->and(uaEarlyFeeLines($unit))->toBe(1)
+        ->and(Folio::query()->where('reservation_unit_id', $unit->id)->sole()->status)->toBe(FolioStatus::Closed);
+});
+
+test('the menu offers an early check-out while the audit is pending', function () {
+    $setup = uaEarlyPendingSetup();
+
+    $this->actingAs($setup['user'])
+        ->get(route('reservations.show', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]))
+        ->assertInertia(fn (Assert $page) => $page->where('unit.actions', fn ($actions) => collect($actions)->pluck('key')->contains('check-out')));
+});
+
+/**
+ * A checked-in unit that arrived two days ago and departs in two days, while the business date is yesterday: it can
+ * still be checked out as having left yesterday.
+ *
+ * @return array{user: User, property: Property, reservation: Reservation, unit: ReservationUnit}
+ */
+function uaLeftYesterdaySetup(): array
+{
+    $setup = uaSetup(unit: ['status' => UnitStatus::CheckedIn, 'checked_in_at' => now()->subDays(2), 'arrival_date' => today()->subDays(2)->toDateString(), 'departure_date' => today()->addDays(2)->toDateString()]);
+    uaCheckInSetup($setup);
+    BusinessDate::query()->update(['date' => today()->subDay()->toDateString()]);
+
+    return $setup;
+}
+
+test('guest actually left yesterday sets the departure to the business date, posts no night and charges the fee', function () {
+    $setup = uaLeftYesterdaySetup();
+    $firstNight = $setup['unit']->nights()->whereDate('date', today()->subDays(2)->toDateString())->sole();
+    $preview = $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-out-preview'), ['left_yesterday' => true])->assertOk()->json();
+    $collect = (string) BigDecimal::of($preview['owing'])->plus($preview['early']['feeTotal'])->toScale(2);
+
+    expect($preview['early']['newDeparture'])->toBe(today()->subDay()->toDateString())
+        ->and($preview['early']['nightsRemoved'])->toBe(3)
+        ->and($preview['pendingLines'])->toBe([]);
+
+    $payload = ['left_yesterday' => true, 'expected_fee' => '40.00', 'collect_amount' => $collect, 'payment_method_id' => PaymentMethod::query()->sole()->id, 'idempotency_key' => fake()->uuid()];
+
+    $this->actingAs($setup['user'])->post(uaUrl($setup, 'early-check-out'), $payload)->assertSessionHasErrors('reason');
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn);
+
+    $this->actingAs($setup['user'])->post(uaUrl($setup, 'early-check-out'), [...$payload, 'reason' => 'Left at night'])->assertSessionHasNoErrors();
+
+    $unit = $setup['unit']->fresh();
+
+    expect($unit->status)->toBe(UnitStatus::CheckedOut)
+        ->and($unit->departure_date->toDateString())->toBe(today()->subDay()->toDateString())
+        ->and($unit->nights()->pluck('id')->all())->toBe([$firstNight->id])
+        ->and(FolioLine::query()->where('idempotency_key', 'like', 'night:%')->count())->toBe(0)
+        ->and(uaEarlyFeeLines($unit))->toBe(1)
+        ->and(Activity::query()->where('event', 'reservation.unit_dates_changed')->sole()->properties['reason'])->toBe('Left at night');
+});
+
+test('guest actually left yesterday is refused for a unit that arrived on the business date', function () {
+    $setup = uaEarlyPendingSetup();
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'early-check-out'), ['left_yesterday' => true, 'reason' => 'Left at night'])
+        ->assertSessionHasErrors(['form' => 'This unit arrived today, so there is no night to remove. It can check out on its departure date. If it checked in by mistake, use Undo check-in.']);
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn);
+});
+
+test('guest actually left yesterday is refused when the audit is not pending', function () {
+    $setup = uaEarlySetup();
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'early-check-out'), ['left_yesterday' => true, 'reason' => 'Left at night'])
+        ->assertSessionHasErrors('form');
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn)
+        ->and(uaEarlyFeeLines($setup['unit']))->toBe(0);
 });
 
 /**

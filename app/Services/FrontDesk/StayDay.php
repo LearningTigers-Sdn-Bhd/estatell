@@ -33,6 +33,14 @@ class StayDay
     }
 
     /**
+     * Whether the calendar date is 2 or more days after the business date. The old rules apply.
+     */
+    public function isAuditOverdue(Property $property, CarbonImmutable $businessDate): bool
+    {
+        return $this->propertyToday->date($property->loadMissing('settings'))->toDateString() > $businessDate->addDay()->toDateString();
+    }
+
+    /**
      * The day a check-out works on: the calendar date while the audit is pending, otherwise the business date.
      */
     public function forCheckOut(Property $property, CarbonImmutable $businessDate): CarbonImmutable

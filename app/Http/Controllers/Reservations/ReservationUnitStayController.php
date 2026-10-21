@@ -91,7 +91,7 @@ class ReservationUnitStayController extends Controller
 
     public function checkOutPreview(Request $request, Property $property, Reservation $reservation, ReservationUnit $unit, UnitActionPreview $preview): JsonResponse
     {
-        return response()->json($preview->checkOut($unit, $request->user()));
+        return response()->json($preview->checkOut($unit, $request->user(), $request->boolean('left_yesterday')));
     }
 
     public function lateCheckOutPreview(Property $property, Reservation $reservation, ReservationUnit $unit, UnitActionPreview $preview): JsonResponse
@@ -180,7 +180,7 @@ class ReservationUnitStayController extends Controller
      */
     public function earlyCheckOut(CheckOutUnitRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, EarlyCheckOut $earlyCheckOut, ReservationRefusals $refusals): RedirectResponse
     {
-        $result = $earlyCheckOut($request->user(), $unit, $request->doNotCharge(), $request->reason(), $request->expectedFee(), $request->refundAmount(), $request->collectBalance(), $request->string('idempotency_key')->toString());
+        $result = $earlyCheckOut($request->user(), $unit, $request->doNotCharge(), $request->reason(), $request->expectedFee(), $request->refundAmount(), $request->collectBalance(), $request->string('idempotency_key')->toString(), $request->leftYesterday());
 
         return $this->respond($property, $reservation, $result->refusal, $refusals, __('Unit checked out early.'), rooms: $result->rooms);
     }

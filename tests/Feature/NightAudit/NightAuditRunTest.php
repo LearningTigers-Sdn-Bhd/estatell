@@ -2,6 +2,7 @@
 
 use App\Actions\Folio\CreateFolio;
 use App\Actions\FrontDesk\CheckOutAndRefund;
+use App\Actions\FrontDesk\EarlyCheckOut;
 use App\Actions\FrontDesk\PostPendingNight;
 use App\Actions\NightAudit\NightAuditResult;
 use App\Actions\NightAudit\PostRoomCharges;
@@ -47,6 +48,7 @@ use App\Models\TransactionCode;
 use App\Models\UnitAddOn;
 use App\Models\User;
 use App\Services\Reservations\UnitActionPreview;
+use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Bus;
@@ -458,5 +460,31 @@ test('the pending night posts once: a second call writes nothing', function () {
 
     expect($first)->not->toBeEmpty()
         ->and($second)->toBe([])
+        ->and(nightLineCount())->toBe(1);
+});
+
+test('an early check-out before the audit keeps and posts the night, and the audit replays it', function () {
+    $setup = auditSetup();
+    TransactionCode::factory()->for($setup['property'])->system(SystemTransactionCode::EarlyDepartureRevenue)->create();
+    RoomRevenuePolicy::factory()->for($setup['property'])->fixed('40.00')->forCode(SystemTransactionCode::EarlyDepartureRevenue, PolicyScope::UnusedNights)->create();
+    $unit = auditUnit($setup, 'checkedIn', '2026-10-11', '2026-10-15');
+    $night = $unit->nights()->whereDate('date', '2026-10-12')->sole();
+    $user = User::factory()->for($setup['property'])->withPermissions(['reservations.view', 'reservations.manage', 'front-desk.check-out', 'payment.record'])->create();
+    $method = PaymentMethod::factory()->create(['property_id' => $setup['property']->id, 'type' => PaymentMethodType::Cash, 'requires_reference' => false, 'position' => 1]);
+    $preview = app(UnitActionPreview::class)->checkOut($unit, $user);
+    $collect = (string) BigDecimal::of($preview->owing)->plus($preview->early->feeTotal)->toScale(2);
+
+    $result = app(EarlyCheckOut::class)($user, $unit, expectedFee: '40.00', collect: new CheckOutCollectData($method->id, $collect, null, fake()->uuid()), idempotencyKey: fake()->uuid());
+
+    expect($result->isRefused())->toBeFalse()
+        ->and($unit->fresh()->departure_date->toDateString())->toBe('2026-10-13')
+        ->and($unit->nights()->whereDate('date', '>=', '2026-10-13')->count())->toBe(0)
+        ->and($unit->nights()->whereKey($night->id)->exists())->toBeTrue();
+
+    $lines = FolioLine::query()->count();
+    $audit = runAudit($setup['property']);
+
+    expect($audit->isCompleted())->toBeTrue()
+        ->and(FolioLine::query()->count())->toBe($lines)
         ->and(nightLineCount())->toBe(1);
 });
