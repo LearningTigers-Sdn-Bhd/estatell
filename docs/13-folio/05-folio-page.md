@@ -49,6 +49,22 @@ A row can carry markers. The server sends them as `tags`, a list of `FolioRowTag
 - A row takes a light background tint from the tone of its first marker that has one (Overridden, Reversed and Reversal: warning, Refund: info), so a reversed line and its reversal read as a pair. Neutral markers leave the row plain. The icon and tooltip still carry the meaning, so color is never alone.
 - Scheduled discount and tax rows show no marker: the indent, the muted text and the section header already say it.
 
+## Payment purpose on rows
+
+Planned. A payment row shows only its method ("Cash") and reference, so an Advance, a Settlement and a Security deposit look the same. The purpose goes into the row text, not a marker, because a marker is an icon with its label hidden in a tooltip.
+
+| Row                 | Now               | Planned                              |
+| ------------------- | ----------------- | ------------------------------------ |
+| Advance             | Cash · Ref 1234   | Cash · Advance · Ref 1234            |
+| Security deposit    | Cash              | Cash · Security deposit              |
+| Settlement          | Card              | Card                                 |
+| Refund of a deposit | Cash, Refund icon | Cash · Security deposit, Refund icon |
+
+- Settlement is the usual case, so it adds nothing. Only Advance and Security deposit show.
+- `FolioStatement` builds the text when it builds the row, from `payments.purpose` (`PaymentPurpose::label()`). The saved `folio_lines.description` stays the method name, so rows saved before the change show the purpose too, with no data change.
+- A refund copies its payment's purpose, so a refund row shows it the same way.
+- The Manual Folio Editor rows follow the same rule. The folio invoice and receipts are unchanged: they already list payments by method and receipt number ([Folio invoice](06-folio-invoice.md)).
+
 ## Figures
 
 - **Balance**: posted lines only (`FolioBalance`, `SUM(folio_lines.amount)`). Charges and taxes are positive, discounts and payments negative, and a refund is positive. A reversal cancels its original. A positive Balance is what the payer still owes, and a negative one is a deposit or an overpayment.

@@ -80,6 +80,7 @@ General opens first. It uses one vertical form:
 - **Require card before check-in** sits directly below the scope choice. Staff with override permission can bypass the requirement.
 - **ID document retention (days)** has the placeholder “e.g. 90”. Leaving it blank keeps ID photos; document numbers stay when photos are deleted.
 - **Security deposit** uses radio cards: Do not collect or Collect a deposit. Collect shows the amount input with the placeholder “e.g. 100.00”. Do not collect saves zero through the existing amount field. Switching between the choices keeps an unsaved amount until the page is left.
+- **Damage charge item** (planned) sits under the security deposit: a select of the property's active charge items with "None" first, saved to `property_settings.damage_charge_item_id`. With an item set, the check-out Dialog can post a damage charge from the deposit ([Keep the deposit for damages](../18-front-desk/01-check-in-and-check-out.md#keep-the-deposit-for-damages)).
 - Radio cards place the radio indicator on the right. Cards sit side by side on larger screens and stack on mobile. **Save changes** saves the form. Layout and Terms are unchanged.
 
 The Layout tab is full width, in a three-column grid. The table takes two columns and the preview takes one:
