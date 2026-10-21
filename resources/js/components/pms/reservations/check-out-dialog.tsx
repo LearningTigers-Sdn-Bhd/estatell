@@ -168,6 +168,8 @@ function CheckOutForm({
     // whole, from the payments in refund order. Mirrors CheckOutSettlement::refunds() on the server.
     const credit = Math.max(-balance, 0);
     const creditAbove = owing === 0 && credit > held;
+    // A folio already at 0 has used the deposit toward the bill: there is nothing to refund.
+    const depositUsed = held > 0 && Math.abs(balance) < 0.005;
     // Owing money: refund the whole deposit and collect the rest. Otherwise refund what settles the folio.
     const refundDefault =
         owing > 0
@@ -588,6 +590,16 @@ function CheckOutForm({
                                             ? 'Security deposit'
                                             : 'Credit'}
                                     </FieldLegend>
+                                    {depositUsed && (
+                                        <p className="text-sm text-muted-foreground">
+                                            {formatMoney(
+                                                held.toFixed(2),
+                                                currency,
+                                            )}{' '}
+                                            used toward the bill. Nothing to
+                                            refund.
+                                        </p>
+                                    )}
                                     {held > 0 &&
                                         owing === 0 &&
                                         folioLink !== null && (
@@ -632,7 +644,7 @@ function CheckOutForm({
                                             </FieldContent>
                                         </Field>
                                     )}
-                                    {deposit === 'refund' && (
+                                    {deposit === 'refund' && !depositUsed && (
                                         <div className="flex flex-col gap-2 text-sm">
                                             <span className="text-muted-foreground">
                                                 {creditAbove
