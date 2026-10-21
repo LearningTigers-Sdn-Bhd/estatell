@@ -197,6 +197,20 @@ When staff change a room type, a rate plan or the room types a plan sells, the c
 └───────────────────────────────────────────────────────────────┘
 ```
 
+### The OTA line actions
+
+| Action                 | Shown when                                 | What it does                                                                                                                    |
+| ---------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| Connect                | no connection, adapter present, not Airbnb | Opens step 1                                                                                                                    |
+| Continue or Mapping    | a connection exists                        | Opens step 2. Continue while the connection is a draft                                                                          |
+| Activate               | `Mapped`                                   | Confirm, then `ActivateChannel`                                                                                                 |
+| Resume                 | `Paused`                                   | `ActivateChannel` again. The first start date is kept                                                                           |
+| Pause (⋯)              | `Active`                                   | `PauseChannel`: `deactivate`. Nothing is sent to the OTA until Resume                                                           |
+| Import future bookings | `Active`, Booking.com or Expedia (⋯)       | `ImportFutureBookings`: `load_future_reservations`. The bookings come in as revisions. Needs an Active connection (to verify)   |
+| Disconnect (⋯)         | any connection                             | Confirm, then `DisconnectChannel`: deactivate if active, delete at Channex, forget here. Its bookings stay without a connection |
+
+- Nothing changes here until Channex has done the call. A busy Channex says so and nothing changes.
+
 ## Ask owner for help
 
 ```

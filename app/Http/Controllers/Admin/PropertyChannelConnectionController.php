@@ -2,7 +2,11 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\Channels\ActivateChannel;
 use App\Actions\Channels\ConnectChannel;
+use App\Actions\Channels\DisconnectChannel;
+use App\Actions\Channels\ImportFutureBookings;
+use App\Actions\Channels\PauseChannel;
 use App\Actions\Channels\SaveChannelMapping;
 use App\Data\Channels\ChannelConnectPageData;
 use App\Data\Channels\ChannelMapPageData;
@@ -26,6 +30,7 @@ use App\Services\Channels\Channex\ChannexRetryLater;
 use App\Services\Staff\PropertyOwners;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -143,6 +148,54 @@ class PropertyChannelConnectionController extends Controller
         }
 
         return $this->backToTab($property, $result);
+    }
+
+    /**
+     * Start the connection, after the admin confirmed the warning.
+     */
+    public function activate(Request $request, Property $property, ChannelConnection $connection, ActivateChannel $activateChannel): RedirectResponse
+    {
+        abort_unless($connection->channelProperty->property_id === $property->id, 404);
+
+        return $this->respond($property, $activateChannel($request->user(), $connection));
+    }
+
+    /**
+     * Pause a running connection, or start a paused one again.
+     */
+    public function paused(Request $request, Property $property, ChannelConnection $connection, PauseChannel $pauseChannel, ActivateChannel $activateChannel): RedirectResponse
+    {
+        abort_unless($connection->channelProperty->property_id === $property->id, 404);
+        $request->validate(['paused' => ['required', 'boolean']]);
+
+        return $this->respond($property, $request->boolean('paused') ? $pauseChannel($request->user(), $connection) : $activateChannel($request->user(), $connection));
+    }
+
+    /**
+     * Remove the connection at Channex and here.
+     */
+    public function destroy(Request $request, Property $property, ChannelConnection $connection, DisconnectChannel $disconnectChannel): RedirectResponse
+    {
+        abort_unless($connection->channelProperty->property_id === $property->id, 404);
+
+        return $this->respond($property, $disconnectChannel($request->user(), $connection));
+    }
+
+    /**
+     * Ask the OTA for the bookings it already holds.
+     */
+    public function import(Request $request, Property $property, ChannelConnection $connection, ImportFutureBookings $importFutureBookings): RedirectResponse
+    {
+        abort_unless($connection->channelProperty->property_id === $property->id, 404);
+
+        return $this->respond($property, $importFutureBookings($request->user(), $connection));
+    }
+
+    private function respond(Property $property, ChannelActionResult $result): RedirectResponse
+    {
+        Inertia::flash('toast', ['type' => $result->ok ? 'success' : 'error', 'message' => $result->message]);
+
+        return back(fallback: route('admin.properties.channels', $property));
     }
 
     private function backToTab(Property $property, ChannelActionResult $result): RedirectResponse

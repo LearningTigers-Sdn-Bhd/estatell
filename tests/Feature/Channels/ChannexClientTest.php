@@ -48,9 +48,22 @@ test('the manager returns the channex driver', function () {
     expect(app(ChannelDriverManager::class)->forProvider(ChannelProvider::Channex))->toBeInstanceOf(ChannexDriver::class);
 });
 
-test('driver calls that belong to later commits throw', function () {
-    app(ChannelDriverManager::class)->forProvider(ChannelProvider::Channex)->activate('channel-1');
-})->throws(LogicException::class, 'Not built yet');
+test('the channel calls reach the right Channex paths', function () {
+    Http::fake(['*' => Http::response(['data' => []])]);
+    $driver = app(ChannelDriverManager::class)->forProvider(ChannelProvider::Channex);
+
+    $driver->activate('channel-1');
+    $driver->deactivate('channel-1');
+    $driver->loadFutureReservations('channel-1');
+    $driver->deleteChannel('channel-1');
+
+    expect(collect(Http::recorded())->map(fn (array $pair): string => $pair[0]->method().' '.parse_url($pair[0]->url(), PHP_URL_PATH))->all())->toBe([
+        'POST /api/v1/channels/channel-1/activate',
+        'POST /api/v1/channels/channel-1/deactivate',
+        'POST /api/v1/channels/channel-1/execute/load_future_reservations',
+        'DELETE /api/v1/channels/channel-1',
+    ]);
+});
 
 test('the sixth restrictions call in a minute is held back and nothing is sent', function () {
     Http::fake(['*' => Http::response(['data' => []])]);

@@ -20,5 +20,9 @@ class ChannelOtaRowData extends Data
         public bool $canConnect,
         public ?string $note,
         public ?string $lastError,
+        public bool $canActivate,
+        public bool $canPause,
+        public bool $canResume,
+        public bool $canImport,
     ) {}
 }

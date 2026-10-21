@@ -2,6 +2,9 @@
 
 namespace App\Services\Channels;
 
+use App\Services\Channels\Channex\ChannexRetryLater;
+use Throwable;
+
 /**
  * The outcome of a channel action, for the controller's toast. A refusal is a result, not an exception. `retryable`
  * marks a failure that may pass by itself, so a background job tries again.
@@ -26,5 +29,16 @@ final readonly class ChannelActionResult
     public static function failedForNow(string $message): self
     {
         return new self(false, $message, retryable: true);
+    }
+
+    /**
+     * The result of a provider call that threw: a failure that may pass by itself for a busy provider, else a refusal that
+     * says `$refused`.
+     */
+    public static function fromProviderFailure(Throwable $exception, string $refused): self
+    {
+        return $exception instanceof ChannexRetryLater
+            ? self::failedForNow(__('Channex is busy or not reachable. Try again in a minute.'))
+            : self::failed($refused);
     }
 }

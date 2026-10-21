@@ -121,9 +121,37 @@ interface ChannelManagerDriver
      */
     public function updateChannel(string $externalChannelId, array $payload): array;
 
+    /**
+     * Start the connection: the provider sends the OTA its current availability, rates and restrictions and starts
+     * collecting bookings. It refuses a connection with no rate mapping.
+     *
+     * @throws ChannexRetryLater when the provider cannot take it now
+     * @throws ChannexRequestFailed when the provider refuses it
+     */
     public function activate(string $externalChannelId): void;
 
+    /**
+     * Stop the connection. The provider keeps it and its mapping.
+     *
+     * @throws ChannexRetryLater when the provider cannot take it now
+     * @throws ChannexRequestFailed when the provider refuses it
+     */
     public function deactivate(string $externalChannelId): void;
 
+    /**
+     * Remove the connection and its mapping at the provider. It must be deactivated first. A connection the provider no
+     * longer has is gone already. Bookings the connection brought are kept.
+     *
+     * @throws ChannexRetryLater when the provider cannot take it now
+     * @throws ChannexRequestFailed when the provider refuses it
+     */
+    public function deleteChannel(string $externalChannelId): void;
+
+    /**
+     * Ask the OTA for its upcoming bookings. They arrive as booking revisions.
+     *
+     * @throws ChannexRetryLater when the provider cannot take it now
+     * @throws ChannexRequestFailed when the provider refuses it
+     */
     public function loadFutureReservations(string $externalChannelId): void;
 }

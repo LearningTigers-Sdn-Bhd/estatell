@@ -280,6 +280,10 @@ connectionId: number | null,
 canConnect: boolean,
 note: string | null,
 lastError: string | null,
+canActivate: boolean,
+canPause: boolean,
+canResume: boolean,
+canImport: boolean,
 };
 export type ChannelRemovalData = {
 key: string,

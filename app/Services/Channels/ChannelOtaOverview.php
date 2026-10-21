@@ -4,6 +4,7 @@ namespace App\Services\Channels;
 
 use App\Data\Channels\ChannelOtaRowData;
 use App\Data\Shared\BadgeData;
+use App\Enums\ChannelConnectionStatus;
 use App\Models\ChannelConnection;
 use App\Models\OtaChannel;
 use App\Models\Property;
@@ -15,6 +16,17 @@ use App\Models\PropertyOtaCredential;
  */
 class ChannelOtaOverview
 {
+    /** The adapters that list `load_future_reservations` among their actions. */
+    private const FUTURE_BOOKING_CODES = ['BookingCom', 'Expedia'];
+
+    /**
+     * Whether the OTA's adapter can load the bookings it already holds.
+     */
+    public static function canImportFutureBookings(OtaChannel $channel): bool
+    {
+        return in_array($channel->channex_code, self::FUTURE_BOOKING_CODES, true);
+    }
+
     /**
      * @return list<ChannelOtaRowData>
      */
@@ -46,6 +58,10 @@ class ChannelOtaOverview
                 canConnect: $connection === null && $this->isSupported($channel),
                 note: $connection === null ? $this->note($channel) : null,
                 lastError: $connection?->last_error,
+                canActivate: $connection?->status === ChannelConnectionStatus::Mapped,
+                canPause: $connection?->status === ChannelConnectionStatus::Active,
+                canResume: $connection?->status === ChannelConnectionStatus::Paused,
+                canImport: $connection?->status === ChannelConnectionStatus::Active && self::canImportFutureBookings($channel),
             );
         }
 

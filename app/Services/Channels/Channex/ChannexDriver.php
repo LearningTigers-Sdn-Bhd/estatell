@@ -5,11 +5,9 @@ namespace App\Services\Channels\Channex;
 use App\Services\Channels\ChannelManagerDriver;
 use App\Services\Channels\ChannelStructureSyncFailed;
 use Closure;
-use LogicException;
 
 /**
- * The Channex implementation. `adapter`, the structure calls, the ARI pushes, the booking feed, `testConnection`, `createChannel`, `mappingDetails` and `updateChannel` are built. The other calls arrive with the commit that
- * needs them and throw until then, so the interface stays stable.
+ * The Channex implementation of every channel manager call.
  */
 class ChannexDriver implements ChannelManagerDriver
 {
@@ -156,17 +154,31 @@ class ChannexDriver implements ChannelManagerDriver
 
     public function activate(string $externalChannelId): void
     {
-        $this->notBuilt('connect and map OTAs through the Channel API');
+        $this->client->post("/channels/{$externalChannelId}/activate");
     }
 
     public function deactivate(string $externalChannelId): void
     {
-        $this->notBuilt('connect and map OTAs through the Channel API');
+        $this->client->post("/channels/{$externalChannelId}/deactivate");
+    }
+
+    /**
+     * A 404 means Channex no longer has the connection, so there is nothing left to remove.
+     */
+    public function deleteChannel(string $externalChannelId): void
+    {
+        try {
+            $this->client->delete("/channels/{$externalChannelId}");
+        } catch (ChannexRequestFailed $exception) {
+            if ($exception->status !== 404) {
+                throw $exception;
+            }
+        }
     }
 
     public function loadFutureReservations(string $externalChannelId): void
     {
-        $this->notBuilt('connect and map OTAs through the Channel API');
+        $this->client->post("/channels/{$externalChannelId}/execute/load_future_reservations");
     }
 
     /**
@@ -187,11 +199,6 @@ class ChannexDriver implements ChannelManagerDriver
         $taskId = $response['data'][0]['id'] ?? null;
 
         return is_string($taskId) ? $taskId : null;
-    }
-
-    private function notBuilt(string $commit): never
-    {
-        throw new LogicException("Not built yet: {$commit}.");
     }
 
     /**

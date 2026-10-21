@@ -1,6 +1,5 @@
-import { Link } from '@inertiajs/react';
+import { ConnectionActions } from '@/components/pms/channels/connection-actions';
 import { StatusBadge } from '@/components/pms/status-badge';
-import { buttonVariants } from '@/components/ui/button';
 import {
     Card,
     CardContent,
@@ -16,8 +15,6 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { connect } from '@/routes/admin/properties/channels';
-import { map } from '@/routes/admin/properties/channels/connections';
 
 type OtaRow = App.Data.Channels.ChannelOtaRowData;
 
@@ -95,39 +92,11 @@ export function ChannelOtasCard({
                                             </span>
                                         )}
                                     </TableCell>
-                                    <TableCell className="text-right">
-                                        {ota.connectionId !== null && (
-                                            <Link
-                                                href={map({
-                                                    property: code,
-                                                    connection:
-                                                        ota.connectionId,
-                                                })}
-                                                className={buttonVariants({
-                                                    variant: 'outline',
-                                                    size: 'sm',
-                                                })}
-                                            >
-                                                {ota.status?.value === 'draft'
-                                                    ? 'Continue'
-                                                    : 'Mapping'}
-                                            </Link>
-                                        )}
-                                        {ota.canConnect && (
-                                            <Link
-                                                href={connect({
-                                                    property: code,
-                                                    otaChannel:
-                                                        ota.otaChannelId,
-                                                })}
-                                                className={buttonVariants({
-                                                    variant: 'outline',
-                                                    size: 'sm',
-                                                })}
-                                            >
-                                                Connect
-                                            </Link>
-                                        )}
+                                    <TableCell>
+                                        <ConnectionActions
+                                            code={code}
+                                            ota={ota}
+                                        />
                                     </TableCell>
                                 </TableRow>
                             ))}
