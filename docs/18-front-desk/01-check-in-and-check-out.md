@@ -78,14 +78,15 @@ A unit's own folio can hold another room's charges: a Manual rule such as "Room 
 
 `EarlyCheckOut` is a wrapper over `ProcessEarlyDeparture` and `CheckOutAndRefund`. It has no rules of its own beyond the first two checks.
 
-| Check, in order                                                                   | Refusal                                         |
-| --------------------------------------------------------------------------------- | ----------------------------------------------- |
-| The unit is CheckedIn (the unit row is locked first)                              | `invalid_status`                                |
-| A business date exists and it is before the departure date                        | `no_business_date`, `not_early`                 |
-| The business date is after the arrival date                                       | `arrived_today`                                 |
-| The night audit is not Overdue (calendar date 2 or more days after business date) | `night_audit_pending`                           |
-| The checks of `ProcessEarlyDeparture` (reason, policy row, `fee_changed`, charge) | its refusals                                    |
-| The refund and the checks of `CheckOutUnit`                                       | `refund_exceeds_payment`, `balance_not_settled` |
+| Check, in order                                                                                           | Refusal                                         |
+| --------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| The unit is CheckedIn (the unit row is locked first)                                                      | `invalid_status`                                |
+| A business date exists and it is before the departure date                                                | `no_business_date`, `not_early`                 |
+| The new departure (the stay day) is after the arrival date                                                | `arrived_today`                                 |
+| **Guest left yesterday** only while the audit is pending and the night of the business date is not posted | `left_yesterday_unavailable`                    |
+| The night audit is not Overdue (calendar date 2 or more days after business date)                         | `night_audit_pending`                           |
+| The checks of `ProcessEarlyDeparture` (reason, policy row, `fee_changed`, charge)                         | its refusals                                    |
+| The refund and the checks of `CheckOutUnit`                                                               | `refund_exceeds_payment`, `balance_not_settled` |
 
 - **One transaction.** The fee, the deleted nights, the payment, the refund and the check-out commit together. A refusal at any step writes nothing.
 - **New departure** is the stay day: the business date, or the property's calendar date while the night audit is pending. The form never sends it, except the **Guest actually left yesterday** choice (see [Night audit pending](#night-audit-pending)).
@@ -393,7 +394,7 @@ Each form uses `FormOverlay` and the container from [Form containers](../design-
 - **Preview.** The `check-out-preview` route adds an `early` block (`UnitEarlyDepartureData`: booked departure, nights removed, the fee before tax and the fee with tax) when the unit is CheckedIn and its departure is after the business date. The fee with tax comes from `TaxCalculator`. A free fee has `feeTotal` 0.00: `ProcessEarlyDeparture` posts nothing for it, so a flat tax such as Tourism tax must not reach the balance or the refund default. A property with no early departure policy row gets the `policy_not_found` error in the preview.
 - **Dialog.** The check-out Dialog switches to early mode when the preview has an `early` block: the fee block, Do not charge (with `front-desk.waive-fees`) and Reason. The balance and the default refund include the fee, as display math only. It posts to `reservations.units.early-check-out`, which has the extra `front-desk.check-out` middleware inside the `reservations.manage` group.
 - **Menu.** `UnitActionMenu::isEarlyCheckOut()` lists Check out before the departure date for a CheckedIn unit that arrived before the business date, to a user with `reservations.manage`.
-- **Night audit pending.** To be replaced by [Night audit pending](#night-audit-pending); the refusal below stays only for an Overdue audit. `EarlyCheckOutRule::refusal()` checks it after `arrived_today`. It refuses `night_audit_pending` when `PropertyToday` (the property's calendar date) is after the business date. `EarlyCheckOut`, the preview and the group page row note all use that rule. The message names the business date (`20 Oct`), which reaches the response in `UnitStayResult::$rooms` and the preview through `ReservationRefusals::message()`. Decisions the doc did not cover: the unit menu hides **Check out early…** while the audit is pending, because `isOffered()` follows the rule, so the Dialog is reached only from the group page. The Dialog shows the message in its body and keeps the submit button disabled, as it does for `arrived_today`; `FormOverlay` has no option to hide its button.
+- **Night audit pending.** Replaced by [Night audit pending](#night-audit-pending): `EarlyCheckOutRule` asks `StayDay` and refuses `night_audit_pending` only for an Overdue audit (`StayDay::isAuditOverdue()`). It checks it after `arrived_today`. **Guest left yesterday** is refused with `left_yesterday_unavailable` when the audit is not pending (the audit may have run while the Dialog was open) or the night of the business date is already posted. It is also offered for a unit that departs on the stay day. The text below describes the first build. `EarlyCheckOut`, the preview and the group page row note all use that rule. The message names the business date (`20 Oct`), which reaches the response in `UnitStayResult::$rooms` and the preview through `ReservationRefusals::message()`. Decisions the doc did not cover: the unit menu hides **Check out early…** while the audit is pending, because `isOffered()` follows the rule, so the Dialog is reached only from the group page. The Dialog shows the message in its body and keeps the submit button disabled, as it does for `arrived_today`; `FormOverlay` has no option to hide its button.
 
 ### Built: check in all
 
