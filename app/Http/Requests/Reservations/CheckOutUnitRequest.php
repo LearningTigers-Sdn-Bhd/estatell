@@ -39,6 +39,7 @@ class CheckOutUnitRequest extends FormRequest
             'idempotency_key' => ['nullable', 'required_with:refund_amount,collect_amount', 'uuid'],
             'do_not_charge' => ['boolean'],
             'left_yesterday' => ['boolean'],
+            'stayed_last_night' => ['boolean'],
             'reason' => ['nullable', 'string', 'max:500'],
             'expected_fee' => ['nullable', 'regex:/^\d+(\.\d{1,2})?$/'],
         ];
@@ -50,6 +51,10 @@ class CheckOutUnitRequest extends FormRequest
     public function after(): array
     {
         return [function (Validator $validator): void {
+            if ($this->boolean('stayed_last_night') && ! $this->user()->can(PermissionEnum::ReservationsManage->value)) {
+                $validator->errors()->add('stayed_last_night', __('You need permission to change reservations to add the night.'));
+            }
+
             if (filled($this->input('refund_amount')) && ! app(Impersonation::class)->canCorrectMoney()) {
                 $validator->errors()->add('refund_amount', __('The owner has not allowed refunds and voids during support access'));
             }
@@ -80,6 +85,11 @@ class CheckOutUnitRequest extends FormRequest
     public function doNotCharge(): bool
     {
         return $this->boolean('do_not_charge') && $this->user()->can(PermissionEnum::FrontDeskWaiveFees->value);
+    }
+
+    public function stayedLastNight(): bool
+    {
+        return $this->boolean('stayed_last_night');
     }
 
     public function leftYesterday(): bool

@@ -153,7 +153,7 @@ class ScheduledFolioRows
      *
      * @return list<FolioRowData>
      */
-    private function chargeRows(QuotedCharge $charge, string $date, bool $overridden, ?string $label): array
+    public function chargeRows(QuotedCharge $charge, string $date, bool $overridden, ?string $label): array
     {
         $rows = [$this->row($charge->key, $date, $charge->description, 0, $label, $charge->lineAmount, $overridden ? [FolioRowTag::Scheduled, FolioRowTag::Overridden] : [FolioRowTag::Scheduled])];
 
@@ -167,7 +167,7 @@ class ScheduledFolioRows
     /**
      * @return list<FolioRowData>
      */
-    private function addOnRows(Property $property, UnitAddOn $addOn, TransactionCode $code, string $date, string $currency, ?string $nationality, ?string $label): array
+    public function addOnRows(Property $property, UnitAddOn $addOn, TransactionCode $code, string $date, string $currency, ?string $nationality, ?string $label): array
     {
         $key = 'addon:'.$addOn->id;
         $entered = Money::of($addOn->unit_amount, $currency)->multipliedBy($addOn->quantity);

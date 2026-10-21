@@ -72,6 +72,8 @@ class UnitStayResult
 
     public const REFUSAL_NIGHT_AUDIT_PENDING = 'night_audit_pending';
 
+    public const REFUSAL_NOT_OVERDUE = 'not_overdue';
+
     public const REFUSAL_LEFT_YESTERDAY_UNAVAILABLE = 'left_yesterday_unavailable';
 
     public const REFUSAL_UNDO_TOO_LATE = 'undo_too_late';
@@ -103,7 +105,8 @@ class UnitStayResult
     /**
      * @param  list<string>  $rooms  The rooms and dates for `folio_receives_scheduled_charges`, the amounts held for
      *                               other rooms ("MYR 540.00 for Room 102") for `balance_not_settled`, or the
-     *                               business date ("20 Oct") for `night_audit_pending`.
+     *                               business date ("20 Oct") for `night_audit_pending`, or the room and the date
+     *                               ("204", "20 Oct") for `not_available` of `CheckOutOverdueStay`.
      */
     public static function refused(string $refusal, array $rooms = []): self
     {

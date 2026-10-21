@@ -2,6 +2,7 @@
 
 use App\Actions\Folio\CreateFolio;
 use App\Actions\FrontDesk\CheckOutAndRefund;
+use App\Actions\FrontDesk\CheckOutOverdueStay;
 use App\Actions\FrontDesk\EarlyCheckOut;
 use App\Actions\FrontDesk\PostPendingNight;
 use App\Actions\NightAudit\NightAuditResult;
@@ -487,4 +488,26 @@ test('an early check-out before the audit keeps and posts the night, and the aud
     expect($audit->isCompleted())->toBeTrue()
         ->and(FolioLine::query()->count())->toBe($lines)
         ->and(nightLineCount())->toBe(1);
+});
+
+test('an overdue guest who stayed has the night posted at check-out, and the audit replays it', function () {
+    $setup = auditSetup();
+    $unit = auditUnit($setup, 'checkedIn', '2026-10-10', '2026-10-12');
+    $user = User::factory()->for($setup['property'])->withPermissions(['reservations.view', 'reservations.manage', 'front-desk.check-out', 'payment.record'])->create();
+    $method = PaymentMethod::factory()->create(['property_id' => $setup['property']->id, 'type' => PaymentMethodType::Cash, 'requires_reference' => false, 'position' => 1]);
+    $owing = app(UnitActionPreview::class)->checkOut($unit, $user, stayedLastNight: true)->owing;
+
+    $result = app(CheckOutOverdueStay::class)($user, $unit, null, new CheckOutCollectData($method->id, $owing, null, fake()->uuid()), fake()->uuid());
+
+    expect($result->isRefused())->toBeFalse()
+        ->and($unit->fresh()->status)->toBe(UnitStatus::CheckedOut)
+        ->and($unit->fresh()->departure_date->toDateString())->toBe('2026-10-13')
+        ->and(nightLineCount())->toBe(1);
+
+    $lines = FolioLine::query()->count();
+    $audit = runAudit($setup['property']);
+
+    expect($audit->isCompleted())->toBeTrue()
+        ->and(FolioLine::query()->count())->toBe($lines)
+        ->and($audit->audit->exceptions()->count())->toBe(0);
 });

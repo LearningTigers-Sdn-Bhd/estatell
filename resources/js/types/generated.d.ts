@@ -3438,6 +3438,7 @@ charges: string,
 paid: string,
 pendingLines: App.Data.Reservations.UnitPendingLineData[],
 pendingTotal: string,
+overdue: App.Data.Reservations.UnitOverdueData | null,
 };
 export type UnitDatesPreviewData = {
 previousTotal: string | null,
@@ -3485,6 +3486,13 @@ units: App.Data.Reservations.FreeUnitData[],
 error: string | null,
 isDayUse: boolean,
 hoursLabel: string | null,
+};
+export type UnitOverdueData = {
+nightDate: string,
+nightTotal: string,
+lines: App.Data.Reservations.UnitPendingLineData[],
+balanceIfStayed: string,
+stayed: boolean,
 };
 export type UnitPendingLineData = {
 description: string,

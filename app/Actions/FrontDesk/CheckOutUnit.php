@@ -47,7 +47,7 @@ class CheckOutUnit
      * in) rolls the check-out back as `balance_not_settled`. Master and ThirdParty folios stay Open. No `folio.close`
      * is needed: closing is part of check-out. A stay is checked out on or after its departure date, counted on the stay
      * day (`StayDay`): the calendar date while the night audit is pending. Then `PostPendingNight` posts the night of the
-     * business date first, so the balance check sees it, and the log carries the stay day as `business_date`. A past stay
+     * business date first, so the balance check sees it, and the log carries the stay day as `business_date`, or the business date when the unit departs on it (a guest who left yesterday). A past stay
      * (`$asOf`, `$skipBalanceCheck`) keeps the business date and posts no pending night. A shorter stay is changed first
      * with `ChangeUnitDates`. `$asOf` is the moment the guest really left, for a past stay entered after it ended
      * (`CreatePastStay`); it sets `checked_out_at`. `$skipBalanceCheck` (only `CreatePastStay` passes it) leaves the
@@ -136,7 +136,7 @@ class CheckOutUnit
                     'property_id' => $locked->property_id,
                     'reservation_unit_id' => $locked->id,
                     'room_id' => $roomId,
-                    'business_date' => $stayDay,
+                    'business_date' => $locked->departure_date->toDateString() === $today ? $today : $stayDay,
                 ])
                 ->log('Unit checked out');
 

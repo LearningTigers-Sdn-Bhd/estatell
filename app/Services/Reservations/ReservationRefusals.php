@@ -165,7 +165,10 @@ class ReservationRefusals
             UnitStayResult::REFUSAL_REASON_REQUIRED => ['reason', __('Enter a reason.')],
             UnitStayResult::REFUSAL_FEE_CHANGED => ['expected_fee', __('The fee changed while this form was open. Check the new amount and confirm again.')],
             UnitStayResult::REFUSAL_POLICY_NOT_FOUND => [self::FORM, __('The policy for this fee is missing. Check Room revenue in settings.')],
-            UnitStayResult::REFUSAL_NOT_AVAILABLE => [self::FORM, __('No unit of this room type is free for these dates.')],
+            UnitStayResult::REFUSAL_NOT_AVAILABLE => [self::FORM, count($rooms) === 2
+                ? __('Room :room is booked by another guest for :date. Move one of them first.', ['room' => $rooms[0], 'date' => $rooms[1]])
+                : __('No unit of this room type is free for these dates.')],
+            UnitStayResult::REFUSAL_NOT_OVERDUE => [self::FORM, __('This guest was not due to leave yesterday.')],
             UnitStayResult::REFUSAL_INVALID_STAY => ['departure_date', __('Departure must be after arrival.')],
             UnitStayResult::REFUSAL_DATES_UNCHANGED => ['departure_date', __('The dates are the same as now.')],
             UnitStayResult::REFUSAL_ARRIVAL_LOCKED => ['arrival_date', __('Arrival cannot change once the guest is in the house.')],

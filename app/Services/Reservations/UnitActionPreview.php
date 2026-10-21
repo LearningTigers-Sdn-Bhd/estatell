@@ -14,6 +14,7 @@ use App\Data\Reservations\UnitEarlyDepartureData;
 use App\Data\Reservations\UnitFeePreviewData;
 use App\Data\Reservations\UnitLateCheckOutPreviewData;
 use App\Data\Reservations\UnitMovePreviewData;
+use App\Data\Reservations\UnitOverdueData;
 use App\Data\Reservations\UnitReinstatePreviewData;
 use App\Data\Reservations\UnitUndoPreviewData;
 use App\Enums\CheckInRoomState;
@@ -261,12 +262,24 @@ class UnitActionPreview
      * The unit folio balance split by room, the security deposit held, another room's scheduled nights still charged
      * here, and whether the user may collect, refund and move charges.
      */
-    public function checkOut(ReservationUnit $unit, User $user, bool $leftYesterday = false): UnitCheckOutPreviewData
+    public function checkOut(ReservationUnit $unit, User $user, bool $leftYesterday = false, bool $stayedLastNight = false): UnitCheckOutPreviewData
     {
         $property = $unit->property()->firstOrFail();
         $businessDate = $this->currentBusinessDate->date($property);
-        $pendingLines = $businessDate === null || $leftYesterday ? [] : $this->pendingNightQuote->lines($unit, $businessDate);
+        $overdueLines = $businessDate === null ? [] : $this->pendingNightQuote->overdueLines($unit, $businessDate);
+        $pendingLines = $businessDate === null || $leftYesterday ? [] : ($stayedLastNight && $overdueLines !== [] ? $overdueLines : $this->pendingNightQuote->lines($unit, $businessDate));
         $preview = $this->checkOutSettlement->for($unit, $this->impersonation->mayRefund($user), $user->can(PermissionEnum::PaymentRecord->value), $user->can(PermissionEnum::FolioTransfer->value), $pendingLines);
+
+        if ($overdueLines !== []) {
+            $nightTotal = $this->pendingNightQuote->total($overdueLines);
+            $preview->overdue = new UnitOverdueData(
+                nightDate: $businessDate->toDateString(),
+                nightTotal: (string) $nightTotal->toScale(2),
+                lines: $overdueLines,
+                balanceIfStayed: (string) BigDecimal::of($preview->balance)->plus($stayedLastNight ? '0' : $nightTotal)->toScale(2),
+                stayed: $stayedLastNight,
+            );
+        }
 
         if ($unit->status !== UnitStatus::CheckedIn || $businessDate === null || (! $leftYesterday && $this->stayDay->forCheckOut($property, $businessDate)->toDateString() >= $unit->departure_date->toDateString())) {
             return $preview;

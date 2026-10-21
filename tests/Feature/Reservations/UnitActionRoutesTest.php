@@ -1339,7 +1339,8 @@ test('guest actually left yesterday sets the departure to the business date, pos
         ->and($unit->nights()->pluck('id')->all())->toBe([$firstNight->id])
         ->and(FolioLine::query()->where('idempotency_key', 'like', 'night:%')->count())->toBe(0)
         ->and(uaEarlyFeeLines($unit))->toBe(1)
-        ->and(Activity::query()->where('event', 'reservation.unit_dates_changed')->sole()->properties['reason'])->toBe('Left at night');
+        ->and(Activity::query()->where('event', 'reservation.unit_dates_changed')->sole()->properties['reason'])->toBe('Left at night')
+        ->and(Activity::query()->where('event', 'reservation.unit_checked_out')->sole()->properties['business_date'])->toBe(today()->subDay()->toDateString());
 });
 
 test('guest actually left yesterday is refused for a unit that arrived on the business date', function () {
@@ -1361,6 +1362,138 @@ test('guest actually left yesterday is refused when the audit is not pending', f
 
     expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn)
         ->and(uaEarlyFeeLines($setup['unit']))->toBe(0);
+});
+
+/**
+ * A CheckedIn unit that was due to leave yesterday, the business date, while the calendar date is today: the night audit
+ * has not run. It slept one night, two days ago. The plan has a rate for the night of the business date.
+ *
+ * @return array{user: User, property: Property, reservation: Reservation, unit: ReservationUnit}
+ */
+function uaOverdueSetup(): array
+{
+    $setup = uaSetup(unit: ['status' => UnitStatus::CheckedIn, 'checked_in_at' => now()->subDays(2), 'arrival_date' => today()->subDays(2)->toDateString(), 'departure_date' => today()->subDay()->toDateString()]);
+    uaCheckInSetup($setup);
+    BusinessDate::query()->update(['date' => today()->subDay()->toDateString()]);
+    Rate::factory()->create(['rate_plan_id' => $setup['unit']->rate_plan_id, 'room_type_id' => $setup['unit']->room_type_id, 'date' => today()->subDay()->toDateString(), 'amount' => '120.00']);
+
+    return $setup;
+}
+
+test('the check-out preview of an overdue guest offers the night they would add', function () {
+    $setup = uaOverdueSetup();
+
+    $left = $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-out-preview'))->assertOk()->json();
+    $stayed = $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-out-preview'), ['stayed_last_night' => true])->assertOk()->json();
+
+    expect($left['overdue']['nightDate'])->toBe(today()->subDay()->toDateString())
+        ->and($left['overdue']['nightTotal'])->toBe('129.60')
+        ->and($left['balance'])->toBe('0.00')
+        ->and($left['overdue']['balanceIfStayed'])->toBe('129.60')
+        ->and($stayed['balance'])->toBe('129.60')
+        ->and($stayed['owing'])->toBe('129.60')
+        ->and($stayed['pendingTotal'])->toBe('129.60');
+});
+
+test('they left yesterday is a normal check-out on the business date with no extra night', function () {
+    $setup = uaOverdueSetup();
+
+    $this->actingAs($setup['user'])->post(uaUrl($setup, 'check-out'), [])->assertSessionHasNoErrors();
+
+    $unit = $setup['unit']->fresh();
+
+    expect($unit->status)->toBe(UnitStatus::CheckedOut)
+        ->and($unit->departure_date->toDateString())->toBe(today()->subDay()->toDateString())
+        ->and(FolioLine::query()->where('idempotency_key', 'like', 'night:%')->count())->toBe(0)
+        ->and(Activity::query()->where('event', 'reservation.unit_checked_out')->sole()->properties['business_date'])->toBe(today()->subDay()->toDateString());
+});
+
+test('they stayed last night adds the night and its add-on, checks out and leaves the audit nothing to post', function () {
+    $setup = uaOverdueSetup();
+    $addOn = UnitAddOn::factory()->for($setup['unit'], 'reservationUnit')->create(['service_date' => today()->subDay()->toDateString(), 'unit_amount' => '25.00']);
+    $preview = $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-out-preview'), ['stayed_last_night' => true])->assertOk()->json();
+
+    expect((float) $preview['owing'])->toBeGreaterThan(129.6);
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'check-out'), ['stayed_last_night' => true, 'collect_amount' => $preview['owing'], 'payment_method_id' => PaymentMethod::query()->sole()->id, 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasNoErrors();
+
+    $unit = $setup['unit']->fresh();
+    $night = $unit->nights()->whereDate('date', today()->subDay()->toDateString())->sole();
+
+    expect($unit->status)->toBe(UnitStatus::CheckedOut)
+        ->and($unit->departure_date->toDateString())->toBe(today()->toDateString())
+        ->and(FolioLine::query()->where('idempotency_key', 'night:'.$night->id)->count())->toBe(1)
+        ->and(FolioLine::query()->where('idempotency_key', 'addon:'.$addOn->id)->count())->toBe(1)
+        ->and(Folio::query()->where('reservation_unit_id', $unit->id)->sole()->status)->toBe(FolioStatus::Closed)
+        ->and(Activity::query()->where('event', 'reservation.unit_dates_changed')->sole()->properties['restriction_override_reason'])->toBe('Guest stayed the night');
+});
+
+test('a restricted night passes with the fixed reason', function () {
+    $setup = uaOverdueSetup();
+    Rate::query()->whereDate('date', today()->subDay()->toDateString())->update(['stop_sell' => true]);
+    $owing = $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-out-preview'), ['stayed_last_night' => true])->json('owing');
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'check-out'), ['stayed_last_night' => true, 'collect_amount' => $owing, 'payment_method_id' => PaymentMethod::query()->sole()->id, 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasNoErrors();
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedOut);
+});
+
+test('a night booked by another guest refuses they stayed and writes nothing', function () {
+    $setup = uaOverdueSetup();
+    ReservationUnit::factory()->for(Reservation::factory()->create(['property_id' => $setup['property']->id]))->withNights()->create([
+        'room_type_id' => $setup['unit']->room_type_id,
+        'rate_plan_id' => $setup['unit']->rate_plan_id,
+        'arrival_date' => today()->subDay()->toDateString(),
+        'departure_date' => today()->toDateString(),
+    ]);
+    $room = Room::query()->whereKey($setup['unit']->nights()->value('room_id'))->value('number');
+    $owing = '129.60';
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'check-out'), ['stayed_last_night' => true, 'collect_amount' => $owing, 'payment_method_id' => PaymentMethod::query()->sole()->id, 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasErrors(['form' => 'Room '.$room.' is booked by another guest for '.today()->subDay()->format('j M').'. Move one of them first.']);
+
+    $unit = $setup['unit']->fresh();
+
+    expect($unit->status)->toBe(UnitStatus::CheckedIn)
+        ->and($unit->departure_date->toDateString())->toBe(today()->subDay()->toDateString())
+        ->and(Payment::query()->count())->toBe(0)
+        ->and(FolioLine::query()->count())->toBe(0);
+});
+
+test('they stayed is refused for a unit that is not an overdue guest, and needs reservations.manage', function () {
+    $setup = uaPendingSetup();
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'check-out'), ['stayed_last_night' => true])
+        ->assertSessionHasErrors(['form' => 'This guest was not due to leave yesterday.']);
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn);
+
+    $overdue = uaOverdueSetup();
+    $clerk = User::factory()->for($overdue['property'])->withPermissions(['reservations.view', 'front-desk.check-out', 'payment.record'])->create();
+
+    $this->actingAs($clerk)->post(uaUrl($overdue, 'check-out'), ['stayed_last_night' => true])->assertSessionHasErrors('stayed_last_night');
+
+    expect($overdue['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn);
+});
+
+test('a repeated they stayed request with the same key writes nothing more', function () {
+    $setup = uaOverdueSetup();
+    $key = fake()->uuid();
+    $payload = ['stayed_last_night' => true, 'collect_amount' => '129.60', 'payment_method_id' => PaymentMethod::query()->sole()->id, 'idempotency_key' => $key];
+
+    $this->actingAs($setup['user'])->post(uaUrl($setup, 'check-out'), $payload)->assertSessionHasNoErrors();
+    $lines = FolioLine::query()->count();
+    $this->actingAs($setup['user'])->post(uaUrl($setup, 'check-out'), $payload);
+
+    expect(FolioLine::query()->count())->toBe($lines)
+        ->and(Payment::query()->count())->toBe(1)
+        ->and($setup['unit']->fresh()->departure_date->toDateString())->toBe(today()->toDateString());
 });
 
 /**
