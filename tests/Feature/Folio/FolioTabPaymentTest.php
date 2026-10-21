@@ -84,11 +84,11 @@ function fpPayload(PaymentMethod $method, array $overrides = []): array
     ];
 }
 
-function fpPay(array $setup, string $amount = '80.00', ?string $reference = null): Payment
+function fpPay(array $setup, string $amount = '80.00', ?string $reference = null, PaymentPurpose $purpose = PaymentPurpose::Settlement): Payment
 {
     return app(RecordPayment::class)($setup['user'], $setup['reservation'], $setup['folio'], null, NewPaymentData::from([
         'paymentMethodId' => $setup['cash']->id,
-        'purpose' => PaymentPurpose::Settlement,
+        'purpose' => $purpose,
         'amount' => $amount,
         'reference' => $reference,
         'idempotencyKey' => fake()->uuid(),
@@ -216,6 +216,23 @@ test('payment rows carry the reference, the amount left and the refund action on
     $this->actingAs(fpStaff($setup, DefaultRoleEnum::FrontDesk))->get($url)->assertInertia(fn (Assert $page) => $page
         ->where('folio.canRecordPayment', true)
         ->where('folio.rows', fn ($rows) => collect($rows)->every(fn ($row) => ! in_array('refund', $row['actions'], true))));
+});
+
+test('payment rows show an Advance or Security deposit purpose after the method, and Settlement shows none', function () {
+    $setup = fpSetup();
+    $advance = fpPay($setup, '50.00', null, PaymentPurpose::Advance);
+    $deposit = fpPay($setup, '100.00', null, PaymentPurpose::SecurityDeposit);
+    $settlement = fpPay($setup, '20.00');
+    $refund = app(RefundPayment::class)($setup['user'], $deposit, '100.00', null, fake()->uuid())->payment;
+    $description = fn (array $rows, int $lineId): string => collect($rows)->firstWhere('lineId', $lineId)['description'];
+
+    $this->actingAs($setup['user'])->get(fpUrl($setup, 'reservations.folio', ['folio' => $setup['folio']->id]))->assertInertia(fn (Assert $page) => $page
+        ->where('folio.rows', fn ($rows) => $description($rows->all(), $advance->folio_line_id) === $setup['cash']->name.' · Advance'
+            && $description($rows->all(), $deposit->folio_line_id) === $setup['cash']->name.' · Security deposit'
+            && $description($rows->all(), $settlement->folio_line_id) === $setup['cash']->name
+            && $description($rows->all(), $refund->folio_line_id) === $refund->folioLine->description.' · Security deposit'));
+
+    expect($deposit->folioLine->description)->toBe($setup['cash']->name);
 });
 
 test('a not-started entry offers Record payment for its unit, and a closed folio offers neither action', function () {

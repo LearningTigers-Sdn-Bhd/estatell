@@ -22,6 +22,14 @@ enum PaymentPurpose: string
     }
 
     /**
+     * The purpose a folio row shows after the method. Settlement is the usual case, so it shows nothing.
+     */
+    public function folioRowLabel(): ?string
+    {
+        return $this === self::Settlement ? null : $this->label();
+    }
+
+    /**
      * The purposes a folio offers at a stage, the default first. A ThirdParty folio is always Settlement. A Unit folio
      * offers Advance before arrival, Settlement and Security deposit in-house, and Settlement after. A Master folio
      * offers Advance before arrival and Settlement after. The caller drops Advance from a unit whose Room charges go

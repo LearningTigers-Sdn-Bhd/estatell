@@ -363,7 +363,8 @@ class FolioStatement
      *
      * A charge that is not a child, a reversal or already reversed takes the allowed actions. A discount line that
      * is not reversed offers Remove discount. A payment row carries its reference and the amount left to refund, and
-     * offers Refund when something is left, and a receipt to a user with `payment.record`. A refund row is tagged Refund. The second value says whether any charge
+     * offers Refund when something is left, and a receipt to a user with `payment.record`. A refund row is tagged Refund.
+     * A payment or refund row adds its purpose after the method, except Settlement. The second value says whether any charge
      * can still take a discount (a live charge with no live discount line). A live room line of a night of a unit in
      * `$priceUnitIds` offers Correct price.
      *
@@ -419,7 +420,10 @@ class FolioStatement
                 $actions = $canRefund && $payment->status === PaymentStatus::Completed && BigDecimal::of($refundable)->isPositive() ? ['refund'] : [];
             }
 
-            $rows->push(new FolioRowData('line:'.$line->id, $line->migrated ? 'old' : 'posted', $line->service_date->toDateString(), $line->description, min($level, 2), $unitId === null ? null : ($labels[$unitId] ?? null), (string) $line->amount, [...array_map(BadgeData::fromFolioRowTag(...), $tags), ...$this->manualBadge($level, $line, $manualBatches)], $line->id, $actions, $payment?->reference, $payment?->id, $refundable, $canDownloadReceipt && $payment !== null && $payment->refund_of_id === null && $payment->receipt_number !== null, $line->kind, $canPrintVoucher && FolioVoucher::isPrintable($line, $reversed->has($line->id)), $correctsNight ? $unitId : null, $correctsNight ? $line->source_id : null, $line->service_date->lt($line->posting_date) ? $line->posting_date->toDateString() : null));
+            $purpose = $payment?->purpose->folioRowLabel();
+            $description = $purpose === null ? $line->description : $line->description.' · '.$purpose;
+
+            $rows->push(new FolioRowData('line:'.$line->id, $line->migrated ? 'old' : 'posted', $line->service_date->toDateString(), $description, min($level, 2), $unitId === null ? null : ($labels[$unitId] ?? null), (string) $line->amount, [...array_map(BadgeData::fromFolioRowTag(...), $tags), ...$this->manualBadge($level, $line, $manualBatches)], $line->id, $actions, $payment?->reference, $payment?->id, $refundable, $canDownloadReceipt && $payment !== null && $payment->refund_of_id === null && $payment->receipt_number !== null, $line->kind, $canPrintVoucher && FolioVoucher::isPrintable($line, $reversed->has($line->id)), $correctsNight ? $unitId : null, $correctsNight ? $line->source_id : null, $line->service_date->lt($line->posting_date) ? $line->posting_date->toDateString() : null));
 
             foreach ($children->get($line->id, []) as $child) {
                 $walk($child, $level + 1, $unitId);
