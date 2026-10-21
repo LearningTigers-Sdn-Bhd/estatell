@@ -50,9 +50,16 @@ class UpsertRates
             $this->replaceHourPrices($ratePlanId, $rows, $hours, $minHours ?? 1, $maxHours ?? 24, $now);
         }
 
-        $roomTypeIds = array_unique(array_column($rows, 'room_type_id'));
-        $dates = array_column($rows, 'date');
-        RatesChanged::dispatch(RatePlan::query()->whereKey($ratePlanId)->value('property_id'), min($dates), max($dates), count($roomTypeIds) === 1 ? $roomTypeIds[0] : null, $ratePlanId);
+        $propertyId = RatePlan::query()->whereKey($ratePlanId)->value('property_id');
+        $datesByRoomType = [];
+
+        foreach ($rows as $row) {
+            $datesByRoomType[$row['room_type_id']][] = $row['date'];
+        }
+
+        foreach ($datesByRoomType as $roomTypeId => $dates) {
+            RatesChanged::dispatch($propertyId, min($dates), max($dates), $roomTypeId, $ratePlanId);
+        }
 
         return count($rows);
     }

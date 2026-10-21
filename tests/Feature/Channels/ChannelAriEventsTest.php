@@ -9,6 +9,7 @@ use App\Enums\RoomBlockReason;
 use App\Events\InventoryChanged;
 use App\Events\RatesChanged;
 use App\Models\Room;
+use App\Models\RoomType;
 use App\Models\User;
 use Illuminate\Support\Facades\Event;
 
@@ -26,6 +27,23 @@ test('saving rates tells the channels which plan, room type and dates changed', 
         && $event->roomTypeId === $setup['roomType']->id
         && $event->dateFrom === '2026-10-20'
         && $event->dateTo === '2026-10-24');
+});
+
+test('saving rates for several room types tells the channels about each room type and its own dates', function () {
+    Event::fake([RatesChanged::class]);
+    $setup = channelAriSetup();
+    $other = RoomType::factory()->for($setup['property'])->create();
+    $row = fn (int $roomTypeId, string $date): array => ['room_type_id' => $roomTypeId, 'date' => $date, 'amount' => '150.00', 'min_stay' => null, 'max_stay' => null, 'closed_to_arrival' => false, 'closed_to_departure' => false, 'stop_sell' => false];
+
+    app(UpsertRates::class)($setup['ratePlan']->id, [
+        $row($setup['roomType']->id, '2026-10-20'),
+        $row($setup['roomType']->id, '2026-10-22'),
+        $row($other->id, '2026-10-21'),
+    ]);
+
+    Event::assertDispatchedTimes(RatesChanged::class, 2);
+    Event::assertDispatched(RatesChanged::class, fn (RatesChanged $event): bool => $event->roomTypeId === $setup['roomType']->id && $event->dateFrom === '2026-10-20' && $event->dateTo === '2026-10-22');
+    Event::assertDispatched(RatesChanged::class, fn (RatesChanged $event): bool => $event->roomTypeId === $other->id && $event->dateFrom === '2026-10-21' && $event->dateTo === '2026-10-21');
 });
 
 test('a room block tells the channels its nights, and cancelling it tells them again', function () {
