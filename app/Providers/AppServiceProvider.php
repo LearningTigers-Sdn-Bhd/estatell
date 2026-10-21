@@ -14,6 +14,7 @@ use App\Models\Property;
 use App\Models\RatePlan;
 use App\Models\RoomType;
 use App\Models\User;
+use App\Services\Notifications\MillionSendTransport;
 use App\Services\Platform\Impersonation;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\Response;
@@ -30,11 +31,13 @@ use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
+use InvalidArgumentException;
 use Laravel\Pennant\Feature;
 use Spatie\Activitylog\Actions\LogActivityAction;
 use Spatie\Activitylog\Contracts\Activity;
@@ -93,6 +96,17 @@ class AppServiceProvider extends ServiceProvider
 
     protected function configureMailBranding(): void
     {
+        Mail::extend('millionsend', function (): MillionSendTransport {
+            $baseUrl = config('services.millionsend.base_url');
+            $apiKey = config('services.millionsend.api_key');
+
+            if (blank($baseUrl) || blank($apiKey)) {
+                throw new InvalidArgumentException('Set MILLIONSEND_BASE_URL and MILLIONSEND_API_KEY to use the millionsend mailer.');
+            }
+
+            return new MillionSendTransport($baseUrl, $apiKey);
+        });
+
         ResetPassword::toMailUsing(function (User $user, string $token): MailMessage {
             return (new MailMessage)
                 ->subject(__('Reset your password'))
