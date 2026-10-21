@@ -1,4 +1,4 @@
-import { useForm } from '@inertiajs/react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Field,
@@ -24,17 +24,15 @@ import {
     SheetHeader,
     SheetTitle,
 } from '@/components/ui/sheet';
-import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
-import { update } from '@/routes/rates/calendar';
 import {
     adultCounts,
-    buildCellPayload,
     cellFormProblem,
     cellFormValues,
     isCellFormDirty,
 } from './cell-form';
 import type { CellFormValues, CellTarget } from './cell-form';
+import type { PendingChange } from './pending-changes';
 import { formatAmount, nightsLabel } from './calendar-model';
 
 type Cell = App.Data.Rates.RateCalendarCellData;
@@ -45,8 +43,11 @@ type Plan = App.Data.Rates.RateCalendarPlanData;
 export type EditingCell = {
     roomType: RoomType;
     plan: Plan;
+    /** The saved cell, not the staged one. */
     cell: Cell | undefined;
     target: CellTarget;
+    /** The values already staged for this date, if any. */
+    staged: CellFormValues | undefined;
 };
 
 const PRICE_LABELS: Record<
@@ -135,23 +136,25 @@ function SwitchField({
 function CellForm({
     editing,
     currency,
-    onDone,
+    onApply,
 }: {
     editing: EditingCell;
     currency: string;
-    onDone: () => void;
+    onApply: (change: PendingChange) => void;
 }) {
-    const { roomType, plan, cell, target } = editing;
+    const { roomType, plan, cell, target, staged } = editing;
     const isDayUse = plan.pricingBasis === 'day_use';
     const ownPrice =
         !plan.derived && plan.pricingBasis !== 'package' && !isDayUse;
     const initial = cellFormValues(cell, ownPrice);
-    const form = useForm<CellFormValues>(initial);
+    const [data, setData] = useState<CellFormValues>(staged ?? initial);
+    const setField = <K extends keyof CellFormValues>(
+        key: K,
+        value: CellFormValues[K],
+    ) => setData((current) => ({ ...current, [key]: value }));
     const price = PRICE_LABELS[plan.pricingBasis];
-    const problem = cellFormProblem(initial, form.data);
-    const dirty = isCellFormDirty(initial, form.data);
-    const error = (key: string): string | undefined =>
-        (form.errors as Record<string, string | undefined>)[key];
+    const problem = cellFormProblem(initial, data);
+    const dirty = isCellFormDirty(initial, data);
 
     const submit = (event: React.FormEvent) => {
         event.preventDefault();
@@ -160,12 +163,14 @@ function CellForm({
             return;
         }
 
-        form.transform(() =>
-            buildCellPayload(target, initial, form.data, ownPrice, isDayUse),
-        );
-        form.put(update.url({ ratePlan: plan.id }), {
-            preserveScroll: true,
-            onSuccess: onDone,
+        onApply({
+            target,
+            roomTypeName: roomType.name,
+            planName: plan.name,
+            initial,
+            current: data,
+            ownPrice,
+            dayUse: isDayUse,
         });
     };
 
@@ -175,27 +180,21 @@ function CellForm({
                 {ownPrice && price ? (
                     <FieldSet>
                         <FieldLegend>Price</FieldLegend>
-                        <Field
-                            data-invalid={!!error('room_types.0.days.0.amount')}
-                        >
+                        <Field>
                             <FieldLabel htmlFor="cell-amount">
                                 {price.label}
                             </FieldLabel>
                             <MoneyInput
                                 id="cell-amount"
-                                value={form.data.amount}
+                                value={data.amount}
                                 currency={currency}
-                                invalid={!!error('room_types.0.days.0.amount')}
                                 onChange={(amount) =>
-                                    form.setData('amount', amount)
+                                    setField('amount', amount)
                                 }
                             />
                             <FieldDescription>
                                 {price.hint(roomType)}
                             </FieldDescription>
-                            <FieldError>
-                                {error('room_types.0.days.0.amount')}
-                            </FieldError>
                         </Field>
                         {plan.pricingBasis !== 'per_bed' &&
                             roomType.maxAdults > 0 && (
@@ -211,8 +210,6 @@ function CellForm({
                                     <div className="grid gap-3 sm:grid-cols-2">
                                         {adultCounts(roomType.maxAdults).map(
                                             (adults) => {
-                                                const errorKey = `room_types.0.days.0.occupancy.${adults - 1}`;
-
                                                 return (
                                                     <Field key={adults}>
                                                         <FieldLabel
@@ -226,33 +223,20 @@ function CellForm({
                                                         <MoneyInput
                                                             id={`cell-adults-${adults}`}
                                                             value={
-                                                                form.data
-                                                                    .occupancy[
+                                                                data.occupancy[
                                                                     String(
                                                                         adults,
                                                                     )
                                                                 ] ?? ''
                                                             }
                                                             currency={currency}
-                                                            invalid={
-                                                                !!(
-                                                                    error(
-                                                                        `${errorKey}.amount`,
-                                                                    ) ??
-                                                                    error(
-                                                                        `${errorKey}.adults`,
-                                                                    )
-                                                                )
-                                                            }
                                                             onChange={(
                                                                 amount,
                                                             ) =>
-                                                                form.setData(
+                                                                setField(
                                                                     'occupancy',
                                                                     {
-                                                                        ...form
-                                                                            .data
-                                                                            .occupancy,
+                                                                        ...data.occupancy,
                                                                         [String(
                                                                             adults,
                                                                         )]:
@@ -261,14 +245,6 @@ function CellForm({
                                                                 )
                                                             }
                                                         />
-                                                        <FieldError>
-                                                            {error(
-                                                                `${errorKey}.amount`,
-                                                            ) ??
-                                                                error(
-                                                                    `${errorKey}.adults`,
-                                                                )}
-                                                        </FieldError>
                                                     </Field>
                                                 );
                                             },
@@ -335,10 +311,8 @@ function CellForm({
                         id="cell-stop-sell"
                         label="Stop sell"
                         description="Nothing can be sold on this night."
-                        checked={form.data.stopSell}
-                        onChange={(checked) =>
-                            form.setData('stopSell', checked)
-                        }
+                        checked={data.stopSell}
+                        onChange={(checked) => setField('stopSell', checked)}
                     />
                     {!isDayUse && (
                         <>
@@ -346,26 +320,22 @@ function CellForm({
                                 id="cell-cta"
                                 label="Closed to arrival"
                                 description="No stay can start on this date."
-                                checked={form.data.closedToArrival}
+                                checked={data.closedToArrival}
                                 onChange={(checked) =>
-                                    form.setData('closedToArrival', checked)
+                                    setField('closedToArrival', checked)
                                 }
                             />
                             <SwitchField
                                 id="cell-ctd"
                                 label="Closed to departure"
                                 description="No stay can end on this date."
-                                checked={form.data.closedToDeparture}
+                                checked={data.closedToDeparture}
                                 onChange={(checked) =>
-                                    form.setData('closedToDeparture', checked)
+                                    setField('closedToDeparture', checked)
                                 }
                             />
                             <div className="grid gap-3 sm:grid-cols-2">
-                                <Field
-                                    data-invalid={
-                                        !!error('restrictions.min_stay')
-                                    }
-                                >
+                                <Field>
                                     <FieldLabel htmlFor="cell-min-stay">
                                         Min stay
                                     </FieldLabel>
@@ -377,12 +347,9 @@ function CellForm({
                                             max="365"
                                             step="1"
                                             inputMode="numeric"
-                                            aria-invalid={
-                                                !!error('restrictions.min_stay')
-                                            }
-                                            value={form.data.minStay}
+                                            value={data.minStay}
                                             onChange={(event) =>
-                                                form.setData(
+                                                setField(
                                                     'minStay',
                                                     event.target.value,
                                                 )
@@ -392,15 +359,8 @@ function CellForm({
                                             nights
                                         </InputGroupAddon>
                                     </InputGroup>
-                                    <FieldError>
-                                        {error('restrictions.min_stay')}
-                                    </FieldError>
                                 </Field>
-                                <Field
-                                    data-invalid={
-                                        !!error('restrictions.max_stay')
-                                    }
-                                >
+                                <Field>
                                     <FieldLabel htmlFor="cell-max-stay">
                                         Max stay
                                     </FieldLabel>
@@ -412,12 +372,9 @@ function CellForm({
                                             max="365"
                                             step="1"
                                             inputMode="numeric"
-                                            aria-invalid={
-                                                !!error('restrictions.max_stay')
-                                            }
-                                            value={form.data.maxStay}
+                                            value={data.maxStay}
                                             onChange={(event) =>
-                                                form.setData(
+                                                setField(
                                                     'maxStay',
                                                     event.target.value,
                                                 )
@@ -427,9 +384,6 @@ function CellForm({
                                             nights
                                         </InputGroupAddon>
                                     </InputGroup>
-                                    <FieldError>
-                                        {error('restrictions.max_stay')}
-                                    </FieldError>
                                 </Field>
                             </div>
                             <FieldDescription>
@@ -446,11 +400,10 @@ function CellForm({
                 </SheetClose>
                 <Button
                     type="submit"
-                    disabled={!dirty || !!problem || form.processing}
+                    disabled={(!dirty && staged === undefined) || !!problem}
                     focusableWhenDisabled
                 >
-                    {form.processing && <Spinner data-icon="inline-start" />}
-                    Save
+                    Apply
                 </Button>
             </SheetFooter>
         </form>
@@ -458,16 +411,18 @@ function CellForm({
 }
 
 /**
- * The editor for one date of one plan, opened from a cell of the rate calendar. It saves through
- * `rates.calendar.update`.
+ * The editor for one date of one plan, opened from a cell of the rate calendar. Apply stages the edit on the
+ * calendar, which saves all staged edits together.
  */
 export function RateCellSheet({
     editing,
     currency,
+    onApply,
     onClose,
 }: {
     editing: EditingCell | null;
     currency: string;
+    onApply: (change: PendingChange) => void;
     onClose: () => void;
 }) {
     return (
@@ -483,7 +438,8 @@ export function RateCellSheet({
                             : 'Edit rate'}
                     </SheetTitle>
                     <SheetDescription>
-                        {editing ? longDate(editing.target.date) : ''}
+                        {editing ? longDate(editing.target.date) : ''}. Apply
+                        keeps the change on the calendar until you save.
                     </SheetDescription>
                 </SheetHeader>
                 {editing && (
@@ -491,7 +447,10 @@ export function RateCellSheet({
                         key={`${editing.plan.id}-${editing.roomType.id}-${editing.target.date}`}
                         editing={editing}
                         currency={currency}
-                        onDone={onClose}
+                        onApply={(change) => {
+                            onApply(change);
+                            onClose();
+                        }}
                     />
                 )}
             </SheetContent>

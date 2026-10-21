@@ -318,23 +318,23 @@ test('more plans and dates do not add queries (availability costs a fixed number
 });
 
 /**
- * The request the calendar's date editor sends: one date, one room type, and the restrictions to set.
+ * One staged edit of the calendar: one plan, one room type and one date.
  *
- * @param  array<string, mixed>|null  $day  The price for the date's weekday, or null to leave the price alone.
- * @param  array<string, mixed>  $restrictions
+ * @param  array<string, mixed>  $change  Optional `amount` and `occupancy`, and the `restrictions` to set.
  * @return array<string, mixed>
  */
-function calendarSave(RoomType $roomType, string $date, ?array $day, array $restrictions = []): array
+function calendarChange(RatePlan $plan, RoomType $roomType, string $date, array $change = []): array
 {
-    return [
-        'from' => $date,
-        'to' => $date,
-        'room_types' => [[
-            'room_type_id' => $roomType->id,
-            'days' => $day === null ? [] : [['weekday' => (int) Date::parse($date)->dayOfWeekIso, ...$day]],
-        ]],
-        'restrictions' => $restrictions,
-    ];
+    return ['rate_plan_id' => $plan->id, 'room_type_id' => $roomType->id, 'date' => $date, 'restrictions' => [], ...$change];
+}
+
+/**
+ * @param  list<array<string, mixed>>  $changes
+ * @return array{changes: list<array<string, mixed>>}
+ */
+function calendarChanges(array $changes): array
+{
+    return ['changes' => $changes];
 }
 
 test('the calendar sends the explicit prices by adult count of each cell', function () {
@@ -355,7 +355,7 @@ test('the calendar sends the explicit prices by adult count of each cell', funct
         );
 });
 
-test('saving one date changes only that date and replaces its prices by adult count', function () {
+test('saving a change edits only that date and replaces its prices by adult count', function () {
     [$owner, $property, $plan, $roomType] = calendarSetup();
     $roomType->update(['max_adults' => 3]);
     $first = calendarRate($plan, $roomType, '2026-10-05');
@@ -364,12 +364,13 @@ test('saving one date changes only that date and replaces its prices by adult co
 
     $this->actingAs($owner)
         ->from(route('rates.calendar', $property->code))
-        ->put(route('rates.calendar.update', [$property->code, $plan]), calendarSave($roomType, '2026-10-05', [
+        ->put(route('rates.calendar.changes', $property->code), calendarChanges([calendarChange($plan, $roomType, '2026-10-05', [
             'amount' => '210',
             'occupancy' => [['adults' => 2, 'amount' => '260'], ['adults' => 3, 'amount' => '300']],
-        ], ['stop_sell' => false, 'min_stay' => 2]))
+            'restrictions' => ['stop_sell' => false, 'min_stay' => 2],
+        ])]))
         ->assertRedirect(route('rates.calendar', $property->code))
-        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Rates saved for 1 date.']);
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Saved 1 change.']);
 
     $first->refresh();
 
@@ -380,15 +381,35 @@ test('saving one date changes only that date and replaces its prices by adult co
         ->and($second->min_stay)->toBeNull();
 });
 
+test('several staged changes across plans, room types and dates save together', function () {
+    [$owner, $property, $plan, $roomType] = calendarSetup();
+    $otherPlan = RatePlan::factory()->for($property)->create();
+    $otherPlan->roomTypes()->attach($roomType);
+    $first = calendarRate($plan, $roomType, '2026-10-05');
+    $second = calendarRate($otherPlan, $roomType, '2026-10-05');
+
+    $this->actingAs($owner)
+        ->put(route('rates.calendar.changes', $property->code), calendarChanges([
+            calendarChange($plan, $roomType, '2026-10-05', ['amount' => '160']),
+            calendarChange($otherPlan, $roomType, '2026-10-05', ['amount' => '190']),
+            calendarChange($plan, $roomType, '2026-10-06', ['restrictions' => ['stop_sell' => true]]),
+        ]))
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Saved 3 changes.']);
+
+    expect($first->refresh()->amount)->toBe('160.00')
+        ->and($second->refresh()->amount)->toBe('190.00')
+        ->and(Rate::query()->where('rate_plan_id', $plan->id)->whereDate('date', '2026-10-06')->sole()->stop_sell)->toBeTrue();
+});
+
 test('restrictions can be set and cleared without touching the price', function () {
     [$owner, $property, $plan, $roomType] = calendarSetup();
     $rate = calendarRate($plan, $roomType, '2026-10-05', ['stop_sell' => true, 'closed_to_arrival' => true, 'min_stay' => 3, 'max_stay' => 5]);
 
     $this->actingAs($owner)
-        ->put(route('rates.calendar.update', [$property->code, $plan]), calendarSave($roomType, '2026-10-05', null, [
+        ->put(route('rates.calendar.changes', $property->code), calendarChanges([calendarChange($plan, $roomType, '2026-10-05', ['restrictions' => [
             'stop_sell' => false, 'closed_to_arrival' => false, 'closed_to_departure' => true, 'min_stay' => null, 'max_stay' => null,
-        ]))
-        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Rates saved for 1 date.']);
+        ]])]))
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Saved 1 change.']);
 
     expect($rate->refresh())
         ->amount->toBe('200.00')
@@ -403,7 +424,7 @@ test('a date with no rate row gets one', function () {
     [$owner, $property, $plan, $roomType] = calendarSetup();
 
     $this->actingAs($owner)
-        ->put(route('rates.calendar.update', [$property->code, $plan]), calendarSave($roomType, '2026-10-05', ['amount' => '180', 'occupancy' => []], ['stop_sell' => true]))
+        ->put(route('rates.calendar.changes', $property->code), calendarChanges([calendarChange($plan, $roomType, '2026-10-05', ['amount' => '180', 'restrictions' => ['stop_sell' => true]])]))
         ->assertSessionHasNoErrors();
 
     expect(Rate::query()->where('rate_plan_id', $plan->id)->sole())
@@ -411,7 +432,7 @@ test('a date with no rate row gets one', function () {
         ->stop_sell->toBeTrue();
 });
 
-test('a derived plan takes restrictions from the calendar but never a price', function () {
+test('a derived plan takes restrictions from the calendar but never a price, and nothing else is saved with it', function () {
     [$owner, $property, $parent, $roomType] = calendarSetup();
     $derived = RatePlan::factory()->for($property)->create([
         'parent_rate_plan_id' => $parent->id, 'derivation' => RateDerivation::Percent, 'derivation_value' => '-10',
@@ -419,17 +440,20 @@ test('a derived plan takes restrictions from the calendar but never a price', fu
     $derived->roomTypes()->attach($roomType);
 
     $this->actingAs($owner)
-        ->put(route('rates.calendar.update', [$property->code, $derived]), calendarSave($roomType, '2026-10-05', null, ['closed_to_departure' => true]))
-        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Rates saved for 1 date.']);
+        ->put(route('rates.calendar.changes', $property->code), calendarChanges([calendarChange($derived, $roomType, '2026-10-05', ['restrictions' => ['closed_to_departure' => true]])]))
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Saved 1 change.']);
 
     expect(Rate::query()->where('rate_plan_id', $derived->id)->sole())
         ->amount->toBeNull()
         ->closed_to_departure->toBeTrue();
 
-    $this->put(route('rates.calendar.update', [$property->code, $derived]), calendarSave($roomType, '2026-10-06', ['amount' => '90', 'occupancy' => []], ['stop_sell' => true]))
-        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'The rate plan or room types changed. Reload the page and try again.']);
+    $this->put(route('rates.calendar.changes', $property->code), calendarChanges([
+        calendarChange($parent, $roomType, '2026-10-07', ['amount' => '170']),
+        calendarChange($derived, $roomType, '2026-10-06', ['amount' => '90', 'restrictions' => ['stop_sell' => true]]),
+    ]))->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'The rate plan or room types changed. Reload the page and try again.']);
 
-    expect(Rate::query()->where('rate_plan_id', $derived->id)->count())->toBe(1);
+    expect(Rate::query()->where('rate_plan_id', $derived->id)->count())->toBe(1)
+        ->and(Rate::query()->where('rate_plan_id', $parent->id)->whereDate('date', '2026-10-07')->exists())->toBeFalse();
 });
 
 test('a package plan takes restrictions from the calendar but never a price', function () {
@@ -438,36 +462,40 @@ test('a package plan takes restrictions from the calendar but never a price', fu
     $package->roomTypes()->attach($roomType);
 
     $this->actingAs($owner)
-        ->put(route('rates.calendar.update', [$property->code, $package]), calendarSave($roomType, '2026-10-05', null, ['min_stay' => 3]))
-        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Rates saved for 1 date.']);
+        ->put(route('rates.calendar.changes', $property->code), calendarChanges([calendarChange($package, $roomType, '2026-10-05', ['restrictions' => ['min_stay' => 3]])]))
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Saved 1 change.']);
 
-    $this->put(route('rates.calendar.update', [$property->code, $package]), calendarSave($roomType, '2026-10-06', ['amount' => '90', 'occupancy' => []], ['min_stay' => 3]))
+    $this->put(route('rates.calendar.changes', $property->code), calendarChanges([calendarChange($package, $roomType, '2026-10-06', ['amount' => '90', 'restrictions' => ['min_stay' => 3]])]))
         ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'The rate plan or room types changed. Reload the page and try again.']);
 
     expect(Rate::query()->where('rate_plan_id', $package->id)->sole()->min_stay)->toBe(3);
 });
 
-test('a bad edit from the calendar is refused with its field errors', function (array $day, array $restrictions, string $field) {
+test('a bad staged edit is refused with its field errors and saves nothing', function (array $change, string $field) {
     [$owner, $property, $plan, $roomType] = calendarSetup();
     $roomType->update(['max_adults' => 2]);
 
     $this->actingAs($owner)
-        ->put(route('rates.calendar.update', [$property->code, $plan]), calendarSave($roomType, '2026-10-05', $day, $restrictions))
+        ->put(route('rates.calendar.changes', $property->code), calendarChanges([
+            calendarChange($plan, $roomType, '2026-10-04', ['amount' => '120']),
+            calendarChange($plan, $roomType, '2026-10-05', $change),
+        ]))
         ->assertSessionHasErrors($field);
 
     expect(Rate::query()->count())->toBe(0);
 })->with([
-    'a max stay below the min stay' => [['amount' => '100', 'occupancy' => []], ['min_stay' => 5, 'max_stay' => 2], 'restrictions.max_stay'],
-    'a negative price' => [['amount' => '-5', 'occupancy' => []], [], 'room_types.0.days.0.amount'],
-    'more adults than the room sleeps' => [['amount' => '100', 'occupancy' => [['adults' => 3, 'amount' => '200']]], [], 'room_types.0.days.0.occupancy.0.adults'],
-    'a min stay of zero' => [['amount' => '100', 'occupancy' => []], ['min_stay' => 0], 'restrictions.min_stay'],
+    'a max stay below the min stay' => [['amount' => '100', 'restrictions' => ['min_stay' => 5, 'max_stay' => 2]], 'changes.1.restrictions.max_stay'],
+    'a negative price' => [['amount' => '-5'], 'changes.1.amount'],
+    'more adults than the room sleeps' => [['amount' => '100', 'occupancy' => [['adults' => 3, 'amount' => '200']]], 'changes.1.occupancy.0.adults'],
+    'a min stay of zero' => [['amount' => '100', 'restrictions' => ['min_stay' => 0]], 'changes.1.restrictions.min_stay'],
+    'the same date twice' => [['date' => '2026-10-04', 'amount' => '100'], 'changes.1.date'],
 ]);
 
-test('saving from the calendar is logged', function () {
+test('saving from the calendar is logged for each plan and date', function () {
     [$owner, $property, $plan, $roomType] = calendarSetup();
 
     $this->actingAs($owner)
-        ->put(route('rates.calendar.update', [$property->code, $plan]), calendarSave($roomType, '2026-10-05', ['amount' => '180', 'occupancy' => []]));
+        ->put(route('rates.calendar.changes', $property->code), calendarChanges([calendarChange($plan, $roomType, '2026-10-05', ['amount' => '180'])]));
 
     $activity = Activity::query()->where('event', 'rates.updated')->sole();
 
@@ -484,17 +512,25 @@ test('saving from the calendar needs rates.manage and stays inside the property'
     $plan->roomTypes()->attach($roomType);
 
     $this->actingAs($frontDesk)
-        ->put(route('rates.calendar.update', [$frontDesk->property->code, $plan]), calendarSave($roomType, '2026-10-05', ['amount' => '100', 'occupancy' => []]))
+        ->put(route('rates.calendar.changes', $frontDesk->property->code), calendarChanges([calendarChange($plan, $roomType, '2026-10-05', ['amount' => '100'])]))
         ->assertForbidden();
 
     [$owner, $property] = calendarSetup();
     $theirs = RatePlan::factory()->create();
 
     $this->actingAs($owner)
-        ->put(route('rates.calendar.update', [$property->code, $theirs]), calendarSave($roomType, '2026-10-05', ['amount' => '100', 'occupancy' => []]))
-        ->assertNotFound();
+        ->put(route('rates.calendar.changes', $property->code), calendarChanges([calendarChange($theirs, $roomType, '2026-10-05', ['amount' => '100'])]))
+        ->assertSessionHasErrors('changes.0.rate_plan_id');
 
     expect(Rate::query()->count())->toBe(0);
+});
+
+test('a request with no changes is refused', function () {
+    [$owner, $property] = calendarSetup();
+
+    $this->actingAs($owner)
+        ->put(route('rates.calendar.changes', $property->code), ['changes' => []])
+        ->assertSessionHasErrors('changes');
 });
 
 /**

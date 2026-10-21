@@ -22,18 +22,13 @@ export type CellTarget = {
     isoWeekday: number;
 };
 
-/** The request the date editor sends to `rates.calendar.update`. */
-export type CellSaveRequest = {
-    from: string;
-    to: string;
-    room_types: {
-        room_type_id: number;
-        days: {
-            weekday: number;
-            amount: string;
-            occupancy: { adults: number; amount: string }[];
-        }[];
-    }[];
+/** One staged edit, as `rates.calendar.changes` takes it. A missing price leaves the saved price alone. */
+export type CellChange = {
+    rate_plan_id: number;
+    room_type_id: number;
+    date: string;
+    amount?: string;
+    occupancy?: { adults: number; amount: string }[];
     restrictions: {
         stop_sell: boolean;
         closed_to_arrival?: boolean;
@@ -159,44 +154,37 @@ function toStay(value: string): number | null {
 }
 
 /**
- * The request for one date. The price and prices by adults are sent only when they changed and the plan has its
+ * The change for one date. The price and prices by adults are sent only when they changed and the plan has its
  * own price, because saving a price replaces that date's prices by adults. Every restriction is sent, because a
  * blank stay limit clears it.
  */
-export function buildCellPayload(
+export function buildCellChange(
     target: CellTarget,
     initial: CellFormValues,
     current: CellFormValues,
     ownPrice: boolean,
     dayUse = false,
-): CellSaveRequest {
+): CellChange {
     const sendPrice =
         ownPrice &&
         current.amount.trim() !== '' &&
         priceChanged(initial, current);
 
     return {
-        from: target.date,
-        to: target.date,
-        room_types: [
-            {
-                room_type_id: target.roomTypeId,
-                days: sendPrice
-                    ? [
-                          {
-                              weekday: target.isoWeekday,
-                              amount: current.amount.trim(),
-                              occupancy: filledOccupancy(current).map(
-                                  ([adults, amount]) => ({
-                                      adults: Number(adults),
-                                      amount,
-                                  }),
-                              ),
-                          },
-                      ]
-                    : [],
-            },
-        ],
+        rate_plan_id: target.ratePlanId,
+        room_type_id: target.roomTypeId,
+        date: target.date,
+        ...(sendPrice
+            ? {
+                  amount: current.amount.trim(),
+                  occupancy: filledOccupancy(current).map(
+                      ([adults, amount]) => ({
+                          adults: Number(adults),
+                          amount,
+                      }),
+                  ),
+              }
+            : {}),
         restrictions: dayUse
             ? { stop_sell: current.stopSell }
             : {

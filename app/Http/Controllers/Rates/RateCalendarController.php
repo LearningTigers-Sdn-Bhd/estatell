@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Rates;
 
 use App\Actions\Rates\ExtendRates;
+use App\Actions\Rates\SaveRateCalendarChanges;
 use App\Actions\Rates\SaveRates;
 use App\Data\Property\CurrencyData;
 use App\Data\Property\WeekendNightsOptionData;
@@ -14,6 +15,7 @@ use App\Enums\WeekendNights;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Rates\RateBulkRequest;
 use App\Http\Requests\Rates\RateCalendarRequest;
+use App\Http\Requests\Rates\SaveRateCalendarChangesRequest;
 use App\Http\Requests\Rates\SaveRatesRequest;
 use App\Models\Property;
 use App\Models\RatePlan;
@@ -103,15 +105,15 @@ class RateCalendarController extends Controller
     }
 
     /**
-     * Save prices and restrictions for one plan from the calendar: one date from the cell editor, or a range.
+     * Save the edits staged in the calendar together, then return to the calendar.
      */
-    public function update(SaveRatesRequest $request, Property $property, RatePlan $ratePlan, SaveRates $saveRates): RedirectResponse
+    public function updateMany(SaveRateCalendarChangesRequest $request, Property $property, SaveRateCalendarChanges $saveRateCalendarChanges): RedirectResponse
     {
-        $written = $saveRates($request->user(), $ratePlan, $request->string('from')->toString(), $request->string('to')->toString(), $request->roomTypes(), $request->toRestrictionsData());
+        $saved = $saveRateCalendarChanges($request->user(), $property, $request->changes());
 
-        Inertia::flash('toast', $written === false
+        Inertia::flash('toast', $saved === false
             ? ['type' => 'error', 'message' => __('The rate plan or room types changed. Reload the page and try again.')]
-            : ['type' => 'success', 'message' => trans_choice('Rates saved for :count date.|Rates saved for :count dates.', $written)]);
+            : ['type' => 'success', 'message' => trans_choice('Saved :count change.|Saved :count changes.', $saved)]);
 
         return back();
     }

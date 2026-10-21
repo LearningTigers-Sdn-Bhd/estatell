@@ -7,6 +7,8 @@ import type { DateGridHandle } from '@/components/pms/grid/date-grid';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { InclusionsPopover } from './inclusions-popover';
+import { applyPending, pendingKey } from './pending-changes';
+import type { PendingChange, PendingChanges } from './pending-changes';
 import { RateCellSheet } from './rate-cell-sheet';
 import type { EditingCell } from './rate-cell-sheet';
 import {
@@ -60,9 +62,12 @@ function RateCell({
     cell,
     derived,
     stayNights,
+    staged,
 }: {
     cell: Cell | undefined;
     derived: boolean;
+    /** Whether the cell shows an edit that is not saved yet. */
+    staged: boolean;
     /** The fixed length of a package stay. The price on a package cell is for the whole stay. */
     stayNights: number | null;
 }) {
@@ -77,10 +82,17 @@ function RateCell({
         <div
             title={cellTitle(cell, derived, stayNights)}
             className={cn(
-                'flex h-full flex-col items-center justify-center gap-0.5 text-xs tabular-nums',
+                'relative flex h-full flex-col items-center justify-center gap-0.5 text-xs tabular-nums',
                 cell.stopSell && 'bg-destructive/10',
+                staged && 'bg-info/10 ring-1 ring-info ring-inset',
             )}
         >
+            {staged && (
+                <span
+                    aria-hidden
+                    className="absolute top-1 right-1 size-1.5 rounded-full bg-info"
+                />
+            )}
             <span className="sr-only">
                 {cellTitle(cell, derived, stayNights)}
             </span>
@@ -183,6 +195,8 @@ export function RateCalendarGrid({
     canManage,
     canManageInclusions,
     currency,
+    pending,
+    onStage,
 }: {
     gridRef: Ref<DateGridHandle>;
     roomTypes: App.Data.Rates.RateCalendarRoomTypeData[];
@@ -196,6 +210,9 @@ export function RateCalendarGrid({
     /** Whether the inclusions popover links to the plan's Inclusions tab. */
     canManageInclusions: boolean;
     currency: string;
+    /** The edits staged and not saved yet. The cells show them. */
+    pending: PendingChanges;
+    onStage: (change: PendingChange) => void;
 }) {
     const columns = useMemo(
         () => buildDateColumns(dates, today, weekendDays),
@@ -352,9 +369,18 @@ export function RateCalendarGrid({
                     const cell = cellsByPlan
                         .get(`${row.roomType.id}-${row.plan.id}`)
                         ?.get(column.date);
+                    const target = {
+                        ratePlanId: row.plan.id,
+                        roomTypeId: row.roomType.id,
+                        date: column.date,
+                        isoWeekday: column.isoWeekday,
+                    };
+                    const stagedChange = pending.get(pendingKey(target));
+                    const shown = applyPending(cell, stagedChange);
                     const content = (
                         <RateCell
-                            cell={cell}
+                            cell={shown}
+                            staged={stagedChange !== undefined}
                             derived={row.plan.derived}
                             stayNights={
                                 row.plan.pricingBasis === 'package'
@@ -371,19 +397,15 @@ export function RateCalendarGrid({
                     return (
                         <button
                             type="button"
-                            aria-label={`Edit ${row.roomType.name}, ${row.plan.name}, ${column.date}: ${cell ? cellTitle(cell, row.plan.derived, row.plan.pricingBasis === 'package' ? row.plan.fixedNights : null) || 'no price' : 'no rate'}`}
+                            aria-label={`Edit ${row.roomType.name}, ${row.plan.name}, ${column.date}: ${shown ? cellTitle(shown, row.plan.derived, row.plan.pricingBasis === 'package' ? row.plan.fixedNights : null) || 'no price' : 'no rate'}`}
                             className="block h-full w-full cursor-pointer outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset"
                             onClick={() =>
                                 setEditing({
                                     roomType: row.roomType,
                                     plan: row.plan,
                                     cell,
-                                    target: {
-                                        ratePlanId: row.plan.id,
-                                        roomTypeId: row.roomType.id,
-                                        date: column.date,
-                                        isoWeekday: column.isoWeekday,
-                                    },
+                                    target,
+                                    staged: stagedChange?.current,
                                 })
                             }
                         >
@@ -396,6 +418,7 @@ export function RateCalendarGrid({
                 <RateCellSheet
                     editing={editing}
                     currency={currency}
+                    onApply={onStage}
                     onClose={() => setEditing(null)}
                 />
             )}
