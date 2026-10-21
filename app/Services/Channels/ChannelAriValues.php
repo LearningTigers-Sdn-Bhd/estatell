@@ -107,6 +107,7 @@ class ChannelAriValues
     /**
      * Prices of an own-rate or derived plan, by date then adults. A date without a rate amount has none.
      *
+     * @param  list<int>  $occupancies
      * @return array<string, array<int, string>>
      */
     private function nightlyPrices(RatePlan $plan, RoomType $roomType, CarbonImmutable $from, CarbonImmutable $to, string $currency, array $occupancies): array
@@ -146,6 +147,7 @@ class ChannelAriValues
     /**
      * Prices of a flat package: its stay price over its nights, on every date inside a price period.
      *
+     * @param  list<int>  $occupancies
      * @return array<string, array<int, string>>
      */
     private function packagePrices(RatePlan $plan, RoomType $roomType, CarbonImmutable $from, CarbonImmutable $to, string $currency, array $occupancies): array

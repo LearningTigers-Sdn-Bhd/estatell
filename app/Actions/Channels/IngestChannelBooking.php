@@ -131,7 +131,7 @@ class IngestChannelBooking
             ->latest('id')
             ->value('reservation_id');
 
-        return $reservationId === null ? null : Reservation::query()->find($reservationId);
+        return $reservationId === null ? null : Reservation::query()->whereKey($reservationId)->first();
     }
 
     /**
@@ -217,7 +217,7 @@ class IngestChannelBooking
             $this->repriceNights($actor, $unit, $line, $rooms[$index] ?? [], $reason);
         }
 
-        $surplus = $units->slice(count($lines))->pluck('id')->all();
+        $surplus = array_values($units->slice(count($lines))->map(fn (ReservationUnit $surplusUnit): int => $surplusUnit->id)->all());
 
         if ($surplus !== []) {
             $this->cancelLive($actor, $reservation, $surplus, $reason);
@@ -235,7 +235,7 @@ class IngestChannelBooking
     private function repriceNights(User $actor, ReservationUnit $unit, NewUnitData $line, array $room, string $reason): void
     {
         $nights = $unit->nights()->orderBy('date')->get();
-        $targets = $this->nightPrices($nights->map(fn ($night): string => $night->date->toDateString())->all(), $line, $room);
+        $targets = $this->nightPrices(array_values($nights->map(fn ($night): string => $night->date->toDateString())->all()), $line, $room);
         $groups = [];
 
         foreach ($nights as $night) {
@@ -297,7 +297,7 @@ class IngestChannelBooking
      */
     private function cancel(User $actor, Reservation $reservation, string $channelName): void
     {
-        $ids = $reservation->units()->whereIn('status', [UnitStatus::Confirmed, UnitStatus::CheckedIn])->pluck('id')->all();
+        $ids = array_values($reservation->units()->whereIn('status', [UnitStatus::Confirmed, UnitStatus::CheckedIn])->get()->map(fn (ReservationUnit $unit): int => $unit->id)->all());
 
         if ($ids !== []) {
             $this->cancelLive($actor, $reservation, $ids, __('Cancelled on :channel', ['channel' => $channelName]));

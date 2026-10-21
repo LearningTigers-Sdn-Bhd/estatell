@@ -37,7 +37,7 @@ class ChannelRevisionMapper
             ->get()
             ->keyBy('external_rate_plan_id');
 
-        return array_values(array_map(function (array $room, int $index) use ($mappings, $channelName): NewUnitData {
+        return array_map(function (array $room, int $index) use ($mappings, $channelName): NewUnitData {
             if (empty($room['room_type_id'])) {
                 throw new ChannelRevisionRefused(__('Room :number is not mapped to a room type on the channel.', ['number' => $index + 1]));
             }
@@ -50,7 +50,7 @@ class ChannelRevisionMapper
 
             $occupancy = $room['occupancy'] ?? [];
             $children = (int) ($occupancy['children'] ?? 0);
-            $ages = array_map('intval', is_array($occupancy['ages'] ?? null) ? $occupancy['ages'] : []);
+            $ages = array_values(array_map('intval', is_array($occupancy['ages'] ?? null) ? $occupancy['ages'] : []));
 
             return new NewUnitData(
                 roomTypeId: $mapping->room_type_id,
@@ -62,7 +62,7 @@ class ChannelRevisionMapper
                 overrideTotal: number_format((float) ($room['amount'] ?? 0), 2, '.', ''),
                 overrideReason: __('Booked on :channel', ['channel' => $channelName]),
             );
-        }, $rooms, array_keys($rooms)));
+        }, $rooms, array_keys($rooms));
     }
 
     /**

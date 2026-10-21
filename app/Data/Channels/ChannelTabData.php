@@ -57,7 +57,7 @@ class ChannelTabData extends Data
             sync: $sync,
             synced: $channelProperty === null ? [] : self::synced($channelProperty),
             failedBookings: $channelProperty === null ? [] : self::failedBookings($channelProperty),
-            alerts: $channelProperty === null ? [] : $channelProperty->alerts()->open()->latest('id')->get()->map(ChannelAlertData::fromModel(...))->all(),
+            alerts: $channelProperty === null ? [] : array_values($channelProperty->alerts()->open()->latest('id')->get()->map(ChannelAlertData::fromModel(...))->all()),
             recentBookings: $channelProperty === null ? [] : self::recentBookings($channelProperty),
             otas: $otas,
         );
@@ -68,7 +68,7 @@ class ChannelTabData extends Data
      */
     private static function failedBookings(ChannelProperty $channelProperty): array
     {
-        return $channelProperty->bookingRevisions()->failed()->with('reservation')->oldest('id')->get()->map(ChannelRevisionData::fromModel(...))->all();
+        return array_values($channelProperty->bookingRevisions()->failed()->with('reservation')->oldest('id')->get()->map(ChannelRevisionData::fromModel(...))->all());
     }
 
     /**
@@ -76,7 +76,7 @@ class ChannelTabData extends Data
      */
     private static function recentBookings(ChannelProperty $channelProperty): array
     {
-        return $channelProperty->bookingRevisions()->with('reservation')->latest('id')->limit(20)->get()->map(ChannelRevisionData::fromModel(...))->all();
+        return array_values($channelProperty->bookingRevisions()->with('reservation')->latest('id')->limit(20)->get()->map(ChannelRevisionData::fromModel(...))->all());
     }
 
     /**

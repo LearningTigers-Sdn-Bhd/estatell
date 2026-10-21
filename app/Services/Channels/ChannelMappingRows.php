@@ -29,7 +29,8 @@ class ChannelMappingRows
             foreach ($room['rates'] ?? [] as $rate) {
                 $roomCode = (string) ($room['id'] ?? '');
                 $rateCode = (string) ($rate['id'] ?? '');
-                $occupancies = collect($rate['occupancies'] ?? [])->map(fn ($occupancy): int => (int) $occupancy)->unique()->sortDesc()->values()->all();
+                $occupancies = array_values(array_unique(array_map(fn ($occupancy): int => (int) $occupancy, $rate['occupancies'] ?? [])));
+                rsort($occupancies);
 
                 foreach ($occupancies === [] ? [null] : $occupancies as $occupancy) {
                     $existing = $saved->first(fn ($mapping): bool => (string) $mapping->ota_room_code === $roomCode
@@ -53,7 +54,7 @@ class ChannelMappingRows
                         'rateTitle' => (string) ($rate['title'] ?? __('Rate')),
                         'occupancy' => $occupancy,
                         'estatell' => $value,
-                        'isPrimary' => $existing?->is_primary ?? false,
+                        'isPrimary' => $existing !== null && $existing->is_primary,
                         'rateType' => $existing?->rate_type,
                     ];
                 }

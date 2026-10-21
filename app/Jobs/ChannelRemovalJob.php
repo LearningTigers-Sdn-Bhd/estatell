@@ -80,10 +80,10 @@ class ChannelRemovalJob implements ShouldQueue
             return;
         }
 
-        $done = match ($this->kind) {
-            ChannelRemovalKind::RatePlan => $archiveRatePlan($actor, $subject),
-            ChannelRemovalKind::RoomType => $archiveRoomType($actor, $subject),
-            ChannelRemovalKind::Unlink => $syncRoomTypes($actor, $subject, $this->wantedRoomTypeIds),
+        $done = match (true) {
+            $subject instanceof RoomType => $archiveRoomType($actor, $subject),
+            $this->kind === ChannelRemovalKind::RatePlan => $archiveRatePlan($actor, $subject),
+            default => $syncRoomTypes($actor, $subject, $this->wantedRoomTypeIds),
         };
 
         if ($done) {

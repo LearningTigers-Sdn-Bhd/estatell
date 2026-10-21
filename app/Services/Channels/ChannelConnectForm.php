@@ -25,7 +25,7 @@ class ChannelConnectForm
 
         foreach ($params as $name => $param) {
             $copy = $this->copy->for($adapterCode, $name);
-            $rule = collect($param['rules'] ?? [])->first(fn (array $rule): bool => ($rule['apply'] ?? null) === 'hidden');
+            $rule = array_find($param['rules'] ?? [], fn (array $rule): bool => ($rule['apply'] ?? null) === 'hidden');
             $default = $param['default'] ?? null;
 
             $fields[] = new ChannelConnectFieldData(
@@ -35,7 +35,7 @@ class ChannelConnectForm
                 hint: $copy['hint'],
                 placeholder: $copy['placeholder'],
                 options: array_values($param['options'] ?? []),
-                default: is_scalar($default) ? $default : null,
+                default: is_bool($default) || is_int($default) || is_string($default) ? $default : null,
                 required: $name === 'hotel_id',
                 hiddenWhenField: $rule['influence_field'] ?? null,
                 hiddenWhenValue: $rule === null ? null : ($rule['when'] ?? null),

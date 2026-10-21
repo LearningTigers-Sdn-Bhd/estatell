@@ -37,12 +37,11 @@ class RateBulkPlanData extends Data
             derived: $derived,
             followsName: $ratePlan->parent?->name,
             hasOwnPrices: ! $derived && $ratePlan->pricing_basis !== PricingBasis::Package,
-            roomTypes: $ratePlan->roomTypes
+            roomTypes: array_values($ratePlan->roomTypes
                 ->whereNull('archived_at')
                 ->sortBy(['position', 'id'])
-                ->values()
                 ->map(fn (RoomType $roomType): RateBulkRoomTypeData => RateBulkRoomTypeData::fromModel($roomType))
-                ->all(),
+                ->all()),
         );
     }
 }

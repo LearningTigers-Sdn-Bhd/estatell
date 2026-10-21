@@ -20,7 +20,7 @@ class VerifyChannexSignature
         $secret = (string) config('services.channex.webhook_secret');
         $timestamp = (string) $request->header('x-hmac-timestamp');
 
-        if ($secret === '' || ! ctype_digit($timestamp) || abs(now()->timestamp - (int) $timestamp) > self::TOLERANCE_SECONDS) {
+        if ($secret === '' || ! ctype_digit($timestamp) || abs(now()->getTimestamp() - (int) $timestamp) > self::TOLERANCE_SECONDS) {
             abort(401);
         }
 
