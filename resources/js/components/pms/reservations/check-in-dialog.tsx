@@ -5,6 +5,10 @@ import { DateText } from '@/components/pms/date-text';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { MoneyText } from '@/components/pms/money-text';
+import {
+    AuditPendingNote,
+    AuditPendingStrip,
+} from '@/components/pms/reservations/audit-pending';
 import { useUnitPreview } from '@/components/pms/reservations/use-unit-preview';
 import {
     KEEP_OPTIONS,
@@ -165,6 +169,8 @@ function CheckInForm({
         >
             {preview !== null && (
                 <>
+                    <AuditPendingStrip pending={preview.auditPending} />
+                    <AuditPendingNote pending={preview.auditPending} />
                     {preview.error !== null && (
                         <p className="text-sm text-destructive">
                             {preview.error}

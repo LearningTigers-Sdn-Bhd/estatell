@@ -7,6 +7,7 @@ use App\Actions\FrontDesk\UndoCheckOut;
 use App\Actions\FrontDesk\UnitStayResult;
 use App\Actions\Payments\RecordPayment;
 use App\Data\Payments\NewPaymentData;
+use App\Enums\BusinessDateStatus;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
@@ -1289,6 +1290,31 @@ test('early check-out while the audit is pending keeps and posts the night of th
         ->and(UnitAddOn::query()->whereKey($later->id)->exists())->toBeFalse()
         ->and(uaEarlyFeeLines($unit))->toBe(1)
         ->and(Folio::query()->where('reservation_unit_id', $unit->id)->sole()->status)->toBe(FolioStatus::Closed);
+});
+
+test('the previews carry the pending-audit strip and the line under the stay only while the audit is pending', function () {
+    $day = fn (int $offset): string => today()->addDays($offset)->format('j M');
+    $setup = uaPendingSetup();
+
+    $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-out-preview'))
+        ->assertJsonPath('auditPending', ['businessDate' => $day(-1), 'today' => $day(0), 'running' => false, 'notice' => 'Last night ('.$day(-1).') is added to the bill now. The night audit will skip it.']);
+
+    BusinessDate::query()->update(['status' => BusinessDateStatus::Auditing]);
+    $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-out-preview'))->assertJsonPath('auditPending.running', true);
+    BusinessDate::query()->update(['status' => BusinessDateStatus::Open]);
+
+    $early = uaEarlyPendingSetup();
+
+    $this->actingAs($early['user'])->postJson(uaUrl($early, 'check-out-preview'))
+        ->assertJsonPath('auditPending.notice', 'Last night ('.$day(-1).') is added to the bill now. The night audit will skip it. '.$day(0).' and '.$day(1).' removed.');
+
+    $arrival = uaSetup();
+    BusinessDate::query()->update(['date' => today()->subDay()->toDateString()]);
+    $this->actingAs($arrival['user'])->postJson(uaUrl($arrival, 'check-in-preview'))
+        ->assertJsonPath('auditPending.notice', 'That\'s fine. Tonight\'s night audit charges '.$day(0).'.');
+
+    BusinessDate::query()->update(['date' => today()->toDateString()]);
+    $this->actingAs($arrival['user'])->postJson(uaUrl($arrival, 'check-in-preview'))->assertJsonPath('auditPending', null);
 });
 
 test('the menu offers an early check-out while the audit is pending', function () {

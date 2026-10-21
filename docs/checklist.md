@@ -55,7 +55,7 @@ Needed for go-live.
 - [x] `feat(front-desk): early check-out while the audit is pending` — new departure is the stay day; **Guest actually left yesterday** (reason required, fee read with that departure); `night_audit_pending` only for an Overdue audit. Tests replace the d88ba864 ones. Docs: [Night audit pending](18-front-desk/01-check-in-and-check-out.md#night-audit-pending).
 - [x] `feat(front-desk): ask what an overdue guest did` — `CheckOutOverdueStay` (`stayed_last_night`): `ExtendStay` with a fixed restriction reason, post the night, check out; `not_available` refused. Tests: left, stayed, refusal rolls back. Docs: [Night audit pending](18-front-desk/01-check-in-and-check-out.md#night-audit-pending).
 - [x] `feat(front-desk): group check-out while the audit is pending` — `GroupCheckOutPreview` and `CheckOutGroup` use the stay day and post the pending night first. Tests in `CheckOutGroupTest`. Docs: [Night audit pending](18-front-desk/01-check-in-and-check-out.md#night-audit-pending).
-- [ ] `feat(front-desk): show the pending-audit strip in the Dialogs` — the strip ("not run yet" or "running"), the ⓘ line and "(added now)" from the preview, in the check-in, check-out and group pages. Docs: [Night audit pending](18-front-desk/01-check-in-and-check-out.md#night-audit-pending).
+- [x] `feat(front-desk): show the pending-audit strip in the Dialogs` — the strip ("not run yet" or "running"), the ⓘ line and "(added now)" from the preview, in the check-in, check-out and group pages. Docs: [Night audit pending](18-front-desk/01-check-in-and-check-out.md#night-audit-pending).
 - [ ] `feat(front-desk): add the stay view` — Docs: [Stay View](18-front-desk/03-stay-view.md).
 
 ## OpenCode

@@ -658,6 +658,11 @@ test('a room that departs on the calendar date is ready while the audit is pendi
 
     $row = gcRow($this, $s, $s['units'][0]);
 
+    $this->actingAs($s['user'])->postJson(gcUrl($s, 'preview'))
+        ->assertJsonPath('auditPending.businessDate', '9 Oct')
+        ->assertJsonPath('auditPending.today', '10 Oct')
+        ->assertJsonPath('auditPending.running', false);
+
     expect($row['group'])->toBe('ready')
         ->and($row['ticked'])->toBeTrue()
         ->and($row['pendingLines'])->not->toBeEmpty()

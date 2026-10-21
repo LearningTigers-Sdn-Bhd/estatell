@@ -68,6 +68,7 @@ class GroupCheckOutPreview
         private Impersonation $impersonation,
         private StayDay $stayDay,
         private PendingNightQuote $pendingNightQuote,
+        private AuditPendingNotice $auditPendingNotice,
     ) {}
 
     public static function selectable(string $kind): bool
@@ -143,6 +144,9 @@ class GroupCheckOutPreview
             $this->summary($rows, $choices, $onePayment, $settleMaster, $masterData),
             $methods['data'],
             null,
+            $this->auditPendingNotice->block($property, collect($rows)->contains(fn (GroupCheckOutRowData $row): bool => $row->pendingLines !== [])
+                ? __('Last night (:date) is added to the bill of each room checking out now. The night audit will skip it.', ['date' => $businessDate->format('j M')])
+                : null),
         );
     }
 

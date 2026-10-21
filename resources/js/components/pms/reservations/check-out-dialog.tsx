@@ -1,10 +1,17 @@
 import { Link, useForm } from '@inertiajs/react';
+import { DoorOpen, Moon } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { ChoiceCards } from '@/components/pms/choice-cards';
 import { DateText } from '@/components/pms/date-text';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { MoneyInput } from '@/components/pms/money-input';
-import { MoneyText } from '@/components/pms/money-text';
+import { formatMoney, MoneyText } from '@/components/pms/money-text';
+import {
+    AuditPendingNote,
+    AuditPendingStrip,
+    PendingLines,
+} from '@/components/pms/reservations/audit-pending';
 import { useUnitPreview } from '@/components/pms/reservations/use-unit-preview';
 import {
     KEEP_OPTIONS,
@@ -81,9 +88,17 @@ function CheckOutForm({
     currency,
 }: Props) {
     const key = { reservation: reservationId, unit: unit.id };
+    const [leftYesterday, setLeftYesterday] = useState(false);
+    const [overdueChoice, setOverdueChoice] = useState<'' | 'left' | 'stayed'>(
+        '',
+    );
     const { preview, reload } = useUnitPreview<Preview>(
         checkOutPreview.url(key),
         open,
+        {
+            ...(leftYesterday && { left_yesterday: '1' }),
+            ...(overdueChoice === 'stayed' && { stayed_last_night: '1' }),
+        },
     );
     useFormOptions(
         open && preview?.canCollect === true,
@@ -102,9 +117,15 @@ function CheckOutForm({
         do_not_charge: false,
         reason: '',
         expected_fee: '',
+        stayed_last_night: false,
     });
     const { data, errors } = form;
     const early = preview?.early ?? null;
+    const overdue = preview?.overdue ?? null;
+    const pendingDay = preview?.auditPending?.businessDate ?? '';
+    // Display rules only: the server decides who is overdue and sends the dates as text.
+    const mustChoose = overdue !== null && overdueChoice === '';
+    const needsReason = leftYesterday && data.reason.trim() === '';
     const held = Number(preview?.depositHeld ?? 0);
     const refundable = Number(preview?.refundable ?? 0);
     const methodId = data.payment_method_id || String(methods[0]?.id ?? '');
@@ -203,7 +224,9 @@ function CheckOutForm({
                 do_not_charge: waived,
                 reason: values.reason,
                 expected_fee: early.fee,
+                left_yesterday: leftYesterday,
             }),
+            ...(overdueChoice === 'stayed' && { stayed_last_night: true }),
         }));
         form.post((early !== null ? earlyCheckOut : checkOut).url(key), {
             preserveScroll: true,
@@ -230,12 +253,54 @@ function CheckOutForm({
             submitLabel={label.charAt(0).toUpperCase() + label.slice(1)}
             processing={form.processing}
             submitDisabled={
-                !settled || (collecting && paymentOptions === undefined)
+                !settled ||
+                mustChoose ||
+                needsReason ||
+                (collecting && paymentOptions === undefined)
             }
             loading={preview === null}
         >
             {preview !== null && (
                 <>
+                    <AuditPendingStrip pending={preview.auditPending} />
+                    <AuditPendingNote pending={preview.auditPending} />
+                    {overdue !== null && (
+                        <ChoiceCards
+                            id="check-out-overdue"
+                            legend={`This guest was due to leave yesterday (${pendingDay}). What happened?`}
+                            choices={[
+                                {
+                                    value: 'left',
+                                    label: 'They left yesterday',
+                                    description: `Check out on ${pendingDay}. No extra night.`,
+                                    icon: DoorOpen,
+                                },
+                                {
+                                    value: 'stayed',
+                                    label: 'They stayed last night',
+                                    description: `Add ${pendingDay} (${formatMoney(overdue.nightTotal, currency)}), then check out today.`,
+                                    icon: Moon,
+                                },
+                            ]}
+                            value={overdueChoice}
+                            onValueChange={(value) =>
+                                setOverdueChoice(value as 'left' | 'stayed')
+                            }
+                            error={errors.stayed_last_night}
+                        />
+                    )}
+                    {(leftYesterday ||
+                        early?.leftYesterdayAvailable === true) && (
+                        <button
+                            type="button"
+                            className="self-start text-sm underline underline-offset-4"
+                            onClick={() => setLeftYesterday(!leftYesterday)}
+                        >
+                            {leftYesterday
+                                ? 'Back to checking out today'
+                                : `Guest actually left yesterday (${pendingDay})? ›`}
+                        </button>
+                    )}
                     {preview.error !== null && (
                         <p className="text-sm text-destructive">
                             {preview.error}
@@ -317,7 +382,9 @@ function CheckOutForm({
                             )}
                             <Field data-invalid={!!errors.reason}>
                                 <FieldLabel htmlFor="check-out-reason">
-                                    Reason
+                                    {leftYesterday
+                                        ? 'Reason (required)'
+                                        : 'Reason'}
                                 </FieldLabel>
                                 <Textarea
                                     id="check-out-reason"
@@ -333,7 +400,9 @@ function CheckOutForm({
                                     placeholder={
                                         waived
                                             ? 'Required with Do not charge'
-                                            : 'e.g. Flight changed, guest leaves a day early'
+                                            : leftYesterday
+                                              ? 'e.g. Guest left late last night and did not check out'
+                                              : 'e.g. Flight changed, guest leaves a day early'
                                     }
                                     aria-invalid={!!errors.reason}
                                 />
@@ -341,6 +410,10 @@ function CheckOutForm({
                             </Field>
                         </>
                     )}
+                    <PendingLines
+                        lines={preview.pendingLines}
+                        currency={currency}
+                    />
                     <div className="flex flex-col gap-1 text-sm">
                         <span className="font-medium">Unit folio</span>
                         <SummaryRow

@@ -39,6 +39,7 @@ use App\Services\Availability\FreeUnits;
 use App\Services\Catalogues\PolicyChargeCalculator;
 use App\Services\Catalogues\TaxCalculator;
 use App\Services\CityLedger\CreditCheck;
+use App\Services\FrontDesk\AuditPendingNotice;
 use App\Services\FrontDesk\CheckInCollection;
 use App\Services\FrontDesk\CheckOutSettlement;
 use App\Services\FrontDesk\EarlyCheckOutRule;
@@ -88,6 +89,7 @@ class UnitActionPreview
         private UndoCheckOutRule $undoCheckOutRule,
         private StayDay $stayDay,
         private PendingNightQuote $pendingNightQuote,
+        private AuditPendingNotice $auditPendingNotice,
     ) {}
 
     /**
@@ -127,6 +129,9 @@ class UnitActionPreview
             canOverrideCredit: $user->can(PermissionEnum::CompanyCreditOverride->value),
             collection: $collection === null || $collection->isEmpty() ? null : $collection,
             error: null,
+            auditPending: $this->auditPendingNotice->block($property, $this->stayDay->forCheckIn($unit, $businessDate)->gt($businessDate)
+                ? __('That\'s fine. Tonight\'s night audit charges :date.', ['date' => $businessDate->addDay()->format('j M')])
+                : null),
         );
     }
 
@@ -282,10 +287,27 @@ class UnitActionPreview
         }
 
         if ($unit->status !== UnitStatus::CheckedIn || $businessDate === null || (! $leftYesterday && $this->stayDay->forCheckOut($property, $businessDate)->toDateString() >= $unit->departure_date->toDateString())) {
+            $preview->auditPending = $businessDate === null ? null : $this->auditPendingNotice->block($property, $pendingLines === [] ? null : $this->addedNowNotice($businessDate));
+
             return $preview;
         }
 
-        return $this->earlyCheckOut($unit, $businessDate->toImmutable(), $preview, $leftYesterday);
+        $early = $this->earlyCheckOut($unit, $businessDate->toImmutable(), $preview, $leftYesterday);
+
+        if ($early->error === null && $early->early !== null) {
+            $removed = $unit->nights()->whereDate('date', '>=', $early->early->newDeparture)->orderBy('date')->pluck('date')->map(fn ($date): CarbonImmutable => CarbonImmutable::parse($date))->all();
+            $gone = $removed === [] ? '' : ' '.__(':dates removed.', ['dates' => $this->auditPendingNotice->dates($removed)]);
+            $early->auditPending = $this->auditPendingNotice->block($property, $leftYesterday
+                ? __('Last night (:date) is not charged.', ['date' => $businessDate->format('j M')]).$gone
+                : $this->addedNowNotice($businessDate).$gone);
+        }
+
+        return $early;
+    }
+
+    private function addedNowNotice(CarbonInterface $businessDate): string
+    {
+        return __('Last night (:date) is added to the bill now. The night audit will skip it.', ['date' => $businessDate->format('j M')]);
     }
 
     /**

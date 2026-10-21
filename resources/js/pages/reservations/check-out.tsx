@@ -7,6 +7,10 @@ import { FormActions } from '@/components/pms/form-actions';
 import { FormError } from '@/components/pms/form-error';
 import { MoneyText } from '@/components/pms/money-text';
 import { PageHeader } from '@/components/pms/page-header';
+import {
+    AuditPendingNote,
+    AuditPendingStrip,
+} from '@/components/pms/reservations/audit-pending';
 import { CheckOutDialog } from '@/components/pms/reservations/check-out-dialog';
 import { GroupCheckOutDone } from '@/components/pms/reservations/group-check-out-done';
 import { GroupCheckOutMutedList } from '@/components/pms/reservations/group-check-out-muted';
@@ -413,6 +417,8 @@ export default function CheckOut({
                     />
 
                     <FormError errors={errors} />
+                    <AuditPendingStrip pending={preview.auditPending} />
+                    <AuditPendingNote pending={preview.auditPending} />
                     {preview.error !== null && (
                         <Alert variant="destructive">
                             <AlertDescription>{preview.error}</AlertDescription>

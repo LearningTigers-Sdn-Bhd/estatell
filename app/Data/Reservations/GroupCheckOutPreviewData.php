@@ -28,5 +28,6 @@ class GroupCheckOutPreviewData extends Data
         #[DataCollectionOf(PaymentMethodOptionData::class)]
         public array $methods,
         public ?string $error,
+        public ?UnitAuditPendingData $auditPending = null,
     ) {}
 }

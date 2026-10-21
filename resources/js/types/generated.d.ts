@@ -3079,6 +3079,7 @@ master: App.Data.Reservations.GroupCheckOutMasterData | null,
 summary: App.Data.Reservations.GroupCheckOutSummaryData,
 methods: App.Data.Payments.PaymentMethodOptionData[],
 error: string | null,
+auditPending: App.Data.Reservations.UnitAuditPendingData | null,
 };
 export type GroupCheckOutRowData = {
 unitId: number,
@@ -3403,6 +3404,12 @@ export type UnitActionData = {
 key: App.Enums.UnitAction,
 label: string,
 };
+export type UnitAuditPendingData = {
+businessDate: string,
+today: string,
+running: boolean,
+notice: string | null,
+};
 export type UnitCheckInPreviewData = {
 room: string | null,
 roomState: App.Enums.CheckInRoomState,
@@ -3418,6 +3425,7 @@ creditExceeded: boolean,
 canOverrideCredit: boolean,
 collection: App.Data.Reservations.CheckInCollectionData | null,
 error: string | null,
+auditPending: App.Data.Reservations.UnitAuditPendingData | null,
 };
 export type UnitCheckOutPreviewData = {
 balance: string,
@@ -3441,6 +3449,7 @@ paid: string,
 pendingLines: App.Data.Reservations.UnitPendingLineData[],
 pendingTotal: string,
 overdue: App.Data.Reservations.UnitOverdueData | null,
+auditPending: App.Data.Reservations.UnitAuditPendingData | null,
 };
 export type UnitDatesPreviewData = {
 previousTotal: string | null,

@@ -19,7 +19,8 @@ use Spatie\LaravelData\Data;
  * Dialog: `charges + paid - depositHeld = balance`. `pendingLines` are the lines the check-out posts first for the night
  * of the business date while the night audit is pending (shown as added now), and `pendingTotal` is their sum, already
  * inside `balance` and `charges`. `overdue` is set for a guest due to leave on the business date while the audit is
- * pending (They left yesterday or They stayed last night).
+ * pending (They left yesterday or They stayed last night). `auditPending` is the strip and the ⓘ line shown while the
+ * audit is pending.
  */
 class UnitCheckOutPreviewData extends Data
 {
@@ -49,6 +50,7 @@ class UnitCheckOutPreviewData extends Data
         public array $pendingLines = [],
         public string $pendingTotal = '0.00',
         public ?UnitOverdueData $overdue = null,
+        public ?UnitAuditPendingData $auditPending = null,
     ) {}
 
     public static function refused(string $error): self
