@@ -20,4 +20,5 @@ Route::middleware(['auth', 'can:partner'])->prefix('partner')->name('partner.')-
     Route::get('properties/{code}/staff', [PartnerPropertyController::class, 'staff'])->where('code', '[A-Za-z]{2}[0-9]{5,}')->name('properties.staff');
     Route::get('properties/{code}/features', [PartnerPropertyController::class, 'features'])->where('code', '[A-Za-z]{2}[0-9]{5,}')->name('properties.features');
     Route::post('link', [PartnerSignupLinkController::class, 'regenerate'])->middleware('support.2fa')->name('link.regenerate');
+    Route::put('link/message', [PartnerSignupLinkController::class, 'updateMessage'])->middleware('support.2fa')->name('link.message.update');
 });
