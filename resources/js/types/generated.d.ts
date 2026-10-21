@@ -231,10 +231,10 @@ label: string,
 hint: string | null,
 placeholder: string | null,
 options: string[],
-default: string | boolean | number | null,
+default: string | number | boolean | null,
 required: boolean,
 hiddenWhenField: string | null,
-hiddenWhenValue: boolean | string | null,
+hiddenWhenValue: string | boolean | null,
 };
 export type ChannelConnectPageData = {
 otaChannelId: number,
@@ -275,10 +275,6 @@ occupancy: number | null,
 estatell: string | null,
 isPrimary: boolean,
 rateType: string | null,
-};
-export type ChannelOtaOptionData = {
-value: string,
-label: string,
 };
 export type ChannelOtaRowData = {
 otaChannelId: number,
