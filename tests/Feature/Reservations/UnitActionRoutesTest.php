@@ -14,6 +14,7 @@ use App\Enums\PaymentPurpose;
 use App\Enums\PolicyScope;
 use App\Enums\ReservationStatus;
 use App\Enums\SystemTransactionCode;
+use App\Enums\TaxRateType;
 use App\Enums\TransactionCategory;
 use App\Enums\UnitStatus;
 use App\Models\ArInvoice;
@@ -1517,4 +1518,22 @@ test('the check-out preview refunds a credit above the deposit, deposit first, a
         ->assertJsonPath('refundParts.1.purpose', PaymentPurpose::Advance->label())
         ->assertJsonPath('refundParts.1.amount', '200.00')
         ->assertJsonPath('error', null);
+});
+
+test('a free early departure fee adds no flat tax, so the preview refund settles the folio', function () {
+    $setup = uaEarlySetup();
+    uaEarlyPolicy($setup, ['charge_mode' => 'free', 'amount' => null]);
+    $code = TransactionCode::query()->where('property_id', $setup['property']->id)->where('system_key', SystemTransactionCode::EarlyDepartureRevenue->value)->sole();
+    $code->applicableTaxes()->attach(Tax::factory()->for($setup['property'])->create(['rate_type' => TaxRateType::Flat, 'rate' => '10.00']));
+
+    $preview = $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-out-preview'))
+        ->assertOk()
+        ->assertJsonPath('early.feeTotal', '0.00')
+        ->assertJsonPath('refundDefault', '100.00');
+
+    $this->post(uaUrl($setup, 'early-check-out'), ['refund_amount' => $preview->json('refundDefault'), 'expected_fee' => '0.00', 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasNoErrors();
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedOut)
+        ->and(uaEarlyFeeLines($setup['unit']))->toBe(0);
 });

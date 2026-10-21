@@ -294,16 +294,19 @@ class UnitActionPreview
             return UnitCheckOutPreviewData::refused($this->refusals->message((string) $tax->refusalReason));
         }
 
+        // A free fee posts nothing, not even a flat tax, as in ProcessEarlyDeparture.
+        $feeTotal = $charge->isFree() ? '0.00' : (string) $tax->grossAmount->getAmount();
+
         $preview->early = new UnitEarlyDepartureData(
             departure: $unit->departure_date->toDateString(),
             nightsRemoved: $unit->nights()->whereDate('date', '>=', $businessDate->toDateString())->count(),
             fee: (string) $charge->amount->getAmount(),
-            feeTotal: (string) $tax->grossAmount->getAmount(),
+            feeTotal: $feeTotal,
             withinFreeWindow: $charge->withinFreeWindow,
         );
 
         // The fee is posted before the refund, so the credit the refund gives back is the one after the fee.
-        $refunds = $this->checkOutSettlement->refunds($this->checkOutSettlement->folios($unit), BigDecimal::of($preview->balance)->plus((string) $tax->grossAmount->getAmount()));
+        $refunds = $this->checkOutSettlement->refunds($this->checkOutSettlement->folios($unit), BigDecimal::of($preview->balance)->plus($feeTotal));
         $preview->refundDefault = (string) $refunds['default']->toScale(2);
         $preview->refundParts = $refunds['parts'];
 
