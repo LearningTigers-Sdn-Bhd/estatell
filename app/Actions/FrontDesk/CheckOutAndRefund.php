@@ -2,16 +2,22 @@
 
 namespace App\Actions\FrontDesk;
 
+use App\Actions\Folio\PostCharge;
+use App\Actions\Folio\PostingResult;
 use App\Actions\Payments\RecordPayment;
 use App\Actions\Payments\RefundPayment;
+use App\Data\Folio\NewChargeData;
 use App\Data\Payments\NewPaymentData;
 use App\Data\Reservations\CheckOutCollectData;
+use App\Data\Reservations\CheckOutDamageData;
 use App\Enums\PaymentPurpose;
 use App\Models\ReservationUnit;
 use App\Models\User;
 use App\Services\FrontDesk\CheckOutSettlement;
+use App\Services\FrontDesk\DamageChargeItem;
 use Brick\Math\BigDecimal;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Throwable;
 
 class CheckOutAndRefund
@@ -22,6 +28,8 @@ class CheckOutAndRefund
         private RefundPayment $refundPayment,
         private CheckOutSettlement $checkOutSettlement,
         private PostPendingNight $postPendingNight,
+        private PostCharge $postCharge,
+        private DamageChargeItem $damageChargeItem,
     ) {}
 
     /**
@@ -36,13 +44,18 @@ class CheckOutAndRefund
      * from the form: the payment uses `{uuid}:collect` and each refund `{uuid}:{payment id}`. Permissions are checked
      * by the route and the Form Request. While the night audit is pending, `PostPendingNight` runs first, so the balance
      * the payment and the refund settle includes the night of the business date. See docs/18-front-desk/01-check-in-and-check-out.md#check-out.
+     *
+     * `$damage` posts a damage charge on the property's damage charge item (`DamageChargeItem`), on the unit's own folio
+     * with the key `{uuid}:damage`, before the payment and the refund, so the deposit offsets it. With no damage charge
+     * item it refuses `damage_not_allowed`, and an amount the item's fixed price does not allow `damage_price_fixed`. Other
+     * `PostCharge` refusals come back as they are.
      */
-    public function __invoke(User $actor, ReservationUnit $unit, ?string $refundAmount = null, ?CheckOutCollectData $collect = null, ?string $idempotencyKey = null): UnitStayResult
+    public function __invoke(User $actor, ReservationUnit $unit, ?string $refundAmount = null, ?CheckOutCollectData $collect = null, ?string $idempotencyKey = null, ?CheckOutDamageData $damage = null): UnitStayResult
     {
         DB::beginTransaction();
 
         try {
-            $result = $this->run($actor, $unit, $refundAmount, $collect, $idempotencyKey);
+            $result = $this->run($actor, $unit, $refundAmount, $collect, $idempotencyKey, $damage);
         } catch (Throwable $exception) {
             DB::rollBack();
 
@@ -54,12 +67,20 @@ class CheckOutAndRefund
         return $result;
     }
 
-    private function run(User $actor, ReservationUnit $unit, ?string $refundAmount, ?CheckOutCollectData $collect, ?string $idempotencyKey): UnitStayResult
+    private function run(User $actor, ReservationUnit $unit, ?string $refundAmount, ?CheckOutCollectData $collect, ?string $idempotencyKey, ?CheckOutDamageData $damage): UnitStayResult
     {
         try {
             ($this->postPendingNight)($actor, $unit->refresh());
         } catch (UnitStayRefused $refused) {
             return $refused->result;
+        }
+
+        if ($damage !== null) {
+            $refusal = $this->postDamage($actor, $unit, $damage, $idempotencyKey ?? (string) Str::uuid());
+
+            if ($refusal !== null) {
+                return UnitStayResult::refused($refusal);
+            }
         }
 
         if ($collect !== null) {
@@ -108,5 +129,29 @@ class CheckOutAndRefund
         }
 
         return ($this->checkOutUnit)($actor, $unit);
+    }
+
+    /**
+     * Post the damage charge on the unit's own folio. Returns the refusal code, or null when it posted.
+     */
+    private function postDamage(User $actor, ReservationUnit $unit, CheckOutDamageData $damage, string $idempotencyKey): ?string
+    {
+        $item = $this->damageChargeItem->for($unit->property);
+
+        if ($item === null) {
+            return UnitStayResult::REFUSAL_DAMAGE_NOT_ALLOWED;
+        }
+
+        $result = ($this->postCharge)($actor, $unit, new NewChargeData(
+            chargeItemId: $item->id,
+            transactionCodeId: null,
+            description: $damage->note === null ? null : $item->name.' · '.$damage->note,
+            quantity: 1,
+            unitAmount: $damage->amount,
+            idempotencyKey: $idempotencyKey.':damage',
+            ownFolio: true,
+        ));
+
+        return $result->refusal === PostingResult::REFUSAL_AMOUNT_OVERRIDE_NOT_ALLOWED ? UnitStayResult::REFUSAL_DAMAGE_PRICE_FIXED : $result->refusal;
     }
 }

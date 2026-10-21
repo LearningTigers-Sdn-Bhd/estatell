@@ -21,6 +21,7 @@ use App\Enums\TransactionCategory;
 use App\Enums\UnitStatus;
 use App\Models\ArInvoice;
 use App\Models\BusinessDate;
+use App\Models\ChargeItem;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\FolioRoutingRule;
@@ -646,6 +647,85 @@ test('check out collects the rest when the deposit is used toward the bill', fun
         ->and(Payment::query()->whereNotNull('refund_of_id')->count())->toBe(0);
 });
 
+/**
+ * A Damage charge item (staff type the amount) set as the property's damage charge item, its code taxed at 10%.
+ *
+ * @param  array{property: Property}  $setup
+ * @param  array<string, mixed>  $attributes
+ */
+function uaDamageItem(array $setup, array $attributes = []): ChargeItem
+{
+    $item = ChargeItem::factory()->create(['property_id' => $setup['property']->id, 'name' => 'Damage', 'default_amount' => null, ...$attributes]);
+    $tax = Tax::factory()->for($setup['property'])->create(['rate' => '10.00', 'is_inclusive' => false, 'foreign_guests_only' => false]);
+    $tax->applicableTransactionCodes()->attach($item->transaction_code_id);
+    $setup['property']->settings->update(['damage_charge_item_id' => $item->id]);
+
+    return $item;
+}
+
+test('the check-out preview offers the damage item and counts the damage with its tax in the refund', function () {
+    $setup = uaDepartingSetup();
+    $item = uaDamageItem($setup);
+
+    $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-out-preview'), ['damage_amount' => '30.00'])
+        ->assertJson(['damageItem' => ['id' => $item->id, 'name' => 'Damage', 'defaultAmount' => null], 'damageTotal' => '33.00', 'refundDefault' => '67.00', 'balance' => '-100.00']);
+
+    $this->actingAs(User::factory()->for($setup['property'])->withPermissions(['reservations.view', 'front-desk.check-out', 'payment.refund'])->create())
+        ->postJson(uaUrl($setup, 'check-out-preview'), ['damage_amount' => '30.00'])
+        ->assertJson(['damageItem' => null, 'damageTotal' => null]);
+});
+
+test('check out posts the damage on the unit folio, refunds the rest of the deposit and checks out', function () {
+    $setup = uaDepartingSetup();
+    uaDamageItem($setup);
+    $key = fake()->uuid();
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'check-out'), ['damage_amount' => '30.00', 'damage_note' => 'Broken lamp', 'refund_amount' => '67.00', 'idempotency_key' => $key])
+        ->assertSessionHasNoErrors();
+
+    $folio = Folio::query()->where('reservation_unit_id', $setup['unit']->id)->sole();
+    $damage = FolioLine::query()->where('idempotency_key', $key.':damage')->sole();
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedOut)
+        ->and($damage->folio_id)->toBe($folio->id)
+        ->and($damage->description)->toBe('Damage · Broken lamp')
+        ->and($damage->amount)->toBe('30.00')
+        ->and($damage->children()->sole()->amount)->toBe('3.00')
+        ->and(Payment::query()->whereNotNull('refund_of_id')->sole()->amount)->toBe('67.00')
+        ->and($folio->fresh()->status)->toBe(FolioStatus::Closed);
+});
+
+test('damage above the deposit refunds nothing and collects the rest', function () {
+    $setup = uaDepartingSetup();
+    uaDamageItem($setup);
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'check-out'), ['damage_amount' => '250.00', 'collect_amount' => '175.00', 'payment_method_id' => PaymentMethod::query()->sole()->id, 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasNoErrors();
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedOut)
+        ->and(Payment::query()->where('purpose', PaymentPurpose::Settlement)->sole()->amount)->toBe('175.00')
+        ->and(Payment::query()->whereNotNull('refund_of_id')->count())->toBe(0);
+});
+
+test('a damage charge is refused on its field and writes nothing', function (Closure $arrange, Closure $actor, string $amount) {
+    $setup = uaDepartingSetup();
+    $arrange($setup);
+
+    $this->actingAs($actor($setup))
+        ->post(uaUrl($setup, 'check-out'), ['damage_amount' => $amount, 'refund_amount' => '70.00', 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasErrors('damage_amount');
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn)
+        ->and(FolioLine::query()->where('idempotency_key', 'like', '%:damage')->count())->toBe(0)
+        ->and(Payment::query()->whereNotNull('refund_of_id')->count())->toBe(0);
+})->with([
+    'no damage charge item' => [fn (array $setup) => null, fn (array $setup) => $setup['user'], '30.00'],
+    'no folio.post-charge' => [fn (array $setup) => uaDamageItem($setup), fn (array $setup) => User::factory()->for($setup['property'])->withPermissions(['reservations.view', 'front-desk.check-out', 'payment.refund'])->create(), '30.00'],
+    'a fixed price' => [fn (array $setup) => uaDamageItem($setup, ['default_amount' => '50.00', 'allow_override' => false]), fn (array $setup) => $setup['user'], '30.00'],
+]);
+
 test('an amount that no longer settles the folio rolls back the payment and the refund', function () {
     $setup = uaDepartingSetup();
     uaOwing($setup);
@@ -693,6 +773,24 @@ test('early check-out collects the balance with the fee in one step', function (
 
     expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedOut)
         ->and(Payment::query()->where('purpose', PaymentPurpose::Settlement)->sole()->amount)->toBe('240.00');
+});
+
+test('early check-out prices and posts a damage charge with the fee', function () {
+    $setup = uaEarlySetup();
+    uaOwing($setup);
+    uaDamageItem($setup);
+    $key = fake()->uuid();
+
+    $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-out-preview'), ['damage_amount' => '30.00'])
+        ->assertJson(['early' => ['feeTotal' => '40.00'], 'damageTotal' => '33.00', 'balance' => '200.00']);
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'early-check-out'), ['expected_fee' => '40.00', 'damage_amount' => '30.00', 'collect_amount' => '273.00', 'payment_method_id' => PaymentMethod::query()->sole()->id, 'idempotency_key' => $key])
+        ->assertSessionHasNoErrors();
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedOut)
+        ->and(FolioLine::query()->where('idempotency_key', $key.':damage')->sole()->amount)->toBe('30.00')
+        ->and(Payment::query()->where('purpose', PaymentPurpose::Settlement)->sole()->amount)->toBe('273.00');
 });
 
 /**

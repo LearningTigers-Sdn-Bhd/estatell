@@ -6,6 +6,7 @@ use App\Actions\FrontDesk\UnitStayResult;
 use App\Actions\Reservations\AssignmentResult;
 use App\Data\Reservations\CancelAllPreviewData;
 use App\Data\Reservations\CheckInAllPreviewData;
+use App\Data\Reservations\CheckOutDamageItemData;
 use App\Data\Reservations\FreeUnitData;
 use App\Data\Reservations\UnitCheckInPreviewData;
 use App\Data\Reservations\UnitCheckOutPreviewData;
@@ -42,6 +43,7 @@ use App\Services\CityLedger\CreditCheck;
 use App\Services\FrontDesk\AuditPendingNotice;
 use App\Services\FrontDesk\CheckInCollection;
 use App\Services\FrontDesk\CheckOutSettlement;
+use App\Services\FrontDesk\DamageChargeItem;
 use App\Services\FrontDesk\EarlyCheckOutRule;
 use App\Services\FrontDesk\PendingNightQuote;
 use App\Services\FrontDesk\StayDay;
@@ -90,6 +92,7 @@ class UnitActionPreview
         private StayDay $stayDay,
         private PendingNightQuote $pendingNightQuote,
         private AuditPendingNotice $auditPendingNotice,
+        private DamageChargeItem $damageChargeItem,
     ) {}
 
     /**
@@ -267,7 +270,45 @@ class UnitActionPreview
      * The unit folio balance split by room, the security deposit held, another room's scheduled nights still charged
      * here, and whether the user may collect, refund and move charges.
      */
-    public function checkOut(ReservationUnit $unit, User $user, bool $leftYesterday = false, bool $stayedLastNight = false): UnitCheckOutPreviewData
+    public function checkOut(ReservationUnit $unit, User $user, bool $leftYesterday = false, bool $stayedLastNight = false, ?string $damageAmount = null): UnitCheckOutPreviewData
+    {
+        $preview = $this->checkOutFigures($unit, $user, $leftYesterday, $stayedLastNight);
+
+        return $preview->error === null ? $this->withDamage($preview, $unit, $user, $damageAmount) : $preview;
+    }
+
+    /**
+     * The damage charge item the user may post, and with `$damageAmount` above 0 what it adds with tax. The damage
+     * posts before the refund, so the default refund is worked out again from the balance after it (and after the
+     * early departure fee).
+     */
+    private function withDamage(UnitCheckOutPreviewData $preview, ReservationUnit $unit, User $user, ?string $damageAmount): UnitCheckOutPreviewData
+    {
+        $item = $this->damageChargeItem->offeredTo($unit->property, $user);
+
+        if ($item === null) {
+            return $preview;
+        }
+
+        $preview->damageItem = CheckOutDamageItemData::fromModel($item);
+
+        if ($damageAmount === null || ! BigDecimal::of($damageAmount)->isPositive()) {
+            return $preview;
+        }
+
+        $preview->damageTotal = $this->damageChargeItem->total($item->loadMissing('transactionCode'), $unit, $damageAmount);
+
+        if ($preview->damageTotal !== null) {
+            $balance = BigDecimal::of($preview->balance)->plus($preview->early === null ? '0' : $preview->early->feeTotal)->plus($preview->damageTotal);
+            $refunds = $this->checkOutSettlement->refunds($this->checkOutSettlement->folios($unit), $balance);
+            $preview->refundDefault = (string) $refunds['default']->toScale(2);
+            $preview->refundParts = $refunds['parts'];
+        }
+
+        return $preview;
+    }
+
+    private function checkOutFigures(ReservationUnit $unit, User $user, bool $leftYesterday, bool $stayedLastNight): UnitCheckOutPreviewData
     {
         $property = $unit->property()->firstOrFail();
         $businessDate = $this->currentBusinessDate->date($property);

@@ -20,7 +20,9 @@ use Spatie\LaravelData\Data;
  * of the business date while the night audit is pending (shown as added now), and `pendingTotal` is their sum, already
  * inside `balance` and `charges`. `overdue` is set for a guest due to leave on the business date while the audit is
  * pending (They left yesterday or They stayed last night). `auditPending` is the strip and the ⓘ line shown while the
- * audit is pending.
+ * audit is pending. `damageItem` is the damage charge item the user may post (null hides the damage choice), and
+ * `damageTotal` what the typed damage amount adds to the folio with tax; neither is in `balance`, and `refundDefault`
+ * and `refundParts` already count the damage.
  */
 class UnitCheckOutPreviewData extends Data
 {
@@ -51,6 +53,8 @@ class UnitCheckOutPreviewData extends Data
         public string $pendingTotal = '0.00',
         public ?UnitOverdueData $overdue = null,
         public ?UnitAuditPendingData $auditPending = null,
+        public ?CheckOutDamageItemData $damageItem = null,
+        public ?string $damageTotal = null,
     ) {}
 
     public static function refused(string $error): self

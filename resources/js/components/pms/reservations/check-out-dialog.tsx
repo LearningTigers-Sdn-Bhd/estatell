@@ -98,13 +98,33 @@ function CheckOutForm({
     const [overdueChoice, setOverdueChoice] = useState<'' | 'left' | 'stayed'>(
         '',
     );
+    const form = useForm({
+        deposit: '',
+        refund_amount: '',
+        payment_method_id: '',
+        reference: '',
+        do_not_charge: false,
+        reason: '',
+        expected_fee: '',
+        stayed_last_night: false,
+        keep_damage: false,
+        damage_amount: '',
+        damage_note: '',
+    });
+    const { data, errors } = form;
+    const damageTyped =
+        data.keep_damage && /^\d+(\.\d{1,2})?$/.test(data.damage_amount)
+            ? data.damage_amount
+            : '';
     const { preview, reload } = useUnitPreview<Preview>(
         checkOutPreview.url(key),
         open,
         {
             ...(leftYesterday && { left_yesterday: '1' }),
             ...(overdueChoice === 'stayed' && { stayed_last_night: '1' }),
+            ...(damageTyped !== '' && { damage_amount: damageTyped }),
         },
+        data.keep_damage ? 300 : 0,
     );
     useFormOptions(
         open && preview?.canCollect === true,
@@ -115,17 +135,6 @@ function CheckOutForm({
     const methods = (paymentOptions?.methods ?? []).filter(
         (one) => !one.isOldSystem,
     );
-    const form = useForm({
-        deposit: '',
-        refund_amount: '',
-        payment_method_id: '',
-        reference: '',
-        do_not_charge: false,
-        reason: '',
-        expected_fee: '',
-        stayed_last_night: false,
-    });
-    const { data, errors } = form;
     const early = preview?.early ?? null;
     const overdue = preview?.overdue ?? null;
     const pendingDay = preview?.auditPending?.businessDate ?? '';
@@ -150,7 +159,12 @@ function CheckOutForm({
     const waived = showWaive && data.do_not_charge;
     // Display math only: the server posts the fee and checks the balance again.
     const feeOnFolio = early !== null && !waived ? Number(early.feeTotal) : 0;
-    const balance = Number(preview?.balance ?? 0) + feeOnFolio;
+    const damageItem = preview?.damageItem ?? null;
+    // The damage posts first and the deposit offsets it. `damageTotal` is the server's figure with tax.
+    const damaging = data.keep_damage && damageItem !== null && held > 0;
+    const damageOnFolio =
+        damaging && damageTyped !== '' ? Number(preview?.damageTotal ?? 0) : 0;
+    const balance = Number(preview?.balance ?? 0) + feeOnFolio + damageOnFolio;
     // The folio block: charges (with the fee) + paid − deposit held = balance.
     const charges = Number(preview?.charges ?? 0) + feeOnFolio;
     const paid = Number(preview?.paid ?? 0);
@@ -159,9 +173,10 @@ function CheckOutForm({
     const canCorrectMoney = useCanCorrectMoney();
     const canRefund =
         preview?.canRefund === true && refundable > 0 && canCorrectMoney;
-    // A folio in credit can only refund the deposit, so the choice is offered only while the guest owes money.
+    // A folio in credit can only refund the deposit, so the choice is offered only while the guest owes money. With a
+    // damage charge the deposit always goes to the damage and the bill first.
     const deposit = (
-        owing > 0 ? data.deposit || 'use' : 'refund'
+        owing > 0 ? (damaging ? 'use' : data.deposit || 'use') : 'refund'
     ) as DepositChoice;
     const refunding = canRefund && deposit === 'refund';
     // The folio credit (after the early departure fee, unless waived). Above the deposit, the credit is refunded as a
@@ -191,9 +206,12 @@ function CheckOutForm({
     const collecting = canCollect && due > 0.005;
     const collectAmount = collecting ? due : 0;
     const remaining = due - collectAmount;
+    // A ticked damage box needs an amount the server has priced.
+    const damageReady = !damaging || preview?.damageTotal != null;
     const settled =
         preview !== null &&
         preview.error === null &&
+        damageReady &&
         Math.abs(remaining) < 0.005;
     const verbs = [
         collecting && 'collect',
@@ -230,6 +248,8 @@ function CheckOutForm({
             reference:
                 collecting && method?.requiresReference ? values.reference : '',
             idempotency_key: idempotencyKey,
+            damage_amount: damaging ? values.damage_amount : '',
+            damage_note: damaging ? values.damage_note : '',
             ...(early !== null && {
                 do_not_charge: waived,
                 reason: values.reason,
@@ -265,6 +285,13 @@ function CheckOutForm({
                             amount={Math.abs(paid)}
                             currency={currency}
                             negative={paid < 0}
+                        />
+                    )}
+                    {damageOnFolio > 0 && (
+                        <SummaryRow
+                            label="Damage"
+                            amount={damageOnFolio}
+                            currency={currency}
                         />
                     )}
                     {held > 0 && (
@@ -596,12 +623,15 @@ function CheckOutForm({
                                                 held.toFixed(2),
                                                 currency,
                                             )}{' '}
-                                            used toward the bill. Nothing to
-                                            refund.
+                                            {damaging
+                                                ? 'kept for damages.'
+                                                : 'used toward the bill.'}{' '}
+                                            Nothing to refund.
                                         </p>
                                     )}
                                     {held > 0 &&
                                         owing === 0 &&
+                                        damageItem === null &&
                                         folioLink !== null && (
                                             <Link
                                                 href={folioLink}
@@ -610,7 +640,7 @@ function CheckOutForm({
                                                 Keep it for damages? ›
                                             </Link>
                                         )}
-                                    {held > 0 && owing > 0 && (
+                                    {held > 0 && owing > 0 && !damaging && (
                                         <Field orientation="horizontal">
                                             <Checkbox
                                                 id="check-out-use-deposit"
@@ -633,16 +663,117 @@ function CheckOutForm({
                                                     )}{' '}
                                                     toward the bill
                                                 </FieldLabel>
-                                                {folioLink !== null && (
-                                                    <Link
-                                                        href={folioLink}
-                                                        className="text-sm underline underline-offset-4"
-                                                    >
-                                                        Keep it for damages? ›
-                                                    </Link>
-                                                )}
+                                                {damageItem === null &&
+                                                    folioLink !== null && (
+                                                        <Link
+                                                            href={folioLink}
+                                                            className="text-sm underline underline-offset-4"
+                                                        >
+                                                            Keep it for damages?
+                                                            ›
+                                                        </Link>
+                                                    )}
                                             </FieldContent>
                                         </Field>
+                                    )}
+                                    {held > 0 && damageItem !== null && (
+                                        <>
+                                            <Field orientation="horizontal">
+                                                <Checkbox
+                                                    id="check-out-damage"
+                                                    checked={data.keep_damage}
+                                                    onCheckedChange={(
+                                                        checked,
+                                                    ) =>
+                                                        form.setData(
+                                                            (current) => ({
+                                                                ...current,
+                                                                keep_damage:
+                                                                    checked,
+                                                                damage_amount:
+                                                                    current.damage_amount ||
+                                                                    (damageItem.defaultAmount ??
+                                                                        ''),
+                                                            }),
+                                                        )
+                                                    }
+                                                />
+                                                <FieldLabel htmlFor="check-out-damage">
+                                                    Keep part of it for damages
+                                                </FieldLabel>
+                                            </Field>
+                                            {damaging && (
+                                                <div className="grid gap-4 sm:grid-cols-2">
+                                                    <Field
+                                                        data-invalid={
+                                                            !!errors.damage_amount
+                                                        }
+                                                    >
+                                                        <FieldLabel htmlFor="check-out-damage_amount">
+                                                            Damage
+                                                        </FieldLabel>
+                                                        <MoneyInput
+                                                            id="check-out-damage_amount"
+                                                            value={
+                                                                data.damage_amount
+                                                            }
+                                                            onChange={(value) =>
+                                                                form.setData(
+                                                                    'damage_amount',
+                                                                    value,
+                                                                )
+                                                            }
+                                                            currency={currency}
+                                                            placeholder="e.g. 50.00"
+                                                            invalid={
+                                                                !!errors.damage_amount
+                                                            }
+                                                        />
+                                                        <FieldDescription>
+                                                            Posts to{' '}
+                                                            {damageItem.name},
+                                                            plus its tax.
+                                                        </FieldDescription>
+                                                        <FieldError>
+                                                            {
+                                                                errors.damage_amount
+                                                            }
+                                                        </FieldError>
+                                                    </Field>
+                                                    <Field
+                                                        data-invalid={
+                                                            !!errors.damage_note
+                                                        }
+                                                    >
+                                                        <FieldLabel htmlFor="check-out-damage_note">
+                                                            Note
+                                                        </FieldLabel>
+                                                        <Input
+                                                            id="check-out-damage_note"
+                                                            value={
+                                                                data.damage_note
+                                                            }
+                                                            onChange={(event) =>
+                                                                form.setData(
+                                                                    'damage_note',
+                                                                    event.target
+                                                                        .value,
+                                                                )
+                                                            }
+                                                            maxLength={100}
+                                                            placeholder="e.g. Broken lamp"
+                                                            autoComplete="off"
+                                                            aria-invalid={
+                                                                !!errors.damage_note
+                                                            }
+                                                        />
+                                                        <FieldError>
+                                                            {errors.damage_note}
+                                                        </FieldError>
+                                                    </Field>
+                                                </div>
+                                            )}
+                                        </>
                                     )}
                                     {deposit === 'refund' && !depositUsed && (
                                         <div className="flex flex-col gap-2 text-sm">
@@ -810,10 +941,19 @@ function CheckOutForm({
                                     </div>
                                 </div>
                             )}
-                            {(collecting || (refunding && refund > 0)) && (
+                            {(collecting ||
+                                (refunding && refund > 0) ||
+                                damageOnFolio > 0) && (
                                 <>
                                     <Separator />
                                     <div className="flex flex-col gap-1 text-sm">
+                                        {damageOnFolio > 0 && (
+                                            <SummaryRow
+                                                label="Damage"
+                                                amount={damageOnFolio}
+                                                currency={currency}
+                                            />
+                                        )}
                                         {collecting && (
                                             <SummaryRow
                                                 label={`Collect${method ? ` by ${method.name}` : ''}`}
@@ -870,7 +1010,8 @@ function CheckOutForm({
 /**
  * Check out one unit. Shows the unit folio, split by room when it also holds another room's charges, and the security
  * deposit held. The deposit is a credit, so the form uses
- * it toward the bill, refunds it, or leaves it for a damage charge. For a user who may record payments, Collect
+ * it toward the bill, refunds it, or keeps part of it for a damage charge that the check-out posts on the property's
+ * damage charge item (or, without one, links to the folio to post it first). For a user who may record payments, Collect
  * balance takes what is still owed, and the server records the payment, the refund and the check-out in one step.
  * Check-out opens once the folio will reach 0.
  */

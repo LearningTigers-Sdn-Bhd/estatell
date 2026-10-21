@@ -92,7 +92,9 @@ class ReservationUnitStayController extends Controller
 
     public function checkOutPreview(Request $request, Property $property, Reservation $reservation, ReservationUnit $unit, UnitActionPreview $preview): JsonResponse
     {
-        return response()->json($preview->checkOut($unit, $request->user(), $request->boolean('left_yesterday'), $request->boolean('stayed_last_night')));
+        $damage = $request->string('damage_amount')->toString();
+
+        return response()->json($preview->checkOut($unit, $request->user(), $request->boolean('left_yesterday'), $request->boolean('stayed_last_night'), preg_match('/^\d+(\.\d{1,2})?$/', $damage) === 1 ? $damage : null));
     }
 
     public function lateCheckOutPreview(Property $property, Reservation $reservation, ReservationUnit $unit, UnitActionPreview $preview): JsonResponse
@@ -170,7 +172,7 @@ class ReservationUnitStayController extends Controller
      */
     public function checkOut(CheckOutUnitRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, CheckOutAndRefund $checkOutAndRefund, CheckOutOverdueStay $checkOutOverdueStay, ReservationRefusals $refusals): RedirectResponse
     {
-        $result = ($request->stayedLastNight() ? $checkOutOverdueStay : $checkOutAndRefund)($request->user(), $unit, $request->refundAmount(), $request->collectBalance(), $request->string('idempotency_key')->toString());
+        $result = ($request->stayedLastNight() ? $checkOutOverdueStay : $checkOutAndRefund)($request->user(), $unit, $request->refundAmount(), $request->collectBalance(), $request->string('idempotency_key')->toString(), $request->damage());
 
         return $this->respond($property, $reservation, $result->refusal, $refusals, __('Unit checked out.'), rooms: $result->rooms);
     }
@@ -181,7 +183,7 @@ class ReservationUnitStayController extends Controller
      */
     public function earlyCheckOut(CheckOutUnitRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, EarlyCheckOut $earlyCheckOut, ReservationRefusals $refusals): RedirectResponse
     {
-        $result = $earlyCheckOut($request->user(), $unit, $request->doNotCharge(), $request->reason(), $request->expectedFee(), $request->refundAmount(), $request->collectBalance(), $request->string('idempotency_key')->toString(), $request->leftYesterday());
+        $result = $earlyCheckOut($request->user(), $unit, $request->doNotCharge(), $request->reason(), $request->expectedFee(), $request->refundAmount(), $request->collectBalance(), $request->string('idempotency_key')->toString(), $request->leftYesterday(), $request->damage());
 
         return $this->respond($property, $reservation, $result->refusal, $refusals, __('Unit checked out early.'), rooms: $result->rooms);
     }

@@ -3,6 +3,7 @@
 namespace App\Actions\FrontDesk;
 
 use App\Data\Reservations\CheckOutCollectData;
+use App\Data\Reservations\CheckOutDamageData;
 use App\Enums\UnitStatus;
 use App\Models\ReservationUnit;
 use App\Models\User;
@@ -32,12 +33,12 @@ class CheckOutOverdueStay
      * `reservations.manage`) are checked by the route and the Form Request.
      * See docs/18-front-desk/01-check-in-and-check-out.md#night-audit-pending.
      */
-    public function __invoke(User $actor, ReservationUnit $unit, ?string $refundAmount = null, ?CheckOutCollectData $collect = null, ?string $idempotencyKey = null): UnitStayResult
+    public function __invoke(User $actor, ReservationUnit $unit, ?string $refundAmount = null, ?CheckOutCollectData $collect = null, ?string $idempotencyKey = null, ?CheckOutDamageData $damage = null): UnitStayResult
     {
         DB::beginTransaction();
 
         try {
-            $result = $this->run($actor, $unit, $refundAmount, $collect, $idempotencyKey);
+            $result = $this->run($actor, $unit, $refundAmount, $collect, $idempotencyKey, $damage);
         } catch (Throwable $exception) {
             DB::rollBack();
 
@@ -49,7 +50,7 @@ class CheckOutOverdueStay
         return $result;
     }
 
-    private function run(User $actor, ReservationUnit $unit, ?string $refundAmount, ?CheckOutCollectData $collect, ?string $idempotencyKey): UnitStayResult
+    private function run(User $actor, ReservationUnit $unit, ?string $refundAmount, ?CheckOutCollectData $collect, ?string $idempotencyKey, ?CheckOutDamageData $damage): UnitStayResult
     {
         $locked = ReservationUnit::query()->lockForUpdate()->findOrFail($unit->id);
 
@@ -73,7 +74,7 @@ class CheckOutOverdueStay
             return UnitStayResult::refused((string) $extended->refusal, $extended->refusal === UnitStayResult::REFUSAL_NOT_AVAILABLE ? [$this->roomLabel($locked), $businessDate->format('j M')] : []);
         }
 
-        return ($this->checkOutAndRefund)($actor, $locked->refresh(), $refundAmount, $collect, $idempotencyKey);
+        return ($this->checkOutAndRefund)($actor, $locked->refresh(), $refundAmount, $collect, $idempotencyKey, $damage);
     }
 
     /**

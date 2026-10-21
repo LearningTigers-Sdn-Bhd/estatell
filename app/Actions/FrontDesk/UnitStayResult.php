@@ -38,6 +38,10 @@ class UnitStayResult
 
     public const REFUSAL_FEE_CHANGED = 'fee_changed';
 
+    public const REFUSAL_DAMAGE_NOT_ALLOWED = 'damage_not_allowed';
+
+    public const REFUSAL_DAMAGE_PRICE_FIXED = 'damage_price_fixed';
+
     public const REFUSAL_POLICY_NOT_FOUND = 'policy_not_found';
 
     public const REFUSAL_CHARGE_NOT_FOUND = 'charge_not_found';

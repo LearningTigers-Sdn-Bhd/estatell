@@ -121,7 +121,7 @@ Built: the Advance is refunded with the deposit, so the first two rows check out
 | An unposted nightly add-on (breakfast) on removed nights | Deleted with the nights                                                                                              |
 | Room charges go to the Master folio                      | The unit folio holds no prepayment. A credit on the Master settles when the group settles                            |
 | An OTA collected the money                               | Not built. The OTA refunds the guest, not the desk ([Booking ingestion](../21-channels/05-booking-ingestion.md))     |
-| Keep part of the deposit for damages                     | Planned: the Dialog posts the charge ([Keep the deposit for damages](#keep-the-deposit-for-damages))                 |
+| Keep part of the deposit for damages                     | The Dialog posts the charge ([Keep the deposit for damages](#keep-the-deposit-for-damages))                          |
 | A charge is posted while the Dialog is open              | The refund no longer settles the folio: `balance_not_settled`, nothing is written                                    |
 | Undo check-out after an early check-out                  | Payments and refunds stay. The nights and the fee do not come back: extend the stay, reverse the fee                 |
 
@@ -310,7 +310,7 @@ One Dialog cancels several units, so a group is not cancelled one Dialog at a ti
 - **Nationality** for a foreign-only tax is the unit's primary guest, or the booker when the unit has no primary guest. Check-in shows a Nationality field when it is missing and saves it to the guest profile.
 - **Taxes stay on the room revenue line.** Check-in posts no tax. Each night's tax is a child line of the room line (see [Posting charges](../13-folio/02-posting-charges.md)). A tax with **Collect at check-in** ([Taxes](../06-catalogues/03-taxes.md)) only changes what the guest is asked to pay at check-in.
 - **Security deposit** is a payment with `PaymentPurpose::SecurityDeposit` on the unit's own folio. The default amount is `property_settings.security_deposit_amount`.
-- **Held deposit** is a credit, so the plain zero-balance rule at check-out covers it. The check-out form uses the credit toward the bill, or refunds it with `RefundPayment`. To keep part of it for damages, staff post a charge on the folio first (the deposit offsets it), then refund the rest. Planned: the check-out form posts the damage charge itself ([Keep the deposit for damages](#keep-the-deposit-for-damages)).
+- **Held deposit** is a credit, so the plain zero-balance rule at check-out covers it. The check-out form uses the credit toward the bill, or refunds it with `RefundPayment`. To keep part of it for damages, staff post a charge on the folio first (the deposit offsets it), then refund the rest. The check-out form now posts the damage charge itself ([Keep the deposit for damages](#keep-the-deposit-for-damages)).
 
 ## Permissions
 
@@ -515,7 +515,7 @@ The check-out Dialog is the one Dialog with the `lg` size ([Form containers](../
 - **Right column, the bill:** the "(added now)" lines, then the folio block below. Read only. Always open on desktop.
 - **Phone and tablet (below 1024 px):** one column. The bill is a `Collapsible` at the top, closed by default. Closed it shows "Bill", the amount to pay (or to refund) and "Charges X · Paid Y"; open, every line and the folio block. The decisions follow.
 
-**Security deposit.** A section with that title, shown only when a deposit is held. One checkbox, **Use MYR 100.00 toward the bill**, ticked by default, and shown only while the guest owes money. When the folio holds a credit the deposit can only be refunded, so the checkbox is hidden and the refund shows directly. When the folio is already at 0 (the deposit went toward the bill, for example before an Undo check-out), the section says "MYR 100.00 used toward the bill. Nothing to refund." instead of a refund field of 0.00. Unticked means the deposit is refunded by the method shown (the old "Refund deposit" radio). **Keep it for damages? ›** is a link to the folio tab to post the charge first (the old "Keep for damages" radio); it does not open a second Dialog. The amounts and the server are unchanged. Planned: the link becomes a checkbox with a Damage field ([Keep the deposit for damages](#keep-the-deposit-for-damages)).
+**Security deposit.** A section with that title, shown only when a deposit is held. One checkbox, **Use MYR 100.00 toward the bill**, ticked by default, and shown only while the guest owes money. When the folio holds a credit the deposit can only be refunded, so the checkbox is hidden and the refund shows directly. When the folio is already at 0 (the deposit went toward the bill, for example before an Undo check-out), the section says "MYR 100.00 used toward the bill. Nothing to refund." instead of a refund field of 0.00. Unticked means the deposit is refunded by the method shown (the old "Refund deposit" radio). **Keep it for damages? ›** is a link to the folio tab to post the charge first (the old "Keep for damages" radio); it does not open a second Dialog. The amounts and the server are unchanged. Since then, with a damage charge item the link is a checkbox with a Damage field ([Keep the deposit for damages](#keep-the-deposit-for-damages)).
 
 **The folio block.** The Dialog breaks the balance down: **Charges** (every line that is not a payment, so taxes, discounts and reversals count; in early mode it includes the fee shown above), **Paid** (every payment and refund but the deposit held, hidden at 0), **Deposit held**, then **To pay**, **Credit** or **Settled**. Charges + Paid − Deposit held is the balance, so the rows never disagree. The preview sends `charges` and `paid` (`CheckOutSettlement`). The summary under the method no longer repeats "Deposit used toward the bill": the deposit is already in the block.
 
@@ -552,7 +552,7 @@ A section of the check-out Dialog, shown only with `payment.record` and when the
 | Refund deposit                | The balance + the refund       | Payment, refund, check-out      |
 | Keep for damages              | Nothing; post the charge first | Same as before: folio tab first |
 
-Planned: **Keep for damages** posts the charge in the Dialog ([Keep the deposit for damages](#keep-the-deposit-for-damages)).
+Since then, **Keep for damages** posts the charge in the Dialog ([Keep the deposit for damages](#keep-the-deposit-for-damages)).
 
 - **Use toward the bill** shows only when the guest owes money, and is then the default. With only the deposit left, **Refund deposit** stays the default.
 - The collect amount is read-only: the balance plus the refund. The form sends it with the method and reference. The server records it as it is, and `CheckOutUnit` then needs the folio at 0, so an amount that no longer settles it (a charge posted while the form was open) is refused as `balance_not_settled` and nothing is written.
@@ -600,7 +600,7 @@ The check-out Dialog, single and early, refunds the whole credit from every paym
 - **The pool.** `CheckOutAndRefund` refunds from `heldPayments()`: every Completed payment of the unit's Open folios with money left, whatever its purpose. Security deposits go first, then the other payments oldest first, as Move charges does. Each part runs through `RefundPayment`, with the key `{uuid}:{payment id}` as today.
 - **The amount.** At most the larger of the deposit held and the credit. With a credit above the deposit, the refund is the credit and is read only: any other amount cannot settle the folio. With the guest owing money, only the deposit is offered, as today ([Collect balance](#collect-balance)). A higher amount is refused as `refund_exceeds_payment` before anything is written.
 - **The method.** Each part goes back by the method of its own payment (`RefundPayment` copies it). The Dialog lists each part with its purpose, method and reference, so staff know where the money goes. Refunding by another method is a later topic.
-- **Rows.** The last row of the [folio block](#check-out) reads **Credit** with the amount to give back. **Keep for damages** stays: post the charge first, and the credit falls. Planned: the Dialog posts it ([Keep the deposit for damages](#keep-the-deposit-for-damages)).
+- **Rows.** The last row of the [folio block](#check-out) reads **Credit** with the amount to give back. **Keep for damages** stays: post the charge first, and the credit falls. Since then, the Dialog posts it ([Keep the deposit for damages](#keep-the-deposit-for-damages)).
 - **Money that cannot be refunded.** A credit from a line with no payment row (a City ledger line) cannot go through `RefundPayment` (`holdsUnrefundable()`). The Dialog shows "Part of this credit cannot be refunded here. Open the folio." and offers no refund.
 - **Preview.** `UnitCheckOutPreviewData` gains `refundParts` (purpose, method, reference and amount of each part, in refund order) from `CheckOutSettlement`. `refundDefault` becomes the credit when it is above the deposit.
 - **Group check-out** uses the same pool for a CheckedIn row: `GroupCheckOutPreview` stops limiting its refund to deposits ([Group check-out](05-group-check-out.md#rows)). A room checked out early from the page uses the single Dialog, so it gets the fix with it.
@@ -608,46 +608,50 @@ The check-out Dialog, single and early, refunds the whole credit from every paym
 
 ### Keep the deposit for damages
 
-Planned. Today **Keep it for damages? ›** only links to the folio tab: staff post the charge there, come back and refund the rest. The Dialog will post the damage charge itself, in the same transaction as the refund and the check-out.
+Built. Before, **Keep it for damages? ›** only linked to the folio tab: staff posted the charge there, came back and refunded the rest. The Dialog now posts the damage charge itself, in the same transaction as the payment, the refund and the check-out.
 
 The deposit payment line stays as it is, because the ledger is immutable. The damage charge is a new line, and the deposit credit offsets it.
 
 ```
 │  Security deposit                        │  Charges                       1,103.07│
-│  [ ] Use MYR 100.00 toward the bill      │  Paid                          −30.00  │
-│  [✓] Keep part of it for damages         │  Damage                         30.00  │
-│      Damage    [ e.g. 50.00         ]    │  Deposit held                 −100.00  │
-│      Note      [ e.g. Broken lamp   ]    │  To pay                    MYR 1,003.07│
+│  [✓] Keep part of it for damages         │  Paid                          −30.00  │
+│      Damage [ e.g. 50.00 ] Note [ ... ]  │  Damage                         33.00  │
+│      Posts to Damage, plus its tax.      │  Deposit held                 −100.00  │
+│  Collect balance          MYR 1,006.07   │  To pay                    MYR 1,006.07│
 │  Method  [ Cash                     ▾ ]  │                                        │
-│  Damage 30.00 · Collect 1,003.07 by Cash │                                        │
+│  Damage 33.00 · Collect 1,006.07 by Cash │                                        │
 ```
 
-- **The checkbox.** **Keep part of it for damages** sits under the deposit checkbox, in the Security deposit section. Ticking it shows **Damage** and **Note** and unticks **Use toward the bill**. It shows only when the property has a damage charge item and the user holds `folio.post-charge`. Otherwise the old **Keep it for damages? ›** link stays.
-- **Damage amount.** Staff type it. It starts empty, or at the charge item's default price when the item has one. It must be above 0.
-- **Note.** Optional. It becomes the line description after the item name, for example "Damage · Broken lamp".
-- **Above the deposit.** Allowed. With a deposit of 100.00 and damage of 250.00, nothing is refunded and 150.00 is added to Collect.
-- **The bill column.** A **Damage** row shows while the field holds an amount, so Charges + Paid + Damage − Deposit held is still the balance.
-- **The summary** under the method names the damage first: "Damage 30.00 · Refund 70.00 by Cash", or "Damage 250.00 · Collect 150.00 by Cash".
+- **The checkbox.** **Keep part of it for damages** sits in the Security deposit section. It shows only when a deposit is held, the property has an active damage charge item and the user holds `folio.post-charge` (the preview's `damageItem`). Otherwise the old **Keep it for damages? ›** link stays.
+- **The deposit goes to the damage first.** While the box is ticked, **Use toward the bill** is hidden: the deposit always offsets the damage and the bill, and only what is left is refunded.
+- **Damage amount.** Staff type it, before tax. It starts empty, or at the charge item's default price when the item has one. It must be above 0. Check-out stays closed until the server has priced it.
+- **Tax.** The damage posts with its item's taxes, like any charge. The preview takes `damage_amount` (asked 300 ms after typing stops) and sends `damageTotal`, the amount with tax, and a `refundDefault` and `refundParts` that already count it. The browser adds `damageTotal` to the balance for display only.
+- **Note.** Optional, up to 100 characters. It goes after the item name in the line description, for example "Damage · Broken lamp".
+- **Above the deposit.** Allowed. With a deposit of 100.00 and damage of 250.00 (no tax), nothing is refunded and 150.00 is collected.
+- **The bill column.** A **Damage** row (with tax) shows while the box is ticked and an amount is priced, so Charges + Paid + Damage − Deposit held is the balance.
+- **The summary** under the method lists the damage first, then Collect or Refund, then Remaining after check-out.
+- **Early and overdue check-out** take it too: `EarlyCheckOut` and `CheckOutOverdueStay` pass it to `CheckOutAndRefund`.
 - **Group check-out** does not offer it. A room with damage is checked out through the single Dialog.
 - **Fixing it later.** The charge is a normal folio line. Reopen the folio, reverse the line, and post the right amount or refund the difference.
 
-| Example (deposit 100.00, folio otherwise at 0) | Damage | Refund | Collect |
-| ---------------------------------------------- | ------ | ------ | ------- |
-| Small damage                                   | 30.00  | 70.00  | 0.00    |
-| Damage equal to the deposit                    | 100.00 | 0.00   | 0.00    |
-| Damage above the deposit                       | 250.00 | 0.00   | 150.00  |
+| Example (deposit 100.00, folio otherwise at 0, no tax) | Damage | Refund | Collect |
+| ------------------------------------------------------ | ------ | ------ | ------- |
+| Small damage                                           | 30.00  | 70.00  | 0.00    |
+| Damage equal to the deposit                            | 100.00 | 0.00   | 0.00    |
+| Damage above the deposit                               | 250.00 | 0.00   | 150.00  |
 
-**Server.** `CheckOutAndRefund` takes `damage_amount` and `damage_note` and runs, in one transaction:
+**Server.** `CheckOutUnitRequest` takes `damage_amount` and `damage_note` (`damage()`), and `CheckOutAndRefund` runs, in one transaction:
 
-| Step | Action                                                                        | Key                   |
-| ---- | ----------------------------------------------------------------------------- | --------------------- |
-| 1    | Post the damage charge (`PostFolioCharge`, the property's damage charge item) | `{uuid}:damage`       |
-| 2    | Collect what is above the deposit (`RecordPayment`, Settlement)               | `{uuid}:collect`      |
-| 3    | Refund what is left of the deposit (`RefundPayment`, deposits first)          | `{uuid}:{payment id}` |
-| 4    | Check out (`CheckOutUnit`)                                                    | —                     |
+| Step | Action                                                                                         | Key                   |
+| ---- | ---------------------------------------------------------------------------------------------- | --------------------- |
+| 0    | Post the pending night while the audit is pending (`PostPendingNight`), as before              | the audit's keys      |
+| 1    | Post the damage charge (`PostCharge`, the property's damage charge item, the unit's own folio) | `{uuid}:damage`       |
+| 2    | Collect what the form showed (`RecordPayment`, Settlement)                                     | `{uuid}:collect`      |
+| 3    | Refund what is left of the deposit (`RefundPayment`, deposits first)                           | `{uuid}:{payment id}` |
+| 4    | Check out (`CheckOutUnit`)                                                                     | —                     |
 
-- `CheckOutSettlement` works out the refund and the collect amount from the damage amount, so the browser only shows them. The preview sends `damageChargeItem` (id, name and default price) or null.
-- The charge posts through the folio routing rules like any charge, on the business date.
-- A refusal at any step rolls back every step. No damage charge item set, or a user without `folio.post-charge`, is refused as `damage_not_allowed` and nothing is written.
+- The damage lands on the unit's own folio (`ownFolio`), not through routing, because the deposit it offsets is there. It posts on the business date.
+- `DamageChargeItem` (`app/Services/FrontDesk/`) finds the item (`damage_charge_item_id`, active) and prices it with `TaxCalculator`, as `PostCharge` does.
+- A refusal at any step rolls back every step. A user without `folio.post-charge` gets an error on `damage_amount` from the request. No damage charge item is refused as `damage_not_allowed`, and an amount an item with a fixed price does not allow as `damage_price_fixed`, both on `damage_amount`.
 
 **Setting.** `property_settings.damage_charge_item_id`, nullable, a foreign key to the property's charge items, null by default. It is picked on the Registration card page, General tab, under the security deposit: **Damage charge item**, a select of the property's active charge items with "None" first. An item with "Staff type the amount each time" fits best. See [Card fields](../16-registration/01-card-fields.md#ui).

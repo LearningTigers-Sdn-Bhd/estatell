@@ -3013,6 +3013,16 @@ amount: string,
 reference: string | null,
 idempotencyKey: string,
 };
+export type CheckOutDamageData = {
+amount: string,
+note: string | null,
+};
+export type CheckOutDamageItemData = {
+id: number,
+name: string,
+defaultAmount: string | null,
+allowOverride: boolean,
+};
 export type CheckOutRefundPartData = {
 purpose: string,
 method: string,
@@ -3451,6 +3461,8 @@ pendingLines: App.Data.Reservations.UnitPendingLineData[],
 pendingTotal: string,
 overdue: App.Data.Reservations.UnitOverdueData | null,
 auditPending: App.Data.Reservations.UnitAuditPendingData | null,
+damageItem: App.Data.Reservations.CheckOutDamageItemData | null,
+damageTotal: string | null,
 };
 export type UnitDatesPreviewData = {
 previousTotal: string | null,

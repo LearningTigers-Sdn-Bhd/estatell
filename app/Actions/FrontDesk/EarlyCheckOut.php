@@ -3,6 +3,7 @@
 namespace App\Actions\FrontDesk;
 
 use App\Data\Reservations\CheckOutCollectData;
+use App\Data\Reservations\CheckOutDamageData;
 use App\Enums\UnitStatus;
 use App\Models\ReservationUnit;
 use App\Models\User;
@@ -35,12 +36,12 @@ class EarlyCheckOut
      * (`front-desk.check-out` and `reservations.manage`) are checked by the route.
      * See docs/18-front-desk/01-check-in-and-check-out.md#early-check-out.
      */
-    public function __invoke(User $actor, ReservationUnit $unit, bool $doNotCharge = false, ?string $reason = null, ?string $expectedFee = null, ?string $refundAmount = null, ?CheckOutCollectData $collect = null, ?string $idempotencyKey = null, bool $leftYesterday = false): UnitStayResult
+    public function __invoke(User $actor, ReservationUnit $unit, bool $doNotCharge = false, ?string $reason = null, ?string $expectedFee = null, ?string $refundAmount = null, ?CheckOutCollectData $collect = null, ?string $idempotencyKey = null, bool $leftYesterday = false, ?CheckOutDamageData $damage = null): UnitStayResult
     {
         DB::beginTransaction();
 
         try {
-            $result = $this->run($actor, $unit, $doNotCharge, $reason, $expectedFee, $refundAmount, $collect, $idempotencyKey, $leftYesterday);
+            $result = $this->run($actor, $unit, $doNotCharge, $reason, $expectedFee, $refundAmount, $collect, $idempotencyKey, $leftYesterday, $damage);
         } catch (Throwable $exception) {
             DB::rollBack();
 
@@ -52,7 +53,7 @@ class EarlyCheckOut
         return $result;
     }
 
-    private function run(User $actor, ReservationUnit $unit, bool $doNotCharge, ?string $reason, ?string $expectedFee, ?string $refundAmount, ?CheckOutCollectData $collect, ?string $idempotencyKey, bool $leftYesterday): UnitStayResult
+    private function run(User $actor, ReservationUnit $unit, bool $doNotCharge, ?string $reason, ?string $expectedFee, ?string $refundAmount, ?CheckOutCollectData $collect, ?string $idempotencyKey, bool $leftYesterday, ?CheckOutDamageData $damage): UnitStayResult
     {
         $locked = ReservationUnit::query()->lockForUpdate()->findOrFail($unit->id);
 
@@ -91,6 +92,6 @@ class EarlyCheckOut
             return UnitStayResult::refused((string) $dates->refusal);
         }
 
-        return ($this->checkOutAndRefund)($actor, $locked->refresh(), $refundAmount, $collect, $idempotencyKey);
+        return ($this->checkOutAndRefund)($actor, $locked->refresh(), $refundAmount, $collect, $idempotencyKey, $damage);
     }
 }
