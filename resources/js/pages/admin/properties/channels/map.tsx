@@ -69,12 +69,44 @@ function withPrimaries(rows: Row[]): Row[] {
     });
 }
 
-/** The Estatell plans a line can take: the same guest count, or the top one when the OTA lists no guest counts. */
-function choicesFor(row: Row, options: Option[]): Option[] {
-    return options.filter((option) =>
-        row.occupancy === null
-            ? option.isTop
-            : option.occupancy === row.occupancy,
+const normalize = (text: string) =>
+    text.toLowerCase().replace(/[^a-z0-9]+/g, '');
+
+/** The Estatell room type of each OTA room: from a saved line, else a room type with the same name. */
+function initialRooms(rows: Row[], options: Option[]): Record<string, string> {
+    const rooms: Record<string, string> = {};
+
+    for (const row of rows) {
+        if (rooms[row.roomCode]) {
+            continue;
+        }
+
+        const own = options.find((option) => option.value === row.estatell);
+        const named = options.find(
+            (option) => normalize(option.roomType) === normalize(row.roomTitle),
+        );
+        const found = own ?? named;
+
+        if (found) {
+            rooms[row.roomCode] = String(found.roomTypeId);
+        }
+    }
+
+    return rooms;
+}
+
+/** The plans a line can take: of the chosen room type, with the same guest count, or the top one when the OTA lists none. */
+function choicesFor(
+    row: Row,
+    options: Option[],
+    roomTypeId: string | undefined,
+): Option[] {
+    return options.filter(
+        (option) =>
+            String(option.roomTypeId) === roomTypeId &&
+            (row.occupancy === null
+                ? option.isTop
+                : option.occupancy === row.occupancy),
     );
 }
 
@@ -87,6 +119,21 @@ export default function ChannelMap({
 }) {
     const form = useForm<{ rows: Row[] }>({ rows: map.rows });
     const [fetching, setFetching] = useState(false);
+    const [rooms, setRooms] = useState(() =>
+        initialRooms(map.rows, map.options),
+    );
+    const roomItems = [
+        { value: NONE, label: 'Select room' },
+        ...Array.from(
+            new Map(
+                map.options.map((option) => [
+                    String(option.roomTypeId),
+                    option.roomType,
+                ]),
+            ),
+            ([value, label]) => ({ value, label }),
+        ),
+    ];
     const rows = form.data.rows;
     const mapped = rows.filter((row) => row.estatell !== null);
     const unmapped = rows.filter((row) => row.estatell === null);
@@ -94,6 +141,31 @@ export default function ChannelMap({
         `${row.roomTitle} · ${row.rateTitle}${row.occupancy ? `, ${row.occupancy} guests` : ''}`;
 
     const setRows = (next: Row[]) => form.setData('rows', withPrimaries(next));
+    const chooseRoom = (roomCode: string, value: string) => {
+        setRooms((current) => {
+            const next = { ...current };
+
+            if (value === NONE) {
+                delete next[roomCode];
+            } else {
+                next[roomCode] = value;
+            }
+
+            return next;
+        });
+        setRows(
+            rows.map((row) =>
+                row.roomCode === roomCode &&
+                !map.options.some(
+                    (option) =>
+                        option.value === row.estatell &&
+                        String(option.roomTypeId) === value,
+                )
+                    ? { ...row, estatell: null }
+                    : row,
+            ),
+        );
+    };
     const change = (key: string, values: Partial<Row>) =>
         setRows(
             rows.map((row) => (row.key === key ? { ...row, ...values } : row)),
@@ -296,27 +368,21 @@ export default function ChannelMap({
                                                 value: NONE,
                                                 label: 'Not mapped',
                                             },
-                                            ...choicesFor(row, map.options).map(
-                                                (option) => ({
-                                                    value: option.value,
-                                                    label: option.label,
-                                                }),
-                                            ),
+                                            ...choicesFor(
+                                                row,
+                                                map.options,
+                                                rooms[row.roomCode],
+                                            ).map((option) => ({
+                                                value: option.value,
+                                                label: option.ratePlan,
+                                            })),
                                         ];
                                         return (
                                             <Fragment key={row.key}>
                                                 {startsRoom && (
                                                     <TableRow className="hover:bg-transparent">
                                                         <TableCell
-                                                            colSpan={
-                                                                3 +
-                                                                Number(
-                                                                    map.usesPrimary,
-                                                                ) +
-                                                                Number(
-                                                                    map.usesType,
-                                                                )
-                                                            }
+                                                            colSpan={2}
                                                             className="bg-muted/50 font-medium"
                                                         >
                                                             {row.roomTitle}{' '}
@@ -324,6 +390,75 @@ export default function ChannelMap({
                                                                 ({row.roomCode})
                                                             </span>
                                                         </TableCell>
+                                                        <TableCell className="bg-muted/50">
+                                                            <Select
+                                                                items={
+                                                                    roomItems
+                                                                }
+                                                                value={
+                                                                    rooms[
+                                                                        row
+                                                                            .roomCode
+                                                                    ] ?? NONE
+                                                                }
+                                                                onValueChange={(
+                                                                    value,
+                                                                ) =>
+                                                                    chooseRoom(
+                                                                        row.roomCode,
+                                                                        value as string,
+                                                                    )
+                                                                }
+                                                            >
+                                                                <SelectTrigger
+                                                                    aria-label={`Estatell room for ${row.roomTitle}`}
+                                                                    className="w-full bg-background"
+                                                                >
+                                                                    <SelectValue />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectGroup>
+                                                                        {roomItems.map(
+                                                                            (
+                                                                                item,
+                                                                            ) => (
+                                                                                <SelectItem
+                                                                                    key={
+                                                                                        item.value
+                                                                                    }
+                                                                                    value={
+                                                                                        item.value
+                                                                                    }
+                                                                                >
+                                                                                    {
+                                                                                        item.label
+                                                                                    }
+                                                                                </SelectItem>
+                                                                            ),
+                                                                        )}
+                                                                    </SelectGroup>
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </TableCell>
+                                                        {Number(
+                                                            map.usesPrimary,
+                                                        ) +
+                                                            Number(
+                                                                map.usesType,
+                                                            ) >
+                                                            0 && (
+                                                            <TableCell
+                                                                colSpan={
+                                                                    Number(
+                                                                        map.usesPrimary,
+                                                                    ) +
+                                                                    Number(
+                                                                        map.usesType,
+                                                                    )
+                                                                }
+                                                                className="bg-muted/50"
+                                                            />
+                                                        )}
                                                     </TableRow>
                                                 )}
                                                 <TableRow>
@@ -335,6 +470,11 @@ export default function ChannelMap({
                                                     </TableCell>
                                                     <TableCell className="min-w-64">
                                                         <Select
+                                                            disabled={
+                                                                !rooms[
+                                                                    row.roomCode
+                                                                ]
+                                                            }
                                                             items={choices}
                                                             value={
                                                                 row.estatell ??

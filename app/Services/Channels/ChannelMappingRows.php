@@ -75,13 +75,13 @@ class ChannelMappingRows
     public function options(ChannelConnection $connection): array
     {
         return array_map(
-            fn (array $choice): ChannelEstatellOptionData => new ChannelEstatellOptionData($choice['value'], $choice['label'], $choice['occupancy'], $choice['isTop']),
+            fn (array $choice): ChannelEstatellOptionData => new ChannelEstatellOptionData($choice['value'], $choice['roomTypeId'], $choice['roomType'], $choice['ratePlan'], $choice['occupancy'], $choice['isTop']),
             $this->choices($connection),
         );
     }
 
     /**
-     * @return list<array{value: string, label: string, occupancy: int, isTop: bool, roomType: string, ratePlan: string}>
+     * @return list<array{value: string, roomTypeId: int, occupancy: int, isTop: bool, roomType: string, ratePlan: string}>
      */
     private function choices(ChannelConnection $connection): array
     {
@@ -95,7 +95,7 @@ class ChannelMappingRows
             foreach ($occupancies as $occupancy) {
                 $choices[] = [
                     'value' => "{$mapping->id}-{$occupancy}",
-                    'label' => "{$mapping->roomType->name} · {$mapping->ratePlan->name}",
+                    'roomTypeId' => $mapping->room_type_id,
                     'occupancy' => $occupancy,
                     'isTop' => $occupancy === max($occupancies),
                     'roomType' => $mapping->roomType->name,
@@ -111,7 +111,7 @@ class ChannelMappingRows
      * An OTA room and rate that takes guest counts matches the plan of the same guest count. One that lists none takes
      * the plan's top occupancy.
      *
-     * @param  list<array{value: string, label: string, occupancy: int, isTop: bool, roomType: string, ratePlan: string}>  $choices
+     * @param  list<array{value: string, roomTypeId: int, occupancy: int, isTop: bool, roomType: string, ratePlan: string}>  $choices
      * @param  array<string, true>  $used
      */
     private function suggest(array $choices, string $roomTitle, string $rateTitle, ?int $occupancy, array $used): ?string

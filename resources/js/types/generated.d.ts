@@ -248,7 +248,9 @@ ownerPhone: string | null,
 };
 export type ChannelEstatellOptionData = {
 value: string,
-label: string,
+roomTypeId: number,
+roomType: string,
+ratePlan: string,
 occupancy: number,
 isTop: boolean,
 };

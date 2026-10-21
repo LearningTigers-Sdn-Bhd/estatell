@@ -209,7 +209,8 @@ test('the map page lists each OTA line from the top guest count, suggests matche
             ->where('map.rows.3.rateTitle', 'Non-refundable')
             ->where('map.rows.3.estatell', null)
             ->has('map.options', 3)
-            ->where('map.options.0.label', 'Deluxe King · Standard')
+            ->where('map.options.0.roomType', 'Deluxe King')
+            ->where('map.options.0.ratePlan', 'Standard')
             ->where('map.options.0.occupancy', 1)
             ->where('map.options.2.isTop', true));
 });
