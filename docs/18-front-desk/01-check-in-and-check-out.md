@@ -488,23 +488,34 @@ A section of the check-in Dialog, shown only with `payment.record`. The form sen
 
 ### Check out
 
+The check-out Dialog is the one Dialog with the `lg` size ([Form containers](../design-system/05-form-containers.md#sizes)). Desktop (1024 px and wider):
+
 ```
-┌ Check out · Deluxe King ─────────────────── ✕ ┐
-│ Tan Wei Ming · room 101 · departs today       │
-│                                               │
-│ Unit folio                                    │
-│   Charges                  RM 480.00          │
-│   Paid                    −RM 380.00          │
-│   Deposit held            −RM 100.00          │
-│   Credit                   RM 100.00          │
-│                                               │
-│ ( ) Refund deposit    RM [ 100.00 ]   Cash    │
-│ ( ) Keep for damages  → post a charge first   │
-│                    [Cancel] [Check out]       │
-└───────────────────────────────────────────────┘
+┌─ Check out early · Unit 202 · Hanami Ume ──────────────────────────────────────┐
+│ ⚠ Hotel day 21 Oct · Today 22 Oct. Night audit not run yet.                    │
+│                                                                                │
+│  ⓘ Last night (21 Oct) is added to the   │  Room · Dive Package (added now) 146.67│
+│    bill now. 22 and 23 Oct are removed.  │    Service Tax (SST)              11.73│
+│  Booked departure          24 Oct 2026   │  Diving trip (added now)         720.00│
+│  Nights removed                      2   │  ──────────────────────────────────────│
+│  Early departure fee         No charge   │  Charges                       1,103.07│
+│  Reason [ e.g. Flight changed, ...    ]  │  Paid                           −30.00 │
+│                                          │  Deposit                       −100.00 │
+│  Security deposit                        │  To pay                     MYR 973.07 │
+│  [✓] Use MYR 100.00 toward the bill      │                                        │
+│      Keep it for damages? ›              │                                        │
+│  Method  [ Cash                     ▾ ]  │                                        │
+│  Collect by Cash           MYR 973.07    │                                        │
+│  Remaining after check-out   MYR 0.00    │                                        │
+│                                                  [ Cancel ] [ Collect and check out ]│
+└────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Keep for damages** links to the folio to post the charge. It does not open a second Dialog. Without a deposit credit, the deposit rows are hidden.
+- **Left column, decisions:** the pending-audit ⓘ line, the early or overdue block, the reason, **Security deposit**, the method and the collect or refund summary. The pending-audit strip spans both columns at the top.
+- **Right column, the bill:** the "(added now)" lines, then the folio block below. Read only. Always open on desktop.
+- **Phone and tablet (below 1024 px):** one column. The bill is a `Collapsible` at the top, closed by default. Closed it shows "Bill", the amount to pay (or to refund) and "Charges X · Paid Y"; open, every line and the folio block. The decisions follow.
+
+**Security deposit.** A section with that title, shown only when a deposit is held. One checkbox, **Use MYR 100.00 toward the bill**, ticked by default when the guest owes money and unticked when the folio holds a credit. Unticked means the deposit is refunded by the method shown (the old "Refund deposit" radio). **Keep it for damages? ›** is a link to the folio tab to post the charge first (the old "Keep for damages" radio); it does not open a second Dialog. The amounts and the server are unchanged.
 
 **The folio block.** The Dialog breaks the balance down: **Charges** (every line that is not a payment, so taxes, discounts and reversals count; in early mode it includes the fee shown above), **Paid** (every payment and refund but the deposit held, hidden at 0), **Deposit held**, then **To pay**, **Credit** or **Settled**. Charges + Paid − Deposit held is the balance, so the rows never disagree. The preview sends `charges` and `paid` (`CheckOutSettlement`). The summary under the method no longer repeats "Deposit used toward the bill": the deposit is already in the block.
 

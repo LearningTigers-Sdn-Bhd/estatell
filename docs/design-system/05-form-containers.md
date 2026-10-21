@@ -35,11 +35,13 @@ For 4–5 fields: use a Dialog when opened from a detail page, and a Sheet when 
 
 | Container      | Sizes                                                                                                                   |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Dialog         | `sm` 400 px (1–2 fields), `md` 512 px (3–5 fields, default)                                                             |
+| Dialog         | `sm` 400 px (1–2 fields), `md` 512 px (3–5 fields, default), `lg` 880 px (check-out only, see below)                    |
 | Sheet          | `md` 480 px (default), `lg` 640 px (two sections or a table inside)                                                     |
 | Full page form | Content column max 720 px, one column. Two columns only for short paired fields (City + Postcode, Min stay + Max stay). |
 
 One exception: the [Move charges](../13-folio/07-move-charges.md) page uses the full width in two columns, **From** and **To**, because it is a worklist that shows a move before it happens. The columns stack on a narrow screen. No other full page uses two columns.
+
+One Dialog exception: the [check-out Dialog](../18-front-desk/01-check-in-and-check-out.md#check-out) uses `lg`, because it must show a whole bill and take money decisions at once. From the `lg` breakpoint (1024 px) it has two columns: decisions on the left, the bill on the right, always open. Below 1024 px it is one column, and the bill becomes a `Collapsible` at the top: closed, it shows the amount to pay or refund and "Charges X · Paid Y"; open, every line. No other Dialog uses `lg`.
 
 ## Behavior
 
@@ -62,7 +64,7 @@ One shell for every Dialog and Sheet form (`components/pms/form-overlay.tsx`). T
 
 | Prop                                                      | Meaning                                                                                                                                                                                              |
 | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `variant`, `size`                                         | `dialog` with `sm` or `md`, or `sheet` with `md` or `lg`. A pair that does not exist is a type error.                                                                                                |
+| `variant`, `size`                                         | `dialog` with `sm`, `md` or `lg` (check-out only), or `sheet` with `md` or `lg`. A pair that does not exist is a type error.                                                                         |
 | `open`, `onOpenChange`                                    | Controlled by the page.                                                                                                                                                                              |
 | `title`, `description`                                    | The header.                                                                                                                                                                                          |
 | `errors`                                                  | The form's errors. `errors.form` shows as `FormError` at the top.                                                                                                                                    |

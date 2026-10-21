@@ -56,6 +56,7 @@ Needed for go-live.
 - [x] `feat(front-desk): ask what an overdue guest did` — `CheckOutOverdueStay` (`stayed_last_night`): `ExtendStay` with a fixed restriction reason, post the night, check out; `not_available` refused. Tests: left, stayed, refusal rolls back. Docs: [Night audit pending](18-front-desk/01-check-in-and-check-out.md#night-audit-pending).
 - [x] `feat(front-desk): group check-out while the audit is pending` — `GroupCheckOutPreview` and `CheckOutGroup` use the stay day and post the pending night first. Tests in `CheckOutGroupTest`. Docs: [Night audit pending](18-front-desk/01-check-in-and-check-out.md#night-audit-pending).
 - [x] `feat(front-desk): show the pending-audit strip in the Dialogs` — the strip ("not run yet" or "running"), the ⓘ line and "(added now)" from the preview, in the check-in, check-out and group pages. Docs: [Night audit pending](18-front-desk/01-check-in-and-check-out.md#night-audit-pending).
+- [ ] `feat(front-desk): two-column check-out Dialog` — `FormOverlay` gains Dialog `lg` (880 px): two columns from 1024 px (decisions left, bill right), one column below with the bill in a `Collapsible` summary. The deposit radios become a **Security deposit** section: one checkbox (use toward the bill, else refund) and a **Keep it for damages? ›** link. Front end only. Docs: [Check out](18-front-desk/01-check-in-and-check-out.md#check-out), [Form containers](design-system/05-form-containers.md#sizes).
 - [ ] `feat(front-desk): add the stay view` — Docs: [Stay View](18-front-desk/03-stay-view.md).
 
 ## OpenCode
