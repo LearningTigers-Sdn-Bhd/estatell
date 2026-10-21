@@ -3106,6 +3106,8 @@ folioId: number | null,
 canReopen: boolean,
 canMoveCharges: boolean,
 unit: App.Data.Reservations.ReservationUnitData | null,
+pendingLines: App.Data.Reservations.UnitPendingLineData[],
+pendingTotal: string,
 };
 export type GroupCheckOutSummaryData = {
 collect: string,

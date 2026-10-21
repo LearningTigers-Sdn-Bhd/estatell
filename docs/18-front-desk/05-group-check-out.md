@@ -59,7 +59,7 @@ Can't check out yet (2)
 
 | Unit                                                                                                      | Group               | Ticked          | Settle choices                                                                                                                                   |
 | --------------------------------------------------------------------------------------------------------- | ------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| CheckedIn, departing on or before the business date                                                       | Ready to check out  | Yes             | By balance, below. It is checked out                                                                                                             |
+| CheckedIn, departing on or before the stay day                                                            | Ready to check out  | Yes             | By balance, below. It is checked out                                                                                                             |
 | CheckedIn, departing later                                                                                | Departing later     | No checkbox     | "Departs 15 Oct" with **Check out early…** ([below](#check-out-early-from-the-page))                                                             |
 | CheckedIn, departing later, arrived on the business date                                                  | Departing later     | No checkbox     | "Departs 15 Oct. Arrived today, so there is no night to remove." No **Check out early…** (`EarlyCheckOutRule`)                                   |
 | CheckedIn, its folio still receives another room's Scheduled charges (`folio_receives_scheduled_charges`) | Can't check out yet | No checkbox     | "Room 106 pays for it: still charged tonight", with **Move charges** ([Move charges](../13-folio/07-move-charges.md)) only with `folio.transfer` |
@@ -78,6 +78,12 @@ Can't check out yet (2)
 
 - A unit folio that is **Closed but holds money** (it cannot take a payment) shows "Folio closed: reopen it to settle" and **Open folio**. Front desk can reopen a unit folio closed today; after that a manager can (`FolioReopenRule`).
 - A choice the user may not make is not offered: Collect needs `payment.record`, Refund `payment.refund`, Add to Master `folio.transfer`.
+
+## Night audit pending
+
+While the [night audit is pending](01-check-in-and-check-out.md#night-audit-pending), a room that departs on the calendar date is **Ready to check out**, not "departing later". Its row balance and its settle amounts include the night of the business date, and the row lists those lines for the page to show as added now. `CheckOutGroup` posts that night for each room first, before it moves charges to the group bill or settles money, so Add to group bill moves the night too. The night audit later finds the lines and posts nothing.
+
+A room that was due to leave on the business date stays ready as "They left yesterday". Its note reads "Due to leave yesterday (20 Oct). If they stayed last night, check this room out on its own." The page has no "They stayed" choice. An Overdue audit keeps the old note and blocks **Check out early…**.
 
 ## Check out early from the page
 

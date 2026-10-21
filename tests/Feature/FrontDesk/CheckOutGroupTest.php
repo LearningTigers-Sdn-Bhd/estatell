@@ -1,9 +1,11 @@
 <?php
 
 use App\Actions\Folio\CreateFolio;
+use App\Actions\NightAudit\RunNightAudit;
 use App\Actions\Payments\RecordPayment;
 use App\Actions\Payments\RefundPayment;
 use App\Data\Payments\NewPaymentData;
+use App\Enums\AuditTrigger;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\FolioStatus;
 use App\Enums\PaymentMethodType;
@@ -637,6 +639,96 @@ test('a room that arrived today departs later without a Check out early button',
         ->and($rows[$today->id]['note'])->toBe('Departs 15 Oct. Arrived today, so there is no night to remove. If it checked in by mistake, use Undo check-in.')
         ->and($rows[$yesterday->id]['unit']['id'])->toBe($yesterday->id)
         ->and($rows[$yesterday->id]['note'])->toBe('Departs 15 Oct');
+});
+
+/** The audit has not run: the business date is yesterday (9 Oct) and the calendar date is today (10 Oct). */
+function gcPending(): void
+{
+    BusinessDate::query()->update(['date' => '2026-10-09']);
+}
+
+function gcRow(object $test, array $setup, ReservationUnit $unit): array
+{
+    return collect($test->actingAs($setup['user'])->postJson(gcUrl($setup, 'preview'))->assertOk()->json('rows'))->keyBy('unitId')[$unit->id];
+}
+
+test('a room that departs on the calendar date is ready while the audit is pending, with its night in the balance', function () {
+    $s = gcSetup(1);
+    gcPending();
+
+    $row = gcRow($this, $s, $s['units'][0]);
+
+    expect($row['group'])->toBe('ready')
+        ->and($row['ticked'])->toBeTrue()
+        ->and($row['pendingLines'])->not->toBeEmpty()
+        ->and((float) $row['pendingTotal'])->toBeGreaterThan(0.0)
+        ->and($row['balance'])->toBe($row['pendingTotal'])
+        ->and($row['collectAmount'])->toBe($row['pendingTotal'])
+        ->and($row['choices'])->toContain('collect');
+});
+
+test('checking a room out while the audit is pending posts its night once and the audit replays it', function () {
+    $s = gcSetup(1);
+    gcPending();
+    $row = gcRow($this, $s, $s['units'][0]);
+    $night = $s['units'][0]->nights()->sole();
+
+    gcSave($this, $s, [['unit_id' => $s['units'][0]->id, 'choice' => 'collect', 'payment_method_id' => $s['cash']->id, 'amount' => $row['collectAmount']]])->assertSessionHasNoErrors();
+
+    $lines = FolioLine::query()->count();
+
+    expect($s['units'][0]->fresh()->status)->toBe(UnitStatus::CheckedOut)
+        ->and(FolioLine::query()->where('idempotency_key', 'night:'.$night->id)->count())->toBe(1);
+
+    $audit = app(RunNightAudit::class)($s['property'], AuditTrigger::Manual, force: true, forceReason: 'Test');
+
+    expect($audit->isCompleted())->toBeTrue()
+        ->and(FolioLine::query()->count())->toBe($lines);
+});
+
+test('add to master moves the night that was posted first', function () {
+    $s = gcSetup(1);
+    gcPending();
+    $row = gcRow($this, $s, $s['units'][0]);
+
+    expect($row['choices'])->toContain('move');
+
+    gcSave($this, $s, [['unit_id' => $s['units'][0]->id, 'choice' => 'move']])->assertSessionHasNoErrors();
+
+    expect($s['units'][0]->fresh()->status)->toBe(UnitStatus::CheckedOut)
+        ->and(gcBalance($s['master']))->toBe($row['pendingTotal'])
+        ->and(gcBalance($s['folios'][0]))->toBe('0.00');
+});
+
+test('a room that departs later is no longer blocked while the audit is pending', function () {
+    $s = gcSetup(1);
+    gcPending();
+    $unit = ReservationUnit::factory()->for($s['reservation'])->checkedIn()->create(['room_type_id' => $s['units'][0]->room_type_id, 'arrival_date' => '2026-10-08', 'departure_date' => '2026-10-15']);
+    app(CreateFolio::class)($s['reservation'], $unit);
+
+    $row = gcRow($this, $s, $unit);
+
+    expect($row['group'])->toBe('later')
+        ->and($row['unit'])->not->toBeNull()
+        ->and($row['note'])->toBe('Departs 15 Oct');
+});
+
+test('a guest due to leave yesterday is ready with a note and checks out with no extra night', function () {
+    $s = gcSetup(1);
+    gcPending();
+    $s['units'][0]->forceFill(['arrival_date' => '2026-10-08', 'departure_date' => '2026-10-09'])->save();
+    $s['units'][0]->nights()->whereDate('date', '2026-10-09')->delete();
+
+    $row = gcRow($this, $s, $s['units'][0]);
+
+    expect($row['group'])->toBe('ready')
+        ->and($row['note'])->toBe('Due to leave yesterday (9 Oct). If they stayed last night, check this room out on its own.')
+        ->and($row['pendingLines'])->toBe([]);
+
+    gcSave($this, $s, [['unit_id' => $s['units'][0]->id]])->assertSessionHasNoErrors();
+
+    expect($s['units'][0]->fresh()->status)->toBe(UnitStatus::CheckedOut)
+        ->and(FolioLine::query()->where('idempotency_key', 'like', 'night:%')->count())->toBe(0);
 });
 
 test('a room that departs later while the night audit is overdue says why it cannot leave early', function () {

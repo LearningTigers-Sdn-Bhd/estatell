@@ -16,6 +16,7 @@ use App\Enums\FolioType;
 use App\Enums\PaymentMethodType;
 use App\Enums\PaymentPurpose;
 use App\Enums\PermissionEnum;
+use App\Enums\StayType;
 use App\Enums\UnitStatus;
 use App\Models\Company;
 use App\Models\Folio;
@@ -65,6 +66,8 @@ class GroupCheckOutPreview
         private FolioReopenRule $folioReopenRule,
         private EarlyCheckOutRule $earlyCheckOutRule,
         private Impersonation $impersonation,
+        private StayDay $stayDay,
+        private PendingNightQuote $pendingNightQuote,
     ) {}
 
     public static function selectable(string $kind): bool
@@ -83,11 +86,20 @@ class GroupCheckOutPreview
             UnitStatus::CheckedOut => self::KIND_OUT,
             UnitStatus::Cancelled, UnitStatus::NoShow => self::KIND_CANCELLED,
             UnitStatus::CheckedIn => match (true) {
-                $unit->departure_date->toDateString() > $businessDate->toDateString() => self::KIND_DEPARTS_LATER,
+                $unit->departure_date->toDateString() > $this->stayDayOf($unit, $businessDate) => self::KIND_DEPARTS_LATER,
                 $this->checkOutSettlement->incomingScheduled($unit, $this->checkOutSettlement->folios($unit)) !== [] => self::KIND_CHARGED_ELSEWHERE,
                 default => self::KIND_READY,
             },
         };
+    }
+
+    /**
+     * The day a room departs on or before: the stay day while the night audit is pending, otherwise the business date.
+     * A day use room keeps the business date.
+     */
+    private function stayDayOf(ReservationUnit $unit, CarbonImmutable $businessDate): string
+    {
+        return $unit->stay_type === StayType::DayUse ? $businessDate->toDateString() : $this->stayDay->forCheckOut($unit->property, $businessDate)->toDateString();
     }
 
     /**
@@ -193,7 +205,9 @@ class GroupCheckOutPreview
     {
         $kind = $this->kind($unit, $businessDate);
         $folios = $this->checkOutSettlement->folios($unit);
-        $balance = $folios->reduce(fn (BigDecimal $sum, Folio $folio): BigDecimal => $sum->plus($this->folioBalance->forFolio($folio)), BigDecimal::zero());
+        $pendingLines = $kind === self::KIND_READY ? $this->pendingNightQuote->lines($unit, $businessDate) : [];
+        $pending = $this->pendingNightQuote->total($pendingLines);
+        $balance = $folios->reduce(fn (BigDecimal $sum, Folio $folio): BigDecimal => $sum->plus($this->folioBalance->forFolio($folio)), $pending);
         $hasMoney = ! $balance->isZero();
 
         if (! $hasMoney && ($kind === self::KIND_OUT || $kind === self::KIND_CANCELLED)) {
@@ -205,16 +219,17 @@ class GroupCheckOutPreview
         $selectable = self::selectable($kind);
         $openFolio = $folios->first(fn (Folio $folio): bool => $folio->status === FolioStatus::Open);
         $closedFolio = $folios->first(fn (Folio $folio): bool => $folio->status === FolioStatus::Closed);
-        $folioClosed = $selectable && $hasMoney && $openFolio === null;
-        $actionable = $selectable && $openFolio !== null;
+        $hasOpenFolio = $openFolio !== null || ($pendingLines !== [] && $closedFolio === null);
+        $folioClosed = $selectable && $hasMoney && ! $hasOpenFolio;
+        $actionable = $selectable && $hasOpenFolio;
         $incoming = $kind === self::KIND_CHARGED_ELSEWHERE ? $this->checkOutSettlement->incomingScheduled($unit, $folios) : [];
         $held = $this->checkOutSettlement->heldPayments($folios);
         $heldTotal = $held->reduce(fn (BigDecimal $sum, Payment $payment): BigDecimal => $sum->plus($this->checkOutSettlement->refundable($payment)), BigDecimal::zero());
         $refundPool = $heldTotal;
         $credit = $balance->isNegative() ? $balance->negated() : BigDecimal::zero();
-        $moveAmount = $this->checkOutSettlement->movableTotal($folios);
+        $moveAmount = $this->checkOutSettlement->movableTotal($folios)->plus($pending);
         $canMove = $actionable && $balance->isPositive() && $master !== null && $user->can(PermissionEnum::FolioTransfer->value)
-            && $this->checkOutSettlement->movableLines($folios)->isNotEmpty()
+            && ($this->checkOutSettlement->movableLines($folios)->isNotEmpty() || $pendingLines !== [])
             && ! $this->checkOutSettlement->holdsUnrefundable($folios)
             && ($held->isEmpty() || $this->impersonation->mayRefund($user));
         $choices = array_values(array_filter([
@@ -244,7 +259,7 @@ class GroupCheckOutPreview
             $guest,
             $unit->status->value,
             $group,
-            $selectable && ($kind === self::KIND_READY || ($hasMoney && $openFolio !== null)),
+            $selectable && ($kind === self::KIND_READY || ($hasMoney && $hasOpenFolio)),
             $selectable,
             match ($kind) {
                 self::KIND_DEPARTS_LATER => match ($earlyRefusal) {
@@ -254,6 +269,9 @@ class GroupCheckOutPreview
                 },
                 self::KIND_CHARGED_ELSEWHERE => IncomingScheduledCharges::message($incoming),
                 self::KIND_NOT_ARRIVED => __('Not checked in: Cancel or mark no-show.'),
+                self::KIND_READY => $this->pendingNightQuote->isOverdue($unit, $businessDate)
+                    ? __('Due to leave yesterday (:date). If they stayed last night, check this room out on its own.', ['date' => $businessDate->format('j M')])
+                    : ($folioClosed ? __('Folio closed: reopen it to settle.') : null),
                 default => $folioClosed ? __('Folio closed: reopen it to settle.') : null,
             },
             $unit->departure_date->toDateString(),
@@ -273,6 +291,8 @@ class GroupCheckOutPreview
             $folioClosed && $closedFolio !== null && $this->folioReopenRule->allows($user, $closedFolio),
             $kind === self::KIND_CHARGED_ELSEWHERE && $user->can(PermissionEnum::FolioTransfer->value),
             $kind === self::KIND_DEPARTS_LATER && ! in_array($earlyRefusal, [UnitStayResult::REFUSAL_ARRIVED_TODAY, UnitStayResult::REFUSAL_NIGHT_AUDIT_PENDING], true) ? $this->unitData($unit, $user) : null,
+            $pendingLines,
+            (string) $pending->toScale(2),
         );
     }
 

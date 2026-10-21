@@ -35,6 +35,7 @@ class CheckOutGroup
         private RefundPayment $refundPayment,
         private SettleToCityLedger $settleToCityLedger,
         private CurrentBusinessDate $currentBusinessDate,
+        private PostPendingNight $postPendingNight,
         private CheckOutSettlement $checkOutSettlement,
         private GroupCheckOutPreview $groupCheckOutPreview,
         private FolioBalance $folioBalance,
@@ -106,6 +107,14 @@ class CheckOutGroup
 
             if (! GroupCheckOutPreview::selectable($this->groupCheckOutPreview->kind($units[$row->unitId], $businessDate))) {
                 return CheckOutGroupResult::refused(CheckOutGroupResult::REFUSAL_ROW_NOT_AVAILABLE, $row->unitId);
+            }
+        }
+
+        foreach ($rows as $row) {
+            try {
+                ($this->postPendingNight)($actor, $units[$row->unitId]);
+            } catch (UnitStayRefused $refused) {
+                return CheckOutGroupResult::refused((string) $refused->result->refusal, $row->unitId);
             }
         }
 
