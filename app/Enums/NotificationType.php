@@ -16,6 +16,9 @@ enum NotificationType: string
     case PortalBookingCreated = 'portal_booking_created';
     case PortalBookingCancelled = 'portal_booking_cancelled';
     case PortalCancellationRequested = 'portal_cancellation_requested';
+    case ChannelBookingReceived = 'channel_booking_received';
+    case ChannelBookingCancelled = 'channel_booking_cancelled';
+    case ChannelRemovalBlocked = 'channel_removal_blocked';
 
     public function label(): string
     {
@@ -32,6 +35,9 @@ enum NotificationType: string
             self::PortalBookingCreated => __('Company portal booking'),
             self::PortalBookingCancelled => __('Company portal cancellation'),
             self::PortalCancellationRequested => __('Company cancellation request'),
+            self::ChannelBookingReceived => __('Channel booking received'),
+            self::ChannelBookingCancelled => __('Channel booking cancelled'),
+            self::ChannelRemovalBlocked => __('Archive blocked by a channel'),
         };
     }
 
@@ -59,7 +65,7 @@ enum NotificationType: string
 
         return match ($this) {
             self::RegistrationCardLink => false,
-            self::NightAuditFailed, self::SupportAccessUsed, self::GoLiveApproved, self::GoLiveRejected, self::PortalCancellationRequested => $channel === NotificationChannel::Mail,
+            self::NightAuditFailed, self::SupportAccessUsed, self::GoLiveApproved, self::GoLiveRejected, self::PortalCancellationRequested, self::ChannelRemovalBlocked => $channel === NotificationChannel::Mail,
             default => true,
         };
     }
@@ -69,7 +75,7 @@ enum NotificationType: string
         return match ($this) {
             self::NightAuditCompleted, self::NightAuditExceptions => 'night-audit.receive-report',
             self::NightAuditFailed => 'night-audit.run',
-            self::PortalBookingCreated, self::PortalBookingCancelled, self::PortalCancellationRequested => 'reservations.manage',
+            self::PortalBookingCreated, self::PortalBookingCancelled, self::PortalCancellationRequested, self::ChannelBookingReceived, self::ChannelBookingCancelled => 'reservations.manage',
             default => null,
         };
     }

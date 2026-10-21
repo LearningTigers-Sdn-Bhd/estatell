@@ -26,22 +26,26 @@ function Panel({
 }
 
 /**
- * The fixed-height body of the reservation page: up to three side-by-side panels (list, main, aside).
+ * The fixed-height body of a workspace page (the reservation page, the manual folio, the channel connect and map pages):
+ * up to three side-by-side panels (list, main, aside).
  * Each panel is a bordered card that scrolls on its own. Without a list there are two panels.
  * Below `lg` the panels stack in one column and the page scrolls as a whole, with the aside first.
  * `hideAside` shrinks the aside column to nothing (animated) so the centre panel takes the width. Below `lg` it
  * removes the aside panel.
  */
-export function ReservationWorkspace({
+export function Workspace({
     list,
     aside,
+    asideLabel = 'Summary',
     hideAside = false,
     children,
 }: {
     /** Left panel, for example the unit chooser or the folio rail. */
     list?: ReactNode;
-    /** Right panel, the reservation summary. */
+    /** Right panel, for example the reservation summary. */
     aside: ReactNode;
+    /** The accessible name of the aside panel. */
+    asideLabel?: string;
     /** Hides the aside panel. */
     hideAside?: boolean;
     /** Centre panel, the content of the open tab. */
@@ -66,7 +70,7 @@ export function ReservationWorkspace({
                     hideAside &&
                         'pointer-events-none max-lg:hidden lg:-ms-1.5 lg:overflow-hidden lg:border-0 lg:p-0 lg:opacity-0',
                 )}
-                label="Reservation summary"
+                label={asideLabel}
                 inert={hideAside}
             >
                 <div className="lg:w-77">{aside}</div>

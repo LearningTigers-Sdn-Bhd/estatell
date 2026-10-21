@@ -5,6 +5,7 @@ namespace App\Actions\FrontDesk;
 use App\Actions\Reservations\SyncReservationStatus;
 use App\Enums\SystemTransactionCode;
 use App\Enums\UnitStatus;
+use App\Events\ReservationChanged;
 use App\Models\ReservationUnit;
 use App\Models\RoomRevenuePolicy;
 use App\Models\User;
@@ -90,6 +91,7 @@ class CancelUnit
 
             $locked->status = UnitStatus::Cancelled;
             $locked->save();
+            event(ReservationChanged::forUnit($locked));
 
             activity()
                 ->performedOn($locked->reservation)

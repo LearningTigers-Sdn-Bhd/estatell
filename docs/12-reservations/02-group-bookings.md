@@ -68,7 +68,7 @@ Creates the reservation and its units in one transaction.
 
 Adds exactly one unit to a reservation and ignores `beds`. It refuses a Cancelled or Completed reservation as `reservation_closed`, before any other check, so `SyncReservationStatus` never reopens it.
 
-**Channel ingestion**: `CreateReservation` and `AddUnit` take `bool $fromChannel = false`. Only [booking ingestion](../21-channels/05-booking-ingestion.md) passes true, and only then are the past-arrival, restriction and availability checks skipped. A Channel-source reservation edited by staff (Add unit on the reservation page) gets every check.
+**Channel ingestion**: `CreateReservation` and `AddUnit` take `bool $fromChannel = false`. Only [booking ingestion](../21-channels/05-booking-ingestion.md) passes true, and only then are the past-arrival, restriction and availability checks skipped. With `override_total` set, `fromChannel` also accepts a stay the rate quote refuses (no rate on a date, over capacity): the nights are saved with zero calculated amounts and the override total spread over them. A Channel-source reservation edited by staff (Add unit on the reservation page) gets every check.
 
 Callers loop for bed lines: `CreateReservation`, and Add unit on the reservation page. It locks the room type row (`lockForUpdate`) before the availability check, so two staff cannot sell the last room or bed at the same time.
 

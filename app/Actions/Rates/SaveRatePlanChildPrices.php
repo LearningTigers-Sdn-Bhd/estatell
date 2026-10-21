@@ -3,6 +3,7 @@
 namespace App\Actions\Rates;
 
 use App\Enums\AgeBandPricing;
+use App\Events\RatesChanged;
 use App\Models\Property;
 use App\Models\RatePlan;
 use App\Models\User;
@@ -68,6 +69,8 @@ class SaveRatePlanChildPrices
                     ->withProperties(['property_id' => $ratePlan->property_id])
                     ->log('Rate plan child prices updated');
             }
+
+            event(RatesChanged::forPlan($ratePlan));
 
             return true;
         });

@@ -23,6 +23,7 @@ class OtaChannelFactory extends Factory
         return [
             'code' => Str::of($name)->lower()->replaceMatches('/[^a-z0-9]+/', '_')->trim('_')->toString(),
             'name' => $name,
+            'channex_code' => null,
             'sort_order' => fn (): int => ((int) OtaChannel::query()->max('sort_order')) + 1,
             'is_active' => true,
             'is_other' => false,

@@ -6,6 +6,7 @@ use App\Actions\Reservations\SyncReservationStatus;
 use App\Enums\SellUnit;
 use App\Enums\StayType;
 use App\Enums\UnitStatus;
+use App\Events\ReservationChanged;
 use App\Models\ReservationUnit;
 use App\Models\RoomType;
 use App\Models\UnitNight;
@@ -173,7 +174,10 @@ class ChangeUnitDates
 
             $locked->nights()->whereDate('date', '<', $newArrival->toDateString())->delete();
             $locked->addOns()->whereNull('folio_line_id')->whereNotNull('service_date')->whereDate('service_date', '<', $newArrival->toDateString())->delete();
+            $previousArrival = $locked->arrival_date->toDateString();
+            $previousDeparture = $locked->departure_date->toDateString();
             $locked->forceFill(['arrival_date' => $newArrival, 'departure_date' => $newDeparture])->save();
+            event(ReservationChanged::forUnit($locked, $previousArrival, $previousDeparture));
 
             $unassigned = $this->addNights($locked, $roomType, $addedNights, $prices);
             ($this->addNightlyAddOnRows)($locked, $addedNights, $businessDate->toImmutable());

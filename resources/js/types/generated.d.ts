@@ -217,6 +217,148 @@ enabled: boolean,
 };
 }
 namespace Channels {
+export type ChannelAlertData = {
+id: number,
+event: App.Data.Shared.BadgeData,
+bookingId: string | null,
+detail: string | null,
+createdAt: string,
+};
+export type ChannelConnectFieldData = {
+name: string,
+type: unknown,
+label: string,
+hint: string | null,
+placeholder: string | null,
+options: string[],
+default: string | number | boolean | null,
+required: boolean,
+hiddenWhenField: string | null,
+hiddenWhenValue: string | boolean | null,
+};
+export type ChannelConnectPageData = {
+otaChannelId: number,
+otaName: string,
+fields: App.Data.Channels.ChannelConnectFieldData[],
+values: Record<string, string | boolean | number | null>,
+otaList: App.Data.Platform.AdminOtaListRowData | null,
+ownerName: string | null,
+ownerEmail: string | null,
+ownerPhone: string | null,
+};
+export type ChannelEstatellOptionData = {
+value: string,
+roomTypeId: number,
+roomType: string,
+ratePlan: string,
+perRoom: boolean,
+occupancies: number[],
+};
+export type ChannelMapPageData = {
+connectionId: number,
+otaName: string,
+hotelId: string | null,
+usesPrimary: boolean,
+usesType: boolean,
+pricingType: string,
+rows: App.Data.Channels.ChannelMapRowData[],
+options: App.Data.Channels.ChannelEstatellOptionData[],
+notOnChannels: number,
+};
+export type ChannelMapRowData = {
+key: string,
+roomCode: string,
+roomTitle: string,
+rateCode: string,
+rateTitle: string,
+occupancy: number | null,
+estatell: string | null,
+isPrimary: boolean,
+rateType: string | null,
+};
+export type ChannelOtaRowData = {
+otaChannelId: number,
+name: string,
+hotelId: string | null,
+status: App.Data.Shared.BadgeData | null,
+connectionId: number | null,
+canConnect: boolean,
+note: string | null,
+lastError: string | null,
+canActivate: boolean,
+canPause: boolean,
+canResume: boolean,
+canImport: boolean,
+};
+export type ChannelRemovalData = {
+key: string,
+kind: App.Enums.ChannelRemovalKind,
+name: string,
+state: App.Enums.ChannelRemovalState,
+message: string | null,
+updatedAt: string,
+};
+export type ChannelRevisionData = {
+id: number,
+bookingCode: string,
+channel: string,
+kind: App.Data.Shared.BadgeData,
+guest: string | null,
+arrival: string | null,
+departure: string | null,
+rooms: number,
+reservationReference: string | null,
+error: string | null,
+saved: boolean,
+receivedAt: string,
+};
+export type ChannelStructurePreviewData = {
+rows: App.Data.Channels.ChannelStructureRowData[],
+roomTypes: number,
+ratePlans: number,
+skipped: number,
+blockedReason: string | null,
+};
+export type ChannelStructureRowData = {
+roomType: string,
+ratePlan: string,
+sellMode: string,
+support: App.Data.Shared.BadgeData,
+detail: string | null,
+};
+export type ChannelSyncProgressData = {
+state: App.Enums.ChannelSyncState,
+done: number,
+total: number,
+message: string | null,
+updatedAt: string | null,
+waiting: boolean,
+};
+export type ChannelSyncedRoomTypeData = {
+mappingId: number,
+name: string,
+ratePlans: {
+id: number,
+name: string,
+}[],
+};
+export type ChannelTabData = {
+status: App.Data.Shared.BadgeData,
+structureSyncedAt: string | null,
+changesSentAt: string | null,
+fullSyncedAt: string | null,
+pausedUntil: string | null,
+waitingChanges: number,
+canFullRefresh: boolean,
+lastError: string | null,
+preview: App.Data.Channels.ChannelStructurePreviewData,
+sync: App.Data.Channels.ChannelSyncProgressData,
+synced: App.Data.Channels.ChannelSyncedRoomTypeData[],
+failedBookings: App.Data.Channels.ChannelRevisionData[],
+alerts: App.Data.Channels.ChannelAlertData[],
+recentBookings: App.Data.Channels.ChannelRevisionData[],
+otas: App.Data.Channels.ChannelOtaRowData[],
+};
 export type OtaChannelData = {
 id: number,
 code: string,
@@ -1565,6 +1707,18 @@ sentOn: string,
 today: string,
 review: App.Data.Onboarding.GoLiveReviewData,
 };
+export type AdminMailEventRowData = {
+id: number,
+sentAt: string,
+recipient: string,
+recipientCount: number,
+subject: string,
+notificationType: string | null,
+status: App.Data.Shared.BadgeData,
+providerMessageId: string | null,
+error: string | null,
+propertyName: string | null,
+};
 export type AdminOtaListRowData = {
 id: number,
 channel: string,
@@ -2076,6 +2230,13 @@ pricingBasis: App.Enums.PricingBasis,
 derived: boolean,
 followsName: string | null,
 hasOwnPrices: boolean,
+roomTypes: App.Data.Rates.RateBulkRoomTypeData[],
+};
+export type RateBulkRoomTypeData = {
+id: number,
+name: string,
+baseOccupancy: number,
+maxAdults: number,
 };
 export type RateCalendarAvailabilityData = {
 date: string,
@@ -3477,6 +3638,7 @@ namespace Enums {
 export type AgeBandPricing = 'free' | 'percent' | 'fixed';
 export type ArInvoiceStatus = 'open' | 'settled' | 'void';
 export type ArInvoiceType = 'invoice' | 'credit_note';
+export type AriChangeKind = 'availability' | 'rates' | 'restrictions';
 export type AuditCheck = 'in_house_without_room' | 'arrival_not_checked_in' | 'departure_not_checked_out' | 'folio_open_after_check_out' | 'master_not_billed' | 'money_held_on_closed_booking' | 'carried_exception';
 export type AuditExceptionType = 'missed_arrival' | 'overdue_departure' | 'room_charge' | 'add_on' | 'unexpected_error';
 export type AuditFix = 'assign' | 'no-show' | 'extend';
@@ -3490,6 +3652,15 @@ export type BoatMode = 'scheduled' | 'charter' | 'own';
 export type BookingSourceIcon = 'phone' | 'message-circle' | 'mail' | 'globe' | 'users' | 'handshake' | 'briefcase-business' | 'building-2' | 'footprints' | 'ticket' | 'megaphone' | 'star';
 export type BookingSourceType = 'direct' | 'ota' | 'company' | 'walk_in';
 export type BusinessDateStatus = 'open' | 'auditing' | 'closed';
+export type ChannelAlertEvent = 'non_acked_booking' | 'booking_unmapped_room' | 'booking_unmapped_rate' | 'sync_error' | 'rate_error' | 'structure_sync_failed' | 'removal_blocked';
+export type ChannelConnectionStatus = 'draft' | 'mapped' | 'active' | 'paused' | 'error';
+export type ChannelPropertyStatus = 'not_synced' | 'synced' | 'paused' | 'error';
+export type ChannelProvider = 'channex';
+export type ChannelRemovalKind = 'rate_plan' | 'room_type' | 'unlink';
+export type ChannelRemovalState = 'pending' | 'done' | 'blocked';
+export type ChannelSellMode = 'per_room' | 'per_person';
+export type ChannelSupport = 'full' | 'flattened' | 'unsupported';
+export type ChannelSyncState = 'idle' | 'queued' | 'running' | 'done' | 'failed';
 export type ChargingUnit = 'per_item' | 'per_night' | 'per_stay' | 'per_guest_night' | 'per_guest';
 export type CheckInRoomState = 'assigned' | 'auto' | 'none';
 export type ColumnAlign = 'left' | 'center' | 'right';
@@ -3526,13 +3697,14 @@ export type ImpersonationReason = 'onboarding_help' | 'support' | 'setup_check';
 export type InclusionEnd = 'departure_day' | 'night_before_departure';
 export type InclusionStart = 'arrival_day' | 'day_after_arrival';
 export type Locale = 'en' | 'ms';
+export type MailStatus = 'sent' | 'delivered' | 'bounced' | 'complained' | 'failed' | 'suppressed';
 export type ManualFolioReason = 'paper_folio' | 'missed_charge' | 'missed_payment' | 'old_system' | 'fix_mistake' | 'other';
 export type ManualRowType = 'charge' | 'payment' | 'refund';
 export type MediaDisk = 'local' | 'r2';
 export type MissedArrivalPolicy = 'mark_no_show' | 'keep_as_late_arrival';
 export type NavigationContext = 'front-desk' | 'finance' | 'reports' | 'settings';
 export type NotificationChannel = 'mail' | 'database';
-export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions' | 'night_audit_failed' | 'registration_card_link' | 'onboarding_reminder' | 'dorm_strategy_changed' | 'support_access_used' | 'go_live_approved' | 'go_live_rejected' | 'portal_booking_created' | 'portal_booking_cancelled' | 'portal_cancellation_requested';
+export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions' | 'night_audit_failed' | 'registration_card_link' | 'onboarding_reminder' | 'dorm_strategy_changed' | 'support_access_used' | 'go_live_approved' | 'go_live_rejected' | 'portal_booking_created' | 'portal_booking_cancelled' | 'portal_cancellation_requested' | 'channel_booking_received' | 'channel_booking_cancelled' | 'channel_removal_blocked';
 export type OldFolioMode = 'one_amount' | 'copy_line_by_line';
 export type OldFolioRowKind = 'room' | 'charge' | 'tax' | 'payment';
 export type OnboardingPhase = 'property' | 'rooms' | 'finance' | 'prices' | 'channels' | 'review';
@@ -3575,6 +3747,7 @@ export type ReportGroup = 'day' | 'month' | 'method' | 'staff';
 export type ReportKey = 'arrivals' | 'departures' | 'in-house' | 'occupancy' | 'revenue' | 'payments' | 'folio-ledger' | 'tax' | 'meal-counts' | 'night-audit-history' | 'outstanding-balance' | 'deposit-liability' | 'non-national-guests' | 'police-report' | 'housekeeping-tasks' | 'boat-manifest';
 export type ReservationRoomBoxState = 'assigned' | 'unassigned' | 'auto_assign' | 'cancelled' | 'no_show';
 export type ReservationStatus = 'confirmed' | 'in_house' | 'completed' | 'cancelled';
+export type RevisionKind = 'new' | 'modified' | 'cancelled';
 export type RoomBlockReason = 'maintenance' | 'owner_use' | 'out_of_order' | 'other';
 export type RoutingRuleSource = 'billing_mode' | 'manual';
 export type SellUnit = 'room' | 'bed';

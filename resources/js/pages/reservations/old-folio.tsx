@@ -17,7 +17,7 @@ import { FormError } from '@/components/pms/form-error';
 import { MoneyInput } from '@/components/pms/money-input';
 import { MoneyText } from '@/components/pms/money-text';
 import { PageHeader } from '@/components/pms/page-header';
-import { ReservationWorkspace } from '@/components/pms/reservations/reservation-workspace';
+import { Workspace } from '@/components/pms/workspace';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
@@ -304,7 +304,8 @@ export default function OldFolio({ oldFolio: page, companies }: Props) {
 
                     <FormError errors={errors} />
 
-                    <ReservationWorkspace
+                    <Workspace
+                        asideLabel="Reservation summary"
                         aside={
                             <dl className="grid grid-cols-[1fr_auto] gap-2 p-3 text-sm">
                                 <dt className="col-span-2 font-medium">
@@ -573,7 +574,7 @@ export default function OldFolio({ oldFolio: page, companies }: Props) {
                                 </TabsContent>
                             ))}
                         </Tabs>
-                    </ReservationWorkspace>
+                    </Workspace>
                 </div>
 
                 <FormActions fixed>

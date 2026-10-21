@@ -4,6 +4,7 @@ namespace App\Actions\FrontDesk;
 
 use App\Enums\ChargingUnit;
 use App\Enums\SystemTransactionCode;
+use App\Events\ReservationChanged;
 use App\Models\ReservationUnit;
 use App\Models\RoomRevenuePolicy;
 use App\Models\UnitAddOn;
@@ -91,6 +92,8 @@ class ProcessEarlyDeparture
             $unit->nights()->whereDate('date', '>=', $departure->toDateString())->delete();
             $this->deleteUnpostedAddOns($unit, $departure);
 
+            $previousArrival = $unit->arrival_date->toDateString();
+            $previousDeparture = $unit->departure_date->toDateString();
             $unit->departure_date = $departure;
 
             if ($newArrival !== null) {
@@ -98,6 +101,7 @@ class ProcessEarlyDeparture
             }
 
             $unit->save();
+            event(ReservationChanged::forUnit($unit, $previousArrival, $previousDeparture));
 
             return StayDatesResult::done($unit, $fee, $postsFee);
         });

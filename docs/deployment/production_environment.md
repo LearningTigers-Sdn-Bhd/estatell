@@ -79,4 +79,4 @@ Coolify keeps these custom commands when it regenerates the proxy config.
 
 ## Open
 
-- To verify: `compose.yaml` passes no `MAIL_*`, `SUPPORT_REQUIRE_2FA` or `ADMIN_SEED_*` variables to the containers. If Coolify only passes variables that the compose file names, production mail falls back to `log` (`config/mail.php`).
+- `compose.yaml` passes `MAIL_MAILER`, `MAIL_FROM_*`, `MILLIONSEND_BASE_URL`, `MILLIONSEND_API_KEY` and `MILLIONSEND_WEBHOOK_SECRET`. Set them in Coolify. Without `MAIL_MAILER=millionsend` mail falls back to `log` (`config/mail.php`). See [Sending mail in production](../04-notifications/01-notification-types.md#sending-mail-in-production).

@@ -4,6 +4,7 @@ namespace App\Actions\Rooms;
 
 use App\Actions\Housekeeping\SetNeedsMaintenance;
 use App\Data\Rooms\RoomBlockInputData;
+use App\Events\InventoryChanged;
 use App\Models\Bed;
 use App\Models\Room;
 use App\Models\RoomBlock;
@@ -47,6 +48,8 @@ class CreateRoomBlock
             $block->bed_id = $bed?->id;
             $block->created_by = $actor->id;
             $block->save();
+
+            event(InventoryChanged::forBlock($block));
 
             activity()
                 ->performedOn($block)

@@ -567,9 +567,9 @@ Not a table: two groups on one page. The registration card group is the same com
 ## Channel manager table
 
 ```
- ┌ ℹ Only the estatell team reads these. Passwords are stored encrypted and are
- │   never shown again here. The team connects your channels through our channel
- │   manager after approval. Nothing is connected from this page.
+ ┌ ℹ Add your OTA logins. The estatell team connects them for you. Only the team
+ │   reads these. Passwords are stored encrypted and are never shown again here.
+ │   Nothing is connected from this page.
  └
  ┌──────────┬─────────────┬──────────┬──────────┬────────────────┬─────────────┬───────────────┬────┐
  │ Channel  │ Property ID │ Username │ Password │ Market manager │ Phone       │ Email         │    │
@@ -589,8 +589,8 @@ Not a table: two groups on one page. The registration card group is the same com
 - A saved row shows "On file" and a **Change** button for the password. The channel of a saved row cannot be changed: onboarding keeps it editable, and Settings locks it (remove the row and add a new one).
 - Username and password are stored encrypted (`encrypted` cast). Removing a row with 🗑 deletes it, saved or not.
 - One submit, one transaction, through `SaveOtaCredentials`. For each saved row it calls `EnsureOtaBookingSource`, so the channel is also a [booking source](../12-reservations/11-booking-sources.md#defaults) on the booking form. Removing a row keeps its booking source.
-- The admin property page has an **OTA lists** tab, read only. **Reveal** is a POST that returns the password as JSON (never page props). It needs `support.2fa` and writes an activity log entry. **Mark processed** sets the row to Processed once the team has connected the channel. Nothing in code reads the stored logins. `support.2fa` does nothing while `SUPPORT_REQUIRE_2FA` is off, so set it to `true` in production before the first real OTA list is saved.
-- After go-live the owner manages the same table in **Settings → OTA lists** (`settings.ota-lists`, owner only), through the same Action. It adds a read only **Status** column (Pending or Processed). There is no Reveal. Changing a password sets the row back to Pending and writes an activity log entry. Removing a Processed row warns "Tell the estatell team to disconnect {channel}".
+- The admin property page has an **OTA lists** tab, read only. **Reveal** is a POST that returns the password as JSON (never page props). It needs `support.2fa` and writes an activity log entry. **Mark processed** sets the row to Processed once the team has connected the channel. Nothing in code reads the stored logins. The admin uses them to sign in to the OTA extranet, and the [Connect form](../21-channels/07-admin-channels-tab.md#reference-rail) shows the row as a reference and pre-fills the hotel ID from Property ID. Nothing writes back to the row. `support.2fa` does nothing while `SUPPORT_REQUIRE_2FA` is off, so set it to `true` in production before the first real OTA list is saved.
+- After go-live the owner manages the same table in **Settings → OTA lists** (`settings.ota-lists`, owner only), through the same Action. It adds a read only **Status** column (Pending or Processed). When `ChannelManager` is on, it also shows a read only **Channel** column with the owner status (see [Owner Channels page](../21-channels/08-owner-channels-page.md#statuses)). There is no Reveal. Changing a password sets the row back to Pending and writes an activity log entry. Removing a Processed row warns "Tell the estatell team to disconnect {channel}".
 - At phone width each row stacks into a card.
 - Check: optional, never blocks. Done with at least one row, or Skipped.
 

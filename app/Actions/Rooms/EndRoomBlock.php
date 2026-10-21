@@ -3,6 +3,7 @@
 namespace App\Actions\Rooms;
 
 use App\Enums\HousekeepingStatus;
+use App\Events\InventoryChanged;
 use App\Models\RoomBlock;
 use App\Models\User;
 use App\Services\Property\PropertyToday;
@@ -39,6 +40,8 @@ class EndRoomBlock
                     'last_changed_at' => now(),
                 ]);
             }
+
+            event(InventoryChanged::forBlock($block));
 
             activity()
                 ->performedOn($block)

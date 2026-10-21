@@ -18,6 +18,19 @@ return [
         'key' => env('POSTMARK_API_KEY'),
     ],
 
+    'channex' => [
+        'base_url' => env('CHANNEX_BASE_URL', 'https://staging.channex.io/api/v1'),
+        'api_key' => env('CHANNEX_API_KEY'),
+        'group_id' => env('CHANNEX_GROUP_ID'),
+        'webhook_secret' => env('CHANNEX_WEBHOOK_SECRET'),
+    ],
+
+    'millionsend' => [
+        'base_url' => env('MILLIONSEND_BASE_URL'),
+        'api_key' => env('MILLIONSEND_API_KEY'),
+        'webhook_secret' => env('MILLIONSEND_WEBHOOK_SECRET'),
+    ],
+
     'resend' => [
         'key' => env('RESEND_API_KEY'),
     ],

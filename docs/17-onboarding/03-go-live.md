@@ -139,7 +139,7 @@ Card under Tonight                    See all steps → Sheet
 - The checklist is a compact card in the dashboard's right column, under Tonight. Its heading uses the `Sparkles` icon. It shows a progress bar and only the next open item; **See all steps →** opens every item in a Sheet. See [Dashboard](../18-front-desk/04-dashboard.md#recommended-next).
 - Every item has **Not needed**, the logo included: a property without a logo prints invoices without one, and the card must be able to finish.
 - Action labels say what happens: Add logo, Set up charges, Review rules, Set up (a skipped section), Set up surcharges, Add groups. A skipped section reads "Set up {section}" with "You skipped this during onboarding" until it has data.
-- Not on the list: photos (no feature yet), meal periods and packages, discounts (an onboarding section), custom roles, notification preferences, and company rates (later, with company users). The channel connection joins the list when it is built ([Channel connections](../21-channels/01-connections-and-feature-gate.md)).
+- Not on the list: photos (no feature yet), meal periods and packages, discounts (an onboarding section), custom roles, notification preferences, and company rates (later, with company users). Channels are not on the list: the estatell team connects them ([Channel connections](../21-channels/01-connections-and-feature-gate.md)).
 
 ## Lessons from wastays
 

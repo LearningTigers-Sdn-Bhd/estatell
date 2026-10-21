@@ -2,6 +2,7 @@
 
 namespace App\Actions\Rooms;
 
+use App\Events\InventoryChanged;
 use App\Models\Property;
 use App\Models\Room;
 use App\Models\RoomStatus;
@@ -28,6 +29,8 @@ class CreateRoom
             $status = new RoomStatus;
             $status->property_id = $property->id;
             $room->status()->save($status);
+
+            event(InventoryChanged::forRoomType($property->id, $room->room_type_id));
 
             activity()
                 ->performedOn($room)

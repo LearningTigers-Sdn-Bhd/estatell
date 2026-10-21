@@ -2,6 +2,7 @@
 
 namespace App\Actions\Rooms;
 
+use App\Events\InventoryChanged;
 use App\Models\Property;
 use App\Models\Room;
 use App\Models\RoomGroup;
@@ -55,6 +56,8 @@ class GenerateRooms
                 $status->property_id = $property->id;
                 $room->status()->save($status);
             }
+
+            event(InventoryChanged::forRoomType($property->id, $roomType->id));
 
             activity()
                 ->causedBy($actor)

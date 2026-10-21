@@ -2,6 +2,7 @@
 
 namespace App\Actions\Rooms;
 
+use App\Events\InventoryChanged;
 use App\Models\RoomBlock;
 use App\Models\User;
 use App\Services\Property\PropertyToday;
@@ -37,6 +38,8 @@ class CancelRoomBlock
                     'ends_on' => $block->ends_on->toDateString(),
                 ])
                 ->log('Room block cancelled');
+
+            event(InventoryChanged::forBlock($block));
 
             $block->delete();
 

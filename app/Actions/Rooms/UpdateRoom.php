@@ -2,6 +2,7 @@
 
 namespace App\Actions\Rooms;
 
+use App\Events\InventoryChanged;
 use App\Models\Room;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -31,7 +32,13 @@ class UpdateRoom
                 return true;
             }
 
+            $previousTypeId = $room->getOriginal('room_type_id');
             $room->save();
+
+            if ($room->wasChanged('room_type_id')) {
+                event(InventoryChanged::forRoomType($room->property_id, $previousTypeId));
+                event(InventoryChanged::forRoomType($room->property_id, $room->room_type_id));
+            }
 
             activity()
                 ->performedOn($room)

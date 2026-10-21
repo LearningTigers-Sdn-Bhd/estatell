@@ -60,7 +60,7 @@ The reason is a select of `ManualFolioReason`, in this order:
 
 ## Page
 
-A full page with the same shell as the [reservation page](../12-reservations/06-reservation-page.md): the `fixed` layout variant and `ReservationWorkspace`, three rounded panels that scroll on their own. On the left is the folio rail, in the centre are the lines, and on the right is the summary. `FormActions` stays visible at the bottom. Below `lg` the panels stack, the rail becomes a select and the rows stack into cards.
+A full page with the same shell as the [reservation page](../12-reservations/06-reservation-page.md): the `fixed` layout variant and `Workspace`, three rounded panels that scroll on their own. On the left is the folio rail, in the centre are the lines, and on the right is the summary. `FormActions` stays visible at the bottom. Below `lg` the panels stack, the rail becomes a select and the rows stack into cards.
 
 ```
 ┌─ Reservations › GRH-26300118 › Folio › Manual Folio Editor ──────────────────────────────────────────┐

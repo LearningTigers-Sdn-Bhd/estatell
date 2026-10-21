@@ -18,7 +18,7 @@ import { guestGroups } from '@/components/pms/reservations/guest-rows';
 import { useGuestsView } from '@/components/pms/reservations/use-guests-view';
 import { ReservationSummary } from '@/components/pms/reservations/reservation-summary';
 import { StatusByUnitPopover } from '@/components/pms/reservations/status-by-unit-popover';
-import { ReservationWorkspace } from '@/components/pms/reservations/reservation-workspace';
+import { Workspace } from '@/components/pms/workspace';
 import { UnitsList, UnitsTab } from '@/components/pms/reservations/units-tab';
 import { useSummaryHidden } from '@/components/pms/reservations/use-summary-hidden';
 import { Badge } from '@/components/ui/badge';
@@ -284,7 +284,8 @@ export default function ReservationShow({
                     className="flex flex-col gap-4 lg:min-h-0 lg:flex-1"
                     panelClassName="flex flex-col lg:min-h-0 lg:flex-1"
                 >
-                    <ReservationWorkspace
+                    <Workspace
+                        asideLabel="Reservation summary"
                         list={list}
                         hideAside={
                             (tab === 'folio' || tab === 'guests') &&
@@ -373,7 +374,7 @@ export default function ReservationShow({
                                 boatDepartures={boatDepartures}
                             />
                         )}
-                    </ReservationWorkspace>
+                    </Workspace>
                 </TabLinks>
                 {correcting !== null && (
                     <ChangeNightPriceDialog

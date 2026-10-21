@@ -16,6 +16,7 @@ export function MoneyInput({
     placeholder,
     invalid,
     disabled,
+    'aria-label': ariaLabel,
 }: {
     id?: string;
     value: string;
@@ -24,6 +25,8 @@ export function MoneyInput({
     placeholder?: string;
     invalid?: boolean;
     disabled?: boolean;
+    /** The name of an input that has no visible label, for example a cell of a price table. */
+    'aria-label'?: string;
 }) {
     const decimals = currency?.decimals ?? 2;
     const hint =
@@ -46,6 +49,7 @@ export function MoneyInput({
                 placeholder={hint}
                 disabled={disabled}
                 aria-invalid={invalid}
+                aria-label={ariaLabel}
             />
         </InputGroup>
     );

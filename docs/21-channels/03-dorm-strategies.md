@@ -1,5 +1,7 @@
 # Dorm strategies
 
+> **Work in progress.** Not built in the first channel release. Until this item ships, `ChannelCapability` returns Unsupported for every `sell_unit = Bed` room type ("Dorm beds are not on channels yet."), structure sync skips them, and the dorm columns below are not added. Build BedAsUnit first; NativeDorm waits for the [staging checks](06-staging-verification.md#dorm-checks-wip).
+
 ## Purpose
 
 Channex has no per-bed sell mode. It has `room_kind: dorm` with `capacity` (beds per room), but its behaviour for availability and on Agoda and Booking.com is not documented. estatell supports two strategies, chosen by platform admins.
@@ -25,16 +27,16 @@ Interface `DormChannelStrategy`: `roomTypePayload()`, `ratePlanPayload()`, `avai
 | Level            | Column                                     | Set by         |
 | ---------------- | ------------------------------------------ | -------------- |
 | Platform default | `platform_settings.default_dorm_strategy`  | Platform admin |
-| Property         | `channel_connections.dorm_strategy`        | Platform admin |
+| Property         | `channel_properties.dorm_strategy`         | Platform admin |
 | Room type        | `channel_room_type_mappings.dorm_strategy` | Platform admin |
 
-`DormStrategyResolver`: room type mapping > connection > platform default. Applies only to `sell_unit = Bed`. Owners see the active strategy read-only.
+`DormStrategyResolver`: room type mapping > Channex property > platform default. Applies only to `sell_unit = Bed`. Owners see the active strategy read-only.
 
 ## Guardrails
 
-- NativeDorm is blocked if the property is connected to any OTA where `OtaChannel::supportsNativeDorm()` is false. One Channex room type feeds every connected OTA.
+- NativeDorm is blocked if the property is connected to any OTA whose `ota_channels` row does not support native dorms (a column added with this item, set from the staging results). One Channex room type feeds every connected OTA.
 - NativeDorm is disabled ("pending verification") until the [staging checks](06-staging-verification.md) pass.
-- `ChangeDormStrategy` (admin only): confirm with warning > pause sync for the room type > recreate Channex room type and rate plans > update mappings > 365-day full refresh > activity log with reason > `DormStrategyChanged` notification to the owner.
+- `ChangeDormStrategy` (admin only): confirm with warning > pause sync for the room type > recreate Channex room type and rate plans > update mappings > 500-day full refresh > activity log with reason > `DormStrategyChanged` notification to the owner.
 - Existing OTA bookings are unaffected. Revisions match by booking ID.
 
 ## Future

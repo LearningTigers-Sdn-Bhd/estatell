@@ -2,10 +2,21 @@
 
 namespace App\Providers;
 
+use App\Actions\Channels\RecordChannelAriChange;
+use App\Actions\Channels\ScheduleChannelStructureSync;
+use App\Actions\Notifications\RecordMailEvent;
 use App\Actions\Platform\RecordImpersonationEnd;
+use App\Enums\MailStatus;
 use App\Enums\PartnerStatus;
+use App\Events\ChannelStructureChanged;
+use App\Events\InventoryChanged;
+use App\Events\RatesChanged;
+use App\Events\ReservationChanged;
 use App\Models\Property;
+use App\Models\RatePlan;
+use App\Models\RoomType;
 use App\Models\User;
+use App\Services\Notifications\MillionSendTransport;
 use App\Services\Platform\Impersonation;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\Response;
@@ -15,6 +26,8 @@ use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Middleware\TrustProxies;
+use Illuminate\Mail\Events\MessageSending;
+use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Routing\Route as RoutingRoute;
 use Illuminate\Support\Facades\Auth;
@@ -22,15 +35,18 @@ use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
+use InvalidArgumentException;
 use Laravel\Pennant\Feature;
 use Spatie\Activitylog\Actions\LogActivityAction;
 use Spatie\Activitylog\Contracts\Activity;
 use Spatie\Activitylog\Models\Activity as ActivityModel;
+use Symfony\Component\Mime\Email;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -54,10 +70,79 @@ class AppServiceProvider extends ServiceProvider
         $this->configureFeatures();
         $this->configureSupportSessions();
         $this->configureMailBranding();
+        $this->configureMailLog();
+        $this->configureChannelEvents();
+    }
+
+    /**
+     * Rates, rooms and bookings tell the channels module what changed through events. One Action turns each event into
+     * lines of the ARI outbox. See docs/21-channels/04-ari-sync.md.
+     */
+    protected function configureChannelEvents(): void
+    {
+        Event::listen([RatesChanged::class, InventoryChanged::class, ReservationChanged::class], fn (RatesChanged|InventoryChanged|ReservationChanged $event) => app(RecordChannelAriChange::class)($event));
+        Event::listen(ChannelStructureChanged::class, fn (ChannelStructureChanged $event) => app(ScheduleChannelStructureSync::class)($event));
+
+        RatePlan::saved(function (RatePlan $ratePlan): void {
+            $restored = $ratePlan->wasChanged('archived_at') && $ratePlan->archived_at === null;
+
+            if ($ratePlan->wasRecentlyCreated || $restored || $ratePlan->wasChanged(['name', 'pricing_basis', 'extra_adult_amount', 'extra_child_amount', 'parent_rate_plan_id', 'fixed_nights', 'package_unit'])) {
+                event(new ChannelStructureChanged($ratePlan->property_id));
+            }
+        });
+
+        RoomType::saved(function (RoomType $roomType): void {
+            $restored = $roomType->wasChanged('archived_at') && $roomType->archived_at === null;
+
+            if ($roomType->wasRecentlyCreated || $restored || $roomType->wasChanged(['name', 'description', 'max_adults', 'max_children', 'base_occupancy', 'sell_unit'])) {
+                event(new ChannelStructureChanged($roomType->property_id));
+            }
+        });
+    }
+
+    /**
+     * Every message the mailer sends leaves a mail log row. The notification class travels in the mail data, so it is
+     * copied into a header before the transport runs. See docs/04-notifications/03-mail-log.md.
+     */
+    protected function configureMailLog(): void
+    {
+        Event::listen(MessageSending::class, function (MessageSending $event): void {
+            if (is_string($notification = $event->data['__laravel_notification'] ?? null)) {
+                $event->message->getHeaders()->addTextHeader(MillionSendTransport::NOTIFICATION_HEADER, $notification);
+            }
+        });
+
+        Event::listen(MessageSent::class, function (MessageSent $event): void {
+            $original = $event->sent->getOriginalMessage();
+
+            if (! $original instanceof Email) {
+                return;
+            }
+
+            $header = fn (string $name): ?string => $original->getHeaders()->get($name)?->getBodyAsString();
+
+            app(RecordMailEvent::class)(
+                $original,
+                MailStatus::tryFrom((string) $header(MillionSendTransport::STATUS_HEADER)) ?? MailStatus::Sent,
+                $header(MillionSendTransport::NOTIFICATION_HEADER),
+                $header(MillionSendTransport::PROVIDER_ID_HEADER),
+            );
+        });
     }
 
     protected function configureMailBranding(): void
     {
+        Mail::extend('millionsend', function (): MillionSendTransport {
+            $baseUrl = config('services.millionsend.base_url');
+            $apiKey = config('services.millionsend.api_key');
+
+            if (blank($baseUrl) || blank($apiKey)) {
+                throw new InvalidArgumentException('Set MILLIONSEND_BASE_URL and MILLIONSEND_API_KEY to use the millionsend mailer.');
+            }
+
+            return new MillionSendTransport($baseUrl, $apiKey);
+        });
+
         ResetPassword::toMailUsing(function (User $user, string $token): MailMessage {
             return (new MailMessage)
                 ->subject(__('Reset your password'))

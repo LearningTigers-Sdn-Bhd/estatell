@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Guests\PurgeExpiredIdentityScans;
+use App\Actions\Notifications\PruneMailEvents;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -50,6 +51,11 @@ Schedule::command('horizon:snapshot')->everyFiveMinutes();
 
 Schedule::call(fn (): int => app(PurgeExpiredIdentityScans::class)())->name('purge-expired-identity-scans')->dailyAt('03:30')->onOneServer();
 
+Schedule::call(fn (): int => app(PruneMailEvents::class)())->name('prune-mail-events')->dailyAt('03:45')->onOneServer();
+
 Schedule::command('night-audit:dispatch-scheduled')->everyFiveMinutes()->withoutOverlapping()->onOneServer();
 
 Schedule::command('onboarding:send-reminders')->hourly()->withoutOverlapping()->onOneServer();
+
+Schedule::command('channels:full-sync')->dailyAt('03:00')->timezone('Asia/Kuala_Lumpur')->onOneServer();
+Schedule::command('channels:pull-revisions')->everyFiveMinutes()->onOneServer();

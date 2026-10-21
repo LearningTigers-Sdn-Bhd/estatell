@@ -16,9 +16,7 @@ Turn optional capabilities on or off per property, without code changes. The fir
 - Features are class-based, one class per feature, for example `App\Features\ChannelManager`, with a `#[Name]` (`channel-manager`) so a class rename keeps the stored rows.
 - A feature's `resolve(Property)` returns the default (off). Later it can resolve from a plan or tier.
 - `PlatformFeature` enum lists the features admins manage: `label()`, `description()`, `featureClass()`.
-- Routes use `EnsureFeaturesAreActive::using(ChannelManager::class)` (from the Channels module).
-- `EnsureFeaturesAreActive::whenInactive()` redirects to an upsell page instead of a 400 response (from the Channels module).
-- A feature whose routes must return 404 when off uses its own small middleware instead, because `whenInactive()` is global. First case: `Boats` (see [Boat settings](../24-boats/01-boat-settings.md#feature-flag)).
+- A feature whose routes must return 404 when off uses its own small middleware, because `EnsureFeaturesAreActive::whenInactive()` is global. First case: `Boats` (see [Boat settings](../24-boats/01-boat-settings.md#feature-flag)). `ChannelManager` does the same for its owner and admin routes. There is no upsell page.
 
 ## Admin UI
 

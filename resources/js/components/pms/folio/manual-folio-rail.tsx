@@ -30,7 +30,7 @@ function Figure({
 /**
  * The summary panel: charges, payments and balance of the selected folio, now and after posting, the balance of every
  * folio the rows touch, and the Close after posting choice. Every figure comes from the server preview. It sits in a
- * `ReservationWorkspace` panel, which draws the card.
+ * `Workspace` panel, which draws the card.
  */
 export function ManualFolioRail({
     preview,
