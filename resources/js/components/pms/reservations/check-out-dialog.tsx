@@ -159,8 +159,10 @@ function CheckOutForm({
     const canCorrectMoney = useCanCorrectMoney();
     const canRefund =
         preview?.canRefund === true && refundable > 0 && canCorrectMoney;
-    const deposit = (data.deposit ||
-        (owing > 0 ? 'use' : 'refund')) as DepositChoice;
+    // A folio in credit can only refund the deposit, so the choice is offered only while the guest owes money.
+    const deposit = (
+        owing > 0 ? data.deposit || 'use' : 'refund'
+    ) as DepositChoice;
     const refunding = canRefund && deposit === 'refund';
     // The folio credit (after the early departure fee, unless waived). Above the deposit, the credit is refunded as a
     // whole, from the payments in refund order. Mirrors CheckOutSettlement::refunds() on the server.
@@ -586,7 +588,17 @@ function CheckOutForm({
                                             ? 'Security deposit'
                                             : 'Credit'}
                                     </FieldLegend>
-                                    {held > 0 && (
+                                    {held > 0 &&
+                                        owing === 0 &&
+                                        folioLink !== null && (
+                                            <Link
+                                                href={folioLink}
+                                                className="text-sm underline underline-offset-4"
+                                            >
+                                                Keep it for damages? ›
+                                            </Link>
+                                        )}
+                                    {held > 0 && owing > 0 && (
                                         <Field orientation="horizontal">
                                             <Checkbox
                                                 id="check-out-use-deposit"
