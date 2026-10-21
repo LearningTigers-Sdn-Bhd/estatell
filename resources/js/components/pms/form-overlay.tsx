@@ -26,7 +26,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
 
 type Shape =
-    | { variant: 'dialog'; size?: 'sm' | 'md' }
+    | { variant: 'dialog'; size?: 'sm' | 'md' | 'lg' }
     | { variant: 'sheet'; size?: 'md' | 'lg' };
 
 type Props = Shape & {
@@ -62,6 +62,8 @@ type Props = Shape & {
 const DIALOG_SIZE = {
     sm: 'md:max-w-100',
     md: 'md:max-w-lg',
+    // 220 = 55rem = 880 px: the check-out Dialog only (two columns from 1024 px).
+    lg: 'md:max-w-220',
 } as const;
 
 const SHEET_SIZE = {

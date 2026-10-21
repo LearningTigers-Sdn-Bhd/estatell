@@ -1,5 +1,5 @@
 import { Link, useForm } from '@inertiajs/react';
-import { DoorOpen, Moon } from 'lucide-react';
+import { ChevronDown, DoorOpen, Moon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { ChoiceCards } from '@/components/pms/choice-cards';
 import { DateText } from '@/components/pms/date-text';
@@ -20,14 +20,20 @@ import {
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import {
     Field,
     FieldContent,
     FieldDescription,
     FieldError,
     FieldLabel,
+    FieldLegend,
+    FieldSet,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
@@ -44,7 +50,7 @@ import {
 type Unit = App.Data.Reservations.ReservationUnitData;
 type Preview = App.Data.Reservations.UnitCheckOutPreviewData;
 type Options = App.Data.Payments.PaymentFormOptionsData;
-type DepositChoice = 'use' | 'refund' | 'keep';
+type DepositChoice = 'use' | 'refund';
 
 type Props = {
     open: boolean;
@@ -178,7 +184,7 @@ function CheckOutForm({
             : [];
     const refund = Number(refundAmount);
     const due = balance + refund;
-    const collecting = canCollect && deposit !== 'keep' && due > 0.005;
+    const collecting = canCollect && due > 0.005;
     const collectAmount = collecting ? due : 0;
     const remaining = due - collectAmount;
     const settled =
@@ -235,9 +241,82 @@ function CheckOutForm({
         });
     };
 
+    const bill =
+        preview === null ? null : (
+            <>
+                <PendingLines
+                    lines={preview.pendingLines}
+                    currency={currency}
+                />
+                <div className="flex flex-col gap-1 text-sm">
+                    <span className="font-medium">Unit folio</span>
+                    <SummaryRow
+                        label="Charges"
+                        amount={charges}
+                        currency={currency}
+                    />
+                    {Math.abs(paid) > 0.005 && (
+                        <SummaryRow
+                            label="Paid"
+                            amount={Math.abs(paid)}
+                            currency={currency}
+                            negative={paid < 0}
+                        />
+                    )}
+                    {held > 0 && (
+                        <SummaryRow
+                            label="Deposit held"
+                            amount={held}
+                            currency={currency}
+                            negative
+                        />
+                    )}
+                    <div className="flex justify-between gap-4 font-medium">
+                        <span>
+                            {owing > 0
+                                ? 'To pay'
+                                : credit > 0
+                                  ? 'Credit'
+                                  : 'Balance'}
+                        </span>
+                        {owing > 0 ? (
+                            <span className="text-destructive">
+                                <MoneyText
+                                    amount={owing.toFixed(2)}
+                                    currency={currency}
+                                />
+                            </span>
+                        ) : credit > 0 ? (
+                            <MoneyText
+                                amount={credit.toFixed(2)}
+                                currency={currency}
+                            />
+                        ) : (
+                            <span>Settled</span>
+                        )}
+                    </div>
+                    {preview.rooms.map((room) => (
+                        <div
+                            key={room.name}
+                            className="flex justify-between gap-4 pl-4"
+                        >
+                            <span className="text-muted-foreground">
+                                {room.name}
+                            </span>
+                            <MoneyText
+                                amount={room.amount}
+                                currency={currency}
+                            />
+                        </div>
+                    ))}
+                </div>
+            </>
+        );
+
     return (
         <FormOverlay
             variant="dialog"
+            size="lg"
             open={open}
             onOpenChange={onOpenChange}
             title={`${early !== null ? 'Early check-out' : 'Check out'} · ${unit.roomType}`}
@@ -263,482 +342,501 @@ function CheckOutForm({
             {preview !== null && (
                 <>
                     <AuditPendingStrip pending={preview.auditPending} />
-                    <AuditPendingNote pending={preview.auditPending} />
-                    {overdue !== null && (
-                        <ChoiceCards
-                            id="check-out-overdue"
-                            legend={`This guest was due to leave yesterday (${pendingDay}). What happened?`}
-                            choices={[
-                                {
-                                    value: 'left',
-                                    label: 'They left yesterday',
-                                    description: `Check out on ${pendingDay}. No extra night.`,
-                                    icon: DoorOpen,
-                                },
-                                {
-                                    value: 'stayed',
-                                    label: 'They stayed last night',
-                                    description: `Add ${pendingDay} (${formatMoney(overdue.nightTotal, currency)}), then check out today.`,
-                                    icon: Moon,
-                                },
-                            ]}
-                            value={overdueChoice}
-                            onValueChange={(value) =>
-                                setOverdueChoice(value as 'left' | 'stayed')
-                            }
-                            error={errors.stayed_last_night}
-                        />
-                    )}
-                    {(leftYesterday ||
-                        early?.leftYesterdayAvailable === true) && (
-                        <button
-                            type="button"
-                            className="self-start text-sm underline underline-offset-4"
-                            onClick={() => setLeftYesterday(!leftYesterday)}
-                        >
-                            {leftYesterday
-                                ? 'Back to checking out today'
-                                : `Guest actually left yesterday (${pendingDay})? ›`}
-                        </button>
-                    )}
-                    {preview.error !== null && (
-                        <p className="text-sm text-destructive">
-                            {preview.error}
-                            {preview.receivesScheduled && moveLink !== null && (
-                                <>
-                                    {' '}
-                                    <Link
-                                        href={moveLink}
-                                        className="underline underline-offset-4"
-                                    >
-                                        Move charges
-                                    </Link>
-                                </>
-                            )}
-                        </p>
-                    )}
-                    {early !== null && (
-                        <>
-                            <div className="flex flex-col gap-1 text-sm">
-                                <div className="flex justify-between gap-4">
-                                    <span className="text-muted-foreground">
-                                        Booked departure
-                                    </span>
-                                    <DateText date={early.departure} />
-                                </div>
-                                <div className="flex justify-between gap-4">
-                                    <span className="text-muted-foreground">
-                                        Nights removed
-                                    </span>
-                                    <span>{early.nightsRemoved}</span>
-                                </div>
-                                <div className="flex justify-between gap-4">
-                                    <span className="text-muted-foreground">
-                                        Early departure fee
-                                    </span>
-                                    <span className="font-medium">
-                                        {hasFee ? (
-                                            <>
-                                                <MoneyText
-                                                    amount={early.fee}
-                                                    currency={currency}
-                                                />{' '}
-                                                <span className="font-normal text-muted-foreground">
-                                                    + tax
-                                                </span>
-                                            </>
-                                        ) : (
-                                            'No charge'
-                                        )}
-                                    </span>
-                                </div>
-                            </div>
-                            <FieldError>{errors.expected_fee}</FieldError>
-                            {showWaive && (
-                                <FieldLabel htmlFor="check-out-do_not_charge">
-                                    <Field orientation="horizontal">
-                                        <Checkbox
-                                            id="check-out-do_not_charge"
-                                            checked={data.do_not_charge}
-                                            onCheckedChange={(checked) =>
-                                                form.setData(
-                                                    'do_not_charge',
-                                                    checked,
-                                                )
-                                            }
-                                        />
-                                        <FieldContent>
-                                            <span className="text-sm font-medium">
-                                                Do not charge
-                                            </span>
-                                            <FieldDescription>
-                                                The fee is not posted to the
-                                                folio. This is logged with your
-                                                name.
-                                            </FieldDescription>
-                                        </FieldContent>
-                                    </Field>
-                                </FieldLabel>
-                            )}
-                            <Field data-invalid={!!errors.reason}>
-                                <FieldLabel htmlFor="check-out-reason">
-                                    {leftYesterday
-                                        ? 'Reason (required)'
-                                        : 'Reason'}
-                                </FieldLabel>
-                                <Textarea
-                                    id="check-out-reason"
-                                    value={data.reason}
-                                    onChange={(event) =>
-                                        form.setData(
-                                            'reason',
-                                            event.target.value,
-                                        )
-                                    }
-                                    maxLength={500}
-                                    rows={2}
-                                    placeholder={
-                                        waived
-                                            ? 'Required with Do not charge'
-                                            : leftYesterday
-                                              ? 'e.g. Guest left late last night and did not check out'
-                                              : 'e.g. Flight changed, guest leaves a day early'
-                                    }
-                                    aria-invalid={!!errors.reason}
-                                />
-                                <FieldError>{errors.reason}</FieldError>
-                            </Field>
-                        </>
-                    )}
-                    <PendingLines
-                        lines={preview.pendingLines}
-                        currency={currency}
-                    />
-                    <div className="flex flex-col gap-1 text-sm">
-                        <span className="font-medium">Unit folio</span>
-                        <SummaryRow
-                            label="Charges"
-                            amount={charges}
-                            currency={currency}
-                        />
-                        {Math.abs(paid) > 0.005 && (
-                            <SummaryRow
-                                label="Paid"
-                                amount={Math.abs(paid)}
-                                currency={currency}
-                                negative={paid < 0}
-                            />
-                        )}
-                        {held > 0 && (
-                            <SummaryRow
-                                label="Deposit held"
-                                amount={held}
-                                currency={currency}
-                                negative
-                            />
-                        )}
-                        <div className="flex justify-between gap-4 font-medium">
-                            <span>
-                                {owing > 0
-                                    ? 'To pay'
-                                    : credit > 0
-                                      ? 'Credit'
-                                      : 'Balance'}
-                            </span>
-                            {owing > 0 ? (
-                                <span className="text-destructive">
+                    <Collapsible className="lg:hidden">
+                        <CollapsibleTrigger className="group flex w-full items-center justify-between gap-4 rounded-lg border px-3 py-2 text-left text-sm">
+                            <span className="flex flex-col">
+                                <span className="font-medium">
+                                    Bill ·{' '}
+                                    {owing > 0 ? (
+                                        <span className="text-destructive">
+                                            To pay{' '}
+                                            <MoneyText
+                                                amount={owing.toFixed(2)}
+                                                currency={currency}
+                                            />
+                                        </span>
+                                    ) : credit > 0 ? (
+                                        <>
+                                            To refund{' '}
+                                            <MoneyText
+                                                amount={credit.toFixed(2)}
+                                                currency={currency}
+                                            />
+                                        </>
+                                    ) : (
+                                        'Settled'
+                                    )}
+                                </span>
+                                <span className="text-muted-foreground">
+                                    Charges{' '}
                                     <MoneyText
-                                        amount={owing.toFixed(2)}
+                                        amount={charges.toFixed(2)}
+                                        currency={currency}
+                                    />{' '}
+                                    · Paid{' '}
+                                    <MoneyText
+                                        amount={Math.abs(paid).toFixed(2)}
                                         currency={currency}
                                     />
                                 </span>
-                            ) : credit > 0 ? (
-                                <MoneyText
-                                    amount={credit.toFixed(2)}
-                                    currency={currency}
+                            </span>
+                            <ChevronDown className="size-4 shrink-0 transition-transform group-aria-expanded:rotate-180" />
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="flex flex-col gap-4 pt-3">
+                            {bill}
+                        </CollapsibleContent>
+                    </Collapsible>
+                    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] lg:gap-6">
+                        <div className="flex min-w-0 flex-col gap-4">
+                            <AuditPendingNote pending={preview.auditPending} />
+                            {overdue !== null && (
+                                <ChoiceCards
+                                    id="check-out-overdue"
+                                    legend={`This guest was due to leave yesterday (${pendingDay}). What happened?`}
+                                    choices={[
+                                        {
+                                            value: 'left',
+                                            label: 'They left yesterday',
+                                            description: `Check out on ${pendingDay}. No extra night.`,
+                                            icon: DoorOpen,
+                                        },
+                                        {
+                                            value: 'stayed',
+                                            label: 'They stayed last night',
+                                            description: `Add ${pendingDay} (${formatMoney(overdue.nightTotal, currency)}), then check out today.`,
+                                            icon: Moon,
+                                        },
+                                    ]}
+                                    value={overdueChoice}
+                                    onValueChange={(value) =>
+                                        setOverdueChoice(
+                                            value as 'left' | 'stayed',
+                                        )
+                                    }
+                                    error={errors.stayed_last_night}
                                 />
-                            ) : (
-                                <span>Settled</span>
                             )}
-                        </div>
-                        {preview.rooms.map((room) => (
-                            <div
-                                key={room.name}
-                                className="flex justify-between gap-4 pl-4"
-                            >
-                                <span className="text-muted-foreground">
-                                    {room.name}
-                                </span>
-                                <MoneyText
-                                    amount={room.amount}
-                                    currency={currency}
-                                />
-                            </div>
-                        ))}
-                    </div>
-                    {others.length > 0 && !preview.receivesScheduled && (
-                        <p className="text-sm text-muted-foreground">
-                            This folio pays for another room. Collect it all
-                            here, or move{' '}
-                            {others.map((room) => room.name).join(', ')}'s
-                            charges first.
-                            {moveLink !== null && (
-                                <>
-                                    {' '}
-                                    <Link
-                                        href={moveLink}
-                                        className="underline underline-offset-4"
-                                    >
-                                        Move charges
-                                    </Link>
-                                </>
-                            )}
-                        </p>
-                    )}
-                    {owing > 0 && !canCollect && folioLink !== null && (
-                        <p className="text-sm text-muted-foreground">
-                            Collect the balance with Record payment on the{' '}
-                            <Link
-                                href={folioLink}
-                                className="underline underline-offset-4"
-                            >
-                                folio
-                            </Link>
-                            , then check out.
-                        </p>
-                    )}
-                    {canRefund && (
-                        <RadioGroup
-                            value={deposit}
-                            onValueChange={(value) =>
-                                form.setData('deposit', value)
-                            }
-                        >
-                            {owing > 0 && (
-                                <Field orientation="horizontal">
-                                    <RadioGroupItem
-                                        id="check-out-use"
-                                        value="use"
-                                    />
-                                    <FieldContent>
-                                        <FieldLabel htmlFor="check-out-use">
-                                            Use toward the bill
-                                        </FieldLabel>
-                                    </FieldContent>
-                                </Field>
-                            )}
-                            <Field orientation="horizontal">
-                                <RadioGroupItem
-                                    id="check-out-refund"
-                                    value="refund"
-                                />
-                                <FieldContent>
-                                    <FieldLabel htmlFor="check-out-refund">
-                                        {creditAbove
-                                            ? 'Refund credit'
-                                            : 'Refund deposit'}
-                                        {preview.depositMethod
-                                            ? ` · ${preview.depositMethod}`
-                                            : ''}
-                                    </FieldLabel>
-                                    {deposit === 'refund' && creditAbove && (
-                                        <div className="flex flex-col gap-1">
-                                            {refundParts.map((part, index) => (
-                                                <div
-                                                    key={index}
-                                                    className="flex justify-between gap-4"
-                                                >
-                                                    <span className="text-muted-foreground">
-                                                        {part.purpose} ·{' '}
-                                                        {part.method}
-                                                        {part.reference
-                                                            ? ` ref ${part.reference}`
-                                                            : ''}
-                                                    </span>
-                                                    <MoneyText
-                                                        amount={part.amount}
-                                                        currency={currency}
-                                                    />
-                                                </div>
-                                            ))}
-                                            <FieldError>
-                                                {errors.refund_amount}
-                                            </FieldError>
-                                        </div>
-                                    )}
-                                    {deposit === 'refund' && !creditAbove && (
-                                        <Field
-                                            data-invalid={
-                                                !!errors.refund_amount
-                                            }
-                                        >
-                                            <MoneyInput
-                                                id="check-out-refund_amount"
-                                                value={refundAmount}
-                                                onChange={(value) =>
-                                                    form.setData(
-                                                        'refund_amount',
-                                                        value,
-                                                    )
-                                                }
-                                                currency={currency}
-                                                invalid={!!errors.refund_amount}
-                                            />
-                                            <FieldError>
-                                                {errors.refund_amount}
-                                            </FieldError>
-                                        </Field>
-                                    )}
-                                </FieldContent>
-                            </Field>
-                            <Field orientation="horizontal">
-                                <RadioGroupItem
-                                    id="check-out-keep"
-                                    value="keep"
-                                />
-                                <FieldContent>
-                                    <FieldLabel htmlFor="check-out-keep">
-                                        Keep for damages
-                                    </FieldLabel>
-                                    <FieldDescription>
-                                        Post a charge on the folio first. The
-                                        deposit offsets it, then refund the
-                                        rest.
-                                    </FieldDescription>
-                                    {deposit === 'keep' &&
-                                        folioLink !== null && (
-                                            <Link
-                                                href={folioLink}
-                                                className="text-sm underline underline-offset-4"
-                                            >
-                                                Open the folio to post the
-                                                charge
-                                            </Link>
-                                        )}
-                                </FieldContent>
-                            </Field>
-                        </RadioGroup>
-                    )}
-                    {refundable > 0 && !preview.canRefund && (
-                        <p className="text-sm text-muted-foreground">
-                            {canCorrectMoney
-                                ? 'A refund is due on this folio. Ask someone who may refund payments to give it back first.'
-                                : 'A refund is due on this folio. The owner has not allowed refunds during support access.'}
-                        </p>
-                    )}
-                    {collecting && (
-                        <div className="flex flex-col gap-4">
-                            <div className="flex justify-between gap-4 text-sm font-medium">
-                                Collect balance
-                                <MoneyText
-                                    amount={collectAmount.toFixed(2)}
-                                    currency={currency}
-                                />
-                            </div>
-                            <div
-                                className={cn(
-                                    'grid gap-4',
-                                    method?.requiresReference &&
-                                        'sm:grid-cols-2',
-                                )}
-                            >
-                                <Field
-                                    data-invalid={!!errors.payment_method_id}
+                            {(leftYesterday ||
+                                early?.leftYesterdayAvailable === true) && (
+                                <button
+                                    type="button"
+                                    className="self-start text-sm underline underline-offset-4"
+                                    onClick={() =>
+                                        setLeftYesterday(!leftYesterday)
+                                    }
                                 >
-                                    <FieldLabel htmlFor="check-out-payment_method_id">
-                                        Method
-                                    </FieldLabel>
-                                    {paymentOptions === undefined ? (
-                                        <Skeleton className="h-9 w-full" />
-                                    ) : (
-                                        <EnumSelect
-                                            id="check-out-payment_method_id"
-                                            options={methods.map((one) => ({
-                                                value: String(one.id),
-                                                label: one.name,
-                                            }))}
-                                            value={methodId}
-                                            onValueChange={(value) =>
-                                                form.setData(
-                                                    'payment_method_id',
-                                                    value,
-                                                )
-                                            }
-                                            aria-invalid={
-                                                !!errors.payment_method_id
-                                            }
-                                        />
-                                    )}
+                                    {leftYesterday
+                                        ? 'Back to checking out today'
+                                        : `Guest actually left yesterday (${pendingDay})? ›`}
+                                </button>
+                            )}
+                            {preview.error !== null && (
+                                <p className="text-sm text-destructive">
+                                    {preview.error}
+                                    {preview.receivesScheduled &&
+                                        moveLink !== null && (
+                                            <>
+                                                {' '}
+                                                <Link
+                                                    href={moveLink}
+                                                    className="underline underline-offset-4"
+                                                >
+                                                    Move charges
+                                                </Link>
+                                            </>
+                                        )}
+                                </p>
+                            )}
+                            {early !== null && (
+                                <>
+                                    <div className="flex flex-col gap-1 text-sm">
+                                        <div className="flex justify-between gap-4">
+                                            <span className="text-muted-foreground">
+                                                Booked departure
+                                            </span>
+                                            <DateText date={early.departure} />
+                                        </div>
+                                        <div className="flex justify-between gap-4">
+                                            <span className="text-muted-foreground">
+                                                Nights removed
+                                            </span>
+                                            <span>{early.nightsRemoved}</span>
+                                        </div>
+                                        <div className="flex justify-between gap-4">
+                                            <span className="text-muted-foreground">
+                                                Early departure fee
+                                            </span>
+                                            <span className="font-medium">
+                                                {hasFee ? (
+                                                    <>
+                                                        <MoneyText
+                                                            amount={early.fee}
+                                                            currency={currency}
+                                                        />{' '}
+                                                        <span className="font-normal text-muted-foreground">
+                                                            + tax
+                                                        </span>
+                                                    </>
+                                                ) : (
+                                                    'No charge'
+                                                )}
+                                            </span>
+                                        </div>
+                                    </div>
                                     <FieldError>
-                                        {errors.payment_method_id}
+                                        {errors.expected_fee}
                                     </FieldError>
-                                </Field>
-                                {method?.requiresReference && (
-                                    <Field data-invalid={!!errors.reference}>
-                                        <FieldLabel htmlFor="check-out-reference">
-                                            Reference
+                                    {showWaive && (
+                                        <FieldLabel htmlFor="check-out-do_not_charge">
+                                            <Field orientation="horizontal">
+                                                <Checkbox
+                                                    id="check-out-do_not_charge"
+                                                    checked={data.do_not_charge}
+                                                    onCheckedChange={(
+                                                        checked,
+                                                    ) =>
+                                                        form.setData(
+                                                            'do_not_charge',
+                                                            checked,
+                                                        )
+                                                    }
+                                                />
+                                                <FieldContent>
+                                                    <span className="text-sm font-medium">
+                                                        Do not charge
+                                                    </span>
+                                                    <FieldDescription>
+                                                        The fee is not posted to
+                                                        the folio. This is
+                                                        logged with your name.
+                                                    </FieldDescription>
+                                                </FieldContent>
+                                            </Field>
                                         </FieldLabel>
-                                        <Input
-                                            id="check-out-reference"
-                                            value={data.reference}
+                                    )}
+                                    <Field data-invalid={!!errors.reason}>
+                                        <FieldLabel htmlFor="check-out-reason">
+                                            {leftYesterday
+                                                ? 'Reason (required)'
+                                                : 'Reason'}
+                                        </FieldLabel>
+                                        <Textarea
+                                            id="check-out-reason"
+                                            value={data.reason}
                                             onChange={(event) =>
                                                 form.setData(
-                                                    'reference',
+                                                    'reason',
                                                     event.target.value,
                                                 )
                                             }
-                                            maxLength={100}
-                                            autoComplete="off"
-                                            aria-invalid={!!errors.reference}
+                                            maxLength={500}
+                                            rows={2}
+                                            placeholder={
+                                                waived
+                                                    ? 'Required with Do not charge'
+                                                    : leftYesterday
+                                                      ? 'e.g. Guest left late last night and did not check out'
+                                                      : 'e.g. Flight changed, guest leaves a day early'
+                                            }
+                                            aria-invalid={!!errors.reason}
                                         />
-                                        <FieldError>
-                                            {errors.reference}
-                                        </FieldError>
+                                        <FieldError>{errors.reason}</FieldError>
                                     </Field>
-                                )}
-                            </div>
-                        </div>
-                    )}
-                    {(collecting || (refunding && refund > 0)) && (
-                        <>
-                            <Separator />
-                            <div className="flex flex-col gap-1 text-sm">
-                                {collecting && (
-                                    <SummaryRow
-                                        label={`Collect${method ? ` by ${method.name}` : ''}`}
-                                        amount={collectAmount}
-                                        currency={currency}
-                                    />
-                                )}
-                                {refunding && refund > 0 && (
-                                    <SummaryRow
-                                        label={`Refund${preview.depositMethod ? ` by ${preview.depositMethod}` : ''}`}
-                                        amount={refund}
-                                        currency={currency}
-                                        negative
-                                    />
-                                )}
-                                <div className="flex justify-between gap-4 font-medium">
-                                    <span>Remaining after check-out</span>
-                                    <span
-                                        className={cn(
-                                            !settled && 'text-destructive',
+                                </>
+                            )}
+                            {others.length > 0 &&
+                                !preview.receivesScheduled && (
+                                    <p className="text-sm text-muted-foreground">
+                                        This folio pays for another room.
+                                        Collect it all here, or move{' '}
+                                        {others
+                                            .map((room) => room.name)
+                                            .join(', ')}
+                                        's charges first.
+                                        {moveLink !== null && (
+                                            <>
+                                                {' '}
+                                                <Link
+                                                    href={moveLink}
+                                                    className="underline underline-offset-4"
+                                                >
+                                                    Move charges
+                                                </Link>
+                                            </>
                                         )}
+                                    </p>
+                                )}
+                            {owing > 0 && !canCollect && folioLink !== null && (
+                                <p className="text-sm text-muted-foreground">
+                                    Collect the balance with Record payment on
+                                    the{' '}
+                                    <Link
+                                        href={folioLink}
+                                        className="underline underline-offset-4"
                                     >
+                                        folio
+                                    </Link>
+                                    , then check out.
+                                </p>
+                            )}
+                            {canRefund && (
+                                <FieldSet>
+                                    <FieldLegend variant="label">
+                                        {held > 0
+                                            ? 'Security deposit'
+                                            : 'Credit'}
+                                    </FieldLegend>
+                                    {held > 0 && (
+                                        <Field orientation="horizontal">
+                                            <Checkbox
+                                                id="check-out-use-deposit"
+                                                checked={deposit === 'use'}
+                                                onCheckedChange={(checked) =>
+                                                    form.setData(
+                                                        'deposit',
+                                                        checked
+                                                            ? 'use'
+                                                            : 'refund',
+                                                    )
+                                                }
+                                            />
+                                            <FieldContent>
+                                                <FieldLabel htmlFor="check-out-use-deposit">
+                                                    Use{' '}
+                                                    {formatMoney(
+                                                        held.toFixed(2),
+                                                        currency,
+                                                    )}{' '}
+                                                    toward the bill
+                                                </FieldLabel>
+                                                {folioLink !== null && (
+                                                    <Link
+                                                        href={folioLink}
+                                                        className="text-sm underline underline-offset-4"
+                                                    >
+                                                        Keep it for damages? ›
+                                                    </Link>
+                                                )}
+                                            </FieldContent>
+                                        </Field>
+                                    )}
+                                    {deposit === 'refund' && (
+                                        <div className="flex flex-col gap-2 text-sm">
+                                            <span className="text-muted-foreground">
+                                                {creditAbove
+                                                    ? 'Refund credit'
+                                                    : 'Refund deposit'}
+                                                {preview.depositMethod
+                                                    ? ` · ${preview.depositMethod}`
+                                                    : ''}
+                                            </span>
+                                            {creditAbove ? (
+                                                <div className="flex flex-col gap-1">
+                                                    {refundParts.map(
+                                                        (part, index) => (
+                                                            <div
+                                                                key={index}
+                                                                className="flex justify-between gap-4"
+                                                            >
+                                                                <span className="text-muted-foreground">
+                                                                    {
+                                                                        part.purpose
+                                                                    }{' '}
+                                                                    ·{' '}
+                                                                    {
+                                                                        part.method
+                                                                    }
+                                                                    {part.reference
+                                                                        ? ` ref ${part.reference}`
+                                                                        : ''}
+                                                                </span>
+                                                                <MoneyText
+                                                                    amount={
+                                                                        part.amount
+                                                                    }
+                                                                    currency={
+                                                                        currency
+                                                                    }
+                                                                />
+                                                            </div>
+                                                        ),
+                                                    )}
+                                                    <FieldError>
+                                                        {errors.refund_amount}
+                                                    </FieldError>
+                                                </div>
+                                            ) : (
+                                                <Field
+                                                    data-invalid={
+                                                        !!errors.refund_amount
+                                                    }
+                                                >
+                                                    <MoneyInput
+                                                        id="check-out-refund_amount"
+                                                        value={refundAmount}
+                                                        onChange={(value) =>
+                                                            form.setData(
+                                                                'refund_amount',
+                                                                value,
+                                                            )
+                                                        }
+                                                        currency={currency}
+                                                        invalid={
+                                                            !!errors.refund_amount
+                                                        }
+                                                    />
+                                                    <FieldError>
+                                                        {errors.refund_amount}
+                                                    </FieldError>
+                                                </Field>
+                                            )}
+                                        </div>
+                                    )}
+                                </FieldSet>
+                            )}
+                            {refundable > 0 && !preview.canRefund && (
+                                <p className="text-sm text-muted-foreground">
+                                    {canCorrectMoney
+                                        ? 'A refund is due on this folio. Ask someone who may refund payments to give it back first.'
+                                        : 'A refund is due on this folio. The owner has not allowed refunds during support access.'}
+                                </p>
+                            )}
+                            {collecting && (
+                                <div className="flex flex-col gap-4">
+                                    <div className="flex justify-between gap-4 text-sm font-medium">
+                                        Collect balance
                                         <MoneyText
-                                            amount={remaining.toFixed(2)}
+                                            amount={collectAmount.toFixed(2)}
                                             currency={currency}
                                         />
-                                    </span>
+                                    </div>
+                                    <div
+                                        className={cn(
+                                            'grid gap-4',
+                                            method?.requiresReference &&
+                                                'sm:grid-cols-2',
+                                        )}
+                                    >
+                                        <Field
+                                            data-invalid={
+                                                !!errors.payment_method_id
+                                            }
+                                        >
+                                            <FieldLabel htmlFor="check-out-payment_method_id">
+                                                Method
+                                            </FieldLabel>
+                                            {paymentOptions === undefined ? (
+                                                <Skeleton className="h-9 w-full" />
+                                            ) : (
+                                                <EnumSelect
+                                                    id="check-out-payment_method_id"
+                                                    options={methods.map(
+                                                        (one) => ({
+                                                            value: String(
+                                                                one.id,
+                                                            ),
+                                                            label: one.name,
+                                                        }),
+                                                    )}
+                                                    value={methodId}
+                                                    onValueChange={(value) =>
+                                                        form.setData(
+                                                            'payment_method_id',
+                                                            value,
+                                                        )
+                                                    }
+                                                    aria-invalid={
+                                                        !!errors.payment_method_id
+                                                    }
+                                                />
+                                            )}
+                                            <FieldError>
+                                                {errors.payment_method_id}
+                                            </FieldError>
+                                        </Field>
+                                        {method?.requiresReference && (
+                                            <Field
+                                                data-invalid={
+                                                    !!errors.reference
+                                                }
+                                            >
+                                                <FieldLabel htmlFor="check-out-reference">
+                                                    Reference
+                                                </FieldLabel>
+                                                <Input
+                                                    id="check-out-reference"
+                                                    value={data.reference}
+                                                    onChange={(event) =>
+                                                        form.setData(
+                                                            'reference',
+                                                            event.target.value,
+                                                        )
+                                                    }
+                                                    maxLength={100}
+                                                    autoComplete="off"
+                                                    aria-invalid={
+                                                        !!errors.reference
+                                                    }
+                                                />
+                                                <FieldError>
+                                                    {errors.reference}
+                                                </FieldError>
+                                            </Field>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        </>
-                    )}
-                    {!settled && !collecting && owing === 0 && (
-                        <p className="text-sm text-muted-foreground">
-                            The folio is not at 0 yet, so check-out is not open.
-                        </p>
-                    )}
+                            )}
+                            {(collecting || (refunding && refund > 0)) && (
+                                <>
+                                    <Separator />
+                                    <div className="flex flex-col gap-1 text-sm">
+                                        {collecting && (
+                                            <SummaryRow
+                                                label={`Collect${method ? ` by ${method.name}` : ''}`}
+                                                amount={collectAmount}
+                                                currency={currency}
+                                            />
+                                        )}
+                                        {refunding && refund > 0 && (
+                                            <SummaryRow
+                                                label={`Refund${preview.depositMethod ? ` by ${preview.depositMethod}` : ''}`}
+                                                amount={refund}
+                                                currency={currency}
+                                                negative
+                                            />
+                                        )}
+                                        <div className="flex justify-between gap-4 font-medium">
+                                            <span>
+                                                Remaining after check-out
+                                            </span>
+                                            <span
+                                                className={cn(
+                                                    !settled &&
+                                                        'text-destructive',
+                                                )}
+                                            >
+                                                <MoneyText
+                                                    amount={remaining.toFixed(
+                                                        2,
+                                                    )}
+                                                    currency={currency}
+                                                />
+                                            </span>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                            {!settled && !collecting && owing === 0 && (
+                                <p className="text-sm text-muted-foreground">
+                                    The folio is not at 0 yet, so check-out is
+                                    not open.
+                                </p>
+                            )}
+                        </div>
+                        <div className="hidden min-w-0 flex-col gap-4 lg:flex">
+                            {bill}
+                        </div>
+                    </div>
                 </>
             )}
         </FormOverlay>
