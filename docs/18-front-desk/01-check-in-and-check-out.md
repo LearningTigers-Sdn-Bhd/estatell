@@ -83,6 +83,7 @@ A unit's own folio can hold another room's charges: a Manual rule such as "Room 
 | The unit is CheckedIn (the unit row is locked first)                              | `invalid_status`                                |
 | A business date exists and it is before the departure date                        | `no_business_date`, `not_early`                 |
 | The business date is after the arrival date                                       | `arrived_today`                                 |
+| The property's calendar date is not after the business date (planned)             | `night_audit_pending`                           |
 | The checks of `ProcessEarlyDeparture` (reason, policy row, `fee_changed`, charge) | its refusals                                    |
 | The refund and the checks of `CheckOutUnit`                                       | `refund_exceeds_payment`, `balance_not_settled` |
 
@@ -91,7 +92,38 @@ A unit's own folio can hold another room's charges: a Manual rule such as "Room 
 - **Same-day stay.** A unit that arrived on the business date has no night to keep, so `departure_date > arrival_date` cannot hold. It is refused with `arrived_today`. `EarlyCheckOutRule` (`app/Services/FrontDesk/`) holds this rule and the unit menu, the group check-out page, the preview and the Action all ask it, so none of them offers what another refuses. The Dialog's preview carries the message and the group page shows it as the row note, without **Check out early…**. The guest checks out on the departure date, or after Undo check-in once it is built (see [Cancel, void and undo](#cancel-void-and-undo)).
 - **Departure today or later.** `not_early` is refused. Normal check-out runs through `CheckOutAndRefund`.
 - **Fee:** read by `PolicyChargeCalculator` with the business date as the new departure, and posted with the key `early_departure:{unit}:{n}`. **Do not charge** needs a reason and `front-desk.waive-fees`. `$expectedFee` from the form guards against a policy change (`fee_changed`).
-- **Balance:** the fee joins the unit folio, so the balance to settle includes it. Posted add-ons on removed nights stay and can leave a balance. The form shows the balance before submit. It takes no payment for the fee in this version: staff record the payment first with `RecordPayment`.
+- **Balance:** the fee joins the unit folio, so the balance to settle includes it. Posted add-ons on removed nights stay and can leave a balance. The form shows the balance before submit, and settles it as the check-out Dialog does: Collect balance when the guest owes, a refund when the folio holds a credit ([Refund the credit](#refund-the-credit)).
+- **Money for the unused nights.** The night audit posts one night at a time, so the unused nights were never charged: they are Scheduled and are deleted. A payment line never changes, so money paid for them stays on the folio as a **credit**. The fee is the only part of that credit the hotel keeps. The rest goes back to the guest at check-out. See [Early departure examples](#early-departure-examples).
+- **Night audit pending** (planned, `night_audit_pending`): refused when the property's calendar date (its time zone) is after the business date. The new departure would be the business date, so the night of the business date, which the guest slept, would be deleted and never charged. "The night audit for 20 Oct has not run. Run it first, so the night of 20 Oct is charged." The preview carries the message and the Dialog shows it in place of the submit button. This also stops a normal departure from becoming an early one: a guest booked to 21 Oct who leaves on 21 Oct while the business date is still 20 Oct is offered only **Check out early…**.
+
+#### Early departure examples
+
+3 nights at MYR 100.00, booked 19 to 22 Oct. The guest paid MYR 300.00 as an Advance and a MYR 100.00 deposit, and leaves on 20 Oct after 1 night. Taxes are left out.
+
+| Policy                    | Night posted | Fee    | Paid   | Balance | At check-out                                  |
+| ------------------------- | ------------ | ------ | ------ | ------- | --------------------------------------------- |
+| Free                      | 100.00       | 0.00   | 400.00 | −300.00 | Refund 300.00: deposit 100.00, Advance 200.00 |
+| Fixed amount 50.00        | 100.00       | 50.00  | 400.00 | −250.00 | Refund 250.00: deposit 100.00, Advance 150.00 |
+| 100% of unused nights     | 100.00       | 200.00 | 400.00 | −100.00 | Refund 100.00: the deposit                    |
+| Free, nothing paid before | 100.00       | 0.00   | 100.00 | 0.00    | Use the deposit toward the bill, or refund it |
+| Free, no deposit, unpaid  | 100.00       | 0.00   | 0.00   | 100.00  | Collect 100.00                                |
+| **Do not charge**         | 100.00       | 0.00   | 400.00 | −300.00 | Refund 300.00, as Free                        |
+
+Built today, only the deposit is refunded at check-out, so the first two rows are refused as `balance_not_settled` and staff must refund the Advance on the folio tab first. [Refund the credit](#refund-the-credit) fixes it.
+
+| Edge case                                                | What happens                                                                                                     |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| The night audit has not run                              | Refused (`night_audit_pending`, planned). Run the audit first                                                    |
+| Arrived today, leaves today                              | Refused (`arrived_today`). Undo check-in, then cancel. A later topic                                             |
+| The card surcharge of the prepayment                     | Not refunded: it is a charge. Staff reverse it by hand when it must go too                                       |
+| A posted add-on for a removed day (a transfer, a tour)   | Stays. Staff reverse it when the guest did not use it                                                            |
+| An unposted nightly add-on (breakfast) on removed nights | Deleted with the nights                                                                                          |
+| Room charges go to the Master folio                      | The unit folio holds no prepayment. A credit on the Master settles when the group settles                        |
+| An OTA collected the money                               | Not built. The OTA refunds the guest, not the desk ([Booking ingestion](../21-channels/05-booking-ingestion.md)) |
+| Keep part of the deposit for damages                     | Post the charge first; the credit falls by that amount                                                           |
+| A charge is posted while the Dialog is open              | The refund no longer settles the folio: `balance_not_settled`, nothing is written                                |
+| Undo check-out after an early check-out                  | Payments and refunds stay. The nights and the fee do not come back: extend the stay, reverse the fee             |
+
 - **Permissions:** `front-desk.check-out` and `reservations.manage`, both checked by the route. The refund needs `payment.refund`, as in the check-out Dialog.
 - Logged on the reservation: `reservation.unit_dates_changed` and `reservation.unit_checked_out`, each as today.
 
@@ -451,3 +483,35 @@ A section of the check-out Dialog, shown only with `payment.record` and when the
 - The button names the steps: **Check out**, **Collect and check out**, **Refund and check out** or **Collect, refund and check out**.
 - A method with a surcharge adds the fee as a charge, and the payment covers it, so the folio still reaches 0. The Dialog does not show the fee yet.
 - Transfer to the Master folio is not in the Dialog. Staff use the folio tab.
+
+### Refund the credit
+
+Planned. Today `CheckOutAndRefund` refunds only security deposits (`heldDeposits()`). A credit from an Advance or a Settlement payment, for example a prepaid stay cut short by [early check-out](#early-check-out), stays on the folio, and check-out is refused as `balance_not_settled`. Staff must refund on the folio tab first.
+
+The check-out Dialog, single and early, refunds the whole credit from every payment that still holds money.
+
+```
+┌ Check out early · Deluxe King ────────────── ✕ ┐
+│ Tan Wei Ming · 101 · booked to 22 Oct          │
+│ Leaves today, 20 Oct · 2 nights removed        │
+│                                                │
+│ Early departure fee        Free                │
+│ Unit folio                 MYR 300.00 credit   │
+│                                                │
+│ Refund                                         │
+│   Security deposit · Cash      MYR 100.00      │
+│   Advance · Card ref 4411      MYR 200.00      │
+│ ────────────────────────────────────────────── │
+│ Remaining after check-out      MYR 0.00        │
+│               [Cancel] [Refund and check out]  │
+└────────────────────────────────────────────────┘
+```
+
+- **The pool.** `CheckOutAndRefund` refunds from `heldPayments()`: every Completed payment of the unit's Open folios with money left, whatever its purpose. Security deposits go first, then the other payments oldest first, as Move charges does. Each part runs through `RefundPayment`, with the key `{uuid}:{payment id}` as today.
+- **The amount.** At most the larger of the deposit held and the credit. With a credit above the deposit, the refund is the credit and is read only: any other amount cannot settle the folio. With the guest owing money, only the deposit is offered, as today ([Collect balance](#collect-balance)). A higher amount is refused as `refund_exceeds_payment` before anything is written.
+- **The method.** Each part goes back by the method of its own payment (`RefundPayment` copies it). The Dialog lists each part with its purpose, method and reference, so staff know where the money goes. Refunding by another method is a later topic.
+- **Rows.** "Deposit held" becomes **Credit to refund** when the credit is above the deposit. **Keep for damages** stays: post the charge first, and the credit falls.
+- **Money that cannot be refunded.** A credit from a line with no payment row (a City ledger line) cannot go through `RefundPayment` (`holdsUnrefundable()`). The Dialog shows "Part of this credit cannot be refunded here. Open the folio." and offers no refund.
+- **Preview.** `UnitCheckOutPreviewData` gains `refundParts` (purpose, method, reference and amount of each part, in refund order) from `CheckOutSettlement`. `refundDefault` becomes the credit when it is above the deposit.
+- **Group check-out** uses the same pool for a CheckedIn row: `GroupCheckOutPreview` stops limiting its refund to deposits ([Group check-out](05-group-check-out.md#rows)). A room checked out early from the page uses the single Dialog, so it gets the fix with it.
+- Permissions do not change: a refund needs `payment.refund` and support access needs money corrections allowed.

@@ -47,6 +47,8 @@ Needed for go-live.
 
 ### 18 Front desk
 
+- [ ] `fix(front-desk): refund the whole credit at check-out` — `CheckOutAndRefund` refunds from `heldPayments()` (deposits first, then the others oldest first) up to the larger of the deposit held and the credit; `refundParts` and the new `refundDefault` on `UnitCheckOutPreviewData`; the Dialog lists each part; `GroupCheckOutPreview` uses the same pool for a CheckedIn row. Tests: a prepaid stay checked out early refunds the Advance and closes the folio; the deposit goes first; a refund above the pool is refused and writes nothing; a group CheckedIn row refunds an Advance credit. Docs: [Refund the credit](18-front-desk/01-check-in-and-check-out.md#refund-the-credit), [Early departure examples](18-front-desk/01-check-in-and-check-out.md#early-departure-examples).
+- [ ] `fix(front-desk): refuse early check-out while the audit is pending` — `EarlyCheckOut` refuses `night_audit_pending` when the property's calendar date (its time zone) is after the business date; the check-out preview carries the message and the Dialog shows it in place of the submit button, also on the group page. Tests: a pending audit refuses and writes nothing; the same check-out passes once the calendar date equals the business date. Docs: [Early check-out](18-front-desk/01-check-in-and-check-out.md#early-check-out).
 - [ ] `feat(front-desk): add the stay view` — Docs: [Stay View](18-front-desk/03-stay-view.md).
 
 ## OpenCode
