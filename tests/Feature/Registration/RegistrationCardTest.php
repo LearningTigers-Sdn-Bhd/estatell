@@ -7,6 +7,7 @@ use App\Enums\DefaultRoleEnum;
 use App\Enums\FieldVisibility;
 use App\Enums\PropertyType;
 use App\Enums\RegistrationCardField;
+use App\Models\ChargeItem;
 use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\Tax;
@@ -224,6 +225,44 @@ test('the general tab saves the card rules', function () {
         ->and($settings->id_document_retention_days)->toBe(30)
         ->and($settings->security_deposit_amount)->toBe('150.00');
 });
+
+test('the general tab lists the active charge items and saves the damage charge item, or None', function () {
+    [$owner, $property] = registrationCardProperty();
+    $item = ChargeItem::factory()->create(['property_id' => $property->id, 'name' => 'Damage']);
+    ChargeItem::factory()->inactive()->create(['property_id' => $property->id]);
+    $input = ['registration_card_scope' => 'primary_only', 'security_deposit_amount' => '100.00'];
+
+    $this->actingAs($owner)
+        ->get(route('settings.registration-card.general', $property->code))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('chargeItems', 1)
+            ->where('chargeItems.0.id', $item->id)
+            ->where('settings.damageChargeItemId', null));
+
+    $this->put(route('settings.registration-card.update', $property->code), [...$input, 'damage_charge_item_id' => $item->id])
+        ->assertSessionHasNoErrors();
+    expect($property->settings->refresh()->damage_charge_item_id)->toBe($item->id);
+
+    $this->put(route('settings.registration-card.update', $property->code), [...$input, 'damage_charge_item_id' => ''])
+        ->assertSessionHasNoErrors();
+    expect($property->settings->refresh()->damage_charge_item_id)->toBeNull();
+});
+
+test('the damage charge item must be an active item of the property', function (Closure $item) {
+    [$owner, $property] = registrationCardProperty();
+
+    $this->actingAs($owner)
+        ->put(route('settings.registration-card.update', $property->code), [
+            'registration_card_scope' => 'primary_only', 'security_deposit_amount' => '100.00',
+            'damage_charge_item_id' => $item($property)->id,
+        ])
+        ->assertSessionHasErrors('damage_charge_item_id');
+
+    expect($property->settings->refresh()->damage_charge_item_id)->toBeNull();
+})->with([
+    'another property' => [fn (Property $property): ChargeItem => ChargeItem::factory()->create()],
+    'inactive' => [fn (Property $property): ChargeItem => ChargeItem::factory()->inactive()->create(['property_id' => $property->id])],
+]);
 
 test('the registration card item is active on both tabs', function (string $routeName) {
     [$owner, $property] = registrationCardProperty();

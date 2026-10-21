@@ -17,6 +17,7 @@ export default function RegistrationCard({
     tab,
     canManageTerms,
     registrationCardScopes = [],
+    chargeItems = [],
     fields = [],
     termsDocuments = [],
     termsEditor = null,
@@ -28,6 +29,7 @@ export default function RegistrationCard({
     tab: Tab;
     canManageTerms: boolean;
     registrationCardScopes?: EnumOption[];
+    chargeItems?: App.Data.Reservations.ChargeItemOptionData[];
     fields?: App.Data.Registration.RegistrationCardFieldData[];
     termsDocuments?: App.Data.Registration.TermsDocumentData[];
     termsEditor?: App.Data.Registration.TermsEditorData | null;
@@ -76,6 +78,7 @@ export default function RegistrationCard({
                         <RegistrationCardGeneralForm
                             settings={settings}
                             scopes={registrationCardScopes}
+                            chargeItems={chargeItems}
                         />
                     )}
                     {tab === 'layout' && (
