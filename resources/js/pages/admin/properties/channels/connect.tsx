@@ -1,12 +1,13 @@
 import { Head, Link, useForm, useHttp } from '@inertiajs/react';
-import { CircleCheck, CircleX } from 'lucide-react';
+import { ArrowRight, CircleCheck, CircleX } from 'lucide-react';
 import { useState } from 'react';
 import { ConnectRail } from '@/components/pms/channels/connect-rail';
 import { FormActions } from '@/components/pms/form-actions';
 import { PageHeader } from '@/components/pms/page-header';
+import { Stepper } from '@/components/pms/stepper';
+import { Workspace } from '@/components/pms/workspace';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import {
     Field,
     FieldDescription,
@@ -88,144 +89,134 @@ export default function ChannelConnect({
         <>
             <Head title={`Connect ${connect.otaName}`} />
 
-            <div className="flex flex-1 flex-col gap-6 p-4">
-                <PageHeader
-                    title={`Connect ${connect.otaName}`}
-                    description={property.name}
-                    back={{
-                        href: channelsTab(property.code),
-                        label: 'Channels',
-                    }}
-                    badge={
-                        <span className="text-sm text-muted-foreground">
-                            {STEPS.map((step, position) =>
-                                position === 0 ? (
-                                    <strong
-                                        key={step}
-                                        className="text-foreground"
-                                    >
-                                        1 {step}
-                                    </strong>
-                                ) : (
-                                    <span key={step}>
-                                        {' · '}
-                                        {position + 1} {step}
-                                    </span>
-                                ),
-                            )}
-                        </span>
-                    }
-                />
-
-                <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-                    <form
-                        className="flex flex-col gap-6"
-                        onSubmit={(event) => {
-                            event.preventDefault();
-                            form.post(store(property.code).url);
+            <form
+                className="flex min-h-0 flex-1 flex-col"
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    form.post(store(property.code).url);
+                }}
+            >
+                <div
+                    scroll-region=""
+                    className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4 lg:overflow-hidden"
+                >
+                    <PageHeader
+                        title={`Connect ${connect.otaName}`}
+                        description={property.name}
+                        back={{
+                            href: channelsTab(property.code),
+                            label: 'Channels',
                         }}
-                    >
-                        <Card>
-                            <CardContent className="flex flex-col gap-6">
-                                <FieldGroup>
-                                    {connect.fields.map((field) =>
-                                        isHidden(field) ? null : (
-                                            <ConnectField
-                                                key={field.name}
-                                                field={field}
-                                                value={values[field.name]}
-                                                error={
-                                                    (
-                                                        form.errors as Record<
-                                                            string,
-                                                            string | undefined
-                                                        >
-                                                    )[`settings.${field.name}`]
-                                                }
-                                                onChange={(value) =>
-                                                    setValue(field.name, value)
-                                                }
-                                            />
-                                        ),
-                                    )}
-                                </FieldGroup>
-
-                                <p className="text-sm text-muted-foreground">
-                                    Before testing: sign in to the{' '}
-                                    {connect.otaName} extranet with the login in
-                                    the rail, and choose Channex as the
-                                    connectivity provider.
-                                </p>
-
-                                <div className="flex flex-col items-start gap-3">
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        disabled={
-                                            check.processing ||
-                                            hotelId.trim() === ''
-                                        }
-                                        focusableWhenDisabled
-                                        onClick={runTest}
-                                    >
-                                        {check.processing && (
-                                            <Spinner data-icon="inline-start" />
-                                        )}
-                                        Test connection
-                                    </Button>
-                                    {result && (
-                                        <Alert
-                                            variant={
-                                                result.ok
-                                                    ? 'default'
-                                                    : 'destructive'
-                                            }
-                                        >
-                                            {result.ok ? (
-                                                <CircleCheck />
-                                            ) : (
-                                                <CircleX />
-                                            )}
-                                            <AlertDescription>
-                                                {result.message}
-                                            </AlertDescription>
-                                        </Alert>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <FormActions>
-                            <Link
-                                href={channelsTab(property.code)}
-                                className={buttonVariants({
-                                    variant: 'outline',
-                                })}
-                            >
-                                Cancel
-                            </Link>
-                            <Button
-                                type="submit"
-                                disabled={
-                                    form.processing || hotelId.trim() === ''
-                                }
-                                focusableWhenDisabled
-                            >
-                                {form.processing && (
-                                    <Spinner data-icon="inline-start" />
-                                )}
-                                Next: map
-                            </Button>
-                        </FormActions>
-                    </form>
-
-                    <ConnectRail
-                        code={property.code}
-                        connect={connect}
-                        hotelId={hotelId}
+                        actions={
+                            <Stepper
+                                steps={STEPS}
+                                current={0}
+                                label="Connect steps"
+                            />
+                        }
                     />
+
+                    <Workspace
+                        asideLabel="OTA lists reference"
+                        aside={
+                            <ConnectRail
+                                code={property.code}
+                                connect={connect}
+                                hotelId={hotelId}
+                            />
+                        }
+                    >
+                        <div className="flex flex-col gap-6 p-3">
+                            <FieldGroup>
+                                {connect.fields.map((field) =>
+                                    isHidden(field) ? null : (
+                                        <ConnectField
+                                            key={field.name}
+                                            field={field}
+                                            value={values[field.name]}
+                                            error={
+                                                (
+                                                    form.errors as Record<
+                                                        string,
+                                                        string | undefined
+                                                    >
+                                                )[`settings.${field.name}`]
+                                            }
+                                            onChange={(value) =>
+                                                setValue(field.name, value)
+                                            }
+                                        />
+                                    ),
+                                )}
+                            </FieldGroup>
+
+                            <p className="text-sm text-muted-foreground">
+                                Before testing: sign in to the {connect.otaName}{' '}
+                                extranet with the login in the rail, and choose
+                                Channex as the connectivity provider.
+                            </p>
+
+                            <div className="flex flex-col items-start gap-3">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    disabled={
+                                        check.processing ||
+                                        hotelId.trim() === ''
+                                    }
+                                    focusableWhenDisabled
+                                    onClick={runTest}
+                                >
+                                    {check.processing && (
+                                        <Spinner data-icon="inline-start" />
+                                    )}
+                                    Test connection
+                                </Button>
+                                {result && (
+                                    <Alert
+                                        variant={
+                                            result.ok
+                                                ? 'default'
+                                                : 'destructive'
+                                        }
+                                    >
+                                        {result.ok ? (
+                                            <CircleCheck />
+                                        ) : (
+                                            <CircleX />
+                                        )}
+                                        <AlertDescription>
+                                            {result.message}
+                                        </AlertDescription>
+                                    </Alert>
+                                )}
+                            </div>
+                        </div>
+                    </Workspace>
                 </div>
-            </div>
+
+                <FormActions fixed>
+                    <Link
+                        href={channelsTab(property.code)}
+                        className={buttonVariants({ variant: 'outline' })}
+                    >
+                        Cancel
+                    </Link>
+                    <Button
+                        type="submit"
+                        disabled={form.processing || hotelId.trim() === ''}
+                        focusableWhenDisabled
+                    >
+                        {form.processing && (
+                            <Spinner data-icon="inline-start" />
+                        )}
+                        Next: map
+                        {!form.processing && (
+                            <ArrowRight data-icon="inline-end" />
+                        )}
+                    </Button>
+                </FormActions>
+            </form>
         </>
     );
 }
@@ -326,6 +317,7 @@ ChannelConnect.layout = (props: {
     property: { code: string; name: string };
     connect: Connect;
 }) => ({
+    variant: 'fixed',
     breadcrumbs: [
         { title: 'Admin', href: dashboard() },
         { title: 'Properties', href: index() },

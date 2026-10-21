@@ -1,11 +1,12 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { RefreshCw, TriangleAlert } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Save, TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
 import { FormActions } from '@/components/pms/form-actions';
 import { PageHeader } from '@/components/pms/page-header';
+import { Stepper } from '@/components/pms/stepper';
+import { Workspace } from '@/components/pms/workspace';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import {
@@ -104,71 +105,92 @@ export default function ChannelMap({
         <>
             <Head title={`Map ${map.otaName}`} />
 
-            <div className="flex flex-1 flex-col gap-6 p-4">
-                <PageHeader
-                    title={`Map ${map.otaName}`}
-                    description={
-                        map.hotelId
-                            ? `${property.name} · hotel ${map.hotelId}`
-                            : property.name
-                    }
-                    back={{
-                        href: channelsTab(property.code),
-                        label: 'Channels',
-                    }}
-                    badge={
-                        <span className="text-sm text-muted-foreground">
-                            {STEPS.map((step, position) =>
-                                position === 1 ? (
-                                    <strong
-                                        key={step}
-                                        className="text-foreground"
-                                    >
-                                        {' · '}2 {step}
-                                    </strong>
-                                ) : (
-                                    <span key={step}>
-                                        {position === 0 ? '' : ' · '}
-                                        {position + 1} {step}
-                                    </span>
-                                ),
-                            )}
-                        </span>
-                    }
-                />
-
-                <form
-                    className="flex flex-col gap-6"
-                    onSubmit={(event) => {
-                        event.preventDefault();
-                        form.transform((data) => ({
-                            lines: data.rows.map((row) => ({
-                                rate_plan_mapping_id: row.ratePlanMappingId,
-                                occupancy: row.occupancy,
-                                ota: row.ota,
-                                is_primary: row.isPrimary,
-                                rate_type: row.rateType,
-                            })),
-                        }));
-                        form.put(
-                            update({
-                                property: property.code,
-                                connection: map.connectionId,
-                            }).url,
-                        );
-                    }}
+            <form
+                className="flex min-h-0 flex-1 flex-col"
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    form.transform((data) => ({
+                        lines: data.rows.map((row) => ({
+                            rate_plan_mapping_id: row.ratePlanMappingId,
+                            occupancy: row.occupancy,
+                            ota: row.ota,
+                            is_primary: row.isPrimary,
+                            rate_type: row.rateType,
+                        })),
+                    }));
+                    form.put(
+                        update({
+                            property: property.code,
+                            connection: map.connectionId,
+                        }).url,
+                    );
+                }}
+            >
+                <div
+                    scroll-region=""
+                    className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4 lg:overflow-hidden"
                 >
-                    <Card>
-                        <CardContent className="flex flex-col gap-4">
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                                <p className="text-sm text-muted-foreground">
-                                    Rooms and rates from {map.otaName}, fetched
-                                    just now. Check every line before you save.
-                                </p>
+                    <PageHeader
+                        title={`Map ${map.otaName}`}
+                        description={
+                            map.hotelId
+                                ? `${property.name} · hotel ${map.hotelId}`
+                                : property.name
+                        }
+                        back={{
+                            href: channelsTab(property.code),
+                            label: 'Channels',
+                        }}
+                        actions={
+                            <Stepper
+                                steps={STEPS}
+                                current={1}
+                                label="Connect steps"
+                            />
+                        }
+                    />
+
+                    <Workspace
+                        asideLabel="Mapping summary"
+                        aside={
+                            <div className="flex flex-col gap-4 p-3 text-sm">
+                                <header className="flex flex-col gap-1">
+                                    <h2 className="font-heading text-base font-medium">
+                                        Mapping
+                                    </h2>
+                                    <p className="text-muted-foreground">
+                                        Rooms and rates from {map.otaName},
+                                        fetched just now. Check every line
+                                        before you save.
+                                    </p>
+                                </header>
+                                <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
+                                    <dt className="text-muted-foreground">
+                                        Hotel ID
+                                    </dt>
+                                    <dd className="tabular-nums">
+                                        {map.hotelId ?? '—'}
+                                    </dd>
+                                    {map.pricingType && (
+                                        <>
+                                            <dt className="text-muted-foreground">
+                                                Pricing
+                                            </dt>
+                                            <dd>{map.pricingType}</dd>
+                                        </>
+                                    )}
+                                    <dt className="text-muted-foreground">
+                                        Mapped
+                                    </dt>
+                                    <dd className="tabular-nums">
+                                        {mapped.length} of {rows.length}
+                                    </dd>
+                                </dl>
                                 <Button
                                     type="button"
                                     variant="outline"
                                     size="sm"
+                                    className="self-start"
                                     disabled={fetching}
                                     focusableWhenDisabled
                                     onClick={() =>
@@ -186,200 +208,177 @@ export default function ChannelMap({
                                     )}
                                     Fetch again
                                 </Button>
-                            </div>
 
-                            <div className="overflow-x-auto rounded-lg border">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>
-                                                estatell room · rate
-                                            </TableHead>
-                                            <TableHead>Occ</TableHead>
-                                            <TableHead>
-                                                {map.otaName} room · rate
-                                            </TableHead>
-                                            {map.usesPrimary && (
-                                                <TableHead>Primary</TableHead>
-                                            )}
-                                            {map.usesType && (
-                                                <TableHead>Type</TableHead>
-                                            )}
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {rows.length === 0 && (
-                                            <TableRow>
-                                                <TableCell
-                                                    colSpan={5}
-                                                    className="py-6 text-center text-muted-foreground"
+                                {map.notOnChannels > 0 && (
+                                    <p className="text-muted-foreground">
+                                        {map.notOnChannels} room type and rate
+                                        plan{' '}
+                                        {map.notOnChannels === 1
+                                            ? 'pair is'
+                                            : 'pairs are'}{' '}
+                                        not on channels.
+                                    </p>
+                                )}
+
+                                {unmatched.length > 0 && (
+                                    <Alert>
+                                        <TriangleAlert />
+                                        <AlertDescription>
+                                            {map.otaName} has {unmatched.length}{' '}
+                                            {unmatched.length === 1
+                                                ? 'rate'
+                                                : 'rates'}{' '}
+                                            with no match:{' '}
+                                            {unmatched
+                                                .slice(0, 6)
+                                                .map((option) => option.label)
+                                                .join(', ')}
+                                            {unmatched.length > 6 ? ', …' : ''}.
+                                            Unmapped {map.otaName} rates cause
+                                            booking errors. Map each one, or
+                                            remove it in the extranet.
+                                        </AlertDescription>
+                                    </Alert>
+                                )}
+                            </div>
+                        }
+                    >
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>estatell room · rate</TableHead>
+                                    <TableHead>Occ</TableHead>
+                                    <TableHead>
+                                        {map.otaName} room · rate
+                                    </TableHead>
+                                    {map.usesPrimary && (
+                                        <TableHead>Primary</TableHead>
+                                    )}
+                                    {map.usesType && (
+                                        <TableHead>Type</TableHead>
+                                    )}
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {rows.length === 0 && (
+                                    <TableRow>
+                                        <TableCell
+                                            colSpan={5}
+                                            className="py-6 text-center text-muted-foreground"
+                                        >
+                                            No rate plans are on Channex yet.
+                                            Sync the structure first.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                                {rows.map((row) => (
+                                    <TableRow key={row.key}>
+                                        <TableCell className="font-medium">
+                                            {row.roomType} · {row.ratePlan}
+                                        </TableCell>
+                                        <TableCell className="tabular-nums">
+                                            {row.occupancy}
+                                        </TableCell>
+                                        <TableCell className="min-w-64">
+                                            <Select
+                                                items={options}
+                                                value={row.ota ?? NONE}
+                                                onValueChange={(value) =>
+                                                    change(row.key, {
+                                                        ota:
+                                                            value === NONE
+                                                                ? null
+                                                                : (value as string),
+                                                    })
+                                                }
+                                            >
+                                                <SelectTrigger
+                                                    aria-label={`${map.otaName} room and rate for ${row.roomType} · ${row.ratePlan}, ${row.occupancy} guests`}
+                                                    className="w-full"
                                                 >
-                                                    No rate plans are on Channex
-                                                    yet. Sync the structure
-                                                    first.
-                                                </TableCell>
-                                            </TableRow>
-                                        )}
-                                        {rows.map((row) => (
-                                            <TableRow key={row.key}>
-                                                <TableCell className="font-medium">
-                                                    {row.roomType} ·{' '}
-                                                    {row.ratePlan}
-                                                </TableCell>
-                                                <TableCell className="tabular-nums">
-                                                    {row.occupancy}
-                                                </TableCell>
-                                                <TableCell className="min-w-64">
-                                                    <Select
-                                                        items={options}
-                                                        value={row.ota ?? NONE}
-                                                        onValueChange={(
-                                                            value,
-                                                        ) =>
-                                                            change(row.key, {
-                                                                ota:
-                                                                    value ===
-                                                                    NONE
-                                                                        ? null
-                                                                        : (value as string),
-                                                            })
-                                                        }
-                                                    >
-                                                        <SelectTrigger
-                                                            aria-label={`${map.otaName} room and rate for ${row.roomType} · ${row.ratePlan}, ${row.occupancy} guests`}
-                                                            className="w-full"
-                                                        >
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectGroup>
-                                                                {options.map(
-                                                                    (
-                                                                        option,
-                                                                    ) => (
-                                                                        <SelectItem
-                                                                            key={
-                                                                                option.value
-                                                                            }
-                                                                            value={
-                                                                                option.value
-                                                                            }
-                                                                        >
-                                                                            {
-                                                                                option.label
-                                                                            }
-                                                                        </SelectItem>
-                                                                    ),
-                                                                )}
-                                                            </SelectGroup>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </TableCell>
-                                                {map.usesPrimary && (
-                                                    <TableCell>
-                                                        <Checkbox
-                                                            aria-label={`Primary occupancy for ${row.roomType} · ${row.ratePlan}, ${row.occupancy} guests`}
-                                                            checked={
-                                                                row.isPrimary
-                                                            }
-                                                            disabled={
-                                                                row.ota === null
-                                                            }
-                                                            onCheckedChange={() =>
-                                                                makePrimary(row)
-                                                            }
-                                                        />
-                                                    </TableCell>
-                                                )}
-                                                {map.usesType && (
-                                                    <TableCell>
-                                                        <Input
-                                                            aria-label={`Type for ${row.roomType} · ${row.ratePlan}`}
-                                                            value={
-                                                                row.rateType ??
-                                                                ''
-                                                            }
-                                                            placeholder="e.g. private"
-                                                            disabled={
-                                                                row.ota === null
-                                                            }
-                                                            onChange={(event) =>
-                                                                change(
-                                                                    row.key,
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectGroup>
+                                                        {options.map(
+                                                            (option) => (
+                                                                <SelectItem
+                                                                    key={
+                                                                        option.value
+                                                                    }
+                                                                    value={
+                                                                        option.value
+                                                                    }
+                                                                >
                                                                     {
-                                                                        rateType:
-                                                                            event
-                                                                                .target
-                                                                                .value ||
-                                                                            null,
-                                                                    },
-                                                                )
-                                                            }
-                                                        />
-                                                    </TableCell>
-                                                )}
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
+                                                                        option.label
+                                                                    }
+                                                                </SelectItem>
+                                                            ),
+                                                        )}
+                                                    </SelectGroup>
+                                                </SelectContent>
+                                            </Select>
+                                        </TableCell>
+                                        {map.usesPrimary && (
+                                            <TableCell>
+                                                <Checkbox
+                                                    aria-label={`Primary occupancy for ${row.roomType} · ${row.ratePlan}, ${row.occupancy} guests`}
+                                                    checked={row.isPrimary}
+                                                    disabled={row.ota === null}
+                                                    onCheckedChange={() =>
+                                                        makePrimary(row)
+                                                    }
+                                                />
+                                            </TableCell>
+                                        )}
+                                        {map.usesType && (
+                                            <TableCell>
+                                                <Input
+                                                    aria-label={`Type for ${row.roomType} · ${row.ratePlan}`}
+                                                    value={row.rateType ?? ''}
+                                                    placeholder="e.g. private"
+                                                    disabled={row.ota === null}
+                                                    onChange={(event) =>
+                                                        change(row.key, {
+                                                            rateType:
+                                                                event.target
+                                                                    .value ||
+                                                                null,
+                                                        })
+                                                    }
+                                                />
+                                            </TableCell>
+                                        )}
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </Workspace>
+                </div>
 
-                            {map.notOnChannels > 0 && (
-                                <p className="text-sm text-muted-foreground">
-                                    {map.notOnChannels} room type and rate plan{' '}
-                                    {map.notOnChannels === 1
-                                        ? 'pair is'
-                                        : 'pairs are'}{' '}
-                                    not on channels.
-                                </p>
-                            )}
-
-                            {unmatched.length > 0 && (
-                                <Alert>
-                                    <TriangleAlert />
-                                    <AlertDescription>
-                                        {map.otaName} has {unmatched.length}{' '}
-                                        {unmatched.length === 1
-                                            ? 'rate'
-                                            : 'rates'}{' '}
-                                        with no match:{' '}
-                                        {unmatched
-                                            .slice(0, 6)
-                                            .map((option) => option.label)
-                                            .join(', ')}
-                                        {unmatched.length > 6 ? ', …' : ''}.
-                                        Unmapped {map.otaName} rates cause
-                                        booking errors. Map each one, or remove
-                                        it in the extranet.
-                                    </AlertDescription>
-                                </Alert>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    <FormActions>
-                        <span className="mr-auto text-sm text-muted-foreground tabular-nums">
-                            {mapped.length} of {rows.length} mapped
-                        </span>
-                        <Link
-                            href={channelsTab(property.code)}
-                            className={buttonVariants({ variant: 'outline' })}
-                        >
-                            Back
-                        </Link>
-                        <Button
-                            type="submit"
-                            disabled={form.processing}
-                            focusableWhenDisabled
-                        >
-                            {form.processing && (
-                                <Spinner data-icon="inline-start" />
-                            )}
-                            Save mapping
-                        </Button>
-                    </FormActions>
-                </form>
-            </div>
+                <FormActions fixed>
+                    <Link
+                        href={channelsTab(property.code)}
+                        className={buttonVariants({ variant: 'outline' })}
+                    >
+                        <ArrowLeft data-icon="inline-start" />
+                        Back
+                    </Link>
+                    <Button
+                        type="submit"
+                        disabled={form.processing}
+                        focusableWhenDisabled
+                    >
+                        {form.processing ? (
+                            <Spinner data-icon="inline-start" />
+                        ) : (
+                            <Save data-icon="inline-start" />
+                        )}
+                        Save mapping
+                    </Button>
+                </FormActions>
+            </form>
         </>
     );
 }
@@ -388,6 +387,7 @@ ChannelMap.layout = (props: {
     property: { code: string; name: string };
     map: MapData;
 }) => ({
+    variant: 'fixed',
     breadcrumbs: [
         { title: 'Admin', href: dashboard() },
         { title: 'Properties', href: index() },
