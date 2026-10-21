@@ -100,3 +100,15 @@ test('support emails omit absent notes and corrections and escape user content',
 
     expect($html)->not->toContain('<script>', 'Money corrections:', '<h3>Note</h3>');
 });
+
+test('email layout supports dark mode', function () {
+    $user = User::factory()->admin()->create();
+
+    $message = (new ResetPassword('dark-token'))->toMail($user);
+    $html = (string) app(Markdown::class)->render($message->markdown, $message->data());
+
+    expect($html)
+        ->toContain('<meta name="color-scheme" content="light dark">', '<meta name="supported-color-schemes" content="light dark">')
+        ->toContain('@media (prefers-color-scheme: dark)', '.button-primary', '#3ecf8e', '[data-ogsc]', '[data-ogsb]')
+        ->toContain('#006c49');
+});
