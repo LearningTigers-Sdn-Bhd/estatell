@@ -25,7 +25,7 @@ A booking cannot arrive before the business date (`arrival_in_past`). To get rea
 
 1. Open the first business date at **D0 = today − 7** with `OpenBusinessDate`.
 2. On D0, create every booking in the tables below. All arrivals are on or after D0.
-3. For each day from D0 to D6: run that day's front desk events (the **Events** column), then `RunNightAudit` (Manual trigger, the owner as actor, no force). A refused or Failed audit throws.
+3. For each day from D0 to D6: run that day's front desk events (the **Events** column) with the clock at noon of that day in the property's time zone, then `RunNightAudit` (Manual trigger, the owner as actor, no force) with the clock back where it was. A refused or Failed audit throws. Without the frozen clock the audit looks overdue to the front desk, and the early check-outs (S10, B2) are refused with `night_audit_pending`.
 4. The business date ends at **D7 = today**. Day 7 events run, and no audit runs on D7.
 
 Rules this depends on:
