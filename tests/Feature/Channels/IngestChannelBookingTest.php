@@ -3,14 +3,17 @@
 use App\Actions\Channels\IngestChannelBooking;
 use App\Actions\Channels\StoreChannelRevision;
 use App\Enums\ReservationStatus;
+use App\Enums\SystemTransactionCode;
 use App\Enums\UnitStatus;
 use App\Models\ChannelBookingRevision;
 use App\Models\Guest;
 use App\Models\Reservation;
+use App\Models\TransactionCode;
 use App\Notifications\ChannelBookingCancelled;
 use App\Notifications\ChannelBookingReceived;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
+use Spatie\Activitylog\Models\Activity;
 
 require_once __DIR__.'/../Support/ChannelBooking.php';
 
@@ -163,6 +166,80 @@ test('a modified revision changes the dates and adds a room', function () {
         ->and($units[0]->arrival_date->toDateString())->toBe('2026-10-21')
         ->and($units[0]->departure_date->toDateString())->toBe('2026-10-24')
         ->and($revision->reservation_id)->toBe(Reservation::query()->sole()->id);
+});
+
+/** The room revenue and discount codes a property gets when it is set up, which `ChangeNightPrice` needs. */
+function channelPricingCodes(array $setup): void
+{
+    TransactionCode::factory()->system(SystemTransactionCode::RoomRevenue)->create(['property_id' => $setup['property']->id]);
+    TransactionCode::factory()->system(SystemTransactionCode::Discount)->create(['property_id' => $setup['property']->id]);
+}
+
+/** @return list<float> The night prices of the reservation's first unit, by date. */
+function reservationNightAmounts(): array
+{
+    return Reservation::query()->sole()->units()->orderBy('id')->firstOrFail()->nights()->orderBy('date')->pluck('amount')->map(fn ($amount) => (float) $amount)->all();
+}
+
+test('a modified revision that lengthens the stay prices the added night at the OTA price', function () {
+    $setup = channelBookingSetup();
+    channelPricingCodes($setup);
+    fakeChannexAck();
+    ingest($setup);
+    expect(reservationNightAmounts())->toBe([100.0, 100.0]);
+
+    ingest($setup, [
+        'status' => 'modified',
+        'arrival_date' => '2026-10-20',
+        'departure_date' => '2026-10-23',
+        'rooms' => [channelRevisionRoom(['checkout_date' => '2026-10-23', 'amount' => '450.00'])],
+    ]);
+
+    expect(reservationNightAmounts())->toBe([150.0, 150.0, 150.0]);
+});
+
+test('a modified revision with day amounts gives each night its own price', function () {
+    $setup = channelBookingSetup();
+    channelPricingCodes($setup);
+    fakeChannexAck();
+    ingest($setup);
+
+    ingest($setup, [
+        'status' => 'modified',
+        'arrival_date' => '2026-10-20',
+        'departure_date' => '2026-10-23',
+        'rooms' => [channelRevisionRoom([
+            'checkout_date' => '2026-10-23',
+            'amount' => '295.50',
+            'days' => ['2026-10-20' => '80.00', '2026-10-21' => '120.00', '2026-10-22' => '95.50'],
+        ])],
+    ]);
+
+    expect(reservationNightAmounts())->toBe([80.0, 120.0, 95.5]);
+});
+
+test('a modified revision with a new room price reprices the nights when the dates stay', function () {
+    $setup = channelBookingSetup();
+    channelPricingCodes($setup);
+    fakeChannexAck();
+    ingest($setup);
+
+    ingest($setup, ['status' => 'modified', 'rooms' => [channelRevisionRoom(['amount' => '261.00'])]]);
+
+    expect(reservationNightAmounts())->toBe([130.5, 130.5]);
+});
+
+test('a modified revision that keeps the price leaves the nights and the log alone', function () {
+    $setup = channelBookingSetup();
+    channelPricingCodes($setup);
+    fakeChannexAck();
+    ingest($setup);
+    $before = Activity::query()->where('event', 'like', '%price%')->count();
+
+    ingest($setup, ['status' => 'modified']);
+
+    expect(reservationNightAmounts())->toBe([100.0, 100.0])
+        ->and(Activity::query()->where('event', 'like', '%price%')->count())->toBe($before);
 });
 
 test('a modified revision with fewer rooms cancels the extra unit without a fee', function () {

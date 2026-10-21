@@ -42,7 +42,8 @@ IngestChannelBooking ── CreateReservation(fromChannel: true), booking source
     - A booking in another currency than the property's fails the revision.
     - `EnsureOtaBookingSource` gives the property's OTA [booking source](../12-reservations/11-booking-sources.md) for the revision's channel, and creates it when missing. The reservation gets its `booking_source_id` and `external_reference`. Manual and ingested bookings for the same OTA share one source.
     - The reservation's `external_reference` is the Channex `unique_id` (for example `BDC-9996013801`). A later revision finds the reservation through the earlier revision of the same `external_booking_id`. A Modified or Cancelled revision whose earlier revision is not saved fails until that one is saved.
-    - Modified: the rooms of the revision are matched to the live units in order. A unit with another room type or rate plan is cancelled and replaced, a unit with other dates changes dates (`ChangeUnitDates`), a room with no unit is added, and a unit with no room is cancelled. Nothing is charged for these changes. Prices of nights that stay are not changed.
+    - Modified: the rooms of the revision are matched to the live units in order. A unit with another room type or rate plan is cancelled and replaced, a unit with other dates changes dates (`ChangeUnitDates`), a room with no unit is added, and a unit with no room is cancelled. Nothing is charged for these changes.
+    - Modified prices: a kept unit is then priced as the OTA says, so the reservation total matches the OTA. Each night of the unit takes the revision room's `days` amount for its date, when the revision has an amount for every night. Otherwise the room `amount` is spread over the nights, as a new booking does (the last night takes the remainder). A night that already has that price is skipped. The other nights are changed through `ChangeNightPrice` (reason "Changed on {channel}"), so a night the night audit has already charged is reversed and posted again at the new price, and the change shows in the activity log. This covers nights added by a longer stay and nights whose price the OTA changed. A night that `ChangeNightPrice` refuses (for example a property with no room revenue code) keeps its price and the revision is still saved and acknowledged. A replaced or added unit is priced like a new one (override total spread over the nights).
     - Cancelled: every live unit is cancelled with no fee (`CancelUnits`, do not charge).
 3. Only a saved revision is acknowledged. An acknowledged booking is in estatell.
 4. A failed revision keeps `error`, is not acknowledged, and shows on the admin Channels tab and the night audit readiness panel. Channex then also sends `non_acked_booking`.
@@ -91,7 +92,7 @@ Booking.com and Expedia support `load_future_reservations`. **Import future book
 ## Open
 
 - OTA-collected payments (`payment_collect` = `ota`) are not posted to the folio yet. The `OtaCollected` payment method is there; the posting rule needs the staging amounts above.
-- Prices of nights that stay on a Modified booking are not repriced.
+- A night that cannot be repriced on a Modified booking (a refusal from `ChangeNightPrice`) keeps its old price without any alert, so the total can differ from the OTA. A refusal needs a property with no room revenue code, or a folio that cannot take the correction.
 
 ## Out of scope
 

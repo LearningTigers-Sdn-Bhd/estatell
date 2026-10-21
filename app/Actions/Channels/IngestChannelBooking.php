@@ -6,6 +6,7 @@ use App\Actions\FrontDesk\CancelUnits;
 use App\Actions\FrontDesk\ChangeUnitDates;
 use App\Actions\Guests\CreateGuest;
 use App\Actions\Reservations\AddUnit;
+use App\Actions\Reservations\ChangeNightPrice;
 use App\Actions\Reservations\CreateReservation;
 use App\Actions\Reservations\EnsureOtaBookingSource;
 use App\Data\Reservations\NewReservationData;
@@ -19,6 +20,7 @@ use App\Models\Guest;
 use App\Models\OtaChannel;
 use App\Models\Property;
 use App\Models\Reservation;
+use App\Models\ReservationUnit;
 use App\Models\User;
 use App\Notifications\ChannelBookingCancelled;
 use App\Notifications\ChannelBookingReceived;
@@ -30,6 +32,8 @@ use App\Services\Channels\Channex\ChannexRequestFailed;
 use App\Services\Channels\Channex\ChannexRetryLater;
 use App\Services\Guests\GuestMatcher;
 use App\Services\Staff\PropertyOwners;
+use Brick\Math\BigDecimal;
+use Brick\Math\RoundingMode;
 use Illuminate\Support\Facades\DB;
 
 class IngestChannelBooking
@@ -43,6 +47,7 @@ class IngestChannelBooking
         private CreateReservation $createReservation,
         private AddUnit $addUnit,
         private ChangeUnitDates $changeUnitDates,
+        private ChangeNightPrice $changeNightPrice,
         private CancelUnits $cancelUnits,
         private NotifyChannelReservationStaff $notifyStaff,
         private ChannelDriverManager $drivers,
@@ -108,7 +113,7 @@ class IngestChannelBooking
             $lines = $this->mapper->units($revision->channelProperty, $payload, $channelName);
             $reservation = $existing === null
                 ? $this->create($actor, $property, $payload, $lines, $channel, $otaName)
-                : $this->modify($actor, $existing, $lines, $channelName);
+                : $this->modify($actor, $existing, $lines, $payload['rooms'] ?? [], $channelName);
         }
 
         $revision->update(['processed_at' => now(), 'reservation_id' => $reservation->id, 'error' => null]);
@@ -169,13 +174,18 @@ class IngestChannelBooking
     /**
      * Match the units of the reservation to the rooms of the revision in order. A unit with another room type or rate
      * plan is cancelled and replaced, one with other dates keeps its room and changes dates, a room with no unit is
-     * added, and a unit with no room is cancelled. Nothing is charged for the changes: the channel decides.
+     * added, and a unit with no room is cancelled. Nothing is charged for the changes: the channel decides. A kept
+     * unit is then priced as the channel says: each night that differs from the revision's day amount (or from the
+     * room amount spread over the nights, when the revision has no days) gets that price through `ChangeNightPrice`,
+     * so the reservation total matches the OTA. A night that estatell cannot reprice is left as it is: the booking is
+     * still accepted.
      *
      * @param  list<NewUnitData>  $lines
+     * @param  array<int, array<string, mixed>>  $rooms  The rooms of the revision, in the order of `$lines`.
      *
      * @throws ChannelRevisionRefused
      */
-    private function modify(User $actor, Reservation $reservation, array $lines, string $channelName): Reservation
+    private function modify(User $actor, Reservation $reservation, array $lines, array $rooms, string $channelName): Reservation
     {
         $units = $reservation->units()->whereIn('status', [UnitStatus::Confirmed, UnitStatus::CheckedIn])->orderBy('id')->get()->values();
         $reason = __('Changed on :channel', ['channel' => $channelName]);
@@ -203,6 +213,8 @@ class IngestChannelBooking
                     throw new ChannelRevisionRefused(__('estatell refused the date change (:code).', ['code' => $result->refusal]));
                 }
             }
+
+            $this->repriceNights($actor, $unit, $line, $rooms[$index] ?? [], $reason);
         }
 
         $surplus = $units->slice(count($lines))->pluck('id')->all();
@@ -212,6 +224,60 @@ class IngestChannelBooking
         }
 
         return $reservation;
+    }
+
+    /**
+     * Give the nights of a kept unit the prices of the revision, so the unit total is the OTA's. Nights with the
+     * right price are skipped, and nights that need the same price are changed together.
+     *
+     * @param  array<string, mixed>  $room
+     */
+    private function repriceNights(User $actor, ReservationUnit $unit, NewUnitData $line, array $room, string $reason): void
+    {
+        $nights = $unit->nights()->orderBy('date')->get();
+        $targets = $this->nightPrices($nights->map(fn ($night): string => $night->date->toDateString())->all(), $line, $room);
+        $groups = [];
+
+        foreach ($nights as $night) {
+            $target = $targets[$night->date->toDateString()] ?? null;
+
+            if ($target !== null && ! BigDecimal::of($night->amount)->isEqualTo($target)) {
+                $groups[$target][] = $night;
+            }
+        }
+
+        foreach ($groups as $price => $group) {
+            ($this->changeNightPrice)($actor, $unit, $group, (string) $price, $reason);
+        }
+    }
+
+    /**
+     * The price of each night, as `Y-m-d` => `0.00`: the day amounts of the revision when it has one for every
+     * night, otherwise the room amount spread over the nights (the last night takes the remainder), as a new booking
+     * does. Empty when the revision has no amount.
+     *
+     * @param  list<string>  $dates
+     * @param  array<string, mixed>  $room
+     * @return array<string, string>
+     */
+    private function nightPrices(array $dates, NewUnitData $line, array $room): array
+    {
+        $days = is_array($room['days'] ?? null) ? $room['days'] : [];
+
+        if ($dates !== [] && array_all($dates, fn (string $date): bool => isset($days[$date]) && is_numeric($days[$date]))) {
+            return array_combine($dates, array_map(fn (string $date): string => number_format((float) $days[$date], 2, '.', ''), $dates));
+        }
+
+        if ($dates === [] || $line->overrideTotal === null) {
+            return [];
+        }
+
+        $total = BigDecimal::of($line->overrideTotal);
+        $even = $total->dividedBy(count($dates), 2, RoundingMode::Down);
+        $prices = array_fill(0, count($dates) - 1, (string) $even);
+        $prices[] = (string) $total->minus($even->multipliedBy(count($dates) - 1))->toScale(2);
+
+        return array_combine($dates, $prices);
     }
 
     /**
