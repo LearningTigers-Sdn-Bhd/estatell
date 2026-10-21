@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\MailEventController;
 use App\Http\Controllers\Admin\OtaChannelController;
 use App\Http\Controllers\Admin\OwnerSetupLinkController;
 use App\Http\Controllers\Admin\PartnerBulkAddController;
@@ -56,6 +57,8 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
     Route::post('properties/{property:code}/reactivate', [PropertyStatusController::class, 'reactivate'])->where(['property' => '[A-Za-z]{2}[0-9]{5,}'])->middleware('support.2fa')->name('properties.reactivate');
     Route::put('properties/{property:code}/partner', [PropertyPartnerController::class, 'update'])->where(['property' => '[A-Za-z]{2}[0-9]{5,}'])->middleware('support.2fa')->name('properties.partner.update');
     Route::post('properties/{property:code}/owner/setup-link', OwnerSetupLinkController::class)->where(['property' => '[A-Za-z]{2}[0-9]{5,}'])->middleware('support.2fa')->name('properties.owner.setup-link');
+    Route::get('mail-log', [MailEventController::class, 'index'])->name('mail-events.index');
+    Route::get('mail-log/{mailEvent}', [MailEventController::class, 'show'])->where('mailEvent', '[0-9]+')->name('mail-events.show');
     Route::get('partners', [PartnerController::class, 'index'])->name('partners.index');
     Route::get('partners/suspended', [PartnerController::class, 'suspended'])->name('partners.suspended');
     Route::post('partners', [PartnerController::class, 'store'])->middleware('support.2fa')->name('partners.store');

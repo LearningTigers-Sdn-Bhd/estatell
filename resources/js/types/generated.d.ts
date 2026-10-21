@@ -231,10 +231,10 @@ label: string,
 hint: string | null,
 placeholder: string | null,
 options: string[],
-default: string | boolean | number | null,
+default: string | number | boolean | null,
 required: boolean,
 hiddenWhenField: string | null,
-hiddenWhenValue: boolean | string | null,
+hiddenWhenValue: string | boolean | null,
 };
 export type ChannelConnectPageData = {
 otaChannelId: number,
@@ -275,10 +275,6 @@ occupancy: number | null,
 estatell: string | null,
 isPrimary: boolean,
 rateType: string | null,
-};
-export type ChannelOtaOptionData = {
-value: string,
-label: string,
 };
 export type ChannelOtaRowData = {
 otaChannelId: number,
@@ -1710,6 +1706,18 @@ submittedBy: string,
 sentOn: string,
 today: string,
 review: App.Data.Onboarding.GoLiveReviewData,
+};
+export type AdminMailEventRowData = {
+id: number,
+sentAt: string,
+recipient: string,
+recipientCount: number,
+subject: string,
+notificationType: string | null,
+status: App.Data.Shared.BadgeData,
+providerMessageId: string | null,
+error: string | null,
+propertyName: string | null,
 };
 export type AdminOtaListRowData = {
 id: number,
@@ -3689,6 +3697,7 @@ export type ImpersonationReason = 'onboarding_help' | 'support' | 'setup_check';
 export type InclusionEnd = 'departure_day' | 'night_before_departure';
 export type InclusionStart = 'arrival_day' | 'day_after_arrival';
 export type Locale = 'en' | 'ms';
+export type MailStatus = 'sent' | 'delivered' | 'bounced' | 'complained' | 'failed' | 'suppressed';
 export type ManualFolioReason = 'paper_folio' | 'missed_charge' | 'missed_payment' | 'old_system' | 'fix_mistake' | 'other';
 export type ManualRowType = 'charge' | 'payment' | 'refund';
 export type MediaDisk = 'local' | 'r2';

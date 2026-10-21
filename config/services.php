@@ -25,6 +25,12 @@ return [
         'webhook_secret' => env('CHANNEX_WEBHOOK_SECRET'),
     ],
 
+    'millionsend' => [
+        'base_url' => env('MILLIONSEND_BASE_URL'),
+        'api_key' => env('MILLIONSEND_API_KEY'),
+        'webhook_secret' => env('MILLIONSEND_WEBHOOK_SECRET'),
+    ],
+
     'resend' => [
         'key' => env('RESEND_API_KEY'),
     ],

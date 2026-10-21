@@ -63,6 +63,7 @@ All existing emails use the shared stationery layout in `resources/views/vendor/
 - The header uses a text-only **Estatell** wordmark matching the supplied reference: heavy sans-serif lettering, a capital E and dark forest green. Email-safe fonts approximate the reference until the exact font or logo asset is supplied.
 - The layout uses an olive canvas, a white body, an emerald top rule and full-width action buttons.
 - Email CSS uses inline, email-safe colour fallbacks and system fonts. It does not depend on Tailwind, web fonts or CSS variables.
+- Dark mode: the layout declares `color-scheme: light dark`. Its `<style>` block holds a `@media (prefers-color-scheme: dark)` block with `!important` overrides (dark olive page and card, light text, light emerald button with dark text, darker warning and error panels), plus `[data-ogsc]` and `[data-ogsb]` rules for Outlook.com. The theme CSS keeps the light colours. Dark rules live in `resources/views/vendor/mail/html/layout.blade.php` because the theme CSS is inlined and media queries there are lost. Gmail apps may still recolour a message on their own.
 - Property emails name the property in both the HTML and plain-text footer. Partner and platform account emails use estatell alone.
 - Invitations show the role or partner name. Owner setup shows the password and verification steps.
 - Night audit emails show the existing figures, revenue, payments and meals in tables. Exceptions appear first, followed by the action button. Failed audits separate the error from the recovery instructions.
@@ -74,6 +75,24 @@ Email copy uses short sentences and sentence-case button labels. Invitations use
 Night audit subjects name the business date and result. Their button says “View night audit”. The night audit exception subject also serves as its in-app title. Support email subjects name the property and state that the session ended.
 
 Preview all nine existing email types in the mailbox before signing off the visual review. Rendering tests cover HTML, plain text, footer scope, escaping and authentication links.
+
+## Sending mail in production
+
+Production sends through MillionSend, a Resend-compatible email API. Set `MAIL_MAILER=millionsend`.
+
+| Variable                     | Meaning                                                                                     |
+| ---------------------------- | ------------------------------------------------------------------------------------------- |
+| `MAIL_MAILER`                | `millionsend` in production. `mailbox` in development. `array` in tests.                    |
+| `MILLIONSEND_BASE_URL`       | Origin of the MillionSend API. No default, so a missing value fails loudly.                 |
+| `MILLIONSEND_API_KEY`        | Bearer key for the API.                                                                     |
+| `MILLIONSEND_WEBHOOK_SECRET` | Signing secret for delivery webhooks. See the [Mail log](03-mail-log.md#delivery-webhooks). |
+| `MAIL_FROM_ADDRESS`          | An address on a domain verified in MillionSend.                                             |
+
+`App\Services\Notifications\MillionSendTransport` is a mail transport that `AppServiceProvider` registers with `Mail::extend('millionsend')`. It posts each message to `{base_url}/emails` with the key as a bearer token. The body carries `from`, `to`, `cc`, `bcc`, `reply_to`, `subject`, `html`, `text` and base64 `attachments`.
+
+- All recipients suppressed (HTTP 422, `all_recipients_suppressed`): the address bounced or complained before. The transport logs the recipient count and skips the send. It does not fail the queued notification.
+- Any other API error throws a `TransportException`. The queued job fails and Horizon retries it.
+- The app log never holds addresses or subjects. Each attempt is recorded in the [Mail log](03-mail-log.md).
 
 ## Viewing mail in development
 

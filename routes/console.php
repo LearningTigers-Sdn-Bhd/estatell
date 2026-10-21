@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Guests\PurgeExpiredIdentityScans;
+use App\Actions\Notifications\PruneMailEvents;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -49,6 +50,8 @@ Artisan::command('db:create-test', function () {
 Schedule::command('horizon:snapshot')->everyFiveMinutes();
 
 Schedule::call(fn (): int => app(PurgeExpiredIdentityScans::class)())->name('purge-expired-identity-scans')->dailyAt('03:30')->onOneServer();
+
+Schedule::call(fn (): int => app(PruneMailEvents::class)())->name('prune-mail-events')->dailyAt('03:45')->onOneServer();
 
 Schedule::command('night-audit:dispatch-scheduled')->everyFiveMinutes()->withoutOverlapping()->onOneServer();
 

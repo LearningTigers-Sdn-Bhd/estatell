@@ -11,6 +11,7 @@ use App\Enums\ChannelSupport;
 use App\Enums\CompanyStatus;
 use App\Enums\FolioRowTag;
 use App\Enums\FolioStatus;
+use App\Enums\MailStatus;
 use App\Enums\OtaCredentialStatus;
 use App\Enums\PartnerStatus;
 use App\Enums\PaymentReportStatus;
@@ -95,6 +96,11 @@ class BadgeData extends Data
     }
 
     public static function fromOtaCredentialStatus(OtaCredentialStatus $status): self
+    {
+        return new self($status->value, $status->label(), $status->tone());
+    }
+
+    public static function fromMailStatus(MailStatus $status): self
     {
         return new self($status->value, $status->label(), $status->tone());
     }
