@@ -1,5 +1,5 @@
 import { Form } from '@inertiajs/react';
-import { Check, Copy, Ellipsis, Link2, RefreshCw } from 'lucide-react';
+import { Check, Copy, Ellipsis, Link2, Pencil, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
 import {
     AlertDialog,
@@ -10,6 +10,9 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { SignupMessagePreviewDialog } from '@/components/pms/partners/signup-message-preview-dialog';
+import { SignupMessageDialog } from '@/components/pms/partners/signup-message-dialog';
+import { fillSignupMessage } from '@/components/pms/partners/signup-message';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -19,33 +22,38 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Spinner } from '@/components/ui/spinner';
+import { toast } from '@/components/ui/toast';
 import { useClipboard } from '@/hooks/use-clipboard';
 import { regenerate } from '@/routes/partner/link';
 
 /**
- * The ready-to-send text. It is built here because the link holds no secret the partner does not already have.
- */
-function joinMessage(partnerName: string, signupUrl: string): string {
-    return [
-        `Hi! Set up your property on estatell with ${partnerName}.`,
-        `Register here: ${signupUrl}`,
-        "We'll help you get started once you've signed up.",
-    ].join('\n');
-}
-
-/**
- * The partner's signup link: Copy link, Copy message and, in the menu, Regenerate link with a confirm.
+ * The partner's signup link: Copy link, Copy message and, in the menu, Edit message and Regenerate link with a
+ * confirm.
  */
 export function SignupLinkCard({
     partnerName,
     signupUrl,
+    messageTemplate,
+    defaultMessageTemplate,
 }: {
     partnerName: string;
     signupUrl: string;
+    messageTemplate: string;
+    defaultMessageTemplate: string;
 }) {
     const [copiedText, copy] = useClipboard();
     const [regenerating, setRegenerating] = useState(false);
-    const message = joinMessage(partnerName, signupUrl);
+    const [editingMessage, setEditingMessage] = useState(false);
+    const [previewingMessage, setPreviewingMessage] = useState(false);
+    const message = fillSignupMessage(messageTemplate, partnerName, signupUrl);
+
+    const copyMessage = async () => {
+        toast.add(
+            (await copy(message))
+                ? { title: 'Message copied', type: 'success' }
+                : { title: 'The message could not be copied', type: 'error' },
+        );
+    };
 
     return (
         <Card>
@@ -74,7 +82,13 @@ export function SignupLinkCard({
                             )}
                             {copiedText === signupUrl ? 'Copied' : 'Copy link'}
                         </Button>
-                        <Button variant="outline" onClick={() => copy(message)}>
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                void copyMessage();
+                                setPreviewingMessage(true);
+                            }}
+                        >
                             {copiedText === message ? (
                                 <Check data-icon="inline-start" />
                             ) : (
@@ -91,6 +105,12 @@ export function SignupLinkCard({
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
                                 <DropdownMenuItem
+                                    onClick={() => setEditingMessage(true)}
+                                >
+                                    <Pencil />
+                                    Edit message
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
                                     onClick={() => setRegenerating(true)}
                                 >
                                     <RefreshCw />
@@ -104,6 +124,27 @@ export function SignupLinkCard({
                     Properties that register with this link appear here.
                 </p>
             </CardContent>
+
+            <SignupMessagePreviewDialog
+                open={previewingMessage}
+                onOpenChange={setPreviewingMessage}
+                message={message}
+                copied={copiedText === message}
+                onCopy={() => void copyMessage()}
+                onEdit={() => {
+                    setPreviewingMessage(false);
+                    setEditingMessage(true);
+                }}
+            />
+
+            <SignupMessageDialog
+                open={editingMessage}
+                onOpenChange={setEditingMessage}
+                partnerName={partnerName}
+                signupUrl={signupUrl}
+                template={messageTemplate}
+                defaultTemplate={defaultMessageTemplate}
+            />
 
             <AlertDialog open={regenerating} onOpenChange={setRegenerating}>
                 <AlertDialogContent>

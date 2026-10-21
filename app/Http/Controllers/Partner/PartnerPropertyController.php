@@ -18,6 +18,7 @@ use App\Models\User;
 use App\Services\Guests\CountryOptions;
 use App\Services\Onboarding\OnboardingBoard;
 use App\Services\Platform\PartnerProperties;
+use App\Services\Platform\PartnerSignupMessage;
 use App\Services\Staff\PropertyOwners;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,7 +33,7 @@ class PartnerPropertyController extends Controller
      * The partner's properties and the signup link card. The create form options are sent only when the admin
      * switched on "Can create properties".
      */
-    public function index(Request $request, PartnerProperties $partnerProperties, OnboardingBoard $onboardingBoard): Response
+    public function index(Request $request, PartnerProperties $partnerProperties, OnboardingBoard $onboardingBoard, PartnerSignupMessage $signupMessage): Response
     {
         $partner = $request->user()->partner;
         $onboardingTab = $request->string('status')->toString() === PropertyStatus::Onboarding->value;
@@ -42,6 +43,8 @@ class PartnerPropertyController extends Controller
         return Inertia::render('partner/properties/index', [
             'partnerName' => $partner->name,
             'signupUrl' => route('join', $partner->signup_code),
+            'signupMessageTemplate' => $signupMessage->templateFor($partner),
+            'defaultSignupMessageTemplate' => $signupMessage->defaultTemplate(),
             'canCreateProperties' => $partner->can_create_properties,
             'properties' => PartnerPropertyRowData::collect($properties, PaginatedDataCollection::class),
             'onboardingTab' => $onboardingTab,

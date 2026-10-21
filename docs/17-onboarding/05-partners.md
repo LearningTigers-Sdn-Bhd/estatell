@@ -8,6 +8,7 @@ A partner is a reseller or consultant who brings properties to estatell and help
 
 ```
 partners                  id, name, code_prefix (char 2, unique), signup_code (char 6, unique),
+                          signup_message_template (text, nullable),
                           status (PartnerStatus), can_create_properties (bool, default false),
                           suspended_at, timestamps
 users                     + partner_id (nullable, restrict on delete)
@@ -24,6 +25,7 @@ partner_invitations       id, partner_id (cascade on delete), email, token_hash 
 - One login per partner for now: one `users` row with `partner_id`. The table allows a team later.
 - A user is exactly one of admin, staff, partner user or company user (see [Platform admins](../01-platform/01-platform-admins.md#data-model)).
 - `PartnerStatus`: Invited, Active, Suspended.
+- `signup_message_template`: nullable text, the partner's "Copy message" template. Null means the default wording (`PartnerSignupMessage::defaultTemplate()`).
 - `can_create_properties`: may the partner create properties themselves? Off for every new partner, however it was added. The signup link works either way. wastays called this `can_create_hotels`.
 
 | From      | Can move to                                                                        |
@@ -55,7 +57,15 @@ app.example.com/join/K7Q2MX
 
 - `signup_code`: 6 characters from `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (no 0/O, 1/I), random and unique. It is separate from the prefix, so the link is hard to guess.
 - The partner finds the link in a card at the top of their Properties page (see [Partner portal](#partner-portal)), with **Copy link**, **Copy message** and ⋯ → **Regenerate link**.
-- **Copy message** puts a ready-to-send text on the clipboard. The server sends `signupUrl` and the partner name; the browser builds the message, because it holds no secret:
+- **Copy message** puts a ready-to-send text on the clipboard. The server sends `signupMessageTemplate` (the partner's saved template, or the default) and the browser fills `{partner}` and `{link}`, because the link holds no secret. The default template:
+
+    ```
+    Hi! Set up your property on estatell with {partner}.
+    Register here: {link}
+    We'll help you get started once you've signed up.
+    ```
+
+    which gives, for Andaman Stays:
 
     ```
     Hi! Set up your property on estatell with Andaman Stays.
@@ -63,6 +73,7 @@ app.example.com/join/K7Q2MX
     We'll help you get started once you've signed up.
     ```
 
+- ⋯ → **Edit message** opens a Dialog with a textarea, a live preview and **Reset to default**. The partner saves their own template, up to 1000 characters. It must contain `{link}`; `{partner}` is optional; any other `{placeholder}` is refused. Reset only refills the textarea. Saving text equal to the default stores null, so the partner follows the default wording again. Saved through `UpdatePartnerSignupMessage`, logged `partner.signup-message-updated`. Only an Active partner can save.
 - **Regenerate link** asks first ("Regenerate your signup link? The old link stops working at once.") and issues a new code through `RegeneratePartnerSignupCode`. The old link stops working at once. Logged `partner.signup-link-regenerated`.
 - Admins copy a partner's link from ⋯ → **Copy signup link** on the Active tab (link only, no message). It is a read, so it is not logged and has no `support.2fa`.
 - The link works whether `can_create_properties` is on or off.
@@ -124,6 +135,7 @@ Empty list: "Share your signup link to add a property."
 | Features tab    | `GET /partner/properties/{code}/features` | `partner.properties.features` | Read-only features                                |
 | New property    | `POST /partner/properties`                | `partner.properties.store`    | `CreatePropertyForOwner`; 403 when switched off   |
 | Regenerate link | `POST /partner/link`                      | `partner.link.regenerate`     | `RegeneratePartnerSignupCode`                     |
+| Edit message    | `PUT /partner/link/message`               | `partner.link.message.update` | `UpdatePartnerSignupMessage`                      |
 | Join            | `GET /join/{signupCode}`                  | `join`                        | Guest. Stores the partner and opens `/register`   |
 
 - Every partner query is scoped by `properties.partner_id`. Another partner's property returns 404.

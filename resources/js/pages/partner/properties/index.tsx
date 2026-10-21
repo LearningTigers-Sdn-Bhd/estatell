@@ -22,6 +22,8 @@ type Board = App.Data.Platform.OnboardingBoardRowData;
 type Props = {
     partnerName: string;
     signupUrl: string;
+    signupMessageTemplate: string;
+    defaultSignupMessageTemplate: string;
     canCreateProperties: boolean;
     properties: Illuminate.LengthAwarePaginator<number, Row>;
     onboarding: Record<string, Board>;
@@ -112,6 +114,8 @@ const viewAsColumn = (reason?: string) =>
 export default function PartnerPropertiesIndex({
     partnerName,
     signupUrl,
+    signupMessageTemplate,
+    defaultSignupMessageTemplate,
     canCreateProperties,
     properties,
     onboarding,
@@ -142,6 +146,8 @@ export default function PartnerPropertiesIndex({
                 <SignupLinkCard
                     partnerName={partnerName}
                     signupUrl={signupUrl}
+                    messageTemplate={signupMessageTemplate}
+                    defaultMessageTemplate={defaultSignupMessageTemplate}
                 />
 
                 {demoAccess && <DemoAccessCard access={demoAccess} />}
