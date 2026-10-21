@@ -31,7 +31,6 @@ Build in this order. Certification needs items 1–4 only, so item 6 can be buil
 - [x] `feat(channels): connect an OTA through the Channel API` — `channel_connections`, `ChannelConnectionStatus`, `testConnection` and `createChannel` on the driver, `ConnectChannel`, `ChannexChannelMapper`, `ChannelFieldCopy`, the OTAs card and the connect page (adapter-driven fields, OTA lists rail, Test connection). A saved connection is a Draft at Channex with no mapping. Docs: [Mappings](21-channels/02-mappings-and-capability.md#ota-mapping-channel-api), [Admin Channels tab](21-channels/07-admin-channels-tab.md#connect-step-1-connection).
 - [x] `feat(channels): map OTA rooms and rates` — `channel_ota_mappings`, `mappingDetails` and `updateChannel`, `SaveChannelMapping`, the map page and the unmapped warning. A saved mapping makes the connection `Mapped`. Docs: [Mappings](21-channels/02-mappings-and-capability.md#ota-mapping-channel-api), [Admin Channels tab](21-channels/07-admin-channels-tab.md#connect-step-2-map).
 - [x] `feat(channels): activate, pause and disconnect OTAs` — `activate`, `deactivate`, `deleteChannel` and `loadFutureReservations`, `ActivateChannel`, `PauseChannel`, `DisconnectChannel`, `ImportFutureBookings`, and the OTAs card buttons and menu. Not done here: Ask owner for help and Mark help resolved (the owner help item). Docs: [Admin Channels tab](21-channels/07-admin-channels-tab.md#connect-step-3-activate).
-- [ ] `feat(channels): add the owner channels page and help requests` — `channel_help_requests`, `ChannelHelpReason`, `ChannelOwnerStatus`, Ask owner for help and Mark help resolved, `ChannelHelpRequested`, `channel.view` with a syncing migration, **Settings → Channels**, the OTA lists Channel column and intro, and the rate calendar line. No dashboard changes. Docs: [Owner Channels page](21-channels/08-owner-channels-page.md).
 
 ## Next
 
@@ -64,6 +63,7 @@ Brief for every item: read `AGENTS.md`, `.ai/rules/index.md`, the matching rule 
 
 The rest of the channel work. Docs: [Connections and feature gate](21-channels/01-connections-and-feature-gate.md).
 
+- [ ] `feat(channels): add the owner channels page and help requests` — `channel_help_requests`, `ChannelHelpReason`, `ChannelOwnerStatus`, Ask owner for help and Mark help resolved, `ChannelHelpRequested`, `channel.view` with a syncing migration, **Settings → Channels**, the OTA lists Channel column and intro, and the rate calendar line. No dashboard changes. Docs: [Owner Channels page](21-channels/08-owner-channels-page.md).
 - [ ] `feat(channels): add dorm strategies` (WIP) — BedAsUnit first, then NativeDorm after the [dorm checks](21-channels/06-staging-verification.md#dorm-checks-wip). Docs: [Dorm strategies](21-channels/03-dorm-strategies.md).
 - [ ] `feat(channels): connect Airbnb` (later) — OAuth, listing mapping, many properties per connection.
 - [ ] `feat(reports): add booking performance` — from wastays: bookings and revenue by source, room type and period. Needs: ingest channel bookings, replace the reservation source with booking sources. Docs: [Core reports](22-reports/01-core-reports.md).
