@@ -629,17 +629,6 @@ function CheckOutForm({
                                             Nothing to refund.
                                         </p>
                                     )}
-                                    {held > 0 &&
-                                        owing === 0 &&
-                                        damageItem === null &&
-                                        folioLink !== null && (
-                                            <Link
-                                                href={folioLink}
-                                                className="text-sm underline underline-offset-4"
-                                            >
-                                                Keep it for damages? ›
-                                            </Link>
-                                        )}
                                     {held > 0 && owing > 0 && !damaging && (
                                         <Field orientation="horizontal">
                                             <Checkbox
@@ -663,16 +652,6 @@ function CheckOutForm({
                                                     )}{' '}
                                                     toward the bill
                                                 </FieldLabel>
-                                                {damageItem === null &&
-                                                    folioLink !== null && (
-                                                        <Link
-                                                            href={folioLink}
-                                                            className="text-sm underline underline-offset-4"
-                                                        >
-                                                            Keep it for damages?
-                                                            ›
-                                                        </Link>
-                                                    )}
                                             </FieldContent>
                                         </Field>
                                     )}
@@ -1011,7 +990,7 @@ function CheckOutForm({
  * Check out one unit. Shows the unit folio, split by room when it also holds another room's charges, and the security
  * deposit held. The deposit is a credit, so the form uses
  * it toward the bill, refunds it, or keeps part of it for a damage charge that the check-out posts on the property's
- * damage charge item (or, without one, links to the folio to post it first). For a user who may record payments, Collect
+ * built-in Damage charge item. For a user who may record payments, Collect
  * balance takes what is still owed, and the server records the payment, the refund and the check-out in one step.
  * Check-out opens once the folio will reach 0.
  */

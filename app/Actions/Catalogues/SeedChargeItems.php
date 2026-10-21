@@ -58,6 +58,7 @@ class SeedChargeItems
             SystemTransactionCode::LaundryRevenue,
             SystemTransactionCode::MinibarRevenue,
             SystemTransactionCode::FeeRevenue,
+            SystemTransactionCode::DamageRevenue,
         ];
     }
 }

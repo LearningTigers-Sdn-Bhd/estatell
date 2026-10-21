@@ -3,6 +3,7 @@
 namespace App\Services\FrontDesk;
 
 use App\Enums\PermissionEnum;
+use App\Enums\SystemTransactionCode;
 use App\Models\ChargeItem;
 use App\Models\Property;
 use App\Models\ReservationUnit;
@@ -12,9 +13,9 @@ use App\Services\Reservations\UnitNationality;
 use Brick\Money\Money;
 
 /**
- * The charge item a damage charge at check-out posts to: the property's `damage_charge_item_id`, when it is set and
- * the item is still active. The check-out Dialog offers the damage charge only to a user with `folio.post-charge`.
- * It reads only. See docs/18-front-desk/01-check-in-and-check-out.md#keep-the-deposit-for-damages.
+ * The charge item a damage charge at check-out posts to: the property's starter Damage item, found by its DAMAGE system
+ * code, so a renamed item still works. Every seeded property has one; an owner who turns it off hides the damage charge.
+ * The check-out Dialog offers it only to a user with `folio.post-charge`. It reads only. See docs/18-front-desk/01-check-in-and-check-out.md#keep-the-deposit-for-damages.
  */
 class DamageChargeItem
 {
@@ -25,9 +26,11 @@ class DamageChargeItem
 
     public function for(Property $property): ?ChargeItem
     {
-        $id = $property->loadMissing('settings')->settings?->damage_charge_item_id;
-
-        return $id === null ? null : ChargeItem::query()->where('property_id', $property->id)->active()->find($id);
+        return ChargeItem::query()
+            ->where('property_id', $property->id)
+            ->active()
+            ->whereHas('transactionCode', fn ($query) => $query->where('system_key', SystemTransactionCode::DamageRevenue->value))
+            ->first();
     }
 
     /**

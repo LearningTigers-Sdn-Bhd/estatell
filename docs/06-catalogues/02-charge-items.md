@@ -27,7 +27,7 @@ Each charge item **owns one charge transaction code**. The code gives the item i
 
 ## Starter items
 
-`SeedChargeItems` runs inside `SeedPropertyDefaults`. Every Malaysian property receives four active items. Each has no default amount and owns an existing system code.
+`SeedChargeItems` runs inside `SeedPropertyDefaults`. Every Malaysian property receives five active items. Each has no default amount and owns an existing system code.
 
 | Item              | Code    | Category        |
 | ----------------- | ------- | --------------- |
@@ -35,6 +35,7 @@ Each charge item **owns one charge transaction code**. The code gives the item i
 | Laundry           | LAUNDRY | Laundry         |
 | Minibar           | MINIBAR | Minibar         |
 | General fee       | FEE     | Fee             |
+| Damage            | DAMAGE  | Other           |
 
 - Seeding again restores missing items and keeps property changes.
 - Staff can rename, price, reorder and deactivate starter items. The code and category of a starter item do not change.

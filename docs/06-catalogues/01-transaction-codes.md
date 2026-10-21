@@ -42,6 +42,7 @@ transaction_codes    id, property_id, system_key (nullable), code, name,
 | laundry_revenue           | LAUNDRY          | Laundry                 | Charge     | Laundry         |
 | minibar_revenue           | MINIBAR          | Minibar                 | Charge     | Minibar         |
 | fee_revenue               | FEE              | General fee             | Charge     | Fee             |
+| damage_revenue            | DAMAGE           | Damage                  | Charge     | Other           |
 | sst_tax                   | SST              | SST                     | Tax        | Tax             |
 | tourism_tax               | TOURISM_TAX      | Tourism tax             | Tax        | Tax             |
 | cash_payment              | CASH             | Cash                    | Payment    | Cash            |

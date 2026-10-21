@@ -6,13 +6,11 @@ use App\Actions\Property\UpdatePropertySettings;
 use App\Actions\Registration\SaveRegistrationCardFields;
 use App\Data\Property\PropertySettingsData;
 use App\Data\Registration\RegistrationCardFieldData;
-use App\Data\Reservations\ChargeItemOptionData;
 use App\Enums\PermissionEnum;
 use App\Enums\RegistrationCardScope;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Registration\SaveRegistrationCardFieldsRequest;
 use App\Http\Requests\Registration\UpdateRegistrationCardSettingsRequest;
-use App\Models\ChargeItem;
 use App\Models\Property;
 use App\Models\RegistrationCardFieldSetting;
 use App\Services\Property\SettingsLock;
@@ -24,7 +22,7 @@ use Inertia\Response;
 class RegistrationCardController extends Controller
 {
     /**
-     * Registration card page, General tab. `chargeItems` are the active items the damage charge can post to.
+     * Registration card page, General tab.
      */
     public function general(Property $property, SettingsLock $settingsLock): Response|RedirectResponse
     {
@@ -34,8 +32,6 @@ class RegistrationCardController extends Controller
 
         return $this->renderTab($property, $settingsLock, 'general', [
             'registrationCardScopes' => RegistrationCardScope::options(),
-            'chargeItems' => ChargeItem::query()->where('property_id', $property->id)->active()->ordered()->get()
-                ->map(ChargeItemOptionData::fromModel(...)),
         ]);
     }
 

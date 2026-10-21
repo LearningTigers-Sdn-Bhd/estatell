@@ -33,7 +33,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property bool $card_required_for_check_in
  * @property int|null $id_document_retention_days
  * @property string $security_deposit_amount
- * @property int|null $damage_charge_item_id
  * @property bool $allow_support_access
  * @property bool $allow_support_money_corrections
  * @property WeekendNights $weekend_nights
@@ -44,7 +43,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'arrival_grace_minutes', 'auto_assign_rooms', 'audit_time', 'auto_audit_enabled',
     'missed_arrival_policy', 'overdue_departure_policy',
     'registration_card_scope', 'card_required_for_check_in', 'id_document_retention_days',
-    'security_deposit_amount', 'damage_charge_item_id', 'allow_support_access', 'allow_support_money_corrections', 'weekend_nights',
+    'security_deposit_amount', 'allow_support_access', 'allow_support_money_corrections', 'weekend_nights',
     'migration_window_days',
 ])]
 class PropertySetting extends Model
@@ -66,7 +65,6 @@ class PropertySetting extends Model
             'card_required_for_check_in' => 'boolean',
             'id_document_retention_days' => 'integer',
             'security_deposit_amount' => 'decimal:2',
-            'damage_charge_item_id' => 'integer',
             'allow_support_access' => 'boolean',
             'allow_support_money_corrections' => 'boolean',
             'weekend_nights' => WeekendNights::class,

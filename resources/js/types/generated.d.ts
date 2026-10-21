@@ -2186,7 +2186,6 @@ registrationCardScope: App.Enums.RegistrationCardScope,
 cardRequiredForCheckIn: boolean,
 idDocumentRetentionDays: number | null,
 securityDepositAmount: string,
-damageChargeItemId: number | null,
 allowSupportAccess: boolean,
 allowSupportMoneyCorrections: boolean,
 migrationWindowDays: number,
@@ -3808,7 +3807,7 @@ export type StayType = 'overnight' | 'day_use';
 export type StepState = 'locked' | 'not_started' | 'in_progress' | 'done' | 'needs_attention';
 export type SurchargeType = 'none' | 'fixed' | 'percent';
 export type SwatchColor = 'gray' | 'red' | 'orange' | 'amber' | 'green' | 'teal' | 'blue' | 'indigo' | 'violet' | 'pink';
-export type SystemTransactionCode = 'room_revenue' | 'no_show_revenue' | 'cancellation_revenue' | 'late_checkout_revenue' | 'early_departure_revenue' | 'day_use_revenue' | 'food_and_beverage_revenue' | 'laundry_revenue' | 'minibar_revenue' | 'fee_revenue' | 'sst_tax' | 'tourism_tax' | 'cash_payment' | 'card_payment' | 'bank_transfer_payment' | 'ewallet_payment' | 'ota_collected_payment' | 'direct_bill_payment' | 'security_deposit' | 'refund' | 'adjustment' | 'discount' | 'opening_balance' | 'old_system_payment';
+export type SystemTransactionCode = 'room_revenue' | 'no_show_revenue' | 'cancellation_revenue' | 'late_checkout_revenue' | 'early_departure_revenue' | 'day_use_revenue' | 'food_and_beverage_revenue' | 'laundry_revenue' | 'minibar_revenue' | 'fee_revenue' | 'damage_revenue' | 'sst_tax' | 'tourism_tax' | 'cash_payment' | 'card_payment' | 'bank_transfer_payment' | 'ewallet_payment' | 'ota_collected_payment' | 'direct_bill_payment' | 'security_deposit' | 'refund' | 'adjustment' | 'discount' | 'opening_balance' | 'old_system_payment';
 export type TaxRateType = 'percent' | 'flat';
 export type TemporaryPasswordExportFormat = 'message' | 'csv' | 'xlsx' | 'pdf';
 export type TermsPlaceholder = 'property_name' | 'check_in_time' | 'check_out_time' | 'security_deposit' | 'tourism_tax_rate';

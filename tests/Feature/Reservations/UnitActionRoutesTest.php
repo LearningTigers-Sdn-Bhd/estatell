@@ -648,17 +648,17 @@ test('check out collects the rest when the deposit is used toward the bill', fun
 });
 
 /**
- * A Damage charge item (staff type the amount) set as the property's damage charge item, its code taxed at 10%.
+ * The built-in Damage charge item (staff type the amount) on its DAMAGE system code, taxed at 10%.
  *
  * @param  array{property: Property}  $setup
  * @param  array<string, mixed>  $attributes
  */
 function uaDamageItem(array $setup, array $attributes = []): ChargeItem
 {
-    $item = ChargeItem::factory()->create(['property_id' => $setup['property']->id, 'name' => 'Damage', 'default_amount' => null, ...$attributes]);
+    $code = TransactionCode::factory()->for($setup['property'])->system(SystemTransactionCode::DamageRevenue)->create();
+    $item = ChargeItem::factory()->for($setup['property'])->for($code)->create(['name' => 'Damage', 'default_amount' => null, ...$attributes]);
     $tax = Tax::factory()->for($setup['property'])->create(['rate' => '10.00', 'is_inclusive' => false, 'foreign_guests_only' => false]);
-    $tax->applicableTransactionCodes()->attach($item->transaction_code_id);
-    $setup['property']->settings->update(['damage_charge_item_id' => $item->id]);
+    $tax->applicableTransactionCodes()->attach($code->id);
 
     return $item;
 }
@@ -721,7 +721,7 @@ test('a damage charge is refused on its field and writes nothing', function (Clo
         ->and(FolioLine::query()->where('idempotency_key', 'like', '%:damage')->count())->toBe(0)
         ->and(Payment::query()->whereNotNull('refund_of_id')->count())->toBe(0);
 })->with([
-    'no damage charge item' => [fn (array $setup) => null, fn (array $setup) => $setup['user'], '30.00'],
+    'the Damage item turned off' => [fn (array $setup) => uaDamageItem($setup, ['active' => false]), fn (array $setup) => $setup['user'], '30.00'],
     'no folio.post-charge' => [fn (array $setup) => uaDamageItem($setup), fn (array $setup) => User::factory()->for($setup['property'])->withPermissions(['reservations.view', 'front-desk.check-out', 'payment.refund'])->create(), '30.00'],
     'a fixed price' => [fn (array $setup) => uaDamageItem($setup, ['default_amount' => '50.00', 'allow_override' => false]), fn (array $setup) => $setup['user'], '30.00'],
 ]);

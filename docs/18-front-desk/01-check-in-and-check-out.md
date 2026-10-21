@@ -515,7 +515,7 @@ The check-out Dialog is the one Dialog with the `lg` size ([Form containers](../
 - **Right column, the bill:** the "(added now)" lines, then the folio block below. Read only. Always open on desktop.
 - **Phone and tablet (below 1024 px):** one column. The bill is a `Collapsible` at the top, closed by default. Closed it shows "Bill", the amount to pay (or to refund) and "Charges X · Paid Y"; open, every line and the folio block. The decisions follow.
 
-**Security deposit.** A section with that title, shown only when a deposit is held. One checkbox, **Use MYR 100.00 toward the bill**, ticked by default, and shown only while the guest owes money. When the folio holds a credit the deposit can only be refunded, so the checkbox is hidden and the refund shows directly. When the folio is already at 0 (the deposit went toward the bill, for example before an Undo check-out), the section says "MYR 100.00 used toward the bill. Nothing to refund." instead of a refund field of 0.00. Unticked means the deposit is refunded by the method shown (the old "Refund deposit" radio). **Keep it for damages? ›** is a link to the folio tab to post the charge first (the old "Keep for damages" radio); it does not open a second Dialog. The amounts and the server are unchanged. Since then, with a damage charge item the link is a checkbox with a Damage field ([Keep the deposit for damages](#keep-the-deposit-for-damages)).
+**Security deposit.** A section with that title, shown only when a deposit is held. One checkbox, **Use MYR 100.00 toward the bill**, ticked by default, and shown only while the guest owes money. When the folio holds a credit the deposit can only be refunded, so the checkbox is hidden and the refund shows directly. When the folio is already at 0 (the deposit went toward the bill, for example before an Undo check-out), the section says "MYR 100.00 used toward the bill. Nothing to refund." instead of a refund field of 0.00. Unticked means the deposit is refunded by the method shown (the old "Refund deposit" radio). **Keep it for damages? ›** is a link to the folio tab to post the charge first (the old "Keep for damages" radio); it does not open a second Dialog. The amounts and the server are unchanged. Since then, the link is a checkbox with a Damage field ([Keep the deposit for damages](#keep-the-deposit-for-damages)).
 
 **The folio block.** The Dialog breaks the balance down: **Charges** (every line that is not a payment, so taxes, discounts and reversals count; in early mode it includes the fee shown above), **Paid** (every payment and refund but the deposit held, hidden at 0), **Deposit held**, then **To pay**, **Credit** or **Settled**. Charges + Paid − Deposit held is the balance, so the rows never disagree. The preview sends `charges` and `paid` (`CheckOutSettlement`). The summary under the method no longer repeats "Deposit used toward the bill": the deposit is already in the block.
 
@@ -622,7 +622,7 @@ The deposit payment line stays as it is, because the ledger is immutable. The da
 │  Damage 33.00 · Collect 1,006.07 by Cash │                                        │
 ```
 
-- **The checkbox.** **Keep part of it for damages** sits in the Security deposit section. It shows only when a deposit is held, the property has an active damage charge item and the user holds `folio.post-charge` (the preview's `damageItem`). Otherwise the old **Keep it for damages? ›** link stays.
+- **The checkbox.** **Keep part of it for damages** sits in the Security deposit section. It shows when a deposit is held and the user holds `folio.post-charge` (the preview's `damageItem`). No setup is needed: it posts to the built-in **Damage** item. The old **Keep it for damages? ›** link is gone.
 - **The deposit goes to the damage first.** While the box is ticked, **Use toward the bill** is hidden: the deposit always offsets the damage and the bill, and only what is left is refunded.
 - **Damage amount.** Staff type it, before tax. It starts empty, or at the charge item's default price when the item has one. It must be above 0. Check-out stays closed until the server has priced it.
 - **Tax.** The damage posts with its item's taxes, like any charge. The preview takes `damage_amount` (asked 300 ms after typing stops) and sends `damageTotal`, the amount with tax, and a `refundDefault` and `refundParts` that already count it. The browser adds `damageTotal` to the balance for display only.
@@ -642,16 +642,18 @@ The deposit payment line stays as it is, because the ledger is immutable. The da
 
 **Server.** `CheckOutUnitRequest` takes `damage_amount` and `damage_note` (`damage()`), and `CheckOutAndRefund` runs, in one transaction:
 
-| Step | Action                                                                                         | Key                   |
-| ---- | ---------------------------------------------------------------------------------------------- | --------------------- |
-| 0    | Post the pending night while the audit is pending (`PostPendingNight`), as before              | the audit's keys      |
-| 1    | Post the damage charge (`PostCharge`, the property's damage charge item, the unit's own folio) | `{uuid}:damage`       |
-| 2    | Collect what the form showed (`RecordPayment`, Settlement)                                     | `{uuid}:collect`      |
-| 3    | Refund what is left of the deposit (`RefundPayment`, deposits first)                           | `{uuid}:{payment id}` |
-| 4    | Check out (`CheckOutUnit`)                                                                     | —                     |
+| Step | Action                                                                                | Key                   |
+| ---- | ------------------------------------------------------------------------------------- | --------------------- |
+| 0    | Post the pending night while the audit is pending (`PostPendingNight`), as before     | the audit's keys      |
+| 1    | Post the damage charge (`PostCharge`, the built-in Damage item, the unit's own folio) | `{uuid}:damage`       |
+| 2    | Collect what the form showed (`RecordPayment`, Settlement)                            | `{uuid}:collect`      |
+| 3    | Refund what is left of the deposit (`RefundPayment`, deposits first)                  | `{uuid}:{payment id}` |
+| 4    | Check out (`CheckOutUnit`)                                                            | —                     |
 
 - The damage lands on the unit's own folio (`ownFolio`), not through routing, because the deposit it offsets is there. It posts on the business date.
-- `DamageChargeItem` (`app/Services/FrontDesk/`) finds the item (`damage_charge_item_id`, active) and prices it with `TaxCalculator`, as `PostCharge` does.
-- A refusal at any step rolls back every step. A user without `folio.post-charge` gets an error on `damage_amount` from the request. No damage charge item is refused as `damage_not_allowed`, and an amount an item with a fixed price does not allow as `damage_price_fixed`, both on `damage_amount`.
+- `DamageChargeItem` (`app/Services/FrontDesk/`) finds the item by its DAMAGE system code (active) and prices it with `TaxCalculator`, as `PostCharge` does.
+- A refusal at any step rolls back every step. A user without `folio.post-charge` gets an error on `damage_amount` from the request. A Damage item that was turned off is refused as `damage_not_allowed`, and an amount an item with a fixed price does not allow as `damage_price_fixed`, both on `damage_amount`.
 
-**Setting.** `property_settings.damage_charge_item_id`, nullable, a foreign key to the property's charge items, null by default. It is picked on the Registration card page, General tab, under the security deposit: **Damage charge item**, a select of the property's active charge items with "None" first. An item with "Staff type the amount each time" fits best. See [Card fields](../16-registration/01-card-fields.md#ui).
+**The Damage item.** Every property has a built-in **Damage** charge item, so nothing has to be set up. It is a [starter item](../06-catalogues/02-charge-items.md#starter-items) on the DAMAGE system code (category Other): no default price (staff type the amount), no tax until the property adds one. Staff can rename it, price it or add a tax; the Dialog still finds it by its code. An owner who turns it off hides the damage choice. A migration added the code and the item to every property that had finished Basics.
+
+An earlier version asked the owner to pick the item in Registration card settings (`property_settings.damage_charge_item_id`). Staff missed the setting, so the column and the select were removed before release.

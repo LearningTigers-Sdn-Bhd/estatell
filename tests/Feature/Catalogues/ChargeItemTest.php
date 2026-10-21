@@ -197,6 +197,7 @@ test('Malaysia properties receive starter charge items that own the general char
         SystemTransactionCode::LaundryRevenue->value,
         SystemTransactionCode::MinibarRevenue->value,
         SystemTransactionCode::FeeRevenue->value,
+        SystemTransactionCode::DamageRevenue->value,
     ])
         ->and($items->whereNotNull('default_amount'))->toHaveCount(1)
         ->and($items->every(fn (ChargeItem $item): bool => $item->allow_override))->toBeTrue()
