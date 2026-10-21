@@ -16,6 +16,8 @@ require_once __DIR__.'/../Support/ChannelStructure.php';
 /** An owner whose property has two room types and two plans, with one pair synced to Channex. */
 function channelGuardScene(): array
 {
+    config(['services.channex.base_url' => 'https://staging.channex.io/api/v1', 'services.channex.api_key' => 'secret-key']);
+
     $owner = User::factory()->owner()->create();
     $property = $owner->property;
     $channelProperty = channelSyncedProperty($property);
