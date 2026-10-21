@@ -653,3 +653,20 @@ test('during a support session the owner money switch refuses a group refund row
     gcSave($this, $s, [['unit_id' => $s['units'][1]->id, 'choice' => null]])->assertSessionHasNoErrors();
     expect($s['units'][1]->fresh()->status)->toBe(UnitStatus::CheckedOut);
 });
+
+test('a checked in room refunds an advance credit that is not a deposit', function () {
+    $s = gcSetup(2);
+    gcDeposit($s, $s['units'][0], '200.00', PaymentPurpose::Advance);
+
+    $response = $this->actingAs($s['user'])->postJson(gcUrl($s, 'preview'))->assertOk();
+    $row = collect($response->json('rows'))->keyBy('unitId')[$s['units'][0]->id];
+
+    expect($row['choices'])->toContain('refund')
+        ->and($row['refundAmount'])->toBe('200.00');
+
+    gcSave($this, $s, [['unit_id' => $s['units'][0]->id, 'choice' => 'refund', 'amount' => '200.00']])->assertSessionHasNoErrors();
+
+    expect($s['units'][0]->fresh()->status)->toBe(UnitStatus::CheckedOut)
+        ->and(Payment::query()->whereNotNull('refund_of_id')->sole()->amount)->toBe('200.00')
+        ->and(gcBalance($s['folios'][0]))->toBe('0.00');
+});

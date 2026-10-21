@@ -24,11 +24,12 @@ class CheckOutAndRefund
     ) {}
 
     /**
-     * The check-out form: collect the balance, give the security deposit back, then check the unit out with
-     * `CheckOutUnit`, in one transaction. `$collect` records a Settlement payment on the unit folio with
-     * `RecordPayment`, for the amount the form showed. `$refundAmount` is the part of the deposit to give back. It is
-     * taken from the deposit payments oldest first, each through `RefundPayment` (which refuses more than a payment
-     * holds), and an amount above what is held is refused with `refund_exceeds_payment` before anything is written.
+     * The check-out form: collect the balance, refund the credit, then check the unit out with `CheckOutUnit`, in one
+     * transaction. `$collect` records a Settlement payment on the unit folio with `RecordPayment`, for the amount the
+     * form showed. `$refundAmount` is taken from the refund pool in order (the security deposits oldest first, then the
+     * other payments oldest first, see `CheckOutSettlement::refundPool()`), each part through `RefundPayment`. An
+     * amount above the larger of the deposit held and the credit, or above what the pool holds, is refused with
+     * `refund_exceeds_payment` before anything is refunded.
      * A refusal of the payment, the refund or the check-out (for example `balance_not_settled` when the amount no
      * longer settles the folio) comes back as the refusal code and rolls every step back. `$idempotencyKey` is a UUID
      * from the form: the payment uses `{uuid}:collect` and each refund `{uuid}:{payment id}`. Permissions are checked
@@ -68,15 +69,21 @@ class CheckOutAndRefund
         }
 
         if ($refundAmount !== null && BigDecimal::of($refundAmount)->isPositive()) {
+            $folios = $this->checkOutSettlement->folios($unit);
             $left = BigDecimal::of($refundAmount);
-            $deposits = $this->checkOutSettlement->heldDeposits($this->checkOutSettlement->folios($unit));
-            $held = $deposits->reduce(fn (BigDecimal $sum, $payment): BigDecimal => $sum->plus($this->checkOutSettlement->refundable($payment)), BigDecimal::zero());
+            $pool = $this->checkOutSettlement->refundPool($folios);
+            $refundable = $pool->reduce(fn (BigDecimal $sum, $payment): BigDecimal => $sum->plus($this->checkOutSettlement->refundable($payment)), BigDecimal::zero());
+            $deposit = $pool->filter(fn ($payment): bool => $payment->purpose === PaymentPurpose::SecurityDeposit)
+                ->reduce(fn (BigDecimal $sum, $payment): BigDecimal => $sum->plus($this->checkOutSettlement->refundable($payment)), BigDecimal::zero());
+            $credit = $this->checkOutSettlement->balance($folios);
+            $credit = $credit->isNegative() ? $credit->negated() : BigDecimal::zero();
+            $limit = $credit->isGreaterThan($deposit) ? $credit : $deposit;
 
-            if ($left->isGreaterThan($held)) {
+            if ($left->isGreaterThan($limit) || $left->isGreaterThan($refundable)) {
                 return UnitStayResult::refused('refund_exceeds_payment');
             }
 
-            foreach ($deposits as $payment) {
+            foreach ($pool as $payment) {
                 if ($left->isZero()) {
                     break;
                 }

@@ -106,6 +106,7 @@ function CheckOutForm({
     const { data, errors } = form;
     const early = preview?.early ?? null;
     const held = Number(preview?.depositHeld ?? 0);
+    const refundable = Number(preview?.refundable ?? 0);
     const methodId = data.payment_method_id || String(methods[0]?.id ?? '');
     const method = methods.find((one) => String(one.id) === methodId);
 
@@ -127,22 +128,30 @@ function CheckOutForm({
     const canCollect = preview?.canCollect === true;
     const canCorrectMoney = useCanCorrectMoney();
     const canRefund =
-        preview?.canRefund === true && held > 0 && canCorrectMoney;
+        preview?.canRefund === true && refundable > 0 && canCorrectMoney;
     const deposit = (data.deposit ||
         (owing > 0 ? 'use' : 'refund')) as DepositChoice;
     const refunding = canRefund && deposit === 'refund';
-    // Owing money: refund the whole deposit and collect the rest. Only the deposit left: refund what settles the folio.
+    // The folio credit (after the early departure fee, unless waived). Above the deposit, the credit is refunded as a
+    // whole, from the payments in refund order. Mirrors CheckOutSettlement::refunds() on the server.
+    const credit = Math.max(-balance, 0);
+    const creditAbove = owing === 0 && credit > held;
+    // Owing money: refund the whole deposit and collect the rest. Otherwise refund what settles the folio.
     const refundDefault =
         owing > 0
             ? held.toFixed(2)
-            : early !== null
-              ? Math.min(held, Math.max(-balance, 0)).toFixed(2)
-              : (preview?.refundDefault ?? '0.00');
+            : Math.min(credit, creditAbove ? refundable : held).toFixed(2);
+    // Above the deposit the amount is the credit and cannot change, so it is read only.
     const refundAmount = refunding
-        ? data.refund_amount !== ''
-            ? data.refund_amount
-            : refundDefault
+        ? creditAbove || data.refund_amount === ''
+            ? refundDefault
+            : data.refund_amount
         : '0.00';
+    // The parts are the server's for its default; they do not apply when the amount differs (Do not charge).
+    const refundParts =
+        creditAbove && refundAmount === preview?.refundDefault
+            ? (preview?.refundParts ?? [])
+            : [];
     const refund = Number(refundAmount);
     const due = balance + refund;
     const collecting = canCollect && deposit !== 'keep' && due > 0.005;
@@ -345,8 +354,12 @@ function CheckOutForm({
                                         />{' '}
                                         to pay
                                     </span>
-                                ) : held > 0 ? (
-                                    'Only the deposit is left'
+                                ) : credit > 0 ? (
+                                    creditAbove ? (
+                                        'Only the credit is left'
+                                    ) : (
+                                        'Only the deposit is left'
+                                    )
                                 ) : (
                                     'Settled'
                                 )}
@@ -366,13 +379,19 @@ function CheckOutForm({
                                 />
                             </div>
                         ))}
-                        {held > 0 && (
+                        {(held > 0 || creditAbove) && (
                             <div className="flex justify-between gap-4">
                                 <span className="text-muted-foreground">
-                                    Deposit held
+                                    {creditAbove
+                                        ? 'Credit to refund'
+                                        : 'Deposit held'}
                                 </span>
                                 <MoneyText
-                                    amount={preview.depositHeld}
+                                    amount={
+                                        creditAbove
+                                            ? credit.toFixed(2)
+                                            : preview.depositHeld
+                                    }
                                     currency={currency}
                                 />
                             </div>
@@ -436,12 +455,39 @@ function CheckOutForm({
                                 />
                                 <FieldContent>
                                     <FieldLabel htmlFor="check-out-refund">
-                                        Refund deposit
+                                        {creditAbove
+                                            ? 'Refund credit'
+                                            : 'Refund deposit'}
                                         {preview.depositMethod
                                             ? ` · ${preview.depositMethod}`
                                             : ''}
                                     </FieldLabel>
-                                    {deposit === 'refund' && (
+                                    {deposit === 'refund' && creditAbove && (
+                                        <div className="flex flex-col gap-1">
+                                            {refundParts.map((part, index) => (
+                                                <div
+                                                    key={index}
+                                                    className="flex justify-between gap-4"
+                                                >
+                                                    <span className="text-muted-foreground">
+                                                        {part.purpose} ·{' '}
+                                                        {part.method}
+                                                        {part.reference
+                                                            ? ` ref ${part.reference}`
+                                                            : ''}
+                                                    </span>
+                                                    <MoneyText
+                                                        amount={part.amount}
+                                                        currency={currency}
+                                                    />
+                                                </div>
+                                            ))}
+                                            <FieldError>
+                                                {errors.refund_amount}
+                                            </FieldError>
+                                        </div>
+                                    )}
+                                    {deposit === 'refund' && !creditAbove && (
                                         <Field
                                             data-invalid={
                                                 !!errors.refund_amount
@@ -494,11 +540,11 @@ function CheckOutForm({
                             </Field>
                         </RadioGroup>
                     )}
-                    {held > 0 && !preview.canRefund && (
+                    {refundable > 0 && !preview.canRefund && (
                         <p className="text-sm text-muted-foreground">
                             {canCorrectMoney
-                                ? 'A deposit is held. Ask someone who may refund payments to give it back first.'
-                                : 'A deposit is held. The owner has not allowed refunds during support access.'}
+                                ? 'A refund is due on this folio. Ask someone who may refund payments to give it back first.'
+                                : 'A refund is due on this folio. The owner has not allowed refunds during support access.'}
                         </p>
                     )}
                     {collecting && (

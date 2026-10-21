@@ -12,7 +12,9 @@ use Spatie\LaravelData\Data;
  * set when the unit leaves before its departure date, and the fee in it is not yet in `balance`. `rooms` splits the
  * balance by room when the folio also holds another room's charges, and `otherLineIds` are those rooms' charges, ticked
  * when **Move charges** opens. `receivesScheduled` is set when `error` says another room still charges its scheduled
- * nights here. `canMoveCharges` (`folio.transfer`) shows the Move charges link.
+ * nights here. `canMoveCharges` (`folio.transfer`) shows the Move charges link. `refundable` is what the folios' payments
+ * can give back in all (the deposit and any other payment), and `refundParts` lists each payment the default refund
+ * takes money from, in refund order. A credit above the deposit is refunded as a whole.
  */
 class UnitCheckOutPreviewData extends Data
 {
@@ -33,6 +35,9 @@ class UnitCheckOutPreviewData extends Data
         public array $otherLineIds = [],
         public bool $receivesScheduled = false,
         public bool $canMoveCharges = false,
+        public string $refundable = '0.00',
+        /** @var list<CheckOutRefundPartData> */
+        public array $refundParts = [],
     ) {}
 
     public static function refused(string $error): self

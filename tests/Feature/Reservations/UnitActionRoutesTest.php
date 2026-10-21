@@ -1405,3 +1405,77 @@ test('during a support session with the money switch off, a check-out without a 
     $this->post(uaUrl($setup, 'check-out'), ['idempotency_key' => fake()->uuid()])->assertSessionHasNoErrors();
     expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedOut);
 });
+
+/** A payment of the Advance purpose on the unit folio, taken in cash. */
+function uaAdvance(array $setup, string $amount): Payment
+{
+    $cash = PaymentMethod::query()->where('property_id', $setup['property']->id)->where('type', PaymentMethodType::Cash)->firstOrFail();
+
+    return app(RecordPayment::class)($setup['user'], $setup['reservation'], null, $setup['unit'], new NewPaymentData($cash->id, PaymentPurpose::Advance, $amount, null, fake()->uuid()))->payment;
+}
+
+/** @param array<string, mixed> $attributes */
+function uaEarlyPolicy(array $setup, array $attributes): void
+{
+    RoomRevenuePolicy::query()->where('property_id', $setup['property']->id)->where('code', SystemTransactionCode::EarlyDepartureRevenue->value)->update($attributes);
+}
+
+test('a prepaid stay checked out early with a free policy refunds the deposit and the advance and closes the folio', function () {
+    $setup = uaEarlySetup();
+    uaAdvance($setup, '200.00');
+    uaEarlyPolicy($setup, ['charge_mode' => 'free', 'amount' => null]);
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'early-check-out'), ['refund_amount' => '300.00', 'expected_fee' => '0.00', 'idempotency_key' => fake()->uuid()])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    $unit = $setup['unit']->fresh();
+
+    expect($unit->status)->toBe(UnitStatus::CheckedOut)
+        ->and(Payment::query()->whereNotNull('refund_of_id')->where('purpose', PaymentPurpose::SecurityDeposit)->sole()->amount)->toBe('100.00')
+        ->and(Payment::query()->whereNotNull('refund_of_id')->where('purpose', PaymentPurpose::Advance)->sole()->amount)->toBe('200.00')
+        ->and(Folio::query()->where('reservation_unit_id', $unit->id)->sole()->status)->toBe(FolioStatus::Closed);
+});
+
+test('the deposit is refunded before the advance, and the advance gives back the rest of the credit', function () {
+    $setup = uaEarlySetup();
+    uaAdvance($setup, '200.00');
+    uaEarlyPolicy($setup, ['amount' => '50.00']);
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'early-check-out'), ['refund_amount' => '250.00', 'expected_fee' => '50.00', 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasNoErrors();
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedOut)
+        ->and(Payment::query()->whereNotNull('refund_of_id')->where('purpose', PaymentPurpose::SecurityDeposit)->sole()->amount)->toBe('100.00')
+        ->and(Payment::query()->whereNotNull('refund_of_id')->where('purpose', PaymentPurpose::Advance)->sole()->amount)->toBe('150.00');
+});
+
+test('a refund above the credit and the deposit is refused before anything is refunded', function () {
+    $setup = uaDepartingSetup();
+    uaAdvance($setup, '200.00');
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'check-out'), ['refund_amount' => '350.00', 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasErrors('refund_amount');
+
+    expect(Payment::query()->whereNotNull('refund_of_id')->count())->toBe(0)
+        ->and($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn);
+});
+
+test('the check-out preview refunds a credit above the deposit, deposit first, as parts', function () {
+    $setup = uaDepartingSetup();
+    uaAdvance($setup, '200.00');
+
+    $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-out-preview'))
+        ->assertOk()
+        ->assertJsonPath('balance', '-300.00')
+        ->assertJsonPath('refundDefault', '300.00')
+        ->assertJsonPath('refundable', '300.00')
+        ->assertJsonPath('refundParts.0.purpose', PaymentPurpose::SecurityDeposit->label())
+        ->assertJsonPath('refundParts.0.amount', '100.00')
+        ->assertJsonPath('refundParts.1.purpose', PaymentPurpose::Advance->label())
+        ->assertJsonPath('refundParts.1.amount', '200.00')
+        ->assertJsonPath('error', null);
+});

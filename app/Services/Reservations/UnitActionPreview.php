@@ -302,6 +302,11 @@ class UnitActionPreview
             withinFreeWindow: $charge->withinFreeWindow,
         );
 
+        // The fee is posted before the refund, so the credit the refund gives back is the one after the fee.
+        $refunds = $this->checkOutSettlement->refunds($this->checkOutSettlement->folios($unit), BigDecimal::of($preview->balance)->plus((string) $tax->grossAmount->getAmount()));
+        $preview->refundDefault = (string) $refunds['default']->toScale(2);
+        $preview->refundParts = $refunds['parts'];
+
         return $preview;
     }
 

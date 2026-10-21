@@ -210,9 +210,7 @@ class GroupCheckOutPreview
         $incoming = $kind === self::KIND_CHARGED_ELSEWHERE ? $this->checkOutSettlement->incomingScheduled($unit, $folios) : [];
         $held = $this->checkOutSettlement->heldPayments($folios);
         $heldTotal = $held->reduce(fn (BigDecimal $sum, Payment $payment): BigDecimal => $sum->plus($this->checkOutSettlement->refundable($payment)), BigDecimal::zero());
-        $refundPool = $unit->status === UnitStatus::CheckedIn
-            ? $this->checkOutSettlement->heldDeposits($folios)->reduce(fn (BigDecimal $sum, Payment $payment): BigDecimal => $sum->plus($this->checkOutSettlement->refundable($payment)), BigDecimal::zero())
-            : $heldTotal;
+        $refundPool = $heldTotal;
         $credit = $balance->isNegative() ? $balance->negated() : BigDecimal::zero();
         $moveAmount = $this->checkOutSettlement->movableTotal($folios);
         $canMove = $actionable && $balance->isPositive() && $master !== null && $user->can(PermissionEnum::FolioTransfer->value)

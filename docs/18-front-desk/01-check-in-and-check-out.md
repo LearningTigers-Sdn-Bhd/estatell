@@ -109,7 +109,7 @@ A unit's own folio can hold another room's charges: a Manual rule such as "Room 
 | Free, no deposit, unpaid  | 100.00       | 0.00   | 0.00   | 100.00  | Collect 100.00                                |
 | **Do not charge**         | 100.00       | 0.00   | 400.00 | −300.00 | Refund 300.00, as Free                        |
 
-Built today, only the deposit is refunded at check-out, so the first two rows are refused as `balance_not_settled` and staff must refund the Advance on the folio tab first. [Refund the credit](#refund-the-credit) fixes it.
+Built: the Advance is refunded with the deposit, so the first two rows check out in one step. [Refund the credit](#refund-the-credit) describes how.
 
 | Edge case                                                | What happens                                                                                                     |
 | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
@@ -486,7 +486,16 @@ A section of the check-out Dialog, shown only with `payment.record` and when the
 
 ### Refund the credit
 
-Planned. Today `CheckOutAndRefund` refunds only security deposits (`heldDeposits()`). A credit from an Advance or a Settlement payment, for example a prepaid stay cut short by [early check-out](#early-check-out), stays on the folio, and check-out is refused as `balance_not_settled`. Staff must refund on the folio tab first.
+Built. Before this change `CheckOutAndRefund` refunded only security deposits (`heldDeposits()`), so a credit from an Advance or a Settlement payment, for example a prepaid stay cut short by [early check-out](#early-check-out), stayed on the folio, and check-out was refused as `balance_not_settled`. Staff had to refund on the folio tab first.
+
+Built: `CheckOutSettlement::refundPool()` lists the refund pool: the security deposits held (oldest first), then the other completed payments that still hold money (oldest first). Each part goes through `RefundPayment`.
+
+Built, decisions the doc did not cover:
+
+- A credit above the deposit is refunded as a whole, so its amount is read only and the Dialog lists each part (purpose, method and the reference after "ref"). Below the deposit the amount stays editable, as before.
+- The early check-out preview recomputes the default with the fee the form will post, so the refund matches the folio after the fee. **Do not charge** changes the amount in the Dialog. Its parts are listed only while the amount is the server's default.
+- The preview carries `refundable`, what the payments can give back in all. The Dialog caps the refund at it.
+- A refusal for a limit (above the larger of the deposit held and the credit, or above `refundable`) is `refund_exceeds_payment`, and nothing is written.
 
 The check-out Dialog, single and early, refunds the whole credit from every payment that still holds money.
 

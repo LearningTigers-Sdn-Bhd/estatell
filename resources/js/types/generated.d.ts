@@ -3012,6 +3012,12 @@ amount: string,
 reference: string | null,
 idempotencyKey: string,
 };
+export type CheckOutRefundPartData = {
+purpose: string,
+method: string,
+reference: string | null,
+amount: string,
+};
 export type CheckOutRoomShareData = {
 name: string,
 amount: string,
@@ -3426,6 +3432,8 @@ rooms: App.Data.Reservations.CheckOutRoomShareData[],
 otherLineIds: number[],
 receivesScheduled: boolean,
 canMoveCharges: boolean,
+refundable: string,
+refundParts: App.Data.Reservations.CheckOutRefundPartData[],
 };
 export type UnitDatesPreviewData = {
 previousTotal: string | null,
