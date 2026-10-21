@@ -3434,6 +3434,8 @@ receivesScheduled: boolean,
 canMoveCharges: boolean,
 refundable: string,
 refundParts: App.Data.Reservations.CheckOutRefundPartData[],
+charges: string,
+paid: string,
 };
 export type UnitDatesPreviewData = {
 previousTotal: string | null,

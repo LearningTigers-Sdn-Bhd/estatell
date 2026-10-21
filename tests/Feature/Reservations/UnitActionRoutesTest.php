@@ -1537,3 +1537,13 @@ test('a free early departure fee adds no flat tax, so the preview refund settles
     expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedOut)
         ->and(uaEarlyFeeLines($setup['unit']))->toBe(0);
 });
+
+test('the check-out preview breaks the balance into charges, paid and the deposit held', function () {
+    $setup = uaDepartingSetup();
+    uaOwing($setup);
+    uaAdvance($setup, '30.00');
+
+    $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-out-preview'))
+        ->assertOk()
+        ->assertJson(['charges' => '300.00', 'paid' => '-30.00', 'depositHeld' => '100.00', 'balance' => '170.00']);
+});

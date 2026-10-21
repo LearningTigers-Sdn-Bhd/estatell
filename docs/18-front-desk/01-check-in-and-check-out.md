@@ -436,8 +436,11 @@ A section of the check-in Dialog, shown only with `payment.record`. The form sen
 ┌ Check out · Deluxe King ─────────────────── ✕ ┐
 │ Tan Wei Ming · room 101 · departs today       │
 │                                               │
-│ Unit folio      RM 0.00   settled ✓           │
-│ Deposit held    RM 100.00                     │
+│ Unit folio                                    │
+│   Charges                  RM 480.00          │
+│   Paid                    −RM 380.00          │
+│   Deposit held            −RM 100.00          │
+│   Credit                   RM 100.00          │
 │                                               │
 │ ( ) Refund deposit    RM [ 100.00 ]   Cash    │
 │ ( ) Keep for damages  → post a charge first   │
@@ -447,6 +450,8 @@ A section of the check-in Dialog, shown only with `payment.record`. The form sen
 
 **Keep for damages** links to the folio to post the charge. It does not open a second Dialog. Without a deposit credit, the deposit rows are hidden.
 
+**The folio block.** The Dialog breaks the balance down: **Charges** (every line that is not a payment, so taxes, discounts and reversals count; in early mode it includes the fee shown above), **Paid** (every payment and refund but the deposit held, hidden at 0), **Deposit held**, then **To pay**, **Credit** or **Settled**. Charges + Paid − Deposit held is the balance, so the rows never disagree. The preview sends `charges` and `paid` (`CheckOutSettlement`). The summary under the method no longer repeats "Deposit used toward the bill": the deposit is already in the block.
+
 ### Collect balance
 
 A section of the check-out Dialog, shown only with `payment.record` and when the guest still owes money. It replaces the "Collect the balance with Record payment on the folio" line, which stays for a user without `payment.record`.
@@ -455,8 +460,10 @@ A section of the check-out Dialog, shown only with `payment.record` and when the
 ┌ Check out · Standard Double ─────────────── ✕ ┐
 │ Ong Kok Leong · 104 · departs 09 Oct 2026     │
 │                                               │
-│ Unit folio            MYR 396.00 to pay       │
-│ Deposit held          MYR 200.00              │
+│ Unit folio                                    │
+│   Charges             MYR 596.00              │
+│   Deposit held       −MYR 200.00              │
+│   To pay              MYR 396.00              │
 │                                               │
 │ ( ) Use toward the bill                       │
 │ (•) Refund deposit · Cash   [ 200.00 ]        │
@@ -506,7 +513,11 @@ The check-out Dialog, single and early, refunds the whole credit from every paym
 │ Leaves today, 20 Oct · 2 nights removed        │
 │                                                │
 │ Early departure fee        Free                │
-│ Unit folio                 MYR 300.00 credit   │
+│ Unit folio                                     │
+│   Charges                  MYR 100.00          │
+│   Paid                    −MYR 300.00          │
+│   Deposit held            −MYR 100.00          │
+│   Credit                   MYR 300.00          │
 │                                                │
 │ Refund                                         │
 │   Security deposit · Cash      MYR 100.00      │
@@ -520,7 +531,7 @@ The check-out Dialog, single and early, refunds the whole credit from every paym
 - **The pool.** `CheckOutAndRefund` refunds from `heldPayments()`: every Completed payment of the unit's Open folios with money left, whatever its purpose. Security deposits go first, then the other payments oldest first, as Move charges does. Each part runs through `RefundPayment`, with the key `{uuid}:{payment id}` as today.
 - **The amount.** At most the larger of the deposit held and the credit. With a credit above the deposit, the refund is the credit and is read only: any other amount cannot settle the folio. With the guest owing money, only the deposit is offered, as today ([Collect balance](#collect-balance)). A higher amount is refused as `refund_exceeds_payment` before anything is written.
 - **The method.** Each part goes back by the method of its own payment (`RefundPayment` copies it). The Dialog lists each part with its purpose, method and reference, so staff know where the money goes. Refunding by another method is a later topic.
-- **Rows.** "Deposit held" becomes **Credit to refund** when the credit is above the deposit. **Keep for damages** stays: post the charge first, and the credit falls.
+- **Rows.** The last row of the [folio block](#check-out) reads **Credit** with the amount to give back. **Keep for damages** stays: post the charge first, and the credit falls.
 - **Money that cannot be refunded.** A credit from a line with no payment row (a City ledger line) cannot go through `RefundPayment` (`holdsUnrefundable()`). The Dialog shows "Part of this credit cannot be refunded here. Open the folio." and offers no refund.
 - **Preview.** `UnitCheckOutPreviewData` gains `refundParts` (purpose, method, reference and amount of each part, in refund order) from `CheckOutSettlement`. `refundDefault` becomes the credit when it is above the deposit.
 - **Group check-out** uses the same pool for a CheckedIn row: `GroupCheckOutPreview` stops limiting its refund to deposits ([Group check-out](05-group-check-out.md#rows)). A room checked out early from the page uses the single Dialog, so it gets the fix with it.

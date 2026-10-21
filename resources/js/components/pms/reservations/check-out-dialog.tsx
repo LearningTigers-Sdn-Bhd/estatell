@@ -124,6 +124,9 @@ function CheckOutForm({
     // Display math only: the server posts the fee and checks the balance again.
     const feeOnFolio = early !== null && !waived ? Number(early.feeTotal) : 0;
     const balance = Number(preview?.balance ?? 0) + feeOnFolio;
+    // The folio block: charges (with the fee) + paid − deposit held = balance.
+    const charges = Number(preview?.charges ?? 0) + feeOnFolio;
+    const paid = Number(preview?.paid ?? 0);
     const owing = Math.max(balance, 0);
     const canCollect = preview?.canCollect === true;
     const canCorrectMoney = useCanCorrectMoney();
@@ -157,8 +160,6 @@ function CheckOutForm({
     const collecting = canCollect && deposit !== 'keep' && due > 0.005;
     const collectAmount = collecting ? due : 0;
     const remaining = due - collectAmount;
-    const depositUsed =
-        held > 0 && deposit !== 'keep' ? Math.max(held - refund, 0) : 0;
     const settled =
         preview !== null &&
         preview.error === null &&
@@ -332,7 +333,7 @@ function CheckOutForm({
                                     placeholder={
                                         waived
                                             ? 'Required with Do not charge'
-                                            : 'Optional'
+                                            : 'e.g. Flight changed, guest leaves a day early'
                                     }
                                     aria-invalid={!!errors.reason}
                                 />
@@ -341,29 +342,51 @@ function CheckOutForm({
                         </>
                     )}
                     <div className="flex flex-col gap-1 text-sm">
-                        <div className="flex justify-between gap-4">
-                            <span className="text-muted-foreground">
-                                Unit folio
-                            </span>
+                        <span className="font-medium">Unit folio</span>
+                        <SummaryRow
+                            label="Charges"
+                            amount={charges}
+                            currency={currency}
+                        />
+                        {Math.abs(paid) > 0.005 && (
+                            <SummaryRow
+                                label="Paid"
+                                amount={Math.abs(paid)}
+                                currency={currency}
+                                negative={paid < 0}
+                            />
+                        )}
+                        {held > 0 && (
+                            <SummaryRow
+                                label="Deposit held"
+                                amount={held}
+                                currency={currency}
+                                negative
+                            />
+                        )}
+                        <div className="flex justify-between gap-4 font-medium">
                             <span>
-                                {owing > 0 ? (
-                                    <span className="text-destructive">
-                                        <MoneyText
-                                            amount={owing.toFixed(2)}
-                                            currency={currency}
-                                        />{' '}
-                                        to pay
-                                    </span>
-                                ) : credit > 0 ? (
-                                    creditAbove ? (
-                                        'Only the credit is left'
-                                    ) : (
-                                        'Only the deposit is left'
-                                    )
-                                ) : (
-                                    'Settled'
-                                )}
+                                {owing > 0
+                                    ? 'To pay'
+                                    : credit > 0
+                                      ? 'Credit'
+                                      : 'Balance'}
                             </span>
+                            {owing > 0 ? (
+                                <span className="text-destructive">
+                                    <MoneyText
+                                        amount={owing.toFixed(2)}
+                                        currency={currency}
+                                    />
+                                </span>
+                            ) : credit > 0 ? (
+                                <MoneyText
+                                    amount={credit.toFixed(2)}
+                                    currency={currency}
+                                />
+                            ) : (
+                                <span>Settled</span>
+                            )}
                         </div>
                         {preview.rooms.map((room) => (
                             <div
@@ -379,23 +402,6 @@ function CheckOutForm({
                                 />
                             </div>
                         ))}
-                        {(held > 0 || creditAbove) && (
-                            <div className="flex justify-between gap-4">
-                                <span className="text-muted-foreground">
-                                    {creditAbove
-                                        ? 'Credit to refund'
-                                        : 'Deposit held'}
-                                </span>
-                                <MoneyText
-                                    amount={
-                                        creditAbove
-                                            ? credit.toFixed(2)
-                                            : preview.depositHeld
-                                    }
-                                    currency={currency}
-                                />
-                            </div>
-                        )}
                     </div>
                     {others.length > 0 && !preview.receivesScheduled && (
                         <p className="text-sm text-muted-foreground">
@@ -637,13 +643,6 @@ function CheckOutForm({
                                         amount={refund}
                                         currency={currency}
                                         negative
-                                    />
-                                )}
-                                {depositUsed > 0.005 && (
-                                    <SummaryRow
-                                        label="Deposit used toward the bill"
-                                        amount={depositUsed}
-                                        currency={currency}
                                     />
                                 )}
                                 <div className="flex justify-between gap-4 font-medium">

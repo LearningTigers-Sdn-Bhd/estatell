@@ -42,6 +42,7 @@ class CheckOutSettlement
         $deposits = $this->heldDeposits($folios);
         $held = $deposits->reduce(fn (BigDecimal $sum, Payment $payment): BigDecimal => $sum->plus($this->refundable($payment)), BigDecimal::zero());
         $refunds = $this->refunds($folios, $balance);
+        $charges = $this->charges($folios);
         $incoming = $this->incomingScheduled($unit, $folios);
         $messages = array_filter([
             $incoming === [] ? null : IncomingScheduledCharges::message($incoming),
@@ -70,7 +71,21 @@ class CheckOutSettlement
             canMoveCharges: $canMoveCharges,
             refundable: (string) $refunds['refundable']->toScale(2),
             refundParts: $refunds['parts'],
+            charges: (string) $charges->toScale(2),
+            paid: (string) $balance->minus($charges)->plus($held)->toScale(2),
         );
+    }
+
+    /**
+     * The sum of every line of the unit's folios that is not a payment: charges, taxes, discounts and their reversals.
+     *
+     * @param  EloquentCollection<int, Folio>  $folios
+     */
+    public function charges(Collection $folios): BigDecimal
+    {
+        $total = FolioLine::query()->whereIn('folio_id', $folios->modelKeys())->where('kind', '!=', TransactionKind::Payment)->sum('amount');
+
+        return BigDecimal::of((string) ($total ?: '0'));
     }
 
     /**
