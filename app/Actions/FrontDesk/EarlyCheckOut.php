@@ -25,7 +25,8 @@ class EarlyCheckOut
      * the business date (the early departure fee, the unused nights deleted), then `CheckOutAndRefund` collects the
      * balance, refunds the deposit and checks the unit out. A refusal of either step rolls both back, so a fee is never left on a unit
      * that is still in house. A unit that arrived on the business date has no night to keep and is refused with
-     * `arrived_today`; a departure on or before the business date is refused with `not_early` (`EarlyCheckOutRule`).
+     * `arrived_today`, and while the property's calendar date is past the business date (the audit has not run) with
+     * `night_audit_pending`; a departure on or before the business date is refused with `not_early` (`EarlyCheckOutRule`).
      * The arguments after the unit are those of `ChangeUnitDates` and `CheckOutAndRefund`. Permissions
      * (`front-desk.check-out` and `reservations.manage`) are checked by the route.
      * See docs/18-front-desk/01-check-in-and-check-out.md#early-check-out.
@@ -64,7 +65,7 @@ class EarlyCheckOut
         $refusal = $this->earlyCheckOutRule->refusal($locked, $businessDate->toDateString());
 
         if ($refusal !== null) {
-            return UnitStayResult::refused($refusal);
+            return UnitStayResult::refused($refusal, $refusal === UnitStayResult::REFUSAL_NIGHT_AUDIT_PENDING ? [$businessDate->format('j M')] : []);
         }
 
         $dates = ($this->changeUnitDates)($actor, $locked, $locked->arrival_date, $businessDate, $doNotCharge, $reason, $expectedFee);

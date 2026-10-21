@@ -113,11 +113,13 @@ class ReservationRefusals
     }
 
     /**
-     * The message alone, for a toast or a preview.
+     * The message alone, for a toast or a preview. `$rooms` carries the same details as `unitErrors()`.
+     *
+     * @param  list<string>  $rooms
      */
-    public function message(string $code, ?CarbonInterface $date = null): string
+    public function message(string $code, ?CarbonInterface $date = null, array $rooms = []): string
     {
-        return ($this->unitEntry($code, false) ?? $this->entry($code, $date, false))[1];
+        return ($this->unitEntry($code, false, false, $rooms) ?? $this->entry($code, $date, false))[1];
     }
 
     /**
@@ -143,6 +145,7 @@ class ReservationRefusals
                 : __('The unit folio is not settled. It holds :amounts. Collect it, or move those charges first.', ['amounts' => implode(', ', $rooms)])],
             UnitStayResult::REFUSAL_RECEIVES_SCHEDULED_CHARGES => [self::FORM, IncomingScheduledCharges::message($rooms)],
             UnitStayResult::REFUSAL_ARRIVED_TODAY => [self::FORM, __('This unit arrived today, so there is no night to remove. It can check out on its departure date. If it checked in by mistake, use Undo check-in.')],
+            UnitStayResult::REFUSAL_NIGHT_AUDIT_PENDING => [self::FORM, __('The night audit for :date has not run. Run it first, so the night of :date is charged.', ['date' => $rooms[0] ?? ''])],
             UnitStayResult::REFUSAL_UNDO_TOO_LATE => [self::FORM, __('The business date has changed since this was done, so it cannot be undone.')],
             UnitStayResult::REFUSAL_ROOM_TAKEN => [self::FORM, __('Another guest holds this room tonight, so the check-out cannot be undone.')],
             FolioStatusResult::REFUSAL_HAS_AR_INVOICE => [self::FORM, __('A folio of this unit was settled to the city ledger, so the check-out cannot be undone. Issue a credit note on its AR invoice instead.')],

@@ -70,6 +70,8 @@ class UnitStayResult
 
     public const REFUSAL_ARRIVED_TODAY = 'arrived_today';
 
+    public const REFUSAL_NIGHT_AUDIT_PENDING = 'night_audit_pending';
+
     public const REFUSAL_UNDO_TOO_LATE = 'undo_too_late';
 
     public const REFUSAL_NIGHT_POSTED = 'night_posted';
@@ -97,8 +99,9 @@ class UnitStayResult
     }
 
     /**
-     * @param  list<string>  $rooms  The rooms and dates for `folio_receives_scheduled_charges`, or the amounts held for
-     *                               other rooms ("MYR 540.00 for Room 102") for `balance_not_settled`.
+     * @param  list<string>  $rooms  The rooms and dates for `folio_receives_scheduled_charges`, the amounts held for
+     *                               other rooms ("MYR 540.00 for Room 102") for `balance_not_settled`, or the
+     *                               business date ("20 Oct") for `night_audit_pending`.
      */
     public static function refused(string $refusal, array $rooms = []): self
     {

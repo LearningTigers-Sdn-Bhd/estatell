@@ -639,6 +639,19 @@ test('a room that arrived today departs later without a Check out early button',
         ->and($rows[$yesterday->id]['note'])->toBe('Departs 15 Oct');
 });
 
+test('a room that departs later while the night audit is pending says why it cannot leave early', function () {
+    $s = gcSetup(1);
+    $this->travelTo(now()->addDay());
+    $unit = ReservationUnit::factory()->for($s['reservation'])->checkedIn()->create(['room_type_id' => $s['units'][0]->room_type_id, 'arrival_date' => '2026-10-09', 'departure_date' => '2026-10-15']);
+    app(CreateFolio::class)($s['reservation'], $unit);
+
+    $rows = collect($this->actingAs($s['user'])->postJson(gcUrl($s, 'preview'))->assertOk()->json('rows'))->keyBy('unitId');
+
+    expect($rows[$unit->id]['group'])->toBe('later')
+        ->and($rows[$unit->id]['unit'])->toBeNull()
+        ->and($rows[$unit->id]['note'])->toBe('The night audit for 10 Oct has not run. Run it first, so the night of 10 Oct is charged.');
+});
+
 test('during a support session the owner money switch refuses a group refund row and a check-out without one still saves', function () {
     $s = gcSetup(2);
     gcCharge($s, $s['folios'][0], '45.00');

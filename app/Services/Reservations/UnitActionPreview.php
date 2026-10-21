@@ -276,7 +276,7 @@ class UnitActionPreview
         $refusal = $this->earlyCheckOutRule->refusal($unit, $businessDate->toDateString());
 
         if ($refusal !== null) {
-            return UnitCheckOutPreviewData::refused($this->refusals->message($refusal));
+            return UnitCheckOutPreviewData::refused($this->refusals->message($refusal, $businessDate, $refusal === UnitStayResult::REFUSAL_NIGHT_AUDIT_PENDING ? [$businessDate->format('j M')] : []));
         }
 
         $property = $unit->property()->firstOrFail();

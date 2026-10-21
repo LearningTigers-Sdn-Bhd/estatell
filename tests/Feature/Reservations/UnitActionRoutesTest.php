@@ -1098,6 +1098,45 @@ test('a unit that arrived yesterday is still offered an early check-out', functi
         ->assertInertia(fn (Assert $page) => $page->where('unit.actions', fn ($actions) => collect($actions)->pluck('key')->contains('check-out')));
 });
 
+test('early check-out is refused while the night audit is pending and writes nothing', function () {
+    $setup = uaEarlySetup();
+    $departure = today()->addDays(2)->toDateString();
+    $this->travelTo(now()->addDay());
+    $message = 'The night audit for 10 Oct has not run. Run it first, so the night of 10 Oct is charged.';
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'early-check-out'), ['expected_fee' => '40.00', 'refund_amount' => '60.00', 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasErrors(['form' => $message]);
+
+    $unit = $setup['unit']->fresh();
+
+    expect($unit->status)->toBe(UnitStatus::CheckedIn)
+        ->and($unit->departure_date->toDateString())->toBe($departure)
+        ->and($unit->nights()->count())->toBe(3)
+        ->and(uaEarlyFeeLines($unit))->toBe(0)
+        ->and(Activity::query()->whereIn('event', ['reservation.unit_dates_changed', 'reservation.unit_checked_out'])->count())->toBe(0);
+});
+
+test('early check-out passes when the property calendar date is the business date', function () {
+    $setup = uaEarlySetup();
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'early-check-out'), ['expected_fee' => '40.00', 'refund_amount' => '60.00', 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasNoErrors();
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedOut);
+});
+
+test('the early check-out preview carries the night audit message while the audit is pending', function () {
+    $setup = uaEarlySetup();
+    $this->travelTo(now()->addDay());
+
+    $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-out-preview'))
+        ->assertOk()
+        ->assertJsonPath('error', 'The night audit for 10 Oct has not run. Run it first, so the night of 10 Oct is charged.')
+        ->assertJsonPath('early', null);
+});
+
 /**
  * A checked-in unit that arrived today, with a 100.00 deposit held on its folio.
  *

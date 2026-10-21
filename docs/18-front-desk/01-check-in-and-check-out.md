@@ -83,7 +83,7 @@ A unit's own folio can hold another room's charges: a Manual rule such as "Room 
 | The unit is CheckedIn (the unit row is locked first)                              | `invalid_status`                                |
 | A business date exists and it is before the departure date                        | `no_business_date`, `not_early`                 |
 | The business date is after the arrival date                                       | `arrived_today`                                 |
-| The property's calendar date is not after the business date (planned)             | `night_audit_pending`                           |
+| The property's calendar date is not after the business date                       | `night_audit_pending`                           |
 | The checks of `ProcessEarlyDeparture` (reason, policy row, `fee_changed`, charge) | its refusals                                    |
 | The refund and the checks of `CheckOutUnit`                                       | `refund_exceeds_payment`, `balance_not_settled` |
 
@@ -94,7 +94,7 @@ A unit's own folio can hold another room's charges: a Manual rule such as "Room 
 - **Fee:** read by `PolicyChargeCalculator` with the business date as the new departure, and posted with the key `early_departure:{unit}:{n}`. **Do not charge** needs a reason and `front-desk.waive-fees`. `$expectedFee` from the form guards against a policy change (`fee_changed`).
 - **Balance:** the fee joins the unit folio, so the balance to settle includes it. Posted add-ons on removed nights stay and can leave a balance. The form shows the balance before submit, and settles it as the check-out Dialog does: Collect balance when the guest owes, a refund when the folio holds a credit ([Refund the credit](#refund-the-credit)).
 - **Money for the unused nights.** The night audit posts one night at a time, so the unused nights were never charged: they are Scheduled and are deleted. A payment line never changes, so money paid for them stays on the folio as a **credit**. The fee is the only part of that credit the hotel keeps. The rest goes back to the guest at check-out. See [Early departure examples](#early-departure-examples).
-- **Night audit pending** (planned, `night_audit_pending`): refused when the property's calendar date (its time zone) is after the business date. The new departure would be the business date, so the night of the business date, which the guest slept, would be deleted and never charged. "The night audit for 20 Oct has not run. Run it first, so the night of 20 Oct is charged." The preview carries the message and the Dialog shows it in place of the submit button. This also stops a normal departure from becoming an early one: a guest booked to 21 Oct who leaves on 21 Oct while the business date is still 20 Oct is offered only **Check out early…**.
+- **Night audit pending** (`night_audit_pending`): refused when the property's calendar date (its time zone) is after the business date. The new departure would be the business date, so the night of the business date, which the guest slept, would be deleted and never charged. "The night audit for 20 Oct has not run. Run it first, so the night of 20 Oct is charged." The preview carries the message and the Dialog shows it in place of the submit button. This also stops a normal departure from becoming an early one: a guest booked to 21 Oct who leaves on 21 Oct while the business date is still 20 Oct is offered only **Check out early…**.
 
 #### Early departure examples
 
@@ -113,7 +113,7 @@ Built: the Advance is refunded with the deposit, so the first two rows check out
 
 | Edge case                                                | What happens                                                                                                     |
 | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| The night audit has not run                              | Refused (`night_audit_pending`, planned). Run the audit first                                                    |
+| The night audit has not run                              | Refused (`night_audit_pending`). Run the audit first                                                             |
 | Arrived today, leaves today                              | Refused (`arrived_today`). Undo check-in, then cancel. A later topic                                             |
 | The card surcharge of the prepayment                     | Not refunded: it is a charge. Staff reverse it by hand when it must go too                                       |
 | A posted add-on for a removed day (a transfer, a tour)   | Stays. Staff reverse it when the guest did not use it                                                            |
@@ -338,6 +338,7 @@ Each form uses `FormOverlay` and the container from [Form containers](../design-
 - **Preview.** The `check-out-preview` route adds an `early` block (`UnitEarlyDepartureData`: booked departure, nights removed, the fee before tax and the fee with tax) when the unit is CheckedIn and its departure is after the business date. The fee with tax comes from `TaxCalculator`. A property with no early departure policy row gets the `policy_not_found` error in the preview.
 - **Dialog.** The check-out Dialog switches to early mode when the preview has an `early` block: the fee block, Do not charge (with `front-desk.waive-fees`) and Reason. The balance and the default refund include the fee, as display math only. It posts to `reservations.units.early-check-out`, which has the extra `front-desk.check-out` middleware inside the `reservations.manage` group.
 - **Menu.** `UnitActionMenu::isEarlyCheckOut()` lists Check out before the departure date for a CheckedIn unit that arrived before the business date, to a user with `reservations.manage`.
+- **Night audit pending.** `EarlyCheckOutRule::refusal()` checks it after `arrived_today`. It refuses `night_audit_pending` when `PropertyToday` (the property's calendar date) is after the business date. `EarlyCheckOut`, the preview and the group page row note all use that rule. The message names the business date (`20 Oct`), which reaches the response in `UnitStayResult::$rooms` and the preview through `ReservationRefusals::message()`. Decisions the doc did not cover: the unit menu hides **Check out early…** while the audit is pending, because `isOffered()` follows the rule, so the Dialog is reached only from the group page. The Dialog shows the message in its body and keeps the submit button disabled, as it does for `arrived_today`; `FormOverlay` has no option to hide its button.
 
 ### Built: check in all
 
