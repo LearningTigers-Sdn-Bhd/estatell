@@ -2151,6 +2151,13 @@ pricingBasis: App.Enums.PricingBasis,
 derived: boolean,
 followsName: string | null,
 hasOwnPrices: boolean,
+roomTypes: App.Data.Rates.RateBulkRoomTypeData[],
+};
+export type RateBulkRoomTypeData = {
+id: number,
+name: string,
+baseOccupancy: number,
+maxAdults: number,
 };
 export type RateCalendarAvailabilityData = {
 date: string,

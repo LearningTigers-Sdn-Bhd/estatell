@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Rates;
 
 use App\Actions\Rates\ExtendRates;
+use App\Actions\Rates\SaveBulkRates;
 use App\Actions\Rates\SaveRateCalendarChanges;
 use App\Actions\Rates\SaveRates;
 use App\Data\Property\CurrencyData;
@@ -15,12 +16,14 @@ use App\Enums\WeekendNights;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Rates\RateBulkRequest;
 use App\Http\Requests\Rates\RateCalendarRequest;
+use App\Http\Requests\Rates\SaveBulkRatesRequest;
 use App\Http\Requests\Rates\SaveRateCalendarChangesRequest;
 use App\Http\Requests\Rates\SaveRatesRequest;
 use App\Models\Property;
 use App\Models\RatePlan;
 use App\Models\RoomType;
 use App\Services\Property\PropertyToday;
+use App\Services\Rates\RateBulkSavedPrices;
 use App\Services\Rates\RateCalendarService;
 use App\Services\Rates\RatesEndingCheck;
 use Illuminate\Http\RedirectResponse;
@@ -54,7 +57,7 @@ class RateCalendarController extends Controller
      * The bulk edit page: pick a plan and a date range, then change prices and restrictions over the range.
      * `?plan=` picks the plan and defaults to the first active one. `?from=` and `?to=` prefill the dates.
      */
-    public function bulk(RateBulkRequest $request, Property $property, PropertyToday $propertyToday, RatesEndingCheck $ratesEndingCheck): Response
+    public function bulk(RateBulkRequest $request, Property $property, PropertyToday $propertyToday, RatesEndingCheck $ratesEndingCheck, RateBulkSavedPrices $savedPrices): Response
     {
         $plans = $property->ratePlans()->active()->ordered()->with(['parent', 'roomTypes'])->get();
         $selected = $plans->firstWhere('id', $request->integer('plan')) ?? $plans->first();
@@ -79,6 +82,7 @@ class RateCalendarController extends Controller
             'today' => $today->toDateString(),
             'from' => $request->validated('from') ?? '',
             'to' => $request->validated('to') ?? '',
+            'saved' => $savedPrices->forRange($property, $request->validated('from'), $request->validated('to'), $today->toDateString()),
         ]);
     }
 
@@ -90,6 +94,28 @@ class RateCalendarController extends Controller
         $from = $request->string('from')->toString();
         $to = $request->string('to')->toString();
         $written = $saveRates($request->user(), $ratePlan, $from, $to, $request->roomTypes(), $request->toRestrictionsData());
+
+        if ($written === false) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('The rate plan or room types changed. Reload the page and try again.')]);
+
+            return back();
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => trans_choice('Rates saved for :count date.|Rates saved for :count dates.', $written)]);
+
+        $lastShown = Date::parse($from)->addDays(RateCalendarRequest::MAX_DAYS - 1)->min(Date::parse($to));
+
+        return to_route('rates.calendar', ['property' => $property, 'from' => $from, 'to' => $lastShown->toDateString()]);
+    }
+
+    /**
+     * Save prices and restrictions of several plans over a date range, all or none, then show the range in the calendar.
+     */
+    public function bulkSave(SaveBulkRatesRequest $request, Property $property, SaveBulkRates $saveBulkRates): RedirectResponse
+    {
+        $from = $request->string('from')->toString();
+        $to = $request->string('to')->toString();
+        $written = $saveBulkRates($request->user(), $property, $from, $to, $request->plans(), $request->toRestrictionsData());
 
         if ($written === false) {
             Inertia::flash('toast', ['type' => 'error', 'message' => __('The rate plan or room types changed. Reload the page and try again.')]);

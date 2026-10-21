@@ -1,13 +1,18 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { useState } from 'react';
 import { CalendarRange, Info } from 'lucide-react';
 import { EmptyState } from '@/components/pms/empty-state';
-import { EnumSelect } from '@/components/pms/enum-select';
 import { PageHeader } from '@/components/pms/page-header';
 import { RateTabs } from '@/components/pms/rate-calendar/rate-tabs';
+import {
+    BulkEditForm,
+    BulkPlanPicker,
+} from '@/components/pms/rate-plans/bulk-edit-form';
+import { nextPlanSelection } from '@/components/pms/rate-plans/bulk-price-model';
+import type { SavedPrices } from '@/components/pms/rate-plans/bulk-price-model';
 import { PricingForm } from '@/components/pms/rate-plans/pricing-form';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { buttonVariants } from '@/components/ui/button';
-import { Field, FieldLabel } from '@/components/ui/field';
 import { calendar } from '@/routes/rates';
 import { bulk } from '@/routes/rates/calendar';
 import { update as bulkUpdate } from '@/routes/rates/calendar/bulk';
@@ -28,8 +33,9 @@ function planNote(plan: Plan): string | null {
 }
 
 /**
- * Bulk edit: a full page, because it has repeating price rows. Pick a plan and a date range, then change prices
- * and restrictions over the whole range. Saving returns to the calendar at the start of the range.
+ * Bulk edit: a full page, because it has a price table. Pick rate plans, room types and a date range, then change
+ * prices and restrictions over the whole range. Saving returns to the calendar at the start of the range. A Day use
+ * plan is edited on its own, with the plan's own pricing form.
  */
 export default function RateBulkEdit({
     plans,
@@ -41,6 +47,7 @@ export default function RateBulkEdit({
     today,
     from,
     to,
+    saved,
 }: {
     plans: Plan[];
     ratePlan: App.Data.Rates.RatePlanData | null;
@@ -51,13 +58,44 @@ export default function RateBulkEdit({
     today: string;
     from: string;
     to: string;
+    saved: SavedPrices;
 }) {
     const selected = plans.find((plan) => plan.id === ratePlan?.id);
+    const dayUse = selected?.pricingBasis === 'day_use';
     const note = selected ? planNote(selected) : null;
     const query = from && to ? { from, to } : {};
+    const [planIds, setPlanIds] = useState<string[]>(
+        ratePlan ? [String(ratePlan.id)] : [],
+    );
+
+    const openPlan = (id: string) =>
+        router.get(bulk.url(undefined, { query: { plan: id, ...query } }));
+
+    const changePlans = (next: string[]) => {
+        const resolved = nextPlanSelection(plans, planIds, next);
+        const picked = plans.find((plan) => String(plan.id) === resolved[0]);
+
+        if (
+            resolved.length > 0 &&
+            (picked?.pricingBasis === 'day_use' || dayUse)
+        ) {
+            openPlan(resolved[0]);
+
+            return;
+        }
+
+        setPlanIds(resolved);
+    };
+
+    const header = (
+        <PageHeader
+            title="Bulk edit rates"
+            description="Change prices and restrictions over a date range."
+        />
+    );
 
     return (
-        <div className="flex flex-1 flex-col gap-6 p-4">
+        <div className="flex min-h-0 flex-1 flex-col pt-4">
             <Head title="Bulk edit rates" />
             <RateTabs
                 activeTab="bulk"
@@ -69,50 +107,36 @@ export default function RateBulkEdit({
                     },
                 })}
                 canManage
-                className="flex flex-col gap-6"
-                contentClassName="flex flex-col gap-6"
+                className="flex min-h-0 flex-1 flex-col gap-4 [&>[data-slot=tabs-list]]:mx-4"
+                contentClassName="flex min-h-0 flex-1 flex-col"
             >
-                <PageHeader
-                    title="Bulk edit rates"
-                    description="Change prices and restrictions over a date range."
-                />
                 {!ratePlan || !selected ? (
-                    <EmptyState
-                        icon={CalendarRange}
-                        title="No rate plans"
-                        description="Add a rate plan that sells at least one room type first."
-                        action={
-                            <Link
-                                href={ratePlansIndex.url()}
-                                className={buttonVariants()}
-                            >
-                                Go to rate plans
-                            </Link>
-                        }
-                    />
-                ) : (
-                    <>
-                        <Field className="w-full sm:max-w-sm">
-                            <FieldLabel htmlFor="bulk-plan">
-                                Rate plan
-                            </FieldLabel>
-                            <EnumSelect
-                                id="bulk-plan"
-                                options={plans.map((plan) => ({
-                                    value: String(plan.id),
-                                    label: plan.name,
-                                }))}
-                                value={String(ratePlan.id)}
-                                onValueChange={(plan) =>
-                                    router.get(
-                                        bulk.url(undefined, {
-                                            query: { plan, ...query },
-                                        }),
-                                    )
-                                }
-                                className="w-full"
+                    <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-4 [&>*]:shrink-0">
+                        {header}
+                        <EmptyState
+                            icon={CalendarRange}
+                            title="No rate plans"
+                            description="Add a rate plan that sells at least one room type first."
+                            action={
+                                <Link
+                                    href={ratePlansIndex.url()}
+                                    className={buttonVariants()}
+                                >
+                                    Go to rate plans
+                                </Link>
+                            }
+                        />
+                    </div>
+                ) : dayUse ? (
+                    <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-4 [&>*]:shrink-0">
+                        {header}
+                        <div className="w-full sm:max-w-sm">
+                            <BulkPlanPicker
+                                plans={plans}
+                                value={[String(ratePlan.id)]}
+                                onValueChange={changePlans}
                             />
-                        </Field>
+                        </div>
                         {note && (
                             <Alert>
                                 <Info />
@@ -144,7 +168,21 @@ export default function RateBulkEdit({
                                 submitLabel="Save changes"
                             />
                         )}
-                    </>
+                    </div>
+                ) : (
+                    <BulkEditForm
+                        header={header}
+                        cancelHref={calendar.url(undefined, { query })}
+                        plans={plans}
+                        planIds={planIds}
+                        onPlanIdsChange={changePlans}
+                        currency={currency}
+                        weekendNights={weekendNights}
+                        weekendNightsOptions={weekendNightsOptions}
+                        today={today}
+                        initialRange={from && to ? { from, to } : undefined}
+                        saved={saved}
+                    />
                 )}
             </RateTabs>
         </div>
@@ -152,6 +190,7 @@ export default function RateBulkEdit({
 }
 
 RateBulkEdit.layout = {
+    variant: 'fixed',
     breadcrumbs: [
         { title: 'Rate calendar', href: calendar() },
         { title: 'Bulk edit', href: bulk() },

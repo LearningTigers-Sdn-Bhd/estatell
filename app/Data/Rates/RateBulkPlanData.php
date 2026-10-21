@@ -4,11 +4,15 @@ namespace App\Data\Rates;
 
 use App\Enums\PricingBasis;
 use App\Models\RatePlan;
+use App\Models\RoomType;
 use Spatie\LaravelData\Data;
 
 /** One plan in the bulk edit plan picker. Only a plan with its own prices can have its prices changed in bulk. */
 class RateBulkPlanData extends Data
 {
+    /**
+     * @param  list<RateBulkRoomTypeData>  $roomTypes  The active room types the plan sells, in display order.
+     */
     public function __construct(
         public int $id,
         public string $name,
@@ -16,10 +20,11 @@ class RateBulkPlanData extends Data
         public bool $derived,
         public ?string $followsName,
         public bool $hasOwnPrices,
+        public array $roomTypes,
     ) {}
 
     /**
-     * Load the plan's `parent` first when it is derived.
+     * Load the plan's `roomTypes`, and its `parent` when it is derived.
      */
     public static function fromModel(RatePlan $ratePlan): self
     {
@@ -32,6 +37,12 @@ class RateBulkPlanData extends Data
             derived: $derived,
             followsName: $ratePlan->parent?->name,
             hasOwnPrices: ! $derived && $ratePlan->pricing_basis !== PricingBasis::Package,
+            roomTypes: $ratePlan->roomTypes
+                ->whereNull('archived_at')
+                ->sortBy(['position', 'id'])
+                ->values()
+                ->map(fn (RoomType $roomType): RateBulkRoomTypeData => RateBulkRoomTypeData::fromModel($roomType))
+                ->all(),
         );
     }
 }

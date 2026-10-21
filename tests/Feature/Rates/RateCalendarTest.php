@@ -716,6 +716,149 @@ test('bulk edit needs rates.manage and stays inside the property', function () {
     expect(Rate::query()->count())->toBe(0);
 });
 
+/**
+ * The request the new bulk edit page sends: several plans over one date range.
+ *
+ * @param  list<array{0: RatePlan, 1: RoomType, 2: string|null}>  $entries  Plan, room type and the price for every weekday.
+ * @param  array<string, mixed>  $restrictions
+ * @return array<string, mixed>
+ */
+function bulkSaveMany(array $entries, string $from, string $to, array $restrictions = []): array
+{
+    $plans = [];
+
+    foreach ($entries as [$plan, $roomType, $amount]) {
+        $plans[$plan->id] ??= ['rate_plan_id' => $plan->id, 'room_types' => []];
+        $plans[$plan->id]['room_types'][] = [
+            'room_type_id' => $roomType->id,
+            'days' => $amount === null ? [] : array_map(fn (int $weekday): array => ['weekday' => $weekday, 'amount' => $amount, 'occupancy' => []], range(1, 7)),
+        ];
+    }
+
+    return ['from' => $from, 'to' => $to, 'plans' => array_values($plans), 'restrictions' => $restrictions];
+}
+
+test('a bulk edit of several plans saves each over the whole range in one go', function () {
+    [$owner, $property, $plan, $roomType] = calendarSetup();
+    $second = RatePlan::factory()->for($property)->create(['name' => 'Breakfast']);
+    $second->roomTypes()->attach($roomType);
+
+    $this->actingAs($owner)
+        ->put(route('rates.calendar.bulk.save', $property->code), bulkSaveMany([[$plan, $roomType, '210'], [$second, $roomType, '240']], '2026-10-05', '2026-10-11', ['min_stay' => 2]))
+        ->assertRedirect(route('rates.calendar', [$property->code, 'from' => '2026-10-05', 'to' => '2026-10-11']))
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Rates saved for 14 dates.']);
+
+    expect(Rate::query()->where('rate_plan_id', $plan->id)->count())->toBe(7)
+        ->and(Rate::query()->where('rate_plan_id', $plan->id)->first()->amount)->toBe('210.00')
+        ->and(Rate::query()->where('rate_plan_id', $second->id)->first())->amount->toBe('240.00')->min_stay->toBe(2);
+});
+
+test('a bulk edit of several plans saves nothing when one plan is refused', function () {
+    [$owner, $property, $plan, $roomType] = calendarSetup();
+    $derived = RatePlan::factory()->for($property)->create([
+        'parent_rate_plan_id' => $plan->id, 'derivation' => RateDerivation::Percent, 'derivation_value' => '-10',
+    ]);
+    $derived->roomTypes()->attach($roomType);
+
+    $this->actingAs($owner)
+        ->put(route('rates.calendar.bulk.save', $property->code), bulkSaveMany([[$plan, $roomType, '210'], [$derived, $roomType, '90']], '2026-10-05', '2026-10-06', ['closed_to_arrival' => true]))
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'The rate plan or room types changed. Reload the page and try again.']);
+
+    expect(Rate::query()->count())->toBe(0);
+
+    $this->put(route('rates.calendar.bulk.save', $property->code), bulkSaveMany([[$plan, $roomType, '210'], [$derived, $roomType, null]], '2026-10-05', '2026-10-06', ['closed_to_arrival' => true]))
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Rates saved for 4 dates.']);
+
+    expect(Rate::query()->where('rate_plan_id', $derived->id)->count())->toBe(2);
+});
+
+test('a bad bulk edit of several plans is refused with its field errors', function (Closure $mutate, string $field) {
+    [$owner, $property, $plan, $roomType] = calendarSetup();
+    $roomType->update(['max_adults' => 2]);
+    $payload = $mutate(bulkSaveMany([[$plan, $roomType, '100']], '2026-10-05', '2026-10-11'), $plan, $roomType);
+
+    $this->actingAs($owner)
+        ->put(route('rates.calendar.bulk.save', $property->code), $payload)
+        ->assertSessionHasErrors($field);
+
+    expect(Rate::query()->count())->toBe(0);
+})->with([
+    'no plans' => [fn (array $payload) => [...$payload, 'plans' => []], 'plans'],
+    'a plan twice' => [fn (array $payload) => [...$payload, 'plans' => [$payload['plans'][0], $payload['plans'][0]]], 'plans.0.rate_plan_id'],
+    'a negative price' => [function (array $payload) {
+        $payload['plans'][0]['room_types'][0]['days'][0]['amount'] = '-5';
+
+        return $payload;
+    }, 'plans.0.room_types.0.days.0.amount'],
+    'more adults than the room sleeps' => [function (array $payload) {
+        $payload['plans'][0]['room_types'][0]['days'][0]['occupancy'] = [['adults' => 3, 'amount' => '200']];
+
+        return $payload;
+    }, 'plans.0.room_types.0.days.0.occupancy.0.adults'],
+    'a room type the plan does not sell' => [function (array $payload, RatePlan $plan) {
+        $payload['plans'][0]['room_types'][0]['room_type_id'] = RoomType::factory()->for($plan->property)->create()->id;
+
+        return $payload;
+    }, 'plans.0.room_types.0.room_type_id'],
+    'a range over 731 days' => [fn (array $payload) => [...$payload, 'to' => '2028-10-06'], 'to'],
+    'a max stay below the min stay' => [fn (array $payload) => [...$payload, 'restrictions' => ['min_stay' => 5, 'max_stay' => 2]], 'restrictions.max_stay'],
+]);
+
+test('a bulk edit of several plans refuses a Day use plan', function () {
+    [$owner, $property, , $roomType] = calendarSetup();
+    $dayUse = RatePlan::factory()->for($property)->dayUse()->create();
+    $dayUse->roomTypes()->attach($roomType);
+
+    $this->actingAs($owner)
+        ->put(route('rates.calendar.bulk.save', $property->code), bulkSaveMany([[$dayUse, $roomType, null]], '2026-10-05', '2026-10-06', ['stop_sell' => true]))
+        ->assertSessionHasErrors('plans.0.rate_plan_id');
+});
+
+test('the bulk edit of several plans needs rates.manage and stays inside the property', function () {
+    $frontDesk = User::factory()->withRole(DefaultRoleEnum::FrontDesk)->create();
+    PropertySetting::factory()->for($frontDesk->property)->create();
+    $plan = RatePlan::factory()->for($frontDesk->property)->create();
+    $roomType = RoomType::factory()->for($frontDesk->property)->create();
+    $plan->roomTypes()->attach($roomType);
+
+    $this->actingAs($frontDesk)
+        ->put(route('rates.calendar.bulk.save', $frontDesk->property->code), bulkSaveMany([[$plan, $roomType, '100']], '2026-10-05', '2026-10-06'))
+        ->assertForbidden();
+
+    [$owner, $property] = calendarSetup();
+    $theirs = RatePlan::factory()->create();
+
+    $this->actingAs($owner)
+        ->put(route('rates.calendar.bulk.save', $property->code), bulkSaveMany([[$theirs, $roomType, '100']], '2026-10-05', '2026-10-06'))
+        ->assertSessionHasErrors('plans.0.rate_plan_id');
+
+    expect(Rate::query()->count())->toBe(0);
+});
+
+test('the bulk edit page lists the room types of each plan and the saved prices of the range', function () {
+    [$owner, $property, $plan, $roomType] = calendarSetup();
+    $other = RoomType::factory()->for($property)->create();
+    $plan->roomTypes()->attach($other);
+    calendarRate($plan, $roomType, '2026-10-05', ['amount' => '150.00']);
+    calendarRate($plan, $roomType, '2026-10-12', ['amount' => '999.00']);
+    calendarRate($plan, $roomType, '2026-10-10', ['amount' => '180.00']);
+
+    $this->actingAs($owner)
+        ->get(route('rates.calendar.bulk', [$property->code, 'from' => '2026-10-05', 'to' => '2026-10-18']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('plans.0.roomTypes', 2)
+            ->where('plans.0.roomTypes.0.id', $roomType->id)
+            ->where('plans.0.roomTypes.0.maxAdults', $roomType->max_adults)
+            ->where('saved.'.$plan->id.'|'.$roomType->id.'.1', '150.00')
+            ->where('saved.'.$plan->id.'|'.$roomType->id.'.6', '180.00')
+            ->where('saved.'.$plan->id.'|'.$roomType->id.'.2', null)
+            ->missing('saved.'.$plan->id.'|'.$other->id)
+        );
+
+    $this->get(route('rates.calendar.bulk', [$property->code, 'from' => '2026-10-13', 'to' => '2026-10-18']))
+        ->assertInertia(fn (Assert $page) => $page->where('saved', []));
+});
+
 test('the rate calendar and its bulk edit page both sit in the front desk sidebar', function (string $routeName) {
     [$owner, $property] = calendarSetup();
 

@@ -49,6 +49,7 @@ import {
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { update } from '@/routes/settings/rate-plans/pricing';
+import { AutoFillDatesMenu } from './auto-fill-dates-menu';
 import {
     emptyRestrictionChoices,
     hasRestrictionChanges,
@@ -85,15 +86,6 @@ type WeekendOption = App.Data.Property.WeekendNightsOptionData;
 type Mode = 'simple' | 'by-day';
 
 const MAX_DAYS = 731;
-
-/** The last date of a 12-month range that starts on `start` (`Y-m-d`), for example 2026-10-01 to 2027-09-30. */
-function twelveMonthsEnd(start: string): string {
-    const [year, month, day] = start.split('-').map(Number);
-    const end = new Date(year, month - 1 + 12, day - 1);
-    const pad = (value: number) => String(value).padStart(2, '0');
-
-    return `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}`;
-}
 
 /**
  * Lets staff set the price of a plan for a date range: one price per weekday and weekend in Simple,
@@ -338,19 +330,10 @@ export function PricingForm({
                                 aria-invalid={!!errors.from || !!errors.to}
                             />
                         </div>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() =>
-                                form.setData({
-                                    from: today,
-                                    to: twelveMonthsEnd(today),
-                                })
-                            }
-                        >
-                            <WandSparkles data-icon="inline-start" />
-                            12 months from now
-                        </Button>
+                        <AutoFillDatesMenu
+                            today={today}
+                            onPick={(from, to) => form.setData({ from, to })}
+                        />
                     </div>
                     <FieldDescription>
                         {prices
