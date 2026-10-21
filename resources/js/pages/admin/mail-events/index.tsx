@@ -114,7 +114,7 @@ export default function MailEventsIndex({
             <div className="flex flex-1 flex-col gap-4 p-4">
                 <PageHeader
                     title="Mail log"
-                    description={`${total} emails in the last 90 days. ${counts.failed ?? 0} failed, ${counts.suppressed ?? 0} suppressed.`}
+                    description={`${total} emails in the last 90 days. ${(counts.failed ?? 0) + (counts.bounced ?? 0)} failed or bounced, ${counts.suppressed ?? 0} suppressed.`}
                 />
 
                 <FilterBar

@@ -108,7 +108,7 @@ it('lists the mail log for admins with search, status and date filters', functio
 
     $this->actingAs($admin)->get(route('admin.mail-events.index'))->assertInertia(fn (Assert $page) => $page
         ->component('admin/mail-events/index')
-        ->where('counts', ['sent' => 2, 'failed' => 1, 'suppressed' => 0]));
+        ->where('counts', ['sent' => 2, 'delivered' => 0, 'bounced' => 0, 'complained' => 0, 'failed' => 1, 'suppressed' => 0]));
 });
 
 it('shows one entry to admins only', function () {

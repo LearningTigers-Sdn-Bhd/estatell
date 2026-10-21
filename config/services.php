@@ -28,6 +28,7 @@ return [
     'millionsend' => [
         'base_url' => env('MILLIONSEND_BASE_URL'),
         'api_key' => env('MILLIONSEND_API_KEY'),
+        'webhook_secret' => env('MILLIONSEND_WEBHOOK_SECRET'),
     ],
 
     'resend' => [

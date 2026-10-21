@@ -39,6 +39,7 @@ x-app: &app
         MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Estatell Notifications}
         MILLIONSEND_BASE_URL: ${MILLIONSEND_BASE_URL:-}
         MILLIONSEND_API_KEY: ${MILLIONSEND_API_KEY:-}
+        MILLIONSEND_WEBHOOK_SECRET: ${MILLIONSEND_WEBHOOK_SECRET:-}
         AUTORUN_ENABLED: 'false'
     volumes:
         # Media stored on "This server" (ID scans, signatures, photos). Shared by all services.

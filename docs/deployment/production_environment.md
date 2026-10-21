@@ -79,4 +79,4 @@ Coolify keeps these custom commands when it regenerates the proxy config.
 
 ## Open
 
-- `compose.yaml` passes `MAIL_MAILER`, `MAIL_FROM_*`, `MILLIONSEND_BASE_URL` and `MILLIONSEND_API_KEY`. Set them in Coolify. Without `MAIL_MAILER=millionsend` mail falls back to `log` (`config/mail.php`). See [Sending mail in production](../04-notifications/01-notification-types.md#sending-mail-in-production).
+- `compose.yaml` passes `MAIL_MAILER`, `MAIL_FROM_*`, `MILLIONSEND_BASE_URL`, `MILLIONSEND_API_KEY` and `MILLIONSEND_WEBHOOK_SECRET`. Set them in Coolify. Without `MAIL_MAILER=millionsend` mail falls back to `log` (`config/mail.php`). See [Sending mail in production](../04-notifications/01-notification-types.md#sending-mail-in-production).

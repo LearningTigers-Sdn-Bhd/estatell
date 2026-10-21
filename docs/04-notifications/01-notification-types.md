@@ -80,12 +80,13 @@ Preview all nine existing email types in the mailbox before signing off the visu
 
 Production sends through MillionSend, a Resend-compatible email API. Set `MAIL_MAILER=millionsend`.
 
-| Variable               | Meaning                                                                     |
-| ---------------------- | --------------------------------------------------------------------------- |
-| `MAIL_MAILER`          | `millionsend` in production. `mailbox` in development. `array` in tests.    |
-| `MILLIONSEND_BASE_URL` | Origin of the MillionSend API. No default, so a missing value fails loudly. |
-| `MILLIONSEND_API_KEY`  | Bearer key for the API.                                                     |
-| `MAIL_FROM_ADDRESS`    | An address on a domain verified in MillionSend.                             |
+| Variable                     | Meaning                                                                                     |
+| ---------------------------- | ------------------------------------------------------------------------------------------- |
+| `MAIL_MAILER`                | `millionsend` in production. `mailbox` in development. `array` in tests.                    |
+| `MILLIONSEND_BASE_URL`       | Origin of the MillionSend API. No default, so a missing value fails loudly.                 |
+| `MILLIONSEND_API_KEY`        | Bearer key for the API.                                                                     |
+| `MILLIONSEND_WEBHOOK_SECRET` | Signing secret for delivery webhooks. See the [Mail log](03-mail-log.md#delivery-webhooks). |
+| `MAIL_FROM_ADDRESS`          | An address on a domain verified in MillionSend.                                             |
 
 `App\Services\Notifications\MillionSendTransport` is a mail transport that `AppServiceProvider` registers with `Mail::extend('millionsend')`. It posts each message to `{base_url}/emails` with the key as a bearer token. The body carries `from`, `to`, `cc`, `bcc`, `reply_to`, `subject`, `html`, `text` and base64 `attachments`.
 

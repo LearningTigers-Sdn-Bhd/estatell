@@ -15,12 +15,12 @@ Table `mail_events`. One row per send attempt. A queued job that retries leaves 
 | `recipient`           | The first `to` address. Encrypted (CipherSweet) with an exact-match blind index.                 |
 | `recipient_count`     | How many `to` addresses the message had.                                                         |
 | `subject`             | Plain text. The body is never stored.                                                            |
-| `status`              | `MailStatus`: `sent`, `failed`, `suppressed`.                                                    |
+| `status`              | `MailStatus`: `sent`, `delivered`, `bounced`, `complained`, `failed`, `suppressed`.              |
 | `provider_message_id` | The id the mail provider returned. Empty when the send failed. Webhooks use it later.            |
 | `error`               | The provider message when the send failed.                                                       |
 | `sent_at`             | When the attempt happened.                                                                       |
 
-`sent` means the provider accepted the message. It does not mean the guest received it.
+`sent` means the provider accepted the message. It does not mean the guest received it. The delivery webhooks move it on (see below).
 
 ## How rows are written
 
@@ -45,6 +45,42 @@ Table `mail_events`. One row per send attempt. A queued job that retries leaves 
 
 A mail log keeps recipient addresses for 90 days. Addresses are encrypted at rest. Subjects can name a property or a person, so only platform admins see the page.
 
-## Later
+## Delivery webhooks
 
-Delivery webhooks (step 2) move `status` on to `delivered`, `bounced` or `complained` by `provider_message_id`.
+MillionSend tells estatell what happened to a message after it accepted it. The endpoint is `POST /webhooks/millionsend`. It uses Standard Webhooks signatures, the Resend and Svix format. To verify: the exact payload fields, until a real delivery is seen. The code reads `type` and `data.email_id`, and the bounce reason from `data.bounce.message`.
+
+| Event              | Row status   | Note                                         |
+| ------------------ | ------------ | -------------------------------------------- |
+| `email.delivered`  | `delivered`  | The recipient's server accepted the message. |
+| `email.bounced`    | `bounced`    | The reason goes in `error`.                  |
+| `email.complained` | `complained` | The recipient marked it as spam.             |
+| `email.failed`     | `failed`     | The provider could not send it.              |
+| `email.suppressed` | `suppressed` | The address is on the suppression list.      |
+| Any other event    | none         | Answered 200 and ignored.                    |
+
+The row is found by `provider_message_id`. `MailStatus::canTransitionTo()` decides the move:
+
+- `sent` can become any other status.
+- `delivered` can become `bounced` or `complained`, because a later bounce or complaint is real news.
+- `bounced`, `complained`, `failed` and `suppressed` do not change.
+
+So a repeated event or an event that arrives late changes nothing.
+
+### Signature check
+
+`VerifyMillionSendSignature` runs before the controller:
+
+- It needs the `webhook-id`, `webhook-timestamp` and `webhook-signature` headers.
+- The secret is `MILLIONSEND_WEBHOOK_SECRET`: `whsec_` followed by base64. Decode the part after the prefix to get the key.
+- The signature is base64 HMAC-SHA256 of `{id}.{timestamp}.{raw body}`. The header holds one or more space-separated `v1,<signature>` values, and any match passes. That covers key rotation.
+- A timestamp more than five minutes off is a replay and gets 401.
+- With no secret set, every webhook gets 401.
+
+### Responses
+
+- 200 for a valid signature, even when the event is ignored or the message id is unknown. MillionSend would retry any other answer. The endpoint may also receive events for mail that other apps on the same team sent.
+- 401 for a bad or missing signature.
+
+### Setup
+
+Your team registers the endpoint with MillionSend (`POST /webhooks` on its API) for the events in the table, and sets the secret in Coolify as `MILLIONSEND_WEBHOOK_SECRET`. The URL is `https://{app domain}/webhooks/millionsend`.
