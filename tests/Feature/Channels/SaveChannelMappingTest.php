@@ -201,32 +201,41 @@ test('the map page lists each OTA line from the top guest count, suggests matche
             ->where('map.rows.0.roomTitle', 'Deluxe King')
             ->where('map.rows.0.rateTitle', 'Standard')
             ->where('map.rows.0.occupancy', 3)
-            ->where('map.rows.0.estatell', fn ($value) => str_ends_with($value, '-3'))
+            ->where('map.rows.0.estatell', fn ($value) => $value !== null)
             ->where('map.rows.0.isPrimary', true)
             ->where('map.rows.1.occupancy', 2)
             ->where('map.rows.1.isPrimary', false)
             ->where('map.rows.2.occupancy', 1)
             ->where('map.rows.3.rateTitle', 'Non-refundable')
             ->where('map.rows.3.estatell', null)
-            ->has('map.options', 3)
+            ->has('map.options', 1)
             ->where('map.options.0.roomType', 'Deluxe King')
             ->where('map.options.0.ratePlan', 'Standard')
-            ->where('map.options.0.occupancy', 1)
-            ->where('map.options.2.isTop', true));
+            ->where('map.options.0.perRoom', false)
+            ->where('map.options.0.occupancies', [1, 2, 3]));
 });
 
-test('a plan sold per room is offered only at its top occupancy, and a saved mapping beats suggestions', function () {
+test('a plan sold per room takes any guest count, and a saved mapping beats suggestions', function () {
     ['connection' => $connection, 'property' => $property, 'mapping' => $mapping] = mapReadySetup('per_room');
     fakeChannexMapping();
     $admin = User::factory()->admin()->withTwoFactor()->create();
 
     $this->actingAs($admin)->get(route('admin.properties.channels.connections.map', [$property->code, $connection]))
-        ->assertInertia(fn (Assert $page) => $page->has('map.options', 1)->where('map.rows.0.estatell', "{$mapping->id}-3")->where('map.rows.1.estatell', null)->where('map.rows.2.estatell', null));
+        ->assertInertia(fn (Assert $page) => $page->where('map.options.0.perRoom', true)->where('map.rows.0.estatell', (string) $mapping->id)->where('map.rows.2.estatell', (string) $mapping->id)->where('map.rows.3.estatell', null));
 
-    ChannelOtaMapping::factory()->create(['channel_connection_id' => $connection->id, 'channel_rate_plan_mapping_id' => $mapping->id, 'occupancy' => 3, 'ota_room_code' => '586818903', 'ota_rate_code' => '16385047', 'is_primary' => true]);
+    ChannelOtaMapping::factory()->create(['channel_connection_id' => $connection->id, 'channel_rate_plan_mapping_id' => $mapping->id, 'occupancy' => 1, 'ota_room_code' => '586818903', 'ota_rate_code' => '16385047', 'is_primary' => true]);
 
     $this->get(route('admin.properties.channels.connections.map', [$property->code, $connection]))
-        ->assertInertia(fn (Assert $page) => $page->where('map.rows.0.estatell', null)->where('map.rows.3.estatell', "{$mapping->id}-3")->where('map.rows.3.isPrimary', true));
+        ->assertInertia(fn (Assert $page) => $page->where('map.rows.0.estatell', null)->where('map.rows.5.estatell', (string) $mapping->id)->where('map.rows.5.isPrimary', true));
+});
+
+test('a line of a per-room plan keeps the OTA guest count it was saved with', function () {
+    ['connection' => $connection, 'mapping' => $mapping] = mapReadySetup('per_room');
+    fakeChannexMapping();
+
+    expect(saveMapping($connection, [line($mapping, 1, '586818903|16385046', true), line($mapping, 2, '586818903|16385046', true)])->ok)->toBeTrue()
+        ->and(array_column(array_column(channexBodies('PUT', '/channels/channel-1')[0]['channel']['rate_plans'], 'settings'), 'occupancy'))->toBe([1, 2])
+        ->and($connection->otaMappings()->where('is_primary', true)->pluck('occupancy')->all())->toBe([2]);
 });
 
 test('the map page is closed to other properties and goes back to the tab when the OTA does not answer', function () {

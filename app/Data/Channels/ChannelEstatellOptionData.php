@@ -5,17 +5,21 @@ namespace App\Data\Channels;
 use Spatie\LaravelData\Data;
 
 /**
- * One estatell rate plan occupancy an OTA line can map to. `value` is `{rate plan mapping id}-{occupancy}`, and the room type and plan names are shown apart so the page can choose the room first. `isTop` marks
- * the highest occupancy of its plan, which is the one an OTA line with no guest count takes.
+ * One Estatell rate plan an OTA line can map to. `value` is the rate plan mapping id. A plan sold per room has one option
+ * at Channex, so any OTA guest count can map to it (`perRoom`). A plan sold per person has one option for each of its
+ * `occupancies`, and an OTA line maps to the option with its own guest count.
  */
 class ChannelEstatellOptionData extends Data
 {
+    /**
+     * @param  list<int>  $occupancies
+     */
     public function __construct(
         public string $value,
         public int $roomTypeId,
         public string $roomType,
         public string $ratePlan,
-        public int $occupancy,
-        public bool $isTop,
+        public bool $perRoom,
+        public array $occupancies,
     ) {}
 }

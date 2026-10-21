@@ -251,8 +251,8 @@ value: string,
 roomTypeId: number,
 roomType: string,
 ratePlan: string,
-occupancy: number,
-isTop: boolean,
+perRoom: boolean,
+occupancies: number[],
 };
 export type ChannelMapPageData = {
 connectionId: number,

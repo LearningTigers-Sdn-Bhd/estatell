@@ -4,6 +4,7 @@ namespace App\Services\Channels;
 
 use App\Data\Channels\ChannelEstatellOptionData;
 use App\Data\Channels\ChannelMapRowData;
+use App\Enums\ChannelSellMode;
 use App\Models\ChannelConnection;
 use App\Models\ChannelRatePlanMapping;
 
@@ -21,7 +22,6 @@ class ChannelMappingRows
         $saved = $connection->otaMappings()->get();
         $hasSaved = $saved->isNotEmpty();
         $choices = $this->choices($connection);
-        $used = [];
         $taken = [];
         $rows = [];
 
@@ -42,12 +42,8 @@ class ChannelMappingRows
                     }
 
                     $value = $existing !== null
-                        ? $existing->channel_rate_plan_mapping_id.'-'.$existing->occupancy
-                        : ($hasSaved ? null : $this->suggest($choices, $room['title'] ?? '', $rate['title'] ?? '', $occupancy, $used));
-
-                    if ($value !== null) {
-                        $used[$value] = true;
-                    }
+                        ? (string) $existing->channel_rate_plan_mapping_id
+                        : ($hasSaved ? null : $this->suggest($choices, $room['title'] ?? '', $rate['title'] ?? '', $occupancy));
 
                     $rows[] = [
                         'key' => "{$roomCode}|{$rateCode}|".($occupancy ?? 'any'),
@@ -75,13 +71,13 @@ class ChannelMappingRows
     public function options(ChannelConnection $connection): array
     {
         return array_map(
-            fn (array $choice): ChannelEstatellOptionData => new ChannelEstatellOptionData($choice['value'], $choice['roomTypeId'], $choice['roomType'], $choice['ratePlan'], $choice['occupancy'], $choice['isTop']),
+            fn (array $choice): ChannelEstatellOptionData => new ChannelEstatellOptionData($choice['value'], $choice['roomTypeId'], $choice['roomType'], $choice['ratePlan'], $choice['perRoom'], $choice['occupancies']),
             $this->choices($connection),
         );
     }
 
     /**
-     * @return list<array{value: string, roomTypeId: int, occupancy: int, isTop: bool, roomType: string, ratePlan: string}>
+     * @return list<array{value: string, roomTypeId: int, perRoom: bool, occupancies: list<int>, roomType: string, ratePlan: string}>
      */
     private function choices(ChannelConnection $connection): array
     {
@@ -90,38 +86,31 @@ class ChannelMappingRows
             ->sortBy(fn (ChannelRatePlanMapping $mapping): string => sprintf('%06d-%s', $mapping->roomType->position, $mapping->ratePlan->name));
 
         foreach ($mappings as $mapping) {
-            $occupancies = $mapping->sell_mode->occupancies($mapping->roomType);
-
-            foreach ($occupancies as $occupancy) {
-                $choices[] = [
-                    'value' => "{$mapping->id}-{$occupancy}",
-                    'roomTypeId' => $mapping->room_type_id,
-                    'occupancy' => $occupancy,
-                    'isTop' => $occupancy === max($occupancies),
-                    'roomType' => $mapping->roomType->name,
-                    'ratePlan' => $mapping->ratePlan->name,
-                ];
-            }
+            $choices[] = [
+                'value' => (string) $mapping->id,
+                'roomTypeId' => $mapping->room_type_id,
+                'perRoom' => $mapping->sell_mode === ChannelSellMode::PerRoom,
+                'occupancies' => $mapping->sell_mode->occupancies($mapping->roomType),
+                'roomType' => $mapping->roomType->name,
+                'ratePlan' => $mapping->ratePlan->name,
+            ];
         }
 
         return $choices;
     }
 
     /**
-     * An OTA room and rate that takes guest counts matches the plan of the same guest count. One that lists none takes
-     * the plan's top occupancy.
+     * The plan whose room type and name equal the OTA room and rate titles, if it can take the line's guest count: a plan
+     * sold per room takes any, a plan sold per person only a count it has.
      *
-     * @param  list<array{value: string, roomTypeId: int, occupancy: int, isTop: bool, roomType: string, ratePlan: string}>  $choices
-     * @param  array<string, true>  $used
+     * @param  list<array{value: string, roomTypeId: int, perRoom: bool, occupancies: list<int>, roomType: string, ratePlan: string}>  $choices
      */
-    private function suggest(array $choices, string $roomTitle, string $rateTitle, ?int $occupancy, array $used): ?string
+    private function suggest(array $choices, string $roomTitle, string $rateTitle, ?int $occupancy): ?string
     {
         foreach ($choices as $choice) {
-            if (isset($used[$choice['value']]) || ($occupancy === null ? ! $choice['isTop'] : $choice['occupancy'] !== $occupancy)) {
-                continue;
-            }
+            $fits = $occupancy === null || $choice['perRoom'] || in_array($occupancy, $choice['occupancies'], true);
 
-            if ($this->normalize($choice['roomType']) === $this->normalize($roomTitle) && $this->normalize($choice['ratePlan']) === $this->normalize($rateTitle)) {
+            if ($fits && $this->normalize($choice['roomType']) === $this->normalize($roomTitle) && $this->normalize($choice['ratePlan']) === $this->normalize($rateTitle)) {
                 return $choice['value'];
             }
         }

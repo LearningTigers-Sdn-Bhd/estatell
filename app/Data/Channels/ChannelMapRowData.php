@@ -7,7 +7,7 @@ use Spatie\LaravelData\Data;
 /**
  * One line of the map page: an OTA room, rate and guest count, and the estatell plan it maps to. `occupancy` is null when
  * the OTA lists no guest counts for the rate (per-room pricing). `estatell` is the `value` of one
- * `ChannelEstatellOptionData`, or null while unmapped.
+ * `ChannelEstatellOptionData` (a rate plan mapping id), or null while unmapped.
  */
 class ChannelMapRowData extends Data
 {

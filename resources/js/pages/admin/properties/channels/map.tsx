@@ -95,7 +95,7 @@ function initialRooms(rows: Row[], options: Option[]): Record<string, string> {
     return rooms;
 }
 
-/** The plans a line can take: of the chosen room type, with the same guest count, or the top one when the OTA lists none. */
+/** The plans a line can take: of the chosen room type. A plan sold per room takes any guest count, one sold per person only a count it has. */
 function choicesFor(
     row: Row,
     options: Option[],
@@ -104,9 +104,9 @@ function choicesFor(
     return options.filter(
         (option) =>
             String(option.roomTypeId) === roomTypeId &&
-            (row.occupancy === null
-                ? option.isTop
-                : option.occupancy === row.occupancy),
+            (row.occupancy === null ||
+                option.perRoom ||
+                option.occupancies.includes(row.occupancy)),
     );
 }
 
@@ -191,13 +191,17 @@ export default function ChannelMap({
                         lines: data.rows
                             .filter((row) => row.estatell)
                             .map((row) => {
-                                const [mappingId, occupancy] = (
-                                    row.estatell as string
-                                ).split('-');
+                                const option = map.options.find(
+                                    (item) => item.value === row.estatell,
+                                );
 
                                 return {
-                                    rate_plan_mapping_id: Number(mappingId),
-                                    occupancy: Number(occupancy),
+                                    rate_plan_mapping_id: Number(row.estatell),
+                                    occupancy:
+                                        row.occupancy ??
+                                        Math.max(
+                                            ...(option?.occupancies ?? [1]),
+                                        ),
                                     ota: `${row.roomCode}|${row.rateCode}`,
                                     is_primary: row.isPrimary,
                                     rate_type: row.rateType,

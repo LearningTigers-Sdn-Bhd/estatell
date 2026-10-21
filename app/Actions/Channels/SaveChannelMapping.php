@@ -4,6 +4,7 @@ namespace App\Actions\Channels;
 
 use App\Enums\ChannelConnectionStatus;
 use App\Enums\ChannelProvider;
+use App\Enums\ChannelSellMode;
 use App\Models\ChannelConnection;
 use App\Models\User;
 use App\Services\Channels\ChannelActionResult;
@@ -24,6 +25,9 @@ class SaveChannelMapping
      * gets exactly one: the flagged line with the highest occupancy, or the highest occupancy when none is flagged.
      * Nothing is saved here unless Channex accepted the mapping.
      *
+     * `occupancy` is the OTA line's guest count. A plan sold per room takes any; a plan sold per person takes only a count it
+     * has.
+     *
      * @param  list<array{rate_plan_mapping_id: int, occupancy: int, ota: string|null, is_primary?: bool, rate_type?: string|null}>  $lines
      */
     public function __invoke(User $admin, ChannelConnection $connection, array $lines): ChannelActionResult
@@ -35,7 +39,7 @@ class SaveChannelMapping
         foreach ($mapped as $line) {
             $ratePlan = $ratePlans->get($line['rate_plan_mapping_id']);
 
-            if ($ratePlan === null || ! in_array($line['occupancy'], $ratePlan->sell_mode->occupancies($ratePlan->roomType), true)) {
+            if ($ratePlan === null || ! ($ratePlan->sell_mode === ChannelSellMode::PerRoom || in_array($line['occupancy'], $ratePlan->sell_mode->occupancies($ratePlan->roomType), true))) {
                 return ChannelActionResult::failed(__('A line does not match a rate plan of this property. Reload the page and try again.'));
             }
         }
@@ -82,7 +86,7 @@ class SaveChannelMapping
             $line['room'],
             $line['rate'],
             $line['occupancy'],
-            in_array($line['rate_plan_mapping_id'].'-'.$line['occupancy'], $primaries, true),
+            in_array($this->lineKey($line), $primaries, true),
             $line['rate_type'] ?? null,
             $catalogue->pricingType,
         ), $resolved);
@@ -112,7 +116,7 @@ class SaveChannelMapping
                     'occupancy' => $line['occupancy'],
                     'ota_room_code' => $line['roomCode'],
                     'ota_rate_code' => $line['rateCode'],
-                    'is_primary' => $usesPrimary ? in_array($line['rate_plan_mapping_id'].'-'.$line['occupancy'], $primaries, true) : null,
+                    'is_primary' => $usesPrimary ? in_array($this->lineKey($line), $primaries, true) : null,
                     'rate_type' => filled($line['rate_type'] ?? null) ? $line['rate_type'] : null,
                 ]);
             }
@@ -136,7 +140,7 @@ class SaveChannelMapping
 
     /**
      * The line that is primary for each OTA room and rate: the flagged one with the highest occupancy, else the highest
-     * occupancy of the group. Each is `{rate plan mapping id}-{occupancy}`.
+     * occupancy of the group. Each is `{room code}|{rate code}|{occupancy}`.
      *
      * @param  list<array<string, mixed>>  $resolved
      * @return list<string>
@@ -152,7 +156,17 @@ class SaveChannelMapping
         return array_values(array_map(function (array $group): string {
             usort($group, fn (array $a, array $b): int => [(bool) ($b['is_primary'] ?? false), $b['occupancy']] <=> [(bool) ($a['is_primary'] ?? false), $a['occupancy']]);
 
-            return $group[0]['rate_plan_mapping_id'].'-'.$group[0]['occupancy'];
+            return $this->lineKey($group[0]);
         }, $groups));
+    }
+
+    /**
+     * An OTA line: its room, rate and guest count.
+     *
+     * @param  array<string, mixed>  $line
+     */
+    private function lineKey(array $line): string
+    {
+        return "{$line['roomCode']}|{$line['rateCode']}|{$line['occupancy']}";
     }
 }
