@@ -77,12 +77,15 @@ interface ChannelManagerDriver
     public function adapter(string $adapterCode): array;
 
     /**
-     * Check the OTA settings without saving a connection.
+     * Check the OTA settings without saving a connection. The provider asks the OTA, so this needs no property.
      *
      * @param  array<string, mixed>  $settings
-     * @return array<string, mixed>
+     * @return array{success: bool, errors: mixed}
+     *
+     * @throws ChannexRetryLater when the provider cannot take it now
+     * @throws ChannexRequestFailed when the provider refuses it
      */
-    public function testConnection(string $externalPropertyId, string $adapterCode, array $settings): array;
+    public function testConnection(string $adapterCode, array $settings): array;
 
     /**
      * The OTA rooms and rates a connection can map to.
@@ -92,8 +95,13 @@ interface ChannelManagerDriver
     public function mappingDetails(string $externalChannelId): array;
 
     /**
+     * Create the OTA connection at the provider. It starts disabled. Returns the provider's channel with its `id`.
+     *
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
+     *
+     * @throws ChannexRetryLater when the provider cannot take it now
+     * @throws ChannexRequestFailed when the provider refuses it
      */
     public function createChannel(array $payload): array;
 

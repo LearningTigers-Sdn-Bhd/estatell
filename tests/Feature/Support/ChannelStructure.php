@@ -3,6 +3,7 @@
 use App\Enums\ChannelPropertyStatus;
 use App\Enums\ChannelProvider;
 use App\Models\ChannelProperty;
+use App\Models\OtaChannel;
 use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\Rate;
@@ -162,4 +163,49 @@ function channelAriSetup(int $rooms = 2, string $state = 'create', array $planAt
 function channelRate(RatePlan $ratePlan, RoomType $roomType, string $date, ?string $amount, array $attributes = []): void
 {
     Rate::factory()->create(['rate_plan_id' => $ratePlan->id, 'room_type_id' => $roomType->id, 'date' => $date, 'amount' => $amount, ...$attributes]);
+}
+
+/** The Booking.com adapter descriptor as Channex returns it (trimmed to the params the form needs). @return array<string, mixed> */
+function channexBookingAdapter(): array
+{
+    return [
+        'code' => 'BookingCom',
+        'title' => 'Booking.com',
+        'actions' => ['load_future_reservations'],
+        'params' => [
+            'hotel_id' => ['position' => 0, 'type' => 'string', 'title' => 'Hotel ID'],
+            'machine_account' => ['position' => 1, 'type' => 'hidden', 'title' => 'Machine Account'],
+            'send_email_notifications' => ['default' => false, 'position' => 2, 'type' => 'boolean', 'title' => 'Send Property Notification'],
+            'email' => ['position' => 3, 'type' => 'string', 'title' => 'Property Email', 'rules' => [['apply' => 'hidden', 'when' => false, 'influence_field' => 'send_email_notifications', 'with_value' => '']]],
+            'allow_payout_update' => ['default' => false, 'position' => 5, 'type' => 'hidden', 'title' => 'Allow Payout Updates'],
+        ],
+        'rate_params' => [
+            'rate_plan_code' => ['position' => 0, 'type' => 'string', 'title' => 'Rate'],
+            'room_type_code' => ['position' => 1, 'type' => 'string', 'title' => 'Room'],
+            'occupancy' => ['position' => 2, 'type' => 'integer', 'title' => 'Occupancy'],
+            'pricing_type' => ['position' => 3, 'type' => 'select', 'options' => ['Standard', 'OBP'], 'title' => 'Pricing Type'],
+            'primary_occ' => ['position' => 4, 'type' => 'boolean', 'title' => 'Primary Occupancy'],
+            'readonly' => ['position' => 5, 'type' => 'boolean', 'title' => 'Read Only'],
+        ],
+    ];
+}
+
+/**
+ * Answer the Channel API calls of the connect flow: the Booking.com adapter, test_connection, and POST /channels.
+ */
+function fakeChannexConnect(bool $connectionOk = true, int $createStatus = 201): void
+{
+    Http::fake([
+        '*/channels/adapter*' => Http::response(['data' => channexBookingAdapter()], 200),
+        '*/channels/test_connection' => Http::response(['data' => ['success' => $connectionOk, 'errors' => null]], 200),
+        '*/channels' => Http::response($createStatus === 201
+            ? ['data' => ['id' => 'channel-1', 'type' => 'channel', 'attributes' => ['id' => 'channel-1', 'currency' => 'GBP']]]
+            : ['errors' => ['code' => 'validation_error', 'details' => ['settings' => ['hotel_id already used']]]], $createStatus),
+    ]);
+}
+
+/** The Booking.com OTA channel as the seeder makes it. */
+function bookingChannel(array $attributes = []): OtaChannel
+{
+    return OtaChannel::factory()->create(['code' => 'booking_com', 'name' => 'Booking.com', 'channex_code' => 'BookingCom', ...$attributes]);
 }

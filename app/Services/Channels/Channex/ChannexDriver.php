@@ -8,7 +8,7 @@ use Closure;
 use LogicException;
 
 /**
- * The Channex implementation. `adapter`, the structure calls, the ARI pushes and the booking feed are built. The other calls arrive with the commit that
+ * The Channex implementation. `adapter`, the structure calls, the ARI pushes, the booking feed, `testConnection` and `createChannel` are built. The other calls arrive with the commit that
  * needs them and throw until then, so the interface stays stable.
  */
 class ChannexDriver implements ChannelManagerDriver
@@ -128,9 +128,11 @@ class ChannexDriver implements ChannelManagerDriver
         }
     }
 
-    public function testConnection(string $externalPropertyId, string $adapterCode, array $settings): array
+    public function testConnection(string $adapterCode, array $settings): array
     {
-        $this->notBuilt('connect and map OTAs through the Channel API');
+        $data = $this->client->post('/channels/test_connection', ['channel' => $adapterCode, 'settings' => $settings])['data'] ?? [];
+
+        return ['success' => ($data['success'] ?? false) === true, 'errors' => $data['errors'] ?? null];
     }
 
     public function mappingDetails(string $externalChannelId): array
@@ -140,7 +142,9 @@ class ChannexDriver implements ChannelManagerDriver
 
     public function createChannel(array $payload): array
     {
-        $this->notBuilt('connect and map OTAs through the Channel API');
+        $data = $this->client->post('/channels', ['channel' => $payload])['data'] ?? [];
+
+        return ['id' => $data['id'] ?? null, ...($data['attributes'] ?? [])];
     }
 
     public function updateChannel(string $externalChannelId, array $payload): array

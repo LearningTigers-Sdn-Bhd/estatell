@@ -127,6 +127,10 @@ When staff change a room type, a rate plan or the room types a plan sells, the c
 └───────────────────────────────────────────────────────────────────────────┴──────────────────────────────────┘
 ```
 
+- The OTA comes from the Connect button on the OTAs card, so the form has no Channel select.
+- Hotel ID is required. **Save connection** tests the settings again and creates the Channex channel as a `Draft`, then goes back to the tab. The map commit turns it into **Next: map**.
+- A property that is not on Channex, an OTA with no adapter and Airbnb go back to the tab with the reason.
+
 ### Fields come from the adapter
 
 `GET /channels/adapter?code={channex_code}` returns `params`. The form draws one input per param:

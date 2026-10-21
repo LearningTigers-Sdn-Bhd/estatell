@@ -98,15 +98,18 @@ The ids Channex returns are saved after every call that works. If the sync stops
 
 ```
 GET  /channels/adapter?code={channex_code}   fields (params) and mapping columns (rate_params)
-POST /channels/test_connection               the OTA sees Channex as provider for this hotel ID
-POST /channels/mapping_details               the OTA's rooms and rates
+POST /channels/test_connection               {channel, settings}: the OTA sees Channex as provider for this hotel ID
+POST /channels/mapping_details               {channel, settings}: the OTA's rooms and rates (no property or channel id)
 POST /channels                               group_id, properties, settings, rate_plans[]; created inactive
 PUT  /channels/{id}                          mapping changes
 POST /channels/{id}/activate                 full sync to the OTA
 POST /channels/{id}/deactivate               pause
 ```
 
-- `ConnectChannel` tests the connection and creates the Channex channel with the admin's settings.
+- `ConnectChannel` tests the connection and creates the Channex channel with the admin's settings. The body is wrapped in `channel`: `{channel, group_id, title, properties: [external property id], settings}`. It saves a `Draft` connection.
+- Only visible adapter params are sent. `hidden` params (`machine_account`, the payout flags) are Channex's own. A param a rule hides (Property email while Send booking emails is off) is dropped.
+- Channex allows one connection per hotel ID on the whole account. A hotel ID used by another property is refused at create, and nothing is saved here.
+- The channel currency comes from the OTA hotel. Channex converts prices when it pushes, so a MYR property can map to a GBP hotel.
 - `SaveChannelMapping` sends `rate_plans[]` built from `channel_ota_mappings` and stores them.
 - `ActivateChannel` refuses a connection with no mapped rate plan.
 - An OTA room or rate with no match shows a warning, because Channex says unmapped OTA rates cause booking errors.

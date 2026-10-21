@@ -34,7 +34,7 @@ Hidden params are filled by Channex and never shown.
 
 ## Open checks
 
-1. **Test hotel IDs.** `test_connection` and `mapping_details` call the real OTA. Ask Channex support for Booking.com and Agoda test hotel IDs.
+1. **Test hotel IDs.** `test_connection` and `mapping_details` call the real OTA. Booking.com has shared test hotels on staging (listed in the Channex channel form, each leased for about 30 minutes): `5868189` uses occupancy pricing and `6519420` uses per-room pricing. Channex allows one connection per hotel ID, so delete a test connection before the next run. Agoda still needs a test hotel ID from Channex support.
 2. **Tax and amount settings.** Send one test booking per option (Agoda tax, Hostelworld and Expedia booking amount) and record which amount arrives. Pick the defaults that keep the folio right under SST.
 3. **Import future bookings.** Run `load_future_reservations` on a Booking.com test connection and inspect the revisions.
 4. **End to end.** Connect Open Channel (self-connect, no OTA needed) and push test bookings to cover sync, ARI and ingestion.

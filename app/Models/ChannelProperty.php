@@ -83,6 +83,14 @@ class ChannelProperty extends Model
     }
 
     /**
+     * @return HasMany<ChannelConnection, $this>
+     */
+    public function connections(): HasMany
+    {
+        return $this->hasMany(ChannelConnection::class);
+    }
+
+    /**
      * @return HasMany<ChannelRoomTypeMapping, $this>
      */
     public function roomTypeMappings(): HasMany

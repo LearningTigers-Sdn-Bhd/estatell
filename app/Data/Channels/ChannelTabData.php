@@ -19,6 +19,7 @@ class ChannelTabData extends Data
      * @param  list<ChannelRevisionData>  $failedBookings
      * @param  list<ChannelAlertData>  $alerts
      * @param  list<ChannelRevisionData>  $recentBookings
+     * @param  list<ChannelOtaRowData>  $otas
      */
     public function __construct(
         public BadgeData $status,
@@ -35,9 +36,13 @@ class ChannelTabData extends Data
         public array $failedBookings,
         public array $alerts,
         public array $recentBookings,
+        public array $otas,
     ) {}
 
-    public static function forProperty(?ChannelProperty $channelProperty, ChannelStructure $structure, ChannelSyncProgressData $sync): self
+    /**
+     * @param  list<ChannelOtaRowData>  $otas
+     */
+    public static function forProperty(?ChannelProperty $channelProperty, ChannelStructure $structure, ChannelSyncProgressData $sync, array $otas = []): self
     {
         return new self(
             status: BadgeData::fromChannelPropertyStatus($channelProperty === null ? ChannelPropertyStatus::NotSynced : $channelProperty->status),
@@ -54,6 +59,7 @@ class ChannelTabData extends Data
             failedBookings: $channelProperty === null ? [] : self::failedBookings($channelProperty),
             alerts: $channelProperty === null ? [] : $channelProperty->alerts()->open()->latest('id')->get()->map(ChannelAlertData::fromModel(...))->all(),
             recentBookings: $channelProperty === null ? [] : self::recentBookings($channelProperty),
+            otas: $otas,
         );
     }
 

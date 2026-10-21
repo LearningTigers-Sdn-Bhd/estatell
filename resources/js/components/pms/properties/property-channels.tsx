@@ -1,5 +1,6 @@
 import { Form, usePoll } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
+import { ChannelOtasCard } from '@/components/pms/channels/channel-otas-card';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
@@ -162,6 +163,7 @@ export function PropertyChannels({
                 </Card>
             ) : (
                 <>
+                    <ChannelOtasCard code={code} otas={channel.otas} />
                     <SyncedItems code={code} items={channel.synced} />
                     <Alerts
                         code={code}

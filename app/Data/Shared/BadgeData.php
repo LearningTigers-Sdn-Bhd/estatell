@@ -5,6 +5,7 @@ namespace App\Data\Shared;
 use App\Enums\ArInvoiceStatus;
 use App\Enums\AuditStatus;
 use App\Enums\ChannelAlertEvent;
+use App\Enums\ChannelConnectionStatus;
 use App\Enums\ChannelPropertyStatus;
 use App\Enums\ChannelSupport;
 use App\Enums\CompanyStatus;
@@ -69,6 +70,11 @@ class BadgeData extends Data
     }
 
     public static function fromChannelPropertyStatus(ChannelPropertyStatus $status): self
+    {
+        return new self($status->value, $status->label(), $status->tone());
+    }
+
+    public static function fromChannelConnectionStatus(ChannelConnectionStatus $status): self
     {
         return new self($status->value, $status->label(), $status->tone());
     }

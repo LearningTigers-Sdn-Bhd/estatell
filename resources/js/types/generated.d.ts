@@ -224,6 +224,38 @@ bookingId: string | null,
 detail: string | null,
 createdAt: string,
 };
+export type ChannelConnectFieldData = {
+name: string,
+type: unknown,
+label: string,
+hint: string | null,
+placeholder: string | null,
+options: string[],
+default: string | number | boolean | null,
+required: boolean,
+hiddenWhenField: string | null,
+hiddenWhenValue: string | boolean | null,
+};
+export type ChannelConnectPageData = {
+otaChannelId: number,
+otaName: string,
+fields: App.Data.Channels.ChannelConnectFieldData[],
+values: Record<string, string | boolean | number | null>,
+otaList: App.Data.Platform.AdminOtaListRowData | null,
+ownerName: string | null,
+ownerEmail: string | null,
+ownerPhone: string | null,
+};
+export type ChannelOtaRowData = {
+otaChannelId: number,
+name: string,
+hotelId: string | null,
+status: App.Data.Shared.BadgeData | null,
+connectionId: number | null,
+canConnect: boolean,
+note: string | null,
+lastError: string | null,
+};
 export type ChannelRemovalData = {
 key: string,
 kind: App.Enums.ChannelRemovalKind,
@@ -291,6 +323,7 @@ synced: App.Data.Channels.ChannelSyncedRoomTypeData[],
 failedBookings: App.Data.Channels.ChannelRevisionData[],
 alerts: App.Data.Channels.ChannelAlertData[],
 recentBookings: App.Data.Channels.ChannelRevisionData[],
+otas: App.Data.Channels.ChannelOtaRowData[],
 };
 export type OtaChannelData = {
 id: number,
@@ -3574,6 +3607,7 @@ export type BookingSourceIcon = 'phone' | 'message-circle' | 'mail' | 'globe' | 
 export type BookingSourceType = 'direct' | 'ota' | 'company' | 'walk_in';
 export type BusinessDateStatus = 'open' | 'auditing' | 'closed';
 export type ChannelAlertEvent = 'non_acked_booking' | 'booking_unmapped_room' | 'booking_unmapped_rate' | 'sync_error' | 'rate_error' | 'structure_sync_failed' | 'removal_blocked';
+export type ChannelConnectionStatus = 'draft' | 'mapped' | 'active' | 'paused' | 'error';
 export type ChannelPropertyStatus = 'not_synced' | 'synced' | 'paused' | 'error';
 export type ChannelProvider = 'channex';
 export type ChannelRemovalKind = 'rate_plan' | 'room_type' | 'unlink';
