@@ -227,14 +227,15 @@ final class WastaysDayCompare
     /**
      * Lines wastays posted during the date's window that its summary leaves out but estatell counts on that day:
      * catch-up nights (an earlier night's date and no night audit), the fee of a same-day leaver (estatell keeps it as
-     * a night of room revenue) and the tax of an early departure fee dated to an earlier night.
+     * a night of room revenue), the tax of an early departure fee dated to an earlier night and a staff adjustment dated
+     * to an earlier night.
      *
-     * @return array{room_revenue: BigDecimal, tax_revenue: BigDecimal}
+     * @return array{room_revenue: BigDecimal, tax_revenue: BigDecimal, adjustments_total: BigDecimal}
      */
     private function leftOut(WastaysBundle $bundle, WastaysDay $day, string $date): array
     {
         $window = $day->window($date);
-        $totals = ['room_revenue' => BigDecimal::zero(), 'tax_revenue' => BigDecimal::zero()];
+        $totals = ['room_revenue' => BigDecimal::zero(), 'tax_revenue' => BigDecimal::zero(), 'adjustments_total' => BigDecimal::zero()];
 
         if ($window === null) {
             return $totals;
@@ -274,6 +275,9 @@ final class WastaysDayCompare
             $source === 'catch_up' && $row['category'] === 'tax' => 'tax_revenue',
             $source === 'early_departure' && $row['category'] === 'early_departure_charge' && $index->sameDayLeaver((string) $row['source_booking_id']) => 'room_revenue',
             $source === 'early_departure' && $row['category'] === 'tax' && ($row['posting_date'] ?? null) !== $date => 'tax_revenue',
+            // A staff adjustment dated to an earlier, closed night.
+            $source === 'staff' && in_array($row['category'], ['adjustment', 'correction'], true) && ($row['reversal_of_transaction_id'] ?? null) === null
+                && ($row['posting_date'] ?? $date) < $date => 'adjustments_total',
             default => null,
         };
     }

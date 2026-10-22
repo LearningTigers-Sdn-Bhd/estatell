@@ -163,3 +163,22 @@ it('takes a summary change without the catch-up night it recounted, which counts
 
     expect($figures['room_revenue'])->toBe('350.00');
 });
+
+it('counts a staff adjustment dated to an earlier night on the day it was posted', function () {
+    $path = wastaysDayBundleDir([
+        'hotel_business_dates' => [['business_date' => '2026-08-14', 'opened_at' => '2026-08-14T00:00:00.000000Z', 'closed_at' => '2026-08-15T00:00:00.000000Z']],
+        'night_audits' => [['id' => '2', 'business_date' => '2026-08-14']],
+        'night_audit_financial_summaries' => [[
+            'id' => '2', 'night_audit_id' => '2', 'room_revenue' => '0.00', 'tax_revenue' => '0.00', 'payments_total' => '0.00',
+            'refunds_total' => '0.00', 'adjustments_total' => '0.00', 'no_show_charges' => '0.00',
+        ]],
+        'folio_transactions' => [
+            ['id' => '1', 'category' => 'correction', 'amount' => '0.01', 'posting_date' => '2026-08-11', 'created_at' => '2026-08-14T03:00:00.000000Z', 'night_audit_id' => null, 'reversal_of_transaction_id' => null, 'metadata' => json_encode(['posting_source' => 'staff'])],
+        ],
+    ]);
+    $bundle = WastaysBundle::open($path);
+
+    $figures = app(WastaysDayCompare::class)->wastays($bundle, new WastaysDay($bundle), '2026-08-14');
+
+    expect($figures['adjustments_total'])->toBe('0.01');
+});
