@@ -1,0 +1,563 @@
+<?php
+
+namespace App\Actions\Onboarding\Wastays;
+
+use App\Actions\Folio\PostCharge;
+use App\Actions\FrontDesk\AutoAssignRooms;
+use App\Actions\FrontDesk\CheckInUnit;
+use App\Actions\FrontDesk\CheckOutUnit;
+use App\Actions\FrontDesk\UndoCheckIn;
+use App\Actions\Payments\RecordPayment;
+use App\Actions\Reservations\AssignRoom;
+use App\Actions\Reservations\AttachGuest;
+use App\Actions\Reservations\ChangeNightPrice;
+use App\Actions\Reservations\CreateBooking;
+use App\Actions\Reservations\EnsureOtaBookingSource;
+use App\Data\Folio\NewChargeData;
+use App\Data\Payments\NewPaymentData;
+use App\Data\Reservations\NewBookingData;
+use App\Data\Reservations\NewBookingGuestData;
+use App\Data\Reservations\NewUnitData;
+use App\Enums\BookingSourceType;
+use App\Enums\DocumentType;
+use App\Enums\PaymentMethodType;
+use App\Enums\PaymentPurpose;
+use App\Enums\UnitStatus;
+use App\Enums\WastaysEventType;
+use App\Models\BookingSource;
+use App\Models\ChargeItem;
+use App\Models\Guest;
+use App\Models\ImportLink;
+use App\Models\OtaChannel;
+use App\Models\PaymentMethod;
+use App\Models\Property;
+use App\Models\ReservationUnit;
+use App\Models\Room;
+use App\Models\TransactionCode;
+use App\Models\UnitNight;
+use App\Services\NightAudit\PlannedDocumentNumbers;
+use App\Services\NightAudit\PlannedNumberRefused;
+use App\Services\Onboarding\Wastays\ImportLinks;
+use App\Services\Onboarding\Wastays\WastaysBookingIndex;
+use App\Services\Onboarding\Wastays\WastaysDay;
+use App\Services\Onboarding\Wastays\WastaysDocumentNumbers;
+use App\Services\Onboarding\Wastays\WastaysEvent;
+use App\Services\Onboarding\Wastays\WastaysImportTarget;
+use Carbon\Carbon;
+use Carbon\CarbonImmutable;
+use Closure;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+
+/**
+ * Replays one wastays business date through the estatell Actions, in one transaction: the events of the day in time order
+ * (`WastaysDay::timeline()`), each written once and linked in `import_links`, so a second run writes nothing. The clock is
+ * frozen at 12:00 property time on the date, the queue is `null` and mail is `array`, so no message goes out. Wastays
+ * document numbers (reservation, receipt, invoice) are queued on `PlannedDocumentNumbers` just before the Action that
+ * issues them. This Action replays bookings, check-ins, charges, payments, deposits and check-outs; the other events of
+ * the day are counted and left to the corrections step. Any refusal stops the day with `ReplayStopped` and writes nothing.
+ * See docs/migration-plan/grand-eastern-hotel.md "Day loop".
+ */
+class ReplayWastaysDay
+{
+    public function __construct(
+        private CreateBooking $createBooking,
+        private AssignRoom $assignRoom,
+        private AutoAssignRooms $autoAssignRooms,
+        private AttachGuest $attachGuest,
+        private ChangeNightPrice $changeNightPrice,
+        private CheckInUnit $checkInUnit,
+        private UndoCheckIn $undoCheckIn,
+        private CheckOutUnit $checkOutUnit,
+        private PostCharge $postCharge,
+        private RecordPayment $recordPayment,
+        private EnsureOtaBookingSource $ensureOtaBookingSource,
+        private RecordImportLink $recordImportLink,
+        private ImportLinks $links,
+        private PlannedDocumentNumbers $planned,
+    ) {}
+
+    /**
+     * @throws ReplayStopped when the day cannot be replayed; nothing of the day is kept
+     */
+    public function __invoke(WastaysImportTarget $target, WastaysDay $day, string $date): WastaysReplaySummary
+    {
+        $refusals = $day->refusals($target->property, $date);
+
+        if ($refusals !== []) {
+            throw new ReplayStopped(implode(' ', $refusals));
+        }
+
+        return $this->quietly($target->property, $date, function () use ($target, $day, $date): WastaysReplaySummary {
+            return DB::transaction(fn (): WastaysReplaySummary => $this->replay(new ReplayContext(
+                $target->property,
+                $target->actor,
+                $date,
+                new WastaysBookingIndex($target->bundle),
+                new WastaysDocumentNumbers($target->bundle),
+                new WastaysReplaySummary,
+            ), $day));
+        });
+    }
+
+    private function replay(ReplayContext $context, WastaysDay $day): WastaysReplaySummary
+    {
+        $this->carryOver($context, $day);
+
+        foreach ($day->timeline($context->date) as $event) {
+            if (in_array($event->sourceTable, ['folio_transactions', 'deposits'], true) && $this->links->has($context->property, $event->sourceTable, $event->sourceId)) {
+                $context->summary->count('already written');
+
+                continue;
+            }
+
+            match ($event->type) {
+                WastaysEventType::Create => $this->create($context, $event),
+                WastaysEventType::CheckIn => $this->checkIn($context, $event),
+                WastaysEventType::Charge => $this->charge($context, $event),
+                WastaysEventType::Payment => $this->payment($context, $event),
+                WastaysEventType::Deposit => $this->deposit($context, $event),
+                WastaysEventType::CheckOut => $this->checkOut($context, $event),
+                default => $context->summary->count('left to the corrections step: '.$event->type->value),
+            };
+        }
+
+        return $context->summary;
+    }
+
+    /**
+     * Check-ins and check-outs that wastays did before their day: a guest who checked in before the arrival date is
+     * checked in on the arrival day, and a guest who left on the arrival day is checked out the next day.
+     */
+    private function carryOver(ReplayContext $context, WastaysDay $day): void
+    {
+        $opened = $day->window($context->date)['opened'] ?? null;
+
+        if ($opened === null) {
+            return;
+        }
+
+        $links = ImportLink::query()
+            ->where('property_id', $context->property->id)
+            ->where('source_table', 'bookings')
+            ->where('target_type', (new ReservationUnit)->getMorphClass())
+            ->pluck('source_id', 'target_id');
+        $units = ReservationUnit::query()
+            ->whereIn('id', $links->keys())
+            ->where(fn ($query) => $query
+                ->where(fn ($in) => $in->where('status', UnitStatus::Confirmed)->whereDate('arrival_date', $context->date))
+                ->orWhere(fn ($out) => $out->where('status', UnitStatus::CheckedIn)->whereDate('departure_date', $context->date)))
+            ->orderBy('id')
+            ->get();
+
+        foreach ($units as $unit) {
+            $bookingId = (string) $links[$unit->id];
+
+            if ($unit->status === UnitStatus::Confirmed) {
+                $at = $context->index->firstCheckInAt($bookingId);
+
+                if ($at !== null && $at->lt($opened)) {
+                    $this->doCheckIn($context, $unit, 'check-in moved to the arrival day');
+                }
+
+                continue;
+            }
+
+            $at = $context->index->checkOutAt($bookingId);
+
+            if ($at !== null && $at->lt($opened) && ! $context->index->hasEarlyDeparture($bookingId)) {
+                $this->doCheckOut($context, $unit, $bookingId, 'check-out moved to the departure day');
+            }
+        }
+    }
+
+    private function create(ReplayContext $context, WastaysEvent $event): void
+    {
+        $bookingId = $event->sourceId;
+
+        if ($this->links->has($context->property, 'bookings', $bookingId)) {
+            $context->summary->count('already written');
+
+            return;
+        }
+
+        $property = $context->property;
+        $booking = $context->index->booking($bookingId);
+        $room = $context->index->room($bookingId);
+        [$arrival, $departure] = $context->index->firstDates($bookingId);
+        $nights = $this->nightsIn($context->index->nights($bookingId), $arrival, $departure);
+        $uniform = count($nights) === $this->dayCount($arrival, $departure) && count(array_unique($nights)) === 1;
+        $all = count($nights) === $this->dayCount($arrival, $departure);
+        $roomType = $this->linked($property, 'room_types', (string) $room['room_type_id']);
+        $plan = $this->linked($property, 'rate_plans', (string) $room['rate_plan_id']);
+
+        $guestIds = array_map(fn (string $id): int => $this->linked($property, 'guests', $id)->getKey(), $context->index->guestIds($bookingId));
+
+        if ($guestIds === []) {
+            throw new ReplayStopped("bookings {$bookingId}: the booking has no guest.");
+        }
+
+        $line = new NewUnitData(
+            roomTypeId: $roomType->getKey(),
+            ratePlanId: $plan->getKey(),
+            arrivalDate: CarbonImmutable::parse($arrival),
+            departureDate: CarbonImmutable::parse($departure),
+            adults: max(1, (int) $booking['adults']),
+            childAges: array_fill(0, (int) ($booking['children'] ?? 0), 5),
+            overrideTotal: $all ? number_format(array_sum(array_map('floatval', $nights)), 2, '.', '') : null,
+            overrideReason: $all ? 'wastays replay' : null,
+        );
+        $data = new NewBookingData(
+            bookingSource: $this->bookingSource($property, (string) $booking['source']),
+            units: [$line],
+            guests: array_map(fn (int $guestId): NewBookingGuestData => new NewBookingGuestData(guestId: $guestId, unitIndex: 0), $guestIds),
+            externalReference: $booking['external_reference'] ?? $booking['channel_manager_reference'] ?? $booking['agent_reference'] ?? null,
+            groupName: $context->index->groupName($bookingId),
+        );
+        $backdated = $arrival < $context->date;
+        $number = (int) $booking['reservation_number'];
+        $result = $this->withNumber(DocumentType::Reservation, $number, fn () => ($this->createBooking)($context->actor, $property, $data, false, $backdated), true, $bookingId);
+
+        if ($result->isRefused()) {
+            throw new ReplayStopped("bookings {$bookingId}: the booking was refused ({$result->refusal}).");
+        }
+
+        $unit = $result->reservation->units()->orderBy('id')->firstOrFail();
+        ($this->recordImportLink)($property, 'bookings', $bookingId, $unit);
+        $context->summary->count('bookings created');
+
+        if (! $uniform) {
+            $this->priceNights($context, $unit, $nights, $bookingId);
+        }
+
+        $this->assignRoom($context, $unit, (string) ($room['room_id'] ?? ''));
+
+        if ($backdated && $context->index->hasCheckIn($bookingId)) {
+            $this->doCheckIn($context, $unit, 'backdated booking checked in as of its arrival', CarbonImmutable::parse($arrival.' '.($property->settings->check_in_time ?? '15:00')));
+        }
+    }
+
+    /**
+     * Set each group of nights with the same wastays price, through `ChangeNightPrice`.
+     *
+     * @param  array<string, string>  $nights  net prices by date
+     */
+    private function priceNights(ReplayContext $context, ReservationUnit $unit, array $nights, string $bookingId): void
+    {
+        $byPrice = [];
+
+        foreach ($nights as $date => $price) {
+            $byPrice[number_format((float) $price, 2, '.', '')][] = $date;
+        }
+
+        foreach ($byPrice as $price => $dates) {
+            $ids = UnitNight::query()->where('reservation_unit_id', $unit->id)->whereIn('date', $dates)->pluck('id')->all();
+            $result = ($this->changeNightPrice)($context->actor, $unit, UnitNight::query()->whereIn('id', $ids)->get()->all(), (string) $price, 'wastays replay');
+
+            if ($result->isRefused()) {
+                throw new ReplayStopped("bookings {$bookingId}: the night price was refused ({$result->refusal}).");
+            }
+        }
+    }
+
+    private function assignRoom(ReplayContext $context, ReservationUnit $unit, string $wastaysRoomId): void
+    {
+        $room = $wastaysRoomId === '' ? null : $this->links->target($context->property, 'rooms', $wastaysRoomId);
+
+        if ($room instanceof Room && ! ($this->assignRoom)($context->actor, $unit, $room)->isRefused()) {
+            return;
+        }
+
+        $context->summary->count('rooms to assign at check-in');
+    }
+
+    private function checkIn(ReplayContext $context, WastaysEvent $event): void
+    {
+        $unit = $this->unitOf($context, $event);
+        $action = (string) $event->row['action_type'];
+
+        if ($action === 'edit_check_in') {
+            $context->summary->count('room edits at check-in left out');
+
+            return;
+        }
+
+        if ($action === 'undo_check_in') {
+            if ($unit->status !== UnitStatus::CheckedIn) {
+                return;
+            }
+
+            $result = ($this->undoCheckIn)($context->actor, $unit, 'wastays replay: check-in undone');
+
+            if ($result->isRefused()) {
+                throw new ReplayStopped("booking_audit_logs {$event->sourceId}: the check-in could not be undone ({$result->refusal}).");
+            }
+
+            $context->summary->count('check-ins undone');
+            ($this->recordImportLink)($context->property, 'booking_audit_logs', $event->sourceId, $unit);
+
+            return;
+        }
+
+        if ($unit->status !== UnitStatus::Confirmed) {
+            return;
+        }
+
+        if ($unit->arrival_date->toDateString() > $context->date) {
+            $context->summary->count('check-ins before the arrival date moved');
+
+            return;
+        }
+
+        $this->doCheckIn($context, $unit, 'check-ins');
+        ($this->recordImportLink)($context->property, 'booking_audit_logs', $event->sourceId, $unit);
+    }
+
+    private function doCheckIn(ReplayContext $context, ReservationUnit $unit, string $label, ?CarbonImmutable $asOf = null): void
+    {
+        $unit->refresh();
+        $day = ($asOf ?? CarbonImmutable::parse($context->date))->toDateString();
+        $tonight = $unit->nights()->whereDate('date', $day)->first();
+
+        if ($tonight !== null && $tonight->room_id === null && $tonight->bed_id === null) {
+            ($this->autoAssignRooms)($context->actor, $unit);
+        }
+
+        $result = ($this->checkInUnit)($context->actor, $unit, true, null, $asOf);
+
+        if ($result->isRefused()) {
+            throw new ReplayStopped("unit {$unit->id}: the check-in was refused ({$result->refusal}).");
+        }
+
+        $context->summary->count($label);
+    }
+
+    private function charge(ReplayContext $context, WastaysEvent $event): void
+    {
+        $row = $event->row;
+
+        if ($row['category'] === 'accommodation') {
+            throw new ReplayStopped("folio_transactions {$event->sourceId}: a room line the audit did not post.");
+        }
+
+        $unit = $this->unitOf($context, $event);
+        $code = $this->links->target($context->property, 'transaction_codes', (string) $row['transaction_code_id']);
+
+        if (! $code instanceof ChargeItem && ! $code instanceof TransactionCode) {
+            throw new ReplayStopped("folio_transactions {$event->sourceId}: the transaction code has no charge item or code in estatell.");
+        }
+
+        $result = ($this->postCharge)($context->actor, $unit, new NewChargeData(
+            chargeItemId: $code instanceof ChargeItem ? $code->id : null,
+            transactionCodeId: $code instanceof TransactionCode ? $code->id : null,
+            description: $row['description'],
+            quantity: 1,
+            unitAmount: $this->amount($row['amount']),
+            idempotencyKey: 'wastays:folio_transactions:'.$event->sourceId,
+            ownFolio: true,
+            taxIds: [],
+        ));
+
+        if ($result->isRefused()) {
+            throw new ReplayStopped("folio_transactions {$event->sourceId}: the charge was refused ({$result->refusal}).");
+        }
+
+        ($this->recordImportLink)($context->property, 'folio_transactions', $event->sourceId, $result->line());
+        $context->summary->count('charges posted');
+    }
+
+    private function payment(ReplayContext $context, WastaysEvent $event): void
+    {
+        $row = $event->row;
+        $unit = $this->unitOf($context, $event);
+        $method = $this->links->target($context->property, 'transaction_codes', (string) $row['transaction_code_id']);
+
+        if (! $method instanceof PaymentMethod) {
+            throw new ReplayStopped("folio_transactions {$event->sourceId}: the transaction code has no payment method in estatell.");
+        }
+
+        $reference = json_decode((string) $row['metadata'], true)['reference'] ?? null;
+        $number = $context->numbers->receipt('folio_transaction', $event->sourceId);
+        $payment = $this->pay($context, $unit, $method, $unit->status === UnitStatus::Confirmed ? PaymentPurpose::Advance : PaymentPurpose::Settlement, $this->amount($row['amount']), $reference, 'wastays:folio_transactions:'.$event->sourceId, $number, "folio_transactions {$event->sourceId}");
+
+        ($this->recordImportLink)($context->property, 'folio_transactions', $event->sourceId, $payment);
+        $context->summary->count('payments recorded');
+    }
+
+    private function deposit(ReplayContext $context, WastaysEvent $event): void
+    {
+        $row = $event->row;
+        $unit = $this->unitOf($context, $event);
+        $method = PaymentMethod::query()->where('property_id', $context->property->id)->where('type', PaymentMethodType::Cash)->active()->first();
+
+        if ($method === null) {
+            throw new ReplayStopped("deposits {$event->sourceId}: the property has no active Cash method.");
+        }
+
+        $payment = $this->pay($context, $unit, $method, PaymentPurpose::SecurityDeposit, $this->amount($row['amount']), $row['external_reference'], 'wastays:deposits:'.$event->sourceId, $context->numbers->receipt('deposit', $event->sourceId), "deposits {$event->sourceId}");
+
+        ($this->recordImportLink)($context->property, 'deposits', $event->sourceId, $payment);
+        $context->summary->count('deposits recorded');
+    }
+
+    private function pay(ReplayContext $context, ReservationUnit $unit, PaymentMethod $method, PaymentPurpose $purpose, string $amount, ?string $reference, string $key, ?int $receipt, string $label): Model
+    {
+        $result = $this->withNumber(DocumentType::Receipt, $receipt, fn () => ($this->recordPayment)($context->actor, $unit->reservation, null, $unit, new NewPaymentData(
+            paymentMethodId: $method->id,
+            purpose: $purpose,
+            amount: $amount,
+            reference: $reference,
+            idempotencyKey: $key,
+            lineKey: $key,
+            otaCollected: $method->type === PaymentMethodType::OtaCollected,
+        )), $receipt !== null, $label);
+
+        if ($result->isRefused()) {
+            throw new ReplayStopped("{$label}: the payment was refused ({$result->refusal}).");
+        }
+
+        return $result->payment;
+    }
+
+    private function checkOut(ReplayContext $context, WastaysEvent $event): void
+    {
+        $unit = $this->unitOf($context, $event);
+        $bookingId = (string) $event->bookingId;
+
+        if ($unit->status !== UnitStatus::CheckedIn) {
+            return;
+        }
+
+        if ($unit->departure_date->toDateString() > $context->date) {
+            $context->summary->count('check-outs before the departure date moved');
+
+            return;
+        }
+
+        $this->doCheckOut($context, $unit, $bookingId, 'check-outs');
+        ($this->recordImportLink)($context->property, 'booking_audit_logs', $event->sourceId, $unit);
+    }
+
+    private function doCheckOut(ReplayContext $context, ReservationUnit $unit, string $bookingId, string $label): void
+    {
+        $invoice = $context->numbers->invoice($bookingId);
+        $result = $this->withNumber(DocumentType::Invoice, $invoice, fn () => ($this->checkOutUnit)($context->actor, $unit->refresh()), $invoice !== null, "bookings {$bookingId}");
+
+        if ($result->isRefused()) {
+            throw new ReplayStopped("bookings {$bookingId}: the check-out was refused ({$result->refusal}).");
+        }
+
+        $context->summary->count($label);
+    }
+
+    private function unitOf(ReplayContext $context, WastaysEvent $event): ReservationUnit
+    {
+        $unit = $this->links->target($context->property, 'bookings', (string) $event->bookingId);
+
+        if (! $unit instanceof ReservationUnit) {
+            throw new ReplayStopped("{$event->sourceTable} {$event->sourceId}: booking {$event->bookingId} is not in estatell.");
+        }
+
+        return $unit->load('reservation');
+    }
+
+    private function bookingSource(Property $property, string $source): BookingSource
+    {
+        $found = match ($source) {
+            'walk_in' => BookingSource::query()->where('property_id', $property->id)->where('type', BookingSourceType::WalkIn)->first(),
+            'phone' => BookingSource::query()->where('property_id', $property->id)->whereRaw('lower(name) = ?', ['phone'])->first(),
+            'booking_com', 'agoda' => ($this->ensureOtaBookingSource)($property, OtaChannel::query()->where('code', $source)->firstOrFail()),
+            'traveloka' => ($this->ensureOtaBookingSource)($property, OtaChannel::query()->where('code', 'other')->firstOrFail(), 'Traveloka'),
+            default => null,
+        };
+
+        return $found ?? throw new ReplayStopped("The booking source {$source} has no estatell source.");
+    }
+
+    /**
+     * @param  array<string, string>  $nights
+     * @return array<string, string>
+     */
+    private function nightsIn(array $nights, string $arrival, string $departure): array
+    {
+        return array_filter($nights, fn (string $price, string $date): bool => $date >= $arrival && $date < $departure, ARRAY_FILTER_USE_BOTH);
+    }
+
+    private function dayCount(string $arrival, string $departure): int
+    {
+        return (int) CarbonImmutable::parse($arrival)->diffInDays(CarbonImmutable::parse($departure));
+    }
+
+    private function linked(Property $property, string $table, string $id): Model
+    {
+        return $this->links->target($property, $table, $id) ?? throw new ReplayStopped("{$table} {$id} is not in estatell. Run the setup and guest imports first.");
+    }
+
+    private function amount(?string $value): string
+    {
+        return number_format(abs((float) $value), 2, '.', '');
+    }
+
+    /**
+     * Queue the wastays number, run the Action that issues it, and check the number was used.
+     *
+     * @template T
+     *
+     * @param  Closure(): T  $run
+     * @return T
+     */
+    private function withNumber(DocumentType $type, ?int $number, Closure $run, bool $mustUse, string $label)
+    {
+        $this->planned->clear();
+
+        if ($number !== null) {
+            $this->planned->push($type, $number);
+        }
+
+        try {
+            $result = $run();
+            $left = $this->planned->pending();
+        } catch (PlannedNumberRefused $refused) {
+            throw new ReplayStopped("{$label}: {$refused->getMessage()}");
+        } finally {
+            $this->planned->clear();
+        }
+
+        if ($mustUse && $left !== []) {
+            throw new ReplayStopped("{$label}: the {$type->value} number {$number} was not used.");
+        }
+
+        return $result;
+    }
+
+    /**
+     * Run with the clock frozen at 12:00 property time on the date, no queue and mail kept in memory.
+     *
+     * @template T
+     *
+     * @param  Closure(): T  $run
+     * @return T
+     */
+    private function quietly(Property $property, string $date, Closure $run)
+    {
+        $zone = $property->settings->time_zone ?? config('app.timezone');
+        $at = CarbonImmutable::parse($date.' 12:00', $zone);
+        $before = [Carbon::getTestNow(), CarbonImmutable::getTestNow()];
+        $config = [config('queue.default'), config('mail.default')];
+
+        Carbon::setTestNow($at);
+        CarbonImmutable::setTestNow($at);
+        config(['queue.connections.null' => ['driver' => 'null'], 'queue.default' => 'null', 'mail.default' => 'array']);
+        Mail::purge();
+
+        try {
+            return $run();
+        } finally {
+            Carbon::setTestNow($before[0]);
+            CarbonImmutable::setTestNow($before[1]);
+            config(['queue.default' => $config[0], 'mail.default' => $config[1]]);
+            Mail::purge();
+        }
+    }
+}
