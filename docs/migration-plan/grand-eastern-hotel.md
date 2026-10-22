@@ -22,11 +22,11 @@ The hotel wants all its history in estatell, so Grand Eastern does not use the u
 
 | estatell plan  | Type                       | Price                                                                                    | Who can use it |
 | -------------- | -------------------------- | ---------------------------------------------------------------------------------------- | -------------- |
-| Standard Rate  | PerRoom                    | Twin 162.00, Family 192.24, Triple 192.24, Super Queen 143.64, Queen 138.24, King 162.00 | Everyone       |
+| Standard Rate  | PerRoom                    | Twin 150.00, Family 178.00, Triple 178.00, Super Queen 133.00, Queen 128.00, King 150.00 | Everyone       |
 | Walk-in Rate   | Derived from Standard, +0% | Follows Standard                                                                         | Everyone       |
 | Corporate Rate | Derived from Standard, +0% | Follows Standard                                                                         | All companies  |
 
-The base prices look like they include SST: 162.00 posts as 150.00 plus 12.00 SST. Confirm before import (see [Tax basis](README.md#rate-plan-mapping)). Staff often type their own price at the desk (103.27, 117.05, 133.00 are common), so the daily rate matters less here than the folio history.
+The wastays base prices (162.00, 192.24, 143.64, 138.24) include SST: 162.00 posts as 150.00 plus 12.00 SST, and every base ÷ 1.08 is a whole ringgit. estatell stores the net price with SST 8% exclusive. Confirm before import (see [Tax basis](README.md#rate-plan-mapping)). Staff often type their own price at the desk (103.27, 117.05, 133.00 are common), so the daily rate matters less here than the folio history.
 
 ## History
 
@@ -161,6 +161,55 @@ On any mismatch it deletes what it extracted, prints why and exits non-zero. On 
 | TTX                                                    | The Tourism tax preset, once the hotel confirms                              |
 | Corrections, moved lines, early departures             | `ReverseLine`, `MoveCharges`, the early check-out                            |
 | Tourism tax voucher references                         | Not carried over. estatell has no voucher number                             |
+
+### Both import commands
+
+`wastays:import-setup` and `wastays:import-guests` take the same arguments: `{bundle} {property} --actor= --dry-run`.
+
+- `{bundle}` is the extracted bundle path that `wastays:fetch` prints. `{property}` is the estatell property code. The property is created in the admin first, so it already has its seeded defaults.
+- `--actor` is the email of an admin user (`is_admin`). The activity log shows that user.
+- Each command refuses, and writes nothing, when the bundle's `hotel_code` is not the property's document prefix, or when go-live is already approved.
+- Every write goes through Actions in one transaction. `--dry-run` runs everything, rolls back and prints the summary.
+- Every written wastays row gets an `import_links` row, so a second run skips it.
+- The output shows counts only, never names, emails, phones or ID numbers.
+
+### Setup import
+
+`wastays:import-setup` writes the [Setup](#setup):
+
+| Part              | From wastays                                    | In estatell                                                                                                                                                                      |
+| ----------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Room types        | `room_types`                                    | `CreateRoomType`, sold by room. Name in Title Case. Max adults and max children as in wastays. Base occupancy 2, or max adults when lower                                        |
+| Rooms             | `rooms`                                         | `CreateRoom`, same number and type. No room groups                                                                                                                               |
+| Rate plans        | `rate_plans`                                    | The seeded Basic Rate is renamed Standard Rate. Walk-in Rate and Corporate Rate are derived from it at +0% (`CreateDerivedRatePlan`). Corporate is open to all companies         |
+| Rates             | `room_types.base_price`                         | `SaveRates` on Standard Rate from the first audit date to 31 Dec 2027, at base ÷ 1.08 rounded to 2 decimals                                                                      |
+| SST               | `hotels.sst_enabled`, `sst_registration_number` | The seeded SST tax is turned on: 8%, exclusive, on room revenue, with the registration number                                                                                    |
+| Tourism tax       | `TAX_TTX` and the manual `TTX` charge           | The seeded Tourism tax is turned on (RM 10, foreign guests only)                                                                                                                 |
+| DBKK              | `hotel_taxes` DBKK, off, no lines               | Skipped                                                                                                                                                                          |
+| Charge items      | `hotel_extra_charges`                           | Food & Beverage → the starter item. Damage Charge → the built-in Damage item. Cleaning Fee, Miscellaneous Revenue, Parking and Extra Bed → new items, no price. Parking inactive |
+| Payments          | `hotel_payment_methods`                         | Cash, Cash - Prepayment, Cash Prepayment → Cash. Card, Card Prepayment, Gateway Manual Recovery → Card. Bank Transfer → Bank transfer. OTA Collected → OTA Collected, turned on  |
+| Transaction codes | `transaction_codes`                             | One `import_links` row for each wastays code, to its estatell transaction code, payment method, charge item or tax. The replay finds every folio line's target with one lookup   |
+
+- A wastays code with folio lines that cannot be mapped stops the import with its code and line count. A code with no lines is listed as skipped.
+- Room revenue, no-show, cancellation, late check-out, early departure, security deposit, refund, adjustment and rebate map to the estatell system code with the same meaning.
+
+### Guest import
+
+`wastays:import-guests` writes one estatell guest per wastays guest in `guests.csv` (440 for GEH) through `CreateGuest`. It does not merge duplicates: the replay attaches bookings by wastays guest id. Staff can merge later.
+
+| wastays                                                                              | estatell                                                                                                                                            |
+| ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`, `email`                                                                      | `full_name`, `email`. An invalid email is dropped and counted                                                                                       |
+| `phone`                                                                              | E.164, read as a Malaysian number when it has no country code. A number that cannot be read is left out and kept as a guest note "wastays phone: …" |
+| `country`, `address_country`                                                         | `nationality_code`, `country_code`, matched by country name. A name that does not match is left out and counted                                     |
+| `home_address`, `city`, `postal_code`, `state_code`                                  | `address_line1`, `city`, `postal_code`, `state`                                                                                                     |
+| `date_of_birth`, `gender`                                                            | Same fields                                                                                                                                         |
+| `vip`, `blacklisted`                                                                 | `SetVip`. `BlacklistGuest` with the reason "Blacklisted in wastays"                                                                                 |
+| `document_type`, `government_id`, `passport_number`, `passport_issuing_country_code` | `AddIdentityDocument`. `malaysian_nric` → MyKad, normalized. `passport` → Passport with the issuing country. No type: 12 digits → MyKad, else Other |
+| `discarded_at`                                                                       | Imported anyway, because bookings can still point to the guest                                                                                      |
+| `tin`                                                                                | Not imported. The hotel does not use e-invoice                                                                                                      |
+
+`booking_guests` is not read here. The replay uses it to put guests on reservations.
 
 The build items are in the [checklist](../checklist.md#wastays-replay).
 
