@@ -153,6 +153,7 @@ export function FolioRowsTable({
             | 'move'
             | 'remove_discount'
             | 'refund'
+            | 'void'
             | 'correct_price'
             | 'edit'
             | 'split'
@@ -425,6 +426,22 @@ export function FolioRowsTable({
                                                                 >
                                                                     <RotateCcw />
                                                                     Refund
+                                                                </DropdownMenuItem>
+                                                            )}
+                                                        {canCorrectMoney &&
+                                                            row.actions.includes(
+                                                                'void',
+                                                            ) && (
+                                                                <DropdownMenuItem
+                                                                    onClick={() =>
+                                                                        onAction(
+                                                                            row,
+                                                                            'void',
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <Ban />
+                                                                    Void payment
                                                                 </DropdownMenuItem>
                                                             )}
                                                         {row.actions.includes(

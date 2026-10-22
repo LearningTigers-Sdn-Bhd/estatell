@@ -372,6 +372,7 @@ export default function ManualFolio({ manual: page, companies }: Props) {
                                                     line !== undefined &&
                                                     action !== 'move' &&
                                                     action !== 'refund' &&
+                                                    action !== 'void' &&
                                                     action !==
                                                         'correct_price' &&
                                                     action !== 'remove_discount'
