@@ -229,6 +229,39 @@ it('checks a same-day leaver out on the arrival day with the one night kept and 
         ->and(Folio::query()->sole()->invoice_number)->toBe("{$prefix}-26700009");
 });
 
+it('prices the kept night of a same-day leaver moved to the night before at the wastays early departure fee', function () {
+    $setup = correctionsSetup();
+    $tables = wastaysReplayTables();
+    $audit = fn (string $id, string $action, string $at, array $old = [], array $new = []): array => [
+        'id' => $id, 'auditable_type' => 'Booking', 'auditable_id' => '1', 'action_type' => $action, 'occurred_at' => $at, 'old_value' => json_encode($old), 'new_value' => json_encode($new),
+    ];
+    $tables['bookings'] = [array_merge($tables['bookings'][0], ['created_at' => '2026-08-14T02:00:00.000000Z', 'check_in' => '2026-08-13 00:00:00', 'check_out' => '2026-08-13 00:00:00'])];
+    $tables['booking_rooms'] = [array_merge($tables['booking_rooms'][0], ['nightly_rate_snapshot' => json_encode(['2026-08-13' => ['price' => '120.0']])])];
+    $tables['booking_guests'] = [$tables['booking_guests'][0]];
+    $tables['booking_audit_logs'] = [
+        $audit('1', 'check_in', '2026-08-14T02:01:00.000000Z'),
+        $audit('2', 'update', '2026-08-14T02:05:00.000000Z', ['check_in' => '2026-08-14T14:00:00.000+08:00', 'check_out' => '2026-08-15T12:00:00.000+08:00'], ['check_in' => '2026-08-13T14:00:00.000+08:00', 'check_out' => '2026-08-14T12:00:00.000+08:00']),
+        $audit('3', 'check_out', '2026-08-14T05:01:00.000000Z'),
+    ];
+    $tables['folio_transactions'] = [
+        lineRow('10', '1', 'cash', 'payment', '31', '120.00', '2026-08-14T03:00:00.000000Z'),
+        lineRow('30', '1', 'early_departure_charge', 'charge', '31', '120.00', '2026-08-14T05:00:00.000000Z'),
+    ];
+    $tables['receipts'] = [$tables['receipts'][0]];
+    $tables['invoices'] = [$tables['invoices'][0]];
+    $tables['booking_folios'] = [$tables['booking_folios'][0]];
+    $tables['night_audits'] = [['id' => '1', 'business_date' => '2026-08-13'], ['id' => '2', 'business_date' => '2026-08-14']];
+    $x = correctionsTarget($setup, $tables);
+
+    replay($x, '2026-08-13');
+    $second = replay($x, '2026-08-14');
+
+    expect($second->counts)->toMatchArray(['same-day leavers checked out on the arrival day' => 1])
+        ->and(ReservationUnit::query()->sole()->status)->toBe(UnitStatus::CheckedOut)
+        ->and(FolioLine::query()->where('kind', TransactionKind::Charge)->pluck('amount')->all())->toBe(['120.00'])
+        ->and(Folio::query()->sole()->status)->toBe(FolioStatus::Closed);
+});
+
 it('posts one early departure fee for each wastays line and checks the guest out after the last', function () {
     $setup = correctionsSetup();
     $tables = wastaysReplayTables();

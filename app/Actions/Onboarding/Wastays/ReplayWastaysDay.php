@@ -232,6 +232,10 @@ class ReplayWastaysDay
         $room = $context->index->room($bookingId);
         [$arrival, $departure] = $context->index->firstDates($bookingId);
         $nights = $this->nightsIn($context->index->nights($bookingId), $arrival, $departure);
+
+        if ($nights === [] && $context->index->sameDayLeaver($bookingId)) {
+            $nights = $context->index->keptNight($bookingId, $arrival);
+        }
         $uniform = count($nights) === $this->dayCount($arrival, $departure) && count(array_unique($nights)) === 1;
         $all = count($nights) === $this->dayCount($arrival, $departure);
         $roomType = $this->linked($property, 'room_types', (string) $room['room_type_id']);

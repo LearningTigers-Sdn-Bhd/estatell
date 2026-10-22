@@ -2,6 +2,7 @@
 
 namespace App\Services\Onboarding\Wastays;
 
+use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
 
 /**
@@ -198,6 +199,31 @@ final class WastaysBookingIndex
     public function hasEarlyDeparture(string $bookingId): bool
     {
         return $this->earlyDepartureLines($bookingId) !== [];
+    }
+
+    /**
+     * The one night kept for a same-day leaver whose wastays nights miss the estatell arrival date (the stay was moved
+     * to the night before): priced at the early departure lines wastays charged for it. Empty when there are none.
+     *
+     * @return array<string, string>
+     */
+    public function keptNight(string $bookingId, string $arrival): array
+    {
+        $ids = $this->earlyDepartureLines($bookingId);
+
+        if ($ids === []) {
+            return [];
+        }
+
+        $total = BigDecimal::zero();
+
+        foreach ($this->rows('folio_transactions') as $row) {
+            if (in_array((string) $row['id'], $ids, true)) {
+                $total = $total->plus((string) $row['amount']);
+            }
+        }
+
+        return [$arrival => (string) $total->toScale(2)];
     }
 
     /**
