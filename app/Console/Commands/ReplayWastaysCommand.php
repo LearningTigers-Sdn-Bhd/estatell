@@ -44,6 +44,7 @@ class ReplayWastaysCommand extends Command
         $start = $currentBusinessDate->date($target->property)?->toDateString();
         $dates = array_values(array_filter($day->dates(), fn (string $date): bool => $date >= (string) $start && $date <= $until && $day->nightAudit($date) !== null));
         $rows = [];
+        $acceptedDifferences = [];
         $status = self::SUCCESS;
 
         DB::beginTransaction();
@@ -78,6 +79,10 @@ class ReplayWastaysCommand extends Command
                 };
                 $rows[] = [$date, $result, $this->counts($summary->counts)];
 
+                foreach ($accepted ? $differences : [] as $difference) {
+                    $acceptedDifferences[] = [$date, ...array_values($difference)];
+                }
+
                 if ($differences !== [] && ! $accepted) {
                     DB::rollBack();
                     $this->table(['Date', 'Result', 'Counts'], $rows);
@@ -98,6 +103,11 @@ class ReplayWastaysCommand extends Command
             $this->table(['Date', 'Result', 'Counts'], $rows);
             $this->error('Stopped: '.$e->getMessage());
             $status = self::FAILURE;
+        }
+
+        if ($acceptedDifferences !== []) {
+            $this->warn('Accepted days that still differ. Check that each difference comes from the accepted case:');
+            $this->table(['Date', 'Figure', 'wastays', 'estatell'], $acceptedDifferences);
         }
 
         $dryRun ? DB::rollBack() : DB::commit();
