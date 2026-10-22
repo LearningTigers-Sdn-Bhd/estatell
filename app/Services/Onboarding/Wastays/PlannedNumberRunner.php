@@ -41,7 +41,10 @@ final class PlannedNumberRunner
             $this->planned->clear();
         }
 
-        if ($mustUse && $left !== []) {
+        // A refused Action issues no number; the caller reports the refusal, which says more than an unused number.
+        $refused = is_object($result) && method_exists($result, 'isRefused') && $result->isRefused();
+
+        if ($mustUse && ! $refused && $left !== []) {
             throw new ReplayStopped("{$label}: the {$type->value} number {$number} was not used.");
         }
 
