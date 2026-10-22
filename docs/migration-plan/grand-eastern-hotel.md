@@ -117,7 +117,7 @@ Tell the hotel's accountant before cutover.
 ### Dry run
 
 1. Export a bundle from wastays prod (read only) and fetch it into a copy of the estatell database.
-2. Replay all days. Each day is compared with its wastays night audit: room revenue, other revenue, SST, tourism tax, payments, occupancy, and every document number and amount.
+2. Replay all days. Each day is compared with its wastays night audit (`night_audit_financial_summaries`): room revenue, tax, payments, refunds, adjustments and no-show charges, from the folio lines estatell posted on the business date. The document numbers are checked as the days replay: a number the sequence refuses stops the run. A day that shows an accepted difference is listed, not stopped on.
 3. Fix and repeat until every day matches. Only then run on prod.
 
 ## Importer
@@ -143,7 +143,7 @@ bin/rails "estatell:export[3]"  ───▶  wastays-bucket
 - The zip holds decrypted guest data. After cutover, delete it from both buckets and from the laptop that copied it. `wastays:purge` removes only the estatell copies.
 - `manifest.json` holds the hotel id, the last audit date, the row count of each file and the checksum. `wastays:fetch` refuses a bundle that does not match it.
 - `import_links` (property, source table, source id, target type, target id, unique) records every wastays row already written, so a stopped run resumes and posts nothing twice.
-- `wastays:replay {bundle} --until= --dry-run` refuses while a Channex channel is connected, and refuses a day when the estatell business date is not the wastays date. The first day that does not match stops the run with a table of the differences and a non-zero exit.
+- `wastays:replay {bundle} {property} --actor= --until= --dry-run` refuses while a Channex channel is connected, and refuses a day when the estatell business date is not the wastays date. The first day that does not match stops the run with a table of the differences and a non-zero exit.
 - Replayed lines carry the frozen replay clock time (see [Day loop](#day-loop)). The activity log marks them "replay".
 - The export also holds `booking_audit_logs` (create, check-in, check-out, update, cancel, void and undo rows only, without guest keys). It is the only record of when those events happened.
 - Code lives in `app/Actions/Onboarding/Wastays/` and `app/Services/Onboarding/Wastays/`.
