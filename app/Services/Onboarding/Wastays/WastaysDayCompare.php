@@ -39,12 +39,82 @@ final class WastaysDayCompare
             return null;
         }
 
-        $figures = array_combine(self::FIGURES, array_map(fn (string $figure): string => $this->decimal((string) $summary[$figure]), self::FIGURES));
+        $original = $this->original($summary);
         $late = $this->leftOut($bundle, $day, $date);
-        $figures['room_revenue'] = $this->decimal((string) BigDecimal::of($figures['room_revenue'])->plus($late['room_revenue']));
-        $figures['tax_revenue'] = $this->decimal((string) BigDecimal::of($figures['tax_revenue'])->plus($late['tax_revenue']));
+        $amended = $this->amendments($bundle, $day, $date);
+        $figures = [];
+
+        foreach (self::FIGURES as $figure) {
+            $total = BigDecimal::of($original[$figure])->plus($amended[$figure]);
+
+            if (isset($late[$figure])) {
+                $total = $total->plus($late[$figure]);
+            }
+
+            $figures[$figure] = $this->decimal((string) $total);
+        }
 
         return $figures;
+    }
+
+    /**
+     * The figures as the wastays night audit first wrote them: the previous values of the earliest changelog entry, or
+     * the summary itself when it was never changed.
+     *
+     * @param  array<string, string|null>  $summary
+     * @return array<string, string>
+     */
+    private function original(array $summary): array
+    {
+        $first = collect($this->changelog($summary))->sortBy(fn (array $entry): CarbonImmutable => $entry['at'])->first();
+        $values = $first['previous'] ?? $summary;
+
+        return array_combine(self::FIGURES, array_map(fn (string $figure): string => $this->decimal((string) ($values[$figure] ?? $summary[$figure])), self::FIGURES));
+    }
+
+    /**
+     * What wastays changed in any summary during the date's window, new values less previous ones. wastays changed a
+     * closed day's summary when it repaired that day later; estatell replays the repair on the day it was made.
+     *
+     * @return array<string, BigDecimal>
+     */
+    private function amendments(WastaysBundle $bundle, WastaysDay $day, string $date): array
+    {
+        $window = $day->window($date);
+        $totals = array_fill_keys(self::FIGURES, BigDecimal::zero());
+
+        if ($window === null) {
+            return $totals;
+        }
+
+        foreach ($bundle->rows('night_audit_financial_summaries') as $summary) {
+            foreach ($this->changelog($summary) as $entry) {
+                if ($entry['at']->lt($window['opened']) || ($window['closed'] !== null && $entry['at']->gte($window['closed']))) {
+                    continue;
+                }
+
+                foreach (self::FIGURES as $figure) {
+                    $totals[$figure] = $totals[$figure]->plus((string) ($entry['new'][$figure] ?? '0'))->minus((string) ($entry['previous'][$figure] ?? '0'));
+                }
+            }
+        }
+
+        return $totals;
+    }
+
+    /**
+     * @param  array<string, string|null>  $summary
+     * @return list<array{at: CarbonImmutable, previous: array<string, string>, new: array<string, string>}>
+     */
+    private function changelog(array $summary): array
+    {
+        $entries = json_decode((string) ($summary['changelog'] ?? ''), true) ?: [];
+
+        return array_map(fn (array $entry): array => [
+            'at' => CarbonImmutable::parse((string) $entry['timestamp'])->utc(),
+            'previous' => $entry['previous_values'] ?? [],
+            'new' => $entry['new_values'] ?? [],
+        ], $entries);
     }
 
     /**

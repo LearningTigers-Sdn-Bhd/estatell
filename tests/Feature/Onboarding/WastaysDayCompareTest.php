@@ -93,3 +93,33 @@ it('adds the fee of a same-day leaver and the tax of a fee dated to an earlier n
     expect($figures['room_revenue'])->toBe('100.00')
         ->and($figures['tax_revenue'])->toBe('12.00');
 });
+
+it('compares a day with its summary as the audit wrote it and counts a later change on the day it was made', function () {
+    $summary = fn (string $id, string $audit, string $room, string $changelog = '[]'): array => [
+        'id' => $id, 'night_audit_id' => $audit, 'room_revenue' => $room, 'tax_revenue' => '0.00', 'payments_total' => '0.00',
+        'refunds_total' => '0.00', 'adjustments_total' => '0.00', 'no_show_charges' => '0.00', 'changelog' => $changelog,
+    ];
+    $change = json_encode([[
+        'timestamp' => '2026-08-14T10:00:00.000+08:00',
+        'previous_values' => ['room_revenue' => '100.0', 'adjustments_total' => '0.0'],
+        'new_values' => ['room_revenue' => '150.0', 'adjustments_total' => '-20.0'],
+    ]]);
+    $path = wastaysDayBundleDir([
+        'hotel_business_dates' => [
+            ['business_date' => '2026-08-13', 'opened_at' => '2026-08-13T00:00:00.000000Z', 'closed_at' => '2026-08-14T00:00:00.000000Z'],
+            ['business_date' => '2026-08-14', 'opened_at' => '2026-08-14T00:00:00.000000Z', 'closed_at' => '2026-08-15T00:00:00.000000Z'],
+        ],
+        'night_audits' => [['id' => '1', 'business_date' => '2026-08-13'], ['id' => '2', 'business_date' => '2026-08-14']],
+        'night_audit_financial_summaries' => [$summary('1', '1', '150.00', $change), $summary('2', '2', '200.00')],
+        'folio_transactions' => [['id' => '1', 'category' => 'cash', 'amount' => '0.00', 'created_at' => '2026-08-13T05:00:00.000000Z', 'night_audit_id' => null, 'metadata' => '{}']],
+    ]);
+    $bundle = WastaysBundle::open($path);
+    $compare = app(WastaysDayCompare::class);
+
+    $first = $compare->wastays($bundle, new WastaysDay($bundle), '2026-08-13');
+    $second = $compare->wastays($bundle, new WastaysDay($bundle), '2026-08-14');
+
+    expect($first['room_revenue'])->toBe('100.00')
+        ->and($second['room_revenue'])->toBe('250.00')
+        ->and($second['adjustments_total'])->toBe('-20.00');
+});
