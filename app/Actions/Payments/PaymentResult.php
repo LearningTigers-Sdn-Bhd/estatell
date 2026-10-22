@@ -37,6 +37,18 @@ class PaymentResult
 
     public const REFUSAL_SERVICE_DATE_INVALID = 'service_date_invalid';
 
+    public const REFUSAL_REFUND_METHOD_MISMATCH = 'refund_method_mismatch';
+
+    public const REFUSAL_OTHER_METHOD_NOT_ALLOWED = 'other_method_not_allowed';
+
+    public const REFUSAL_REASON_REQUIRED = 'reason_required';
+
+    public const REFUSAL_VOID_NOT_SAME_DAY = 'void_not_same_day';
+
+    public const REFUSAL_VOID_HAS_REFUND = 'void_has_refund';
+
+    public const REFUSAL_CREDIT_NOT_REFUNDABLE = 'credit_not_refundable';
+
     /**
      * @param  list<FolioLine>  $lines
      */

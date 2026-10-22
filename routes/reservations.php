@@ -84,6 +84,8 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                 Route::post('void-invoice-and-reopen', [ReservationFolioController::class, 'voidInvoiceAndReopen'])->middleware(['can:'.PermissionEnum::CityLedgerInvoice->value, 'can:'.PermissionEnum::FolioReopen->value])->name('void-invoice-and-reopen');
                 Route::post('payments', [ReservationPaymentController::class, 'storeForFolio'])->middleware('can:'.PermissionEnum::PaymentRecord->value)->name('payments.store');
                 Route::post('payments/{payment}/refunds', [ReservationPaymentController::class, 'refund'])->middleware('can:'.PermissionEnum::PaymentRefund->value)->name('payments.refunds.store');
+                Route::post('payments/{payment}/void', [ReservationPaymentController::class, 'void'])->middleware('can:'.PermissionEnum::PaymentRefund->value)->name('payments.void');
+                Route::post('refund-credit', [ReservationPaymentController::class, 'refundCredit'])->middleware('can:'.PermissionEnum::PaymentRefund->value)->name('refund-credit.store');
                 Route::get('voucher', [ReservationFolioController::class, 'voucher'])->middleware('can:'.PermissionEnum::FolioPrintVoucher->value)->name('voucher');
                 Route::get('invoice', [ReservationFolioController::class, 'invoice'])->middleware('can:'.PermissionEnum::FolioPrintVoucher->value)->name('invoice');
                 Route::get('payments/{payment}/receipt', [ReservationPaymentController::class, 'receipt'])->middleware('can:'.PermissionEnum::PaymentRecord->value)->name('payments.receipt');

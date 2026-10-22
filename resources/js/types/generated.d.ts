@@ -775,6 +775,8 @@ invoiceVoided: boolean,
 voidInvoiceBlockedBy: string | null,
 oldSystemTitle: string | null,
 oldSystemTotal: string | null,
+refundCredit: string | null,
+canRefundOtherMethod: boolean,
 };
 export type FolioDiscountOptionData = {
 id: number,
@@ -821,6 +823,7 @@ printable: boolean,
 unitId: number | null,
 unitNightId: number | null,
 postedDate: string | null,
+methodType: string | null,
 };
 export type ManualFolioOptionData = {
 id: number,
@@ -1684,6 +1687,7 @@ id: number,
 name: string,
 requiresReference: boolean,
 isOldSystem: boolean,
+type: string | null,
 };
 export type PaymentQuoteData = {
 amount: string | null,
@@ -3012,6 +3016,22 @@ amount: string,
 reference: string | null,
 idempotencyKey: string,
 };
+export type CheckOutDamageData = {
+amount: string,
+note: string | null,
+};
+export type CheckOutDamageItemData = {
+id: number,
+name: string,
+defaultAmount: string | null,
+allowOverride: boolean,
+};
+export type CheckOutRefundPartData = {
+purpose: string,
+method: string,
+reference: string | null,
+amount: string,
+};
 export type CheckOutRoomShareData = {
 name: string,
 amount: string,
@@ -3049,6 +3069,22 @@ paymentIds: number[],
 masterUrl: string | null,
 canSettleMaster: boolean,
 };
+export type GroupCheckOutFolioData = {
+key: string,
+name: string,
+balance: string,
+payerCompanyName: string | null,
+canRecordPayment: boolean,
+canSettleToCityLedger: boolean,
+paymentUnitId: number | null,
+paymentPurposes: {
+value: string,
+label: string,
+}[],
+defaultPaymentPurpose: string | null,
+settleCreditWarning: string | null,
+url: string,
+};
 export type GroupCheckOutMasterData = {
 folioId: number,
 label: string,
@@ -3073,6 +3109,8 @@ master: App.Data.Reservations.GroupCheckOutMasterData | null,
 summary: App.Data.Reservations.GroupCheckOutSummaryData,
 methods: App.Data.Payments.PaymentMethodOptionData[],
 error: string | null,
+auditPending: App.Data.Reservations.UnitAuditPendingData | null,
+openFolios: App.Data.Reservations.GroupCheckOutFolioData[],
 };
 export type GroupCheckOutRowData = {
 unitId: number,
@@ -3100,6 +3138,8 @@ folioId: number | null,
 canReopen: boolean,
 canMoveCharges: boolean,
 unit: App.Data.Reservations.ReservationUnitData | null,
+pendingLines: App.Data.Reservations.UnitPendingLineData[],
+pendingTotal: string,
 };
 export type GroupCheckOutSummaryData = {
 collect: string,
@@ -3395,6 +3435,12 @@ export type UnitActionData = {
 key: App.Enums.UnitAction,
 label: string,
 };
+export type UnitAuditPendingData = {
+businessDate: string,
+today: string,
+running: boolean,
+notice: string | null,
+};
 export type UnitCheckInPreviewData = {
 room: string | null,
 roomState: App.Enums.CheckInRoomState,
@@ -3410,6 +3456,7 @@ creditExceeded: boolean,
 canOverrideCredit: boolean,
 collection: App.Data.Reservations.CheckInCollectionData | null,
 error: string | null,
+auditPending: App.Data.Reservations.UnitAuditPendingData | null,
 };
 export type UnitCheckOutPreviewData = {
 balance: string,
@@ -3426,6 +3473,18 @@ rooms: App.Data.Reservations.CheckOutRoomShareData[],
 otherLineIds: number[],
 receivesScheduled: boolean,
 canMoveCharges: boolean,
+refundable: string,
+refundParts: App.Data.Reservations.CheckOutRefundPartData[],
+charges: string,
+paid: string,
+pendingLines: App.Data.Reservations.UnitPendingLineData[],
+pendingTotal: string,
+overdue: App.Data.Reservations.UnitOverdueData | null,
+auditPending: App.Data.Reservations.UnitAuditPendingData | null,
+damageItem: App.Data.Reservations.CheckOutDamageItemData | null,
+damageTotal: string | null,
+leftYesterdayChoice: boolean,
+leftYesterdayBlocked: string | null,
 };
 export type UnitDatesPreviewData = {
 previousTotal: string | null,
@@ -3443,6 +3502,8 @@ nightsRemoved: number,
 fee: string,
 feeTotal: string,
 withinFreeWindow: boolean,
+newDeparture: string | null,
+leftYesterdayAvailable: boolean,
 };
 export type UnitFeePreviewData = {
 fee: string | null,
@@ -3471,6 +3532,18 @@ units: App.Data.Reservations.FreeUnitData[],
 error: string | null,
 isDayUse: boolean,
 hoursLabel: string | null,
+};
+export type UnitOverdueData = {
+nightDate: string,
+nightTotal: string,
+lines: App.Data.Reservations.UnitPendingLineData[],
+balanceIfStayed: string,
+stayed: boolean,
+};
+export type UnitPendingLineData = {
+description: string,
+amount: string,
+level: number,
 };
 export type UnitPickData = {
 unitIndex: number,
@@ -3723,7 +3796,7 @@ export type PaymentStatus = 'pending' | 'completed' | 'failed';
 export type PdfFont = 'office' | 'modern' | 'fancy' | 'handwritten';
 export type PdfFontSize = 'small' | 'medium' | 'large';
 export type PerformancePreset = '7d' | '30d' | 'month' | 'last-month' | '12m';
-export type PermissionEnum = 'settings.manage' | 'settings.ota-lists' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'reservations.change-price' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'folio.manual' | 'folio.view-manual-entries' | 'payment.record' | 'payment.refund' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void' | 'front-desk.check-in' | 'front-desk.check-out' | 'front-desk.check-in-without-card' | 'front-desk.waive-fees' | 'front-desk.undo-check-in' | 'front-desk.undo-check-out' | 'night-audit.run' | 'night-audit.force' | 'night-audit.receive-report' | 'reports.view' | 'housekeeping.view' | 'housekeeping.update' | 'housekeeping.inspect';
+export type PermissionEnum = 'settings.manage' | 'settings.ota-lists' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'reservations.change-price' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'folio.manual' | 'folio.view-manual-entries' | 'payment.record' | 'payment.refund' | 'payment.refund-other-method' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void' | 'front-desk.check-in' | 'front-desk.check-out' | 'front-desk.check-in-without-card' | 'front-desk.waive-fees' | 'front-desk.undo-check-in' | 'front-desk.undo-check-out' | 'night-audit.run' | 'night-audit.force' | 'night-audit.receive-report' | 'reports.view' | 'housekeeping.view' | 'housekeeping.update' | 'housekeeping.inspect';
 export type PlatformFeature = 'channel-manager' | 'boats';
 export type PolicyChargeMode = 'free' | 'fixed_amount' | 'percentage';
 export type PolicyRateBasis = 'booked_rate' | 'current_rate';
@@ -3757,7 +3830,7 @@ export type StayType = 'overnight' | 'day_use';
 export type StepState = 'locked' | 'not_started' | 'in_progress' | 'done' | 'needs_attention';
 export type SurchargeType = 'none' | 'fixed' | 'percent';
 export type SwatchColor = 'gray' | 'red' | 'orange' | 'amber' | 'green' | 'teal' | 'blue' | 'indigo' | 'violet' | 'pink';
-export type SystemTransactionCode = 'room_revenue' | 'no_show_revenue' | 'cancellation_revenue' | 'late_checkout_revenue' | 'early_departure_revenue' | 'day_use_revenue' | 'food_and_beverage_revenue' | 'laundry_revenue' | 'minibar_revenue' | 'fee_revenue' | 'sst_tax' | 'tourism_tax' | 'cash_payment' | 'card_payment' | 'bank_transfer_payment' | 'ewallet_payment' | 'ota_collected_payment' | 'direct_bill_payment' | 'security_deposit' | 'refund' | 'adjustment' | 'discount' | 'opening_balance' | 'old_system_payment';
+export type SystemTransactionCode = 'room_revenue' | 'no_show_revenue' | 'cancellation_revenue' | 'late_checkout_revenue' | 'early_departure_revenue' | 'day_use_revenue' | 'food_and_beverage_revenue' | 'laundry_revenue' | 'minibar_revenue' | 'fee_revenue' | 'damage_revenue' | 'sst_tax' | 'tourism_tax' | 'cash_payment' | 'card_payment' | 'bank_transfer_payment' | 'ewallet_payment' | 'ota_collected_payment' | 'direct_bill_payment' | 'security_deposit' | 'refund' | 'adjustment' | 'discount' | 'opening_balance' | 'old_system_payment';
 export type TaxRateType = 'percent' | 'flat';
 export type TemporaryPasswordExportFormat = 'message' | 'csv' | 'xlsx' | 'pdf';
 export type TermsPlaceholder = 'property_name' | 'check_in_time' | 'check_out_time' | 'security_deposit' | 'tourism_tax_rate';

@@ -155,6 +155,36 @@ test('a second check-in of the same unit is refused', function () {
         ->and(Activity::query()->where('event', 'reservation.unit_checked_in')->count())->toBe(1);
 });
 
+test('a unit arriving on the calendar date checks in while the audit is pending, in the room of that night', function () {
+    $setup = stayDeskSetup(assignRoom: false);
+    BusinessDate::query()->update(['date' => today()->subDay()->toDateString()]);
+    $setup['unit']->nights()->whereDate('date', today()->toDateString())->update(['room_id' => $setup['room']->id]);
+
+    expect(stayDeskCheckIn($setup)->isRefused())->toBeFalse()
+        ->and($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn);
+
+    $log = Activity::query()->where('event', 'reservation.unit_checked_in')->sole();
+
+    expect($log->properties['business_date'])->toBe(today()->toDateString())
+        ->and($log->properties['room_id'])->toBe($setup['room']->id);
+});
+
+test('the same arrival is refused when the audit is overdue', function () {
+    $setup = stayDeskSetup();
+    BusinessDate::query()->update(['date' => today()->subDays(2)->toDateString()]);
+
+    expect(stayDeskCheckIn($setup)->refusal)->toBe(UnitStayResult::REFUSAL_ARRIVAL_NOT_REACHED)
+        ->and(Activity::query()->where('event', 'reservation.unit_checked_in')->exists())->toBeFalse();
+});
+
+test('a unit arriving on the business date and leaving on the calendar date checks in for its night', function () {
+    $setup = stayDeskSetup(['arrival_date' => today()->subDay()->toDateString(), 'departure_date' => today()->toDateString()]);
+    BusinessDate::query()->update(['date' => today()->subDay()->toDateString()]);
+
+    expect(stayDeskCheckIn($setup)->isRefused())->toBeFalse()
+        ->and(Activity::query()->where('event', 'reservation.unit_checked_in')->sole()->properties['business_date'])->toBe(today()->subDay()->toDateString());
+});
+
 test('a bed unit checks in on its bed', function () {
     $setup = stayDeskSetup(assignRoom: false);
     $bed = Bed::factory()->create(['room_id' => $setup['room']->id]);

@@ -1,5 +1,5 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { LogOut, X } from 'lucide-react';
+import { CheckCircle2, LogOut, X } from 'lucide-react';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { EnumSelect } from '@/components/pms/enum-select';
@@ -7,8 +7,13 @@ import { FormActions } from '@/components/pms/form-actions';
 import { FormError } from '@/components/pms/form-error';
 import { MoneyText } from '@/components/pms/money-text';
 import { PageHeader } from '@/components/pms/page-header';
+import {
+    AuditPendingNote,
+    AuditPendingStrip,
+} from '@/components/pms/reservations/audit-pending';
 import { CheckOutDialog } from '@/components/pms/reservations/check-out-dialog';
 import { GroupCheckOutDone } from '@/components/pms/reservations/group-check-out-done';
+import { GroupCheckOutFolios } from '@/components/pms/reservations/group-check-out-folios';
 import { GroupCheckOutMutedList } from '@/components/pms/reservations/group-check-out-muted';
 import {
     GroupCheckOutTable,
@@ -19,7 +24,7 @@ import {
     useGroupCheckOutPreview,
     type GroupCheckOutPayload,
 } from '@/components/pms/reservations/use-group-check-out-preview';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Field, FieldLabel } from '@/components/ui/field';
@@ -378,6 +383,37 @@ export default function CheckOut({
         );
     }
 
+    if (rows.length === 0 && page.preview.openFolios.length > 0) {
+        return (
+            <>
+                <Head title={page.title} />
+                <div
+                    scroll-region=""
+                    className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4 pb-12"
+                >
+                    <PageHeader
+                        title={page.title}
+                        back={{ href: cancelUrl, label: 'reservation' }}
+                    />
+                    <AuditPendingStrip pending={page.preview.auditPending} />
+                    <Alert>
+                        <CheckCircle2 />
+                        <AlertTitle>All rooms are checked out</AlertTitle>
+                        <AlertDescription>
+                            These folios still hold money.
+                        </AlertDescription>
+                    </Alert>
+                    <GroupCheckOutFolios
+                        folios={page.preview.openFolios}
+                        reservationId={page.reservationId}
+                        paymentOptions={paymentOptions}
+                        currency={currency}
+                    />
+                </div>
+            </>
+        );
+    }
+
     return (
         <>
             <Head title={page.title} />
@@ -413,6 +449,8 @@ export default function CheckOut({
                     />
 
                     <FormError errors={errors} />
+                    <AuditPendingStrip pending={preview.auditPending} />
+                    <AuditPendingNote pending={preview.auditPending} />
                     {preview.error !== null && (
                         <Alert variant="destructive">
                             <AlertDescription>{preview.error}</AlertDescription>

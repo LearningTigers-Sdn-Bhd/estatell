@@ -247,6 +247,17 @@ function GroupCheckOutRow({
                         </p>
                     )}
 
+                    {row.pendingLines.length > 0 && (
+                        <p className="text-muted-foreground">
+                            Includes last night, added now:{' '}
+                            <MoneyText
+                                amount={row.pendingTotal}
+                                currency={null}
+                                plain
+                            />
+                        </p>
+                    )}
+
                     {row.selectable && !row.folioClosed && (
                         <>
                             {row.choices.length === 0 && (

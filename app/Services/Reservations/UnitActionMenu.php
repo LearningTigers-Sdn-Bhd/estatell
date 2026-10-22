@@ -10,9 +10,11 @@ use App\Models\BusinessDate;
 use App\Models\ReservationUnit;
 use App\Models\User;
 use App\Services\FrontDesk\EarlyCheckOutRule;
+use App\Services\FrontDesk\StayDay;
 use App\Services\FrontDesk\UndoCheckInRule;
 use App\Services\FrontDesk\UndoCheckOutRule;
 use App\Services\NightAudit\CurrentBusinessDate;
+use Carbon\CarbonImmutable;
 
 /**
  * The actions the unit ⋯ menu lists: those the unit's status allows, the dates allow and the user's permissions cover. A day use unit never lists Late check-out or Change dates. It reads only.
@@ -24,6 +26,7 @@ class UnitActionMenu
         private EarlyCheckOutRule $earlyCheckOutRule,
         private UndoCheckInRule $undoCheckInRule,
         private UndoCheckOutRule $undoCheckOutRule,
+        private StayDay $stayDay,
     ) {}
 
     /**
@@ -70,14 +73,20 @@ class UnitActionMenu
         }
 
         $departure = $unit->departure_date->toDateString();
+        $stayDay = $this->stayDay->forCheckOut($unit->property, CarbonImmutable::parse($businessDate))->toDateString();
 
         return match ($action) {
-            UnitAction::CheckIn => $businessDate >= $arrival && $businessDate < $departure,
-            UnitAction::CheckOut => $businessDate >= $departure || $this->isEarlyCheckOut($unit, $businessDate, $user),
-            UnitAction::LateCheckOut => $businessDate === $departure,
+            UnitAction::CheckIn => $this->checkInDay($unit, $current) >= $arrival && $this->checkInDay($unit, $current) < $departure,
+            UnitAction::CheckOut => $stayDay >= $departure || $this->isEarlyCheckOut($unit, $businessDate, $user),
+            UnitAction::LateCheckOut => $stayDay === $departure,
             UnitAction::Reinstate, UnitAction::MoveRoom => $businessDate < $departure,
             default => true,
         };
+    }
+
+    private function checkInDay(ReservationUnit $unit, BusinessDate $current): string
+    {
+        return $this->stayDay->forCheckIn($unit, CarbonImmutable::parse($current->date->toDateString()))->toDateString();
     }
 
     /**

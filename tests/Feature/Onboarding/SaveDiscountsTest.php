@@ -77,7 +77,7 @@ test('the page lists the starter discount and the charge items a Selected scope 
             ->where('discounts.0.isStarter', true)
             ->where('discounts.0.type', 'open')
             ->where('discounts.0.scope', 'all_charges')
-            ->has('charges', 4)
+            ->has('charges', 5)
             ->where('locked', false));
 });
 

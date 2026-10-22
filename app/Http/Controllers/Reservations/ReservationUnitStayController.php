@@ -9,6 +9,7 @@ use App\Actions\FrontDesk\ChangeUnitDates;
 use App\Actions\FrontDesk\CheckInAllUnits;
 use App\Actions\FrontDesk\CheckInAndCollect;
 use App\Actions\FrontDesk\CheckOutAndRefund;
+use App\Actions\FrontDesk\CheckOutOverdueStay;
 use App\Actions\FrontDesk\EarlyCheckOut;
 use App\Actions\FrontDesk\ExtendDepartureTime;
 use App\Actions\FrontDesk\MarkNoShow;
@@ -91,7 +92,9 @@ class ReservationUnitStayController extends Controller
 
     public function checkOutPreview(Request $request, Property $property, Reservation $reservation, ReservationUnit $unit, UnitActionPreview $preview): JsonResponse
     {
-        return response()->json($preview->checkOut($unit, $request->user()));
+        $damage = $request->string('damage_amount')->toString();
+
+        return response()->json($preview->checkOut($unit, $request->user(), $request->boolean('left_yesterday'), $request->boolean('stayed_last_night'), preg_match('/^\d+(\.\d{1,2})?$/', $damage) === 1 ? $damage : null));
     }
 
     public function lateCheckOutPreview(Property $property, Reservation $reservation, ReservationUnit $unit, UnitActionPreview $preview): JsonResponse
@@ -167,9 +170,9 @@ class ReservationUnitStayController extends Controller
      * Check one unit out, after collecting the balance and giving back the security deposit when the form asks for
      * them. A refusal at any step writes nothing.
      */
-    public function checkOut(CheckOutUnitRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, CheckOutAndRefund $checkOutAndRefund, ReservationRefusals $refusals): RedirectResponse
+    public function checkOut(CheckOutUnitRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, CheckOutAndRefund $checkOutAndRefund, CheckOutOverdueStay $checkOutOverdueStay, ReservationRefusals $refusals): RedirectResponse
     {
-        $result = $checkOutAndRefund($request->user(), $unit, $request->refundAmount(), $request->collectBalance(), $request->string('idempotency_key')->toString());
+        $result = ($request->stayedLastNight() ? $checkOutOverdueStay : $checkOutAndRefund)($request->user(), $unit, $request->refundAmount(), $request->collectBalance(), $request->string('idempotency_key')->toString(), $request->damage());
 
         return $this->respond($property, $reservation, $result->refusal, $refusals, __('Unit checked out.'), rooms: $result->rooms);
     }
@@ -180,7 +183,7 @@ class ReservationUnitStayController extends Controller
      */
     public function earlyCheckOut(CheckOutUnitRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, EarlyCheckOut $earlyCheckOut, ReservationRefusals $refusals): RedirectResponse
     {
-        $result = $earlyCheckOut($request->user(), $unit, $request->doNotCharge(), $request->reason(), $request->expectedFee(), $request->refundAmount(), $request->collectBalance(), $request->string('idempotency_key')->toString());
+        $result = $earlyCheckOut($request->user(), $unit, $request->doNotCharge(), $request->reason(), $request->expectedFee(), $request->refundAmount(), $request->collectBalance(), $request->string('idempotency_key')->toString(), $request->leftYesterday(), $request->damage());
 
         return $this->respond($property, $reservation, $result->refusal, $refusals, __('Unit checked out early.'), rooms: $result->rooms);
     }

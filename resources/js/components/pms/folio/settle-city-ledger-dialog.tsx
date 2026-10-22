@@ -30,7 +30,10 @@ export function SettleCityLedgerDialog({
     open: boolean;
     onOpenChange: (open: boolean) => void;
     reservationId: number;
-    folio: App.Data.Folio.FolioData;
+    folio: Pick<
+        App.Data.Folio.FolioData,
+        'key' | 'name' | 'balance' | 'payerCompanyName' | 'settleCreditWarning'
+    >;
     currency: App.Data.Property.CurrencyData | null;
 }) {
     return (

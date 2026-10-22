@@ -22,6 +22,7 @@ class SupportMoneyCorrections
      */
     private const array EVENT_REFERENCES = [
         'payment.refunded' => null,
+        'payment.voided' => null,
         'ar_payment.voided' => 'receipt_number',
         'ar_invoice.voided' => 'number',
         'ar_invoice.credit_note_issued' => 'number',
@@ -61,6 +62,7 @@ class SupportMoneyCorrections
     {
         return match ($event) {
             'payment.refunded' => __('Refund'),
+            'payment.voided' => __('Payment voided'),
             'ar_payment.voided' => __('AR payment voided'),
             'ar_invoice.voided' => __('Invoice voided'),
             'ar_invoice.credit_note_issued' => __('Credit note issued'),

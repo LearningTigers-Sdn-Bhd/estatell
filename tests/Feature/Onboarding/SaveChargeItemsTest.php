@@ -102,7 +102,7 @@ test('the page lists the starter items without Transport, and preselects only th
         ->get(route('onboarding.charge-items.edit', $this->property->code))
         ->assertInertia(fn (Assert $page) => $page
             ->component('onboarding/charge-items')
-            ->has('chargeItems', 4)
+            ->has('chargeItems', 5)
             ->where('presetTaxIds', [$this->sst->id])
             ->where('locked', false)
             ->where('highlightTaxes', false));
@@ -124,7 +124,7 @@ test('saving turns a starter item off and keeps it, and sets its price and taxes
     $laundry->refresh();
     $breakfast->refresh();
 
-    expect($this->property->chargeItems()->count())->toBe(4)
+    expect($this->property->chargeItems()->count())->toBe(5)
         ->and($laundry->active)->toBeFalse()
         ->and($breakfast->default_amount)->toBe('25.00')
         ->and($breakfast->charging_unit)->toBe(ChargingUnit::PerGuestNight)
@@ -162,7 +162,7 @@ test('a new row needs a category that is not Transport', function () {
     ($this->save)([
         ...collect($this->property->chargeItems()->get())->map(fn (ChargeItem $item) => savedChargeItemRow($item))->all(),
         newChargeItemRow('Boat', ['category' => TransactionCategory::Transport->value]),
-    ])->assertSessionHasErrors('rows.4.category');
+    ])->assertSessionHasErrors('rows.5.category');
 
     expect($this->property->chargeItems()->where('name', 'Boat')->exists())->toBeFalse();
 });

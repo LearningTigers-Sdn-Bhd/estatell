@@ -12,7 +12,19 @@ use Spatie\LaravelData\Data;
  * set when the unit leaves before its departure date, and the fee in it is not yet in `balance`. `rooms` splits the
  * balance by room when the folio also holds another room's charges, and `otherLineIds` are those rooms' charges, ticked
  * when **Move charges** opens. `receivesScheduled` is set when `error` says another room still charges its scheduled
- * nights here. `canMoveCharges` (`folio.transfer`) shows the Move charges link.
+ * nights here. `canMoveCharges` (`folio.transfer`) shows the Move charges link. `refundable` is what the folios' payments
+ * can give back in all (the deposit and any other payment), and `refundParts` lists each payment the default refund
+ * takes money from, in refund order. A credit above the deposit is refunded as a whole. `charges` (every line that is
+ * not a payment) and `paid` (every payment and refund but the deposit held, negative) break the balance down for the
+ * Dialog: `charges + paid - depositHeld = balance`. `pendingLines` are the lines the check-out posts first for the night
+ * of the business date while the night audit is pending (shown as added now), and `pendingTotal` is their sum, already
+ * inside `balance` and `charges`. `overdue` is set for a guest due to leave on the business date while the audit is
+ * pending (They left yesterday or They stayed last night). `auditPending` is the strip and the ⓘ line shown while the
+ * audit is pending. `damageItem` is the damage charge item the user may post (null hides the damage choice), and
+ * `damageTotal` what the typed damage amount adds to the folio with tax; neither is in `balance`, and `refundDefault`
+ * and `refundParts` already count the damage. `leftYesterdayChoice` is set for a guest who may have left on the business date
+ * while the audit is pending, so the Dialog asks They left yesterday or They stayed last night. `leftYesterdayBlocked`
+ * is the reason the first card is disabled (the unit arrived on the business date), or null.
  */
 class UnitCheckOutPreviewData extends Data
 {
@@ -33,6 +45,20 @@ class UnitCheckOutPreviewData extends Data
         public array $otherLineIds = [],
         public bool $receivesScheduled = false,
         public bool $canMoveCharges = false,
+        public string $refundable = '0.00',
+        /** @var list<CheckOutRefundPartData> */
+        public array $refundParts = [],
+        public string $charges = '0.00',
+        public string $paid = '0.00',
+        /** @var list<UnitPendingLineData> */
+        public array $pendingLines = [],
+        public string $pendingTotal = '0.00',
+        public ?UnitOverdueData $overdue = null,
+        public ?UnitAuditPendingData $auditPending = null,
+        public ?CheckOutDamageItemData $damageItem = null,
+        public ?string $damageTotal = null,
+        public bool $leftYesterdayChoice = false,
+        public ?string $leftYesterdayBlocked = null,
     ) {}
 
     public static function refused(string $error): self

@@ -59,7 +59,7 @@ Can't check out yet (2)
 
 | Unit                                                                                                      | Group               | Ticked          | Settle choices                                                                                                                                   |
 | --------------------------------------------------------------------------------------------------------- | ------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| CheckedIn, departing on or before the business date                                                       | Ready to check out  | Yes             | By balance, below. It is checked out                                                                                                             |
+| CheckedIn, departing on or before the stay day                                                            | Ready to check out  | Yes             | By balance, below. It is checked out                                                                                                             |
 | CheckedIn, departing later                                                                                | Departing later     | No checkbox     | "Departs 15 Oct" with **Check out early…** ([below](#check-out-early-from-the-page))                                                             |
 | CheckedIn, departing later, arrived on the business date                                                  | Departing later     | No checkbox     | "Departs 15 Oct. Arrived today, so there is no night to remove." No **Check out early…** (`EarlyCheckOutRule`)                                   |
 | CheckedIn, its folio still receives another room's Scheduled charges (`folio_receives_scheduled_charges`) | Can't check out yet | No checkbox     | "Room 106 pays for it: still charged tonight", with **Move charges** ([Move charges](../13-folio/07-move-charges.md)) only with `folio.transfer` |
@@ -69,15 +69,21 @@ Can't check out yet (2)
 
 **Choices by balance**, each prefilled:
 
-| Balance of the unit folios | Choice                                                                                                                                                 | What runs                                                                    |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
-| 0                          | Nothing to settle                                                                                                                                      | –                                                                            |
-| Above 0                    | **Collect**: method (the property's first active method, or the room's last payment method), amount = the balance, reference when the method needs one | `RecordPayment` (Settlement) on the unit folio, as the check-out Dialog does |
-| Above 0                    | **Add to Master**: moves the room's open charges to the Master folio (only when the reservation has an Open Master)                                    | `TransferLines`, as [Move charges](../13-folio/07-move-charges.md)           |
-| Below 0                    | **Refund**: amount = the credit, back through the held payments                                                                                        | `RefundPayment`, as the check-out Dialog does                                |
+| Balance of the unit folios | Choice                                                                                                                                                         | What runs                                                                    |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| 0                          | Nothing to settle                                                                                                                                              | –                                                                            |
+| Above 0                    | **Collect**: method (the property's first active method, or the room's last payment method), amount = the balance, reference when the method needs one         | `RecordPayment` (Settlement) on the unit folio, as the check-out Dialog does |
+| Above 0                    | **Add to Master**: moves the room's open charges to the Master folio (only when the reservation has an Open Master)                                            | `TransferLines`, as [Move charges](../13-folio/07-move-charges.md)           |
+| Below 0                    | **Refund**: amount = the credit, back through the held payments (a CheckedIn row too, see [Refund the credit](01-check-in-and-check-out.md#refund-the-credit)) | `RefundPayment`, as the check-out Dialog does                                |
 
 - A unit folio that is **Closed but holds money** (it cannot take a payment) shows "Folio closed: reopen it to settle" and **Open folio**. Front desk can reopen a unit folio closed today; after that a manager can (`FolioReopenRule`).
 - A choice the user may not make is not offered: Collect needs `payment.record`, Refund `payment.refund`, Add to Master `folio.transfer`.
+
+## Night audit pending
+
+While the [night audit is pending](01-check-in-and-check-out.md#night-audit-pending), a room that departs on the calendar date is **Ready to check out**, not "departing later". Its row balance and its settle amounts include the night of the business date, and the row lists those lines for the page to show as added now. `CheckOutGroup` posts that night for each room first, before it moves charges to the group bill or settles money, so Add to group bill moves the night too. The night audit later finds the lines and posts nothing.
+
+A room that was due to leave on the business date stays ready as "They left yesterday". Its note reads "Due to leave yesterday (20 Oct). If they stayed last night, check this room out on its own." The page has no "They stayed" choice. An Overdue audit keeps the old note and blocks **Check out early…**.
 
 ## Check out early from the page
 
@@ -126,8 +132,30 @@ The group leader often pays everyone's extras. With **One payment for all** tick
 - Every unit keeps its own log entries, room Dirty, folio close and status sync, as today. One `reservation.group_checked_out` entry holds the totals.
 - A CheckedOut unit's folio left at 0 closes itself (`CloseSettledUnitFolio`).
 - Permission: `front-desk.check-out` for the page, plus the money permissions above.
-- **No room to check out**: when the preview has no row (every room is out or cancelled with nothing to settle), the page redirects to the reservation page with an info toast, "No rooms are left to check out." The page after a save is the exception: it keeps the success state.
+- **No room to check out**: when the preview has no row (every room is out or cancelled with nothing to settle) and no Open Master or Third party folio still holds money, the page redirects to the reservation page with an info toast, "No rooms are left to check out." An existing toast, for example the one a settle just flashed, is kept. The page after a save is the exception: it keeps the success state. See [Folios still open](#folios-still-open).
 - **After saving**: the store redirects to the same page with Inertia flash data `groupCheckOut` (`GroupCheckOutDoneData`: rooms checked out and settled, collected, refunded, moved, the invoice number, the payment ids of the save and the Master link). The page shows a success state with the totals, **Print receipts** (opens one PDF with every receipt of this save in a new tab, built from the payment ids by `reservations.check-out.receipts`; shown only with payment.record and at least one payment) and the Master next step: **Settle to City ledger** while the Master is Open and the user may settle it, else **Open folio** (both open the Master folio tab).
+
+## Folios still open
+
+Each **Check out early…** is its own save, so the last room can leave without the group save, and the **Send to City ledger after check-out** box never shows. When every room is out but an Open Master or Third party folio still holds money, the page does not redirect. It shows "All rooms are checked out" and the list **Folios still open**.
+
+| Booking                                              | Listed                                                          | Redirects with the toast         |
+| ---------------------------------------------------- | --------------------------------------------------------------- | -------------------------------- |
+| Each unit pays                                       | nothing: no charge is routed to its Master, so the balance is 0 | yes                              |
+| Master pays, company on direct bill                  | the Master                                                      | no                               |
+| Master pays, no company                              | the Master                                                      | no                               |
+| Any of the above plus a Third party folio with money | the Master first, then each Third party folio                   | no                               |
+| A folio at 0, Closed or Voided                       | not listed                                                      | yes, when nothing else is listed |
+
+- **List only when no room is left.** `GroupCheckOutPreview` builds `openFolios` (`GroupCheckOutFolioData`) only when `rows` is empty, so the 300 ms preview of a busy page pays nothing for it.
+- **Row.** The folio label (type and payer), the amount to pay or in credit, and the actions below.
+- **Record payment.** Opens `RecordPaymentDialog`, the folio tab's Dialog. Shown with `payment.record` and a purpose the folio offers (`PaymentPurposeChoices`). The amount starts at the balance.
+- **Settle to City ledger.** Opens `SettleCityLedgerDialog`, the folio tab's Dialog. Shown for a company payer with direct bill, a balance above 0 and `city-ledger.invoice`. `settleCreditWarning` shows in the Dialog when the company is over its limit. Settle keeps its own refusals (`units_in_house`, scheduled charges still routed to the folio).
+- **Open folio.** The folio tab in a new tab (`target="_blank"`), so the page and its state stay.
+- **After an action** the Dialog posts and redirects back to this page, which lists the folios again. When the last folio is settled the page redirects with the toast of that action.
+- **Back from the other tab.** The page reads its data again when the browser tab becomes visible, so a payment taken on the folio tab shows here.
+- **Refund** is not offered here. A folio in credit shows "In credit" and Open folio. Decided: staff refund it with **Refund credit** on the folio tab ([Refund folio credit](../14-payments/01-payments-and-refunds.md#refundfoliocredit)), which works on a Master or ThirdParty folio too, to the payments' own methods or, with `payment.refund-other-method`, another one.
+- The two Dialogs take the fields they read (`Pick<FolioData, ...>`), so the page that has only a `GroupCheckOutFolioData` can open them. The folio tab still passes its full `FolioData`.
 
 ## Routes and entry
 

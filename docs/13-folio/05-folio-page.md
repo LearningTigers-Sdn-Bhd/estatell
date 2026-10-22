@@ -49,6 +49,23 @@ A row can carry markers. The server sends them as `tags`, a list of `FolioRowTag
 - A row takes a light background tint from the tone of its first marker that has one (Overridden, Reversed and Reversal: warning, Refund: info), so a reversed line and its reversal read as a pair. Neutral markers leave the row plain. The icon and tooltip still carry the meaning, so color is never alone.
 - Scheduled discount and tax rows show no marker: the indent, the muted text and the section header already say it.
 
+## Payment purpose on rows
+
+Built. Before, a payment row showed only its method ("Cash") and reference, so an Advance, a Settlement and a Security deposit looked the same. The purpose goes into the row text, not a marker, because a marker is an icon with its label hidden in a tooltip.
+
+| Row                 | Before              | After                                  |
+| ------------------- | ------------------- | -------------------------------------- |
+| Advance             | Cash · Ref 1234     | Cash · Advance · Ref 1234              |
+| Security deposit    | Cash                | Cash · Security deposit                |
+| Settlement          | Card                | Card                                   |
+| Refund of a deposit | Refund, Refund icon | Refund · Security deposit, Refund icon |
+
+- Settlement is the usual case, so it adds nothing. Only Advance and Security deposit show.
+- `FolioStatement` builds the text when it builds the row, from `payments.purpose` (`PaymentPurpose::label()`). The saved `folio_lines.description` stays the method name, so rows saved before the change show the purpose too, with no data change.
+- A refund copies its payment's purpose, so a refund row shows it the same way, after the Refund code name.
+- The rule is `PaymentPurpose::folioRowLabel()`.
+- The Manual Folio Editor shows the same rows (`ManualFolioPage` reads `FolioStatement`). The folio invoice and receipts are unchanged: they already list payments by method and receipt number ([Folio invoice](06-folio-invoice.md)).
+
 ## Figures
 
 - **Balance**: posted lines only (`FolioBalance`, `SUM(folio_lines.amount)`). Charges and taxes are positive, discounts and payments negative, and a refund is positive. A reversal cancels its original. A positive Balance is what the payer still owes, and a negative one is a deposit or an overpayment.
@@ -152,7 +169,9 @@ Row and folio actions call the existing Actions. A refusal writes and logs nothi
 | Remove discount     | `folio.discount`                                                                         | A discount child row that is not reversed                                                                                                                                                          |
 | Close, Reopen       | `folio.close`, `folio.reopen` (or same-day for a Unit folio with `front-desk.check-out`) | The folio header                                                                                                                                                                                   |
 | Record payment      | `payment.record`                                                                         | The folio header of an Open folio, and a "not started" entry, when the folio has at least one purpose                                                                                              |
-| Refund              | `payment.refund`                                                                         | A Completed payment row with an amount left to refund                                                                                                                                              |
+| Refund              | `payment.refund`                                                                         | A Completed payment row with an amount left to refund. Another method needs `payment.refund-other-method`                                                                                          |
+| Void payment        | `payment.refund`                                                                         | A Completed payment row posted on the current business date with no refund yet                                                                                                                     |
+| Refund credit       | `payment.refund`                                                                         | The folio header of an Open folio with a credit that its payments can give back                                                                                                                    |
 | Print voucher       | `folio.print-voucher`                                                                    | The Print dropdown in the folio header, and the row menu of a printable posted line                                                                                                                |
 | Third-party         | `folio.transfer`                                                                         | The action row, for the reservation                                                                                                                                                                |
 | Routing rules       | `folio.transfer`                                                                         | The action row, for the reservation                                                                                                                                                                |

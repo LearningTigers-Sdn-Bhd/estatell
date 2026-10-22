@@ -9,16 +9,18 @@ Record money received and refunded, and post it to the folio.
 ```
 payments    id, property_id, folio_id, payment_method_id, amount,
             purpose (PaymentPurpose), status (PaymentStatus), reference (nullable),
-            refund_of_id (nullable), receipt_number (nullable),
+            refund_of_id (nullable), refund_reason (nullable), voided (bool),
+            receipt_number (nullable),
             folio_line_id, surcharge_line_id (nullable),
             received_by, received_at, timestamps
             checks: amount > 0; a refund has no receipt number;
+            only a refund has a reason or is voided;
             unique (property_id, receipt_number); unique folio_line_id
 ```
 
 - `amount` is always positive. For a payment it is the **total collected** (the amount paid on the bill, plus any surcharge and its tax). For a refund it is the amount given back.
 - `folio_line_id` is the payment line on the folio (negative for a payment, positive for a refund). `surcharge_line_id` is the surcharge charge line, when there is one.
-- A refund copies the `purpose` and the `payment_method_id` of the payment it refunds.
+- A refund copies the `purpose` of the payment it refunds. It copies the `payment_method_id` too, unless it goes to [another method](#refund-to-another-method). `refund_reason` holds the reason for another method. `voided` marks a [void](#voidpayment).
 - A payment row is never updated after it is created. Its `status` is Completed.
 
 ## Enums
@@ -64,19 +66,50 @@ payments    id, property_id, folio_id, payment_method_id, amount,
 
 ### `RefundPayment`
 
-`(User $actor, Payment $payment, string $amount, ?string $reference, string $idempotencyKey): PaymentResult`. A refund is a payment row with `refund_of_id`. Its folio line is **positive** and uses the system `Refund` code.
+`(User $actor, Payment $payment, string $amount, ?string $reference, string $idempotencyKey, ?string $serviceDate = null, ?int $manualBatchId = null, ?int $methodId = null, ?string $reason = null, bool $void = false): PaymentResult`. A refund is a payment row with `refund_of_id`. Its folio line is **positive** and uses the system `Refund` code.
 
-| Check, in order                                                  | Refusal                  |
-| ---------------------------------------------------------------- | ------------------------ |
-| A business date exists                                           | `no_business_date`       |
-| The payment is a Completed payment, not a refund                 | `not_refundable`         |
-| The folio is Open                                                | `folio_not_open`         |
-| The amount is greater than 0 with at most two decimals           | `amount_invalid`         |
-| The amount is at most the payment minus the refunds already made | `refund_exceeds_payment` |
+| Check, in order                                                                | Refusal                    |
+| ------------------------------------------------------------------------------ | -------------------------- |
+| A business date exists                                                         | `no_business_date`         |
+| The payment is a Completed payment, not a refund                               | `not_refundable`           |
+| The folio is Open                                                              | `folio_not_open`           |
+| The amount is greater than 0 with at most two decimals                         | `amount_invalid`           |
+| The amount is at most the payment minus the refunds already made               | `refund_exceeds_payment`   |
+| Another method: it is an active method of the property of a type staff may add | `method_not_available`     |
+| Another method: the actor holds `payment.refund-other-method`                  | `other_method_not_allowed` |
+| Another method: a reason is given                                              | `reason_required`          |
+| Another method: only a cash payment is refunded in cash                        | `refund_method_mismatch`   |
+| A void: the payment has no refund yet, so the amount is all of it              | `void_has_refund`          |
+| A void: the payment line was posted on the current business date               | `void_not_same_day`        |
 
 - A refund gives money back from the collected total. **The surcharge is not refunded.** It is a charge on the folio, and staff reverse it by hand with `ReverseLine` when the fee must go too.
 - Key: `refund:{uuid}`, from the form's UUID. A repeated key returns the existing refund. A refund has no receipt number.
-- Logs `payment.refunded` on the reservation.
+- Logs `payment.refunded` on the reservation (`payment.voided` for a void). The log carries the method and the reason.
+
+#### Refund to another method
+
+- The default is the method of the payment. `$methodId` names another one, only for a user with `payment.refund-other-method`, and only with a reason (`refund_reason`).
+- The target is an active method of the property that staff may add (Cash, Card, Bank transfer, E-wallet). City ledger, OTA collected and Old system are never a target.
+- **Only a cash payment is refunded in cash.** A Card, Bank transfer or E-wallet payment can go to any other non-cash method, never to Cash. The right does not lift this rule.
+- A target equal to the payment's own method is the same as no target: no right and no reason needed.
+- The refund row takes the target's `payment_method_id`, so reports and the cash-up count the money under the method that gave it back.
+
+### `VoidPayment`
+
+`(User $actor, Payment $payment, string $idempotencyKey): PaymentResult`. A void fixes a payment recorded by mistake on the same business day. It is `RefundPayment` for the whole payment, to the same method, with `voided` set. It uses `payment.refund`.
+
+- The payment line must be posted on the current business date, and the payment must have no refund yet. A void is never a partial refund.
+- The refund line reads "Void payment". The row is tagged Refund like any refund. The surcharge stays, as in a refund: reverse it by hand when the fee must go too.
+- Later days use a normal refund.
+
+### `RefundFolioCredit`
+
+`(User $actor, Folio $folio, string $amount, ?int $methodId, ?string $reason, string $idempotencyKey): PaymentResult`. It gives a folio's credit back, without a check-out. It is the **Refund credit** button in the folio header.
+
+- The folio must be Open and its balance below 0. The amount is at most the credit and at most what its payments can give back.
+- The parts come from the payments the folio still holds: the newest first, security deposits last, because the guest is still in house. Check-out keeps its own order (deposits first, then the oldest) in `CheckOutSettlement::refundPool()`. Each part goes through `RefundPayment`, with the key `{uuid}:{payment id}`.
+- With no method, each part goes back to its own method. With `$methodId`, every part goes to that method, with the rules of [another method](#refund-to-another-method). Any refusal rolls back every part.
+- A folio that holds money a payment cannot give back (a City ledger line) offers no refund.
 
 ## Rules
 
@@ -89,7 +122,7 @@ payments    id, property_id, folio_id, payment_method_id, amount,
 - **A payment line is corrected only by a refund.** `ReverseLine` and `TransferLines` refuse a line that a `payments` row owns through `folio_line_id` (`payment_line`). Otherwise a reversed payment could still be refunded, and a transferred one would leave `payments.folio_id` on the old folio. The surcharge line is an ordinary charge and can be reversed or transferred. A deposit always stays on the unit's own folio, even with a Master folio, because a payment line is never transferred.
 - A payment with the SecurityDeposit purpose uses the method's own code. The system `SECURITY_DEPOSIT` code stays unused.
 - A refund or payment after check-out needs the unit folio reopened first, because check-out closes it ([When to reopen](../13-folio/01-folios-and-lines.md#close-and-reopen)). At 0 it closes itself again.
-- A held deposit is a credit on the unit folio like any payment, so [check-out](../18-front-desk/01-check-in-and-check-out.md#taxes-and-deposit) needs no deposit rule: the balance must reach 0, and the credit is refunded through `RefundPayment`.
+- A held deposit is a credit on the unit folio like any payment, so [check-out](../18-front-desk/01-check-in-and-check-out.md#taxes-and-deposit) needs no deposit rule: the balance must reach 0, and the credit is refunded through `RefundPayment`. Check-out refunds the deposit first, then other held payments (see [Refund the credit](../18-front-desk/01-check-in-and-check-out.md#refund-the-credit)).
 - The check-in form can record two payments with one method and one reference: the flagged taxes (Advance) and the security deposit (SecurityDeposit). Each has its own receipt number.
 - The receipt PDF is rendered on demand from payment + folio with dompdf (see [Receipt](#receipt)). It is not stored.
 - `DirectBill` is never offered here: staff use **Settle to City ledger** ([AR invoices](../15-city-ledger/02-ar-invoices.md)), which posts its own ledger line without a `payments` row. OTA collected methods are not offered yet: they come with [Booking ingestion](../21-channels/05-booking-ingestion.md).
@@ -97,18 +130,20 @@ payments    id, property_id, folio_id, payment_method_id, amount,
 
 ## Permissions
 
-| Permission       | Allows                               | Default roles                       |
-| ---------------- | ------------------------------------ | ----------------------------------- |
-| `payment.record` | Record a payment, download a receipt | Owner, Manager, Front desk, Finance |
-| `payment.refund` | Refund a payment                     | Owner, Manager, Finance             |
+| Permission                    | Allows                                                                                              | Default roles                       |
+| ----------------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `payment.record`              | Record a payment, download a receipt                                                                | Owner, Manager, Front desk, Finance |
+| `payment.refund`              | Refund a payment to its own method, void a payment on the day it was taken, refund a folio's credit | Owner, Manager, Front desk, Finance |
+| `payment.refund-other-method` | Refund to a method other than the payment's own, with a reason                                      | Owner, Manager, Finance             |
 
-A migration syncs the two permissions, and both rows go into [Roles and permissions](../03-staff/02-roles-and-permissions.md).
+A migration syncs the permissions: it creates `payment.refund-other-method` and grants `payment.refund` to the default Front desk roles. A role an owner edited later keeps its choice. Both rows go into [Roles and permissions](../03-staff/02-roles-and-permissions.md). Front desk needs `payment.refund` to refund a deposit at check-out. The right is not tied to a screen, so Front desk can also refund from the folio tab, always to the payment's own method.
 
 ## UI (folio tab)
 
 - **Record payment** button in the folio header, on an Open folio, with `payment.record`. A Dialog (method, purpose, amount, reference when required) shows the surcharge, its tax and the **total to collect** from the quote route before the user confirms.
 - The "not started" rail entry gets Record payment, and only that: it creates the unit's folio on the first payment ([Folio page](../13-folio/05-folio-page.md)).
-- A payment row shows its method and reference. Its row menu has **Refund** (`payment.refund`, a Completed payment with an amount left to refund). A Dialog takes the amount (default: what is left) and an optional reference.
+- A payment row shows its method and reference. Its row menu has **Refund** (`payment.refund`, a Completed payment with an amount left to refund) and **Void payment** (`payment.refund`, same business day, no refund yet). The Refund Dialog takes the amount (default: what is left), a **Refund to** field and an optional reference. Refund to lists the payment's own method first. A user with `payment.refund-other-method` also sees the other methods, and picking one shows a required Reason. Cash is greyed out with "Only a cash payment is refunded in cash." when the payment is not cash. Void payment is an AlertDialog.
+- **Refund credit** in the folio header (`payment.refund`, an Open folio with a credit). A Dialog takes the amount (default: the most that can go back), and the same Refund to and Reason fields. The Dialog says the money comes from the newest payment first, security deposits last. The refusal messages are in [Refusal messages](#refusal-messages).
 - A refund row is tagged "Refund".
 - Payment and refund rows get no Reverse or Transfer action (see the `payment_line` rule).
 
@@ -122,12 +157,26 @@ A separate `ReservationPaymentController` (the folio controller is already long)
 | `POST …/folios/{folio}/payments`                   | `reservations.folios.payments.store`         | `RecordPayment`, a folio | `payment.record` |
 | `POST …/units/{unit}/payments`                     | `reservations.units.payments.store`          | `RecordPayment`, a unit  | `payment.record` |
 | `POST …/folios/{folio}/payments/{payment}/refunds` | `reservations.folios.payments.refunds.store` | `RefundPayment`          | `payment.refund` |
+| `POST …/folios/{folio}/payments/{payment}/void`    | `reservations.folios.payments.void`          | `VoidPayment`            | `payment.refund` |
+| `POST …/folios/{folio}/refund-credit`              | `reservations.folios.refund-credit.store`    | `RefundFolioCredit`      | `payment.refund` |
 
 - The quote needs only the method and the amount, so it hangs off the reservation. The "not started" entry uses it too.
 - A payment on a "not started" entry redirects to `?folio={new folio id}`, because the `u{unit id}` entry is gone once the folio exists.
+- The refund routes also take `payment_method_id` and `reason`. The Action checks `payment.refund-other-method`, so a user without it gets the `other_method_not_allowed` error on the field.
 - `PaymentRefusals` maps each refusal code to a field (`payment_method_id`, `amount`, `reference`) or one message for the form, like `FolioRefusals`.
 - The methods are one optional prop, `paymentOptions`, read when the Dialog opens: active methods that are not City ledger or OTA collected, with `requiresReference`. The purposes are per folio, on `FolioData` (see [Purposes by stage](#purposes-by-stage)).
-- `FolioData` gets `paymentPurposes` and `defaultPaymentPurpose`, and `canRecordPayment` (an Open folio, or a "not started" entry, with at least one purpose) and `paymentUnitId` (the unit of a "not started" entry). `FolioRowData` gets `note` (the payment reference), `paymentId` and `refundable` (the amount left to refund), and the `refund` action on an Open folio for a user with `payment.refund` when something is left.
+- `FolioData` gets `paymentPurposes` and `defaultPaymentPurpose`, and `canRecordPayment` (an Open folio, or a "not started" entry, with at least one purpose) and `paymentUnitId` (the unit of a "not started" entry). `FolioRowData` gets `note` (the payment reference), `paymentId`, `methodType` and `refundable` (the amount left to refund), the `refund` action on an Open folio for a user with `payment.refund` when something is left, and the `void` action when the payment was posted on the business date and has no refund. `FolioData` gets `refundCredit` (the most a Refund credit can give back, or null), `refundMethods` (the methods the Refund to field offers beyond the payment's own; empty without `payment.refund-other-method`) and `canRefundOtherMethod`.
+
+### Refusal messages
+
+| Code                       | Field               | Message                                                                                                         |
+| -------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `refund_method_mismatch`   | `payment_method_id` | "Only a cash payment can be refunded in cash. Refund it to the original method, or to another non-cash method." |
+| `other_method_not_allowed` | `payment_method_id` | "You can only refund to the original method. Ask a manager to use another one."                                 |
+| `reason_required`          | `reason`            | "Add a reason for refunding to another method."                                                                 |
+| `void_not_same_day`        | form                | "This payment was taken on an earlier day. Refund it instead of voiding it."                                    |
+| `void_has_refund`          | form                | "This payment already has a refund, so it can't be voided."                                                     |
+| `credit_not_refundable`    | `amount`            | "This folio has no credit that can be refunded."                                                                |
 
 ### Dialog defaults
 

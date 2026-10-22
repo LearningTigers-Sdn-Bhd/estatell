@@ -8,6 +8,7 @@ use Spatie\LaravelData\Data;
 /**
  * What the Check in form shows when it opens: tonight's room and whether check-in can assign one, the registration card status, the checks the user may
  * override, the Nationality field when it is missing and Collect now (only for a user with `payment.record`).
+ * `auditPending` is the strip shown while the night audit is pending.
  */
 class UnitCheckInPreviewData extends Data
 {
@@ -26,6 +27,7 @@ class UnitCheckInPreviewData extends Data
         public bool $canOverrideCredit,
         public ?CheckInCollectionData $collection,
         public ?string $error,
+        public ?UnitAuditPendingData $auditPending = null,
     ) {}
 
     public static function refused(string $error): self
