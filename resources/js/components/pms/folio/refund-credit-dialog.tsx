@@ -75,7 +75,7 @@ function RefundCreditForm({
             open={open}
             onOpenChange={onOpenChange}
             title="Refund credit"
-            description={`Give money back from the payments on ${folio.name}: security deposits first, then the oldest payment.`}
+            description={`Give money back from the payments on ${folio.name}: the newest payment first, security deposits last.`}
             errors={errors}
             onSubmit={submit}
             submitLabel="Refund"

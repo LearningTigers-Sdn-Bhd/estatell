@@ -157,12 +157,13 @@ test('only a refund can carry a reason or a void mark', function () {
     expect(fn () => Payment::factory()->create(['folio_id' => rmPay($setup, $setup['cash'])->folio_id, 'voided' => true]))->toThrow(QueryException::class);
 });
 
-test('refund credit gives the credit back from the payments, deposits first, and a repeat changes nothing', function () {
+test('refund credit gives the credit back from the newest payment first, the deposit last, and a repeat changes nothing', function () {
     $setup = rmSetup();
     $advance = rmPay($setup, $setup['cash'], '60.00');
     $deposit = app(RecordPayment::class)($setup['manager'], $setup['reservation'], $advance->folio, null, NewPaymentData::from([
         'paymentMethodId' => $setup['card']->id, 'purpose' => PaymentPurpose::SecurityDeposit, 'amount' => '50.00', 'reference' => null, 'idempotencyKey' => fake()->uuid(),
     ]))->payment;
+    $newest = rmPay($setup, $setup['cash'], '30.00');
     $key = fake()->uuid();
 
     $result = app(RefundFolioCredit::class)($setup['clerk'], $advance->folio, '70.00', null, null, $key);
@@ -170,10 +171,16 @@ test('refund credit gives the credit back from the payments, deposits first, and
 
     expect($result->refusal)->toBeNull()
         ->and($again->isRefused())->toBeFalse()
-        ->and($deposit->refunds()->sole()->amount)->toBe('50.00')
-        ->and($advance->refunds()->sole()->amount)->toBe('20.00')
-        ->and(Payment::query()->whereNotNull('refund_of_id')->count())->toBe(2)
-        ->and(app(FolioBalance::class)->forFolio($advance->folio))->toBe('-40.00');
+        ->and($newest->refunds()->sole()->amount)->toBe('30.00')
+        ->and($advance->refunds()->sole()->amount)->toBe('40.00')
+        ->and($deposit->refunds()->count())->toBe(0)
+        ->and(Payment::query()->whereNotNull('refund_of_id')->count())->toBe(2);
+
+    app(RefundFolioCredit::class)($setup['clerk'], $advance->folio, '40.00', null, null, fake()->uuid());
+
+    expect($advance->refunds()->sum('amount'))->toEqual(60)
+        ->and($deposit->refunds()->sole()->amount)->toBe('20.00')
+        ->and(app(FolioBalance::class)->forFolio($advance->folio))->toBe('-30.00');
 });
 
 test('refund credit refuses an amount above the credit and rolls back when a part is refused', function () {

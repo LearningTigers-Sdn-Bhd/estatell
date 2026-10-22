@@ -3,6 +3,7 @@
 namespace App\Actions\Payments;
 
 use App\Enums\FolioStatus;
+use App\Enums\PaymentPurpose;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Payment;
@@ -22,8 +23,9 @@ class RefundFolioCredit
     ) {}
 
     /**
-     * Give back the credit of an Open folio without a check-out. The parts come from `CheckOutSettlement::refundPool()`
-     * (security deposits first, then the other payments, oldest first) and each goes through `RefundPayment` with the
+     * Give back the credit of an Open folio without a check-out. The parts come from the payments the folio still holds:
+     * the newest first, because an overpayment is usually the latest, and security deposits last, because the guest is
+     * still in house. Check-out uses its own order (`CheckOutSettlement::refundPool()`). Each goes through `RefundPayment` with the
      * key `{key}:{payment id}`, so a repeat returns the first refund and writes nothing. The amount is at most the credit and at most what
      * the payments hold. A folio that holds money no payment can give back offers no refund. Any refusal rolls back
      * every part. See docs/14-payments/01-payments-and-refunds.md.
@@ -67,7 +69,9 @@ class RefundFolioCredit
 
         $folios = $locked->newCollection([$locked]);
         $balance = BigDecimal::of($this->folioBalance->forFolio($locked));
-        $pool = $this->settlement->refundPool($folios);
+        $pool = $this->settlement->heldPayments($folios)
+            ->sort(fn (Payment $a, Payment $b): int => [$a->purpose === PaymentPurpose::SecurityDeposit, $b->id] <=> [$b->purpose === PaymentPurpose::SecurityDeposit, $a->id])
+            ->values();
         $held = $pool->reduce(fn (BigDecimal $sum, Payment $payment): BigDecimal => $sum->plus($this->settlement->refundable($payment)), BigDecimal::zero());
         $credit = $balance->isNegative() ? $balance->negated() : BigDecimal::zero();
         $wanted = BigDecimal::of($amount);

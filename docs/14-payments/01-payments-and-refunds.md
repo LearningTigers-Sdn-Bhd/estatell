@@ -107,7 +107,7 @@ payments    id, property_id, folio_id, payment_method_id, amount,
 `(User $actor, Folio $folio, string $amount, ?int $methodId, ?string $reason, string $idempotencyKey): PaymentResult`. It gives a folio's credit back, without a check-out. It is the **Refund credit** button in the folio header.
 
 - The folio must be Open and its balance below 0. The amount is at most the credit and at most what its payments can give back.
-- The parts come from `CheckOutSettlement::refundPool()` (security deposits first, then the other payments, oldest first). Each part goes through `RefundPayment`, with the key `{uuid}:{payment id}`.
+- The parts come from the payments the folio still holds: the newest first, security deposits last, because the guest is still in house. Check-out keeps its own order (deposits first, then the oldest) in `CheckOutSettlement::refundPool()`. Each part goes through `RefundPayment`, with the key `{uuid}:{payment id}`.
 - With no method, each part goes back to its own method. With `$methodId`, every part goes to that method, with the rules of [another method](#refund-to-another-method). Any refusal rolls back every part.
 - A folio that holds money a payment cannot give back (a City ledger line) offers no refund.
 
@@ -143,7 +143,7 @@ A migration syncs the permissions: it creates `payment.refund-other-method` and 
 - **Record payment** button in the folio header, on an Open folio, with `payment.record`. A Dialog (method, purpose, amount, reference when required) shows the surcharge, its tax and the **total to collect** from the quote route before the user confirms.
 - The "not started" rail entry gets Record payment, and only that: it creates the unit's folio on the first payment ([Folio page](../13-folio/05-folio-page.md)).
 - A payment row shows its method and reference. Its row menu has **Refund** (`payment.refund`, a Completed payment with an amount left to refund) and **Void payment** (`payment.refund`, same business day, no refund yet). The Refund Dialog takes the amount (default: what is left), a **Refund to** field and an optional reference. Refund to lists the payment's own method first. A user with `payment.refund-other-method` also sees the other methods, and picking one shows a required Reason. Cash is greyed out with "Only a cash payment is refunded in cash." when the payment is not cash. Void payment is an AlertDialog.
-- **Refund credit** in the folio header (`payment.refund`, an Open folio with a credit). A Dialog takes the amount (default: the most that can go back), and the same Refund to and Reason fields. The Dialog says the money comes from security deposits first, then the oldest payment. The refusal messages are in [Refusal messages](#refusal-messages).
+- **Refund credit** in the folio header (`payment.refund`, an Open folio with a credit). A Dialog takes the amount (default: the most that can go back), and the same Refund to and Reason fields. The Dialog says the money comes from the newest payment first, security deposits last. The refusal messages are in [Refusal messages](#refusal-messages).
 - A refund row is tagged "Refund".
 - Payment and refund rows get no Reverse or Transfer action (see the `payment_line` rule).
 
