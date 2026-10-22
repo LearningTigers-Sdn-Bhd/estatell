@@ -32,6 +32,9 @@ final class WastaysBookingIndex
     /** @var array<string, array<string, string>>|null the first price of each repaired night, by booking and date */
     private ?array $repairs = null;
 
+    /** @var array<string, array<string, string>>|null the price each night was first charged at, by booking and date */
+    private ?array $posted = null;
+
     public function __construct(private readonly WastaysBundle $bundle) {}
 
     /** @return array<string, string|null> */
@@ -51,8 +54,10 @@ final class WastaysBookingIndex
     }
 
     /**
-     * The nights of the booking and their net prices, by date, from the nightly rate snapshot. A night that wastays
-     * repaired later has the price it was first charged at; the replay changes it on the day of the repair.
+     * The nights of the booking and their net prices, by date. A night wastays charged has the price of its first room
+     * line: the snapshot holds only the latest price, and a price typed after a night was charged changed only the
+     * nights after it. A night not charged yet has the snapshot price. A night that wastays repaired later has the price
+     * it was first charged at; the replay changes it on the day of the repair.
      *
      * @return array<string, string>
      */
@@ -62,6 +67,12 @@ final class WastaysBookingIndex
 
         foreach (json_decode((string) ($this->room($bookingId)['nightly_rate_snapshot'] ?? ''), true) ?: [] as $date => $night) {
             $nights[(string) $date] = (string) $night['price'];
+        }
+
+        foreach ($this->posted()[$bookingId] ?? [] as $date => $amount) {
+            if (isset($nights[$date])) {
+                $nights[$date] = $amount;
+            }
         }
 
         foreach ($this->repairs()[$bookingId] ?? [] as $date => $original) {
@@ -197,6 +208,39 @@ final class WastaysBookingIndex
         }
 
         return isset($this->earlyDepartures[$bookingId]);
+    }
+
+    /**
+     * The first room line wastays posted for each night: a charge that is not a reversal and not a repair.
+     *
+     * @return array<string, array<string, string>>
+     */
+    private function posted(): array
+    {
+        if ($this->posted !== null) {
+            return $this->posted;
+        }
+
+        $this->posted = [];
+        $first = [];
+
+        foreach ($this->rows('folio_transactions') as $row) {
+            $source = json_decode((string) $row['metadata'], true)['posting_source'] ?? null;
+
+            if ($row['category'] !== 'accommodation' || $row['reversal_of_transaction_id'] !== null || $source === 'historical_nightly_charge_repair' || (float) $row['amount'] <= 0) {
+                continue;
+            }
+
+            $booking = (string) $row['source_booking_id'];
+            $date = substr((string) $row['posting_date'], 0, 10);
+
+            if (! isset($first[$booking][$date]) || (string) $row['created_at'] < $first[$booking][$date]) {
+                $first[$booking][$date] = (string) $row['created_at'];
+                $this->posted[$booking][$date] = (string) $row['amount'];
+            }
+        }
+
+        return $this->posted;
     }
 
     /**
