@@ -345,6 +345,7 @@ class UnitActionPreview
 
         if ($early->error === null && $early->early !== null) {
             $removed = $unit->nights()->whereDate('date', '>=', $early->early->newDeparture)->orderBy('date')->pluck('date')->map(fn ($date): CarbonImmutable => CarbonImmutable::parse($date))->all();
+            $removed = array_values($removed);
             $gone = $removed === [] ? '' : ' '.__(':dates removed.', ['dates' => $this->auditPendingNotice->dates($removed)]);
             $early->auditPending = $this->auditPendingNotice->block($property, $leftYesterday
                 ? __('Last night (:date) is not charged.', ['date' => $businessDate->format('j M')]).$gone

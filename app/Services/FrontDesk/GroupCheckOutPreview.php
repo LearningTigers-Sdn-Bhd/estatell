@@ -202,7 +202,7 @@ class GroupCheckOutPreview
         $canRecord = $user->can(PermissionEnum::PaymentRecord->value);
         $canSettle = $user->can(PermissionEnum::CityLedgerInvoice->value);
 
-        return Folio::query()
+        return array_values(Folio::query()
             ->where('property_id', $reservation->property_id)
             ->where('reservation_id', $reservation->id)
             ->whereIn('type', [FolioType::Master, FolioType::ThirdParty])
@@ -237,8 +237,7 @@ class GroupCheckOutPreview
                 );
             })
             ->filter()
-            ->values()
-            ->all();
+            ->all());
     }
 
     private function openMaster(Reservation $reservation): ?Folio
