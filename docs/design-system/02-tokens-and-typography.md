@@ -63,3 +63,13 @@ Part of the [design system](../design-system.md). Short contract: [DESIGN.md](..
 - Light mode uses the original green `wordmark-light.webp`. Dark mode uses `wordmark-dark.svg`, an off-white fill through the original artwork's alpha mask. The letter shapes and transparent boundary stay the same.
 - The `--error-wordmark` image URL changes in the existing light and dark theme definitions. The page uses that token, so the correct logo appears before React hydrates. Give it the accessible name **Estatell**.
 - These assets apply only to the standalone error page. App and authentication layouts use the text wordmark described above.
+
+## Landing page
+
+- The public landing page (`pages/landing.tsx`, `pages/legal/*`) lives in `resources/js/components/landing/`. It is not a PMS component set, so it has its own folder.
+- It uses the same semantic tokens and fonts as the app. Dark sections (hero, check-in, concierge, savings, footer) get the `dark` class on their root, so tokens flip there and no `dark:` overrides are needed. Accent text on a dark section uses `text-chart-1`.
+- `brand-forest` is the one landing token: the footer and contact section green (`#2d4a3e` in the original mock). It is the same in light and dark, and only used inside a `dark` section. Muted text on landing sections uses `text-foreground/70` (light) and `text-foreground/75` (dark), because `muted-foreground` is too faint there.
+- Logo fonts: **Poppins 800** for the welcome wordmark and **Archivo Black** for the footer and legal-footer wordmark (`font-poppins`, `font-archivo-black`). They load from Bunny in `vite.config.ts` with preload off, so only the landing page downloads them. The app wordmark keeps `font-wordmark`.
+- Hex colors appear only inside the two illustration SVGs (`living-hotel.tsx`, `pin-art.tsx`). They are artwork, not theme colors.
+- Motion uses `use-reveal.ts` (IntersectionObserver plus Tailwind classes) and the Web Animations API. There is no GSAP.
+- Standard utilities come first. A few layout values stay arbitrary because no scale step matches: `clamp()` headings, `cqw` units inside the illustrations, safe-area padding, and some `grid-cols-[...]` ratios. Keep new ones inside `components/landing/` and only when the standard scale looks wrong.

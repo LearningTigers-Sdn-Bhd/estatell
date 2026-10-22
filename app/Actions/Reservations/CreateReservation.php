@@ -19,7 +19,7 @@ use App\Models\RoomType;
 use App\Models\User;
 use App\Services\CityLedger\CreditCheck;
 use App\Services\NightAudit\NextDocumentNumber;
-use App\Services\Reservations\StayTotal;
+use App\Services\Reservations\StayChargeTotal;
 use Illuminate\Support\Facades\DB;
 
 class CreateReservation
@@ -30,7 +30,7 @@ class CreateReservation
         private SyncRoutingRules $syncRoutingRules,
         private CreditCheck $creditCheck,
         private RecordCreditOverride $recordCreditOverride,
-        private StayTotal $stayTotal,
+        private StayChargeTotal $stayChargeTotal,
     ) {}
 
     /**
@@ -129,7 +129,7 @@ class CreateReservation
     }
 
     /**
-     * Refuse a company that the stay total would take over its credit limit, unless `creditOverrideReason` is given
+     * Refuse a company that the stay charges with tax (`StayChargeTotal`) would take over its credit limit, unless `creditOverrideReason` is given
      * (the route passes it only to users with `company.credit-override`), which is then logged. A reservation without
      * a company is never checked. See docs/15-city-ledger/04-credit-control-and-reports.md.
      *
@@ -143,7 +143,7 @@ class CreateReservation
             return;
         }
 
-        $check = $this->creditCheck->check($company, $this->stayTotal->forReservation($reservation));
+        $check = $this->creditCheck->check($company, $this->stayChargeTotal->forReservation($reservation));
 
         if ($check->allowed) {
             return;

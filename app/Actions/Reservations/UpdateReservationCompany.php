@@ -13,7 +13,7 @@ use App\Models\Reservation;
 use App\Models\User;
 use App\Services\CityLedger\CreditCheck;
 use App\Services\Rates\CompanyRateAccess;
-use App\Services\Reservations\StayTotal;
+use App\Services\Reservations\StayChargeTotal;
 use Illuminate\Support\Facades\DB;
 
 class UpdateReservationCompany
@@ -22,14 +22,14 @@ class UpdateReservationCompany
         private SyncRoutingRules $syncRoutingRules,
         private CreditCheck $creditCheck,
         private RecordCreditOverride $recordCreditOverride,
-        private StayTotal $stayTotal,
+        private StayChargeTotal $stayChargeTotal,
         private CompanyRateAccess $companyRateAccess,
     ) {}
 
     /**
      * Set or clear the billed company. Refused when the reservation is closed (`reservation_closed`), when the company
      * is not an Active company of the property (`company_not_available`), or while the Master folio holds
-     * money (`master_has_payments`) or has an AR invoice that is not Void (`master_has_ar_invoice`), or while a live unit uses a plan the new company cannot use (`company_plan_conflict`), or when the stay total would take the company over its credit limit without an override reason (`credit_limit_exceeded`). The same company is not a change: nothing is written or logged, and a Suspended company a
+     * money (`master_has_payments`) or has an AR invoice that is not Void (`master_has_ar_invoice`), or while a live unit uses a plan the new company cannot use (`company_plan_conflict`), or when the stay charges with tax (`StayChargeTotal`) would take the company over its credit limit without an override reason (`credit_limit_exceeded`). The same company is not a change: nothing is written or logged, and a Suspended company a
      * reservation already holds can stay. The Master folio's payer follows with its charges, and `SyncRoutingRules` runs so a new
      * company gets its Master folio. See docs/15-city-ledger/01-companies.md.
      */
@@ -54,7 +54,7 @@ class UpdateReservationCompany
             $company = $companyId === null ? null : Company::query()->find($companyId);
 
             if ($company !== null) {
-                $check = $this->creditCheck->check($company, $this->stayTotal->forReservation($locked));
+                $check = $this->creditCheck->check($company, $this->stayChargeTotal->forReservation($locked));
 
                 if (! $check->allowed && trim((string) $overrideReason) === '') {
                     return ReservationResult::refused(ReservationResult::REFUSAL_CREDIT_LIMIT_EXCEEDED);

@@ -5,6 +5,7 @@ use App\Actions\Reservations\ReservationResult;
 use App\Data\Reservations\NewReservationData;
 use App\Enums\BillingMode;
 use App\Enums\BookingSourceType;
+use App\Enums\SystemTransactionCode;
 use App\Models\Bed;
 use App\Models\BookingSource;
 use App\Models\ChargeItem;
@@ -18,6 +19,8 @@ use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\Room;
 use App\Models\RoomType;
+use App\Models\Tax;
+use App\Models\TransactionCode;
 use App\Models\UnitAddOn;
 use App\Models\UnitNight;
 use App\Models\User;
@@ -116,6 +119,23 @@ function expectNothingCreated(): void
         ->and(Activity::query()->count())->toBe(0)
         ->and(DB::table('document_sequences')->where('last_number', '>', 0)->count())->toBe(0);
 }
+
+test('the credit check counts the tax on the stay, not only the room', function () {
+    $setup = createSetup();
+    $room = TransactionCode::factory()->for($setup['property'])->system(SystemTransactionCode::RoomRevenue)->create();
+    $tax = Tax::factory()->for($setup['property'])->create(['rate' => '10.00', 'is_inclusive' => false, 'foreign_guests_only' => false]);
+    $tax->applicableTransactionCodes()->attach($room);
+    $company = Company::factory()->for($setup['property'])->create(['credit_limit' => '210.00']);
+
+    $refused = createReservation($setup, [roomLine($setup)], ['companyId' => $company->id]);
+
+    expect($refused->refusal)->toBe(ReservationResult::REFUSAL_CREDIT_LIMIT_EXCEEDED);
+    expectNothingCreated();
+
+    $company->update(['credit_limit' => '220.00']);
+
+    expect(createReservation($setup, [roomLine($setup)], ['companyId' => $company->id])->isRefused())->toBeFalse();
+});
 
 test('it refuses a suspended company and one from another property', function (string $kind) {
     $setup = createSetup();

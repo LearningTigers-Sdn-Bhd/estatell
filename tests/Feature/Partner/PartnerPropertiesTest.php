@@ -1,5 +1,7 @@
 <?php
 
+use App\Actions\Platform\UpdatePartnerSignupMessage;
+use App\Enums\PartnerStatus;
 use App\Models\Partner;
 use App\Models\Property;
 use App\Models\User;
@@ -186,4 +188,84 @@ test('regenerating the link changes the code, is logged and stops the old link',
 test('staff and admins cannot regenerate a partner link', function () {
     $this->actingAs(User::factory()->create())->post(route('partner.link.regenerate'))->assertNotFound();
     $this->actingAs(User::factory()->admin()->create())->post(route('partner.link.regenerate'))->assertNotFound();
+});
+
+test('the Properties page sends the default message template until the partner saves their own', function () {
+    $default = "Hi! Set up your property on estatell with {partner}.\nRegister here: {link}\nWe'll help you get started once you've signed up.";
+
+    $this->actingAs($this->user)->get(route('partner.properties.index'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('signupMessageTemplate', $default)
+            ->where('defaultSignupMessageTemplate', $default)
+        );
+
+    $this->partner->update(['signup_message_template' => 'Join {partner}: {link}']);
+    $this->user->refresh();
+
+    $this->get(route('partner.properties.index'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('signupMessageTemplate', 'Join {partner}: {link}')
+            ->where('defaultSignupMessageTemplate', $default)
+        );
+});
+
+test('saving the message template stores it and is logged', function () {
+    $this->actingAs($this->user)
+        ->put(route('partner.link.message.update'), ['template' => "Join {partner} here:\n{link}"])
+        ->assertRedirect(route('partner.properties.index'))
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Message saved.']);
+
+    $activity = Activity::query()->sole();
+
+    expect($this->partner->refresh()->signup_message_template)->toBe("Join {partner} here:\n{link}")
+        ->and($activity->event)->toBe('partner.signup-message-updated')
+        ->and($activity->causer_id)->toBe($this->user->id)
+        ->and($activity->subject_id)->toBe($this->partner->id);
+});
+
+test('saving the default wording stores null, and saving the same text again is not logged', function () {
+    $this->partner->update(['signup_message_template' => 'Join {partner}: {link}']);
+
+    $this->actingAs($this->user)->put(route('partner.link.message.update'), [
+        'template' => "Hi! Set up your property on estatell with {partner}.\r\nRegister here: {link}\r\nWe'll help you get started once you've signed up.",
+    ])->assertRedirect();
+
+    expect($this->partner->refresh()->signup_message_template)->toBeNull();
+
+    $this->put(route('partner.link.message.update'), [
+        'template' => "Hi! Set up your property on estatell with {partner}.\nRegister here: {link}\nWe'll help you get started once you've signed up.",
+    ])->assertRedirect();
+
+    expect(Activity::query()->count())->toBe(1);
+});
+
+test('the message template needs {link} and only known placeholders', function (string $template, string $error) {
+    $this->actingAs($this->user)
+        ->put(route('partner.link.message.update'), ['template' => $template])
+        ->assertSessionHasErrors(['template' => $error]);
+
+    expect($this->partner->refresh()->signup_message_template)->toBeNull();
+})->with([
+    'no link' => ['Join {partner} today', 'Add {link} where the signup link should go.'],
+    'unknown placeholder' => ['Hi {name}: {link}', 'Unknown placeholder: {name}. Use {partner} or {link}.'],
+]);
+
+test('the message template is required and at most 1000 characters', function () {
+    $this->actingAs($this->user);
+
+    $this->put(route('partner.link.message.update'), ['template' => ''])->assertSessionHasErrors('template');
+    $this->put(route('partner.link.message.update'), ['template' => '{link}'.str_repeat('a', 1000)])->assertSessionHasErrors('template');
+});
+
+test('staff and admins cannot save a partner message template', function () {
+    $this->actingAs(User::factory()->create())->put(route('partner.link.message.update'), ['template' => '{link}'])->assertNotFound();
+    $this->actingAs(User::factory()->admin()->create())->put(route('partner.link.message.update'), ['template' => '{link}'])->assertNotFound();
+});
+
+test('the action refuses a suspended partner and writes nothing', function () {
+    $this->partner->update(['status' => PartnerStatus::Suspended, 'suspended_at' => now()]);
+
+    expect(app(UpdatePartnerSignupMessage::class)($this->user, $this->partner, 'Join {partner}: {link}'))->toBeFalse()
+        ->and($this->partner->refresh()->signup_message_template)->toBeNull()
+        ->and(Activity::query()->count())->toBe(0);
 });

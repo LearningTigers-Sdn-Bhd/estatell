@@ -3,7 +3,9 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="robots" content="noindex">
+        @unless (in_array($page['component'], ['landing', 'legal/terms', 'legal/privacy'], true))
+            <meta name="robots" content="noindex">
+        @endunless
 
         {{-- Inline script to detect system dark mode preference and apply it immediately --}}
         <script>

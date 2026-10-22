@@ -18,13 +18,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $name
  * @property string $code_prefix
  * @property string $signup_code
+ * @property string|null $signup_message_template
  * @property PartnerStatus $status
  * @property bool $can_create_properties
  * @property CarbonImmutable|null $suspended_at
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['name', 'status', 'can_create_properties', 'suspended_at'])]
+#[Fillable(['name', 'status', 'can_create_properties', 'suspended_at', 'signup_message_template'])]
 class Partner extends Model
 {
     /** @use HasFactory<PartnerFactory> */
