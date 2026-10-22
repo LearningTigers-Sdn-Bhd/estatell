@@ -9,6 +9,7 @@ use App\Models\FolioLine;
 use App\Models\Property;
 use Brick\Math\BigDecimal;
 use Brick\Math\RoundingMode;
+use Carbon\CarbonImmutable;
 
 /**
  * Sets the figures of one replayed day in estatell beside the figures of its wastays night audit
@@ -38,7 +39,48 @@ final class WastaysDayCompare
             return null;
         }
 
-        return array_combine(self::FIGURES, array_map(fn (string $figure): string => $this->decimal((string) $summary[$figure]), self::FIGURES));
+        $figures = array_combine(self::FIGURES, array_map(fn (string $figure): string => $this->decimal((string) $summary[$figure]), self::FIGURES));
+        $late = $this->catchUp($bundle, $day, $date);
+        $figures['room_revenue'] = $this->decimal((string) BigDecimal::of($figures['room_revenue'])->plus($late['room_revenue']));
+        $figures['tax_revenue'] = $this->decimal((string) BigDecimal::of($figures['tax_revenue'])->plus($late['tax_revenue']));
+
+        return $figures;
+    }
+
+    /**
+     * Catch-up nights wastays posted during the date's window. They carry an earlier night's date and no night audit, so
+     * no wastays summary counts them; estatell posts them on the day they happened.
+     *
+     * @return array{room_revenue: BigDecimal, tax_revenue: BigDecimal}
+     */
+    private function catchUp(WastaysBundle $bundle, WastaysDay $day, string $date): array
+    {
+        $window = $day->window($date);
+        $totals = ['room_revenue' => BigDecimal::zero(), 'tax_revenue' => BigDecimal::zero()];
+
+        if ($window === null) {
+            return $totals;
+        }
+
+        foreach ($bundle->rows('folio_transactions') as $row) {
+            $figure = match ($row['category']) {
+                'accommodation' => 'room_revenue',
+                'tax' => 'tax_revenue',
+                default => null,
+            };
+
+            if ($figure === null || $row['night_audit_id'] !== null || (json_decode((string) $row['metadata'], true)['posting_source'] ?? null) !== 'catch_up') {
+                continue;
+            }
+
+            $at = CarbonImmutable::parse((string) $row['created_at']);
+
+            if ($at->gte($window['opened']) && ($window['closed'] === null || $at->lt($window['closed']))) {
+                $totals[$figure] = $totals[$figure]->plus((string) $row['amount']);
+            }
+        }
+
+        return $totals;
     }
 
     /**

@@ -117,7 +117,7 @@ Tell the hotel's accountant before cutover.
 ### Dry run
 
 1. Export a bundle from wastays prod (read only) and fetch it into a copy of the estatell database.
-2. Replay all days. Each day is compared with its wastays night audit (`night_audit_financial_summaries`): room revenue, tax, payments, refunds, adjustments and no-show charges, from the folio lines estatell posted on the business date. The document numbers are checked as the days replay: a number the sequence refuses stops the run. A day that shows an accepted difference is listed, not stopped on.
+2. Replay all days. Each day is compared with its wastays night audit (`night_audit_financial_summaries`): room revenue, tax, payments, refunds, adjustments and no-show charges, from the folio lines estatell posted on the business date. wastays catch-up nights (no night audit, an earlier night date) count on the day whose window holds them, because no wastays summary counts them and estatell posts them that day. The document numbers are checked as the days replay: a number the sequence refuses stops the run. A day that shows an accepted difference is listed, not stopped on.
 3. Fix and repeat until every day matches. Only then run on prod.
 
 ## Importer
