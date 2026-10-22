@@ -105,11 +105,11 @@ No database connection between the apps. wastays exports a zip bundle, R2 carrie
 
 ```
 wastays (Coolify)                     R2 (existing buckets)                estatell (Coolify)
-bin/rails "estatell:export[3]"  ───▶  wastays bucket
+bin/rails "estatell:export[3]"  ───▶  wastays-bucket
   read only, guests decrypted           exports/grand-eastern/<date>.zip
   CSV per table + manifest.json
   zip + SHA-256                       copy in the R2 dashboard to the
-                                      estatell bucket
+                                      estatell-production
                                         imports/grand-eastern/<date>.zip ───▶  wastays:fetch {key}
                                                                                wastays:import-setup
                                                                                ApproveGoLive (13 Aug)
@@ -118,7 +118,7 @@ bin/rails "estatell:export[3]"  ───▶  wastays bucket
                                                                                wastays:purge
 ```
 
-- The export uploads through the wastays Active Storage R2 service, and `wastays:fetch` reads the existing `r2` disk. No new bucket, token or env value. If both apps use the same bucket, skip the dashboard copy.
+- The export uploads through the wastays Active Storage R2 service, and `wastays:fetch` reads the existing `r2` disk. No new bucket, token or env value. Both buckets are in the same Cloudflare account: download the zip from `wastays-bucket` and drag it into `estatell-production` at `imports/grand-eastern/`.
 - The zip holds decrypted guest data. After cutover, delete it from both buckets and from the laptop that copied it. `wastays:purge` removes only the estatell copies.
 - `manifest.json` holds the hotel id, the last audit date, the row count of each file and the checksum. `wastays:fetch` refuses a bundle that does not match it.
 - `import_links` (property, source table, source id, target type, target id, unique) records every wastays row already written, so a stopped run resumes and posts nothing twice.
@@ -160,7 +160,7 @@ The replay checks guests in and out on their real days, so the guests in-house o
 ## Cutover runbook
 
 1. The evening before: the last wastays night audit. Staff stop using wastays.
-2. wastays terminal: `bin/rails "estatell:export[3]"`. Copy the zip to the estatell bucket.
+2. wastays terminal: `bin/rails "estatell:export[3]"`. In the R2 dashboard, download the zip from `wastays-bucket` and drag it into `estatell-production` at `imports/grand-eastern/`.
 3. estatell terminal: `wastays:fetch`. Create the property, set `migration_window_days` to 90, `wastays:import-setup`, then `ApproveGoLive` with opening date 13 Aug 2026.
 4. `wastays:import-guests`, then `wastays:replay` up to the last wastays date. Every day must match.
 5. estatell opens cutover day. Staff start in estatell in the morning.
