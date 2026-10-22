@@ -96,6 +96,17 @@ it('uses the sha256 object next to the zip when no option is given', function ()
     $this->artisan('wastays:fetch', ['key' => WASTAYS_KEY])->assertFailed();
 });
 
+it('fetches from another disk with --disk', function () {
+    $sha = putWastaysZip();
+    Storage::fake('local')->put(WASTAYS_KEY, Storage::disk('r2')->get(WASTAYS_KEY));
+    Storage::disk('r2')->delete(WASTAYS_KEY);
+
+    $this->artisan('wastays:fetch', ['key' => WASTAYS_KEY, '--sha256' => $sha, '--disk' => 'local'])->assertSuccessful();
+
+    expect(WastaysBundle::open(storage_path('app/private/imports/test-hotel-bundle/2026-10-22'))->rows('payments')->all())
+        ->toBe([['id' => '10', 'amount' => '120.00']]);
+});
+
 it('refuses a wrong zip sha256', function () {
     putWastaysZip();
 

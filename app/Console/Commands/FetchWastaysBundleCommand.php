@@ -7,13 +7,13 @@ use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 
-#[Signature('wastays:fetch {key : Key of the zip on the r2 disk} {--sha256= : Expected SHA-256 of the zip}')]
+#[Signature('wastays:fetch {key : Key of the zip on the r2 disk} {--sha256= : Expected SHA-256 of the zip} {--disk=r2 : Disk that holds the zip, for example local for a local test}')]
 #[Description('Download a wastays export bundle from R2, unzip it and check it against its manifest')]
 class FetchWastaysBundleCommand extends Command
 {
     public function handle(FetchWastaysBundle $fetch): int
     {
-        $result = $fetch((string) $this->argument('key'), $this->option('sha256') ?: null);
+        $result = $fetch((string) $this->argument('key'), $this->option('sha256') ?: null, (string) $this->option('disk'));
 
         if (! $result->succeeded()) {
             $this->error('The bundle was refused and nothing was kept:');

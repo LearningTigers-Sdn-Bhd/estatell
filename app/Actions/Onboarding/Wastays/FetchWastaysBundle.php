@@ -3,13 +3,14 @@
 namespace App\Actions\Onboarding\Wastays;
 
 use App\Services\Onboarding\Wastays\WastaysBundle;
+use Illuminate\Contracts\Filesystem\Filesystem as Disk;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
 use ZipArchive;
 
 /**
- * Downloads a wastays export zip from the r2 disk, checks it and unzips it into storage/app/private/imports/{hotel-slug}/{date}/.
+ * Downloads a wastays export zip from the r2 disk (or another disk for a local test), checks it and unzips it into storage/app/private/imports/{hotel-slug}/{date}/.
  * A bundle that does not match its manifest is deleted again.
  */
 class FetchWastaysBundle
@@ -18,22 +19,22 @@ class FetchWastaysBundle
 
     public function __construct(private Filesystem $files) {}
 
-    public function __invoke(string $key, ?string $zipSha256 = null): WastaysFetchResult
+    public function __invoke(string $key, ?string $zipSha256 = null, string $diskName = 'r2'): WastaysFetchResult
     {
-        $disk = Storage::disk('r2');
+        $disk = Storage::disk($diskName);
 
         if (! $disk->exists($key)) {
-            return new WastaysFetchResult(null, ["{$key} does not exist on the r2 disk."]);
+            return new WastaysFetchResult(null, ["{$key} does not exist on the {$diskName} disk."]);
         }
 
-        $expectedSha = $zipSha256 ?? $this->sha256Beside($key);
+        $expectedSha = $zipSha256 ?? $this->sha256Beside($disk, $key);
         $target = storage_path(self::IMPORTS_DIRECTORY).'/'.basename(dirname($key)).'/'.basename($key, '.zip');
         $zipPath = $target.'.zip.part';
 
         $this->files->ensureDirectoryExists(dirname($target));
 
         try {
-            $this->download($key, $zipPath);
+            $this->download($disk, $key, $zipPath);
 
             if ($expectedSha !== null && ! hash_equals(strtolower($expectedSha), hash_file('sha256', $zipPath))) {
                 return new WastaysFetchResult(null, ['The zip SHA-256 does not match the expected value.']);
@@ -63,10 +64,8 @@ class FetchWastaysBundle
         }
     }
 
-    private function sha256Beside(string $key): ?string
+    private function sha256Beside(Disk $disk, string $key): ?string
     {
-        $disk = Storage::disk('r2');
-
         if (! $disk->exists($key.'.sha256')) {
             return null;
         }
@@ -76,9 +75,9 @@ class FetchWastaysBundle
         return $first === '' ? null : $first;
     }
 
-    private function download(string $key, string $zipPath): void
+    private function download(Disk $disk, string $key, string $zipPath): void
     {
-        $stream = Storage::disk('r2')->readStream($key);
+        $stream = $disk->readStream($key);
         $out = fopen($zipPath, 'wb');
         stream_copy_to_stream($stream, $out);
         fclose($out);
