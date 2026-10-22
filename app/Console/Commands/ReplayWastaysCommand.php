@@ -46,7 +46,11 @@ class ReplayWastaysCommand extends Command
         $acceptedDifferences = [];
         $status = self::SUCCESS;
 
-        DB::beginTransaction();
+        // A dry run holds every day in one transaction to roll it all back. A real run commits each day on its own, so
+        // a long run does not pile up locks and a crash keeps the days before it.
+        if ($dryRun) {
+            DB::beginTransaction();
+        }
 
         try {
             foreach ($dates as $date) {
@@ -109,7 +113,9 @@ class ReplayWastaysCommand extends Command
             $this->table(['Date', 'Figure', 'wastays', 'estatell'], $acceptedDifferences);
         }
 
-        $dryRun ? DB::rollBack() : DB::commit();
+        if ($dryRun) {
+            DB::rollBack();
+        }
         $this->info($dryRun ? 'Dry run: nothing was written.' : count($rows).' day(s) replayed.');
 
         return $status;
