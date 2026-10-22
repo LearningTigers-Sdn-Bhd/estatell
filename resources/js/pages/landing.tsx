@@ -20,6 +20,8 @@ export default function Landing() {
         const classes = ['scroll-smooth', 'motion-reduce:scroll-auto'];
 
         document.documentElement.classList.add(...classes);
+        // Fetch the footer logo font now, so it is ready when the footer scrolls into view.
+        void document.fonts.load('400 1em "Archivo Black"');
 
         return () => document.documentElement.classList.remove(...classes);
     }, []);

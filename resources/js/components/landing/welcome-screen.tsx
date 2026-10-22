@@ -114,13 +114,27 @@ export function WelcomeScreen() {
 
         const root = document.documentElement;
         const previous = root.style.overflow;
-        const stop = play(screenRef.current, () => setActive(false));
+        const screen = screenRef.current;
+        let cancelled = false;
+        let stop = () => {};
         const dismiss = () => setActive(false);
+
+        // The letters stay hidden until the logo font is ready, so the fallback font never shows. A slow network
+        // does not hold the screen: it starts after 1 second either way.
+        Promise.race([
+            document.fonts.load('800 1em Poppins'),
+            new Promise((resolve) => setTimeout(resolve, 1000)),
+        ]).then(() => {
+            if (!cancelled) {
+                stop = play(screen, () => setActive(false));
+            }
+        });
 
         root.style.overflow = 'hidden';
         document.addEventListener('focusin', dismiss, { once: true });
 
         return () => {
+            cancelled = true;
             stop();
             root.style.overflow = previous;
             document.removeEventListener('focusin', dismiss);
