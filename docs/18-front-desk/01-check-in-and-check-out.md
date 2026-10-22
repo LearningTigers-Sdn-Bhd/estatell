@@ -614,7 +614,7 @@ The check-out Dialog, single and early, refunds the whole credit from every paym
 - **Money that cannot be refunded.** A credit from a line with no payment row (a City ledger line) cannot go through `RefundPayment` (`holdsUnrefundable()`). The Dialog shows "Part of this credit cannot be refunded here. Open the folio." and offers no refund.
 - **Preview.** `UnitCheckOutPreviewData` gains `refundParts` (purpose, method, reference and amount of each part, in refund order) from `CheckOutSettlement`. `refundDefault` becomes the credit when it is above the deposit.
 - **Group check-out** uses the same pool for a CheckedIn row: `GroupCheckOutPreview` stops limiting its refund to deposits ([Group check-out](05-group-check-out.md#rows)). A room checked out early from the page uses the single Dialog, so it gets the fix with it.
-- Permissions do not change: a refund needs `payment.refund` and support access needs money corrections allowed.
+- Permissions do not change: a refund needs `payment.refund` and support access needs money corrections allowed. Front desk holds `payment.refund` by default, so it refunds a deposit at check-out. The check-out Dialogs refund to the payment's own method only.
 
 ### Keep the deposit for damages
 
