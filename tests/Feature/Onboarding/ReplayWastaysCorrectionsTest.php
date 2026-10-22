@@ -198,6 +198,37 @@ it('checks a guest out early with the wastays fee and invoice number', function 
         ->and(Reservation::query()->count())->toBe(1);
 });
 
+it('checks a same-day leaver out on the arrival day with the one night kept and the wastays invoice number', function () {
+    $setup = correctionsSetup();
+    $prefix = $setup['property']->document_prefix;
+    $tables = wastaysReplayTables();
+    $tables['bookings'] = [array_merge($tables['bookings'][0], ['check_out' => '2026-08-13 00:00:00'])];
+    $tables['booking_rooms'] = [array_merge($tables['booking_rooms'][0], ['nightly_rate_snapshot' => json_encode(['2026-08-13' => ['price' => '120.0']])])];
+    $tables['booking_guests'] = [$tables['booking_guests'][0]];
+    $tables['booking_audit_logs'] = [$tables['booking_audit_logs'][0], ['id' => '5', 'auditable_type' => 'Booking', 'auditable_id' => '1', 'action_type' => 'check_out', 'occurred_at' => '2026-08-13T05:01:00.000000Z', 'old_value' => '{}', 'new_value' => '{}']];
+    $tables['folio_transactions'] = [
+        array_merge($tables['folio_transactions'][0], ['amount' => '120.00']),
+        lineRow('30', '1', 'early_departure_charge', 'charge', '31', '120.00', '2026-08-13T05:00:00.000000Z'),
+    ];
+    $tables['receipts'] = [$tables['receipts'][0]];
+    $tables['invoices'] = [$tables['invoices'][0]];
+    $tables['booking_folios'] = [$tables['booking_folios'][0]];
+    $tables['night_audits'] = [['id' => '1', 'business_date' => '2026-08-13']];
+    unset($tables['folio_transactions'][0]['metadata']);
+    $x = correctionsTarget($setup, $tables);
+
+    $first = replay($x, '2026-08-13');
+    $unit = ReservationUnit::query()->sole();
+
+    expect($first->counts)->toMatchArray(['same-day leavers checked out on the arrival day' => 1, 'night audits run' => 1])
+        ->and($unit->status)->toBe(UnitStatus::CheckedOut)
+        ->and($unit->departure_date->toDateString())->toBe('2026-08-14')
+        ->and(FolioLine::query()->where('kind', TransactionKind::Charge)->pluck('amount')->all())->toBe(['120.00'])
+        ->and(FolioLine::query()->where('description', 'Early departure fee')->exists())->toBeFalse()
+        ->and(Folio::query()->sole()->status)->toBe(FolioStatus::Closed)
+        ->and(Folio::query()->sole()->invoice_number)->toBe("{$prefix}-26700009");
+});
+
 it('posts one early departure fee for each wastays line and checks the guest out after the last', function () {
     $setup = correctionsSetup();
     $tables = wastaysReplayTables();

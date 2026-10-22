@@ -475,6 +475,13 @@ class ReplayWastaysDay
             return;
         }
 
+        if ($unit->departure_date->toDateString() > $context->date && $context->index->sameDayLeaver($bookingId) && $unit->arrival_date->toDateString() === $context->date) {
+            $this->doCheckOut($context, $unit, $bookingId, 'same-day leavers checked out on the arrival day', sameDayLeaver: true);
+            ($this->recordImportLink)($context->property, 'booking_audit_logs', $event->sourceId, $unit);
+
+            return;
+        }
+
         if ($unit->departure_date->toDateString() > $context->date) {
             $context->summary->count('check-outs before the departure date moved');
 
@@ -485,10 +492,10 @@ class ReplayWastaysDay
         ($this->recordImportLink)($context->property, 'booking_audit_logs', $event->sourceId, $unit);
     }
 
-    private function doCheckOut(ReplayContext $context, ReservationUnit $unit, string $bookingId, string $label): void
+    private function doCheckOut(ReplayContext $context, ReservationUnit $unit, string $bookingId, string $label, bool $sameDayLeaver = false): void
     {
         $invoice = $context->numbers->invoice($bookingId);
-        $result = $this->numbers->run(DocumentType::Invoice, $invoice, fn () => ($this->checkOutUnit)($context->actor, $unit->refresh()), $invoice !== null, "bookings {$bookingId}");
+        $result = $this->numbers->run(DocumentType::Invoice, $invoice, fn () => ($this->checkOutUnit)($context->actor, $unit->refresh(), sameDayLeaver: $sameDayLeaver), $invoice !== null, "bookings {$bookingId}");
 
         if ($result->isRefused()) {
             throw new ReplayStopped("bookings {$bookingId}: the check-out was refused ({$result->refusal}).");
