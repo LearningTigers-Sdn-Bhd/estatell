@@ -197,3 +197,32 @@ it('checks a guest out early with the wastays fee and invoice number', function 
         ->and(Folio::query()->sole()->invoice_number)->toBe("{$prefix}-26700009")
         ->and(Reservation::query()->count())->toBe(1);
 });
+
+it('posts one early departure fee for each wastays line and checks the guest out after the last', function () {
+    $setup = correctionsSetup();
+    $tables = wastaysReplayTables();
+    $tables['bookings'] = [array_merge($tables['bookings'][0], ['check_out' => '2026-08-14 00:00:00'])];
+    $tables['booking_rooms'] = [array_merge($tables['booking_rooms'][0], ['nightly_rate_snapshot' => json_encode(['2026-08-13' => ['price' => '120.0'], '2026-08-14' => ['price' => '120.0'], '2026-08-15' => ['price' => '120.0']])])];
+    $tables['booking_guests'] = [$tables['booking_guests'][0]];
+    $tables['booking_audit_logs'] = [$tables['booking_audit_logs'][0], ['id' => '5', 'auditable_type' => 'Booking', 'auditable_id' => '1', 'action_type' => 'check_out', 'occurred_at' => '2026-08-14T05:01:00.000000Z', 'old_value' => '{}', 'new_value' => '{}']];
+    $tables['folio_transactions'] = [
+        $tables['folio_transactions'][0],
+        lineRow('12', '1', 'cash', 'payment', '31', '140.00', '2026-08-14T04:00:00.000000Z'),
+        lineRow('30', '1', 'early_departure_charge', 'charge', '31', '60.00', '2026-08-14T05:00:00.000000Z'),
+        lineRow('31', '1', 'early_departure_charge', 'charge', '31', '60.00', '2026-08-14T05:00:00.000000Z'),
+    ];
+    $tables['receipts'] = [$tables['receipts'][0], ['id' => '3', 'folio_transaction_id' => '12', 'deposit_id' => null, 'receipt_number' => '78']];
+    $tables['invoices'] = [$tables['invoices'][0]];
+    $tables['booking_folios'] = [$tables['booking_folios'][0]];
+    $tables['night_audits'] = [['id' => '1', 'business_date' => '2026-08-13'], ['id' => '2', 'business_date' => '2026-08-14']];
+    unset($tables['folio_transactions'][0]['metadata']);
+    $x = correctionsTarget($setup, $tables);
+
+    replay($x, '2026-08-13');
+    $second = replay($x, '2026-08-14');
+
+    expect($second->counts)->toMatchArray(['early check-outs' => 1])
+        ->and(ReservationUnit::query()->sole()->status)->toBe(UnitStatus::CheckedOut)
+        ->and(FolioLine::query()->where('description', 'Early departure fee')->pluck('amount')->all())->toBe(['60.00', '60.00'])
+        ->and(ImportLink::query()->where('source_table', 'folio_transactions')->whereIn('source_id', ['30', '31'])->count())->toBe(2);
+});

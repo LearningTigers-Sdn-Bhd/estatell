@@ -26,7 +26,7 @@ final class WastaysBookingIndex
     /** @var array<string, list<array<string, string|null>>>|null */
     private ?array $audit = null;
 
-    /** @var array<string, true>|null */
+    /** @var array<string, list<string>>|null the early departure line ids of each booking, oldest first */
     private ?array $earlyDepartures = null;
 
     /** @var array<string, array<string, string>>|null the first price of each repaired night, by booking and date */
@@ -197,17 +197,32 @@ final class WastaysBookingIndex
 
     public function hasEarlyDeparture(string $bookingId): bool
     {
+        return $this->earlyDepartureLines($bookingId) !== [];
+    }
+
+    /**
+     * The ids of the early departure lines of a booking, oldest first. wastays posts one line for each unused night.
+     *
+     * @return list<string>
+     */
+    public function earlyDepartureLines(string $bookingId): array
+    {
         if ($this->earlyDepartures === null) {
             $this->earlyDepartures = [];
 
             foreach ($this->rows('folio_transactions') as $row) {
                 if ($row['category'] === 'early_departure_charge' && $row['reversal_of_transaction_id'] === null) {
-                    $this->earlyDepartures[(string) $row['source_booking_id']] = true;
+                    $this->earlyDepartures[(string) $row['source_booking_id']][] = (string) $row['id'];
                 }
+            }
+
+            foreach ($this->earlyDepartures as $booking => $ids) {
+                sort($ids, SORT_NUMERIC);
+                $this->earlyDepartures[$booking] = $ids;
             }
         }
 
-        return isset($this->earlyDepartures[$bookingId]);
+        return $this->earlyDepartures[$bookingId] ?? [];
     }
 
     /**

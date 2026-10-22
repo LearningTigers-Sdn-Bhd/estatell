@@ -264,8 +264,11 @@ class ReplayWastaysCorrections
         $policy = RoomRevenuePolicy::query()->where('property_id', $context->property->id)->where('code', SystemTransactionCode::EarlyDepartureRevenue)->first()
             ?? throw new ReplayStopped("folio_transactions {$event->sourceId}: the property has no early departure policy.");
         $today = CarbonImmutable::parse($context->date);
+        $lines = $context->index->earlyDepartureLines($bookingId);
 
-        $this->done($event, ($this->changeUnitDates)($context->actor, $unit, $unit->arrival_date, $today, true, 'wastays replay: early departure'), 'the departure could not be moved');
+        if ($unit->departure_date->gt($today)) {
+            $this->done($event, ($this->changeUnitDates)($context->actor, $unit, $unit->arrival_date, $today, true, 'wastays replay: early departure'), 'the departure could not be moved');
+        }
 
         $fee = $this->amount($event->row['amount']);
         $currency = $context->property->settings->currency->getCurrencyCode();
@@ -273,6 +276,13 @@ class ReplayWastaysCorrections
 
         if ($posted->isRefused()) {
             throw new ReplayStopped("folio_transactions {$event->sourceId}: the early departure fee was refused ({$posted->refusal}).");
+        }
+
+        // wastays posts one fee line for each unused night; the guest leaves after the last of them.
+        if ((string) $event->sourceId !== end($lines)) {
+            $this->link($context, $event, $posted->line());
+
+            return;
         }
 
         $invoice = $context->numbers->invoice($bookingId);
