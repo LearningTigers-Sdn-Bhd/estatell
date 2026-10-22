@@ -3,7 +3,9 @@
 namespace App\Actions\Onboarding\Wastays;
 
 use App\Actions\Catalogues\UpdateTax;
+use App\Actions\Folio\CloseFolio;
 use App\Actions\Folio\PostCharge;
+use App\Actions\Folio\ReopenFolio;
 use App\Actions\FrontDesk\AutoAssignRooms;
 use App\Actions\FrontDesk\CheckInUnit;
 use App\Actions\FrontDesk\CheckOutUnit;
@@ -24,6 +26,7 @@ use App\Data\Reservations\NewUnitData;
 use App\Enums\AuditTrigger;
 use App\Enums\BookingSourceType;
 use App\Enums\DocumentType;
+use App\Enums\FolioStatus;
 use App\Enums\FolioType;
 use App\Enums\PaymentMethodType;
 use App\Enums\PaymentPurpose;
@@ -43,6 +46,7 @@ use App\Models\Room;
 use App\Models\Tax;
 use App\Models\TransactionCode;
 use App\Models\UnitNight;
+use App\Services\Folio\FolioBalance;
 use App\Services\Onboarding\Wastays\ImportLinks;
 use App\Services\Onboarding\Wastays\PlannedNumberRunner;
 use App\Services\Onboarding\Wastays\WastaysBookingIndex;
@@ -50,6 +54,7 @@ use App\Services\Onboarding\Wastays\WastaysDay;
 use App\Services\Onboarding\Wastays\WastaysDocumentNumbers;
 use App\Services\Onboarding\Wastays\WastaysEvent;
 use App\Services\Onboarding\Wastays\WastaysImportTarget;
+use Brick\Math\BigDecimal;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Closure;
@@ -70,6 +75,9 @@ use Illuminate\Support\Facades\Mail;
 class ReplayWastaysDay
 {
     public function __construct(
+        private ReopenFolio $reopenFolio,
+        private CloseFolio $closeFolio,
+        private FolioBalance $folioBalance,
         private UpdateTax $updateTax,
         private CreateBooking $createBooking,
         private AssignRoom $assignRoom,
@@ -167,6 +175,8 @@ class ReplayWastaysDay
 
             return;
         }
+
+        $this->closeReopenedFolios($context);
 
         $zone = $context->property->settings->time_zone ?? config('app.timezone');
         $at = CarbonImmutable::parse($context->date.' 00:05', $zone)->addDay();
@@ -437,6 +447,59 @@ class ReplayWastaysDay
         $context->summary->count($label);
     }
 
+    /**
+     * wastays let staff post to a folio after the check-out and closed it later; estatell closed it at the check-out.
+     * Reopen the unit folio for the line. The invoice number stays, and the folio closes again before the night audit.
+     */
+    private function reopenAfterCheckOut(ReplayContext $context, ReservationUnit $unit, WastaysEvent $event): void
+    {
+        if ($unit->status !== UnitStatus::CheckedOut) {
+            return;
+        }
+
+        $folio = Folio::query()->where('reservation_unit_id', $unit->id)->where('type', FolioType::Unit)->where('status', FolioStatus::Closed)->orderBy('id')->first();
+
+        if ($folio === null) {
+            return;
+        }
+
+        $result = ($this->reopenFolio)($context->actor, $folio);
+
+        if ($result->isRefused()) {
+            throw new ReplayStopped("folio_transactions {$event->sourceId}: the folio could not be reopened for a line after the check-out ({$result->refusal}).");
+        }
+
+        $context->summary->count('folios reopened for lines after the check-out');
+    }
+
+    /**
+     * Close again the unit folios of checked-out units that a line after the check-out reopened. Each has its invoice
+     * number already, so no number is issued.
+     */
+    private function closeReopenedFolios(ReplayContext $context): void
+    {
+        $folios = Folio::query()
+            ->where('property_id', $context->property->id)
+            ->where('type', FolioType::Unit)
+            ->where('status', FolioStatus::Open)
+            ->whereNotNull('invoice_number')
+            ->whereHas('reservationUnit', fn ($units) => $units->where('status', UnitStatus::CheckedOut))
+            ->orderBy('id')
+            ->get();
+
+        foreach ($folios as $folio) {
+            if (! BigDecimal::of($this->folioBalance->forFolio($folio))->isZero()) {
+                throw new ReplayStopped("The folio {$folio->invoice_number} reopened after the check-out does not balance at the end of {$context->date}.");
+            }
+
+            $result = ($this->closeFolio)($context->actor, $folio);
+
+            if ($result->isRefused()) {
+                throw new ReplayStopped("The folio {$folio->invoice_number} reopened after the check-out could not close ({$result->refusal}).");
+            }
+        }
+    }
+
     private function charge(ReplayContext $context, WastaysEvent $event): void
     {
         $row = $event->row;
@@ -446,6 +509,7 @@ class ReplayWastaysDay
         }
 
         $unit = $this->unitOf($context, $event);
+        $this->reopenAfterCheckOut($context, $unit, $event);
         $code = $this->links->target($context->property, 'transaction_codes', (string) $row['transaction_code_id']);
 
         if (! $code instanceof ChargeItem && ! $code instanceof TransactionCode) {
@@ -475,6 +539,7 @@ class ReplayWastaysDay
     {
         $row = $event->row;
         $unit = $this->unitOf($context, $event);
+        $this->reopenAfterCheckOut($context, $unit, $event);
         $method = $this->links->target($context->property, 'transaction_codes', (string) $row['transaction_code_id']);
 
         if (! $method instanceof PaymentMethod) {

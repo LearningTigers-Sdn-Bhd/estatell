@@ -386,6 +386,65 @@ it('turns the tourism tax on in the business date wastays first charged it', fun
         ->and($second->counts)->toMatchArray(['tourism tax turned on' => 1]);
 });
 
+it('posts a closed night that an extension made after its night audit added', function () {
+    $setup = correctionsSetup();
+    $tables = wastaysReplayTables();
+    $tables['bookings'] = [array_merge($tables['bookings'][0], ['check_out' => '2026-08-16 00:00:00'])];
+    $tables['booking_rooms'] = [array_merge($tables['booking_rooms'][0], ['nightly_rate_snapshot' => json_encode(['2026-08-13' => ['price' => '120.0'], '2026-08-14' => ['price' => '120.0'], '2026-08-15' => ['price' => '120.0']])])];
+    $tables['booking_guests'] = [$tables['booking_guests'][0]];
+    $tables['booking_audit_logs'] = [
+        $tables['booking_audit_logs'][0],
+        ['id' => '5', 'auditable_type' => 'Booking', 'auditable_id' => '1', 'action_type' => 'update', 'occurred_at' => '2026-08-15T02:00:00.000000Z',
+            'old_value' => json_encode(['check_in' => '2026-08-13T14:00:00.000+08:00', 'check_out' => '2026-08-14T12:00:00.000+08:00']),
+            'new_value' => json_encode(['check_in' => '2026-08-13T14:00:00.000+08:00', 'check_out' => '2026-08-16T12:00:00.000+08:00'])],
+    ];
+    $tables['folio_transactions'] = [lineRow('10', '1', 'cash', 'payment', '31', '100.00', '2026-08-13T04:00:00.000000Z')];
+    $tables['receipts'] = [$tables['receipts'][0]];
+    $tables['invoices'] = [];
+    $tables['booking_folios'] = [$tables['booking_folios'][0]];
+    $tables['night_audits'] = [['id' => '1', 'business_date' => '2026-08-13'], ['id' => '2', 'business_date' => '2026-08-14'], ['id' => '3', 'business_date' => '2026-08-15']];
+    $x = correctionsTarget($setup, $tables);
+
+    replay($x, '2026-08-13');
+    replay($x, '2026-08-14');
+    $third = replay($x, '2026-08-15');
+    $unit = ReservationUnit::query()->sole();
+
+    expect($third->counts)->toMatchArray(['stay dates changed' => 1, 'closed nights posted after a stay change' => 1])
+        ->and($unit->departure_date->toDateString())->toBe('2026-08-16')
+        ->and(FolioLine::query()->where('kind', TransactionKind::Charge)->orderBy('service_date')->get()->map(fn (FolioLine $line): array => [$line->service_date->toDateString(), $line->posting_date->toDateString()])->all())
+        ->toBe([['2026-08-13', '2026-08-13'], ['2026-08-14', '2026-08-15'], ['2026-08-15', '2026-08-15']]);
+});
+
+it('reopens a checked-out folio for a line wastays posted after the check-out and closes it again', function () {
+    $setup = correctionsSetup();
+    $prefix = $setup['property']->document_prefix;
+    $tables = wastaysReplayTables();
+    $tables['bookings'] = [array_merge($tables['bookings'][0], ['check_out' => '2026-08-14 00:00:00'])];
+    $tables['booking_rooms'] = [array_merge($tables['booking_rooms'][0], ['nightly_rate_snapshot' => json_encode(['2026-08-13' => ['price' => '120.0']])])];
+    $tables['booking_guests'] = [$tables['booking_guests'][0]];
+    $tables['booking_audit_logs'] = [$tables['booking_audit_logs'][0], ['id' => '5', 'auditable_type' => 'Booking', 'auditable_id' => '1', 'action_type' => 'check_out', 'occurred_at' => '2026-08-14T03:00:00.000000Z', 'old_value' => '{}', 'new_value' => '{}']];
+    $tables['folio_transactions'] = [
+        array_merge($tables['folio_transactions'][0], ['amount' => '120.00']),
+        lineRow('11', '1', 'other', 'charge', '33', '30.00', '2026-08-14T04:00:00.000000Z'),
+        lineRow('12', '1', 'cash', 'payment', '31', '30.00', '2026-08-14T04:01:00.000000Z'),
+    ];
+    $tables['receipts'] = [$tables['receipts'][0], ['id' => '3', 'folio_transaction_id' => '12', 'deposit_id' => null, 'receipt_number' => '78']];
+    $tables['invoices'] = [$tables['invoices'][0]];
+    $tables['booking_folios'] = [$tables['booking_folios'][0]];
+    $tables['night_audits'] = [['id' => '1', 'business_date' => '2026-08-13'], ['id' => '2', 'business_date' => '2026-08-14']];
+    unset($tables['folio_transactions'][0]['metadata']);
+    $x = correctionsTarget($setup, $tables);
+
+    replay($x, '2026-08-13');
+    $second = replay($x, '2026-08-14');
+    $folio = Folio::query()->sole();
+
+    expect($second->counts)->toMatchArray(['check-outs' => 1, 'folios reopened for lines after the check-out' => 1, 'charges posted' => 1])
+        ->and($folio->status)->toBe(FolioStatus::Closed)
+        ->and($folio->invoice_number)->toBe("{$prefix}-26700009");
+});
+
 it('posts one early departure fee for each wastays line and checks the guest out after the last', function () {
     $setup = correctionsSetup();
     $tables = wastaysReplayTables();
