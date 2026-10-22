@@ -121,7 +121,7 @@ it('imports the room types, rooms, rate plans and prices', function () {
         ->and(Rate::query()->where('rate_plan_id', $plans['Standard Rate']->id)->where('room_type_id', $types[0]->id)->orderByDesc('date')->value('date')->toDateString())->toBe('2027-12-31');
 });
 
-it('turns on SST and the tourism tax', function () {
+it('turns on SST and keeps the tourism tax off', function () {
     runSetupImport()->assertSuccessful();
 
     $sst = Tax::query()->where('property_id', $this->property->id)->where('code', 'SST')->sole();
@@ -131,7 +131,7 @@ it('turns on SST and the tourism tax', function () {
         ->and($sst->rate)->toEqual('8.00')
         ->and($sst->is_inclusive)->toBeFalse()
         ->and($sst->registration_number)->toBe('W10-1234-56789012')
-        ->and($tourism->enabled)->toBeTrue();
+        ->and($tourism->enabled)->toBeFalse();
 });
 
 it('maps charge items, payment methods and every transaction code', function () {

@@ -91,7 +91,6 @@ class ImportWastaysSetup
         $standard = $this->ratePlans($bundle, $property, $actor, $roomTypes, $summary);
         $this->rates($bundle, $property, $actor, $standard, $roomTypes, $newRoomTypeIds, $summary);
         $this->salesTax($bundle, $property, $actor, $summary);
-        $this->tourismTax($property, $actor, $summary);
         $this->skipDbkk($bundle, $summary);
 
         $codes = $bundle->rows('transaction_codes')->keyBy('id')->all();
@@ -298,16 +297,6 @@ class ImportWastaysSetup
         ));
 
         $summary->count('SST', $alreadyOn ? 'linked' : 'created');
-    }
-
-    private function tourismTax(Property $property, User $actor, WastaysSetupSummary $summary): void
-    {
-        $tax = $this->tax($property, SystemTransactionCode::TourismTax);
-        $alreadyOn = $tax->enabled;
-
-        ($this->updateTax)($actor, $tax, TaxInputData::fromModel($tax, true));
-
-        $summary->count('Tourism tax', $alreadyOn ? 'linked' : 'created');
     }
 
     private function skipDbkk(WastaysBundle $bundle, WastaysSetupSummary $summary): void
