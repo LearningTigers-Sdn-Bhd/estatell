@@ -109,8 +109,22 @@ class ReplayWastaysCorrections
 
         $original = $this->links->target($context->property, 'folio_transactions', (string) $row['reversal_of_transaction_id']);
 
+        // wastays reverses the early departure fee of an undone check-out a moment before it logs the undo.
+        if (($row['correction_reason'] ?? null) === 'undo_checkout' && $original instanceof FolioLine) {
+            $this->undoCheckOutFirst($context, $event);
+        }
+
         if ($original instanceof Payment) {
             $this->reversePayment($context, $event, $original);
+
+            return;
+        }
+
+        $group = (string) ((json_decode((string) $row['metadata'], true) ?: [])['reversal_group_parent_id'] ?? '');
+
+        // A tax line is a child of its charge in estatell, and ReverseLine reversed it with the charge.
+        if ($original === null && $group !== '' && $group !== (string) $row['reversal_of_transaction_id'] && $this->links->has($context->property, 'folio_transactions', $group)) {
+            $context->summary->count('tax lines reversed with their charge');
 
             return;
         }
@@ -181,10 +195,7 @@ class ReplayWastaysCorrections
         $reason = 'wastays replay: '.$action;
 
         if ($action === 'undo_check_out') {
-            if ($unit->status === UnitStatus::CheckedOut) {
-                $this->done($event, ($this->undoCheckOut)($context->actor, $unit, $reason), 'the check-out could not be undone');
-                $context->summary->count('check-outs undone');
-            }
+            $this->undoCheckOutOf($context, $event, $unit, $event->row);
         } elseif ($action === 'cancel' || $action === 'void') {
             $this->cancel($context, $event, $unit, $reason);
         } else {
@@ -192,6 +203,50 @@ class ReplayWastaysCorrections
         }
 
         $this->link($context, $event, $unit);
+    }
+
+    /**
+     * Run the booking's `undo_check_out` before a reversal that belongs to it, and link the audit row so it is not run
+     * again when its own event comes.
+     */
+    private function undoCheckOutFirst(ReplayContext $context, WastaysEvent $event): void
+    {
+        $undo = $context->index->undoCheckOutAfter((string) $event->bookingId, $event->at);
+        $unit = $this->unitOf($context, $event);
+
+        if ($undo === null || $unit->status !== UnitStatus::CheckedOut || $this->links->has($context->property, 'booking_audit_logs', (string) $undo['id'])) {
+            return;
+        }
+
+        $this->undoCheckOutOf($context, $event, $unit, $undo);
+        ($this->recordImportLink)($context->property, 'booking_audit_logs', (string) $undo['id'], $unit);
+    }
+
+    /**
+     * Undo a check-out, then give back the nights an early check-out removed, up to the departure wastays restored.
+     *
+     * @param  array<string, string|null>  $undo  the wastays `undo_check_out` audit row
+     */
+    private function undoCheckOutOf(ReplayContext $context, WastaysEvent $event, ReservationUnit $unit, array $undo): void
+    {
+        if ($unit->status !== UnitStatus::CheckedOut) {
+            return;
+        }
+
+        $reason = 'wastays replay: undo_check_out';
+        $this->done($event, ($this->undoCheckOut)($context->actor, $unit, $reason), 'the check-out could not be undone');
+        $context->summary->count('check-outs undone');
+
+        $departure = substr((string) ((json_decode((string) $undo['new_value'], true) ?: [])['check_out'] ?? ''), 0, 10);
+        $unit->refresh();
+
+        if ($departure === '' || $departure <= $unit->departure_date->toDateString()) {
+            return;
+        }
+
+        $before = $unit->nights()->pluck('date')->map(fn ($date) => $date->toDateString())->all();
+        $this->done($event, ($this->changeUnitDates)($context->actor, $unit, $unit->arrival_date, CarbonImmutable::parse($departure), true, $reason), 'the nights of the undone check-out could not be given back');
+        $this->priceAddedNights($context, $event, $unit, $before, $reason);
     }
 
     private function cancel(ReplayContext $context, WastaysEvent $event, ReservationUnit $unit, string $reason): void
@@ -241,6 +296,17 @@ class ReplayWastaysCorrections
         $result = ($this->changeUnitDates)($context->actor, $unit, CarbonImmutable::parse($arrival), CarbonImmutable::parse($departure), true, $reason);
         $this->done($event, $result, 'the stay dates could not be changed');
 
+        $this->priceAddedNights($context, $event, $unit, $before, $reason);
+        $context->summary->count('stay dates changed');
+    }
+
+    /**
+     * Set the wastays price on the nights a change added to the unit.
+     *
+     * @param  list<string>  $before  the dates the unit had before the change
+     */
+    private function priceAddedNights(ReplayContext $context, WastaysEvent $event, ReservationUnit $unit, array $before, string $reason): void
+    {
         $prices = $context->index->nights((string) $event->bookingId);
         $added = $unit->refresh()->nights()->get()->filter(fn (UnitNight $night): bool => ! in_array($night->date->toDateString(), $before, true) && isset($prices[$night->date->toDateString()]));
 
@@ -248,8 +314,6 @@ class ReplayWastaysCorrections
             $priced = ($this->changeNightPrice)($context->actor, $unit, $nights->all(), (string) $price, $reason);
             $this->done($event, $priced, 'the price of the added nights could not be set');
         }
-
-        $context->summary->count('stay dates changed');
     }
 
     private function earlyDeparture(ReplayContext $context, WastaysEvent $event): void

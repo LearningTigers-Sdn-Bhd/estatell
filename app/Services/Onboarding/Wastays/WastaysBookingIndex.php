@@ -162,6 +162,22 @@ final class WastaysBookingIndex
         return [$arrival, $departure];
     }
 
+    /**
+     * The first `undo_check_out` row of the booking at or after `$at`, or null.
+     *
+     * @return array<string, string|null>|null
+     */
+    public function undoCheckOutAfter(string $bookingId, CarbonImmutable $at): ?array
+    {
+        foreach ($this->audit($bookingId) as $row) {
+            if ($row['action_type'] === 'undo_check_out' && CarbonImmutable::parse((string) $row['occurred_at'])->gte($at)) {
+                return $row;
+            }
+        }
+
+        return null;
+    }
+
     public function hasCheckIn(string $bookingId): bool
     {
         return $this->firstCheckInAt($bookingId) !== null;

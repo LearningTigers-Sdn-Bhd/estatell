@@ -294,6 +294,47 @@ it('checks a guest in when wastays checked them in before it moved the stay to a
         ->and(FolioLine::query()->where('kind', TransactionKind::Charge)->pluck('amount')->all())->toBe(['120.00']);
 });
 
+it('undoes a check-out before reversing its early departure fee and gives the removed nights back', function () {
+    $setup = correctionsSetup();
+    $prefix = $setup['property']->document_prefix;
+    $tables = wastaysReplayTables();
+    $log = fn (string $id, string $action, string $at, array $new = []): array => [
+        'id' => $id, 'auditable_type' => 'Booking', 'auditable_id' => '1', 'action_type' => $action, 'occurred_at' => $at, 'old_value' => '{}', 'new_value' => json_encode($new),
+    ];
+    $tables['bookings'] = [array_merge($tables['bookings'][0], ['check_out' => '2026-08-16 00:00:00'])];
+    $tables['booking_rooms'] = [array_merge($tables['booking_rooms'][0], ['nightly_rate_snapshot' => json_encode(['2026-08-13' => ['price' => '120.0'], '2026-08-14' => ['price' => '120.0'], '2026-08-15' => ['price' => '120.0']])])];
+    $tables['booking_guests'] = [$tables['booking_guests'][0]];
+    $tables['booking_audit_logs'] = [
+        $tables['booking_audit_logs'][0],
+        $log('5', 'check_out', '2026-08-14T05:01:00.000000Z'),
+        $log('6', 'undo_check_out', '2026-08-14T08:00:01.000000Z', ['status' => 'checked_in', 'check_out' => '2026-08-16']),
+    ];
+    $tables['folio_transactions'] = [
+        array_merge($tables['folio_transactions'][0], ['amount' => '360.00']),
+        lineRow('30', '1', 'early_departure_charge', 'charge', '31', '240.00', '2026-08-14T05:00:00.000000Z'),
+        lineRow('31', '1', 'correction', 'adjustment', '31', '-240.00', '2026-08-14T08:00:00.000000Z', ['reversal_of_transaction_id' => '30', 'correction_reason' => 'undo_checkout', 'metadata' => json_encode(['reversal_group_parent_id' => 30])]),
+        lineRow('32', '1', 'correction', 'adjustment', '31', '-19.20', '2026-08-14T08:00:00.000000Z', ['reversal_of_transaction_id' => '99', 'correction_reason' => 'undo_checkout', 'metadata' => json_encode(['reversal_group_parent_id' => 30])]),
+    ];
+    $tables['receipts'] = [$tables['receipts'][0]];
+    $tables['invoices'] = [$tables['invoices'][0]];
+    $tables['booking_folios'] = [$tables['booking_folios'][0]];
+    $tables['night_audits'] = [['id' => '1', 'business_date' => '2026-08-13'], ['id' => '2', 'business_date' => '2026-08-14']];
+    unset($tables['folio_transactions'][0]['metadata']);
+    $x = correctionsTarget($setup, $tables);
+
+    replay($x, '2026-08-13');
+    $second = replay($x, '2026-08-14');
+    $unit = ReservationUnit::query()->sole();
+    $folio = Folio::query()->sole();
+
+    expect($second->counts)->toMatchArray(['early check-outs' => 1, 'check-outs undone' => 1, 'lines reversed' => 1, 'tax lines reversed with their charge' => 1])
+        ->and($unit->status)->toBe(UnitStatus::CheckedIn)
+        ->and($unit->departure_date->toDateString())->toBe('2026-08-16')
+        ->and(FolioLine::query()->where('description', 'Early departure fee')->pluck('amount')->all())->toBe(['240.00', '-240.00'])
+        ->and($folio->status)->toBe(FolioStatus::Open)
+        ->and($folio->invoice_number)->toBe("{$prefix}-26700009");
+});
+
 it('posts one early departure fee for each wastays line and checks the guest out after the last', function () {
     $setup = correctionsSetup();
     $tables = wastaysReplayTables();

@@ -22,12 +22,14 @@ use App\Data\Reservations\NewUnitData;
 use App\Enums\AuditTrigger;
 use App\Enums\BookingSourceType;
 use App\Enums\DocumentType;
+use App\Enums\FolioType;
 use App\Enums\PaymentMethodType;
 use App\Enums\PaymentPurpose;
 use App\Enums\UnitStatus;
 use App\Enums\WastaysEventType;
 use App\Models\BookingSource;
 use App\Models\ChargeItem;
+use App\Models\Folio;
 use App\Models\Guest;
 use App\Models\ImportLink;
 use App\Models\OtaChannel;
@@ -522,7 +524,9 @@ class ReplayWastaysDay
 
     private function doCheckOut(ReplayContext $context, ReservationUnit $unit, string $bookingId, string $label, bool $sameDayLeaver = false): void
     {
-        $invoice = $context->numbers->invoice($bookingId);
+        // A folio reopened by an undone check-out keeps its invoice number, so closing it again issues none.
+        $invoiced = Folio::query()->where('reservation_unit_id', $unit->id)->where('type', FolioType::Unit)->whereNotNull('invoice_number')->exists();
+        $invoice = $invoiced ? null : $context->numbers->invoice($bookingId);
         $result = $this->numbers->run(DocumentType::Invoice, $invoice, fn () => ($this->checkOutUnit)($context->actor, $unit->refresh(), sameDayLeaver: $sameDayLeaver), $invoice !== null, "bookings {$bookingId}");
 
         if ($result->isRefused()) {
