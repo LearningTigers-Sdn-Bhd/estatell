@@ -120,9 +120,9 @@ export function WelcomeScreen() {
         const dismiss = () => setActive(false);
 
         // The letters stay hidden until the logo font is ready, so the fallback font never shows. A slow network
-        // does not hold the screen: it starts after 1 second either way.
-        Promise.race([
-            document.fonts.load('800 1em Poppins'),
+        // does not hold the screen: it starts after 1 second either way, and a failed font load starts it at once.
+        void Promise.race([
+            document.fonts.load('800 1em Poppins').catch(() => []),
             new Promise((resolve) => setTimeout(resolve, 1000)),
         ]).then(() => {
             if (!cancelled) {
