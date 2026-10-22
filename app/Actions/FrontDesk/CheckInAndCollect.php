@@ -28,35 +28,41 @@ class CheckInAndCollect
 
     /**
      * The check-in form: save a missing nationality, check the unit in with `CheckInUnit`, then take the Collect now
-     * payments. The nationality and the check-in are one transaction, so a refusal of the check-in saves nothing.
-     * The nationality goes to the unit's primary guest, or to the booker when the unit has none, the person
+     * payments. The nationality goes to the unit's primary guest, or to the booker when the unit has none, the person
      * `UnitNationality` reads. Collect now runs after the check-in: the taxes flagged **Collect at check-in** as an
      * Advance payment, then the security deposit, both on the unit folio with the same method and reference. The
-     * amounts are worked out here by `CheckInCollection`, never read from the form. A payment that is refused leaves
-     * the unit checked in and the payment that already succeeded stays, so the result names the refusal. Permissions
-     * are checked by the route and the Form Request. See docs/18-front-desk/01-check-in-and-check-out.md#collect-now.
+     * amounts are worked out here by `CheckInCollection`, never read from the form. Every step is one transaction:
+     * a refused check-in or a refused payment saves nothing, so staff fix the field and submit the same form again.
+     * Permissions are checked by the route and the Form Request.
+     * See docs/18-front-desk/01-check-in-and-check-out.md#collect-now.
      */
     public function __invoke(User $actor, ReservationUnit $unit, ?string $nationality = null, bool $withoutCard = false, ?string $creditOverrideReason = null, ?CollectNowData $collect = null): CheckInAndCollectResult
     {
         try {
-            $stay = DB::transaction(function () use ($actor, $unit, $nationality, $withoutCard, $creditOverrideReason): UnitStayResult {
+            return DB::transaction(function () use ($actor, $unit, $nationality, $withoutCard, $creditOverrideReason, $collect): CheckInAndCollectResult {
                 if ($nationality !== null && ! $this->saveNationality($actor, $unit, $nationality)) {
                     throw new UnitStayRefused(UnitStayResult::refused(UnitStayResult::REFUSAL_NATIONALITY_REQUIRED));
                 }
 
-                $result = ($this->checkInUnit)($actor, $unit, $withoutCard, $creditOverrideReason);
+                $stay = ($this->checkInUnit)($actor, $unit, $withoutCard, $creditOverrideReason);
 
-                if ($result->isRefused()) {
-                    throw new UnitStayRefused($result);
+                if ($stay->isRefused()) {
+                    throw new UnitStayRefused($stay);
+                }
+
+                $result = $collect === null ? new CheckInAndCollectResult($stay) : $this->collect($actor, $stay, $collect);
+
+                if ($result->paymentRefusal !== null) {
+                    throw new CollectNowRefused($result);
                 }
 
                 return $result;
             });
         } catch (UnitStayRefused $refused) {
             return new CheckInAndCollectResult($refused->result);
+        } catch (CollectNowRefused $refused) {
+            return new CheckInAndCollectResult($refused->result->stay, [], $refused->result->paymentRefusal);
         }
-
-        return $collect === null ? new CheckInAndCollectResult($stay) : $this->collect($actor, $stay, $collect);
     }
 
     private function collect(User $actor, UnitStayResult $stay, CollectNowData $collect): CheckInAndCollectResult

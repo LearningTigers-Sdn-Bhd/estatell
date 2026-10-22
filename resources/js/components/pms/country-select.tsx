@@ -25,6 +25,7 @@ type Props = {
 
 /**
  * A searchable picker for a short code list such as countries (or currencies, with `placeholder`). Type to filter the list; the clear button unsets the country.
+ * The first match is highlighted as you type, so Enter picks it. Enter never submits the surrounding form.
  */
 export function CountrySelect({
     id,
@@ -48,6 +49,7 @@ export function CountrySelect({
             }
             itemToStringLabel={(item) => item.label}
             itemToStringValue={(item) => item.value}
+            autoHighlight
         >
             <ComboboxInput
                 id={id}
@@ -55,6 +57,11 @@ export function CountrySelect({
                 showClear
                 aria-invalid={invalid}
                 className="w-full"
+                onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                    }
+                }}
             />
             <ComboboxContent>
                 <ComboboxEmpty>{emptyText}</ComboboxEmpty>

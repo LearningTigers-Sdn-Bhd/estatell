@@ -280,6 +280,47 @@ test('the booking routes need reservations.manage and stay in their property', f
     expect(Reservation::query()->count())->toBe(0);
 });
 
+test('a booking needs the nationality of every guest', function (string $case) {
+    $setup = bookingSetup();
+    $unknown = Guest::factory()->create(['property_id' => $setup['property']->id, 'nationality_code' => null]);
+    [$tab, $message] = match ($case) {
+        'a new guest without one' => [['full_name' => 'Nur Aina'], 'Pick the nationality.'],
+        'a picked guest with none on file' => [['guest_id' => $unknown->id], 'This guest has no nationality. Pick one and turn on Update guest profile.'],
+        'an updated profile that clears it' => [['guest_id' => $setup['guest']->id, 'update_profile' => true, 'full_name' => 'Siti', 'nationality_code' => ''], 'Pick the nationality.'],
+    };
+
+    $this->actingAs($setup['user'])
+        ->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, ['guests' => [['stays_in' => 0, ...$tab]]]))
+        ->assertSessionHasErrors(['guests.0.nationality_code' => $message]);
+
+    expect(Reservation::query()->count())->toBe(0);
+})->with(['a new guest without one', 'a picked guest with none on file', 'an updated profile that clears it']);
+
+test('a picked guest with no nationality books once the profile update adds one', function () {
+    $setup = bookingSetup();
+    $guest = Guest::factory()->create(['property_id' => $setup['property']->id, 'full_name' => 'Lim Wei Jie', 'nationality_code' => null]);
+
+    $this->actingAs($setup['user'])
+        ->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, ['guests' => [['guest_id' => $guest->id, 'update_profile' => true, 'full_name' => 'Lim Wei Jie', 'nationality_code' => 'SG', 'stays_in' => 0]]]))
+        ->assertSessionHasNoErrors();
+
+    expect(Reservation::query()->count())->toBe(1)
+        ->and($guest->fresh()->nationality_code)->toBe('SG');
+});
+
+test('staff without guests.manage see the missing nationality on the guest name', function () {
+    $setup = bookingSetup();
+    $guest = Guest::factory()->create(['property_id' => $setup['property']->id, 'nationality_code' => null]);
+    $user = User::factory()->create(['property_id' => $setup['property']->id]);
+    actionsRoleWith($user, ['reservations.view', 'reservations.manage', 'guests.view']);
+
+    $this->actingAs($user)
+        ->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, ['guests' => [['guest_id' => $guest->id, 'stays_in' => 0]]]))
+        ->assertSessionHasErrors(['guests.0.full_name' => 'This guest has no nationality. Ask someone who can edit guests to add it.']);
+
+    expect(Reservation::query()->count())->toBe(0);
+});
+
 test('a booking creates a guest, updates another and attaches both to their units', function () {
     $setup = bookingSetup();
     $other = Guest::factory()->create(['property_id' => $setup['property']->id, 'full_name' => 'Ahmad Faiz', 'city' => 'Ipoh']);
@@ -288,7 +329,7 @@ test('a booking creates a guest, updates another and attaches both to their unit
         'lines' => [bookingFormLine($setup), bookingFormLine($setup)],
         'guests' => [
             ['guest_id' => $setup['guest']->id, 'stays_in' => 0],
-            ['full_name' => 'Nur Aina', 'phone' => '012-888 2211', 'email' => 'aina@example.com', 'city' => 'Penang', 'date_of_birth' => '1990-05-04', 'stays_in' => 1],
+            ['full_name' => 'Nur Aina', 'nationality_code' => 'MY', 'phone' => '012-888 2211', 'email' => 'aina@example.com', 'city' => 'Penang', 'date_of_birth' => '1990-05-04', 'stays_in' => 1],
             ['guest_id' => $other->id, 'update_profile' => true, 'full_name' => 'Ahmad Faiz', 'city' => 'Melaka', 'stays_in' => 1],
         ],
     ]))->assertSessionHasNoErrors();
@@ -349,10 +390,10 @@ test('a refused guest tab shows the error on the tab and saves nothing, not even
     $setup = bookingSetup();
     $bed = ['room_type_id' => $setup['dorm']->id, 'rate_plan_id' => $setup['bedPlan']->id, 'adults' => 1, 'beds' => 1];
     [$body, $key, $message] = match ($case) {
-        'a second guest in a bed unit' => [bookingBody($setup, ['lines' => [$bed], 'guests' => [['full_name' => 'First', 'stays_in' => 0], ['full_name' => 'Second', 'stays_in' => 0]]]), 'guests.1.stays_in', 'A bed unit holds one guest.'],
-        'a unit that is not on the booking' => [bookingBody($setup, ['guests' => [['full_name' => 'First', 'stays_in' => 5]]]), 'guests.0.stays_in', 'This unit is not on the booking.'],
+        'a second guest in a bed unit' => [bookingBody($setup, ['lines' => [$bed], 'guests' => [['full_name' => 'First', 'nationality_code' => 'MY', 'stays_in' => 0], ['full_name' => 'Second', 'nationality_code' => 'MY', 'stays_in' => 0]]]), 'guests.1.stays_in', 'A bed unit holds one guest.'],
+        'a unit that is not on the booking' => [bookingBody($setup, ['guests' => [['full_name' => 'First', 'nationality_code' => 'MY', 'stays_in' => 5]]]), 'guests.0.stays_in', 'This unit is not on the booking.'],
         'a guest tab with no unit' => [bookingBody($setup, ['guests' => [['full_name' => 'First', 'stays_in' => 0], ['full_name' => 'Second']]]), 'guests.1.stays_in', 'Choose the unit this guest stays in.'],
-        'a new guest with no name' => [bookingBody($setup, ['guests' => [['email' => 'a@example.com']]]), 'guests.0.full_name', 'Enter the guest\'s name or pick an existing guest.'],
+        'a new guest with no name' => [bookingBody($setup, ['guests' => [['email' => 'a@example.com', 'nationality_code' => 'MY']]]), 'guests.0.full_name', 'Enter the guest\'s name or pick an existing guest.'],
         'the same guest twice in a unit' => [bookingBody($setup, ['guests' => [['guest_id' => $setup['guest']->id, 'stays_in' => 0], ['guest_id' => $setup['guest']->id, 'stays_in' => 0]]]), 'guests.1.guest_id', 'This guest already stays in this unit.'],
         'a guest of another property' => [bookingBody($setup, ['guests' => [['guest_id' => $setup['guest']->id], ['guest_id' => Guest::factory()->create()->id, 'stays_in' => 0]]]), 'guests.1.guest_id', 'This guest cannot be found.'],
     };

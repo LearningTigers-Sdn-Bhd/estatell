@@ -16,6 +16,7 @@ use App\Enums\SellUnit;
 use App\Enums\StayType;
 use App\Http\Requests\Guests\GuestProfileRules;
 use App\Models\BookingSource;
+use App\Models\Guest;
 use App\Models\Property;
 use App\Models\RoomType;
 use Carbon\CarbonImmutable;
@@ -292,7 +293,8 @@ class StoreBookingRequest extends FormRequest
     }
 
     /**
-     * Every tab after the booker needs a unit to stay in, and creating or updating a guest needs `guests.manage`.
+     * Every tab after the booker needs a unit to stay in, every guest needs a nationality, and creating or updating a
+     * guest needs `guests.manage`.
      */
     private function checkGuests(Validator $validator): void
     {
@@ -300,6 +302,8 @@ class StoreBookingRequest extends FormRequest
             if ($index > 0 && ! isset($tab['stays_in'])) {
                 $validator->errors()->add("guests.{$index}.stays_in", __('Choose the unit this guest stays in.'));
             }
+
+            $this->checkNationality($validator, $index, $tab);
 
             if ($this->canManageGuests()) {
                 continue;
@@ -310,6 +314,46 @@ class StoreBookingRequest extends FormRequest
             } elseif (! empty($tab['update_profile'])) {
                 $validator->errors()->add("guests.{$index}.update_profile", __('You may not change a guest\'s profile.'));
             }
+        }
+    }
+
+    /**
+     * Taxes for foreign guests need the nationality, so a booking never saves a guest without one. A new guest sends
+     * it. A picked guest keeps the one on file, unless an updated profile sends the field, which must then be filled.
+     * A guest that cannot be found is left to `CreateBooking`, which refuses it.
+     *
+     * @param  array<string, mixed>  $tab
+     */
+    private function checkNationality(Validator $validator, int $index, array $tab): void
+    {
+        $key = "guests.{$index}.nationality_code";
+
+        if (empty($tab['guest_id'])) {
+            if (blank($tab['nationality_code'] ?? null)) {
+                $validator->errors()->add($key, __('Pick the nationality.'));
+            }
+
+            return;
+        }
+
+        if (! empty($tab['update_profile']) && array_key_exists('nationality_code', $tab)) {
+            if (blank($tab['nationality_code'])) {
+                $validator->errors()->add($key, __('Pick the nationality.'));
+            }
+
+            return;
+        }
+
+        $guest = Guest::query()->where('property_id', $this->property()->id)->find((int) $tab['guest_id']);
+
+        if ($guest === null || filled($guest->nationality_code)) {
+            return;
+        }
+
+        if ($this->canManageGuests()) {
+            $validator->errors()->add($key, __('This guest has no nationality. Pick one and turn on Update guest profile.'));
+        } else {
+            $validator->errors()->add("guests.{$index}.full_name", __('This guest has no nationality. Ask someone who can edit guests to add it.'));
         }
     }
 

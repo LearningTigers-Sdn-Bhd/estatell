@@ -167,6 +167,7 @@ Units without a guest are allowed. The footer counts them, and they show "No gue
 - **Change guest** unlinks the guest, keeps the typed values and focuses Name.
 - A blacklisted guest shows the reason as a warning. The booking is still allowed.
 - With no guest picked, a new guest is created on save. The `DuplicateWarning` (`guests.matches`, `GuestMatcher`) shows under the fields with "Use existing" and "Create new anyway".
+- **Nationality is required** for every guest row, the booker too, because foreign-only taxes (tourism tax) need it. A new guest, or a linked guest with **Update guest profile** on, must pick one ("Pick the nationality."). A linked guest with none on file is refused with "This guest has no nationality. Pick one and turn on Update guest profile.", or, for staff without `guests.manage`, "Ask someone who can edit guests to add it." on the Name field. `StoreBookingRequest::checkNationality` checks it. An unknown guest id is left to `CreateBooking` (`guest_not_found`). In the Nationality box the first match is highlighted as you type, so Enter picks it, and Enter never submits the form (`CountrySelect`).
 
 ### Guest details
 
