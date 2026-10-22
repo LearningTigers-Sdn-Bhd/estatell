@@ -11,6 +11,7 @@ use App\Actions\FrontDesk\CheckOutAndRefund;
 use App\Actions\FrontDesk\PostUnitPolicyFee;
 use App\Actions\FrontDesk\UndoCheckIn;
 use App\Actions\FrontDesk\UndoCheckOut;
+use App\Actions\NightAudit\PostMissedNights;
 use App\Actions\Payments\PaymentResult;
 use App\Actions\Payments\RefundFolioCredit;
 use App\Actions\Payments\RefundPayment;
@@ -54,6 +55,7 @@ class ReplayWastaysCorrections
         private UndoCheckIn $undoCheckIn,
         private UndoCheckOut $undoCheckOut,
         private ChangeUnitDates $changeUnitDates,
+        private PostMissedNights $postMissedNights,
         private PostUnitPolicyFee $postUnitPolicyFee,
         private CheckOutAndRefund $checkOutAndRefund,
         private RecordImportLink $recordImportLink,
@@ -297,6 +299,7 @@ class ReplayWastaysCorrections
         $this->done($event, $result, 'the stay dates could not be changed');
 
         $this->priceAddedNights($context, $event, $unit, $before, $reason);
+        $this->postClosedNights($context, $event, $unit, $before);
         $context->summary->count('stay dates changed');
     }
 
@@ -314,6 +317,25 @@ class ReplayWastaysCorrections
             $priced = ($this->changeNightPrice)($context->actor, $unit, $nights->all(), (string) $price, $reason);
             $this->done($event, $priced, 'the price of the added nights could not be set');
         }
+    }
+
+    /**
+     * A stay extended into a night whose audit already ran (wastays posted it as a repair): post that night now, on
+     * the business date, as a missed night.
+     *
+     * @param  list<string>  $before  the dates the unit had before the change
+     */
+    private function postClosedNights(ReplayContext $context, WastaysEvent $event, ReservationUnit $unit, array $before): void
+    {
+        $unit->refresh();
+        $closed = $unit->nights()->whereDate('date', '<', $context->date)->get()->reject(fn (UnitNight $night): bool => in_array($night->date->toDateString(), $before, true));
+
+        if ($unit->status !== UnitStatus::CheckedIn || $closed->isEmpty()) {
+            return;
+        }
+
+        $this->done($event, ($this->postMissedNights)($context->actor, $unit), 'the closed nights of the extended stay could not be posted');
+        $context->summary->count('closed nights posted after a stay change');
     }
 
     private function earlyDeparture(ReplayContext $context, WastaysEvent $event): void
