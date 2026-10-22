@@ -33,7 +33,6 @@ class WastaysCodeMap
     private const array TAXES = [
         'TAX_SST' => SystemTransactionCode::SstTax,
         'TAX_TTX' => SystemTransactionCode::TourismTax,
-        'TAX' => SystemTransactionCode::TourismTax,
     ];
 
     /** @var array<string, SystemTransactionCode> */
@@ -61,6 +60,8 @@ class WastaysCodeMap
         'MISC' => ['name' => 'Miscellaneous Revenue', 'code' => 'MISC', 'category' => TransactionCategory::Other],
         'PARK' => ['name' => 'Parking', 'code' => 'PARKING', 'category' => TransactionCategory::Fee],
         'BED' => ['name' => 'Extra Bed', 'code' => 'EXTRA_BED', 'category' => TransactionCategory::Fee],
+        // The manual TTX extra charge, until the hotel says whether it is the tourism tax. It carries no tax.
+        'TAX' => ['name' => 'TTX', 'code' => 'TTX', 'category' => TransactionCategory::Other],
     ];
 
     public function payment(string $code): ?SystemTransactionCode
