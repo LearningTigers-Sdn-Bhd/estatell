@@ -447,19 +447,34 @@ function CheckOutForm({
                                     error={errors.stayed_last_night}
                                 />
                             )}
-                            {(leftYesterday ||
-                                early?.leftYesterdayAvailable === true) && (
-                                <button
-                                    type="button"
-                                    className="self-start text-sm underline underline-offset-4"
-                                    onClick={() =>
-                                        setLeftYesterday(!leftYesterday)
+                            {(leftYesterday || preview.leftYesterdayChoice) && (
+                                <ChoiceCards
+                                    id="check-out-left-yesterday"
+                                    legend={`When did the guest leave? Hotel day ${pendingDay}`}
+                                    choices={[
+                                        {
+                                            value: 'left',
+                                            label: 'They left yesterday',
+                                            description:
+                                                preview.leftYesterdayBlocked ??
+                                                `Check out on ${pendingDay}. The night is not charged. A reason is needed.`,
+                                            icon: DoorOpen,
+                                            disabled:
+                                                preview.leftYesterdayBlocked !==
+                                                null,
+                                        },
+                                        {
+                                            value: 'stayed',
+                                            label: 'They stayed last night',
+                                            description: `Check out today. ${pendingDay} is charged.`,
+                                            icon: Moon,
+                                        },
+                                    ]}
+                                    value={leftYesterday ? 'left' : 'stayed'}
+                                    onValueChange={(value) =>
+                                        setLeftYesterday(value === 'left')
                                     }
-                                >
-                                    {leftYesterday
-                                        ? 'Back to checking out today'
-                                        : `Guest actually left yesterday (${pendingDay})? ›`}
-                                </button>
+                                />
                             )}
                             {preview.error !== null && (
                                 <p className="text-sm text-destructive">

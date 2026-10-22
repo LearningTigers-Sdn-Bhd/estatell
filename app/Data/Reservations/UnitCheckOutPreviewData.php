@@ -22,7 +22,9 @@ use Spatie\LaravelData\Data;
  * pending (They left yesterday or They stayed last night). `auditPending` is the strip and the ⓘ line shown while the
  * audit is pending. `damageItem` is the damage charge item the user may post (null hides the damage choice), and
  * `damageTotal` what the typed damage amount adds to the folio with tax; neither is in `balance`, and `refundDefault`
- * and `refundParts` already count the damage.
+ * and `refundParts` already count the damage. `leftYesterdayChoice` is set for a guest who may have left on the business date
+ * while the audit is pending, so the Dialog asks They left yesterday or They stayed last night. `leftYesterdayBlocked`
+ * is the reason the first card is disabled (the unit arrived on the business date), or null.
  */
 class UnitCheckOutPreviewData extends Data
 {
@@ -55,6 +57,8 @@ class UnitCheckOutPreviewData extends Data
         public ?UnitAuditPendingData $auditPending = null,
         public ?CheckOutDamageItemData $damageItem = null,
         public ?string $damageTotal = null,
+        public bool $leftYesterdayChoice = false,
+        public ?string $leftYesterdayBlocked = null,
     ) {}
 
     public static function refused(string $error): self

@@ -3462,6 +3462,8 @@ overdue: App.Data.Reservations.UnitOverdueData | null,
 auditPending: App.Data.Reservations.UnitAuditPendingData | null,
 damageItem: App.Data.Reservations.CheckOutDamageItemData | null,
 damageTotal: string | null,
+leftYesterdayChoice: boolean,
+leftYesterdayBlocked: string | null,
 };
 export type UnitDatesPreviewData = {
 previousTotal: string | null,

@@ -327,6 +327,14 @@ class UnitActionPreview
             );
         }
 
+        if ($unit->status === UnitStatus::CheckedIn && $businessDate !== null) {
+            $leftYesterdayRefusal = $this->earlyCheckOutRule->refusal($unit, $businessDate->toDateString(), true);
+            $preview->leftYesterdayChoice = $leftYesterdayRefusal === null || $leftYesterdayRefusal === UnitStayResult::REFUSAL_ARRIVED_TODAY;
+            $preview->leftYesterdayBlocked = $leftYesterdayRefusal === UnitStayResult::REFUSAL_ARRIVED_TODAY
+                ? __('Arrived on :date, so there is no night to remove. If they checked in by mistake, use Undo check-in.', ['date' => $businessDate->format('j M')])
+                : null;
+        }
+
         if ($unit->status !== UnitStatus::CheckedIn || $businessDate === null || (! $leftYesterday && $this->stayDay->forCheckOut($property, $businessDate)->toDateString() >= $unit->departure_date->toDateString())) {
             $preview->auditPending = $businessDate === null ? null : $this->auditPendingNotice->block($property, $pendingLines === [] ? null : $this->addedNowNotice($businessDate));
 

@@ -1489,6 +1489,77 @@ test('guest actually left yesterday is refused when the audit is not pending', f
 });
 
 /**
+ * A checked-in unit that arrived two days ago and departs today, the stay day, while the business date is yesterday and
+ * the audit is pending. A plain check-out would charge the night of the business date.
+ *
+ * @return array{user: User, property: Property, reservation: Reservation, unit: ReservationUnit}
+ */
+function uaLeftYesterdayOnStayDaySetup(): array
+{
+    $setup = uaSetup(unit: ['status' => UnitStatus::CheckedIn, 'checked_in_at' => now()->subDays(2), 'arrival_date' => today()->subDays(2)->toDateString(), 'departure_date' => today()->toDateString()]);
+    uaCheckInSetup($setup);
+    BusinessDate::query()->update(['date' => today()->subDay()->toDateString()]);
+
+    return $setup;
+}
+
+test('a plain check-out on the stay day offers They left yesterday while the audit is pending', function () {
+    $setup = uaLeftYesterdayOnStayDaySetup();
+
+    $preview = $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-out-preview'))->assertOk()->json();
+
+    expect($preview['early'])->toBeNull()
+        ->and($preview['leftYesterdayChoice'])->toBeTrue()
+        ->and($preview['leftYesterdayBlocked'])->toBeNull()
+        ->and($preview['pendingLines'])->not->toBeEmpty();
+});
+
+test('They left yesterday on a stay day departure posts no night and removes the unslept night', function () {
+    $setup = uaLeftYesterdayOnStayDaySetup();
+    $firstNight = $setup['unit']->nights()->whereDate('date', today()->subDays(2)->toDateString())->sole();
+
+    $preview = $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-out-preview'), ['left_yesterday' => true])->assertOk()->json();
+
+    expect($preview['early']['newDeparture'])->toBe(today()->subDay()->toDateString())
+        ->and($preview['early']['nightsRemoved'])->toBe(1)
+        ->and($preview['leftYesterdayChoice'])->toBeTrue()
+        ->and($preview['leftYesterdayBlocked'])->toBeNull()
+        ->and($preview['pendingLines'])->toBe([]);
+
+    $collect = (string) BigDecimal::of($preview['owing'])->plus($preview['early']['feeTotal'])->toScale(2);
+    $payload = ['left_yesterday' => true, 'expected_fee' => $preview['early']['fee'], 'collect_amount' => $collect, 'payment_method_id' => PaymentMethod::query()->sole()->id, 'idempotency_key' => fake()->uuid()];
+
+    $this->actingAs($setup['user'])->post(uaUrl($setup, 'early-check-out'), $payload)->assertSessionHasErrors('reason');
+    $this->actingAs($setup['user'])->post(uaUrl($setup, 'early-check-out'), [...$payload, 'reason' => 'Left at night'])->assertSessionHasNoErrors();
+
+    $unit = $setup['unit']->fresh();
+
+    expect($unit->status)->toBe(UnitStatus::CheckedOut)
+        ->and($unit->departure_date->toDateString())->toBe(today()->subDay()->toDateString())
+        ->and($unit->nights()->pluck('id')->all())->toBe([$firstNight->id])
+        ->and(FolioLine::query()->where('idempotency_key', 'like', 'night:%')->count())->toBe(0);
+});
+
+test('They left yesterday shows disabled for a guest who arrived on the business date', function () {
+    $setup = uaEarlyPendingSetup();
+
+    $preview = $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-out-preview'))->assertOk()->json();
+
+    expect($preview['early']['newDeparture'])->toBe(today()->toDateString())
+        ->and($preview['leftYesterdayChoice'])->toBeTrue()
+        ->and($preview['leftYesterdayBlocked'])->toContain('no night to remove');
+});
+
+test('They left yesterday is not offered for a guest due to leave on the business date or when the audit is not pending', function () {
+    $overdue = uaOverdueSetup();
+    $inSync = uaSetup(unit: ['status' => UnitStatus::CheckedIn, 'checked_in_at' => now()->subDays(2), 'arrival_date' => today()->subDays(2)->toDateString(), 'departure_date' => today()->toDateString()]);
+    uaCheckInSetup($inSync);
+
+    expect($this->actingAs($overdue['user'])->postJson(uaUrl($overdue, 'check-out-preview'))->assertOk()->json('leftYesterdayChoice'))->toBeFalse()
+        ->and($this->actingAs($inSync['user'])->postJson(uaUrl($inSync, 'check-out-preview'))->assertOk()->json('leftYesterdayChoice'))->toBeFalse();
+});
+
+/**
  * A CheckedIn unit that was due to leave yesterday, the business date, while the calendar date is today: the night audit
  * has not run. It slept one night, two days ago. The plan has a rate for the night of the business date.
  *
