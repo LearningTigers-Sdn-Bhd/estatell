@@ -9,6 +9,8 @@ use Spatie\LaravelData\Data;
 /**
  * What the group check-out page shows: the rooms in the sections of the Rows table of the doc, the Master line, the summary of
  * the choices and the payment methods. It is read only. `error` is set when no row can be built (no business date).
+ * `openFolios` lists the Open Master and Third party folios that still hold money, and is filled only when no room is
+ * left (every room is out), so the page can offer to settle them.
  */
 class GroupCheckOutPreviewData extends Data
 {
@@ -29,5 +31,8 @@ class GroupCheckOutPreviewData extends Data
         public array $methods,
         public ?string $error,
         public ?UnitAuditPendingData $auditPending = null,
+        /** @var list<GroupCheckOutFolioData> */
+        #[DataCollectionOf(GroupCheckOutFolioData::class)]
+        public array $openFolios = [],
     ) {}
 }

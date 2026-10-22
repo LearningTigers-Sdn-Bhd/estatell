@@ -3065,6 +3065,22 @@ paymentIds: number[],
 masterUrl: string | null,
 canSettleMaster: boolean,
 };
+export type GroupCheckOutFolioData = {
+key: string,
+name: string,
+balance: string,
+payerCompanyName: string | null,
+canRecordPayment: boolean,
+canSettleToCityLedger: boolean,
+paymentUnitId: number | null,
+paymentPurposes: {
+value: string,
+label: string,
+}[],
+defaultPaymentPurpose: string | null,
+settleCreditWarning: string | null,
+url: string,
+};
 export type GroupCheckOutMasterData = {
 folioId: number,
 label: string,
@@ -3090,6 +3106,7 @@ summary: App.Data.Reservations.GroupCheckOutSummaryData,
 methods: App.Data.Payments.PaymentMethodOptionData[],
 error: string | null,
 auditPending: App.Data.Reservations.UnitAuditPendingData | null,
+openFolios: App.Data.Reservations.GroupCheckOutFolioData[],
 };
 export type GroupCheckOutRowData = {
 unitId: number,

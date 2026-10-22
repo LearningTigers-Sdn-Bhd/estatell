@@ -35,15 +35,19 @@ class ReservationGroupCheckOutController extends Controller
     /**
      * The page: the rooms, the Master line and the summary of the prefilled choices. `canPrintReceipts` shows Print receipts on the
      * success state. `paymentOptions` and `canWaiveFees` are for the **Check out** Dialog that **Check out early…** opens, as on the reservation page.
-     * With no room left to check out the page redirects to the reservation with a toast, unless it is the success state of a save.
+     * With no room left to check out the page redirects to the reservation with a toast (kept if another toast is already
+     * waiting), unless it is the success state of a save or an Open Master or Third party folio still holds money: then
+     * it stays open and lists those folios.
      */
     public function show(Request $request, Property $property, Reservation $reservation, GroupCheckOutPreview $preview, ReservationFormOptions $options): Response|RedirectResponse
     {
         $rooms = $preview->forReservation($reservation, $request->user());
         $justSaved = array_key_exists('groupCheckOut', Inertia::getFlashed($request));
 
-        if ($rooms->rows === [] && $rooms->error === null && ! $justSaved) {
-            Inertia::flash('toast', ['type' => 'info', 'message' => __('No rooms are left to check out.')]);
+        if ($rooms->rows === [] && $rooms->error === null && $rooms->openFolios === [] && ! $justSaved) {
+            if (! array_key_exists('toast', Inertia::getFlashed($request))) {
+                Inertia::flash('toast', ['type' => 'info', 'message' => __('No rooms are left to check out.')]);
+            }
 
             return redirect()->route('reservations.show', ['property' => $property, 'reservation' => $reservation]);
         }

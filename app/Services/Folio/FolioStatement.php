@@ -336,7 +336,7 @@ class FolioStatement
      * The warning of the Settle confirmation: the company is over its credit limit. Settle is never refused by the
      * limit (it moves an open folio balance into open AR), so this only warns. Null under the limit.
      */
-    private function settleCreditWarning(Folio $folio): ?string
+    public function settleCreditWarning(Folio $folio): ?string
     {
         $company = Company::query()->where('property_id', $folio->property_id)->find($folio->payer_company_id);
 

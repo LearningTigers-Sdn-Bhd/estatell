@@ -132,8 +132,30 @@ The group leader often pays everyone's extras. With **One payment for all** tick
 - Every unit keeps its own log entries, room Dirty, folio close and status sync, as today. One `reservation.group_checked_out` entry holds the totals.
 - A CheckedOut unit's folio left at 0 closes itself (`CloseSettledUnitFolio`).
 - Permission: `front-desk.check-out` for the page, plus the money permissions above.
-- **No room to check out**: when the preview has no row (every room is out or cancelled with nothing to settle), the page redirects to the reservation page with an info toast, "No rooms are left to check out." The page after a save is the exception: it keeps the success state.
+- **No room to check out**: when the preview has no row (every room is out or cancelled with nothing to settle) and no Open Master or Third party folio still holds money, the page redirects to the reservation page with an info toast, "No rooms are left to check out." An existing toast, for example the one a settle just flashed, is kept. The page after a save is the exception: it keeps the success state. See [Folios still open](#folios-still-open).
 - **After saving**: the store redirects to the same page with Inertia flash data `groupCheckOut` (`GroupCheckOutDoneData`: rooms checked out and settled, collected, refunded, moved, the invoice number, the payment ids of the save and the Master link). The page shows a success state with the totals, **Print receipts** (opens one PDF with every receipt of this save in a new tab, built from the payment ids by `reservations.check-out.receipts`; shown only with payment.record and at least one payment) and the Master next step: **Settle to City ledger** while the Master is Open and the user may settle it, else **Open folio** (both open the Master folio tab).
+
+## Folios still open
+
+Each **Check out early…** is its own save, so the last room can leave without the group save, and the **Send to City ledger after check-out** box never shows. When every room is out but an Open Master or Third party folio still holds money, the page does not redirect. It shows "All rooms are checked out" and the list **Folios still open**.
+
+| Booking                                              | Listed                                                          | Redirects with the toast         |
+| ---------------------------------------------------- | --------------------------------------------------------------- | -------------------------------- |
+| Each unit pays                                       | nothing: no charge is routed to its Master, so the balance is 0 | yes                              |
+| Master pays, company on direct bill                  | the Master                                                      | no                               |
+| Master pays, no company                              | the Master                                                      | no                               |
+| Any of the above plus a Third party folio with money | the Master first, then each Third party folio                   | no                               |
+| A folio at 0, Closed or Voided                       | not listed                                                      | yes, when nothing else is listed |
+
+- **List only when no room is left.** `GroupCheckOutPreview` builds `openFolios` (`GroupCheckOutFolioData`) only when `rows` is empty, so the 300 ms preview of a busy page pays nothing for it.
+- **Row.** The folio label (type and payer), the amount to pay or in credit, and the actions below.
+- **Record payment.** Opens `RecordPaymentDialog`, the folio tab's Dialog. Shown with `payment.record` and a purpose the folio offers (`PaymentPurposeChoices`). The amount starts at the balance.
+- **Settle to City ledger.** Opens `SettleCityLedgerDialog`, the folio tab's Dialog. Shown for a company payer with direct bill, a balance above 0 and `city-ledger.invoice`. `settleCreditWarning` shows in the Dialog when the company is over its limit. Settle keeps its own refusals (`units_in_house`, scheduled charges still routed to the folio).
+- **Open folio.** The folio tab in a new tab (`target="_blank"`), so the page and its state stay.
+- **After an action** the Dialog posts and redirects back to this page, which lists the folios again. When the last folio is settled the page redirects with the toast of that action.
+- **Back from the other tab.** The page reads its data again when the browser tab becomes visible, so a payment taken on the folio tab shows here.
+- **Refund** is not offered: it needs a payment line. A folio in credit shows "In credit" and Open folio; refund it on the folio tab. Later topic.
+- The two Dialogs take the fields they read (`Pick<FolioData, ...>`), so the page that has only a `GroupCheckOutFolioData` can open them. The folio tab still passes its full `FolioData`.
 
 ## Routes and entry
 

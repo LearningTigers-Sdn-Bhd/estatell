@@ -6,6 +6,7 @@ use App\Actions\FrontDesk\GroupCheckOutRow;
 use App\Actions\FrontDesk\OnePayment;
 use App\Actions\FrontDesk\UnitStayResult;
 use App\Data\Payments\PaymentMethodOptionData;
+use App\Data\Reservations\GroupCheckOutFolioData;
 use App\Data\Reservations\GroupCheckOutMasterData;
 use App\Data\Reservations\GroupCheckOutPreviewData;
 use App\Data\Reservations\GroupCheckOutRowData;
@@ -23,14 +24,17 @@ use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
+use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\User;
 use App\Services\Folio\FolioBalance;
 use App\Services\Folio\FolioReopenRule;
+use App\Services\Folio\FolioStatement;
 use App\Services\Folio\IncomingScheduledCharges;
 use App\Services\Folio\MoveChargesPreview;
 use App\Services\NightAudit\CurrentBusinessDate;
+use App\Services\Payments\PaymentPurposeChoices;
 use App\Services\Platform\Impersonation;
 use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
@@ -69,6 +73,8 @@ class GroupCheckOutPreview
         private StayDay $stayDay,
         private PendingNightQuote $pendingNightQuote,
         private AuditPendingNotice $auditPendingNotice,
+        private PaymentPurposeChoices $paymentPurposeChoices,
+        private FolioStatement $folioStatement,
     ) {}
 
     public static function selectable(string $kind): bool
@@ -147,6 +153,7 @@ class GroupCheckOutPreview
             $this->auditPendingNotice->block($property, collect($rows)->contains(fn (GroupCheckOutRowData $row): bool => $row->pendingLines !== [])
                 ? __('Last night (:date) is added to the bill of each room checking out now. The night audit will skip it.', ['date' => $businessDate->format('j M')])
                 : null),
+            $rows === [] ? $this->openFolios($reservation, $property, $user) : [],
         );
     }
 
@@ -182,6 +189,56 @@ class GroupCheckOutPreview
             ->where('status', '!=', FolioStatus::Voided)
             ->whereIn('id', FolioLine::query()->select('folio_id')->groupBy('folio_id')->havingRaw('SUM(amount) <> 0'))
             ->exists();
+    }
+
+    /**
+     * The Open Master and Third party folios of the reservation that hold money (a balance above or below 0), the
+     * Master first. Folios at 0 are left out: nothing to settle. Each says what the user may do with it here.
+     *
+     * @return list<GroupCheckOutFolioData>
+     */
+    private function openFolios(Reservation $reservation, Property $property, User $user): array
+    {
+        $canRecord = $user->can(PermissionEnum::PaymentRecord->value);
+        $canSettle = $user->can(PermissionEnum::CityLedgerInvoice->value);
+
+        return Folio::query()
+            ->where('property_id', $reservation->property_id)
+            ->where('reservation_id', $reservation->id)
+            ->whereIn('type', [FolioType::Master, FolioType::ThirdParty])
+            ->where('status', FolioStatus::Open)
+            ->with(['payerCompany', 'payerGuest'])
+            ->orderBy('id')
+            ->get()
+            ->sortBy(fn (Folio $folio): int => $folio->type === FolioType::Master ? 0 : 1)
+            ->map(function (Folio $folio) use ($reservation, $property, $canRecord, $canSettle): ?GroupCheckOutFolioData {
+                $balance = $this->folioBalance->forFolio($folio);
+
+                if (BigDecimal::of($balance)->isZero()) {
+                    return null;
+                }
+
+                $company = $folio->payerCompany;
+                $settles = $canSettle && $company !== null && $company->direct_bill_enabled && BigDecimal::of($balance)->isPositive();
+                $purposes = $canRecord ? $this->paymentPurposeChoices->for($reservation, $folio, null) : [];
+
+                return new GroupCheckOutFolioData(
+                    (string) $folio->id,
+                    $this->moveChargesPreview->folioLabel($folio),
+                    $balance,
+                    $company?->name,
+                    $purposes !== [],
+                    $settles,
+                    null,
+                    array_map(fn (PaymentPurpose $purpose): array => ['value' => $purpose->value, 'label' => $purpose->label()], $purposes),
+                    ($purposes[0] ?? null)?->value,
+                    $settles ? $this->folioStatement->settleCreditWarning($folio) : null,
+                    route('reservations.folio', ['property' => $property, 'reservation' => $reservation, 'folio' => $folio->id]),
+                );
+            })
+            ->filter()
+            ->values()
+            ->all();
     }
 
     private function openMaster(Reservation $reservation): ?Folio

@@ -19,6 +19,7 @@ use App\Models\Company;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\FolioRoutingRule;
+use App\Models\Guest;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
 use App\Models\Property;
@@ -33,6 +34,7 @@ use App\Models\User;
 use App\Services\Payments\PaymentReceipt;
 use App\Services\Property\PrintProfile;
 use Brick\Math\BigDecimal;
+use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
 
@@ -779,4 +781,100 @@ test('a checked in room refunds an advance credit that is not a deposit', functi
     expect($s['units'][0]->fresh()->status)->toBe(UnitStatus::CheckedOut)
         ->and(Payment::query()->whereNotNull('refund_of_id')->sole()->amount)->toBe('200.00')
         ->and(gcBalance($s['folios'][0]))->toBe('0.00');
+});
+
+/**
+ * Check every room of the set-up out (their unit folios are at 0), then ask for the group page.
+ *
+ * @return TestResponse
+ */
+function gcAllOutPage(object $test, array $setup, ?User $as = null)
+{
+    gcSave($test, $setup, collect($setup['units'])->map(fn (ReservationUnit $unit): array => ['unit_id' => $unit->id])->all())->assertSessionHasNoErrors();
+    // The save flashes its success state to the next page request: show it once, so the next request is a plain visit.
+    $test->actingAs($setup['user'])->get(route('reservations.check-out', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]))->assertOk();
+
+    return $test->actingAs($as ?? $setup['user'])->get(route('reservations.check-out', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]));
+}
+
+test('with every room out and the Master holding money for a company the page stays open and offers to settle it', function () {
+    $s = gcSetup(2);
+    gcCompany($s);
+
+    gcAllOutPage($this, $s)->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->component('reservations/check-out')
+        ->has('checkOut.preview.rows', 0)
+        ->has('checkOut.preview.openFolios', 1)
+        ->where('checkOut.preview.openFolios.0.key', (string) $s['master']->id)
+        ->where('checkOut.preview.openFolios.0.balance', '80.00')
+        ->where('checkOut.preview.openFolios.0.canSettleToCityLedger', true)
+        ->where('checkOut.preview.openFolios.0.canRecordPayment', true)
+        ->where('checkOut.preview.openFolios.0.url', route('reservations.folio', ['property' => $s['property']->code, 'reservation' => $s['reservation']->id, 'folio' => $s['master']->id])));
+});
+
+test('a Master with no company can take a payment but not settle', function () {
+    $s = gcSetup(2);
+    gcCharge($s, $s['master'], '80.00');
+
+    gcAllOutPage($this, $s)->assertInertia(fn (Assert $page) => $page
+        ->has('checkOut.preview.openFolios', 1)
+        ->where('checkOut.preview.openFolios.0.canSettleToCityLedger', false)
+        ->where('checkOut.preview.openFolios.0.canRecordPayment', true));
+});
+
+test('a user without city-ledger.invoice cannot settle the Master', function () {
+    $s = gcSetup(2);
+    gcCompany($s);
+    $clerk = User::factory()->for($s['property'])->withPermissions(['reservations.view', 'front-desk.check-out', 'payment.record'])->create();
+
+    gcAllOutPage($this, $s, $clerk)->assertInertia(fn (Assert $page) => $page
+        ->where('checkOut.preview.openFolios.0.canSettleToCityLedger', false)
+        ->where('checkOut.preview.openFolios.0.canRecordPayment', true));
+});
+
+test('a third party folio that holds money is listed after the Master, and one at 0 is not', function () {
+    $s = gcSetup(2);
+    gcCompany($s);
+    $agent = Company::factory()->for($s['property'])->create();
+    $owing = app(CreateFolio::class)->thirdParty($s['reservation'], null, $agent->id);
+    gcCharge($s, $owing, '120.00');
+    $guest = Guest::factory()->for($s['property'])->create();
+    $empty = app(CreateFolio::class)->thirdParty($s['reservation'], $guest);
+
+    gcAllOutPage($this, $s)->assertInertia(fn (Assert $page) => $page
+        ->has('checkOut.preview.openFolios', 2)
+        ->where('checkOut.preview.openFolios.0.key', (string) $s['master']->id)
+        ->where('checkOut.preview.openFolios.1.key', (string) $owing->id)
+        ->where('checkOut.preview.openFolios.1.payerCompanyName', $agent->name)
+        ->where('checkOut.preview.openFolios.1.balance', '120.00'));
+
+    expect($empty->fresh()->status)->toBe(FolioStatus::Open);
+});
+
+test('with every room out and no folio holding money the page redirects to the reservation with a toast', function () {
+    $s = gcSetup(2);
+    app(CreateFolio::class)->thirdParty($s['reservation'], Guest::factory()->for($s['property'])->create());
+
+    gcAllOutPage($this, $s)
+        ->assertRedirect(route('reservations.show', ['property' => $s['property']->code, 'reservation' => $s['reservation']->id]))
+        ->assertInertiaFlash('toast', ['type' => 'info', 'message' => 'No rooms are left to check out.']);
+});
+
+test('a Master already settled to the city ledger does not keep the page open', function () {
+    $s = gcSetup(2);
+    gcCompany($s);
+    gcSave($this, $s, [['unit_id' => $s['units'][0]->id], ['unit_id' => $s['units'][1]->id]], ['settle_master' => true])->assertSessionHasNoErrors();
+    $this->actingAs($s['user'])->get(route('reservations.check-out', ['property' => $s['property']->code, 'reservation' => $s['reservation']->id]))->assertOk();
+
+    $this->actingAs($s['user'])
+        ->get(route('reservations.check-out', ['property' => $s['property']->code, 'reservation' => $s['reservation']->id]))
+        ->assertRedirect(route('reservations.show', ['property' => $s['property']->code, 'reservation' => $s['reservation']->id]));
+});
+
+test('the folios list is not built while a room is left to check out', function () {
+    $s = gcSetup(2);
+    gcCompany($s);
+
+    $this->actingAs($s['user'])->get(route('reservations.check-out', ['property' => $s['property']->code, 'reservation' => $s['reservation']->id]))
+        ->assertInertia(fn (Assert $page) => $page->has('checkOut.preview.rows', 2)->has('checkOut.preview.openFolios', 0));
 });
