@@ -215,7 +215,9 @@ test('payment rows carry the reference, the amount left and the refund action on
 
     $this->actingAs(fpStaff($setup, DefaultRoleEnum::FrontDesk))->get($url)->assertInertia(fn (Assert $page) => $page
         ->where('folio.canRecordPayment', true)
-        ->where('folio.rows', fn ($rows) => collect($rows)->every(fn ($row) => ! in_array('refund', $row['actions'], true))));
+        ->where('folio.rows', fn ($rows) => collect($rows)->contains(fn ($row) => in_array('refund', $row['actions'], true))));
+
+    $this->actingAs(fpStaff($setup, DefaultRoleEnum::Housekeeping))->get($url)->assertForbidden();
 });
 
 test('payment rows show an Advance or Security deposit purpose after the method, and Settlement shows none', function () {
@@ -261,7 +263,7 @@ test('the payment routes need their permission and stay inside the property and 
     $payment = fpPay($setup);
     $refundUrl = fpUrl($setup, 'reservations.folios.payments.refunds.store', ['folio' => $setup['folio']->id, 'payment' => $payment->id]);
 
-    $this->actingAs(fpStaff($setup, DefaultRoleEnum::FrontDesk))->post($refundUrl, ['amount' => '1.00', 'idempotency_key' => fake()->uuid()])->assertForbidden();
+    $this->actingAs(fpStaff($setup, DefaultRoleEnum::Housekeeping))->post($refundUrl, ['amount' => '1.00', 'idempotency_key' => fake()->uuid()])->assertForbidden();
     $this->actingAs(fpStaff($setup, DefaultRoleEnum::Housekeeping))->post(fpUrl($setup, 'reservations.folios.payments.store', ['folio' => $setup['folio']->id]), fpPayload($setup['cash']))->assertForbidden();
     $this->actingAs(fpStaff($setup, DefaultRoleEnum::Housekeeping))->postJson(fpUrl($setup, 'reservations.payments.quote'), ['payment_method_id' => $setup['cash']->id, 'amount' => '1.00'])->assertForbidden();
 
@@ -456,4 +458,73 @@ test('a unit before arrival has no purpose when its Room charges go to the Maste
     FolioRoutingRule::factory()->forCategory(TransactionCategory::Room)->toFolio($master)->create(['reservation_id' => $setup['reservation']->id]);
 
     expect($choices->for($setup['reservation'], null, $unit->id))->toBe([]);
+});
+
+test('voiding a payment through the route refunds it and refuses an older one with an error', function () {
+    $setup = fpSetup();
+    $today = fpPay($setup, '40.00');
+    $old = fpPay($setup, '20.00');
+    $url = fn (Payment $payment): string => fpUrl($setup, 'reservations.folios.payments.void', ['folio' => $setup['folio']->id, 'payment' => $payment->id]);
+
+    $this->actingAs($setup['user'])->post($url($today), ['idempotency_key' => fake()->uuid()])
+        ->assertSessionHasNoErrors()
+        ->assertInertiaFlash('toast.type', 'success');
+    BusinessDate::query()->update(['date' => today()->addDay()]);
+    $this->actingAs($setup['user'])->post($url($old), ['idempotency_key' => fake()->uuid()])
+        ->assertSessionHasErrors('form');
+
+    expect($today->refunds()->sole()->voided)->toBeTrue()
+        ->and($old->refunds()->count())->toBe(0);
+});
+
+test('a refund to another method needs the right and a reason, and the routes need payment.refund', function () {
+    $setup = fpSetup();
+    $bank = PaymentMethod::factory()->create(['property_id' => $setup['property']->id, 'type' => PaymentMethodType::BankTransfer]);
+    $payment = fpPay($setup);
+    $url = fpUrl($setup, 'reservations.folios.payments.refunds.store', ['folio' => $setup['folio']->id, 'payment' => $payment->id]);
+    $clerk = fpStaff($setup, DefaultRoleEnum::Housekeeping);
+
+    $this->actingAs($setup['user'])->post($url, ['amount' => '10.00', 'payment_method_id' => $bank->id, 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasErrors('reason');
+    $this->actingAs($setup['user'])->post($url, ['amount' => '10.00', 'payment_method_id' => $bank->id, 'reason' => 'Guest asked', 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasNoErrors();
+    $this->actingAs($clerk)->post($url, ['amount' => '10.00', 'idempotency_key' => fake()->uuid()])->assertForbidden();
+    $this->actingAs($clerk)->post(fpUrl($setup, 'reservations.folios.refund-credit.store', ['folio' => $setup['folio']->id]), ['amount' => '10.00', 'idempotency_key' => fake()->uuid()])->assertForbidden();
+
+    expect($payment->refunds()->sole()->payment_method_id)->toBe($bank->id);
+});
+
+test('refund credit refunds through the route and the folio shows the credit, the void action and who may use another method', function () {
+    $setup = fpSetup();
+    $payment = fpPay($setup, '80.00');
+    $folioUrl = fpUrl($setup, 'reservations.folio', ['folio' => $setup['folio']->id]);
+    $creditUrl = fpUrl($setup, 'reservations.folios.refund-credit.store', ['folio' => $setup['folio']->id]);
+
+    $this->actingAs($setup['user'])->get($folioUrl)->assertInertia(fn (Assert $page) => $page
+        ->where('folio.refundCredit', '80.00')
+        ->where('folio.canRefundOtherMethod', true)
+        ->where('folio.rows', fn ($rows) => collect($rows->all())->firstWhere('lineId', $payment->folio_line_id)['actions'] === ['refund', 'void']
+            && collect($rows->all())->firstWhere('lineId', $payment->folio_line_id)['methodType'] === 'cash'));
+
+    $this->actingAs($setup['user'])->post($creditUrl, ['amount' => '30.00', 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasNoErrors()
+        ->assertInertiaFlash('toast.type', 'success');
+    $this->actingAs($setup['user'])->post($creditUrl, ['amount' => '50.01', 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasErrors('amount');
+
+    $this->actingAs($setup['user'])->get($folioUrl)->assertInertia(fn (Assert $page) => $page
+        ->where('folio.refundCredit', '50.00')
+        ->where('folio.rows', fn ($rows) => collect($rows->all())->firstWhere('lineId', $payment->folio_line_id)['actions'] === ['refund']));
+
+    $front = fpStaff($setup, DefaultRoleEnum::FrontDesk);
+    $this->actingAs($front)->get($folioUrl)->assertInertia(fn (Assert $page) => $page
+        ->where('folio.refundCredit', '50.00')
+        ->where('folio.canRefundOtherMethod', false));
+});
+
+test('a folio with no credit offers no refund credit', function () {
+    $setup = fpSetup();
+
+    $this->actingAs($setup['user'])->get(fpUrl($setup, 'reservations.folio', ['folio' => $setup['folio']->id]))
+        ->assertInertia(fn (Assert $page) => $page->where('folio.refundCredit', null));
 });

@@ -21,6 +21,7 @@ use Spatie\LaravelData\Data;
  * warns and never stops the Settle. `paymentPurposes` are the purposes the Record payment Dialog offers for this folio's
  * stage, the default first, and `defaultPaymentPurpose` is that first one. With none, `canRecordPayment` is false.
  * `arInvoiceId` is the AR invoice that bills a Closed folio. `canOpenArInvoice` needs `company.view` and `canCreditArInvoice` needs the credit note permission, and the invoice must not be Void (it never is here). `canVoidAndReopen` needs `city-ledger.invoice` and `folio.reopen`; `voidInvoiceBlockedBy` is then the reason the invoice cannot be voided yet, or null. `invoiceVoided` is true when the folio's invoice number belongs only to Void AR invoices. `canPrintInvoice` is true for a Closed folio when the user holds `folio.print-voucher`.
+ * `refundCredit` is the most the **Refund credit** button can give back (the credit, never more than the payments hold), or null when the folio is not Open, has no credit, holds money no payment can return, or the user lacks `payment.refund`. `canRefundOtherMethod` is true when the user holds `payment.refund-other-method`.
  */
 class FolioData extends Data
 {
@@ -70,5 +71,7 @@ class FolioData extends Data
         public ?string $voidInvoiceBlockedBy = null,
         public ?string $oldSystemTitle = null,
         public ?string $oldSystemTotal = null,
+        public ?string $refundCredit = null,
+        public bool $canRefundOtherMethod = false,
     ) {}
 }

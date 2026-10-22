@@ -41,6 +41,7 @@ enum PermissionEnum: string
     case FolioViewManualEntries = 'folio.view-manual-entries';
     case PaymentRecord = 'payment.record';
     case PaymentRefund = 'payment.refund';
+    case PaymentRefundOtherMethod = 'payment.refund-other-method';
     case CompanyView = 'company.view';
     case CompanyManage = 'company.manage';
     case CompanyCreditOverride = 'company.credit-override';
@@ -102,6 +103,7 @@ enum PermissionEnum: string
             self::FolioViewManualEntries => __('See which folio lines were entered manually'),
             self::PaymentRecord => __('Record payments and download receipts'),
             self::PaymentRefund => __('Refund payments'),
+            self::PaymentRefundOtherMethod => __('Refund to a method other than the payment\'s own'),
             self::CompanyView => __('View companies'),
             self::CompanyManage => __('Manage companies'),
             self::CompanyCreditOverride => __('Pass a company credit limit check'),
@@ -143,7 +145,7 @@ enum PermissionEnum: string
             self::GuestsView, self::GuestsManage, self::GuestsBlacklist, self::GuestsViewDocuments, self::GuestsMerge, self::GuestsAnonymize => __('Guests'),
             self::ReservationsView, self::ReservationsManage, self::ReservationsChangePrice => __('Reservations'),
             self::FolioPostCharge, self::FolioReverse, self::FolioTransfer, self::FolioDiscount, self::FolioDiscountOpen, self::FolioClose, self::FolioReopen, self::FolioPrintVoucher, self::FolioManual, self::FolioViewManualEntries => __('Folio'),
-            self::PaymentRecord, self::PaymentRefund => __('Payments'),
+            self::PaymentRecord, self::PaymentRefund, self::PaymentRefundOtherMethod => __('Payments'),
             self::CompanyView, self::CompanyManage, self::CompanyCreditOverride, self::CityLedgerInvoice, self::CityLedgerCreditNote, self::CityLedgerPayment, self::CityLedgerAllocate => __('City ledger'),
             self::RegistrationCardManageTerms, self::RegistrationCardSign, self::RegistrationCardSendLink, self::RegistrationCardVoid => __('Registration card'),
             self::FrontDeskCheckIn, self::FrontDeskCheckOut, self::FrontDeskCheckInWithoutCard, self::FrontDeskWaiveFees, self::FrontDeskUndoCheckIn, self::FrontDeskUndoCheckOut => __('Front desk'),

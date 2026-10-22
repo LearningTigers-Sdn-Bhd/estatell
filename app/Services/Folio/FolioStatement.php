@@ -30,8 +30,11 @@ use App\Models\UnitNight;
 use App\Models\User;
 use App\Services\CityLedger\ArInvoiceVoidCheck;
 use App\Services\CityLedger\CreditCheck;
+use App\Services\FrontDesk\CheckOutSettlement;
+use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Payments\PaymentPurposeChoices;
 use Brick\Math\BigDecimal;
+use Closure;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
@@ -50,6 +53,8 @@ class FolioStatement
         private CreditCheck $creditCheck,
         private LineSourceUnits $lineSourceUnits,
         private ArInvoiceVoidCheck $arInvoiceVoidCheck,
+        private CurrentBusinessDate $currentBusinessDate,
+        private CheckOutSettlement $checkOutSettlement,
     ) {}
 
     /**
@@ -199,6 +204,31 @@ class FolioStatement
     }
 
     /**
+     * What **Refund credit** can give back: the credit of an Open folio, never more than its payments still hold. Null
+     * for a user who may not refund, a folio with no credit, or one that holds money no payment can return (a City
+     * ledger line).
+     *
+     * @param  Collection<int, FolioRowData>  $posted
+     */
+    private function refundCredit(?Folio $folio, bool $mayRefund, ?string $balance, Collection $posted): ?string
+    {
+        if ($folio === null || ! $mayRefund || $balance === null || ! BigDecimal::of($balance)->isNegative()) {
+            return null;
+        }
+
+        $held = $posted->filter(fn (FolioRowData $row): bool => in_array('refund', $row->actions, true))
+            ->reduce(fn (BigDecimal $sum, FolioRowData $row): BigDecimal => $sum->plus((string) $row->refundable), BigDecimal::zero());
+        $credit = BigDecimal::of($balance)->negated();
+        $most = $credit->isLessThan($held) ? $credit : $held;
+
+        if (! $most->isPositive() || $this->checkOutSettlement->holdsUnrefundable($folio->newCollection([$folio]))) {
+            return null;
+        }
+
+        return (string) $most->toScale(2);
+    }
+
+    /**
      * @param  array{key: string, folio: Folio|null, unit: int|null, item: FolioRailItemData}  $entry
      * @param  Collection<int, array{key: string, folio: Folio|null, unit: int|null, item: FolioRailItemData}>  $entries
      * @param  list<ReservationUnitOptionData>  $units
@@ -256,7 +286,7 @@ class FolioStatement
             ->filter(fn (ReservationUnitOptionData $unit): bool => in_array($unit->status->value, [UnitStatus::Confirmed->value, UnitStatus::CheckedIn->value, UnitStatus::CheckedOut->value], true))
             ->map(fn (ReservationUnitOptionData $unit): int => $unit->id)
             ->all()) : [];
-        [$posted, $discountable] = $folio === null ? [collect(), false] : $this->postedRows($folio, $allowed, $isOpen && ($can['discount'] ?? false), $isOpen && ($can['refund'] ?? false), $can['recordPayment'] ?? false, $can['printVoucher'] ?? false, $labels, $priceUnitIds, $can['viewManual'] ?? false);
+        [$posted, $discountable] = $folio === null ? [collect(), false] : $this->postedRows($folio, $allowed, $isOpen && ($can['discount'] ?? false), $isOpen && ($can['refund'] ?? false), $can['recordPayment'] ?? false, $can['printVoucher'] ?? false, $labels, $priceUnitIds, $can['viewManual'] ?? false, fn (): ?string => $this->currentBusinessDate->date($reservation->property)?->toDateString());
         $old = $posted->where('state', 'old')->values();
         $posted = $posted->where('state', 'posted')->values();
         $oldTotal = $old->reduce(fn (BigDecimal $sum, FolioRowData $row): BigDecimal => $sum->plus($row->amount), BigDecimal::zero());
@@ -264,6 +294,7 @@ class FolioStatement
         $purposes = ($can['recordPayment'] ?? false) && ($folio === null || $isOpen)
             ? $this->paymentPurposeChoices->for($reservation, $folio, $entry['unit'])
             : [];
+        $refundCredit = $this->refundCredit($folio, $isOpen && ($can['refund'] ?? false), $balance, $posted);
         $canSettle = ($can['settleCityLedger'] ?? false) && $isOpen && $folio->payer_company_id !== null && BigDecimal::of($balance)->isPositive();
         $billedBy = $folio !== null && $user !== null ? $this->folioReopenRule->billingInvoice($folio) : null;
         $invoiceVoided = $folio?->invoice_number !== null && $billedBy === null && ArInvoice::query()->where('folio_id', $folio->id)->where('status', ArInvoiceStatus::Void)->exists();
@@ -284,6 +315,8 @@ class FolioStatement
             rows: [...$old->all(), ...$posted->all(), ...$scheduled->all()],
             oldSystemTitle: $old->isEmpty() ? null : (filled($folio?->legacy_number) ? __('OLD SYSTEM · folio :number', ['number' => $folio->legacy_number]) : __('OLD SYSTEM')),
             oldSystemTotal: $old->isEmpty() ? null : (string) $oldTotal->toScale(2),
+            refundCredit: $refundCredit,
+            canRefundOtherMethod: $user?->can(PermissionEnum::PaymentRefundOtherMethod->value) ?? false,
             canClose: $isOpen && ($can['close'] ?? false),
             canReopen: $folio?->status === FolioStatus::Closed && $billedBy === null && $user !== null && $this->folioReopenRule->allows($user, $folio),
             canApplyDiscount: $isOpen && ($can['discount'] ?? false) && $discountable,
@@ -373,19 +406,20 @@ class FolioStatement
      * @param  list<int>  $priceUnitIds
      * @return array{0: Collection<int, FolioRowData>, 1: bool}
      */
-    private function postedRows(Folio $folio, array $allowed, bool $canRemoveDiscount, bool $canRefund, bool $canDownloadReceipt, bool $canPrintVoucher, array $labels, array $priceUnitIds = [], bool $viewManual = false): array
+    private function postedRows(Folio $folio, array $allowed, bool $canRemoveDiscount, bool $canRefund, bool $canDownloadReceipt, bool $canPrintVoucher, array $labels, array $priceUnitIds = [], bool $viewManual = false, ?Closure $businessDate = null): array
     {
         $nightMorph = (new UnitNight)->getMorphClass();
+        $today = false;
         $lines = $folio->lines()->orderBy('service_date')->orderBy('id')->get();
         $manualBatchIds = $viewManual ? $lines->pluck('manual_batch_id')->filter()->unique()->values() : collect();
         $manualBatches = $manualBatchIds->isEmpty() ? collect() : FolioManualBatch::query()->with('user:id,name')->whereIn('id', $manualBatchIds)->get()->keyBy('id');
-        $payments = $folio->payments()->withSum('refunds', 'amount')->get()->keyBy('folio_line_id');
+        $payments = $folio->payments()->withSum('refunds', 'amount')->with('paymentMethod')->get()->keyBy('folio_line_id');
         $reversed = $lines->pluck('reversal_of_id')->filter()->flip();
         $children = $lines->whereNotNull('parent_line_id')->groupBy('parent_line_id');
         $rows = collect();
         $sourceUnits = $this->lineSourceUnits->for($lines);
 
-        $walk = function (FolioLine $line, int $level, ?int $parentUnitId) use (&$walk, $sourceUnits, $labels, $children, $reversed, $rows, $allowed, $canRemoveDiscount, $payments, $canRefund, $canDownloadReceipt, $canPrintVoucher, $nightMorph, $priceUnitIds, $manualBatches): void {
+        $walk = function (FolioLine $line, int $level, ?int $parentUnitId) use (&$walk, $sourceUnits, $labels, $children, $reversed, $rows, $allowed, $canRemoveDiscount, $payments, $canRefund, $canDownloadReceipt, $canPrintVoucher, $nightMorph, $priceUnitIds, $manualBatches, &$today, $businessDate): void {
             $tags = [];
             $unitId = $line->source_id === null ? $parentUnitId : ($sourceUnits[$line->source_type.':'.$line->source_id] ?? $parentUnitId);
 
@@ -417,13 +451,18 @@ class FolioStatement
                 $tags[] = FolioRowTag::Refund;
             } elseif ($payment !== null) {
                 $refundable = (string) BigDecimal::of($payment->amount)->minus((string) ($payment->refunds_sum_amount ?? '0'))->toScale(2);
-                $actions = $canRefund && $payment->status === PaymentStatus::Completed && BigDecimal::of($refundable)->isPositive() ? ['refund'] : [];
+                $canTakeBack = $canRefund && $payment->status === PaymentStatus::Completed && BigDecimal::of($refundable)->isPositive();
+                $actions = $canTakeBack ? ['refund'] : [];
+
+                if ($canTakeBack && $businessDate !== null && BigDecimal::of($refundable)->isEqualTo($payment->amount) && $line->posting_date->toDateString() === ($today === false ? $today = $businessDate() : $today)) {
+                    $actions[] = 'void';
+                }
             }
 
             $purpose = $payment?->purpose->folioRowLabel();
             $description = $purpose === null ? $line->description : $line->description.' · '.$purpose;
 
-            $rows->push(new FolioRowData('line:'.$line->id, $line->migrated ? 'old' : 'posted', $line->service_date->toDateString(), $description, min($level, 2), $unitId === null ? null : ($labels[$unitId] ?? null), (string) $line->amount, [...array_map(BadgeData::fromFolioRowTag(...), $tags), ...$this->manualBadge($level, $line, $manualBatches)], $line->id, $actions, $payment?->reference, $payment?->id, $refundable, $canDownloadReceipt && $payment !== null && $payment->refund_of_id === null && $payment->receipt_number !== null, $line->kind, $canPrintVoucher && FolioVoucher::isPrintable($line, $reversed->has($line->id)), $correctsNight ? $unitId : null, $correctsNight ? $line->source_id : null, $line->service_date->lt($line->posting_date) ? $line->posting_date->toDateString() : null));
+            $rows->push(new FolioRowData('line:'.$line->id, $line->migrated ? 'old' : 'posted', $line->service_date->toDateString(), $description, min($level, 2), $unitId === null ? null : ($labels[$unitId] ?? null), (string) $line->amount, [...array_map(BadgeData::fromFolioRowTag(...), $tags), ...$this->manualBadge($level, $line, $manualBatches)], $line->id, $actions, $payment?->reference, $payment?->id, $refundable, $canDownloadReceipt && $payment !== null && $payment->refund_of_id === null && $payment->receipt_number !== null, $line->kind, $canPrintVoucher && FolioVoucher::isPrintable($line, $reversed->has($line->id)), $correctsNight ? $unitId : null, $correctsNight ? $line->source_id : null, $line->service_date->lt($line->posting_date) ? $line->posting_date->toDateString() : null, $payment?->paymentMethod->type->value));
 
             foreach ($children->get($line->id, []) as $child) {
                 $walk($child, $level + 1, $unitId);

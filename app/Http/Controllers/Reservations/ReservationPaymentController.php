@@ -4,12 +4,15 @@ namespace App\Http\Controllers\Reservations;
 
 use App\Actions\Payments\PaymentResult;
 use App\Actions\Payments\RecordPayment;
+use App\Actions\Payments\RefundFolioCredit;
 use App\Actions\Payments\RefundPayment;
+use App\Actions\Payments\VoidPayment;
 use App\Data\Payments\PaymentQuoteData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Payments\QuotePaymentRequest;
 use App\Http\Requests\Payments\StorePaymentRequest;
 use App\Http\Requests\Payments\StoreRefundRequest;
+use App\Http\Requests\Payments\StoreVoidRequest;
 use App\Models\Folio;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
@@ -68,7 +71,7 @@ class ReservationPaymentController extends Controller
      */
     public function refund(StoreRefundRequest $request, Property $property, Reservation $reservation, Folio $folio, Payment $payment, RefundPayment $refundPayment, PaymentRefusals $refusals): RedirectResponse
     {
-        $result = $refundPayment($request->user(), $payment, $request->string('amount')->toString(), $request->reference(), $request->string('idempotency_key')->toString());
+        $result = $refundPayment($request->user(), $payment, $request->string('amount')->toString(), $request->reference(), $request->string('idempotency_key')->toString(), methodId: $request->methodId(), reason: $request->reason());
         $page = $this->page($property, $reservation, $folio->id);
 
         if ($result->isRefused()) {
@@ -76,6 +79,40 @@ class ReservationPaymentController extends Controller
         }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Refund of :amount recorded.', ['amount' => $result->payment?->amount])]);
+
+        return back(fallback: $page);
+    }
+
+    /**
+     * Void a payment taken today by mistake: all of it goes back to its own method. A refusal goes back as an error.
+     */
+    public function void(StoreVoidRequest $request, Property $property, Reservation $reservation, Folio $folio, Payment $payment, VoidPayment $voidPayment, PaymentRefusals $refusals): RedirectResponse
+    {
+        $result = $voidPayment($request->user(), $payment, $request->string('idempotency_key')->toString());
+        $page = $this->page($property, $reservation, $folio->id);
+
+        if ($result->isRefused()) {
+            return back(fallback: $page)->withErrors($refusals->errors((string) $result->refusal));
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Payment of :amount voided.', ['amount' => $result->payment?->amount])]);
+
+        return back(fallback: $page);
+    }
+
+    /**
+     * Give a folio's credit back from its payments, without a check-out.
+     */
+    public function refundCredit(StoreRefundRequest $request, Property $property, Reservation $reservation, Folio $folio, RefundFolioCredit $refundFolioCredit, PaymentRefusals $refusals): RedirectResponse
+    {
+        $result = $refundFolioCredit($request->user(), $folio, $request->string('amount')->toString(), $request->methodId(), $request->reason(), $request->string('idempotency_key')->toString());
+        $page = $this->page($property, $reservation, $folio->id);
+
+        if ($result->isRefused()) {
+            return back(fallback: $page)->withErrors($refusals->errors((string) $result->refusal));
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Refund of :amount recorded.', ['amount' => $request->string('amount')->toString()])]);
 
         return back(fallback: $page);
     }

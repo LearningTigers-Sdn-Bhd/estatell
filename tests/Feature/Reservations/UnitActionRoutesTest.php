@@ -13,6 +13,7 @@ use App\Enums\FolioStatus;
 use App\Enums\FolioType;
 use App\Enums\PaymentMethodType;
 use App\Enums\PaymentPurpose;
+use App\Enums\PermissionEnum;
 use App\Enums\PolicyScope;
 use App\Enums\ReservationStatus;
 use App\Enums\SystemTransactionCode;
@@ -34,6 +35,7 @@ use App\Models\Rate;
 use App\Models\RatePlan;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
+use App\Models\Role;
 use App\Models\Room;
 use App\Models\RoomRevenuePolicy;
 use App\Models\RoomType;
@@ -46,6 +48,7 @@ use Brick\Math\BigDecimal;
 use Illuminate\Database\Eloquent\Model;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
+use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function () {
     $this->travelTo(now()->setDate(2026, 10, 10)->setTime(12, 0));
@@ -581,6 +584,8 @@ test('a refund above the deposit held is refused before anything is written', fu
 
 test('a deposit refund from a user without payment.refund is dropped', function () {
     $setup = uaDepartingSetup(DefaultRoleEnum::FrontDesk);
+    Role::query()->where('property_id', $setup['user']->property_id)->where('default_role', DefaultRoleEnum::FrontDesk->value)->sole()->revokePermissionTo(PermissionEnum::PaymentRefund->value);
+    app(PermissionRegistrar::class)->forgetCachedPermissions();
 
     $this->actingAs($setup['user'])
         ->post(uaUrl($setup, 'check-out'), ['refund_amount' => '100.00', 'idempotency_key' => fake()->uuid()])
