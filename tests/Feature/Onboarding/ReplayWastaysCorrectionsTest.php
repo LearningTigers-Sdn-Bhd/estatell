@@ -229,7 +229,7 @@ it('checks a same-day leaver out on the arrival day with the one night kept and 
         ->and(Folio::query()->sole()->invoice_number)->toBe("{$prefix}-26700009");
 });
 
-it('prices the kept night of a same-day leaver moved to the night before at the wastays early departure fee', function () {
+it('creates a stay moved into a closed night on its creation day as a backdated stay', function () {
     $setup = correctionsSetup();
     $tables = wastaysReplayTables();
     $audit = fn (string $id, string $action, string $at, array $old = [], array $new = []): array => [
@@ -256,8 +256,11 @@ it('prices the kept night of a same-day leaver moved to the night before at the 
     replay($x, '2026-08-13');
     $second = replay($x, '2026-08-14');
 
-    expect($second->counts)->toMatchArray(['same-day leavers checked out on the arrival day' => 1])
-        ->and(ReservationUnit::query()->sole()->status)->toBe(UnitStatus::CheckedOut)
+    $unit = ReservationUnit::query()->sole();
+
+    expect($second->counts)->toMatchArray(['backdated booking checked in as of its arrival' => 1, 'stay dates already set when created' => 1])
+        ->and($unit->arrival_date->toDateString())->toBe('2026-08-13')
+        ->and($unit->status)->toBe(UnitStatus::CheckedOut)
         ->and(FolioLine::query()->where('kind', TransactionKind::Charge)->pluck('amount')->all())->toBe(['120.00'])
         ->and(Folio::query()->sole()->status)->toBe(FolioStatus::Closed);
 });

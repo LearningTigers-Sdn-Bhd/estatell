@@ -221,6 +221,12 @@ class ReplayWastaysCorrections
             return;
         }
 
+        if ($arrival === $unit->arrival_date->toDateString() && $departure === $unit->departure_date->toDateString()) {
+            $context->summary->count('stay dates already set when created');
+
+            return;
+        }
+
         if ($context->index->hasEarlyDeparture((string) $event->bookingId) && $departure < $unit->departure_date->toDateString()) {
             $context->summary->count('early departure dates left to the early check-out');
 

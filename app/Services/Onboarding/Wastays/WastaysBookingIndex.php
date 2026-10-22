@@ -2,7 +2,6 @@
 
 namespace App\Services\Onboarding\Wastays;
 
-use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
 
 /**
@@ -119,10 +118,12 @@ final class WastaysBookingIndex
     /**
      * The arrival and departure dates the booking had when it was created: the old dates of its first date change, else
      * the dates it has now. A guest who left early was booked up to the last night of the rate snapshot. A stay that arrives and leaves on one day gets one night (the replay checks it out the next day).
+     * A first change made before `$closedAt` (the end of the creation day) that moves the arrival before `$businessDate`
+     * gives the new dates: estatell cannot move a stay into a closed night, so the booking is created there, backdated.
      *
      * @return array{0: string, 1: string}
      */
-    public function firstDates(string $bookingId): array
+    public function firstDates(string $bookingId, ?string $businessDate = null, ?CarbonImmutable $closedAt = null): array
     {
         $booking = $this->booking($bookingId);
         $arrival = substr((string) $booking['check_in'], 0, 10);
@@ -137,8 +138,12 @@ final class WastaysBookingIndex
             $new = json_decode((string) $row['new_value'], true) ?: [];
 
             if (($old['check_in'] ?? null) !== ($new['check_in'] ?? null) || ($old['check_out'] ?? null) !== ($new['check_out'] ?? null)) {
-                $arrival = substr((string) ($old['check_in'] ?? $arrival), 0, 10);
-                $departure = substr((string) ($old['check_out'] ?? $departure), 0, 10);
+                $movedIntoClosedNight = $businessDate !== null && isset($new['check_in'], $new['check_out'])
+                    && substr((string) $new['check_in'], 0, 10) < $businessDate
+                    && ($closedAt === null || CarbonImmutable::parse((string) $row['occurred_at'])->lt($closedAt));
+                $dates = $movedIntoClosedNight ? $new : $old;
+                $arrival = substr((string) ($dates['check_in'] ?? $arrival), 0, 10);
+                $departure = substr((string) ($dates['check_out'] ?? $departure), 0, 10);
 
                 break;
             }
@@ -199,31 +204,6 @@ final class WastaysBookingIndex
     public function hasEarlyDeparture(string $bookingId): bool
     {
         return $this->earlyDepartureLines($bookingId) !== [];
-    }
-
-    /**
-     * The one night kept for a same-day leaver whose wastays nights miss the estatell arrival date (the stay was moved
-     * to the night before): priced at the early departure lines wastays charged for it. Empty when there are none.
-     *
-     * @return array<string, string>
-     */
-    public function keptNight(string $bookingId, string $arrival): array
-    {
-        $ids = $this->earlyDepartureLines($bookingId);
-
-        if ($ids === []) {
-            return [];
-        }
-
-        $total = BigDecimal::zero();
-
-        foreach ($this->rows('folio_transactions') as $row) {
-            if (in_array((string) $row['id'], $ids, true)) {
-                $total = $total->plus((string) $row['amount']);
-            }
-        }
-
-        return [$arrival => (string) $total->toScale(2)];
     }
 
     /**

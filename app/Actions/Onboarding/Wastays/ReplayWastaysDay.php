@@ -128,7 +128,7 @@ class ReplayWastaysDay
             }
 
             match ($event->type) {
-                WastaysEventType::Create => $this->create($context, $event),
+                WastaysEventType::Create => $this->create($context, $event, $day),
                 WastaysEventType::CheckIn => $this->checkIn($context, $event),
                 WastaysEventType::Charge => $this->charge($context, $event),
                 WastaysEventType::Payment => $this->payment($context, $event),
@@ -221,7 +221,7 @@ class ReplayWastaysDay
         }
     }
 
-    private function create(ReplayContext $context, WastaysEvent $event): void
+    private function create(ReplayContext $context, WastaysEvent $event, WastaysDay $day): void
     {
         $bookingId = $event->sourceId;
 
@@ -234,12 +234,8 @@ class ReplayWastaysDay
         $property = $context->property;
         $booking = $context->index->booking($bookingId);
         $room = $context->index->room($bookingId);
-        [$arrival, $departure] = $context->index->firstDates($bookingId);
+        [$arrival, $departure] = $context->index->firstDates($bookingId, $context->date, $day->window($context->date)['closed'] ?? null);
         $nights = $this->nightsIn($context->index->nights($bookingId), $arrival, $departure);
-
-        if ($nights === [] && $context->index->sameDayLeaver($bookingId)) {
-            $nights = $context->index->keptNight($bookingId, $arrival);
-        }
         $uniform = count($nights) === $this->dayCount($arrival, $departure) && count(array_unique($nights)) === 1;
         $all = count($nights) === $this->dayCount($arrival, $departure);
         $roomType = $this->linked($property, 'room_types', (string) $room['room_type_id']);
