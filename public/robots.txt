@@ -1,2 +1,5 @@
 User-agent: *
+Allow: /$
+Allow: /terms-and-conditions
+Allow: /privacy-policy
 Disallow: /

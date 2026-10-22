@@ -12,7 +12,9 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
 
-Route::redirect('/', '/dashboard')->name('home');
+Route::inertia('/', 'landing')->name('home');
+Route::inertia('terms-and-conditions', 'legal/terms')->name('terms');
+Route::inertia('privacy-policy', 'legal/privacy')->name('privacy');
 
 Route::get('_preview/errors/{status}', function (Request $request, int $status): Response {
     abort_unless(app()->environment('local'), 404);

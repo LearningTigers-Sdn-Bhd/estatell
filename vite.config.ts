@@ -19,6 +19,18 @@ export default defineConfig({
                 bunny('Geist', {
                     weights: [400, 500, 600],
                 }),
+                // The official logo fonts, for the landing page only. Not preloaded: a browser downloads them only
+                // on a page that uses them.
+                bunny('Poppins', {
+                    weights: [800],
+                    preload: false,
+                    optimizedFallbacks: false,
+                }),
+                bunny('Archivo Black', {
+                    weights: [400],
+                    preload: false,
+                    optimizedFallbacks: false,
+                }),
                 // The PDF font styles, from the same files dompdf uses, for the printing preview. Not preloaded:
                 // a browser downloads them only on a page that uses them.
                 ...(
