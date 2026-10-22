@@ -141,7 +141,7 @@ test('the reset counts match what was removed and are logged', function () {
         ->and($logged['reset'])->toMatchArray([
             'taxes' => 2,
             'paymentMethods' => 6,
-            'chargeItems' => 4,
+            'chargeItems' => 5,
             'discounts' => 1,
             'prices' => 31,
             'inclusions' => 0,

@@ -113,11 +113,13 @@ class ReservationRefusals
     }
 
     /**
-     * The message alone, for a toast or a preview.
+     * The message alone, for a toast or a preview. `$rooms` carries the same details as `unitErrors()`.
+     *
+     * @param  list<string>  $rooms
      */
-    public function message(string $code, ?CarbonInterface $date = null): string
+    public function message(string $code, ?CarbonInterface $date = null, array $rooms = []): string
     {
-        return ($this->unitEntry($code, false) ?? $this->entry($code, $date, false))[1];
+        return ($this->unitEntry($code, false, false, $rooms) ?? $this->entry($code, $date, false))[1];
     }
 
     /**
@@ -143,14 +145,18 @@ class ReservationRefusals
                 : __('The unit folio is not settled. It holds :amounts. Collect it, or move those charges first.', ['amounts' => implode(', ', $rooms)])],
             UnitStayResult::REFUSAL_RECEIVES_SCHEDULED_CHARGES => [self::FORM, IncomingScheduledCharges::message($rooms)],
             UnitStayResult::REFUSAL_ARRIVED_TODAY => [self::FORM, __('This unit arrived today, so there is no night to remove. It can check out on its departure date. If it checked in by mistake, use Undo check-in.')],
+            UnitStayResult::REFUSAL_NIGHT_AUDIT_PENDING => [self::FORM, __('The night audit for :date has not run. Run it first, so the night of :date is charged.', ['date' => $rooms[0] ?? ''])],
             UnitStayResult::REFUSAL_UNDO_TOO_LATE => [self::FORM, __('The business date has changed since this was done, so it cannot be undone.')],
             UnitStayResult::REFUSAL_ROOM_TAKEN => [self::FORM, __('Another guest holds this room tonight, so the check-out cannot be undone.')],
             FolioStatusResult::REFUSAL_HAS_AR_INVOICE => [self::FORM, __('A folio of this unit was settled to the city ledger, so the check-out cannot be undone. Issue a credit note on its AR invoice instead.')],
             UnitStayResult::REFUSAL_NIGHT_POSTED => [self::FORM, __('A night or day use block is already posted for this unit, so the check-in cannot be undone.')],
+            UnitStayResult::REFUSAL_LEFT_YESTERDAY_UNAVAILABLE => [self::FORM, __('The night of yesterday is already charged or the night audit has run, so the guest cannot be checked out for yesterday. Check them out today.')],
             UnitStayResult::REFUSAL_NOT_EARLY => [self::FORM, __('The departure date is today or past, so check out the normal way.')],
             UnitStayResult::REFUSAL_NOT_DEPARTURE_DATE => [self::FORM, __('A late check-out is only for the departure date.')],
             UnitStayResult::REFUSAL_TIME_NOT_LATER => ['new_time', __('Choose a time later than the current departure time.')],
             'refund_exceeds_payment' => ['refund_amount', __('The refund is more than the deposit held.')],
+            UnitStayResult::REFUSAL_DAMAGE_NOT_ALLOWED => ['damage_amount', __('The Damage charge item is turned off. Turn it on in Charge items first.')],
+            UnitStayResult::REFUSAL_DAMAGE_PRICE_FIXED => ['damage_amount', __('The Damage charge item has a fixed price. Enter that price, or allow price changes on the item.')],
             'method_not_available' => ['payment_method_id', __('This payment method is not available.')],
             'reference_required' => ['reference', __('This payment method needs a reference.')],
             'folio_not_open' => [self::FORM, __('The unit folio is closed, so it cannot change.')],
@@ -161,7 +167,10 @@ class ReservationRefusals
             UnitStayResult::REFUSAL_REASON_REQUIRED => ['reason', __('Enter a reason.')],
             UnitStayResult::REFUSAL_FEE_CHANGED => ['expected_fee', __('The fee changed while this form was open. Check the new amount and confirm again.')],
             UnitStayResult::REFUSAL_POLICY_NOT_FOUND => [self::FORM, __('The policy for this fee is missing. Check Room revenue in settings.')],
-            UnitStayResult::REFUSAL_NOT_AVAILABLE => [self::FORM, __('No unit of this room type is free for these dates.')],
+            UnitStayResult::REFUSAL_NOT_AVAILABLE => [self::FORM, count($rooms) === 2
+                ? __('Room :room is booked by another guest for :date. Move one of them first.', ['room' => $rooms[0], 'date' => $rooms[1]])
+                : __('No unit of this room type is free for these dates.')],
+            UnitStayResult::REFUSAL_NOT_OVERDUE => [self::FORM, __('This guest was not due to leave yesterday.')],
             UnitStayResult::REFUSAL_INVALID_STAY => ['departure_date', __('Departure must be after arrival.')],
             UnitStayResult::REFUSAL_DATES_UNCHANGED => ['departure_date', __('The dates are the same as now.')],
             UnitStayResult::REFUSAL_ARRIVAL_LOCKED => ['arrival_date', __('Arrival cannot change once the guest is in the house.')],

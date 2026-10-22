@@ -58,7 +58,7 @@ test('a property outside Malaysia receives the generic defaults', function () {
         ])
         ->and($property->paymentMethods()->where('active', true)->count())->toBe(3)
         ->and($property->roles()->count())->toBe(5)
-        ->and($property->chargeItems()->count())->toBe(4)
+        ->and($property->chargeItems()->count())->toBe(5)
         ->and($property->ageGroups()->count())->toBe(2)
         ->and($property->mealPeriods()->count())->toBe(3)
         ->and($property->ratePlans()->count())->toBe(1);

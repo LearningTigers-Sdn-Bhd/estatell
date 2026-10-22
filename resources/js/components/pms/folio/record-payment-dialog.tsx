@@ -17,7 +17,16 @@ import { store as storeOnFolio } from '@/routes/reservations/folios/payments';
 import { quote as quoteRoute } from '@/routes/reservations/payments';
 import { store as storeOnUnit } from '@/routes/reservations/units/payments';
 
-type Folio = App.Data.Folio.FolioData;
+/** The fields of a folio the Dialog reads, so a page that has only these (the group check-out) can open it. */
+type Folio = Pick<
+    App.Data.Folio.FolioData,
+    | 'key'
+    | 'name'
+    | 'balance'
+    | 'paymentUnitId'
+    | 'paymentPurposes'
+    | 'defaultPaymentPurpose'
+>;
 type Options = App.Data.Payments.PaymentFormOptionsData;
 type Quote = App.Data.Payments.PaymentQuoteData;
 

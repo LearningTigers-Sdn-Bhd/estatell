@@ -25,7 +25,8 @@ use Spatie\Activitylog\Models\Activity;
  *
  * - Supply is the active rooms (or beds) of each room type that no open room block takes off the night. A room type
  *   that sells beds counts in the bed fields only.
- * - Sold units are the rooms and beds that a CheckedIn unit sleeps in on the night.
+ * - Sold units are the rooms and beds that a CheckedIn or CheckedOut unit sleeps in on the night. A unit checked out
+ *   before the audit still holds the night it slept, because an early check-out deletes the nights it did not use.
  * - Occupancy, ADR and RevPAR count a room or a bed as one unit. Revenue is the net room revenue of
  *   `DailyRevenueQuery`.
  * - Arrivals, departures and no-shows are the front desk events logged with the business date, one for each unit.
@@ -96,7 +97,7 @@ class StatisticsCalculator
     }
 
     /**
-     * The night rows of the CheckedIn units that sleep on the date.
+     * The night rows of the CheckedIn and CheckedOut units that sleep on the date.
      *
      * @return EloquentCollection<int, UnitNight>
      */
@@ -104,7 +105,7 @@ class StatisticsCalculator
     {
         return UnitNight::query()
             ->whereDate('date', $date->toDateString())
-            ->whereHas('reservationUnit', fn ($units) => $units->where('property_id', $property->id)->where('status', UnitStatus::CheckedIn->value))
+            ->whereHas('reservationUnit', fn ($units) => $units->where('property_id', $property->id)->whereIn('status', [UnitStatus::CheckedIn->value, UnitStatus::CheckedOut->value]))
             ->get(['room_id', 'bed_id']);
     }
 

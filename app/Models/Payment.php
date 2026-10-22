@@ -27,6 +27,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property PaymentStatus $status
  * @property string|null $reference
  * @property int|null $refund_of_id
+ * @property string|null $refund_reason
+ * @property bool $voided
  * @property string|null $receipt_number
  * @property int $folio_line_id
  * @property int|null $surcharge_line_id
@@ -36,7 +38,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CarbonImmutable|null $updated_at
  */
 #[Fillable([
-    'folio_id', 'payment_method_id', 'amount', 'purpose', 'status', 'reference', 'refund_of_id', 'receipt_number',
+    'folio_id', 'payment_method_id', 'amount', 'purpose', 'status', 'reference', 'refund_of_id', 'refund_reason', 'voided', 'receipt_number',
     'folio_line_id', 'surcharge_line_id', 'received_by', 'received_at',
 ])]
 class Payment extends Model
@@ -53,6 +55,7 @@ class Payment extends Model
             'amount' => 'decimal:2',
             'purpose' => PaymentPurpose::class,
             'status' => PaymentStatus::class,
+            'voided' => 'boolean',
             'received_at' => 'datetime',
         ];
     }

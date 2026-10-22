@@ -2,8 +2,10 @@
 
 namespace App\Services\FrontDesk;
 
+use App\Data\Reservations\CheckOutRefundPartData;
 use App\Data\Reservations\CheckOutRoomShareData;
 use App\Data\Reservations\UnitCheckOutPreviewData;
+use App\Data\Reservations\UnitPendingLineData;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
 use App\Enums\PaymentPurpose;
@@ -34,14 +36,26 @@ class CheckOutSettlement
         private IncomingScheduledCharges $incomingScheduledCharges,
     ) {}
 
-    public function for(ReservationUnit $unit, bool $canRefund, bool $canCollect = false, bool $canMoveCharges = false): UnitCheckOutPreviewData
+    /**
+     * `$pending` is what the check-out posts first for the pending night (`PendingNightQuote`): it joins the balance
+     * and the charges, so the amounts the form collects and refunds settle the folio after that posting.
+     *
+     * @param  list<UnitPendingLineData>  $pendingLines
+     */
+    public function for(ReservationUnit $unit, bool $canRefund, bool $canCollect = false, bool $canMoveCharges = false, array $pendingLines = []): UnitCheckOutPreviewData
     {
         $folios = $this->folios($unit);
-        $balance = $folios->reduce(fn (BigDecimal $sum, Folio $folio): BigDecimal => $sum->plus($this->folioBalance->forFolio($folio)), BigDecimal::zero());
+        $pending = array_reduce($pendingLines, fn (BigDecimal $sum, UnitPendingLineData $line): BigDecimal => $sum->plus($line->amount), BigDecimal::zero());
+        $balance = $this->balance($folios)->plus($pending);
         $deposits = $this->heldDeposits($folios);
         $held = $deposits->reduce(fn (BigDecimal $sum, Payment $payment): BigDecimal => $sum->plus($this->refundable($payment)), BigDecimal::zero());
-        $credit = $balance->isNegative() ? $balance->negated() : BigDecimal::zero();
+        $refunds = $this->refunds($folios, $balance);
+        $charges = $this->charges($folios)->plus($pending);
         $incoming = $this->incomingScheduled($unit, $folios);
+        $messages = array_filter([
+            $incoming === [] ? null : IncomingScheduledCharges::message($incoming),
+            $refunds['unrefundable'] ? __('Part of this credit cannot be refunded here. Open the folio.') : null,
+        ]);
         $split = $this->roomShares($unit, $folios);
         $others = array_diff_key($split['shares'], [$unit->id => true]);
         $names = $others === [] ? [] : $this->incomingScheduledCharges->unitNames(array_keys($split['shares']));
@@ -50,11 +64,11 @@ class CheckOutSettlement
             balance: (string) $balance->toScale(2),
             owing: (string) ($balance->isPositive() ? $balance : BigDecimal::zero())->toScale(2),
             depositHeld: (string) $held->toScale(2),
-            refundDefault: (string) ($credit->isLessThan($held) ? $credit : $held)->toScale(2),
+            refundDefault: (string) $refunds['default']->toScale(2),
             depositMethod: $deposits->first()?->paymentMethod->name,
             canRefund: $canRefund,
             folioKey: $folios->first() === null ? null : (string) $folios->first()->id,
-            error: $incoming === [] ? null : IncomingScheduledCharges::message($incoming),
+            error: $messages === [] ? null : implode(' ', $messages),
             canCollect: $canCollect,
             rooms: $others === [] ? [] : array_map(
                 fn (int $unitId): CheckOutRoomShareData => new CheckOutRoomShareData($names[$unitId] ?? '—', (string) $split['shares'][$unitId]->toScale(2), $unitId === $unit->id),
@@ -63,7 +77,92 @@ class CheckOutSettlement
             otherLineIds: $split['otherLineIds'],
             receivesScheduled: $incoming !== [],
             canMoveCharges: $canMoveCharges,
+            refundable: (string) $refunds['refundable']->toScale(2),
+            refundParts: $refunds['parts'],
+            charges: (string) $charges->toScale(2),
+            paid: (string) $balance->minus($charges)->plus($held)->toScale(2),
+            pendingLines: $pendingLines,
+            pendingTotal: (string) $pending->toScale(2),
         );
+    }
+
+    /**
+     * The sum of every line of the unit's folios that is not a payment: charges, taxes, discounts and their reversals.
+     *
+     * @param  EloquentCollection<int, Folio>  $folios
+     */
+    public function charges(Collection $folios): BigDecimal
+    {
+        $total = FolioLine::query()->whereIn('folio_id', $folios->modelKeys())->where('kind', '!=', TransactionKind::Payment)->sum('amount');
+
+        return BigDecimal::of((string) ($total ?: '0'));
+    }
+
+    /**
+     * The balance of the unit's folios: a held credit is negative.
+     *
+     * @param  EloquentCollection<int, Folio>  $folios
+     */
+    public function balance(Collection $folios): BigDecimal
+    {
+        return $folios->reduce(fn (BigDecimal $sum, Folio $folio): BigDecimal => $sum->plus($this->folioBalance->forFolio($folio)), BigDecimal::zero());
+    }
+
+    /**
+     * What a check-out can give back, and in what order: the security deposits held (oldest first), then the other
+     * completed payments that still hold money (oldest first). The order is the order `CheckOutAndRefund` refunds in.
+     *
+     * @param  EloquentCollection<int, Folio>  $folios
+     * @return Collection<int, Payment>
+     */
+    public function refundPool(Collection $folios): Collection
+    {
+        $payments = $this->heldPayments($folios);
+
+        return $payments->filter(fn (Payment $payment): bool => $payment->purpose === PaymentPurpose::SecurityDeposit)
+            ->concat($payments->reject(fn (Payment $payment): bool => $payment->purpose === PaymentPurpose::SecurityDeposit))
+            ->values();
+    }
+
+    /**
+     * The refund of a check-out: the most that can go back (the larger of the deposit held and the credit, and never
+     * more than the pool holds), the default (the credit when it is above the deposit, else the deposit held, never
+     * more than the credit) and the parts that make the default, in refund order. A credit that a payment cannot give
+     * back (`holdsUnrefundable()`) offers no refund at all. `$balance` is the folios' balance, so a fee not yet posted
+     * can be passed in.
+     *
+     * @param  EloquentCollection<int, Folio>  $folios
+     * @return array{refundable: BigDecimal, default: BigDecimal, parts: list<CheckOutRefundPartData>, unrefundable: bool}
+     */
+    public function refunds(Collection $folios, BigDecimal $balance): array
+    {
+        $pool = $this->refundPool($folios);
+        $refundable = $pool->reduce(fn (BigDecimal $sum, Payment $payment): BigDecimal => $sum->plus($this->refundable($payment)), BigDecimal::zero());
+        $held = $pool->filter(fn (Payment $payment): bool => $payment->purpose === PaymentPurpose::SecurityDeposit)
+            ->reduce(fn (BigDecimal $sum, Payment $payment): BigDecimal => $sum->plus($this->refundable($payment)), BigDecimal::zero());
+        $credit = $balance->isNegative() ? $balance->negated() : BigDecimal::zero();
+        $unrefundable = $credit->isPositive() && $this->holdsUnrefundable($folios);
+        $cap = $credit->isGreaterThan($held) ? $refundable : $held;
+        $default = $unrefundable ? BigDecimal::zero() : ($credit->isLessThan($cap) ? $credit : $cap);
+        $left = $default;
+        $parts = [];
+
+        foreach ($pool as $payment) {
+            if ($left->isZero()) {
+                break;
+            }
+
+            $part = $left->isLessThan($this->refundable($payment)) ? $left : $this->refundable($payment);
+            $parts[] = new CheckOutRefundPartData(
+                $payment->purpose->label(),
+                $payment->paymentMethod->name,
+                $payment->reference,
+                (string) $part->toScale(2),
+            );
+            $left = $left->minus($part);
+        }
+
+        return ['refundable' => $refundable, 'default' => $default, 'parts' => $parts, 'unrefundable' => $unrefundable];
     }
 
     /**

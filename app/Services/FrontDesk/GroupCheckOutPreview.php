@@ -6,6 +6,7 @@ use App\Actions\FrontDesk\GroupCheckOutRow;
 use App\Actions\FrontDesk\OnePayment;
 use App\Actions\FrontDesk\UnitStayResult;
 use App\Data\Payments\PaymentMethodOptionData;
+use App\Data\Reservations\GroupCheckOutFolioData;
 use App\Data\Reservations\GroupCheckOutMasterData;
 use App\Data\Reservations\GroupCheckOutPreviewData;
 use App\Data\Reservations\GroupCheckOutRowData;
@@ -16,20 +17,24 @@ use App\Enums\FolioType;
 use App\Enums\PaymentMethodType;
 use App\Enums\PaymentPurpose;
 use App\Enums\PermissionEnum;
+use App\Enums\StayType;
 use App\Enums\UnitStatus;
 use App\Models\Company;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
+use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\User;
 use App\Services\Folio\FolioBalance;
 use App\Services\Folio\FolioReopenRule;
+use App\Services\Folio\FolioStatement;
 use App\Services\Folio\IncomingScheduledCharges;
 use App\Services\Folio\MoveChargesPreview;
 use App\Services\NightAudit\CurrentBusinessDate;
+use App\Services\Payments\PaymentPurposeChoices;
 use App\Services\Platform\Impersonation;
 use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
@@ -65,6 +70,11 @@ class GroupCheckOutPreview
         private FolioReopenRule $folioReopenRule,
         private EarlyCheckOutRule $earlyCheckOutRule,
         private Impersonation $impersonation,
+        private StayDay $stayDay,
+        private PendingNightQuote $pendingNightQuote,
+        private AuditPendingNotice $auditPendingNotice,
+        private PaymentPurposeChoices $paymentPurposeChoices,
+        private FolioStatement $folioStatement,
     ) {}
 
     public static function selectable(string $kind): bool
@@ -83,11 +93,20 @@ class GroupCheckOutPreview
             UnitStatus::CheckedOut => self::KIND_OUT,
             UnitStatus::Cancelled, UnitStatus::NoShow => self::KIND_CANCELLED,
             UnitStatus::CheckedIn => match (true) {
-                $unit->departure_date->toDateString() > $businessDate->toDateString() => self::KIND_DEPARTS_LATER,
+                $unit->departure_date->toDateString() > $this->stayDayOf($unit, $businessDate) => self::KIND_DEPARTS_LATER,
                 $this->checkOutSettlement->incomingScheduled($unit, $this->checkOutSettlement->folios($unit)) !== [] => self::KIND_CHARGED_ELSEWHERE,
                 default => self::KIND_READY,
             },
         };
+    }
+
+    /**
+     * The day a room departs on or before: the stay day while the night audit is pending, otherwise the business date.
+     * A day use room keeps the business date.
+     */
+    private function stayDayOf(ReservationUnit $unit, CarbonImmutable $businessDate): string
+    {
+        return $unit->stay_type === StayType::DayUse ? $businessDate->toDateString() : $this->stayDay->forCheckOut($unit->property, $businessDate)->toDateString();
     }
 
     /**
@@ -131,6 +150,10 @@ class GroupCheckOutPreview
             $this->summary($rows, $choices, $onePayment, $settleMaster, $masterData),
             $methods['data'],
             null,
+            $this->auditPendingNotice->block($property, collect($rows)->contains(fn (GroupCheckOutRowData $row): bool => $row->pendingLines !== [])
+                ? __('Last night (:date) is added to the bill of each room checking out now. The night audit will skip it.', ['date' => $businessDate->format('j M')])
+                : null),
+            $rows === [] ? $this->openFolios($reservation, $property, $user) : [],
         );
     }
 
@@ -168,6 +191,55 @@ class GroupCheckOutPreview
             ->exists();
     }
 
+    /**
+     * The Open Master and Third party folios of the reservation that hold money (a balance above or below 0), the
+     * Master first. Folios at 0 are left out: nothing to settle. Each says what the user may do with it here.
+     *
+     * @return list<GroupCheckOutFolioData>
+     */
+    private function openFolios(Reservation $reservation, Property $property, User $user): array
+    {
+        $canRecord = $user->can(PermissionEnum::PaymentRecord->value);
+        $canSettle = $user->can(PermissionEnum::CityLedgerInvoice->value);
+
+        return array_values(Folio::query()
+            ->where('property_id', $reservation->property_id)
+            ->where('reservation_id', $reservation->id)
+            ->whereIn('type', [FolioType::Master, FolioType::ThirdParty])
+            ->where('status', FolioStatus::Open)
+            ->with(['payerCompany', 'payerGuest'])
+            ->orderBy('id')
+            ->get()
+            ->sortBy(fn (Folio $folio): int => $folio->type === FolioType::Master ? 0 : 1)
+            ->map(function (Folio $folio) use ($reservation, $property, $canRecord, $canSettle): ?GroupCheckOutFolioData {
+                $balance = $this->folioBalance->forFolio($folio);
+
+                if (BigDecimal::of($balance)->isZero()) {
+                    return null;
+                }
+
+                $company = $folio->payerCompany;
+                $settles = $canSettle && $company !== null && $company->direct_bill_enabled && BigDecimal::of($balance)->isPositive();
+                $purposes = $canRecord ? $this->paymentPurposeChoices->for($reservation, $folio, null) : [];
+
+                return new GroupCheckOutFolioData(
+                    (string) $folio->id,
+                    $this->moveChargesPreview->folioLabel($folio),
+                    $balance,
+                    $company?->name,
+                    $purposes !== [],
+                    $settles,
+                    null,
+                    array_map(fn (PaymentPurpose $purpose): array => ['value' => $purpose->value, 'label' => $purpose->label()], $purposes),
+                    ($purposes[0] ?? null)?->value,
+                    $settles ? $this->folioStatement->settleCreditWarning($folio) : null,
+                    route('reservations.folio', ['property' => $property, 'reservation' => $reservation, 'folio' => $folio->id]),
+                );
+            })
+            ->filter()
+            ->all());
+    }
+
     private function openMaster(Reservation $reservation): ?Folio
     {
         return Folio::query()->where('property_id', $reservation->property_id)->where('reservation_id', $reservation->id)
@@ -193,7 +265,9 @@ class GroupCheckOutPreview
     {
         $kind = $this->kind($unit, $businessDate);
         $folios = $this->checkOutSettlement->folios($unit);
-        $balance = $folios->reduce(fn (BigDecimal $sum, Folio $folio): BigDecimal => $sum->plus($this->folioBalance->forFolio($folio)), BigDecimal::zero());
+        $pendingLines = $kind === self::KIND_READY ? $this->pendingNightQuote->lines($unit, $businessDate) : [];
+        $pending = $this->pendingNightQuote->total($pendingLines);
+        $balance = $folios->reduce(fn (BigDecimal $sum, Folio $folio): BigDecimal => $sum->plus($this->folioBalance->forFolio($folio)), $pending);
         $hasMoney = ! $balance->isZero();
 
         if (! $hasMoney && ($kind === self::KIND_OUT || $kind === self::KIND_CANCELLED)) {
@@ -205,18 +279,17 @@ class GroupCheckOutPreview
         $selectable = self::selectable($kind);
         $openFolio = $folios->first(fn (Folio $folio): bool => $folio->status === FolioStatus::Open);
         $closedFolio = $folios->first(fn (Folio $folio): bool => $folio->status === FolioStatus::Closed);
-        $folioClosed = $selectable && $hasMoney && $openFolio === null;
-        $actionable = $selectable && $openFolio !== null;
+        $hasOpenFolio = $openFolio !== null || ($pendingLines !== [] && $closedFolio === null);
+        $folioClosed = $selectable && $hasMoney && ! $hasOpenFolio;
+        $actionable = $selectable && $hasOpenFolio;
         $incoming = $kind === self::KIND_CHARGED_ELSEWHERE ? $this->checkOutSettlement->incomingScheduled($unit, $folios) : [];
         $held = $this->checkOutSettlement->heldPayments($folios);
         $heldTotal = $held->reduce(fn (BigDecimal $sum, Payment $payment): BigDecimal => $sum->plus($this->checkOutSettlement->refundable($payment)), BigDecimal::zero());
-        $refundPool = $unit->status === UnitStatus::CheckedIn
-            ? $this->checkOutSettlement->heldDeposits($folios)->reduce(fn (BigDecimal $sum, Payment $payment): BigDecimal => $sum->plus($this->checkOutSettlement->refundable($payment)), BigDecimal::zero())
-            : $heldTotal;
+        $refundPool = $heldTotal;
         $credit = $balance->isNegative() ? $balance->negated() : BigDecimal::zero();
-        $moveAmount = $this->checkOutSettlement->movableTotal($folios);
+        $moveAmount = $this->checkOutSettlement->movableTotal($folios)->plus($pending);
         $canMove = $actionable && $balance->isPositive() && $master !== null && $user->can(PermissionEnum::FolioTransfer->value)
-            && $this->checkOutSettlement->movableLines($folios)->isNotEmpty()
+            && ($this->checkOutSettlement->movableLines($folios)->isNotEmpty() || $pendingLines !== [])
             && ! $this->checkOutSettlement->holdsUnrefundable($folios)
             && ($held->isEmpty() || $this->impersonation->mayRefund($user));
         $choices = array_values(array_filter([
@@ -224,7 +297,7 @@ class GroupCheckOutPreview
             $canMove ? 'move' : null,
             $actionable && $balance->isNegative() && $refundPool->isPositive() && $this->impersonation->mayRefund($user) ? 'refund' : null,
         ]));
-        $arrivedToday = $kind === self::KIND_DEPARTS_LATER && $this->earlyCheckOutRule->refusal($unit, $businessDate->toDateString()) === UnitStayResult::REFUSAL_ARRIVED_TODAY;
+        $earlyRefusal = $kind === self::KIND_DEPARTS_LATER ? $this->earlyCheckOutRule->refusal($unit, $businessDate->toDateString()) : null;
         $group = match ($kind) {
             self::KIND_READY => 'ready',
             self::KIND_OUT, self::KIND_CANCELLED => 'money',
@@ -246,14 +319,19 @@ class GroupCheckOutPreview
             $guest,
             $unit->status->value,
             $group,
-            $selectable && ($kind === self::KIND_READY || ($hasMoney && $openFolio !== null)),
+            $selectable && ($kind === self::KIND_READY || ($hasMoney && $hasOpenFolio)),
             $selectable,
             match ($kind) {
-                self::KIND_DEPARTS_LATER => $arrivedToday
-                ? __('Departs :date. Arrived today, so there is no night to remove. If it checked in by mistake, use Undo check-in.', ['date' => $unit->departure_date->format('j M')])
-                : __('Departs :date', ['date' => $unit->departure_date->format('j M')]),
+                self::KIND_DEPARTS_LATER => match ($earlyRefusal) {
+                    UnitStayResult::REFUSAL_ARRIVED_TODAY => __('Departs :date. Arrived today, so there is no night to remove. If it checked in by mistake, use Undo check-in.', ['date' => $unit->departure_date->format('j M')]),
+                    UnitStayResult::REFUSAL_NIGHT_AUDIT_PENDING => __('The night audit for :date has not run. Run it first, so the night of :date is charged.', ['date' => $businessDate->format('j M')]),
+                    default => __('Departs :date', ['date' => $unit->departure_date->format('j M')]),
+                },
                 self::KIND_CHARGED_ELSEWHERE => IncomingScheduledCharges::message($incoming),
                 self::KIND_NOT_ARRIVED => __('Not checked in: Cancel or mark no-show.'),
+                self::KIND_READY => $this->pendingNightQuote->isOverdue($unit, $businessDate)
+                    ? __('Due to leave yesterday (:date). If they stayed last night, check this room out on its own.', ['date' => $businessDate->format('j M')])
+                    : ($folioClosed ? __('Folio closed: reopen it to settle.') : null),
                 default => $folioClosed ? __('Folio closed: reopen it to settle.') : null,
             },
             $unit->departure_date->toDateString(),
@@ -272,7 +350,9 @@ class GroupCheckOutPreview
             $folioClosed ? $closedFolio?->id : null,
             $folioClosed && $closedFolio !== null && $this->folioReopenRule->allows($user, $closedFolio),
             $kind === self::KIND_CHARGED_ELSEWHERE && $user->can(PermissionEnum::FolioTransfer->value),
-            $kind === self::KIND_DEPARTS_LATER && ! $arrivedToday ? $this->unitData($unit, $user) : null,
+            $kind === self::KIND_DEPARTS_LATER && ! in_array($earlyRefusal, [UnitStayResult::REFUSAL_ARRIVED_TODAY, UnitStayResult::REFUSAL_NIGHT_AUDIT_PENDING], true) ? $this->unitData($unit, $user) : null,
+            $pendingLines,
+            (string) $pending->toScale(2),
         );
     }
 

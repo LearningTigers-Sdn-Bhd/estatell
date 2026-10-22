@@ -20,6 +20,7 @@ dataset('system transaction codes', [
     'laundry revenue' => [SystemTransactionCode::LaundryRevenue, 'LAUNDRY', 'Laundry', TransactionKind::Charge, TransactionCategory::Laundry],
     'minibar revenue' => [SystemTransactionCode::MinibarRevenue, 'MINIBAR', 'Minibar', TransactionKind::Charge, TransactionCategory::Minibar],
     'fee revenue' => [SystemTransactionCode::FeeRevenue, 'FEE', 'General fee', TransactionKind::Charge, TransactionCategory::Fee],
+    'damage revenue' => [SystemTransactionCode::DamageRevenue, 'DAMAGE', 'Damage', TransactionKind::Charge, TransactionCategory::Other],
     'SST' => [SystemTransactionCode::SstTax, 'SST', 'SST', TransactionKind::Tax, TransactionCategory::Tax],
     'tourism tax' => [SystemTransactionCode::TourismTax, 'TOURISM_TAX', 'Tourism tax', TransactionKind::Tax, TransactionCategory::Tax],
     'cash payment' => [SystemTransactionCode::CashPayment, 'CASH', 'Cash', TransactionKind::Payment, TransactionCategory::Cash],

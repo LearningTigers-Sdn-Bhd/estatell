@@ -70,7 +70,8 @@ roles    spatie columns + property_id (NOT NULL, FK) + default_role (nullable)
 | `folio.manual`                     | Manual Folio Editor, past and migrated stays, old system balances           | ✓     | ✓       | –                                 |
 | `folio.view-manual-entries`        | See the Manual marker and its reason on folio lines                         | ✓     | ✓       | Finance                           |
 | `payment.record`                   | Record a payment, download a receipt                                        | ✓     | ✓       | Front desk, Finance               |
-| `payment.refund`                   | Refund a payment                                                            | ✓     | ✓       | Finance                           |
+| `payment.refund`                   | Refund a payment to its own method, void a payment, refund a folio's credit | ✓     | ✓       | Front desk, Finance               |
+| `payment.refund-other-method`      | Refund to a method other than the payment's own, with a reason              | ✓     | ✓       | Finance                           |
 | `company.view`                     | Companies list and page, pick a company on a booking                        | ✓     | ✓       | Front desk, Finance               |
 | `company.manage`                   | Create, edit, suspend and reactivate companies                              | ✓     | ✓       | Finance                           |
 | `company.credit-override`          | Pass a credit limit check, with a reason                                    | ✓     | ✓       |                                   |

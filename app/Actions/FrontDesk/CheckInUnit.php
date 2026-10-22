@@ -15,6 +15,7 @@ use App\Models\Tax;
 use App\Models\UnitAddOn;
 use App\Models\User;
 use App\Services\CityLedger\CreditCheck;
+use App\Services\FrontDesk\StayDay;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Registration\RegistrationCardRequirement;
 use App\Services\Reservations\UnitNationality;
@@ -35,6 +36,7 @@ class CheckInUnit
         private AutoAssignRooms $autoAssignRooms,
         private SyncReservationStatus $syncReservationStatus,
         private PostMissedNights $postMissedNights,
+        private StayDay $stayDay,
     ) {}
 
     /**
@@ -53,6 +55,8 @@ class CheckInUnit
      * `PostDayUseBlock`. A posting refusal rolls the whole check-in back.
      * A unit that arrives after its arrival date gets the nights it missed: `PostMissedNights` runs after the check-in,
      * so each night before the business date posts with its own service date, and a refusal rolls the check-in back.
+     * The check-in day is the business date, or the calendar date for a unit that arrives on it while the night audit
+     * is pending (`StayDay`): it decides the arrival check, `stay_ended`, the room and the `business_date` of the log.
      * `$asOf` is the moment the guest really checked in, for a past stay entered late (`CreatePastStay`): it sets
      * `checked_in_at`, and the arrival, the end of the stay and the room are checked on that day, not on the business date. Permissions are checked by the route. See docs/18-front-desk/01-check-in-and-check-out.md.
      */
@@ -74,7 +78,7 @@ class CheckInUnit
                 }
 
                 $today = $businessDate->toDateString();
-                $checkInDay = $asOf?->toDateString() ?? $today;
+                $checkInDay = $asOf?->toDateString() ?? $this->stayDay->forCheckIn($locked, $businessDate)->toDateString();
 
                 if ($checkInDay < $locked->arrival_date->toDateString()) {
                     return UnitStayResult::refused(UnitStayResult::REFUSAL_ARRIVAL_NOT_REACHED);
@@ -154,7 +158,7 @@ class CheckInUnit
                         'room_id' => $roomId,
                         'bed_id' => $bedId,
                         'without_card' => $withoutCard,
-                        'business_date' => $today,
+                        'business_date' => $asOf === null ? $checkInDay : $today,
                     ])
                     ->log('Unit checked in');
 

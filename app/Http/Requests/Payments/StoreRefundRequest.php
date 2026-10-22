@@ -25,6 +25,8 @@ class StoreRefundRequest extends FormRequest
         return [
             'amount' => ['required', 'string', 'regex:/^\d+(\.\d{1,2})?$/'],
             'reference' => ['nullable', 'string', 'max:100'],
+            'payment_method_id' => ['nullable', 'integer'],
+            'reason' => ['nullable', 'string', 'max:255'],
             'idempotency_key' => ['required', 'uuid'],
         ];
     }
@@ -37,6 +39,16 @@ class StoreRefundRequest extends FormRequest
         return [
             'amount.regex' => __('Enter an amount such as 25.00.'),
         ];
+    }
+
+    public function methodId(): ?int
+    {
+        return $this->filled('payment_method_id') ? $this->integer('payment_method_id') : null;
+    }
+
+    public function reason(): ?string
+    {
+        return $this->filled('reason') ? $this->string('reason')->toString() : null;
     }
 
     public function reference(): ?string

@@ -3,7 +3,11 @@ import { useState } from 'react';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { MoneyInput } from '@/components/pms/money-input';
 import { MoneyText } from '@/components/pms/money-text';
-import { KEEP_OPTIONS } from '@/components/pms/use-form-options';
+import { RefundMethodFields } from '@/components/pms/folio/refund-method-fields';
+import {
+    KEEP_OPTIONS,
+    useFormOptions,
+} from '@/components/pms/use-form-options';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
 import { useRetainedValue } from '@/components/pms/use-retained-value';
 import {
@@ -24,6 +28,8 @@ type FormProps = {
     folioId: number;
     row: Row;
     currency: App.Data.Property.CurrencyData | null;
+    canOtherMethod: boolean;
+    options?: App.Data.Payments.PaymentFormOptionsData;
 };
 
 function RefundForm({
@@ -33,13 +39,30 @@ function RefundForm({
     folioId,
     row,
     currency,
+    canOtherMethod,
+    options,
 }: FormProps) {
+    useFormOptions(
+        open && canOtherMethod,
+        options !== undefined,
+        'paymentOptions',
+    );
+
     const [key] = useState(() => crypto.randomUUID());
-    const form = useForm({ amount: row.refundable ?? '', reference: '' });
+    const form = useForm({
+        amount: row.refundable ?? '',
+        reference: '',
+        payment_method_id: '',
+        reason: '',
+    });
     const { data, errors } = form;
 
     const submit = () => {
-        form.transform((values) => ({ ...values, idempotency_key: key }));
+        form.transform((values) => ({
+            ...values,
+            reason: values.payment_method_id === '' ? '' : values.reason,
+            idempotency_key: key,
+        }));
         form.post(
             store.url({
                 reservation: reservationId,
@@ -60,7 +83,7 @@ function RefundForm({
             open={open}
             onOpenChange={(next) => !next && onClose()}
             title={`Refund ${row.description}`}
-            description="The refund posts on this folio with the same method. A surcharge stays: reverse it on its own if needed."
+            description="The refund posts on this folio. A surcharge stays: reverse it on its own if needed."
             errors={errors}
             onSubmit={submit}
             submitLabel="Refund"
@@ -88,6 +111,20 @@ function RefundForm({
                 )}
                 <FieldError>{errors.amount}</FieldError>
             </Field>
+            {canOtherMethod && (
+                <RefundMethodFields
+                    idPrefix="refund"
+                    methods={options?.methods ?? []}
+                    sourceIsCash={row.methodType === 'cash'}
+                    methodId={data.payment_method_id}
+                    reason={data.reason}
+                    onMethodId={(value) =>
+                        form.setData('payment_method_id', value)
+                    }
+                    onReason={(value) => form.setData('reason', value)}
+                    errors={errors}
+                />
+            )}
             <Field data-invalid={!!errors.reference}>
                 <FieldLabel htmlFor="refund-reference">
                     Reference (optional)
@@ -95,6 +132,7 @@ function RefundForm({
                 <Input
                     id="refund-reference"
                     maxLength={100}
+                    placeholder="e.g. RF-1024"
                     value={data.reference}
                     onChange={(event) =>
                         form.setData('reference', event.target.value)
@@ -108,7 +146,8 @@ function RefundForm({
 }
 
 /**
- * Gives money back from a payment. The amount defaults to what is left to refund. The method surcharge is not
+ * Gives money back from a payment. The amount defaults to what is left to refund. The money goes back to the payment's
+ * own method; a user with `payment.refund-other-method` can pick another one and must give a reason. The method surcharge is not
  * refunded: reverse that charge on its own when the fee must go too.
  */
 export function RefundPaymentDialog({
@@ -116,12 +155,16 @@ export function RefundPaymentDialog({
     folioId,
     row,
     currency,
+    canOtherMethod,
+    options,
     onClose,
 }: {
     reservationId: number;
     folioId: number;
     row: Row | null;
     currency: App.Data.Property.CurrencyData | null;
+    canOtherMethod: boolean;
+    options?: App.Data.Payments.PaymentFormOptionsData;
     onClose: () => void;
 }) {
     const open = row !== null;
@@ -141,6 +184,8 @@ export function RefundPaymentDialog({
             folioId={folioId}
             row={kept}
             currency={currency}
+            canOtherMethod={canOtherMethod}
+            options={options}
         />
     );
 }

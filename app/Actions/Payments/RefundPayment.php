@@ -4,17 +4,21 @@ namespace App\Actions\Payments;
 
 use App\Actions\Folio\CloseSettledUnitFolio;
 use App\Enums\FolioStatus;
+use App\Enums\PaymentMethodType;
 use App\Enums\PaymentStatus;
+use App\Enums\PermissionEnum;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TransactionKind;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Payment;
+use App\Models\PaymentMethod;
 use App\Models\TransactionCode;
 use App\Models\User;
 use App\Services\Folio\ServiceDateRange;
 use App\Services\NightAudit\CurrentBusinessDate;
 use Brick\Money\Money;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -32,11 +36,13 @@ class RefundPayment
      * refunded: staff reverse that charge by hand. The folio row is locked first, so two refunds of one payment never
      * exceed it, and every check runs before the first write. The key `refund:{uuid}` makes a repeat return the
      * existing refund. The last step closes the folio when it is an Open Unit folio of a CheckedOut unit at 0
-     * (`CloseSettledUnitFolio`). See docs/14-payments/01-payments-and-refunds.md.
+     * (`CloseSettledUnitFolio`). `$methodId` gives the money back by another method: it needs `payment.refund-other-method`
+     * and a `$reason`, and only a cash payment goes back in cash. `$void` refunds a whole payment taken on the current
+     * business date that has no refund yet. See docs/14-payments/01-payments-and-refunds.md.
      */
-    public function __invoke(User $actor, Payment $payment, string $amount, ?string $reference, string $idempotencyKey, ?string $serviceDate = null, ?int $manualBatchId = null): PaymentResult
+    public function __invoke(User $actor, Payment $payment, string $amount, ?string $reference, string $idempotencyKey, ?string $serviceDate = null, ?int $manualBatchId = null, ?int $methodId = null, ?string $reason = null, bool $void = false): PaymentResult
     {
-        return DB::transaction(function () use ($actor, $payment, $amount, $reference, $idempotencyKey, $serviceDate, $manualBatchId): PaymentResult {
+        return DB::transaction(function () use ($actor, $payment, $amount, $reference, $idempotencyKey, $serviceDate, $manualBatchId, $methodId, $reason, $void): PaymentResult {
             $current = Payment::query()->findOrFail($payment->id);
             $folio = Folio::query()->lockForUpdate()->findOrFail($current->folio_id);
             $key = 'refund:'.$idempotencyKey;
@@ -75,8 +81,48 @@ class RefundPayment
             $left = Money::of($current->amount, $currency)->minus($refunded);
             $refundAmount = Money::of($amount, $currency);
 
+            if ($void) {
+                if ($refunded->isPositive()) {
+                    return PaymentResult::refused(PaymentResult::REFUSAL_VOID_HAS_REFUND);
+                }
+
+                $paidOn = FolioLine::query()->whereKey($current->folio_line_id)->value('posting_date');
+
+                if ($paidOn === null || ! $businessDate->isSameDay(CarbonImmutable::parse((string) $paidOn))) {
+                    return PaymentResult::refused(PaymentResult::REFUSAL_VOID_NOT_SAME_DAY);
+                }
+            }
+
             if ($refundAmount->isGreaterThan($left)) {
                 return PaymentResult::refused(PaymentResult::REFUSAL_REFUND_EXCEEDS_PAYMENT);
+            }
+
+            $methodId = $methodId === $current->payment_method_id ? null : $methodId;
+            $reason = filled($reason) ? trim((string) $reason) : null;
+
+            if ($methodId !== null) {
+                $target = PaymentMethod::query()
+                    ->where('property_id', $folio->property_id)
+                    ->where('active', true)
+                    ->whereIn('type', PaymentMethodType::addableCases())
+                    ->whereHas('transactionCode', fn ($query) => $query->where('active', true))
+                    ->find($methodId);
+
+                if ($target === null) {
+                    return PaymentResult::refused(PaymentResult::REFUSAL_METHOD_NOT_AVAILABLE);
+                }
+
+                if (! $actor->can(PermissionEnum::PaymentRefundOtherMethod->value)) {
+                    return PaymentResult::refused(PaymentResult::REFUSAL_OTHER_METHOD_NOT_ALLOWED);
+                }
+
+                if ($reason === null) {
+                    return PaymentResult::refused(PaymentResult::REFUSAL_REASON_REQUIRED);
+                }
+
+                if ($target->type === PaymentMethodType::Cash && $current->paymentMethod->type !== PaymentMethodType::Cash) {
+                    return PaymentResult::refused(PaymentResult::REFUSAL_REFUND_METHOD_MISMATCH);
+                }
             }
 
             $code = TransactionCode::query()
@@ -94,7 +140,7 @@ class RefundPayment
             $line = new FolioLine([
                 'transaction_code_id' => $code->id,
                 'kind' => TransactionKind::Payment,
-                'description' => $code->name,
+                'description' => $void ? __('Void payment') : $code->name,
                 'quantity' => 1,
                 'unit_amount' => $value,
                 'amount' => $value,
@@ -110,12 +156,14 @@ class RefundPayment
 
             $refund = new Payment([
                 'folio_id' => $folio->id,
-                'payment_method_id' => $current->payment_method_id,
+                'payment_method_id' => $methodId ?? $current->payment_method_id,
                 'amount' => $value,
                 'purpose' => $current->purpose,
                 'status' => PaymentStatus::Completed,
                 'reference' => filled($reference) ? trim((string) $reference) : null,
                 'refund_of_id' => $current->id,
+                'refund_reason' => $methodId === null ? null : $reason,
+                'voided' => $void,
                 'folio_line_id' => $line->id,
                 'received_by' => $actor->id,
                 'received_at' => now(),
@@ -126,18 +174,20 @@ class RefundPayment
             activity()
                 ->performedOn($folio->reservation)
                 ->causedBy($actor)
-                ->event('payment.refunded')
+                ->event($void ? 'payment.voided' : 'payment.refunded')
                 ->withProperties([
                     'property_id' => $folio->property_id,
                     'folio_id' => $folio->id,
                     'payment_id' => $current->id,
                     'refund_id' => $refund->id,
                     'amount' => $value,
+                    'payment_method_id' => $refund->payment_method_id,
+                    'reason' => $refund->refund_reason,
                     'posting_date' => $postingDate,
                     'service_date' => $serviceDate,
                     'manual_batch_id' => $manualBatchId,
                 ])
-                ->log('Payment refunded');
+                ->log($void ? 'Payment voided' : 'Payment refunded');
 
             ($this->closeSettledUnitFolio)($actor, $folio);
 

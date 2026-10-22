@@ -12,13 +12,16 @@ use Spatie\LaravelData\Data;
  * charge their Scheduled nights to this room's folio, and `canMoveCharges` says the user may send them elsewhere
  * (`folio.transfer`). `unit` is the room as the reservation page sends it, only for a room that departs later, for the
  * **Check out** Dialog opened by **Check out early…**. `checkedOutOn` is the date a room that is out was checked out
- * (`Y-m-d`, property time zone), null for any other room.
+ * (`Y-m-d`, property time zone), null for any other room. `pendingLines` and `pendingTotal` are the lines the check-out
+ * posts first for the night of the business date while the night audit is pending (shown as added now); the balance and
+ * the settle amounts already include them.
  */
 class GroupCheckOutRowData extends Data
 {
     /**
      * @param  list<string>  $choices
      * @param  list<string>  $incoming
+     * @param  list<UnitPendingLineData>  $pendingLines
      */
     public function __construct(
         public int $unitId,
@@ -46,5 +49,7 @@ class GroupCheckOutRowData extends Data
         public bool $canReopen,
         public bool $canMoveCharges,
         public ?ReservationUnitData $unit,
+        public array $pendingLines = [],
+        public string $pendingTotal = '0.00',
     ) {}
 }

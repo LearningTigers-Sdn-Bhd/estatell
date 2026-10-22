@@ -14,6 +14,7 @@ enum SystemTransactionCode: string
     case LaundryRevenue = 'laundry_revenue';
     case MinibarRevenue = 'minibar_revenue';
     case FeeRevenue = 'fee_revenue';
+    case DamageRevenue = 'damage_revenue';
     case SstTax = 'sst_tax';
     case TourismTax = 'tourism_tax';
     case CashPayment = 'cash_payment';
@@ -42,6 +43,7 @@ enum SystemTransactionCode: string
             self::LaundryRevenue => 'LAUNDRY',
             self::MinibarRevenue => 'MINIBAR',
             self::FeeRevenue => 'FEE',
+            self::DamageRevenue => 'DAMAGE',
             self::SstTax => 'SST',
             self::TourismTax => 'TOURISM_TAX',
             self::CashPayment => 'CASH',
@@ -72,6 +74,7 @@ enum SystemTransactionCode: string
             self::LaundryRevenue => __('Laundry'),
             self::MinibarRevenue => __('Minibar'),
             self::FeeRevenue => __('General fee'),
+            self::DamageRevenue => __('Damage'),
             self::SstTax => __('SST'),
             self::TourismTax => __('Tourism tax'),
             self::CashPayment => __('Cash'),
@@ -101,7 +104,8 @@ enum SystemTransactionCode: string
             self::FoodAndBeverageRevenue,
             self::LaundryRevenue,
             self::MinibarRevenue,
-            self::FeeRevenue => TransactionKind::Charge,
+            self::FeeRevenue,
+            self::DamageRevenue => TransactionKind::Charge,
             self::SstTax, self::TourismTax => TransactionKind::Tax,
             self::CashPayment,
             self::CardPayment,
@@ -129,6 +133,7 @@ enum SystemTransactionCode: string
             self::LaundryRevenue => TransactionCategory::Laundry,
             self::MinibarRevenue => TransactionCategory::Minibar,
             self::FeeRevenue => TransactionCategory::Fee,
+            self::DamageRevenue => TransactionCategory::Other,
             self::SstTax, self::TourismTax => TransactionCategory::Tax,
             self::CashPayment => TransactionCategory::Cash,
             self::CardPayment => TransactionCategory::Card,

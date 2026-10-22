@@ -16,6 +16,7 @@ import {
     PanelRightOpen,
     Plus,
     Printer,
+    RotateCcw,
     ReceiptText,
     FileText,
     History,
@@ -42,6 +43,8 @@ import {
 } from '@/components/pms/folio/print-voucher-dialog';
 import { RecordPaymentDialog } from '@/components/pms/folio/record-payment-dialog';
 import { SettleCityLedgerDialog } from '@/components/pms/folio/settle-city-ledger-dialog';
+import { VoidPaymentDialog } from '@/components/pms/folio/void-payment-dialog';
+import { RefundCreditDialog } from '@/components/pms/folio/refund-credit-dialog';
 import { RefundPaymentDialog } from '@/components/pms/folio/refund-payment-dialog';
 import { RemoveDiscountDialog } from '@/components/pms/folio/remove-discount-dialog';
 import { ReverseLineDialog } from '@/components/pms/folio/reverse-line-dialog';
@@ -179,6 +182,10 @@ export function FolioTab({
     const [paying, setPaying] = useState(false);
     const [refunding, setRefunding] =
         useState<App.Data.Folio.FolioRowData | null>(null);
+    const [voiding, setVoiding] = useState<App.Data.Folio.FolioRowData | null>(
+        null,
+    );
+    const [refundingCredit, setRefundingCredit] = useState(false);
     const [discounting, setDiscounting] = useState(false);
     const [managing, setManaging] = useState(false);
     const [closing, setClosing] = useState(false);
@@ -503,6 +510,15 @@ export function FolioTab({
                                     Record payment
                                 </Button>
                             )}
+                            {folio.refundCredit !== null && canCorrectMoney && (
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setRefundingCredit(true)}
+                                >
+                                    <RotateCcw data-icon="inline-start" />
+                                    Refund credit
+                                </Button>
+                            )}
                             {folio.canSettleToCityLedger && (
                                 <Button
                                     variant="outline"
@@ -748,6 +764,8 @@ export function FolioTab({
                                     onCorrectPrice?.(row);
                                 } else if (action === 'refund') {
                                     setRefunding(row);
+                                } else if (action === 'void') {
+                                    setVoiding(row);
                                 } else if (action === 'remove_discount') {
                                     setRemoving(row);
                                 } else if (row.lineId !== null) {
@@ -795,8 +813,27 @@ export function FolioTab({
                     folioId={Number(folio.key)}
                     row={refunding}
                     currency={currency}
+                    canOtherMethod={folio.canRefundOtherMethod}
+                    options={paymentOptions}
                     onClose={() => setRefunding(null)}
                 />
+                <VoidPaymentDialog
+                    reservationId={reservationId}
+                    folioId={Number(folio.key)}
+                    row={voiding}
+                    currency={currency}
+                    onClose={() => setVoiding(null)}
+                />
+                {folio.refundCredit !== null && (
+                    <RefundCreditDialog
+                        open={refundingCredit}
+                        onOpenChange={setRefundingCredit}
+                        reservationId={reservationId}
+                        folio={folio}
+                        currency={currency}
+                        options={paymentOptions}
+                    />
+                )}
                 {folio.canPrintVoucher && (
                     <PrintVoucherDialog
                         key={voucherInitial.join(',')}

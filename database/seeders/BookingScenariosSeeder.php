@@ -667,12 +667,23 @@ class BookingScenariosSeeder extends Seeder
 
     /**
      * Run the front desk events of each day from D0 to D6, then close that day with the night audit. The business date
-     * ends on D7, today. A refused or failed audit stops the run.
+     * ends on D7, today. The events run with the clock at noon of that day in the property's time zone, so the front
+     * desk sees an audit that is not pending or overdue (an early check-out is refused on an overdue audit). The clock
+     * returns to what it was (a test's frozen time) after each day. A refused or failed audit stops the run.
      */
     private function rollForward(): void
     {
+        $timeZone = $this->property->loadMissing('settings')->settings->time_zone;
+        $clock = CarbonImmutable::getTestNow();
+
         for ($day = 0; $day < self::DAYS_BACK; $day++) {
-            $this->runDay($day);
+            CarbonImmutable::setTestNow(CarbonImmutable::parse($this->day($day)->toDateString().' 12:00', $timeZone));
+
+            try {
+                $this->runDay($day);
+            } finally {
+                CarbonImmutable::setTestNow($clock);
+            }
 
             $result = app(RunNightAudit::class)($this->property, AuditTrigger::Manual, $this->owner);
 

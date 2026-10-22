@@ -1,9 +1,11 @@
 <?php
 
 use App\Actions\Folio\CreateFolio;
+use App\Actions\NightAudit\RunNightAudit;
 use App\Actions\Payments\RecordPayment;
 use App\Actions\Payments\RefundPayment;
 use App\Data\Payments\NewPaymentData;
+use App\Enums\AuditTrigger;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\FolioStatus;
 use App\Enums\PaymentMethodType;
@@ -17,6 +19,7 @@ use App\Models\Company;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\FolioRoutingRule;
+use App\Models\Guest;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
 use App\Models\Property;
@@ -31,6 +34,7 @@ use App\Models\User;
 use App\Services\Payments\PaymentReceipt;
 use App\Services\Property\PrintProfile;
 use Brick\Math\BigDecimal;
+use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
 
@@ -639,6 +643,114 @@ test('a room that arrived today departs later without a Check out early button',
         ->and($rows[$yesterday->id]['note'])->toBe('Departs 15 Oct');
 });
 
+/** The audit has not run: the business date is yesterday (9 Oct) and the calendar date is today (10 Oct). */
+function gcPending(): void
+{
+    BusinessDate::query()->update(['date' => '2026-10-09']);
+}
+
+function gcRow(object $test, array $setup, ReservationUnit $unit): array
+{
+    return collect($test->actingAs($setup['user'])->postJson(gcUrl($setup, 'preview'))->assertOk()->json('rows'))->keyBy('unitId')[$unit->id];
+}
+
+test('a room that departs on the calendar date is ready while the audit is pending, with its night in the balance', function () {
+    $s = gcSetup(1);
+    gcPending();
+
+    $row = gcRow($this, $s, $s['units'][0]);
+
+    $this->actingAs($s['user'])->postJson(gcUrl($s, 'preview'))
+        ->assertJsonPath('auditPending.businessDate', '9 Oct')
+        ->assertJsonPath('auditPending.today', '10 Oct')
+        ->assertJsonPath('auditPending.running', false);
+
+    expect($row['group'])->toBe('ready')
+        ->and($row['ticked'])->toBeTrue()
+        ->and($row['pendingLines'])->not->toBeEmpty()
+        ->and((float) $row['pendingTotal'])->toBeGreaterThan(0.0)
+        ->and($row['balance'])->toBe($row['pendingTotal'])
+        ->and($row['collectAmount'])->toBe($row['pendingTotal'])
+        ->and($row['choices'])->toContain('collect');
+});
+
+test('checking a room out while the audit is pending posts its night once and the audit replays it', function () {
+    $s = gcSetup(1);
+    gcPending();
+    $row = gcRow($this, $s, $s['units'][0]);
+    $night = $s['units'][0]->nights()->sole();
+
+    gcSave($this, $s, [['unit_id' => $s['units'][0]->id, 'choice' => 'collect', 'payment_method_id' => $s['cash']->id, 'amount' => $row['collectAmount']]])->assertSessionHasNoErrors();
+
+    $lines = FolioLine::query()->count();
+
+    expect($s['units'][0]->fresh()->status)->toBe(UnitStatus::CheckedOut)
+        ->and(FolioLine::query()->where('idempotency_key', 'night:'.$night->id)->count())->toBe(1);
+
+    $audit = app(RunNightAudit::class)($s['property'], AuditTrigger::Manual, force: true, forceReason: 'Test');
+
+    expect($audit->isCompleted())->toBeTrue()
+        ->and(FolioLine::query()->count())->toBe($lines);
+});
+
+test('add to master moves the night that was posted first', function () {
+    $s = gcSetup(1);
+    gcPending();
+    $row = gcRow($this, $s, $s['units'][0]);
+
+    expect($row['choices'])->toContain('move');
+
+    gcSave($this, $s, [['unit_id' => $s['units'][0]->id, 'choice' => 'move']])->assertSessionHasNoErrors();
+
+    expect($s['units'][0]->fresh()->status)->toBe(UnitStatus::CheckedOut)
+        ->and(gcBalance($s['master']))->toBe($row['pendingTotal'])
+        ->and(gcBalance($s['folios'][0]))->toBe('0.00');
+});
+
+test('a room that departs later is no longer blocked while the audit is pending', function () {
+    $s = gcSetup(1);
+    gcPending();
+    $unit = ReservationUnit::factory()->for($s['reservation'])->checkedIn()->create(['room_type_id' => $s['units'][0]->room_type_id, 'arrival_date' => '2026-10-08', 'departure_date' => '2026-10-15']);
+    app(CreateFolio::class)($s['reservation'], $unit);
+
+    $row = gcRow($this, $s, $unit);
+
+    expect($row['group'])->toBe('later')
+        ->and($row['unit'])->not->toBeNull()
+        ->and($row['note'])->toBe('Departs 15 Oct');
+});
+
+test('a guest due to leave yesterday is ready with a note and checks out with no extra night', function () {
+    $s = gcSetup(1);
+    gcPending();
+    $s['units'][0]->forceFill(['arrival_date' => '2026-10-08', 'departure_date' => '2026-10-09'])->save();
+    $s['units'][0]->nights()->whereDate('date', '2026-10-09')->delete();
+
+    $row = gcRow($this, $s, $s['units'][0]);
+
+    expect($row['group'])->toBe('ready')
+        ->and($row['note'])->toBe('Due to leave yesterday (9 Oct). If they stayed last night, check this room out on its own.')
+        ->and($row['pendingLines'])->toBe([]);
+
+    gcSave($this, $s, [['unit_id' => $s['units'][0]->id]])->assertSessionHasNoErrors();
+
+    expect($s['units'][0]->fresh()->status)->toBe(UnitStatus::CheckedOut)
+        ->and(FolioLine::query()->where('idempotency_key', 'like', 'night:%')->count())->toBe(0);
+});
+
+test('a room that departs later while the night audit is overdue says why it cannot leave early', function () {
+    $s = gcSetup(1);
+    $this->travelTo(now()->addDays(2));
+    $unit = ReservationUnit::factory()->for($s['reservation'])->checkedIn()->create(['room_type_id' => $s['units'][0]->room_type_id, 'arrival_date' => '2026-10-09', 'departure_date' => '2026-10-15']);
+    app(CreateFolio::class)($s['reservation'], $unit);
+
+    $rows = collect($this->actingAs($s['user'])->postJson(gcUrl($s, 'preview'))->assertOk()->json('rows'))->keyBy('unitId');
+
+    expect($rows[$unit->id]['group'])->toBe('later')
+        ->and($rows[$unit->id]['unit'])->toBeNull()
+        ->and($rows[$unit->id]['note'])->toBe('The night audit for 10 Oct has not run. Run it first, so the night of 10 Oct is charged.');
+});
+
 test('during a support session the owner money switch refuses a group refund row and a check-out without one still saves', function () {
     $s = gcSetup(2);
     gcCharge($s, $s['folios'][0], '45.00');
@@ -652,4 +764,117 @@ test('during a support session the owner money switch refuses a group refund row
 
     gcSave($this, $s, [['unit_id' => $s['units'][1]->id, 'choice' => null]])->assertSessionHasNoErrors();
     expect($s['units'][1]->fresh()->status)->toBe(UnitStatus::CheckedOut);
+});
+
+test('a checked in room refunds an advance credit that is not a deposit', function () {
+    $s = gcSetup(2);
+    gcDeposit($s, $s['units'][0], '200.00', PaymentPurpose::Advance);
+
+    $response = $this->actingAs($s['user'])->postJson(gcUrl($s, 'preview'))->assertOk();
+    $row = collect($response->json('rows'))->keyBy('unitId')[$s['units'][0]->id];
+
+    expect($row['choices'])->toContain('refund')
+        ->and($row['refundAmount'])->toBe('200.00');
+
+    gcSave($this, $s, [['unit_id' => $s['units'][0]->id, 'choice' => 'refund', 'amount' => '200.00']])->assertSessionHasNoErrors();
+
+    expect($s['units'][0]->fresh()->status)->toBe(UnitStatus::CheckedOut)
+        ->and(Payment::query()->whereNotNull('refund_of_id')->sole()->amount)->toBe('200.00')
+        ->and(gcBalance($s['folios'][0]))->toBe('0.00');
+});
+
+/**
+ * Check every room of the set-up out (their unit folios are at 0), then ask for the group page.
+ *
+ * @return TestResponse
+ */
+function gcAllOutPage(object $test, array $setup, ?User $as = null)
+{
+    gcSave($test, $setup, collect($setup['units'])->map(fn (ReservationUnit $unit): array => ['unit_id' => $unit->id])->all())->assertSessionHasNoErrors();
+    // The save flashes its success state to the next page request: show it once, so the next request is a plain visit.
+    $test->actingAs($setup['user'])->get(route('reservations.check-out', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]))->assertOk();
+
+    return $test->actingAs($as ?? $setup['user'])->get(route('reservations.check-out', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]));
+}
+
+test('with every room out and the Master holding money for a company the page stays open and offers to settle it', function () {
+    $s = gcSetup(2);
+    gcCompany($s);
+
+    gcAllOutPage($this, $s)->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->component('reservations/check-out')
+        ->has('checkOut.preview.rows', 0)
+        ->has('checkOut.preview.openFolios', 1)
+        ->where('checkOut.preview.openFolios.0.key', (string) $s['master']->id)
+        ->where('checkOut.preview.openFolios.0.balance', '80.00')
+        ->where('checkOut.preview.openFolios.0.canSettleToCityLedger', true)
+        ->where('checkOut.preview.openFolios.0.canRecordPayment', true)
+        ->where('checkOut.preview.openFolios.0.url', route('reservations.folio', ['property' => $s['property']->code, 'reservation' => $s['reservation']->id, 'folio' => $s['master']->id])));
+});
+
+test('a Master with no company can take a payment but not settle', function () {
+    $s = gcSetup(2);
+    gcCharge($s, $s['master'], '80.00');
+
+    gcAllOutPage($this, $s)->assertInertia(fn (Assert $page) => $page
+        ->has('checkOut.preview.openFolios', 1)
+        ->where('checkOut.preview.openFolios.0.canSettleToCityLedger', false)
+        ->where('checkOut.preview.openFolios.0.canRecordPayment', true));
+});
+
+test('a user without city-ledger.invoice cannot settle the Master', function () {
+    $s = gcSetup(2);
+    gcCompany($s);
+    $clerk = User::factory()->for($s['property'])->withPermissions(['reservations.view', 'front-desk.check-out', 'payment.record'])->create();
+
+    gcAllOutPage($this, $s, $clerk)->assertInertia(fn (Assert $page) => $page
+        ->where('checkOut.preview.openFolios.0.canSettleToCityLedger', false)
+        ->where('checkOut.preview.openFolios.0.canRecordPayment', true));
+});
+
+test('a third party folio that holds money is listed after the Master, and one at 0 is not', function () {
+    $s = gcSetup(2);
+    gcCompany($s);
+    $agent = Company::factory()->for($s['property'])->create();
+    $owing = app(CreateFolio::class)->thirdParty($s['reservation'], null, $agent->id);
+    gcCharge($s, $owing, '120.00');
+    $guest = Guest::factory()->for($s['property'])->create();
+    $empty = app(CreateFolio::class)->thirdParty($s['reservation'], $guest);
+
+    gcAllOutPage($this, $s)->assertInertia(fn (Assert $page) => $page
+        ->has('checkOut.preview.openFolios', 2)
+        ->where('checkOut.preview.openFolios.0.key', (string) $s['master']->id)
+        ->where('checkOut.preview.openFolios.1.key', (string) $owing->id)
+        ->where('checkOut.preview.openFolios.1.payerCompanyName', $agent->name)
+        ->where('checkOut.preview.openFolios.1.balance', '120.00'));
+
+    expect($empty->fresh()->status)->toBe(FolioStatus::Open);
+});
+
+test('with every room out and no folio holding money the page redirects to the reservation with a toast', function () {
+    $s = gcSetup(2);
+    app(CreateFolio::class)->thirdParty($s['reservation'], Guest::factory()->for($s['property'])->create());
+
+    gcAllOutPage($this, $s)
+        ->assertRedirect(route('reservations.show', ['property' => $s['property']->code, 'reservation' => $s['reservation']->id]))
+        ->assertInertiaFlash('toast', ['type' => 'info', 'message' => 'No rooms are left to check out.']);
+});
+
+test('a Master already settled to the city ledger does not keep the page open', function () {
+    $s = gcSetup(2);
+    gcCompany($s);
+    gcSave($this, $s, [['unit_id' => $s['units'][0]->id], ['unit_id' => $s['units'][1]->id]], ['settle_master' => true])->assertSessionHasNoErrors();
+    $this->actingAs($s['user'])->get(route('reservations.check-out', ['property' => $s['property']->code, 'reservation' => $s['reservation']->id]))->assertOk();
+
+    $this->actingAs($s['user'])
+        ->get(route('reservations.check-out', ['property' => $s['property']->code, 'reservation' => $s['reservation']->id]))
+        ->assertRedirect(route('reservations.show', ['property' => $s['property']->code, 'reservation' => $s['reservation']->id]));
+});
+
+test('the folios list is not built while a room is left to check out', function () {
+    $s = gcSetup(2);
+    gcCompany($s);
+
+    $this->actingAs($s['user'])->get(route('reservations.check-out', ['property' => $s['property']->code, 'reservation' => $s['reservation']->id]))
+        ->assertInertia(fn (Assert $page) => $page->has('checkOut.preview.rows', 2)->has('checkOut.preview.openFolios', 0));
 });
