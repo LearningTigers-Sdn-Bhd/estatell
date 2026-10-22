@@ -66,7 +66,14 @@ for each wastays business date, 13 Aug → the last wastays audit:
 
 estatell builds the same prefix (`GEH`) and the same reference format as wastays. Guests already hold wastays invoices and receipts, so each replayed document keeps its wastays number: invoice `GEH-26700123` in estatell is the same stay as in wastays.
 
-`NextDocumentNumber` takes only a floor today, not an exact number. The importer needs a way to issue a document with its wastays number (to build). Folio and reservation references follow the same rule (to verify in wastays).
+| Document          | wastays               | In the replay                                                                      |
+| ----------------- | --------------------- | ---------------------------------------------------------------------------------- |
+| Reservation       | `GEH-261xxxxx`        | Same number                                                                        |
+| Registration card | `GEH-262xxxxx`        | Same number                                                                        |
+| Receipt, invoice  | `GEH-265…`, `-267…`   | Same number                                                                        |
+| Folio             | Plain number, 1, 2, 3 | estatell numbers it (`GEH-263xxxxx`). The wastays number is kept in `import_links` |
+
+`NextDocumentNumber` takes only a floor today. The importer passes a planned number, and the sequence refuses one that is not above `last_number`. The desk flow does not change.
 
 ### Settings
 
@@ -88,34 +95,73 @@ Tell the hotel's accountant before cutover.
 
 ### Dry run
 
-1. Replay all 70 days on a copy of the estatell database.
-2. Compare every day with its wastays night audit: room revenue, other revenue, SST, tourism tax, payments, occupancy.
-3. Compare every invoice and receipt number and amount with wastays.
-4. Fix and repeat until every day matches. Only then run on prod.
+1. Export a bundle from wastays prod (read only) and fetch it into a copy of the estatell database.
+2. Replay all days. Each day is compared with its wastays night audit: room revenue, other revenue, SST, tourism tax, payments, occupancy, and every document number and amount.
+3. Fix and repeat until every day matches. Only then run on prod.
+
+## Importer
+
+No database connection between the apps. wastays exports a zip bundle, R2 carries it, and estatell reads it. CLI only, no UI. Both apps run on Coolify, so the commands run in each app's Coolify terminal.
+
+```
+wastays (Coolify)                     R2 (existing buckets)                estatell (Coolify)
+bin/rails "estatell:export[3]"  ───▶  wastays bucket
+  read only, guests decrypted           exports/grand-eastern/<date>.zip
+  CSV per table + manifest.json
+  zip + SHA-256                       copy in the R2 dashboard to the
+                                      estatell bucket
+                                        imports/grand-eastern/<date>.zip ───▶  wastays:fetch {key}
+                                                                               wastays:import-setup
+                                                                               ApproveGoLive (13 Aug)
+                                                                               wastays:import-guests
+                                                                               wastays:replay
+                                                                               wastays:purge
+```
+
+- The export uploads through the wastays Active Storage R2 service, and `wastays:fetch` reads the existing `r2` disk. No new bucket, token or env value. If both apps use the same bucket, skip the dashboard copy.
+- The zip holds decrypted guest data. After cutover, delete it from both buckets and from the laptop that copied it. `wastays:purge` removes only the estatell copies.
+- `manifest.json` holds the hotel id, the last audit date, the row count of each file and the checksum. `wastays:fetch` refuses a bundle that does not match it.
+- `import_links` (property, source table, source id, target type, target id, unique) records every wastays row already written, so a stopped run resumes and posts nothing twice.
+- `wastays:replay {bundle} --until= --dry-run` refuses while a Channex channel is connected, and refuses a day when the estatell business date is not the wastays date. The first day that does not match stops the run with a table of the differences and a non-zero exit.
+- Replayed lines carry the replay clock time. The activity log marks them "replay".
+- Code lives in `app/Actions/Onboarding/Wastays/` and `app/Services/Onboarding/Wastays/`.
+
+### Mapping
+
+| wastays                                                | estatell                                                                     |
+| ------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| Night amount                                           | `override_amount` = the wastays net amount, SST 8% exclusive (110.32 + 8.83) |
+| `gateway_payment` (all 108 GEH lines are Card Payment) | The payment method named by the line's transaction code, here Card           |
+| TTX                                                    | The Tourism tax preset, once the hotel confirms                              |
+| Corrections, moved lines, early departures             | `ReverseLine`, `MoveCharges`, the early check-out                            |
+| Tourism tax voucher references                         | Not carried over. estatell has no voucher number                             |
+
+The build items are in the [checklist](../checklist.md#wastays-replay).
 
 ## Open at cutover
 
 The replay checks guests in and out on their real days, so the guests in-house on the last replayed day are simply checked in. The 22 Oct dump had 9, all paid in advance (RM 1,300.20 credit). No opening balance is needed.
 
-| Item              | Finding                                                         | In the replay                                                                                     |
-| ----------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| Empty open folios | 7 at zero: 6 on voided bookings, 1 on a cancelled booking       | Replayed as voided or cancelled                                                                   |
-| Security deposits | 2 × RM 50 held, bookings 5 and 9 (August), both bookings voided | Replayed as held. Ask the hotel                                                                   |
-| Future bookings   | None after 22 Oct                                               | New ones replay as normal bookings                                                                |
-| OTA bookings      | Booking.com, Agoda, Traveloka                                   | Replayed from wastays up to cutover. Channex takes over after (to decide how not to import twice) |
-| Companies and AR  | None                                                            | Nothing to do                                                                                     |
+| Item              | Finding                                                         | In the replay                                                                                                                                                            |
+| ----------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Empty open folios | 7 at zero: 6 on voided bookings, 1 on a cancelled booking       | Replayed as voided or cancelled                                                                                                                                          |
+| Security deposits | 2 × RM 50 held, bookings 5 and 9 (August), both bookings voided | Replayed as held. Ask the hotel                                                                                                                                          |
+| Future bookings   | None after 22 Oct                                               | New ones replay as normal bookings                                                                                                                                       |
+| OTA bookings      | Booking.com, Agoda, Traveloka                                   | Replayed from wastays up to cutover, with the OTA reference. Do not run Import future bookings: it would create them twice. Channex sends only new changes after connect |
+| Companies and AR  | None                                                            | Nothing to do                                                                                                                                                            |
 
 ## Questions for the hotel
 
 1. The two RM 50 deposits from 14 and 21 Aug: were they returned?
 2. Is DBKK 1.30 still charged? Is TTX the tourism tax?
 3. Which SST and tourism tax periods are already filed from wastays?
-4. Which day is cutover? The window setting assumes cutover before 11 Nov.
+4. Which day is cutover? The window setting assumes cutover before 11 Nov. Suggest 3 Nov, which leaves a week for problems.
 
-## Order
+## Cutover runbook
 
-1. Setup import, run on the clone first.
-2. Guests, through the Rails export.
-3. Exact document numbers in the importer.
-4. Dry run of all days on a copy, until every day matches.
-5. Cutover: last wastays audit, fresh dump, replay on prod, staff start in estatell the next morning.
+1. The evening before: the last wastays night audit. Staff stop using wastays.
+2. wastays terminal: `bin/rails "estatell:export[3]"`. Copy the zip to the estatell bucket.
+3. estatell terminal: `wastays:fetch`. Create the property, set `migration_window_days` to 90, `wastays:import-setup`, then `ApproveGoLive` with opening date 13 Aug 2026.
+4. `wastays:import-guests`, then `wastays:replay` up to the last wastays date. Every day must match.
+5. estatell opens cutover day. Staff start in estatell in the morning.
+6. Connect Channex (no Import future bookings), run `wastays:purge`, delete the other zip copies, and tell the accountant which system covers which tax period.

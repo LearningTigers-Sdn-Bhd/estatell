@@ -17,7 +17,7 @@ Legend: **Needs** lists items that must be done first.
 
 ## Now
 
-The critical path, manual entry and migration, and the admin onboarding board are done. The channel manager is next.
+The critical path, manual entry and migration, and the admin onboarding board are done. The channel manager and the wastays replay are next.
 
 ### 21 Channels
 
@@ -31,6 +31,19 @@ Build in this order. Certification needs items 1–4 only, so item 6 can be buil
 - [x] `feat(channels): connect an OTA through the Channel API` — `channel_connections`, `ChannelConnectionStatus`, `testConnection` and `createChannel` on the driver, `ConnectChannel`, `ChannexChannelMapper`, `ChannelFieldCopy`, the OTAs card and the connect page (adapter-driven fields, OTA lists rail, Test connection). A saved connection is a Draft at Channex with no mapping. Docs: [Mappings](21-channels/02-mappings-and-capability.md#ota-mapping-channel-api), [Admin Channels tab](21-channels/07-admin-channels-tab.md#connect-step-1-connection).
 - [x] `feat(channels): map OTA rooms and rates` — `channel_ota_mappings`, `mappingDetails` and `updateChannel`, `SaveChannelMapping`, the map page and the unmapped warning. A saved mapping makes the connection `Mapped`. Docs: [Mappings](21-channels/02-mappings-and-capability.md#ota-mapping-channel-api), [Admin Channels tab](21-channels/07-admin-channels-tab.md#connect-step-2-map).
 - [x] `feat(channels): activate, pause and disconnect OTAs` — `activate`, `deactivate`, `deleteChannel` and `loadFutureReservations`, `ActivateChannel`, `PauseChannel`, `DisconnectChannel`, `ImportFutureBookings`, and the OTAs card buttons and menu. Not done here: Ask owner for help and Mark help resolved (the owner help item). Docs: [Admin Channels tab](21-channels/07-admin-channels-tab.md#connect-step-3-activate).
+
+### wastays replay
+
+Grand Eastern goes live through a full replay from 13 Aug 2026. Cutover must be before 11 Nov 2026, when the migration window closes. Build in this order. The wastays export, the bundle reader and planned numbers can be built in parallel. Docs: [Grand Eastern](migration-plan/grand-eastern-hotel.md#importer).
+
+- [x] `docs(onboarding): plan the wastays replay importer` — the importer, mapping and runbook in the Grand Eastern plan, and this list.
+- [ ] wastays repo: `feat: export a hotel for estatell` — `bin/rails "estatell:export[hotel_id]"`, read only, one CSV per table, guests decrypted, `manifest.json`, zip and SHA-256, uploaded through the Active Storage R2 service to `exports/{hotel}/{date}.zip`, prints the key. Never run on the clone. Docs: [Importer](migration-plan/grand-eastern-hotel.md#importer).
+- [ ] `feat(onboarding): read a wastays export bundle` — `wastays:fetch {key}` from the `r2` disk to `storage/app/private/imports/`, the checksum and manifest check, `wastays:purge`, the readers in `app/Services/Onboarding/Wastays/` with simple-excel, and `import_links`. Docs: [Importer](migration-plan/grand-eastern-hotel.md#importer).
+- [ ] `feat(night-audit): issue a planned document number` — `NextDocumentNumber` takes a planned number and refuses one that is not above `last_number`. The desk flow does not change. Docs: [Document numbers](migration-plan/grand-eastern-hotel.md#document-numbers).
+- [ ] `feat(onboarding): import the setup of a wastays hotel` — `wastays:import-setup {bundle} --dry-run`: room types, rooms, 3 rate plans, SST 8% exclusive, charge items (TTX to the Tourism tax preset), payment methods by transaction code. Needs: read a wastays export bundle. Docs: [Setup](migration-plan/grand-eastern-hotel.md#setup), [Mapping](migration-plan/grand-eastern-hotel.md#mapping).
+- [ ] `feat(guests): import guests from a wastays bundle` — `wastays:import-guests {bundle} --dry-run`, profiles linked through `import_links`. Needs: read a wastays export bundle.
+- [ ] `feat(onboarding): replay one wastays business date` — the day loop through Actions: bookings with `override_amount`, source, OTA reference and groups; cancels and voids; check-ins; charges, payments and refunds; reversals, moved lines and early check-outs; check-outs and `CloseFolio`; then `RunNightAudit`. Refuses while a channel is connected and when the dates differ. Needs: the setup, guests and planned number items. Docs: [Day loop](migration-plan/grand-eastern-hotel.md#day-loop).
+- [ ] `feat(onboarding): replay wastays and compare each day` — `wastays:replay {bundle} --until= --dry-run`, the per-day compare with the wastays night audit, the stop table and the non-zero exit. Needs: replay one wastays business date. Docs: [Dry run](migration-plan/grand-eastern-hotel.md#dry-run).
 
 ## Next
 
