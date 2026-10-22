@@ -29,6 +29,9 @@ final class WastaysBookingIndex
     /** @var array<string, true>|null */
     private ?array $earlyDepartures = null;
 
+    /** @var array<string, array<string, string>>|null the first price of each repaired night, by booking and date */
+    private ?array $repairs = null;
+
     public function __construct(private readonly WastaysBundle $bundle) {}
 
     /** @return array<string, string|null> */
@@ -48,7 +51,8 @@ final class WastaysBookingIndex
     }
 
     /**
-     * The nights of the booking and their net prices, by date, from the nightly rate snapshot.
+     * The nights of the booking and their net prices, by date, from the nightly rate snapshot. A night that wastays
+     * repaired later has the price it was first charged at; the replay changes it on the day of the repair.
      *
      * @return array<string, string>
      */
@@ -58,6 +62,12 @@ final class WastaysBookingIndex
 
         foreach (json_decode((string) ($this->room($bookingId)['nightly_rate_snapshot'] ?? ''), true) ?: [] as $date => $night) {
             $nights[(string) $date] = (string) $night['price'];
+        }
+
+        foreach ($this->repairs()[$bookingId] ?? [] as $date => $original) {
+            if (isset($nights[$date])) {
+                $nights[$date] = $original;
+            }
         }
 
         ksort($nights);
@@ -96,7 +106,7 @@ final class WastaysBookingIndex
 
     /**
      * The arrival and departure dates the booking had when it was created: the old dates of its first date change, else
-     * the dates it has now. A stay that arrives and leaves on one day gets one night (the replay checks it out the next day).
+     * the dates it has now. A guest who left early was booked up to the last night of the rate snapshot. A stay that arrives and leaves on one day gets one night (the replay checks it out the next day).
      *
      * @return array{0: string, 1: string}
      */
@@ -120,6 +130,12 @@ final class WastaysBookingIndex
 
                 break;
             }
+        }
+
+        $nights = array_keys($this->nights($bookingId));
+
+        if ($nights !== [] && $this->hasEarlyDeparture($bookingId) && ! $this->sameDayLeaver($bookingId)) {
+            $departure = max($departure, CarbonImmutable::parse((string) end($nights))->addDay()->toDateString());
         }
 
         if ($departure <= $arrival) {
@@ -158,6 +174,16 @@ final class WastaysBookingIndex
         return $at;
     }
 
+    /**
+     * A guest who arrived and left on one day. wastays charged one night as early departure; the replay keeps one night.
+     */
+    public function sameDayLeaver(string $bookingId): bool
+    {
+        $booking = $this->booking($bookingId);
+
+        return substr((string) ($booking['check_out'] ?? ''), 0, 10) <= substr((string) ($booking['check_in'] ?? ''), 0, 10);
+    }
+
     public function hasEarlyDeparture(string $bookingId): bool
     {
         if ($this->earlyDepartures === null) {
@@ -171,6 +197,43 @@ final class WastaysBookingIndex
         }
 
         return isset($this->earlyDepartures[$bookingId]);
+    }
+
+    /**
+     * @return array<string, array<string, string>>
+     */
+    private function repairs(): array
+    {
+        if ($this->repairs !== null) {
+            return $this->repairs;
+        }
+
+        $rows = [];
+
+        foreach ($this->rows('folio_transactions') as $row) {
+            $rows[(string) $row['id']] = $row;
+        }
+
+        $this->repairs = [];
+
+        foreach ($rows as $row) {
+            $isRepair = $row['category'] === 'accommodation' && $row['moved_from_transaction_id'] !== null
+                && (json_decode((string) $row['metadata'], true)['posting_source'] ?? null) === 'historical_nightly_charge_repair';
+
+            if (! $isRepair) {
+                continue;
+            }
+
+            $root = $row;
+
+            for ($step = 0; $root['moved_from_transaction_id'] !== null && isset($rows[$root['moved_from_transaction_id']]) && $step < 20; $step++) {
+                $root = $rows[$root['moved_from_transaction_id']];
+            }
+
+            $this->repairs[(string) $row['source_booking_id']][substr((string) $row['posting_date'], 0, 10)] ??= (string) $root['amount'];
+        }
+
+        return $this->repairs;
     }
 
     /**

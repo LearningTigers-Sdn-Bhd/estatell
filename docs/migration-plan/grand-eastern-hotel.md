@@ -80,7 +80,7 @@ Figures are from the 22 Oct dump. They grow until cutover.
 | ---------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------- |
 | Check-in before the arrival date                                       | 10          | Checked in on the arrival day                                                                     |
 | Arrived and left on the same day, charged one night as early departure | 11          | A one-night stay checked out the next day. Same money, but room revenue, and a later invoice date |
-| Room moves during a stay                                               | 47 bookings | Only the final room is used                                                                       |
+| Room moves and room type changes during a stay                         | 47 bookings | Only the final room is used                                                                       |
 | Registration cards                                                     | 682         | Not imported. The numbers stay in wastays                                                         |
 
 ### Document numbers

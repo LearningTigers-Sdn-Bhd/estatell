@@ -7,6 +7,7 @@ use App\Actions\FrontDesk\AutoAssignRooms;
 use App\Actions\FrontDesk\CheckInUnit;
 use App\Actions\FrontDesk\CheckOutUnit;
 use App\Actions\FrontDesk\UndoCheckIn;
+use App\Actions\NightAudit\RunNightAudit;
 use App\Actions\Payments\RecordPayment;
 use App\Actions\Reservations\AssignRoom;
 use App\Actions\Reservations\AttachGuest;
@@ -18,6 +19,7 @@ use App\Data\Payments\NewPaymentData;
 use App\Data\Reservations\NewBookingData;
 use App\Data\Reservations\NewBookingGuestData;
 use App\Data\Reservations\NewUnitData;
+use App\Enums\AuditTrigger;
 use App\Enums\BookingSourceType;
 use App\Enums\DocumentType;
 use App\Enums\PaymentMethodType;
@@ -35,9 +37,8 @@ use App\Models\ReservationUnit;
 use App\Models\Room;
 use App\Models\TransactionCode;
 use App\Models\UnitNight;
-use App\Services\NightAudit\PlannedDocumentNumbers;
-use App\Services\NightAudit\PlannedNumberRefused;
 use App\Services\Onboarding\Wastays\ImportLinks;
+use App\Services\Onboarding\Wastays\PlannedNumberRunner;
 use App\Services\Onboarding\Wastays\WastaysBookingIndex;
 use App\Services\Onboarding\Wastays\WastaysDay;
 use App\Services\Onboarding\Wastays\WastaysDocumentNumbers;
@@ -55,8 +56,9 @@ use Illuminate\Support\Facades\Mail;
  * (`WastaysDay::timeline()`), each written once and linked in `import_links`, so a second run writes nothing. The clock is
  * frozen at 12:00 property time on the date, the queue is `null` and mail is `array`, so no message goes out. Wastays
  * document numbers (reservation, receipt, invoice) are queued on `PlannedDocumentNumbers` just before the Action that
- * issues them. This Action replays bookings, check-ins, charges, payments, deposits and check-outs; the other events of
- * the day are counted and left to the corrections step. Any refusal stops the day with `ReplayStopped` and writes nothing.
+ * issues them. This Action replays bookings, check-ins, charges, payments, deposits and check-outs, hands the corrections to
+ * `ReplayWastaysCorrections`, and runs the night audit last, which opens the next date. A day whose wastays night audit
+ * is already linked is skipped, so a second run writes nothing. Any refusal stops the day with `ReplayStopped` and writes nothing.
  * See docs/migration-plan/grand-eastern-hotel.md "Day loop".
  */
 class ReplayWastaysDay
@@ -75,7 +77,9 @@ class ReplayWastaysDay
         private EnsureOtaBookingSource $ensureOtaBookingSource,
         private RecordImportLink $recordImportLink,
         private ImportLinks $links,
-        private PlannedDocumentNumbers $planned,
+        private PlannedNumberRunner $numbers,
+        private ReplayWastaysCorrections $corrections,
+        private RunNightAudit $runNightAudit,
     ) {}
 
     /**
@@ -83,6 +87,15 @@ class ReplayWastaysDay
      */
     public function __invoke(WastaysImportTarget $target, WastaysDay $day, string $date): WastaysReplaySummary
     {
+        $audit = $day->nightAudit($date);
+
+        if ($audit !== null && $this->links->has($target->property, 'night_audits', (string) $audit['id'])) {
+            $summary = new WastaysReplaySummary;
+            $summary->count('day already replayed');
+
+            return $summary;
+        }
+
         $refusals = $day->refusals($target->property, $date);
 
         if ($refusals !== []) {
@@ -106,7 +119,9 @@ class ReplayWastaysDay
         $this->carryOver($context, $day);
 
         foreach ($day->timeline($context->date) as $event) {
-            if (in_array($event->sourceTable, ['folio_transactions', 'deposits'], true) && $this->links->has($context->property, $event->sourceTable, $event->sourceId)) {
+            $written = in_array($event->sourceTable, ['folio_transactions', 'deposits'], true) || $event->type === WastaysEventType::StayChange;
+
+            if ($written && $this->links->has($context->property, $event->sourceTable, $event->sourceId)) {
                 $context->summary->count('already written');
 
                 continue;
@@ -119,11 +134,41 @@ class ReplayWastaysDay
                 WastaysEventType::Payment => $this->payment($context, $event),
                 WastaysEventType::Deposit => $this->deposit($context, $event),
                 WastaysEventType::CheckOut => $this->checkOut($context, $event),
-                default => $context->summary->count('left to the corrections step: '.$event->type->value),
+                default => ($this->corrections)($context, $event),
             };
         }
 
+        $this->closeDay($context, $day);
+
         return $context->summary;
+    }
+
+    /**
+     * Run the night audit of the day at 00:05 on the next date, so the date has ended. It opens the next business date.
+     */
+    private function closeDay(ReplayContext $context, WastaysDay $day): void
+    {
+        $audit = $day->nightAudit($context->date);
+
+        if ($audit === null) {
+            $context->summary->note("{$context->date} has no wastays night audit. The day stays open.");
+
+            return;
+        }
+
+        $zone = $context->property->settings->time_zone ?? config('app.timezone');
+        $at = CarbonImmutable::parse($context->date.' 00:05', $zone)->addDay();
+        Carbon::setTestNow($at);
+        CarbonImmutable::setTestNow($at);
+
+        $result = ($this->runNightAudit)($context->property, AuditTrigger::Manual, $context->actor);
+
+        if ($result->isRefused() || ! $result->isCompleted()) {
+            throw new ReplayStopped("night_audits {$audit['id']}: the night audit of {$context->date} did not complete (".($result->refusal ?? 'failed').').');
+        }
+
+        ($this->recordImportLink)($context->property, 'night_audits', (string) $audit['id'], $result->audit);
+        $context->summary->count('night audits run');
     }
 
     /**
@@ -166,7 +211,7 @@ class ReplayWastaysDay
 
             $at = $context->index->checkOutAt($bookingId);
 
-            if ($at !== null && $at->lt($opened) && ! $context->index->hasEarlyDeparture($bookingId)) {
+            if ($at !== null && $at->lt($opened) && (! $context->index->hasEarlyDeparture($bookingId) || $context->index->sameDayLeaver($bookingId))) {
                 $this->doCheckOut($context, $unit, $bookingId, 'check-out moved to the departure day');
             }
         }
@@ -217,7 +262,7 @@ class ReplayWastaysDay
         );
         $backdated = $arrival < $context->date;
         $number = (int) $booking['reservation_number'];
-        $result = $this->withNumber(DocumentType::Reservation, $number, fn () => ($this->createBooking)($context->actor, $property, $data, false, $backdated), true, $bookingId);
+        $result = $this->numbers->run(DocumentType::Reservation, $number, fn () => ($this->createBooking)($context->actor, $property, $data, false, $backdated), true, $bookingId);
 
         if ($result->isRefused()) {
             throw new ReplayStopped("bookings {$bookingId}: the booking was refused ({$result->refusal}).");
@@ -403,7 +448,7 @@ class ReplayWastaysDay
 
     private function pay(ReplayContext $context, ReservationUnit $unit, PaymentMethod $method, PaymentPurpose $purpose, string $amount, ?string $reference, string $key, ?int $receipt, string $label): Model
     {
-        $result = $this->withNumber(DocumentType::Receipt, $receipt, fn () => ($this->recordPayment)($context->actor, $unit->reservation, null, $unit, new NewPaymentData(
+        $result = $this->numbers->run(DocumentType::Receipt, $receipt, fn () => ($this->recordPayment)($context->actor, $unit->reservation, null, $unit, new NewPaymentData(
             paymentMethodId: $method->id,
             purpose: $purpose,
             amount: $amount,
@@ -442,7 +487,7 @@ class ReplayWastaysDay
     private function doCheckOut(ReplayContext $context, ReservationUnit $unit, string $bookingId, string $label): void
     {
         $invoice = $context->numbers->invoice($bookingId);
-        $result = $this->withNumber(DocumentType::Invoice, $invoice, fn () => ($this->checkOutUnit)($context->actor, $unit->refresh()), $invoice !== null, "bookings {$bookingId}");
+        $result = $this->numbers->run(DocumentType::Invoice, $invoice, fn () => ($this->checkOutUnit)($context->actor, $unit->refresh()), $invoice !== null, "bookings {$bookingId}");
 
         if ($result->isRefused()) {
             throw new ReplayStopped("bookings {$bookingId}: the check-out was refused ({$result->refusal}).");
@@ -497,38 +542,6 @@ class ReplayWastaysDay
     private function amount(?string $value): string
     {
         return number_format(abs((float) $value), 2, '.', '');
-    }
-
-    /**
-     * Queue the wastays number, run the Action that issues it, and check the number was used.
-     *
-     * @template T
-     *
-     * @param  Closure(): T  $run
-     * @return T
-     */
-    private function withNumber(DocumentType $type, ?int $number, Closure $run, bool $mustUse, string $label)
-    {
-        $this->planned->clear();
-
-        if ($number !== null) {
-            $this->planned->push($type, $number);
-        }
-
-        try {
-            $result = $run();
-            $left = $this->planned->pending();
-        } catch (PlannedNumberRefused $refused) {
-            throw new ReplayStopped("{$label}: {$refused->getMessage()}");
-        } finally {
-            $this->planned->clear();
-        }
-
-        if ($mustUse && $left !== []) {
-            throw new ReplayStopped("{$label}: the {$type->value} number {$number} was not used.");
-        }
-
-        return $result;
     }
 
     /**
