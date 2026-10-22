@@ -1,7 +1,9 @@
 <?php
 
+use App\Actions\Onboarding\Wastays\RecordImportLink;
 use App\Models\ImportLink;
 use App\Models\Property;
+use App\Services\Onboarding\Wastays\ImportLinks;
 use App\Services\Onboarding\Wastays\WastaysBundle;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Filesystem\Filesystem;
@@ -193,3 +195,15 @@ it('keeps one import link per property, source table and source id', function ()
 
     ImportLink::factory()->for($property)->create(['source_table' => 'bookings', 'source_id' => '7']);
 })->throws(UniqueConstraintViolationException::class);
+
+it('records a link once and finds its target', function () {
+    $property = Property::factory()->create();
+    $other = Property::factory()->create();
+
+    app(RecordImportLink::class)($property, 'hotels', 8, $other);
+    app(RecordImportLink::class)($property, 'hotels', '8', $property);
+
+    expect(ImportLink::query()->count())->toBe(1)
+        ->and(app(ImportLinks::class)->targetId($property, 'hotels', 8))->toBe($other->id)
+        ->and(app(ImportLinks::class)->has($other, 'hotels', 8))->toBeFalse();
+});
