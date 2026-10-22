@@ -111,7 +111,8 @@ class ReservationUnitStayController extends Controller
 
     /**
      * Check one unit in and, with Collect now, take the taxes flagged for check-in and the security deposit. A
-     * refused payment leaves the unit checked in and goes back to the Dialog as an error on the method or reference.
+     * refused payment saves nothing, not even the check-in, and goes back to the Dialog as an error on the method or
+     * reference, so the same form can be sent again.
      */
     public function checkIn(CheckInUnitRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, CheckInAndCollect $checkInAndCollect, ReservationRefusals $refusals, PaymentRefusals $paymentRefusals): RedirectResponse
     {
@@ -123,7 +124,7 @@ class ReservationUnitStayController extends Controller
         }
 
         if ($result->paymentRefusal !== null) {
-            Inertia::flash('toast', ['type' => 'error', 'message' => __('The unit is checked in, but the payment was refused.')]);
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('The payment was refused, so the guest is not checked in yet.')]);
 
             return back(fallback: $page)->withErrors($paymentRefusals->errors($result->paymentRefusal));
         }

@@ -414,7 +414,7 @@ test('check in with Collect now on a unit whose rooms go to the Master folio tak
         ->and(Payment::query()->sole()->folio->type)->toBe(FolioType::Unit);
 });
 
-test('a refused payment leaves the unit checked in and shows on the method field', function () {
+test('a refused payment saves nothing, not even the check-in, and shows on the method field', function () {
     $setup = uaSetup();
     uaCheckInSetup($setup);
 
@@ -422,8 +422,30 @@ test('a refused payment leaves the unit checked in and shows on the method field
         ->post(uaUrl($setup, 'check-in'), ['collect_now' => true, 'collect_taxes' => true, 'collect_deposit' => true, 'payment_method_id' => 999999, 'idempotency_key' => fake()->uuid()])
         ->assertSessionHasErrors('payment_method_id');
 
-    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn)
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::Confirmed)
         ->and(Payment::query()->count())->toBe(0);
+});
+
+test('after a refused payment the same form can be sent again and checks in with both payments', function () {
+    $setup = uaSetup();
+    uaCheckInSetup($setup);
+    $card = PaymentMethod::factory()->create(['property_id' => $setup['property']->id, 'requires_reference' => true, 'position' => 2]);
+    $form = ['collect_now' => true, 'collect_taxes' => true, 'collect_deposit' => true, 'payment_method_id' => $card->id, 'idempotency_key' => fake()->uuid()];
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'check-in'), $form)
+        ->assertSessionHasErrors('reference');
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::Confirmed)
+        ->and(Payment::query()->count())->toBe(0);
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'check-in'), [...$form, 'reference' => 'TXN-1'])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn)
+        ->and(Payment::query()->orderBy('id')->pluck('amount')->all())->toBe(['16.00', '100.00']);
 });
 
 test('the amounts of Collect now come from the server, not from the form', function () {
