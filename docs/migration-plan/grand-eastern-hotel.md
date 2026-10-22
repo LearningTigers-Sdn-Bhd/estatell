@@ -176,20 +176,20 @@ On any mismatch it deletes what it extracted, prints why and exits non-zero. On 
 
 ### Mapping
 
-| wastays `folio_transactions`                  | Count | estatell                                                                                            |
-| --------------------------------------------- | ----- | --------------------------------------------------------------------------------------------------- |
-| ROOM (night audit, catch-up, blocker, repair) | 902   | Not read. Posted by the audit from `override_amount`. A repaired price is `ChangeNightPrice`        |
-| TAX_SST                                       | 920   | Not read. estatell calculates 8% on top                                                             |
-| TAX_TTX and the manual TTX charge             | 5     | Waits for the hotel's answer. Tourism tax stays off during the replay                               |
-| EARLY_DEP                                     | 18    | The early check-out in the [Day loop](#day-loop)                                                    |
-| Corrections                                   | 24    | `ChangeNightPrice` for a repaired night, `ReverseLine` for others, `PostAdjustment` for staff ones  |
-| ADJUSTMENT                                    | 5     | `PostAdjustment`: a signed amount on the folio, no tax                                              |
-| OTA                                           | 433   | `RecordPayment` with OTA collected                                                                  |
-| CASH, CARD, BANK                              | 275   | `RecordPayment` with the linked method. Before check-in the purpose is Advance, after it Settlement |
-| REFUND                                        | 3     | `VoidPayment` for a same-day reversal of a payment, `RefundPayment` otherwise                       |
-| CLEANING, BED                                 | 4     | `PostCharge` with the linked charge item and the wastays amount                                     |
-| `deposits` (2 × RM 50 on voided bookings)     | 2     | `RecordPayment` with purpose Security deposit. Replayed as held                                     |
-| Tourism tax voucher references                | -     | Not carried over. estatell has no voucher number                                                    |
+| wastays `folio_transactions`                  | Count | estatell                                                                                                                                                                                                                                               |
+| --------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ROOM (night audit, catch-up, blocker, repair) | 902   | Not read. Posted by the audit from `override_amount`. A repaired price is `ChangeNightPrice`                                                                                                                                                           |
+| TAX_SST                                       | 920   | Not read. estatell calculates 8% on top                                                                                                                                                                                                                |
+| TAX_TTX and the manual TTX charge             | 5     | Waits for the hotel's answer. Tourism tax stays off during the replay                                                                                                                                                                                  |
+| EARLY_DEP                                     | 18    | The early check-out in the [Day loop](#day-loop)                                                                                                                                                                                                       |
+| Corrections                                   | 24    | `ChangeNightPrice` for a repaired night, `ReverseLine` for others, `PostAdjustment` for staff ones                                                                                                                                                     |
+| ADJUSTMENT                                    | 5     | `PostAdjustment`: a signed amount on the folio, no tax                                                                                                                                                                                                 |
+| OTA                                           | 433   | `RecordPayment` with OTA collected                                                                                                                                                                                                                     |
+| CASH, CARD, BANK                              | 275   | `RecordPayment` with the linked method. Before check-in the purpose is Advance, after it Settlement. When the method needs a reference and wastays saved none (20 card, 14 bank), the reference is the wastays receipt, such as `wastays GEH-26500012` |
+| REFUND                                        | 3     | `VoidPayment` for a same-day reversal of a payment, `RefundPayment` otherwise                                                                                                                                                                          |
+| CLEANING, BED                                 | 4     | `PostCharge` with the linked charge item and the wastays amount                                                                                                                                                                                        |
+| `deposits` (2 × RM 50 on voided bookings)     | 2     | `RecordPayment` with purpose Security deposit. Replayed as held                                                                                                                                                                                        |
+| Tourism tax voucher references                | -     | Not carried over. estatell has no voucher number                                                                                                                                                                                                       |
 
 - The wastays transaction code of a line finds its estatell target through the `import_links` that `wastays:import-setup` wrote.
 - `PostCharge` and `BillToGuest` accept an admin actor (`is_admin`), not only property staff, so the replay can run as the admin.

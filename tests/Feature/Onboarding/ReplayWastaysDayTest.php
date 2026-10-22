@@ -174,3 +174,16 @@ it('checks a guest in on the arrival day when wastays checked in earlier', funct
     expect($second->counts)->toMatchArray(['check-in moved to the arrival day' => 1, 'payments recorded' => 1])
         ->and($unit->refresh()->status)->toBe(UnitStatus::CheckedIn);
 });
+
+it('uses the wastays receipt number as the reference when the method needs one and wastays saved none', function () {
+    $setup = wastaysReplaySetup();
+    $setup['cash']->update(['requires_reference' => true]);
+    $tables = wastaysReplayTables();
+    $tables['folio_transactions'][0]['metadata'] = '{}';
+    $tables['receipts'][0]['public_number'] = 'GEH-26500077';
+    [$target, $day] = wastaysReplayTarget($setup, $tables);
+
+    replayDay($setup, $day, $target, '2026-08-13');
+
+    expect(Payment::query()->sole()->reference)->toBe('wastays GEH-26500077');
+});

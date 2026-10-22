@@ -423,6 +423,7 @@ class ReplayWastaysDay
         }
 
         $reference = json_decode((string) $row['metadata'], true)['reference'] ?? null;
+        $reference = filled($reference) ? (string) $reference : ($method->requires_reference ? $context->numbers->receiptReference('folio_transaction', $event->sourceId) : null);
         $number = $context->numbers->receipt('folio_transaction', $event->sourceId);
         $payment = $this->pay($context, $unit, $method, $unit->status === UnitStatus::Confirmed ? PaymentPurpose::Advance : PaymentPurpose::Settlement, $this->amount($row['amount']), $reference, 'wastays:folio_transactions:'.$event->sourceId, $number, "folio_transactions {$event->sourceId}");
 

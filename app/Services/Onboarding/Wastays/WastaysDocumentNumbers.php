@@ -15,6 +15,9 @@ final class WastaysDocumentNumbers
     /** @var array<string, int>|null */
     private ?array $invoices = null;
 
+    /** @var array<string, string>|null */
+    private ?array $receiptReferences = null;
+
     public function __construct(private readonly WastaysBundle $bundle) {}
 
     /**
@@ -35,6 +38,28 @@ final class WastaysDocumentNumbers
         }
 
         return $this->receipts[$kind.':'.$sourceId] ?? null;
+    }
+
+    /**
+     * The wastays receipt as a payment reference, such as "wastays GEH-26500012", for a payment wastays saved without one.
+     *
+     * @param  string  $kind  `folio_transaction` or `deposit`
+     */
+    public function receiptReference(string $kind, string $sourceId): ?string
+    {
+        if ($this->receiptReferences === null) {
+            $this->receiptReferences = [];
+
+            foreach ($this->rows('receipts') as $row) {
+                foreach (['folio_transaction' => 'folio_transaction_id', 'deposit' => 'deposit_id'] as $name => $column) {
+                    if ($row[$column] !== null && $row['public_number'] !== null) {
+                        $this->receiptReferences[$name.':'.$row[$column]] = 'wastays '.$row['public_number'];
+                    }
+                }
+            }
+        }
+
+        return $this->receiptReferences[$kind.':'.$sourceId] ?? null;
     }
 
     public function invoice(string $bookingId): ?int
