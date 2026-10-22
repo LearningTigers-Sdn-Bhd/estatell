@@ -49,7 +49,7 @@ export function Channels() {
                             <p className="text-xs font-medium tracking-widest text-foreground/70 uppercase">
                                 Channel Manager
                             </p>
-                            <h2 className="mt-5 text-4xl leading-none font-medium tracking-tighter sm:text-5xl lg:text-[3.5rem]">
+                            <h2 className="mt-5 text-4xl leading-none font-medium tracking-tighter sm:text-5xl lg:text-6xl">
                                 One update.
                                 <br />
                                 Everywhere you sell.

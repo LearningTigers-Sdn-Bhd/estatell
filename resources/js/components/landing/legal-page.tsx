@@ -52,7 +52,7 @@ export function LegalPage({
                         <p className="mt-6 text-xs font-medium tracking-widest text-chart-1 uppercase sm:mt-10">
                             The details that matter
                         </p>
-                        <h1 className="mt-4 max-w-4xl text-[2.5rem] leading-none font-medium tracking-tighter text-balance sm:mt-5 sm:text-7xl">
+                        <h1 className="mt-4 max-w-4xl text-4xl leading-none font-medium tracking-tighter text-balance sm:mt-5 sm:text-7xl">
                             {title}
                         </h1>
                         <p className="mt-6 max-w-2xl text-base leading-relaxed text-foreground/75 sm:text-lg">
