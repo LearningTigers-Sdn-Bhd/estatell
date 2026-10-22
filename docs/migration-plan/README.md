@@ -12,7 +12,7 @@ All figures come from a read-only clone of wastays production (`wastays_prod_clo
 
 | Hotel                                                                 | wastays id | Path           | Status                                    |
 | --------------------------------------------------------------------- | ---------- | -------------- | ----------------------------------------- |
-| [Grand Eastern Hotel](grand-eastern-hotel.md)                         | 3          | Full migration | Pilot. Waiting for the hotel's answers    |
+| [Grand Eastern Hotel](grand-eastern-hotel.md)                         | 3          | Full replay    | Pilot. Replay from 13 Aug agreed          |
 | [Sand Bay Resort Semporna](sand-bay-resort-semporna.md)               | 5          | Full migration | Needs city ledger item 10 and the answers |
 | [Y Hotel](y-hotel.md)                                                 | 4          | Copy setup     | Rate plans studied                        |
 | [Hotel Asia City](hotel-asia-city.md)                                 | 6          | Copy setup     | Rate plans studied. Tax basis to confirm  |
@@ -25,18 +25,19 @@ Not migrated: Hotel Boreno (1, test data), Gail Decker (2, test data), FPHP UiTM
 
 ## Paths
 
-| Path           | Moves                                                                                                                   |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Full migration | Setup, guests, past stays as Old stays, in-house stays, future bookings, deposits, company balances, past daily figures |
-| Copy setup     | Room types, active rooms, rate plans with 12 months of daily rates, taxes, extra charges, payment methods               |
-| Start fresh    | Nothing. The hotel uses the estatell onboarding wizard                                                                  |
+| Path           | Moves                                                                                                                                  |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Full replay    | Setup and guests, then every wastays day replayed through Actions and the night audit from the first wastays business date. No bridges |
+| Full migration | Setup, guests, past stays as Old stays, in-house stays, future bookings, deposits, company balances, past daily figures                |
+| Copy setup     | Room types, active rooms, rate plans with 12 months of daily rates, taxes, extra charges, payment methods                              |
+| Start fresh    | Nothing. The hotel uses the estatell onboarding wizard                                                                                 |
 
 ## Method
 
 - An Artisan importer reads the clone through a read-only database connection and writes through estatell Actions. It never inserts rows directly, so ledger rules, idempotency keys and the migration window still apply.
 - Guest email, phone, government ID and passport number are Active Record encrypted in wastays. A small Rails export task in wastays decrypts them. Everything else is read with SQL.
 - OTA future bookings come in through Channex `ImportFutureBookings`, never from wastays, so they are not imported twice.
-- Past daily figures are copied from wastays night audits once and marked as from the old system. They are never recalculated.
+- Past daily figures are copied from wastays night audits once and marked as from the old system. They are never recalculated. A full replay builds them with the estatell audit instead.
 - Every run starts with a dry run that lists problems. A real run is repeatable: the wastays id is the idempotency key (to decide where it is stored).
 
 ## Rate plan mapping
