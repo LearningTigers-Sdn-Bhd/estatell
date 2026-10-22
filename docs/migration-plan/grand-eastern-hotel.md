@@ -24,7 +24,7 @@ The hotel wants all its history in estatell, so Grand Eastern does not use the u
 | -------------- | -------------------------- | ---------------------------------------------------------------------------------------- | -------------- |
 | Standard Rate  | PerRoom                    | Twin 150.00, Family 178.00, Triple 178.00, Super Queen 133.00, Queen 128.00, King 150.00 | Everyone       |
 | Walk-in Rate   | Derived from Standard, +0% | Follows Standard                                                                         | Everyone       |
-| Corporate Rate | Derived from Standard, +0% | Follows Standard                                                                         | All companies  |
+| Corporate Rate | Derived from Standard, +0% | Follows Standard                                                                         | Everyone       |
 
 The wastays base prices (162.00, 192.24, 143.64, 138.24) include SST: 162.00 posts as 150.00 plus 12.00 SST, and every base ÷ 1.08 is a whole ringgit. estatell stores the net price with SST 8% exclusive. Confirm before import (see [Tax basis](README.md#rate-plan-mapping)). Staff often type their own price at the desk (103.27, 117.05, 133.00 are common), so the daily rate matters less here than the folio history.
 
@@ -210,18 +210,18 @@ On any mismatch it deletes what it extracted, prints why and exits non-zero. On 
 
 `wastays:import-setup` writes the [Setup](#setup):
 
-| Part              | From wastays                                    | In estatell                                                                                                                                                                      |
-| ----------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Room types        | `room_types`                                    | `CreateRoomType`, sold by room. Name in Title Case. Max adults and max children as in wastays. Base occupancy 2, or max adults when lower                                        |
-| Rooms             | `rooms`                                         | `CreateRoom`, same number and type. No room groups                                                                                                                               |
-| Rate plans        | `rate_plans`                                    | The seeded Basic Rate is renamed Standard Rate. Walk-in Rate and Corporate Rate are derived from it at +0% (`CreateDerivedRatePlan`). Corporate is open to all companies         |
-| Rates             | `room_types.base_price`                         | `SaveRates` on Standard Rate from the first audit date to 31 Dec 2027, at base ÷ 1.08 rounded to 2 decimals                                                                      |
-| SST               | `hotels.sst_enabled`, `sst_registration_number` | The seeded SST tax is turned on: 8%, exclusive, on room revenue, with the registration number                                                                                    |
-| Tourism tax       | `TAX_TTX` and the manual `TTX` charge           | Stays off during the import and the replay: wastays charged only 4 of 66 foreign bookings. It is turned on at cutover, once the hotel answers                                    |
-| DBKK              | `hotel_taxes` DBKK, off, no lines               | Skipped                                                                                                                                                                          |
-| Charge items      | `hotel_extra_charges`                           | Food & Beverage → the starter item. Damage Charge → the built-in Damage item. Cleaning Fee, Miscellaneous Revenue, Parking and Extra Bed → new items, no price. Parking inactive |
-| Payments          | `hotel_payment_methods`                         | Cash, Cash - Prepayment, Cash Prepayment → Cash. Card, Card Prepayment, Gateway Manual Recovery → Card. Bank Transfer → Bank transfer. OTA Collected → OTA Collected, turned on  |
-| Transaction codes | `transaction_codes`                             | One `import_links` row for each wastays code, to its estatell transaction code, payment method, charge item or tax. The replay finds every folio line's target with one lookup   |
+| Part              | From wastays                                    | In estatell                                                                                                                                                                                                                                                                       |
+| ----------------- | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Room types        | `room_types`                                    | `CreateRoomType`, sold by room. Name in Title Case. Max adults and max children as in wastays. Base occupancy 2, or max adults when lower                                                                                                                                         |
+| Rooms             | `rooms`                                         | `CreateRoom`, same number and type. No room groups                                                                                                                                                                                                                                |
+| Rate plans        | `rate_plans`                                    | The seeded Basic Rate stays named Basic Rate: the go-live check looks for that name. Walk-in Rate and Corporate Rate are derived from it at +0% (`CreateDerivedRatePlan`). Corporate is open to everyone, because wastays booked it without a company (10 bookings, no companies) |
+| Rates             | `room_types.base_price`                         | `SaveRates` on Basic Rate from the first audit date to 31 Dec 2027, at base ÷ 1.08 rounded to 2 decimals                                                                                                                                                                          |
+| SST               | `hotels.sst_enabled`, `sst_registration_number` | The seeded SST tax is turned on: 8%, exclusive, on room revenue, with the registration number                                                                                                                                                                                     |
+| Tourism tax       | `TAX_TTX` and the manual `TTX` charge           | Stays off during the import and the replay: wastays charged only 4 of 66 foreign bookings. It is turned on at cutover, once the hotel answers                                                                                                                                     |
+| DBKK              | `hotel_taxes` DBKK, off, no lines               | Skipped                                                                                                                                                                                                                                                                           |
+| Charge items      | `hotel_extra_charges`                           | Food & Beverage → the starter item. Damage Charge → the built-in Damage item. Cleaning Fee, Miscellaneous Revenue, Parking and Extra Bed → new items, no price. Parking inactive                                                                                                  |
+| Payments          | `hotel_payment_methods`                         | Cash, Cash - Prepayment, Cash Prepayment → Cash. Card, Card Prepayment, Gateway Manual Recovery → Card. Bank Transfer → Bank transfer. OTA Collected → OTA Collected, turned on                                                                                                   |
+| Transaction codes | `transaction_codes`                             | One `import_links` row for each wastays code, to its estatell transaction code, payment method, charge item or tax. The replay finds every folio line's target with one lookup                                                                                                    |
 
 - A wastays code with folio lines that cannot be mapped stops the import with its code and line count. A code with no lines is listed as skipped.
 - Room revenue, no-show, cancellation, late check-out, early departure, security deposit, refund, adjustment and rebate map to the estatell system code with the same meaning.
@@ -270,7 +270,8 @@ The replay checks guests in and out on their real days, so the guests in-house o
 1. The evening before: the last wastays night audit. Staff stop using wastays.
 2. wastays terminal: `bin/rails "estatell:export[3]"`. In the R2 dashboard, download the zip from `wastays-bucket` and drag it into `estatell-production` at `imports/grand-eastern-hotel/`.
 3. estatell terminal: `wastays:fetch`. Create the property, set `migration_window_days` to 90, run `wastays:import-setup` and `wastays:import-guests`, then `ApproveGoLive` with opening date 13 Aug 2026. Both imports refuse a live property, so they run first.
-4. `wastays:replay` up to the last wastays date. Every day must match.
-5. Turn on Tourism tax, if the hotel confirms TTX is that tax.
-6. estatell opens cutover day. Staff start in estatell in the morning.
-7. Connect Channex (no Import future bookings), run `wastays:purge`, delete the other zip copies, and tell the accountant which system covers which tax period.
+4. Rename Basic Rate to Standard Rate on the Rates page.
+5. `wastays:replay` up to the last wastays date. Every day must match.
+6. Turn on Tourism tax, if the hotel confirms TTX is that tax.
+7. estatell opens cutover day. Staff start in estatell in the morning.
+8. Connect Channex (no Import future bookings), run `wastays:purge`, delete the other zip copies, and tell the accountant which system covers which tax period.

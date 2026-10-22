@@ -111,14 +111,14 @@ it('imports the room types, rooms, rate plans and prices', function () {
         ->and($property->rooms()->pluck('number')->sort()->values()->all())->toBe(['101', '102', '201']);
 
     $plans = $property->ratePlans()->orderBy('position')->get()->keyBy('name');
-    expect($plans->keys()->all())->toEqualCanonicalizing(['Standard Rate', 'Walk-in Rate', 'Corporate Rate'])
-        ->and($plans['Walk-in Rate']->parent_rate_plan_id)->toBe($plans['Standard Rate']->id)
-        ->and($plans['Corporate Rate']->company_access)->toBe(CompanyAccess::All)
-        ->and($plans['Standard Rate']->roomTypes()->count())->toBe(4);
+    expect($plans->keys()->all())->toEqualCanonicalizing(['Basic Rate', 'Walk-in Rate', 'Corporate Rate'])
+        ->and($plans['Walk-in Rate']->parent_rate_plan_id)->toBe($plans['Basic Rate']->id)
+        ->and($plans['Corporate Rate']->company_access)->toBe(CompanyAccess::Everyone)
+        ->and($plans['Basic Rate']->roomTypes()->count())->toBe(4);
 
-    $price = fn (RoomType $type): string => (string) Rate::query()->where('rate_plan_id', $plans['Standard Rate']->id)->where('room_type_id', $type->id)->where('date', '2026-08-13')->value('amount');
+    $price = fn (RoomType $type): string => (string) Rate::query()->where('rate_plan_id', $plans['Basic Rate']->id)->where('room_type_id', $type->id)->where('date', '2026-08-13')->value('amount');
     expect([$price($types[0]), $price($types[1]), $price($types[2]), $price($types[3])])->toBe(['150.00', '178.00', '133.00', '128.00'])
-        ->and(Rate::query()->where('rate_plan_id', $plans['Standard Rate']->id)->where('room_type_id', $types[0]->id)->orderByDesc('date')->value('date')->toDateString())->toBe('2027-12-31');
+        ->and(Rate::query()->where('rate_plan_id', $plans['Basic Rate']->id)->where('room_type_id', $types[0]->id)->orderByDesc('date')->value('date')->toDateString())->toBe('2027-12-31');
 });
 
 it('turns on SST and keeps the tourism tax off', function () {

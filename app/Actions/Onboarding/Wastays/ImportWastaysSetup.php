@@ -9,7 +9,6 @@ use App\Actions\Rates\CreateDerivedRatePlan;
 use App\Actions\Rates\SaveRates;
 use App\Actions\Rates\SetRatePlanCompanyAccess;
 use App\Actions\Rates\SyncRatePlanRoomTypes;
-use App\Actions\Rates\UpdateRatePlan;
 use App\Actions\Rooms\CreateRoom;
 use App\Actions\Rooms\CreateRoomType;
 use App\Data\Catalogues\TaxInputData;
@@ -49,7 +48,6 @@ class ImportWastaysSetup
     public function __construct(
         private CreateRoomType $createRoomType,
         private CreateRoom $createRoom,
-        private UpdateRatePlan $updateRatePlan,
         private SyncRatePlanRoomTypes $syncRatePlanRoomTypes,
         private CreateDerivedRatePlan $createDerivedRatePlan,
         private SetRatePlanCompanyAccess $setRatePlanCompanyAccess,
@@ -183,19 +181,16 @@ class ImportWastaysSetup
     }
 
     /**
-     * Rename Basic Rate to Standard Rate, sell every imported room type on it, make Walk-in Rate and Corporate Rate,
-     * and link the wastays rate plans by name.
+     * Keep the seeded Basic Rate as the standard plan (the go-live check looks for that name; the runbook renames it to
+     * Standard Rate after go-live), sell every imported room type on it, make Walk-in Rate and Corporate Rate open to
+     * everyone, and link the wastays rate plans by name.
      *
      * @param  array<string, RoomType>  $roomTypes
      */
     private function ratePlans(WastaysBundle $bundle, Property $property, User $actor, array $roomTypes, WastaysSetupSummary $summary): RatePlan
     {
-        $standard = $this->activePlan($property, 'Standard Rate') ?? $this->activePlan($property, 'Basic Rate')
-            ?? throw new RuntimeException('The property has no Basic Rate plan to rename to Standard Rate.');
-
-        if ($standard->name !== 'Standard Rate' && ! ($this->updateRatePlan)($actor, $standard, ['name' => 'Standard Rate'])) {
-            throw new RuntimeException('The Basic Rate plan could not be renamed.');
-        }
+        $standard = $this->activePlan($property, 'Basic Rate') ?? $this->activePlan($property, 'Standard Rate')
+            ?? throw new RuntimeException('The property has no Basic Rate plan.');
 
         $wanted = array_values(array_unique([
             ...$standard->roomTypes()->active()->pluck('room_types.id')->all(),
@@ -203,7 +198,7 @@ class ImportWastaysSetup
         ]));
 
         if (! ($this->syncRatePlanRoomTypes)($actor, $standard, $wanted)) {
-            throw new RuntimeException('Standard Rate could not be set to sell the imported room types.');
+            throw new RuntimeException('Basic Rate could not be set to sell the imported room types.');
         }
 
         $plans = ['standard' => $standard->refresh()];
@@ -214,8 +209,8 @@ class ImportWastaysSetup
                 ?? throw new RuntimeException("{$name} could not be created.");
         }
 
-        if (($this->setRatePlanCompanyAccess)($actor, $plans['corporate'], CompanyAccess::All) !== null) {
-            throw new RuntimeException('Corporate Rate could not be opened to all companies.');
+        if (($this->setRatePlanCompanyAccess)($actor, $plans['corporate'], CompanyAccess::Everyone) !== null) {
+            throw new RuntimeException('Corporate Rate could not be opened to everyone.');
         }
 
         foreach ($bundle->rows('rate_plans') as $row) {
@@ -238,7 +233,7 @@ class ImportWastaysSetup
     }
 
     /**
-     * Price the new room types on Standard Rate from the first audit date, at base price without SST.
+     * Price the new room types on Basic Rate from the first audit date, at base price without SST.
      *
      * @param  array<string, RoomType>  $roomTypes
      * @param  list<string>  $newRoomTypeIds
@@ -266,7 +261,7 @@ class ImportWastaysSetup
         }
 
         if ($priced !== [] && ($this->saveRates)($actor, $standard, $bundle->manifest->firstAuditDate, self::RATES_UNTIL, $priced) === false) {
-            throw new RuntimeException('The rates could not be saved on Standard Rate.');
+            throw new RuntimeException('The rates could not be saved on Basic Rate.');
         }
     }
 
