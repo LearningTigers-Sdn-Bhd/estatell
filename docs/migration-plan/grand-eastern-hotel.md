@@ -46,21 +46,42 @@ Figures are from the 22 Oct dump. They grow until cutover.
 
 ### Day loop
 
-`ApproveGoLive` opens the first business date on 13 Aug 2026. The importer then goes through every wastays business date in order:
+`ApproveGoLive` opens the first business date on 13 Aug 2026. The importer then replays every wastays business date in order. `wastays:replay` loops over the dates; `ReplayWastaysDay` replays one.
 
-```
-for each wastays business date, 13 Aug → the last wastays audit:
-  1. create the bookings made that day
-  2. check in the arrivals, check out the departures
-  3. post the extra charges and payments wastays posted that day
-  4. RunNightAudit → the next date opens
-```
+**Which day a row belongs to.** Each wastays business date has a window in `hotel_business_dates`: `opened_at <= created_at < closed_at`. A row belongs to the day whose window holds its `created_at`. `posting_date` is not used: room, tax, correction and early-departure lines carry the night date, not the day they were posted.
 
-- Every write goes through estatell Actions, never direct inserts. The wastays id is the idempotency key, and the audit skips steps already completed, so a stopped run resumes.
-- Each night's price is fixed to the amount wastays posted, through `unit_nights.override_amount`. The room charge step then posts the wastays amount, typed desk prices included. Nothing is recalculated.
-- The audit runs for past dates without force: `business_date_not_ended` refuses only a date that has not ended.
+**One timeline per day.** The day's events are sorted by time and replayed in that order, because wastays took payments before the check-out on the same day and estatell checks out only at a zero balance. Ties go in this order: create, check-in, charge, payment, reversal, stay change, check-out.
+
+| #   | Event                                   | wastays rows                                                                  | estatell                                                                                                                                                                                                                                                                                                  |
+| --- | --------------------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Booking created                         | `bookings`, `booking_rooms`, `booking_guests`, audit log `create`             | `CreateBooking`. A booking created after its arrival (87) goes through `CreatePastStay`, which checks in and posts the missed nights. One reservation per wastays booking; a group booking sets `group_name`. Final room from `booking_rooms.room_id`. Source and OTA reference copied. Rate plan by name |
+| 2   | Night prices                            | `booking_rooms.nightly_rate_snapshot` (net)                                   | `override_amount` through the total, then `ChangeNightPrice` for each group of equal prices when nights differ (34)                                                                                                                                                                                       |
+| 3   | Check-in                                | audit log `check_in`, `undo_check_in`, `edit_check_in`                        | `CheckInUnit` without a registration card; `UndoCheckIn`                                                                                                                                                                                                                                                  |
+| 4   | Charges, payments, refunds, adjustments | `folio_transactions` not posted by the audit, catch-up or tax, and `deposits` | See [Mapping](#mapping)                                                                                                                                                                                                                                                                                   |
+| 5   | Stay changes, cancels, voids            | audit log `update` (dates, room type), `cancel`, `void`, `undo_check_out`     | `ChangeUnitDates`, `ExtendStay`, `MoveUnit`, `CancelUnit` (after `UndoCheckIn` when checked in), `UndoCheckOut`. A booking is created with its first dates from the audit log, then changed                                                                                                               |
+| 6   | Early check-out                         | early-departure line                                                          | `ChangeUnitDates` without a fee, `PostUnitPolicyFee` with the wastays amount, then `CheckOutAndRefund`, in one transaction                                                                                                                                                                                |
+| 7   | Check-out                               | audit log `check_out`                                                         | `CheckOutUnit`, which closes the folio with the wastays invoice number                                                                                                                                                                                                                                    |
+| 8   | Night audit                             | `night_audits`                                                                | `RunNightAudit`. The next date opens                                                                                                                                                                                                                                                                      |
+
+- Every write goes through estatell Actions, never direct inserts. Every wastays row written gets an `import_links` row, so a stopped run resumes and posts nothing twice.
+- Room and SST lines are not copied. The audit and `PostMissedNights` post them from `override_amount`; the compare checks them.
 - The replay posts normal lines. It needs no bridge: no migrated stays, no opening balances, no Old system payments, no Old stays and no copied daily figures. The audit builds the daily figures.
 - After the last wastays audit, estatell opens the next date, which is the cutover day. Staff start work in estatell on that day.
+
+**Frozen clock.** The replay sets the clock to 12:00 property time on date D for the day's events, and to 00:05 on D+1 for `RunNightAudit`, then restores it. Dry runs are repeatable, `business_date_not_ended` passes, and the "audit pending" check-out logic never applies. Replayed lines carry that clock time.
+
+**No messages.** During the run the queue is `null` and mail is `array`, so the audit sends no notifications.
+
+**Refusals.** The replay refuses while a Channex channel is connected, when the estatell business date is not D, and when `payment_transactions` or `refund_requests` are not empty (GEH has none).
+
+**Accepted differences.** The compare lists them and does not stop on them:
+
+| Case                                                                   | Count       | In estatell                                                                                       |
+| ---------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------- |
+| Check-in before the arrival date                                       | 10          | Checked in on the arrival day                                                                     |
+| Arrived and left on the same day, charged one night as early departure | 11          | A one-night stay checked out the next day. Same money, but room revenue, and a later invoice date |
+| Room moves during a stay                                               | 47 bookings | Only the final room is used                                                                       |
+| Registration cards                                                     | 682         | Not imported. The numbers stay in wastays                                                         |
 
 ### Document numbers
 
@@ -69,11 +90,11 @@ estatell builds the same prefix (`GEH`) and the same reference format as wastays
 | Document          | wastays               | In the replay                                                                      |
 | ----------------- | --------------------- | ---------------------------------------------------------------------------------- |
 | Reservation       | `GEH-261xxxxx`        | Same number                                                                        |
-| Registration card | `GEH-262xxxxx`        | Same number                                                                        |
+| Registration card | `GEH-262xxxxx`        | Not imported. estatell cards need a signature. The numbers stay in wastays         |
 | Receipt, invoice  | `GEH-265…`, `-267…`   | Same number                                                                        |
 | Folio             | Plain number, 1, 2, 3 | estatell numbers it (`GEH-263xxxxx`). The wastays number is kept in `import_links` |
 
-`NextDocumentNumber` takes only a floor today. The importer passes a planned number, and the sequence refuses one that is not above `last_number`. The desk flow does not change.
+The numbers are issued deep inside `CreateReservation`, `CloseFolio` and `RecordPayment`. The replay pushes the wastays number onto `PlannedDocumentNumbers`, a queue per document type, just before it calls the Action. `NextDocumentNumber` takes the queued number when one is waiting; the queue must be empty afterwards, or the replay stops. The sequence still refuses a number that is not above `last_number`. In the desk flow the queue is always empty, so nothing changes. Group bookings had their own wastays reservation numbers (22); those numbers stay unused.
 
 ### Settings
 
@@ -112,8 +133,8 @@ bin/rails "estatell:export[3]"  ───▶  wastays-bucket
                                       estatell-production
                                         imports/grand-eastern-hotel/<date>.zip ───▶  wastays:fetch {key}
                                                                                wastays:import-setup
-                                                                               ApproveGoLive (13 Aug)
                                                                                wastays:import-guests
+                                                                               ApproveGoLive (13 Aug)
                                                                                wastays:replay
                                                                                wastays:purge
 ```
@@ -123,7 +144,8 @@ bin/rails "estatell:export[3]"  ───▶  wastays-bucket
 - `manifest.json` holds the hotel id, the last audit date, the row count of each file and the checksum. `wastays:fetch` refuses a bundle that does not match it.
 - `import_links` (property, source table, source id, target type, target id, unique) records every wastays row already written, so a stopped run resumes and posts nothing twice.
 - `wastays:replay {bundle} --until= --dry-run` refuses while a Channex channel is connected, and refuses a day when the estatell business date is not the wastays date. The first day that does not match stops the run with a table of the differences and a non-zero exit.
-- Replayed lines carry the replay clock time. The activity log marks them "replay".
+- Replayed lines carry the frozen replay clock time (see [Day loop](#day-loop)). The activity log marks them "replay".
+- The export also holds `booking_audit_logs` (create, check-in, check-out, update, cancel, void and undo rows only, without guest keys). It is the only record of when those events happened.
 - Code lives in `app/Actions/Onboarding/Wastays/` and `app/Services/Onboarding/Wastays/`.
 
 ### Bundle format
@@ -154,13 +176,24 @@ On any mismatch it deletes what it extracted, prints why and exits non-zero. On 
 
 ### Mapping
 
-| wastays                                                | estatell                                                                     |
-| ------------------------------------------------------ | ---------------------------------------------------------------------------- |
-| Night amount                                           | `override_amount` = the wastays net amount, SST 8% exclusive (110.32 + 8.83) |
-| `gateway_payment` (all 108 GEH lines are Card Payment) | The payment method named by the line's transaction code, here Card           |
-| TTX                                                    | The Tourism tax preset, once the hotel confirms                              |
-| Corrections, moved lines, early departures             | `ReverseLine`, `MoveCharges`, the early check-out                            |
-| Tourism tax voucher references                         | Not carried over. estatell has no voucher number                             |
+| wastays `folio_transactions`                  | Count | estatell                                                                                            |
+| --------------------------------------------- | ----- | --------------------------------------------------------------------------------------------------- |
+| ROOM (night audit, catch-up, blocker, repair) | 902   | Not read. Posted by the audit from `override_amount`. A repaired price is `ChangeNightPrice`        |
+| TAX_SST                                       | 920   | Not read. estatell calculates 8% on top                                                             |
+| TAX_TTX and the manual TTX charge             | 5     | Waits for the hotel's answer. Tourism tax stays off during the replay                               |
+| EARLY_DEP                                     | 18    | The early check-out in the [Day loop](#day-loop)                                                    |
+| Corrections                                   | 24    | `ChangeNightPrice` for a repaired night, `ReverseLine` for others, `PostAdjustment` for staff ones  |
+| ADJUSTMENT                                    | 5     | `PostAdjustment`: a signed amount on the folio, no tax                                              |
+| OTA                                           | 433   | `RecordPayment` with OTA collected                                                                  |
+| CASH, CARD, BANK                              | 275   | `RecordPayment` with the linked method. Before check-in the purpose is Advance, after it Settlement |
+| REFUND                                        | 3     | `VoidPayment` for a same-day reversal of a payment, `RefundPayment` otherwise                       |
+| CLEANING, BED                                 | 4     | `PostCharge` with the linked charge item and the wastays amount                                     |
+| `deposits` (2 × RM 50 on voided bookings)     | 2     | `RecordPayment` with purpose Security deposit. Replayed as held                                     |
+| Tourism tax voucher references                | -     | Not carried over. estatell has no voucher number                                                    |
+
+- The wastays transaction code of a line finds its estatell target through the `import_links` that `wastays:import-setup` wrote.
+- `PostCharge` and `BillToGuest` accept an admin actor (`is_admin`), not only property staff, so the replay can run as the admin.
+- OTA collected is not offered at the desk. `NewPaymentData` gets an `otaCollected` flag that only the replay sets.
 
 ### Both import commands
 
@@ -184,7 +217,7 @@ On any mismatch it deletes what it extracted, prints why and exits non-zero. On 
 | Rate plans        | `rate_plans`                                    | The seeded Basic Rate is renamed Standard Rate. Walk-in Rate and Corporate Rate are derived from it at +0% (`CreateDerivedRatePlan`). Corporate is open to all companies         |
 | Rates             | `room_types.base_price`                         | `SaveRates` on Standard Rate from the first audit date to 31 Dec 2027, at base ÷ 1.08 rounded to 2 decimals                                                                      |
 | SST               | `hotels.sst_enabled`, `sst_registration_number` | The seeded SST tax is turned on: 8%, exclusive, on room revenue, with the registration number                                                                                    |
-| Tourism tax       | `TAX_TTX` and the manual `TTX` charge           | The seeded Tourism tax is turned on (RM 10, foreign guests only)                                                                                                                 |
+| Tourism tax       | `TAX_TTX` and the manual `TTX` charge           | Stays off during the import and the replay: wastays charged only 4 of 66 foreign bookings. It is turned on at cutover, once the hotel answers                                    |
 | DBKK              | `hotel_taxes` DBKK, off, no lines               | Skipped                                                                                                                                                                          |
 | Charge items      | `hotel_extra_charges`                           | Food & Beverage → the starter item. Damage Charge → the built-in Damage item. Cleaning Fee, Miscellaneous Revenue, Parking and Extra Bed → new items, no price. Parking inactive |
 | Payments          | `hotel_payment_methods`                         | Cash, Cash - Prepayment, Cash Prepayment → Cash. Card, Card Prepayment, Gateway Manual Recovery → Card. Bank Transfer → Bank transfer. OTA Collected → OTA Collected, turned on  |
@@ -236,7 +269,8 @@ The replay checks guests in and out on their real days, so the guests in-house o
 
 1. The evening before: the last wastays night audit. Staff stop using wastays.
 2. wastays terminal: `bin/rails "estatell:export[3]"`. In the R2 dashboard, download the zip from `wastays-bucket` and drag it into `estatell-production` at `imports/grand-eastern-hotel/`.
-3. estatell terminal: `wastays:fetch`. Create the property, set `migration_window_days` to 90, `wastays:import-setup`, then `ApproveGoLive` with opening date 13 Aug 2026.
-4. `wastays:import-guests`, then `wastays:replay` up to the last wastays date. Every day must match.
-5. estatell opens cutover day. Staff start in estatell in the morning.
-6. Connect Channex (no Import future bookings), run `wastays:purge`, delete the other zip copies, and tell the accountant which system covers which tax period.
+3. estatell terminal: `wastays:fetch`. Create the property, set `migration_window_days` to 90, run `wastays:import-setup` and `wastays:import-guests`, then `ApproveGoLive` with opening date 13 Aug 2026. Both imports refuse a live property, so they run first.
+4. `wastays:replay` up to the last wastays date. Every day must match.
+5. Turn on Tourism tax, if the hotel confirms TTX is that tax.
+6. estatell opens cutover day. Staff start in estatell in the morning.
+7. Connect Channex (no Import future bookings), run `wastays:purge`, delete the other zip copies, and tell the accountant which system covers which tax period.
