@@ -40,7 +40,7 @@ final class WastaysDayCompare
         }
 
         $figures = array_combine(self::FIGURES, array_map(fn (string $figure): string => $this->decimal((string) $summary[$figure]), self::FIGURES));
-        $late = $this->catchUp($bundle, $day, $date);
+        $late = $this->leftOut($bundle, $day, $date);
         $figures['room_revenue'] = $this->decimal((string) BigDecimal::of($figures['room_revenue'])->plus($late['room_revenue']));
         $figures['tax_revenue'] = $this->decimal((string) BigDecimal::of($figures['tax_revenue'])->plus($late['tax_revenue']));
 
@@ -48,12 +48,13 @@ final class WastaysDayCompare
     }
 
     /**
-     * Catch-up nights wastays posted during the date's window. They carry an earlier night's date and no night audit, so
-     * no wastays summary counts them; estatell posts them on the day they happened.
+     * Lines wastays posted during the date's window that its summary leaves out but estatell counts on that day:
+     * catch-up nights (an earlier night's date and no night audit), the fee of a same-day leaver (estatell keeps it as
+     * a night of room revenue) and the tax of an early departure fee dated to an earlier night.
      *
      * @return array{room_revenue: BigDecimal, tax_revenue: BigDecimal}
      */
-    private function catchUp(WastaysBundle $bundle, WastaysDay $day, string $date): array
+    private function leftOut(WastaysBundle $bundle, WastaysDay $day, string $date): array
     {
         $window = $day->window($date);
         $totals = ['room_revenue' => BigDecimal::zero(), 'tax_revenue' => BigDecimal::zero()];
@@ -62,14 +63,20 @@ final class WastaysDayCompare
             return $totals;
         }
 
+        $index = new WastaysBookingIndex($bundle);
+
         foreach ($bundle->rows('folio_transactions') as $row) {
-            $figure = match ($row['category']) {
-                'accommodation' => 'room_revenue',
-                'tax' => 'tax_revenue',
+            $source = json_decode((string) ($row['metadata'] ?? ''), true)['posting_source'] ?? null;
+            $figure = match (true) {
+                ($row['night_audit_id'] ?? null) !== null => null,
+                $source === 'catch_up' && $row['category'] === 'accommodation' => 'room_revenue',
+                $source === 'catch_up' && $row['category'] === 'tax' => 'tax_revenue',
+                $source === 'early_departure' && $row['category'] === 'early_departure_charge' && $index->sameDayLeaver((string) $row['source_booking_id']) => 'room_revenue',
+                $source === 'early_departure' && $row['category'] === 'tax' && ($row['posting_date'] ?? null) !== $date => 'tax_revenue',
                 default => null,
             };
 
-            if ($figure === null || $row['night_audit_id'] !== null || (json_decode((string) $row['metadata'], true)['posting_source'] ?? null) !== 'catch_up') {
+            if ($figure === null) {
                 continue;
             }
 

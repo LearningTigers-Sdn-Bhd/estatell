@@ -62,3 +62,34 @@ it('leaves early departure fees out of the room revenue, as wastays does', funct
 
     expect($figures['room_revenue'])->toBe('100.00');
 });
+
+it('adds the fee of a same-day leaver and the tax of a fee dated to an earlier night to the wastays figures', function () {
+    $line = fn (string $id, string $booking, string $category, string $amount, string $postingDate): array => [
+        'id' => $id, 'source_booking_id' => $booking, 'category' => $category, 'amount' => $amount, 'posting_date' => $postingDate,
+        'created_at' => '2026-08-13T05:00:00.000000Z', 'night_audit_id' => null, 'metadata' => json_encode(['posting_source' => 'early_departure']),
+    ];
+    $path = wastaysDayBundleDir([
+        'hotel_business_dates' => [['business_date' => '2026-08-13', 'opened_at' => '2026-08-13T00:00:00.000000Z', 'closed_at' => '2026-08-14T00:00:00.000000Z']],
+        'night_audits' => [['id' => '1', 'business_date' => '2026-08-13']],
+        'night_audit_financial_summaries' => [[
+            'id' => '1', 'night_audit_id' => '1', 'room_revenue' => '0.00', 'tax_revenue' => '8.00', 'payments_total' => '0.00',
+            'refunds_total' => '0.00', 'adjustments_total' => '0.00', 'no_show_charges' => '0.00',
+        ]],
+        'bookings' => [
+            ['id' => '1', 'check_in' => '2026-08-13 00:00:00', 'check_out' => '2026-08-13 00:00:00'],
+            ['id' => '2', 'check_in' => '2026-08-10 00:00:00', 'check_out' => '2026-08-12 00:00:00'],
+        ],
+        'folio_transactions' => [
+            $line('1', '1', 'early_departure_charge', '100.00', '2026-08-13'),
+            $line('2', '1', 'tax', '8.00', '2026-08-13'),
+            $line('3', '2', 'early_departure_charge', '50.00', '2026-08-12'),
+            $line('4', '2', 'tax', '4.00', '2026-08-12'),
+        ],
+    ]);
+    $bundle = WastaysBundle::open($path);
+
+    $figures = app(WastaysDayCompare::class)->wastays($bundle, new WastaysDay($bundle), '2026-08-13');
+
+    expect($figures['room_revenue'])->toBe('100.00')
+        ->and($figures['tax_revenue'])->toBe('12.00');
+});

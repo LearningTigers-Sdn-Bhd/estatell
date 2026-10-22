@@ -22,7 +22,6 @@ class ReplayWastaysCommand extends Command
     private const array ACCEPTED = [
         'check-ins before the arrival date moved',
         'check-in moved to the arrival day',
-        'same-day leavers kept as one night',
         'check-out moved to the departure day',
         'room type changes left out',
         'room edits at check-in left out',
