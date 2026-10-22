@@ -136,6 +136,10 @@ class ReplayWastaysDay
                 WastaysEventType::CheckOut => $this->checkOut($context, $event),
                 default => ($this->corrections)($context, $event),
             };
+
+            if ($event->type === WastaysEventType::StayChange) {
+                $this->checkInMovedStay($context, $event);
+            }
         }
 
         $this->closeDay($context, $day);
@@ -361,6 +365,30 @@ class ReplayWastaysDay
 
         $this->doCheckIn($context, $unit, 'check-ins');
         ($this->recordImportLink)($context->property, 'booking_audit_logs', $event->sourceId, $unit);
+    }
+
+    /**
+     * wastays checked the guest in before the stay was moved to an earlier arrival, so the check-in was left out while
+     * the arrival was still ahead. Check in now that the stay has arrived, as of the arrival when it is a past date.
+     */
+    private function checkInMovedStay(ReplayContext $context, WastaysEvent $event): void
+    {
+        $unit = $this->links->target($context->property, 'bookings', (string) $event->bookingId);
+        $at = $context->index->firstCheckInAt((string) $event->bookingId);
+
+        if (! $unit instanceof ReservationUnit || $at === null || $at->gt($event->at)) {
+            return;
+        }
+
+        $unit->refresh();
+        $arrival = $unit->arrival_date->toDateString();
+
+        if ($unit->status !== UnitStatus::Confirmed || $arrival > $context->date) {
+            return;
+        }
+
+        $asOf = $arrival < $context->date ? CarbonImmutable::parse($arrival.' '.($context->property->settings->check_in_time ?? '15:00')) : null;
+        $this->doCheckIn($context, $unit->load('reservation'), 'check-ins after the stay moved earlier', $asOf);
     }
 
     private function doCheckIn(ReplayContext $context, ReservationUnit $unit, string $label, ?CarbonImmutable $asOf = null): void
