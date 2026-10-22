@@ -35,7 +35,7 @@ For 4–5 fields: use a Dialog when opened from a detail page, and a Sheet when 
 
 | Container      | Sizes                                                                                                                   |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Dialog         | `sm` 400 px (1–2 fields), `md` 512 px (3–5 fields, default), `lg` 880 px (check-out only, see below)                    |
+| Dialog         | `sm` 400 px (1–2 fields), `md` 512 px (3–5 fields, default), `lg` 960 px (check-out only, see below)                    |
 | Sheet          | `md` 480 px (default), `lg` 640 px (two sections or a table inside)                                                     |
 | Full page form | Content column max 720 px, one column. Two columns only for short paired fields (City + Postcode, Min stay + Max stay). |
 

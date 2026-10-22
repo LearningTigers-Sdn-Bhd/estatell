@@ -62,8 +62,8 @@ type Props = Shape & {
 const DIALOG_SIZE = {
     sm: 'md:max-w-100',
     md: 'md:max-w-lg',
-    // 220 = 55rem = 880 px: the check-out Dialog only (two columns from 1024 px).
-    lg: 'md:max-w-220',
+    // 240 = 60rem = 960 px: the check-out Dialog only (two columns from 1024 px).
+    lg: 'md:max-w-240',
 } as const;
 
 const SHEET_SIZE = {
