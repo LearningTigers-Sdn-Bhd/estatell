@@ -2,6 +2,7 @@
 
 namespace App\Actions\Onboarding\Wastays;
 
+use App\Actions\Catalogues\UpdateTax;
 use App\Actions\Folio\PostCharge;
 use App\Actions\FrontDesk\AutoAssignRooms;
 use App\Actions\FrontDesk\CheckInUnit;
@@ -14,6 +15,7 @@ use App\Actions\Reservations\AttachGuest;
 use App\Actions\Reservations\ChangeNightPrice;
 use App\Actions\Reservations\CreateBooking;
 use App\Actions\Reservations\EnsureOtaBookingSource;
+use App\Data\Catalogues\TaxInputData;
 use App\Data\Folio\NewChargeData;
 use App\Data\Payments\NewPaymentData;
 use App\Data\Reservations\NewBookingData;
@@ -25,6 +27,7 @@ use App\Enums\DocumentType;
 use App\Enums\FolioType;
 use App\Enums\PaymentMethodType;
 use App\Enums\PaymentPurpose;
+use App\Enums\SystemTransactionCode;
 use App\Enums\UnitStatus;
 use App\Enums\WastaysEventType;
 use App\Models\BookingSource;
@@ -37,6 +40,7 @@ use App\Models\PaymentMethod;
 use App\Models\Property;
 use App\Models\ReservationUnit;
 use App\Models\Room;
+use App\Models\Tax;
 use App\Models\TransactionCode;
 use App\Models\UnitNight;
 use App\Services\Onboarding\Wastays\ImportLinks;
@@ -66,6 +70,7 @@ use Illuminate\Support\Facades\Mail;
 class ReplayWastaysDay
 {
     public function __construct(
+        private UpdateTax $updateTax,
         private CreateBooking $createBooking,
         private AssignRoom $assignRoom,
         private AutoAssignRooms $autoAssignRooms,
@@ -118,6 +123,7 @@ class ReplayWastaysDay
 
     private function replay(ReplayContext $context, WastaysDay $day): WastaysReplaySummary
     {
+        $this->turnOnTourismTax($context, $day);
         $this->carryOver($context, $day);
 
         foreach ($day->timeline($context->date) as $event) {
@@ -181,6 +187,29 @@ class ReplayWastaysDay
      * Check-ins and check-outs that wastays did before their day: a guest who checked in before the arrival date is
      * checked in on the arrival day, and a guest who left on the arrival day is checked out the next day.
      */
+    /**
+     * Turn the Tourism tax on at the start of the business date in which wastays first charged it by itself. wastays
+     * turned its tourism tax on that day; before it, the tax stays off as the setup import left it.
+     */
+    private function turnOnTourismTax(ReplayContext $context, WastaysDay $day): void
+    {
+        $first = $context->index->firstTourismTaxAt();
+        $closed = $day->window($context->date)['closed'] ?? null;
+
+        if ($first === null || ($closed !== null && $first->gte($closed))) {
+            return;
+        }
+
+        $tax = Tax::query()->where('property_id', $context->property->id)->whereHas('transactionCode', fn ($codes) => $codes->where('system_key', SystemTransactionCode::TourismTax->value))->first();
+
+        if ($tax === null || $tax->enabled) {
+            return;
+        }
+
+        ($this->updateTax)($context->actor, $tax, TaxInputData::fromModel($tax, enabled: true));
+        $context->summary->count('tourism tax turned on');
+    }
+
     private function carryOver(ReplayContext $context, WastaysDay $day): void
     {
         $opened = $day->window($context->date)['opened'] ?? null;
@@ -236,7 +265,7 @@ class ReplayWastaysDay
         $property = $context->property;
         $booking = $context->index->booking($bookingId);
         $room = $context->index->room($bookingId);
-        [$arrival, $departure] = $context->index->firstDates($bookingId, $context->date, $day->window($context->date)['closed'] ?? null);
+        [$arrival, $departure] = $context->index->firstDates($bookingId, $context->date, $day);
         $nights = $this->nightsIn($context->index->nights($bookingId), $arrival, $departure);
         $uniform = count($nights) === $this->dayCount($arrival, $departure) && count(array_unique($nights)) === 1;
         $all = count($nights) === $this->dayCount($arrival, $departure);

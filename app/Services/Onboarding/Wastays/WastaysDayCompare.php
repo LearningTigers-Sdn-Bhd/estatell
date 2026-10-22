@@ -42,10 +42,11 @@ final class WastaysDayCompare
         $original = $this->original($summary);
         $late = $this->leftOut($bundle, $day, $date);
         $amended = $this->amendments($bundle, $day, $date);
+        $redated = $this->redated($bundle, $day, $date);
         $figures = [];
 
         foreach (self::FIGURES as $figure) {
-            $total = BigDecimal::of($original[$figure])->plus($amended[$figure]);
+            $total = BigDecimal::of($original[$figure])->plus($amended[$figure])->plus($redated[$figure] ?? '0');
 
             if (isset($late[$figure])) {
                 $total = $total->plus($late[$figure]);
@@ -131,12 +132,8 @@ final class WastaysDayCompare
             }
 
             $at = CarbonImmutable::parse((string) $row['created_at']);
-            $postedOn = collect($day->dates())->first(function (string $date) use ($day, $at): bool {
-                $window = $day->window($date);
-
-                return $window !== null && $at->gte($window['opened']) && ($window['closed'] === null || $at->lt($window['closed']));
-            });
-            $figure = $postedOn === null || $at->lt($from) || $at->gte($to) ? null : $this->leftOutFigure($row, $postedOn, $index);
+            $postedOn = $this->dateOf($day, $at);
+            $figure = $postedOn === null || $at->lt($from) || $at->gte($to) ? null : ($this->leftOutFigure($row, $postedOn, $index) ?? $this->redatedFigure($bundle, $day, $index, $row));
 
             if ($figure !== null) {
                 $totals[$figure] = ($totals[$figure] ?? BigDecimal::zero())->plus((string) $row['amount']);
@@ -144,6 +141,72 @@ final class WastaysDayCompare
         }
 
         return $totals;
+    }
+
+    /**
+     * Closed-night repairs of a stay that estatell creates with its corrected dates (see `WastaysBookingIndex::firstDates()`).
+     * estatell posts the night on the later of the night and the day the booking was created, so the repair counts there,
+     * not on the day wastays posted it.
+     *
+     * @return array<string, BigDecimal>
+     */
+    private function redated(WastaysBundle $bundle, WastaysDay $day, string $date): array
+    {
+        $index = new WastaysBookingIndex($bundle);
+        $totals = [];
+
+        foreach ($bundle->rows('folio_transactions') as $row) {
+            $figure = $this->redatedFigure($bundle, $day, $index, $row);
+
+            if ($figure === null) {
+                continue;
+            }
+
+            $created = $this->dateOf($day, CarbonImmutable::parse((string) $index->booking((string) $row['source_booking_id'])['created_at']));
+
+            if (max((string) $row['posting_date'], (string) $created) === $date) {
+                $totals[$figure] = ($totals[$figure] ?? BigDecimal::zero())->plus((string) $row['amount']);
+            }
+        }
+
+        return $totals;
+    }
+
+    /**
+     * @param  array<string, string|null>  $row
+     */
+    private function redatedFigure(WastaysBundle $bundle, WastaysDay $day, WastaysBookingIndex $index, array $row): ?string
+    {
+        $source = json_decode((string) ($row['metadata'] ?? ''), true)['posting_source'] ?? null;
+
+        if ($source !== 'historical_nightly_charge_repair' || ($row['reversal_of_transaction_id'] ?? null) !== null || ($row['moved_from_transaction_id'] ?? null) !== null) {
+            return null;
+        }
+
+        $figure = match ($row['category']) {
+            'accommodation' => 'room_revenue',
+            'tax' => 'tax_revenue',
+            default => null,
+        };
+        $booking = $index->booking((string) ($row['source_booking_id'] ?? ''));
+
+        if ($figure === null || $booking === []) {
+            return null;
+        }
+
+        $created = $this->dateOf($day, CarbonImmutable::parse((string) $booking['created_at']));
+        [$arrival, $departure] = $index->firstDates((string) $row['source_booking_id'], $created, $day);
+
+        return $arrival <= (string) $row['posting_date'] && (string) $row['posting_date'] < $departure ? $figure : null;
+    }
+
+    private function dateOf(WastaysDay $day, CarbonImmutable $at): ?string
+    {
+        return collect($day->dates())->first(function (string $date) use ($day, $at): bool {
+            $window = $day->window($date);
+
+            return $window !== null && $at->gte($window['opened']) && ($window['closed'] === null || $at->lt($window['closed']));
+        });
     }
 
     /**

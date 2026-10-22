@@ -15,6 +15,7 @@ use App\Models\Rate;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\RoomRevenuePolicy;
+use App\Models\Tax;
 use App\Models\TransactionCode;
 
 require_once __DIR__.'/../Support/WastaysReplaySetup.php';
@@ -333,6 +334,56 @@ it('undoes a check-out before reversing its early departure fee and gives the re
         ->and(FolioLine::query()->where('description', 'Early departure fee')->pluck('amount')->all())->toBe(['240.00', '-240.00'])
         ->and($folio->status)->toBe(FolioStatus::Open)
         ->and($folio->invoice_number)->toBe("{$prefix}-26700009");
+});
+
+it('creates a stay with its corrected dates when wastays moved it into a closed night before its old arrival', function () {
+    $setup = correctionsSetup();
+    $tables = wastaysReplayTables();
+    $audit = fn (string $id, string $action, string $at, array $old = [], array $new = []): array => [
+        'id' => $id, 'auditable_type' => 'Booking', 'auditable_id' => '1', 'action_type' => $action, 'occurred_at' => $at, 'old_value' => json_encode($old), 'new_value' => json_encode($new),
+    ];
+    $tables['bookings'] = [array_merge($tables['bookings'][0], ['created_at' => '2026-08-13T20:00:00.000000Z', 'check_in' => '2026-08-13 00:00:00', 'check_out' => '2026-08-14 00:00:00'])];
+    $tables['booking_rooms'] = [array_merge($tables['booking_rooms'][0], ['nightly_rate_snapshot' => json_encode(['2026-08-13' => ['price' => '120.0']])])];
+    $tables['booking_guests'] = [$tables['booking_guests'][0]];
+    $tables['booking_audit_logs'] = [
+        $audit('1', 'check_in', '2026-08-13T20:01:00.000000Z'),
+        $audit('2', 'update', '2026-08-14T02:00:00.000000Z', ['check_in' => '2026-08-14T14:00:00.000+08:00', 'check_out' => '2026-08-15T12:00:00.000+08:00'], ['check_in' => '2026-08-13T14:00:00.000+08:00', 'check_out' => '2026-08-14T12:00:00.000+08:00']),
+    ];
+    $tables['folio_transactions'] = [lineRow('10', '1', 'cash', 'payment', '31', '120.00', '2026-08-13T20:05:00.000000Z')];
+    $tables['receipts'] = [$tables['receipts'][0]];
+    $tables['invoices'] = [];
+    $tables['booking_folios'] = [$tables['booking_folios'][0]];
+    $tables['night_audits'] = [['id' => '1', 'business_date' => '2026-08-13'], ['id' => '2', 'business_date' => '2026-08-14']];
+    $x = correctionsTarget($setup, $tables);
+
+    $first = replay($x, '2026-08-13');
+    $unit = ReservationUnit::query()->sole();
+    $second = replay($x, '2026-08-14');
+
+    expect($first->counts)->toMatchArray(['check-ins' => 1])
+        ->and($unit->arrival_date->toDateString())->toBe('2026-08-13')
+        ->and($second->counts)->toMatchArray(['stay dates already set when created' => 1])
+        ->and(FolioLine::query()->where('kind', TransactionKind::Charge)->pluck('posting_date')->map->toDateString()->all())->toBe(['2026-08-13']);
+});
+
+it('turns the tourism tax on in the business date wastays first charged it', function () {
+    $setup = correctionsSetup();
+    $property = $setup['property'];
+    $code = TransactionCode::factory()->for($property)->system(SystemTransactionCode::TourismTax)->create();
+    $tax = Tax::factory()->disabled()->create(['property_id' => $property->id, 'transaction_code_id' => $code->id, 'foreign_guests_only' => true]);
+    $tables = wastaysReplayTables([
+        'night_audits' => [['id' => '1', 'business_date' => '2026-08-13'], ['id' => '2', 'business_date' => '2026-08-14']],
+    ]);
+    $tables['folio_transactions'][] = lineRow('40', '2', 'tax', 'charge', '38', '10.00', '2026-08-14T03:30:00.000000Z', ['metadata' => json_encode(['tax_line' => ['type' => 'tourism_tax']])]);
+    $x = correctionsTarget($setup, $tables);
+
+    replay($x, '2026-08-13');
+    $off = $tax->refresh()->enabled;
+    $second = replay($x, '2026-08-14');
+
+    expect($off)->toBeFalse()
+        ->and($tax->refresh()->enabled)->toBeTrue()
+        ->and($second->counts)->toMatchArray(['tourism tax turned on' => 1]);
 });
 
 it('posts one early departure fee for each wastays line and checks the guest out after the last', function () {

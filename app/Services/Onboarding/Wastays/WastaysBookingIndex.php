@@ -118,12 +118,13 @@ final class WastaysBookingIndex
     /**
      * The arrival and departure dates the booking had when it was created: the old dates of its first date change, else
      * the dates it has now. A guest who left early was booked up to the last night of the rate snapshot. A stay that arrives and leaves on one day gets one night (the replay checks it out the next day).
-     * A first change made before `$closedAt` (the end of the creation day) that moves the arrival before `$businessDate`
-     * gives the new dates: estatell cannot move a stay into a closed night, so the booking is created there, backdated.
+     * A first change that moves the arrival before `$businessDate` (the creation day), or into a night that has closed
+     * by then, made before the old arrival night closed, gives the new dates: estatell cannot move a stay into a closed
+     * night, so the booking is created with them.
      *
      * @return array{0: string, 1: string}
      */
-    public function firstDates(string $bookingId, ?string $businessDate = null, ?CarbonImmutable $closedAt = null): array
+    public function firstDates(string $bookingId, ?string $businessDate = null, ?WastaysDay $day = null): array
     {
         $booking = $this->booking($bookingId);
         $arrival = substr((string) $booking['check_in'], 0, 10);
@@ -139,8 +140,7 @@ final class WastaysBookingIndex
 
             if (($old['check_in'] ?? null) !== ($new['check_in'] ?? null) || ($old['check_out'] ?? null) !== ($new['check_out'] ?? null)) {
                 $movedIntoClosedNight = $businessDate !== null && isset($new['check_in'], $new['check_out'])
-                    && substr((string) $new['check_in'], 0, 10) < $businessDate
-                    && ($closedAt === null || CarbonImmutable::parse((string) $row['occurred_at'])->lt($closedAt));
+                    && $this->movesIntoClosedNight($row, $old, $new, $businessDate, $day);
                 $dates = $movedIntoClosedNight ? $new : $old;
                 $arrival = substr((string) ($dates['check_in'] ?? $arrival), 0, 10);
                 $departure = substr((string) ($dates['check_out'] ?? $departure), 0, 10);
@@ -176,6 +176,43 @@ final class WastaysBookingIndex
         }
 
         return null;
+    }
+
+    /**
+     * When wastays first charged tourism tax by itself (a tax line of type `tourism_tax`), or null when it never did.
+     */
+    public function firstTourismTaxAt(): ?CarbonImmutable
+    {
+        $first = null;
+
+        foreach ($this->rows('folio_transactions') as $row) {
+            $type = ((json_decode((string) ($row['metadata'] ?? ''), true) ?: [])['tax_line'] ?? [])['type'] ?? null;
+
+            if ($row['category'] === 'tax' && $type === 'tourism_tax') {
+                $at = CarbonImmutable::parse((string) $row['created_at']);
+                $first = $first === null || $at->lt($first) ? $at : $first;
+            }
+        }
+
+        return $first;
+    }
+
+    /**
+     * @param  array<string, string|null>  $row
+     * @param  array<string, mixed>  $old
+     * @param  array<string, mixed>  $new
+     */
+    private function movesIntoClosedNight(array $row, array $old, array $new, string $businessDate, ?WastaysDay $day): bool
+    {
+        $at = CarbonImmutable::parse((string) $row['occurred_at']);
+        $arrival = substr((string) $new['check_in'], 0, 10);
+        $oldArrival = substr((string) ($old['check_in'] ?? ''), 0, 10);
+        $arrivalClosed = $day?->window($arrival)['closed'] ?? null;
+        $oldClosed = $day?->window($oldArrival)['closed'] ?? null;
+
+        $closedByThen = $arrival < $businessDate || ($arrivalClosed !== null && $at->gte($arrivalClosed));
+
+        return $arrival < $oldArrival && $closedByThen && ($oldClosed === null || $at->lt($oldClosed));
     }
 
     public function hasCheckIn(string $bookingId): bool
