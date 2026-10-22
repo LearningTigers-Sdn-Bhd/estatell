@@ -89,7 +89,9 @@ final class WastaysDayCompare
     public function estatell(Property $property, string $date): array
     {
         $day = fn () => FolioLine::query()->whereHas('folio', fn ($folios) => $folios->where('property_id', $property->id))->whereDate('posting_date', $date);
-        $rooms = array_map(fn (SystemTransactionCode $code): string => $code->value, array_filter(SystemTransactionCode::roomRevenueCases(), fn (SystemTransactionCode $code): bool => $code !== SystemTransactionCode::NoShowRevenue));
+        // The wastays room revenue holds only the nights its audit posted: no-show charges have their own figure, and
+        // early departure fees count nowhere but in tax.
+        $rooms = array_map(fn (SystemTransactionCode $code): string => $code->value, array_filter(SystemTransactionCode::roomRevenueCases(), fn (SystemTransactionCode $code): bool => ! in_array($code, [SystemTransactionCode::NoShowRevenue, SystemTransactionCode::EarlyDepartureRevenue], true)));
         // wastays keeps security deposits in their own table, outside its payment and refund totals.
         $money = fn () => $day()->where('kind', TransactionKind::Payment)->whereDoesntHave('payment', fn ($payments) => $payments->where('purpose', PaymentPurpose::SecurityDeposit));
         $byCode = fn (array $keys) => $day()->where('kind', TransactionKind::Charge)->whereHas('transactionCode', fn ($codes) => $codes->whereIn('system_key', $keys));

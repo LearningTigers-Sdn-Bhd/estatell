@@ -1,8 +1,11 @@
 <?php
 
 use App\Enums\PaymentPurpose;
+use App\Enums\SystemTransactionCode;
 use App\Models\Folio;
+use App\Models\FolioLine;
 use App\Models\Payment;
+use App\Models\TransactionCode;
 use App\Services\Onboarding\Wastays\WastaysBundle;
 use App\Services\Onboarding\Wastays\WastaysDay;
 use App\Services\Onboarding\Wastays\WastaysDayCompare;
@@ -46,4 +49,16 @@ it('adds the catch-up nights wastays posted in the window to the wastays room an
 
     expect($figures['room_revenue'])->toBe('220.00')
         ->and($figures['tax_revenue'])->toBe('17.60');
+});
+
+it('leaves early departure fees out of the room revenue, as wastays does', function () {
+    $folio = Folio::factory()->create();
+    $room = TransactionCode::factory()->for($folio->property)->system(SystemTransactionCode::RoomRevenue)->create();
+    $early = TransactionCode::factory()->for($folio->property)->system(SystemTransactionCode::EarlyDepartureRevenue)->create();
+    FolioLine::factory()->create(['folio_id' => $folio->id, 'transaction_code_id' => $room->id]);
+    FolioLine::factory()->create(['folio_id' => $folio->id, 'transaction_code_id' => $early->id, 'amount' => '112.58']);
+
+    $figures = app(WastaysDayCompare::class)->estatell($folio->property, '2026-11-02');
+
+    expect($figures['room_revenue'])->toBe('100.00');
 });
