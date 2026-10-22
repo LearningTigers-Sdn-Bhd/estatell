@@ -410,6 +410,7 @@ Smaller fixes and reverts are in `git log`.
 - [x] `style(property): tidy the profile settings layout` — UI sidetrack: tighter logo spacing, Property, Address and Contact groups, postcode/city/state on one desktop row and phone/email on another. Fields stack on mobile. Existing saves and logo uploads stay unchanged. Docs: [Profile](02-property/01-properties.md#profile).
 - [x] `fix(property): guard unsaved changes on details tabs` — reuse the existing guard and Cancel, Discard or Save dialog on all seven Details tabs. Save is disabled until dirty; successful saves reset defaults. Logo uploads remain immediate. Docs: [Profile](02-property/01-properties.md#profile).
 - [x] `feat(platform): redirect the root URL to sign-in` — the app runs at `app.estatell.com` and the landing page is a separate site, so `/` sends guests to login and signed-in users to their home; remove the starter `welcome.tsx` and its Register link; record the domain in `docs/routing.md`. Docs: [Routing](routing.md).
+    - Replaced on 2026-10-22: `/` is now the public landing page (`feat(landing): add the public landing page and legal pages`). Signed-in users reach their home through `/dashboard`.
 
 ### App shell and UI components
 
