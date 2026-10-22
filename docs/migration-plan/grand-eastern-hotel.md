@@ -197,17 +197,17 @@ On any mismatch it deletes what it extracted, prints why and exits non-zero. On 
 
 `wastays:import-guests` writes one estatell guest per wastays guest in `guests.csv` (440 for GEH) through `CreateGuest`. It does not merge duplicates: the replay attaches bookings by wastays guest id. Staff can merge later.
 
-| wastays                                                                              | estatell                                                                                                                                            |
-| ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `name`, `email`                                                                      | `full_name`, `email`. An invalid email is dropped and counted                                                                                       |
-| `phone`                                                                              | E.164, read as a Malaysian number when it has no country code. A number that cannot be read is left out and kept as a guest note "wastays phone: …" |
-| `country`, `address_country`                                                         | `nationality_code`, `country_code`, matched by country name. A name that does not match is left out and counted                                     |
-| `home_address`, `city`, `postal_code`, `state_code`                                  | `address_line1`, `city`, `postal_code`, `state`                                                                                                     |
-| `date_of_birth`, `gender`                                                            | Same fields                                                                                                                                         |
-| `vip`, `blacklisted`                                                                 | `SetVip`. `BlacklistGuest` with the reason "Blacklisted in wastays"                                                                                 |
-| `document_type`, `government_id`, `passport_number`, `passport_issuing_country_code` | `AddIdentityDocument`. `malaysian_nric` → MyKad, normalized. `passport` → Passport with the issuing country. No type: 12 digits → MyKad, else Other |
-| `discarded_at`                                                                       | Imported anyway, because bookings can still point to the guest                                                                                      |
-| `tin`                                                                                | Not imported. The hotel does not use e-invoice                                                                                                      |
+| wastays                                                                              | estatell                                                                                                                                               |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `name`, `email`                                                                      | `full_name`, `email`. An invalid email is dropped and counted                                                                                          |
+| `phone`                                                                              | E.164, read as a Malaysian number when it has no country code. A number that cannot be read is left out and kept as a guest note "wastays phone: …"    |
+| `country`, `address_country`                                                         | `nationality_code`, `country_code`, matched by country name. A name that does not match is left out and counted                                        |
+| `home_address`, `city`, `postal_code`, `state_code`                                  | `address_line1`, `city`, `postal_code`, `state`                                                                                                        |
+| `date_of_birth`, `gender`                                                            | Same fields                                                                                                                                            |
+| `vip`, `blacklisted`                                                                 | `SetVip`. `BlacklistGuest` with the reason "Blacklisted in wastays"                                                                                    |
+| `document_type`, `government_id`, `passport_number`, `passport_issuing_country_code` | `AddIdentityDocument`. `malaysian_nric` or no type: 12 digits after normalizing → MyKad, else Other. `passport` → Passport, issuing country as alpha-2 |
+| `discarded_at`                                                                       | Imported anyway, because bookings can still point to the guest                                                                                         |
+| `tin`                                                                                | Not imported. The hotel does not use e-invoice                                                                                                         |
 
 `booking_guests` is not read here. The replay uses it to put guests on reservations.
 
