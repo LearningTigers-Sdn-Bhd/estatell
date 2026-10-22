@@ -13,11 +13,13 @@ const WASTAYS_KEY = 'imports/test-hotel-bundle/2026-10-22.zip';
 
 beforeEach(function () {
     Storage::fake('r2');
-    app(Filesystem::class)->deleteDirectory(storage_path('app/private/imports/test-hotel-bundle'));
+    // A temp storage path, so `wastays:purge --all` never deletes real bundles in storage/app/private/imports.
+    $this->storagePath = sys_get_temp_dir().'/wastays-storage-'.bin2hex(random_bytes(6));
+    app()->useStoragePath($this->storagePath);
 });
 
 afterEach(function () {
-    app(Filesystem::class)->deleteDirectory(storage_path('app/private/imports/test-hotel-bundle'));
+    app(Filesystem::class)->deleteDirectory($this->storagePath);
 });
 
 /**
