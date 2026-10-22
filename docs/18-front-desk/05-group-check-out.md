@@ -154,7 +154,7 @@ Each **Check out early…** is its own save, so the last room can leave without 
 - **Open folio.** The folio tab in a new tab (`target="_blank"`), so the page and its state stay.
 - **After an action** the Dialog posts and redirects back to this page, which lists the folios again. When the last folio is settled the page redirects with the toast of that action.
 - **Back from the other tab.** The page reads its data again when the browser tab becomes visible, so a payment taken on the folio tab shows here.
-- **Refund** is not offered: it needs a payment line. A folio in credit shows "In credit" and Open folio; refund it on the folio tab. Later topic.
+- **Refund** is not offered here. A folio in credit shows "In credit" and Open folio. Decided: staff refund it with **Refund credit** on the folio tab ([Refund folio credit](../14-payments/01-payments-and-refunds.md#refundfoliocredit)), which works on a Master or ThirdParty folio too, to the payments' own methods or, with `payment.refund-other-method`, another one.
 - The two Dialogs take the fields they read (`Pick<FolioData, ...>`), so the page that has only a `GroupCheckOutFolioData` can open them. The folio tab still passes its full `FolioData`.
 
 ## Routes and entry
