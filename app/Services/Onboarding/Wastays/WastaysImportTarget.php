@@ -20,9 +20,36 @@ final readonly class WastaysImportTarget
     ) {}
 
     /**
+     * The same checks for the replay, which runs after go-live: the property must be Live and the bundle must be its own.
+     *
+     * @throws InvalidArgumentException with a sentence for the console when the replay must not run
+     */
+    public static function resolveForReplay(string $bundlePath, string $propertyCode, string $actorEmail): self
+    {
+        $target = self::load($bundlePath, $propertyCode, $actorEmail);
+
+        if ($target->property->status !== PropertyStatus::Live) {
+            throw new InvalidArgumentException('The property is not live. Approve go-live with the opening date before the replay.');
+        }
+
+        return $target;
+    }
+
+    /**
      * @throws InvalidArgumentException with a sentence for the console when the import must not run
      */
     public static function resolve(string $bundlePath, string $propertyCode, string $actorEmail): self
+    {
+        $target = self::load($bundlePath, $propertyCode, $actorEmail);
+
+        if (! in_array($target->property->status, [PropertyStatus::Onboarding, PropertyStatus::PendingApproval], true)) {
+            throw new InvalidArgumentException('The property has already gone live. Import before go-live is approved.');
+        }
+
+        return $target;
+    }
+
+    private static function load(string $bundlePath, string $propertyCode, string $actorEmail): self
     {
         $bundle = WastaysBundle::open($bundlePath);
 
@@ -38,10 +65,6 @@ final readonly class WastaysImportTarget
 
         if ($property->document_prefix !== $bundle->manifest->hotelCode) {
             throw new InvalidArgumentException("The bundle is for {$bundle->manifest->hotelCode}, but the property's document prefix is ".($property->document_prefix ?? 'not set').'.');
-        }
-
-        if (! in_array($property->status, [PropertyStatus::Onboarding, PropertyStatus::PendingApproval], true)) {
-            throw new InvalidArgumentException('The property has already gone live. Import before go-live is approved.');
         }
 
         return new self($bundle, $property, $actor);
