@@ -2,6 +2,7 @@
 
 namespace App\Services\Onboarding\Wastays;
 
+use App\Enums\PaymentPurpose;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TransactionKind;
 use App\Models\FolioLine;
@@ -47,13 +48,15 @@ final class WastaysDayCompare
     {
         $day = fn () => FolioLine::query()->whereHas('folio', fn ($folios) => $folios->where('property_id', $property->id))->whereDate('posting_date', $date);
         $rooms = array_map(fn (SystemTransactionCode $code): string => $code->value, array_filter(SystemTransactionCode::roomRevenueCases(), fn (SystemTransactionCode $code): bool => $code !== SystemTransactionCode::NoShowRevenue));
+        // wastays keeps security deposits in their own table, outside its payment and refund totals.
+        $money = fn () => $day()->where('kind', TransactionKind::Payment)->whereDoesntHave('payment', fn ($payments) => $payments->where('purpose', PaymentPurpose::SecurityDeposit));
         $byCode = fn (array $keys) => $day()->where('kind', TransactionKind::Charge)->whereHas('transactionCode', fn ($codes) => $codes->whereIn('system_key', $keys));
 
         return array_map($this->decimal(...), [
             'room_revenue' => (string) $byCode($rooms)->sum('amount'),
             'tax_revenue' => (string) $day()->where('kind', TransactionKind::Tax)->sum('amount'),
-            'payments_total' => (string) abs((float) $day()->where('kind', TransactionKind::Payment)->where('amount', '<', 0)->sum('amount')),
-            'refunds_total' => (string) $day()->where('kind', TransactionKind::Payment)->where('amount', '>', 0)->sum('amount'),
+            'payments_total' => (string) abs((float) $money()->where('amount', '<', 0)->sum('amount')),
+            'refunds_total' => (string) $money()->where('amount', '>', 0)->sum('amount'),
             'adjustments_total' => (string) $day()->where('kind', TransactionKind::Adjustment)->sum('amount'),
             'no_show_charges' => (string) $byCode([SystemTransactionCode::NoShowRevenue->value])->sum('amount'),
         ]);
