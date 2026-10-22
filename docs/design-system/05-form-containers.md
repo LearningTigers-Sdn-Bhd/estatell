@@ -41,7 +41,7 @@ For 4–5 fields: use a Dialog when opened from a detail page, and a Sheet when 
 
 One exception: the [Move charges](../13-folio/07-move-charges.md) page uses the full width in two columns, **From** and **To**, because it is a worklist that shows a move before it happens. The columns stack on a narrow screen. No other full page uses two columns.
 
-One Dialog exception: the [check-out Dialog](../18-front-desk/01-check-in-and-check-out.md#check-out) uses `lg`, because it must show a whole bill and take money decisions at once. From the `lg` breakpoint (1024 px) it has two columns: decisions on the left, the bill on the right, always open. Below 1024 px it is one column, and the bill becomes a `Collapsible` at the top: closed, it shows the amount to pay or refund and "Charges X · Paid Y"; open, every line. No other Dialog uses `lg`.
+One Dialog exception: the [check-out Dialog](../18-front-desk/01-check-in-and-check-out.md#check-out) uses `lg`, because it must show a whole bill and take money decisions at once. From the `lg` breakpoint (1024 px) it has two columns: decisions on the left, the bill on the right in a muted panel with a rounded border, always open, and a minimum height so the Dialog keeps its size between modes. Below 1024 px it is one column, and the bill becomes a `Collapsible` at the top: closed, it shows the amount to pay or refund and "Charges X · Paid Y"; open, every line. No other Dialog uses `lg`.
 
 ## Behavior
 

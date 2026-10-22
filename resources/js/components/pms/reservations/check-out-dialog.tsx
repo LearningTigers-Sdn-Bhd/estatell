@@ -10,7 +10,10 @@ import {
 import { BillPanel } from '@/components/pms/reservations/check-out/bill-panel';
 import { CollectSection } from '@/components/pms/reservations/check-out/collect-section';
 import { DepositSection } from '@/components/pms/reservations/check-out/deposit-section';
-import { EarlyDepartureSection } from '@/components/pms/reservations/check-out/early-departure-section';
+import {
+    EarlyDepartureDecision,
+    EarlyDepartureFacts,
+} from '@/components/pms/reservations/check-out/early-departure-section';
 import { useCheckOutForm } from '@/components/pms/reservations/check-out/use-check-out-form';
 import { WhenGuestLeftCards } from '@/components/pms/reservations/check-out/when-guest-left-cards';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
@@ -19,6 +22,7 @@ import {
     CollapsibleContent,
     CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { Separator } from '@/components/ui/separator';
 
 type Unit = App.Data.Reservations.ReservationUnitData;
 type Options = App.Data.Payments.PaymentFormOptionsData;
@@ -68,11 +72,22 @@ function CheckOutForm({
 
     const bill =
         preview === null ? null : (
-            <BillPanel
-                preview={preview}
-                figures={figures}
-                currency={currency}
-            />
+            <>
+                {early !== null && (
+                    <>
+                        <EarlyDepartureFacts
+                            state={state}
+                            currency={currency}
+                        />
+                        <Separator />
+                    </>
+                )}
+                <BillPanel
+                    preview={preview}
+                    figures={figures}
+                    currency={currency}
+                />
+            </>
         );
 
     return (
@@ -148,7 +163,7 @@ function CheckOutForm({
                             {bill}
                         </CollapsibleContent>
                     </Collapsible>
-                    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] lg:gap-6">
+                    <div className="grid gap-4 lg:min-h-96 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] lg:gap-6">
                         <div className="flex min-w-0 flex-col gap-4">
                             <AuditPendingNote pending={preview.auditPending} />
                             <WhenGuestLeftCards
@@ -172,10 +187,7 @@ function CheckOutForm({
                                         )}
                                 </p>
                             )}
-                            <EarlyDepartureSection
-                                state={state}
-                                currency={currency}
-                            />
+                            <EarlyDepartureDecision state={state} />
                             {others.length > 0 &&
                                 !preview.receivesScheduled && (
                                     <p className="text-sm text-muted-foreground">
@@ -233,7 +245,7 @@ function CheckOutForm({
                                 </p>
                             )}
                         </div>
-                        <div className="hidden min-w-0 flex-col gap-4 lg:flex">
+                        <div className="hidden min-w-0 flex-col gap-4 rounded-lg border bg-muted p-4 lg:flex">
                             {bill}
                         </div>
                     </div>

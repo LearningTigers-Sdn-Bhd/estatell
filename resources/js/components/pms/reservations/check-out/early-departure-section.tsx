@@ -12,16 +12,57 @@ import { Textarea } from '@/components/ui/textarea';
 import type { CheckOutState } from './use-check-out-form';
 
 /**
- * The early departure block of the check-out Dialog: the booked departure, the nights removed and the fee, then Do not
- * charge and the reason. Renders nothing for a plain check-out.
+ * The facts of an early departure, for the summary panel: the booked departure, the nights removed and the fee.
+ * Renders nothing for a plain check-out.
  */
-export function EarlyDepartureSection({
+export function EarlyDepartureFacts({
     state,
     currency,
 }: {
     state: CheckOutState;
     currency: App.Data.Property.CurrencyData | null;
 }) {
+    const { early, figures } = state;
+
+    if (early === null) {
+        return null;
+    }
+
+    return (
+        <div className="flex flex-col gap-1 text-sm">
+            <div className="flex justify-between gap-4">
+                <span className="text-muted-foreground">Booked departure</span>
+                <DateText date={early.departure} />
+            </div>
+            <div className="flex justify-between gap-4">
+                <span className="text-muted-foreground">Nights removed</span>
+                <span>{early.nightsRemoved}</span>
+            </div>
+            <div className="flex justify-between gap-4">
+                <span className="text-muted-foreground">
+                    Early departure fee
+                </span>
+                <span className="font-medium">
+                    {figures.hasFee ? (
+                        <>
+                            <MoneyText amount={early.fee} currency={currency} />{' '}
+                            <span className="font-normal text-muted-foreground">
+                                + tax
+                            </span>
+                        </>
+                    ) : (
+                        'No charge'
+                    )}
+                </span>
+            </div>
+        </div>
+    );
+}
+
+/**
+ * The early departure choices: Do not charge and the reason. Renders nothing for a plain check-out.
+ */
+export function EarlyDepartureDecision({ state }: { state: CheckOutState }) {
     const { early, form, figures, leftYesterday } = state;
     const { data, errors } = form;
 
@@ -31,40 +72,6 @@ export function EarlyDepartureSection({
 
     return (
         <>
-            <div className="flex flex-col gap-1 text-sm">
-                <div className="flex justify-between gap-4">
-                    <span className="text-muted-foreground">
-                        Booked departure
-                    </span>
-                    <DateText date={early.departure} />
-                </div>
-                <div className="flex justify-between gap-4">
-                    <span className="text-muted-foreground">
-                        Nights removed
-                    </span>
-                    <span>{early.nightsRemoved}</span>
-                </div>
-                <div className="flex justify-between gap-4">
-                    <span className="text-muted-foreground">
-                        Early departure fee
-                    </span>
-                    <span className="font-medium">
-                        {figures.hasFee ? (
-                            <>
-                                <MoneyText
-                                    amount={early.fee}
-                                    currency={currency}
-                                />{' '}
-                                <span className="font-normal text-muted-foreground">
-                                    + tax
-                                </span>
-                            </>
-                        ) : (
-                            'No charge'
-                        )}
-                    </span>
-                </div>
-            </div>
             <FieldError>{errors.expected_fee}</FieldError>
             {figures.showWaive && (
                 <FieldLabel htmlFor="check-out-do_not_charge">

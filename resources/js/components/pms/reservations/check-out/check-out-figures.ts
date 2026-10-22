@@ -58,6 +58,10 @@ export function checkOutFigures({
     const deposit = (
         owing > 0 ? (damaging ? 'use' : depositChoice || 'use') : 'refund'
     ) as DepositChoice;
+    // The deposit is a real choice (use it or refund it) only while the guest owes money before any damage charge. When
+    // the deposit already settles the bill, the only choice left is keeping part of it for damages.
+    const choosesDeposit =
+        canRefund && held > 0 && Math.max(balance - damageOnFolio, 0) > 0;
     const refunding = canRefund && deposit === 'refund';
     // The folio credit (after the early departure fee, unless waived). Above the deposit, the credit is refunded as a
     // whole, from the payments in refund order.
@@ -111,6 +115,7 @@ export function checkOutFigures({
         canCollect,
         canRefund,
         deposit,
+        choosesDeposit,
         refunding,
         credit,
         creditAbove,

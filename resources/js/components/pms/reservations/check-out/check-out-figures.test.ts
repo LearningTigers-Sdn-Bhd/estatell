@@ -203,3 +203,41 @@ test('a user who may not correct money cannot refund', () => {
 test('a preview with an error is never settled', () => {
     expect(figures({ error: 'Nope' }).settled).toBe(false);
 });
+
+test('the deposit is a choice only while the guest owes money before any damage', () => {
+    const owing = {
+        balance: '100.00',
+        depositHeld: '100.00',
+        refundable: '100.00',
+    };
+    const settledByDeposit = {
+        balance: '0.00',
+        depositHeld: '100.00',
+        refundable: '100.00',
+    };
+
+    expect(figures(owing).choosesDeposit).toBe(true);
+    expect(figures(settledByDeposit).choosesDeposit).toBe(false);
+    expect(figures({ ...owing, depositHeld: '0.00' }).choosesDeposit).toBe(
+        false,
+    );
+    expect(figures(owing, { canCorrectMoney: false }).choosesDeposit).toBe(
+        false,
+    );
+});
+
+test('a damage charge added to a folio the deposit settled does not turn the checkbox into the cards', () => {
+    const result = figures(
+        {
+            balance: '0.00',
+            depositHeld: '100.00',
+            refundable: '100.00',
+            damageItem: {} as Preview['damageItem'],
+            damageTotal: '30.00',
+        },
+        { keepDamage: true, damageTyped: '30.00' },
+    );
+
+    expect(result.owing).toBe(30);
+    expect(result.choosesDeposit).toBe(false);
+});

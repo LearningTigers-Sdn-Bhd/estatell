@@ -497,28 +497,35 @@ The check-out Dialog is the one Dialog with the `lg` size ([Form containers](../
 ┌─ Check out early · Unit 202 · Hanami Ume ──────────────────────────────────────┐
 │ ⚠ Hotel day 21 Oct · Today 22 Oct. Night audit not run yet.                    │
 │                                                                                │
-│  ⓘ Last night (21 Oct) is added to the   │  Room · Dive Package (added now) 146.67│
-│    bill now. 22 and 23 Oct are removed.  │    Service Tax (SST)              11.73│
-│  Booked departure          24 Oct 2026   │  Diving trip (added now)         720.00│
-│  Nights removed                      2   │  ──────────────────────────────────────│
-│  Early departure fee         No charge   │  Charges                       1,103.07│
-│  Reason [ e.g. Flight changed, ...    ]  │  Paid                           −30.00 │
-│                                          │  Deposit                       −100.00 │
-│  Security deposit                        │  To pay                     MYR 973.07 │
-│  [✓] Use MYR 100.00 toward the bill      │                                        │
-│      Keep it for damages? ›              │                                        │
-│  Method  [ Cash                     ▾ ]  │                                        │
-│  Collect by Cash           MYR 973.07    │                                        │
+│  ⓘ Last night (21 Oct) is added to the   │ ╭────────────────────────────────────╮ │
+│    bill now. 22 and 23 Oct are removed.  │ │ Booked departure      24 Oct 2026  │ │
+│  When did the guest leave?               │ │ Nights removed                  2  │ │
+│  (•) Left yesterday   ( ) Stayed         │ │ Early departure fee    No charge   │ │
+│  Reason [ e.g. Flight changed, ...    ]  │ │ ────────────────────────────────── │ │
+│                                          │ │ Room · Dive Package (added now)    │ │
+│  Security deposit                        │ │ Charges                   1,103.07 │ │
+│  (•) Use toward the bill ( ) Refund it   │ │ Paid                       −30.00  │ │
+│  ( ) Keep part for damages               │ │ Deposit                   −100.00  │ │
+│  Method  [ Cash                     ▾ ]  │ │ To pay                 MYR 973.07  │ │
+│  Collect by Cash           MYR 973.07    │ ╰────────────────────────────────────╯ │
 │  Remaining after check-out   MYR 0.00    │                                        │
 │                                                  [ Cancel ] [ Collect and check out ]│
 └────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-- **Left column, decisions:** the pending-audit ⓘ line, the early or overdue block, the reason, **Security deposit**, the method and the collect or refund summary. The pending-audit strip spans both columns at the top.
-- **Right column, the bill:** the "(added now)" lines, then the folio block below. Read only. Always open on desktop.
+- **Left column, decisions:** the pending-audit ⓘ line, the "When did the guest leave?" or overdue cards, **Do not charge** and the reason, **Security deposit**, the method and the collect or refund summary. The pending-audit strip spans both columns at the top.
+- **Right column, the summary:** a muted panel with a rounded border (`rounded-lg border bg-muted p-4`). In early mode it starts with the facts (**Booked departure**, **Nights removed**, **Early departure fee**), then the "(added now)" lines and the folio block. Read only. Always open on desktop. The two columns have a minimum height (`lg:min-h-96`) so the Dialog does not jump between plain and early mode.
 - **Phone and tablet (below 1024 px):** one column. The bill is a `Collapsible` at the top, closed by default. Closed it shows "Bill", the amount to pay (or to refund) and "Charges X · Paid Y"; open, every line and the folio block. The decisions follow.
 
-**Security deposit.** A section with that title, shown only when a deposit is held. One checkbox, **Use MYR 100.00 toward the bill**, ticked by default, and shown only while the guest owes money. When the folio holds a credit the deposit can only be refunded, so the checkbox is hidden and the refund shows directly. When the folio is already at 0 (the deposit went toward the bill, for example before an Undo check-out), the section says "MYR 100.00 used toward the bill. Nothing to refund." instead of a refund field of 0.00. Unticked means the deposit is refunded by the method shown (the old "Refund deposit" radio). **Keep it for damages? ›** is a link to the folio tab to post the charge first (the old "Keep for damages" radio); it does not open a second Dialog. The amounts and the server are unchanged. Since then, the link is a checkbox with a Damage field ([Keep the deposit for damages](#keep-the-deposit-for-damages)).
+**Security deposit.** A section with that title, shown only when a deposit is held and the user may refund. What it shows depends on whether there is a real choice (`checkOutFigures().choosesDeposit`: the guest owes money before any damage charge):
+
+| Situation                                                | Control                                                                                                                                                          |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The guest owes money                                     | Cards: **Use toward the bill** (the default), **Refund it** and, with the damage item, **Keep part for damages** (the deposit offsets the damage, then the bill) |
+| The deposit already settles the bill (the folio is at 0) | Text "MYR 100.00 used toward the bill. Nothing to refund." and, with the damage item, the checkbox **Keep part of it for damages**                               |
+| The folio holds a credit                                 | The deposit can only be refunded, so there is no choice and the refund shows directly                                                                            |
+
+The refund by the method shown is **Refund it**. A damage charge shows its Damage and Note fields under the cards. The amounts and the server are unchanged; only the controls changed (they were a checkbox and a second checkbox). See [Keep the deposit for damages](#keep-the-deposit-for-damages).
 
 **The folio block.** The Dialog breaks the balance down: **Charges** (every line that is not a payment, so taxes, discounts and reversals count; in early mode it includes the fee shown above), **Paid** (every payment and refund but the deposit held, hidden at 0), **Deposit held**, then **To pay**, **Credit** or **Settled**. Charges + Paid − Deposit held is the balance, so the rows never disagree. The preview sends `charges` and `paid` (`CheckOutSettlement`). The summary under the method no longer repeats "Deposit used toward the bill": the deposit is already in the block.
 
@@ -625,8 +632,8 @@ The deposit payment line stays as it is, because the ledger is immutable. The da
 │  Damage 33.00 · Collect 1,006.07 by Cash │                                        │
 ```
 
-- **The checkbox.** **Keep part of it for damages** sits in the Security deposit section. It shows when a deposit is held and the user holds `folio.post-charge` (the preview's `damageItem`). No setup is needed: it posts to the built-in **Damage** item. The old **Keep it for damages? ›** link is gone.
-- **The deposit goes to the damage first.** While the box is ticked, **Use toward the bill** is hidden: the deposit always offsets the damage and the bill, and only what is left is refunded.
+- **The control.** **Keep part for damages** is the third card of the Security deposit section when the guest owes money, or a checkbox when the deposit already settles the bill. It shows when a deposit is held and the user holds `folio.post-charge` (the preview's `damageItem`). No setup is needed: it posts to the built-in **Damage** item. The old **Keep it for damages? ›** link is gone.
+- **The deposit goes to the damage first.** While the damage is chosen, **Use toward the bill** and **Refund it** are not offered: the deposit always offsets the damage and the bill, and only what is left is refunded.
 - **Damage amount.** Staff type it, before tax. It starts empty, or at the charge item's default price when the item has one. It must be above 0. Check-out stays closed until the server has priced it.
 - **Tax.** The damage posts with its item's taxes, like any charge. The preview takes `damage_amount` (asked 300 ms after typing stops) and sends `damageTotal`, the amount with tax, and a `refundDefault` and `refundParts` that already count it. The browser adds `damageTotal` to the balance for display only.
 - **Note.** Optional, up to 100 characters. It goes after the item name in the line description, for example "Damage · Broken lamp".
