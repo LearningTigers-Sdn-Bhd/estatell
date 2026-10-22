@@ -97,7 +97,7 @@ it('adds the fee of a same-day leaver and the tax of a fee dated to an earlier n
 it('compares a day with its summary as the audit wrote it and counts a later change on the day it was made', function () {
     $summary = fn (string $id, string $audit, string $room, string $changelog = '[]'): array => [
         'id' => $id, 'night_audit_id' => $audit, 'room_revenue' => $room, 'tax_revenue' => '0.00', 'payments_total' => '0.00',
-        'refunds_total' => '0.00', 'adjustments_total' => '0.00', 'no_show_charges' => '0.00', 'changelog' => $changelog,
+        'refunds_total' => '0.00', 'adjustments_total' => '0.00', 'no_show_charges' => '0.00', 'changelog' => $changelog, 'created_at' => '2026-08-14T00:00:00.000000Z',
     ];
     $change = json_encode([[
         'timestamp' => '2026-08-14T10:00:00.000+08:00',
@@ -122,4 +122,44 @@ it('compares a day with its summary as the audit wrote it and counts a later cha
     expect($first['room_revenue'])->toBe('100.00')
         ->and($second['room_revenue'])->toBe('250.00')
         ->and($second['adjustments_total'])->toBe('-20.00');
+});
+
+it('counts a reversal of a room charge in the adjustments, as wastays does', function () {
+    $folio = Folio::factory()->create();
+    $room = TransactionCode::factory()->for($folio->property)->system(SystemTransactionCode::RoomRevenue)->create();
+    $night = FolioLine::factory()->create(['folio_id' => $folio->id, 'transaction_code_id' => $room->id]);
+    FolioLine::factory()->create(['folio_id' => $folio->id, 'transaction_code_id' => $room->id, 'amount' => '-100.00', 'unit_amount' => '-100.00', 'reversal_of_id' => $night->id]);
+
+    $figures = app(WastaysDayCompare::class)->estatell($folio->property, '2026-11-02');
+
+    expect($figures['room_revenue'])->toBe('100.00')
+        ->and($figures['adjustments_total'])->toBe('-100.00');
+});
+
+it('takes a summary change without the catch-up night it recounted, which counts on its own day', function () {
+    $change = json_encode([[
+        'timestamp' => '2026-08-14T10:00:00.000+08:00',
+        'previous_values' => ['room_revenue' => '100.0'],
+        'new_values' => ['room_revenue' => '250.0'],
+    ]]);
+    $path = wastaysDayBundleDir([
+        'hotel_business_dates' => [
+            ['business_date' => '2026-08-13', 'opened_at' => '2026-08-13T00:00:00.000000Z', 'closed_at' => '2026-08-14T00:00:00.000000Z'],
+            ['business_date' => '2026-08-14', 'opened_at' => '2026-08-14T00:00:00.000000Z', 'closed_at' => '2026-08-15T00:00:00.000000Z'],
+        ],
+        'night_audits' => [['id' => '1', 'business_date' => '2026-08-13'], ['id' => '2', 'business_date' => '2026-08-14']],
+        'night_audit_financial_summaries' => [
+            ['id' => '1', 'night_audit_id' => '1', 'room_revenue' => '250.00', 'tax_revenue' => '0.00', 'payments_total' => '0.00', 'refunds_total' => '0.00', 'adjustments_total' => '0.00', 'no_show_charges' => '0.00', 'changelog' => $change, 'created_at' => '2026-08-14T00:00:00.000000Z'],
+            ['id' => '2', 'night_audit_id' => '2', 'room_revenue' => '200.00', 'tax_revenue' => '0.00', 'payments_total' => '0.00', 'refunds_total' => '0.00', 'adjustments_total' => '0.00', 'no_show_charges' => '0.00', 'changelog' => '[]', 'created_at' => '2026-08-15T00:00:00.000000Z'],
+        ],
+        'folio_transactions' => [
+            ['id' => '1', 'category' => 'accommodation', 'amount' => '120.00', 'posting_date' => '2026-08-13', 'created_at' => '2026-08-14T01:00:00.000000Z', 'night_audit_id' => null, 'metadata' => json_encode(['posting_source' => 'catch_up'])],
+            ['id' => '2', 'category' => 'accommodation', 'amount' => '30.00', 'posting_date' => '2026-08-13', 'created_at' => '2026-08-14T02:00:00.000000Z', 'night_audit_id' => '1', 'metadata' => json_encode(['posting_source' => 'historical_nightly_charge_repair'])],
+        ],
+    ]);
+    $bundle = WastaysBundle::open($path);
+
+    $figures = app(WastaysDayCompare::class)->wastays($bundle, new WastaysDay($bundle), '2026-08-14');
+
+    expect($figures['room_revenue'])->toBe('350.00');
 });

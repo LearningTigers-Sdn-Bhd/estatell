@@ -87,15 +87,59 @@ final class WastaysDayCompare
             return $totals;
         }
 
+        $nights = $bundle->rows('night_audits')->mapWithKeys(fn (array $row): array => [(string) $row['id'] => (string) $row['business_date']])->all();
+        $index = new WastaysBookingIndex($bundle);
+
         foreach ($bundle->rows('night_audit_financial_summaries') as $summary) {
-            foreach ($this->changelog($summary) as $entry) {
+            if ($this->changelog($summary) === []) {
+                continue;
+            }
+
+            $since = CarbonImmutable::parse((string) $summary['created_at']);
+
+            foreach (collect($this->changelog($summary))->sortBy(fn (array $entry): CarbonImmutable => $entry['at']) as $entry) {
+                $counted = $this->countedOnTheirDay($bundle, $day, $index, $nights[(string) $summary['night_audit_id']] ?? '', $since, $entry['at']);
+                $since = $entry['at'];
+
                 if ($entry['at']->lt($window['opened']) || ($window['closed'] !== null && $entry['at']->gte($window['closed']))) {
                     continue;
                 }
 
                 foreach (self::FIGURES as $figure) {
-                    $totals[$figure] = $totals[$figure]->plus((string) ($entry['new'][$figure] ?? '0'))->minus((string) ($entry['previous'][$figure] ?? '0'));
+                    $totals[$figure] = $totals[$figure]->plus((string) ($entry['new'][$figure] ?? '0'))->minus((string) ($entry['previous'][$figure] ?? '0'))->minus($counted[$figure] ?? '0');
                 }
+            }
+        }
+
+        return $totals;
+    }
+
+    /**
+     * Left-out lines of the night `$night` posted between two summary changes. A change recounted them into that
+     * night's summary, but they already count on the day they were posted, so the change is taken without them.
+     *
+     * @param  array<string, string>  $nights
+     * @return array<string, BigDecimal>
+     */
+    private function countedOnTheirDay(WastaysBundle $bundle, WastaysDay $day, WastaysBookingIndex $index, string $night, CarbonImmutable $from, CarbonImmutable $to): array
+    {
+        $totals = [];
+
+        foreach ($bundle->rows('folio_transactions') as $row) {
+            if (($row['posting_date'] ?? null) !== $night) {
+                continue;
+            }
+
+            $at = CarbonImmutable::parse((string) $row['created_at']);
+            $postedOn = collect($day->dates())->first(function (string $date) use ($day, $at): bool {
+                $window = $day->window($date);
+
+                return $window !== null && $at->gte($window['opened']) && ($window['closed'] === null || $at->lt($window['closed']));
+            });
+            $figure = $postedOn === null || $at->lt($from) || $at->gte($to) ? null : $this->leftOutFigure($row, $postedOn, $index);
+
+            if ($figure !== null) {
+                $totals[$figure] = ($totals[$figure] ?? BigDecimal::zero())->plus((string) $row['amount']);
             }
         }
 
@@ -136,15 +180,7 @@ final class WastaysDayCompare
         $index = new WastaysBookingIndex($bundle);
 
         foreach ($bundle->rows('folio_transactions') as $row) {
-            $source = json_decode((string) ($row['metadata'] ?? ''), true)['posting_source'] ?? null;
-            $figure = match (true) {
-                ($row['night_audit_id'] ?? null) !== null => null,
-                $source === 'catch_up' && $row['category'] === 'accommodation' => 'room_revenue',
-                $source === 'catch_up' && $row['category'] === 'tax' => 'tax_revenue',
-                $source === 'early_departure' && $row['category'] === 'early_departure_charge' && $index->sameDayLeaver((string) $row['source_booking_id']) => 'room_revenue',
-                $source === 'early_departure' && $row['category'] === 'tax' && ($row['posting_date'] ?? null) !== $date => 'tax_revenue',
-                default => null,
-            };
+            $figure = $this->leftOutFigure($row, $date, $index);
 
             if ($figure === null) {
                 continue;
@@ -161,6 +197,25 @@ final class WastaysDayCompare
     }
 
     /**
+     * The figure a line counts in when its summary leaves it out, for a line posted during the window of `$date`.
+     *
+     * @param  array<string, string|null>  $row
+     */
+    private function leftOutFigure(array $row, string $date, WastaysBookingIndex $index): ?string
+    {
+        $source = json_decode((string) ($row['metadata'] ?? ''), true)['posting_source'] ?? null;
+
+        return match (true) {
+            ($row['night_audit_id'] ?? null) !== null => null,
+            $source === 'catch_up' && $row['category'] === 'accommodation' => 'room_revenue',
+            $source === 'catch_up' && $row['category'] === 'tax' => 'tax_revenue',
+            $source === 'early_departure' && $row['category'] === 'early_departure_charge' && $index->sameDayLeaver((string) $row['source_booking_id']) => 'room_revenue',
+            $source === 'early_departure' && $row['category'] === 'tax' && ($row['posting_date'] ?? null) !== $date => 'tax_revenue',
+            default => null,
+        };
+    }
+
+    /**
      * @return array<string, string>
      */
     public function estatell(Property $property, string $date): array
@@ -174,11 +229,13 @@ final class WastaysDayCompare
         $byCode = fn (array $keys) => $day()->where('kind', TransactionKind::Charge)->whereHas('transactionCode', fn ($codes) => $codes->whereIn('system_key', $keys));
 
         return array_map($this->decimal(...), [
-            'room_revenue' => (string) $byCode($rooms)->sum('amount'),
-            'tax_revenue' => (string) $day()->where('kind', TransactionKind::Tax)->sum('amount'),
+            'room_revenue' => (string) $byCode($rooms)->whereNull('reversal_of_id')->sum('amount'),
+            'tax_revenue' => (string) $day()->where('kind', TransactionKind::Tax)->whereNull('reversal_of_id')->sum('amount'),
             'payments_total' => (string) abs((float) $money()->where('amount', '<', 0)->sum('amount')),
             'refunds_total' => (string) $money()->where('amount', '>', 0)->sum('amount'),
-            'adjustments_total' => (string) $day()->where('kind', TransactionKind::Adjustment)->sum('amount'),
+            // wastays books every reversal of a charge or its tax as a correction, in the adjustments.
+            'adjustments_total' => (string) $day()->where(fn ($lines) => $lines->where('kind', TransactionKind::Adjustment)
+                ->orWhere(fn ($reversals) => $reversals->whereIn('kind', [TransactionKind::Charge, TransactionKind::Tax])->whereNotNull('reversal_of_id')))->sum('amount'),
             'no_show_charges' => (string) $byCode([SystemTransactionCode::NoShowRevenue->value])->sum('amount'),
         ]);
     }
