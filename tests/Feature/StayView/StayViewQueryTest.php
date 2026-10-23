@@ -163,6 +163,35 @@ test('a stay carries its status badge, pax and times but no contact or ID data',
         ->and(array_keys($stay->toArray()))->not->toContain('email', 'phone', 'identityDocuments');
 });
 
+test('a stay carries the badge of its booking source', function () {
+    $property = stayViewProperty();
+    $walkIn = Reservation::factory()->walkIn()->create(['property_id' => $property->id]);
+    stayViewUnit($property, Room::factory()->for($property)->create(), reservation: $walkIn, guestName: 'Walk Guest');
+    [$from, $to] = stayViewRange();
+
+    $stay = app(StayViewQuery::class)->stays($property, $from, $to)[0];
+
+    expect($stay->source->name)->toBe('Walk-in')
+        ->and($stay->source->type->value)->toBe('walk_in')
+        ->and($stay->source->icon !== null || $stay->source->letters !== null)->toBeTrue();
+});
+
+test('a stay carries the units its whole reservation holds, not the cancelled ones', function () {
+    $property = stayViewProperty();
+    $group = Reservation::factory()->group('ABC Corp')->create(['property_id' => $property->id]);
+    $single = Reservation::factory()->create(['property_id' => $property->id]);
+    stayViewUnit($property, Room::factory()->for($property)->create(), reservation: $group, guestName: 'Raj K');
+    stayViewUnit($property, Room::factory()->for($property)->create(), reservation: $group, guestName: 'Tan M');
+    stayViewUnit($property, Room::factory()->for($property)->create(), reservation: $group, guestName: 'Cancelled Guest', state: 'cancelled');
+    stayViewUnit($property, Room::factory()->for($property)->create(), reservation: $single, guestName: 'Lim Wei');
+    [$from, $to] = stayViewRange();
+
+    $stays = collect(app(StayViewQuery::class)->stays($property, $from, $to));
+
+    expect($stays->firstWhere('guestLabel', 'Raj K')->unitCount)->toBe(2)
+        ->and($stays->firstWhere('guestLabel', 'Lim Wei')->unitCount)->toBe(1);
+});
+
 test('balance due is set when the reservation owes money', function () {
     $property = stayViewProperty();
     $owing = Reservation::factory()->create(['property_id' => $property->id]);

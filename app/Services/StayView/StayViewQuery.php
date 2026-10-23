@@ -92,7 +92,10 @@ class StayViewQuery
             ->whereDate('arrival_date', '<=', $to)
             ->whereDate('departure_date', '>', $from)
             ->with([
-                'reservation:id,reference,group_name',
+                'reservation' => fn ($query) => $query
+                    ->select('id', 'reference', 'group_name', 'booking_source_id')
+                    ->withCount(['units as live_units_count' => fn ($units) => $units->whereIn('status', array_map(fn (UnitStatus $status): string => $status->value, UnitStatus::holdingInventory()))]),
+                'reservation.bookingSource:id,name,type,badge_icon,badge_letters,badge_color',
                 'nights' => fn ($query) => $query->whereDate('date', '>=', $from)->whereDate('date', '<=', $to)->orderBy('date'),
                 'guests' => fn ($query) => $query->where('is_primary', true),
                 'guests.guest:id,full_name',

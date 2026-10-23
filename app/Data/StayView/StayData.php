@@ -2,13 +2,14 @@
 
 namespace App\Data\StayView;
 
+use App\Data\Reservations\BookingSourceBadgeData;
 use App\Data\Shared\BadgeData;
 use App\Models\ReservationUnit;
 use Spatie\LaravelData\Data;
 
 /**
  * One reservation unit in the window. It carries no contact or ID data. Units of one group booking share
- * `reservationId` and `groupName`. `balanceDue` is the reservation's, not the unit's.
+ * `reservationId` and `groupName`. `unitCount` is the units the whole reservation holds, not only those in the window. `balanceDue` is the reservation's, not the unit's.
  */
 class StayData extends Data
 {
@@ -21,6 +22,8 @@ class StayData extends Data
         public string $reference,
         public ?string $guestLabel,
         public ?string $groupName,
+        public int $unitCount,
+        public BookingSourceBadgeData $source,
         public int $adults,
         public int $children,
         public BadgeData $status,
@@ -33,7 +36,7 @@ class StayData extends Data
     ) {}
 
     /**
-     * Expects `reservation` and the primary `guests.guest` loaded.
+     * Expects `reservation.bookingSource`, `reservation.live_units_count` and the primary `guests.guest` loaded.
      *
      * @param  list<StaySegmentData>  $segments
      */
@@ -45,6 +48,8 @@ class StayData extends Data
             reference: $unit->reservation->reference,
             guestLabel: $unit->guests->first()?->guest?->full_name,
             groupName: $unit->reservation->group_name,
+            unitCount: (int) $unit->reservation->getAttribute('live_units_count'),
+            source: BookingSourceBadgeData::fromModel($unit->reservation->bookingSource),
             adults: $unit->adults,
             children: $unit->children,
             status: BadgeData::fromUnitStatus($unit->status),
