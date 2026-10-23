@@ -29,7 +29,7 @@ class ChannelConnectionChecker
         try {
             $settings = $this->mapper->settings($driver->adapter($ota->channex_code), $input);
 
-            if (blank($settings['hotel_id'] ?? null)) {
+            if (ChannelHotelId::from($settings) === null) {
                 return new ChannelConnectionCheck(ChannelActionResult::failed(__('Enter the :channel hotel ID first.', ['channel' => $ota->name])));
             }
 
@@ -44,6 +44,6 @@ class ChannelConnectionChecker
             return new ChannelConnectionCheck(ChannelActionResult::failed(__(':channel refused the connection. Choose Channex as the provider in the extranet, check the hotel ID, then test again.', ['channel' => $ota->name])));
         }
 
-        return new ChannelConnectionCheck(ChannelActionResult::ok(__(':channel sees Channex as the provider for hotel :hotel.', ['channel' => $ota->name, 'hotel' => $settings['hotel_id']])), $settings);
+        return new ChannelConnectionCheck(ChannelActionResult::ok(__(':channel sees Channex as the provider for hotel :hotel.', ['channel' => $ota->name, 'hotel' => ChannelHotelId::from($settings)])), $settings);
     }
 }

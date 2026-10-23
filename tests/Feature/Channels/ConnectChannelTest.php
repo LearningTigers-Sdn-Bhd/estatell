@@ -235,3 +235,34 @@ test('the OTAs card lists connectable channels and the reason for the others', f
             ->where('channel.otas.2.hotelId', '777')
             ->where('channel.otas.2.note', 'No Channex adapter. Connect in Channex by hand.'));
 });
+
+test('an adapter that names the hotel hotel_code (Trip.com) connects with it', function () {
+    $property = connectReadyProperty();
+    $ota = OtaChannel::factory()->create(['code' => 'trip_com', 'name' => 'Trip.com', 'channex_code' => 'CTrip']);
+    PropertyOtaCredential::factory()->for($property)->create(['ota_channel_id' => $ota->id, 'property_code' => '28707116', 'channel_name' => null]);
+    Http::fake([
+        '*/channels/adapter*' => Http::response(['data' => ['code' => 'CTrip', 'params' => [
+            'hotel_code' => ['position' => 0, 'type' => 'string', 'title' => 'Hotel Code'],
+            'send_email_notifications' => ['default' => false, 'position' => 1, 'type' => 'boolean', 'title' => 'Send booking emails'],
+        ]]], 200),
+        '*/channels/test_connection' => Http::response(['data' => ['success' => true, 'errors' => null]], 200),
+        '*/channels' => Http::response(['data' => ['id' => 'channel-1', 'type' => 'channel', 'attributes' => ['id' => 'channel-1']]], 201),
+    ]);
+    $admin = User::factory()->admin()->withTwoFactor()->create();
+
+    $this->actingAs($admin)->get(route('admin.properties.channels.connect', [$property->code, $ota]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('connect.fields.0.name', 'hotel_code')
+            ->where('connect.fields.0.required', true)
+            ->where('connect.fields.0.label', 'Hotel ID')
+            ->where('connect.values.hotel_code', '28707116'));
+
+    $this->postJson(route('admin.properties.channels.test', [$property->code, $ota]), ['settings' => ['hotel_code' => '28707116']])
+        ->assertOk()
+        ->assertExactJson(['ok' => true, 'message' => 'Trip.com sees Channex as the provider for hotel 28707116.']);
+    $this->postJson(route('admin.properties.channels.test', [$property->code, $ota]), ['settings' => ['hotel_code' => '']])
+        ->assertJsonValidationErrors('settings.hotel_code');
+
+    expect(connectChannel($property, $ota, ['hotel_code' => '28707116'])->message)->toBe('Trip.com connected to hotel 28707116.')
+        ->and(ChannelConnection::query()->sole()->settings['hotel_code'])->toBe('28707116');
+});
