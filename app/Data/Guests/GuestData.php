@@ -53,7 +53,7 @@ class GuestData extends Data
 
         $photoUrl = $primaryDoc !== null
             ? route('guests.documents.scan', [
-                'property' => request()->route('property') ?? $guest->property_id,
+                'property' => request()->route('property') ?? $guest->property,
                 'guest' => $guest->id,
                 'document' => $primaryDoc->id,
                 'scan' => 'front',

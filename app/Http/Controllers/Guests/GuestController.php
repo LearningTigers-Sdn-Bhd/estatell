@@ -87,6 +87,21 @@ class GuestController extends Controller
     {
         $guest = $createGuest($request->user(), $property, $request->profileAttributes(), $request->tagNames());
 
+        if ($request->filled('identity_number')) {
+            $type = $request->string('identity_type')->value() ?: 'mykad';
+            $doc = $guest->documents()->firstOrNew(['type' => $type]);
+            $doc->number = $request->string('identity_number')->value();
+            $doc->issuing_country_code = $request->string('identity_country_code')->value() ?: 'MY';
+            $doc->save();
+
+            if ($request->filled('identity_photo')) {
+                $doc->clearMediaCollection(\App\Models\GuestIdentityDocument::FRONT_SCAN);
+                $doc->addMediaFromBase64($request->string('identity_photo')->value())
+                    ->usingFileName('mykad_portrait.jpg')
+                    ->toMediaCollection(\App\Models\GuestIdentityDocument::FRONT_SCAN);
+            }
+        }
+
         Inertia::flash('toast', ['type' => 'success', 'message' => __(':name added.', ['name' => $guest->full_name])]);
 
         return to_route('guests.show', ['property' => $property, 'guest' => $guest]);
@@ -146,6 +161,22 @@ class GuestController extends Controller
     public function update(GuestRequest $request, Property $property, Guest $guest, UpdateGuest $updateGuest): RedirectResponse
     {
         $saved = $updateGuest($request->user(), $guest, $request->profileAttributes(), $request->tagNames());
+
+        if ($request->filled('identity_number')) {
+            $type = $request->string('identity_type')->value() ?: 'mykad';
+            $doc = $guest->documents()->firstOrNew(['type' => $type]);
+            $doc->number = $request->string('identity_number')->value();
+            $doc->issuing_country_code = $request->string('identity_country_code')->value() ?: 'MY';
+            $doc->save();
+
+            if ($request->filled('identity_photo')) {
+                $doc->clearMediaCollection(\App\Models\GuestIdentityDocument::FRONT_SCAN);
+                $doc->addMediaFromBase64($request->string('identity_photo')->value())
+                    ->usingFileName('mykad_portrait.jpg')
+                    ->toMediaCollection(\App\Models\GuestIdentityDocument::FRONT_SCAN);
+            }
+        }
+
         $guest->refresh();
 
         Inertia::flash('toast', $saved
@@ -199,7 +230,7 @@ class GuestController extends Controller
      */
     private function renderTab(User $user, Guest $guest, string $tab, array $tabProps = []): Response
     {
-        $guest->load(['tags', 'documents.media']);
+        $guest->load(['tags', 'property', 'documents.media']);
 
         return Inertia::render('guests/show', [
             'guest' => GuestData::fromModel($guest),

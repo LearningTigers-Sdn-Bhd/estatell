@@ -64,6 +64,7 @@ export function guestFormKey(guest: Guest): string {
 }
 
 export function GuestForm({ guest, countries, genders, locales, tags }: Props) {
+    const [scannedPhoto, setScannedPhoto] = useState<string | null>(null);
     const form = useForm({
         full_name: guest.fullName ?? '',
         email: guest.email ?? '',
@@ -79,6 +80,10 @@ export function GuestForm({ guest, countries, genders, locales, tags }: Props) {
         postal_code: guest.postalCode ?? '',
         country_code: guest.countryCode ?? '',
         tags: (guest.tags ?? []).map((tag) => tag.name),
+        identity_number: '',
+        identity_type: 'mykad',
+        identity_country_code: 'MY',
+        identity_photo: '',
     });
     const guard = useUnsavedChanges(form.isDirty);
     const { data, errors } = form;
@@ -141,6 +146,7 @@ export function GuestForm({ guest, countries, genders, locales, tags }: Props) {
                 <div className="flex flex-col gap-8">
                     <MyKadScanner
                         onScan={(card) => {
+                            setScannedPhoto(card.photo_base64);
                             form.setData({
                                 ...form.data,
                                 full_name: card.name,
@@ -153,9 +159,41 @@ export function GuestForm({ guest, countries, genders, locales, tags }: Props) {
                                 state: card.state,
                                 postal_code: card.postal_code,
                                 country_code: 'MY',
+                                identity_number:
+                                    card.formatted_ic || card.ic_number,
+                                identity_type: 'mykad',
+                                identity_country_code: 'MY',
+                                identity_photo: card.photo_base64 ?? '',
                             });
                         }}
                     />
+                    {(scannedPhoto || guest.photoUrl) && (
+                        <div className="flex items-start gap-4 rounded-lg border border-border bg-card p-3 shadow-xs">
+                            <img
+                                src={scannedPhoto || guest.photoUrl!}
+                                alt={data.full_name || guest.fullName}
+                                className="h-28 w-24 shrink-0 rounded-lg border-2 border-border object-cover shadow-sm ring-1 ring-border"
+                            />
+                            <div className="flex flex-col gap-1 text-xs">
+                                <span className="text-sm font-semibold text-foreground">
+                                    Cardholder ID Portrait
+                                </span>
+                                <span className="text-muted-foreground">
+                                    {scannedPhoto
+                                        ? 'Scanned from MyKad chip — will be saved with guest'
+                                        : 'Verified ID photo saved on guest profile'}
+                                </span>
+                                {data.identity_number && (
+                                    <span className="mt-1 font-mono font-medium text-foreground">
+                                        NRIC: {data.identity_number}
+                                    </span>
+                                )}
+                                <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                                    ✓ Cardholder Verified
+                                </span>
+                            </div>
+                        </div>
+                    )}
                     <FieldSet>
                         <FieldLegend>Contact</FieldLegend>
                         <FieldGroup>
