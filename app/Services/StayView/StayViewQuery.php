@@ -4,6 +4,7 @@ namespace App\Services\StayView;
 
 use App\Data\StayView\BlockData;
 use App\Data\StayView\DateRateData;
+use App\Data\StayView\DayUseData;
 use App\Data\StayView\RatePriceRowData;
 use App\Data\StayView\RoomRowData;
 use App\Data\StayView\StayData;
@@ -17,6 +18,7 @@ use App\Models\Property;
 use App\Models\ReservationUnit;
 use App\Models\Room;
 use App\Models\RoomBlock;
+use App\Models\UnitDayUse;
 use App\Models\UnitNight;
 use App\Services\Folio\FolioBalance;
 use App\Services\NightAudit\CurrentBusinessDate;
@@ -79,7 +81,7 @@ class StayViewQuery
 
     /**
      * Overnight units that hold a night in the window. Cancelled and no-show units are left out, and so are nights
-     * with no room or bed yet. Day use is not drawn yet.
+     * with no room or bed yet. Day use is read by `dayUses()`.
      *
      * @return list<StayData>
      */
@@ -112,6 +114,32 @@ class StayViewQuery
                 BigDecimal::of($balances[$unit->reservation_id] ?? '0.00')->isGreaterThan(0),
             ))
             ->all());
+    }
+
+    /**
+     * Live day use blocks with a room on a date in the window. A released block (cancelled or no-show) is left out.
+     *
+     * @return list<DayUseData>
+     */
+    public function dayUses(Property $property, CarbonImmutable $from, CarbonImmutable $to): array
+    {
+        $blocks = UnitDayUse::query()
+            ->whereNull('released_at')
+            ->whereNotNull('room_id')
+            ->whereDate('date', '>=', $from)->whereDate('date', '<=', $to)
+            ->whereHas('reservationUnit', fn ($units) => $units
+                ->where('property_id', $property->id)
+                ->whereIn('status', [UnitStatus::Confirmed->value, UnitStatus::CheckedIn->value, UnitStatus::CheckedOut->value]))
+            ->with([
+                'reservationUnit.reservation:id,reference,booking_source_id',
+                'reservationUnit.reservation.bookingSource:id,name,type,badge_icon,badge_letters,badge_color',
+                'reservationUnit.guests' => fn ($query) => $query->where('is_primary', true),
+                'reservationUnit.guests.guest:id,full_name',
+            ])
+            ->orderBy('date')->orderBy('starts_at')->orderBy('id')
+            ->get();
+
+        return array_values($blocks->map(fn (UnitDayUse $block): DayUseData => DayUseData::fromModel($block))->all());
     }
 
     /**

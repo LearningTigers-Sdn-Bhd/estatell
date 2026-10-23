@@ -4,6 +4,7 @@ import { buildDateColumns } from '@/components/pms/grid/date-columns';
 import { DateGrid } from '@/components/pms/grid/date-grid';
 import type { DateGridHandle } from '@/components/pms/grid/date-grid';
 import { BlockBar } from './block-bar';
+import { DayUseBar } from './day-use-bar';
 import { filterStays } from './filter-stays';
 import { buildRows, toggleCollapsed } from './group-rows';
 import { InventoryFooterCell, InventoryFooterLabel } from './inventory-footer';
@@ -19,7 +20,13 @@ import {
     resolveChoice,
 } from './nightly-rate';
 import type { RateChoice } from './nightly-rate';
-import { blockBarInputs, projectBars, stayBarInputs } from './project-bars';
+import {
+    blockBarInputs,
+    dayUseCellKey,
+    dayUseMarkers,
+    projectBars,
+    stayBarInputs,
+} from './project-bars';
 import { GroupLabel, RoomLabel } from './room-row';
 import { StayBar } from './stay-bar';
 import { summarizeInventory } from './summarize-inventory';
@@ -39,6 +46,7 @@ export function StayViewTimeline({
     rooms,
     stays,
     blocks,
+    dayUses,
     rates,
     filters,
     showRates,
@@ -52,6 +60,7 @@ export function StayViewTimeline({
     rooms: App.Data.StayView.RoomRowData[];
     stays: App.Data.StayView.StayData[];
     blocks: App.Data.StayView.BlockData[];
+    dayUses: App.Data.StayView.DayUseData[];
     rates: App.Data.StayView.RatePriceRowData[];
     filters: Filters;
     showRates: boolean;
@@ -103,12 +112,20 @@ export function StayViewTimeline({
         const stayById = new Map(
             visible.stays.map((stay) => [stay.unitId, stay]),
         );
-        const stayBars = projectBars(stayBarInputs(visible.stays), dates).map(
-            (bar) => ({
-                bar,
-                stay: stayById.get(Number(bar.id.split('-')[1])),
-            }),
+        const markers = dayUseMarkers(dayUses, visible.rooms, dates);
+        const dayUseCells = new Set(
+            markers.map((marker) =>
+                dayUseCellKey(marker.rowKey, dates[marker.column]),
+            ),
         );
+        const stayBars = projectBars(
+            stayBarInputs(visible.stays),
+            dates,
+            dayUseCells,
+        ).map((bar) => ({
+            bar,
+            stay: stayById.get(Number(bar.id.split('-')[1])),
+        }));
         const blockList = blockBarInputs(blocks, visible.rooms);
         const blockById = new Map(blocks.map((block) => [block.id, block]));
         const blockBars = projectBars(blockList, dates).map((bar) => ({
@@ -116,8 +133,8 @@ export function StayViewTimeline({
             block: blockById.get(Number(bar.id.split('-')[1])),
         }));
 
-        return { stayBars, blockBars };
-    }, [visible.stays, visible.rooms, blocks, dates]);
+        return { stayBars, blockBars, markers };
+    }, [visible.stays, visible.rooms, blocks, dayUses, dates]);
     const inventory = useMemo(
         () =>
             new Map(
@@ -237,6 +254,17 @@ export function StayViewTimeline({
                                     />
                                 ) : null,
                             )}
+                        {bars.markers
+                            .filter((marker) => marker.rowKey === row.key)
+                            .map((marker) => (
+                                <DayUseBar
+                                    key={marker.id}
+                                    marker={marker}
+                                    room={roomByKey.get(marker.rowKey)}
+                                    labelWidth={labelWidth}
+                                    columnWidth={columnWidth}
+                                />
+                            ))}
                     </>
                 )
             }

@@ -158,9 +158,10 @@ A Day use plan is never mapped. The mapping capability refuses it with "Day use 
 
 **Sample data.** `SandbaySeeder` adds a "Day use" plan: 2 to 6 hours, sold between 08:00 and 18:00, on every room type. The first block costs 30% of the room's nightly price and each extra hour adds 10% (Garden Room: 2h 60.00, +20.00 an hour). It goes through `CreateRatePlan`, so DAY_USE gets the Taxes tab taxes except the Tourism tax.
 
+**Built (Stay view).** The Timeline View draws a day use as a clock marker in the third quarter of its date cell (see [Stay view](../18-front-desk/03-stay-view.md)). The hours are in its hover card.
+
 ## Later
 
 - **Change the hours or the start** of a booked day use, re-priced from the hour prices (a guest staying 4h who wants 5h pays the 5-hour price minus the 4-hour price).
 - Day use mixed with overnight rooms in one reservation.
 - Prices by adults on a Day use plan.
-- The [Stay view](../18-front-desk/03-stay-view.md) draws day use as a short bar with a clock and the hours.

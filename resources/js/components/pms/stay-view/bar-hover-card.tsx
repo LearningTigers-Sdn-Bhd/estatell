@@ -1,4 +1,4 @@
-import { Baby, Lock, User } from 'lucide-react';
+import { Baby, Clock, Lock, User } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { BookingSourceBadge } from '@/components/pms/booking-source-badge';
 import { HoverCardContent } from '@/components/ui/hover-card';
@@ -8,6 +8,7 @@ import { dayAfter, dayLabel, nightCount, placeLabel } from './stay-places';
 type Room = App.Data.StayView.RoomRowData;
 type Stay = App.Data.StayView.StayData;
 type Block = App.Data.StayView.BlockData;
+type DayUse = App.Data.StayView.DayUseData;
 
 function Detail({ label, children }: { label: string; children: ReactNode }) {
     return (
@@ -169,6 +170,55 @@ export function BlockHoverCard({
                     </Detail>
                 )}
                 {room && <Detail label="Room">{placeLabel(room)}</Detail>}
+            </dl>
+        </HoverCardContent>
+    );
+}
+
+/** What a day use marker hides: each day use of the room on that date, with its hours and guest. */
+export function DayUseHoverCard({
+    dayUses,
+    room,
+}: {
+    dayUses: DayUse[];
+    room: Room | undefined;
+}) {
+    return (
+        <HoverCardContent
+            side="bottom"
+            align="start"
+            className="flex w-72 flex-col gap-2 p-2.5"
+        >
+            <Heading
+                icon={
+                    <span
+                        aria-hidden
+                        className="flex size-10 shrink-0 items-center justify-center bg-muted text-muted-foreground"
+                    >
+                        <Clock className="size-5" />
+                    </span>
+                }
+                title={
+                    dayUses.length === 1
+                        ? 'Day use'
+                        : `${dayUses.length} day uses`
+                }
+                lines={room ? [placeLabel(room)] : []}
+            />
+            <dl className="flex flex-col gap-1 rounded-lg bg-muted p-2 text-sm">
+                {dayUses.map((dayUse) => (
+                    <Detail
+                        key={dayUse.unitId}
+                        label={`${dayUse.startsAt}–${dayUse.endsAt}`}
+                    >
+                        <span className="block truncate">
+                            {dayUse.guestLabel ?? 'No guest named'}
+                        </span>
+                        <span className="block truncate text-muted-foreground">
+                            {dayUse.reference} · {dayUse.status.label}
+                        </span>
+                    </Detail>
+                ))}
             </dl>
         </HoverCardContent>
     );

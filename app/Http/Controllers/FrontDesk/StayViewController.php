@@ -32,6 +32,7 @@ class StayViewController extends Controller
             'window' => $window,
             'rooms' => $query->rows($property, $from),
             'stays' => $query->stays($property, $from, $to),
+            'dayUses' => $query->dayUses($property, $from, $to),
             'blocks' => $query->blocks($property, $from, $to),
             'rates' => $query->rates($property, $from, $to),
             'filters' => $request->filters(),

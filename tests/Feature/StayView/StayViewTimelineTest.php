@@ -42,6 +42,7 @@ test('the timeline shows a 14 day window from today with rows, stays, blocks and
             ->has('stays', 1)
             ->where('stays.0.guestLabel', 'Ahmad Faris')
             ->where('blocks', [])
+            ->where('dayUses', [])
             ->where('filters.groupBy', 'room_group')
             ->where('filters.roomGroupIds', [])
             ->has('groupingOptions', 3)

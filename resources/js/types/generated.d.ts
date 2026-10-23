@@ -3786,6 +3786,19 @@ date: string,
 amount: string | null,
 closed: boolean,
 };
+export type DayUseData = {
+unitId: number,
+reservationId: number,
+reference: string,
+guestLabel: string | null,
+source: App.Data.Reservations.BookingSourceBadgeData,
+status: App.Data.Shared.BadgeData,
+roomId: number,
+date: string,
+startsAt: string,
+endsAt: string,
+hours: number,
+};
 export type RatePriceRowData = {
 roomTypeId: number,
 roomTypeName: string,

@@ -2,6 +2,8 @@ import { expect, test } from 'vite-plus/test';
 import {
     barBox,
     blockBarInputs,
+    dayUseCellKey,
+    dayUseMarkers,
     lastNightOf,
     projectBars,
     stayBarInputs,
@@ -239,4 +241,65 @@ test('a departure and an arrival on one day fill the two halves of that column',
 
     expect(first.left + first.width).toBe(25);
     expect(second.left).toBe(25);
+});
+
+test('an arrival starts in the last quarter when a day use takes the third quarter of its cell', () => {
+    const input = {
+        id: 'a',
+        rowKey: 'room-1',
+        firstNight: '2026-10-15',
+        lastNight: '2026-10-16',
+        halfCells: true,
+    };
+    const withDayUse = new Set([dayUseCellKey('room-1', '2026-10-15')]);
+
+    expect(projectBars([input], dates, withDayUse)[0].leftShift).toBe(0.75);
+    expect(projectBars([input], dates)[0].leftShift).toBe(0.5);
+    expect(
+        projectBars(
+            [input],
+            dates,
+            new Set([dayUseCellKey('room-2', '2026-10-15')]),
+        )[0].leftShift,
+    ).toBe(0.5);
+    expect(
+        projectBars([{ ...input, halfCells: false }], dates, withDayUse)[0]
+            .leftShift,
+    ).toBe(0);
+});
+
+test('day uses of one room on one date make one marker, sorted by start, and each bed of a bed room gets it', () => {
+    const rooms = [
+        { key: 'bed-1', roomId: 9 },
+        { key: 'bed-2', roomId: 9 },
+        { key: 'room-3', roomId: 3 },
+    ] as App.Data.StayView.RoomRowData[];
+    const dayUse = (
+        unitId: number,
+        roomId: number,
+        date: string,
+        startsAt: string,
+    ) => ({ unitId, roomId, date, startsAt }) as App.Data.StayView.DayUseData;
+
+    const markers = dayUseMarkers(
+        [
+            dayUse(1, 3, '2026-10-15', '15:00'),
+            dayUse(2, 3, '2026-10-15', '12:00'),
+            dayUse(3, 9, '2026-10-16', '10:00'),
+            dayUse(4, 3, '2026-11-30', '10:00'),
+        ],
+        rooms,
+        dates,
+    );
+
+    const room3 = markers.find((marker) => marker.rowKey === 'room-3');
+
+    expect(markers).toHaveLength(3);
+    expect(room3).toMatchObject({ column: 1 });
+    expect(room3?.dayUses.map((item) => item.unitId)).toEqual([2, 1]);
+    expect(
+        markers
+            .filter((marker) => marker.column === 2)
+            .map((marker) => marker.rowKey),
+    ).toEqual(['bed-1', 'bed-2']);
 });

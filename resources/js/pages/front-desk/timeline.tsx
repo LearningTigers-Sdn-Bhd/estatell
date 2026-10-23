@@ -26,6 +26,7 @@ export default function Timeline({
     rooms,
     stays,
     blocks,
+    dayUses,
     rates,
     filters: initialFilters,
     groupingOptions,
@@ -38,6 +39,7 @@ export default function Timeline({
     rooms: App.Data.StayView.RoomRowData[];
     stays: App.Data.StayView.StayData[];
     blocks: App.Data.StayView.BlockData[];
+    dayUses: App.Data.StayView.DayUseData[];
     rates: App.Data.StayView.RatePriceRowData[];
     filters: App.Data.StayView.StayViewFiltersData;
     groupingOptions: { value: string; label: string }[];
@@ -112,6 +114,7 @@ export default function Timeline({
                             rooms={rooms}
                             stays={stays}
                             blocks={blocks}
+                            dayUses={dayUses}
                             rates={rates}
                             filters={filters}
                             showRates={preferences.showRates}

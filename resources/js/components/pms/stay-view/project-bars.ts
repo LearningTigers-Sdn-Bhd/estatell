@@ -1,6 +1,7 @@
 type Room = App.Data.StayView.RoomRowData;
 type Stay = App.Data.StayView.StayData;
 type Block = App.Data.StayView.BlockData;
+type DayUse = App.Data.StayView.DayUseData;
 
 /** A stretch of nights in one row, before it is placed on the date columns. Dates are `Y-m-d`, both ends included. */
 export type BarInput = {
@@ -40,11 +41,33 @@ export function lastNightOf(departureDate: string): string {
     return date.toISOString().slice(0, 10);
 }
 
+/** The key of a day use cell in `dayUseCells`: a row and a date. */
+export function dayUseCellKey(rowKey: string, date: string): string {
+    return `${rowKey}|${date}`;
+}
+
+/** Where an arrival starts: the middle of the cell, or the last quarter when a day use takes the third quarter. */
+function arrivalShift(
+    input: BarInput,
+    from: string,
+    dayUseCells: ReadonlySet<string>,
+): number {
+    if (!input.halfCells || from !== input.firstNight) {
+        return 0;
+    }
+
+    return dayUseCells.has(dayUseCellKey(input.rowKey, from)) ? 0.75 : 0.5;
+}
+
 /**
  * Place bars on the date columns: the column they start in, how many columns they cover, and whether they are cut at
  * the left or right edge. A bar wholly outside the dates is left out. Display only.
  */
-export function projectBars(inputs: BarInput[], dates: string[]): Bar[] {
+export function projectBars(
+    inputs: BarInput[],
+    dates: string[],
+    dayUseCells: ReadonlySet<string> = new Set(),
+): Bar[] {
     if (dates.length === 0) {
         return [];
     }
@@ -74,7 +97,7 @@ export function projectBars(inputs: BarInput[], dates: string[]): Bar[] {
             span: end - start + 1,
             openStart: from === first && (input.stayFirstNight ?? from) < first,
             openEnd: to === last && (input.stayLastNight ?? to) > last,
-            leftShift: input.halfCells && from === input.firstNight ? 0.5 : 0,
+            leftShift: arrivalShift(input, from, dayUseCells),
             rightShift:
                 input.halfCells && to === input.lastNight && to !== last
                     ? 0.5
@@ -136,4 +159,58 @@ export function blockBarInputs(blocks: Block[], rooms: Room[]): BarInput[] {
             lastNight: block.lastNight,
         })),
     );
+}
+
+/** The rows a day use takes. It takes the room, or every bed of it when the room sells beds. */
+function dayUseRowKeys(dayUse: DayUse, rooms: Room[]): string[] {
+    return rooms
+        .filter((room) => room.roomId === dayUse.roomId)
+        .map((room) => room.key);
+}
+
+/** The day uses of one row on one date. They share the third quarter of that cell. */
+export type DayUseMarker = {
+    id: string;
+    rowKey: string;
+    /** The zero-based column of the date. */
+    column: number;
+    /** Sorted by start time. */
+    dayUses: DayUse[];
+};
+
+/** The day uses grouped by row and date, left out when the date is not in the window. Display only. */
+export function dayUseMarkers(
+    dayUses: DayUse[],
+    rooms: Room[],
+    dates: string[],
+): DayUseMarker[] {
+    const markers = new Map<string, DayUseMarker>();
+
+    for (const dayUse of dayUses) {
+        const column = dates.indexOf(dayUse.date);
+
+        if (column < 0) {
+            continue;
+        }
+
+        for (const rowKey of dayUseRowKeys(dayUse, rooms)) {
+            const key = dayUseCellKey(rowKey, dayUse.date);
+            const marker = markers.get(key) ?? {
+                id: `dayuse-${key}`,
+                rowKey,
+                column,
+                dayUses: [],
+            };
+
+            marker.dayUses.push(dayUse);
+            markers.set(key, marker);
+        }
+    }
+
+    return [...markers.values()].map((marker) => ({
+        ...marker,
+        dayUses: marker.dayUses.sort((a, b) =>
+            a.startsAt.localeCompare(b.startsAt),
+        ),
+    }));
 }

@@ -2,14 +2,18 @@
 
 use App\Enums\HousekeepingStatus;
 use App\Enums\SellUnit;
+use App\Enums\UnitStatus;
 use App\Models\Bed;
 use App\Models\Folio;
 use App\Models\FolioLine;
+use App\Models\Guest;
 use App\Models\Reservation;
+use App\Models\ReservationUnit;
 use App\Models\Room;
 use App\Models\RoomBlock;
 use App\Models\RoomGroup;
 use App\Models\RoomType;
+use App\Models\UnitGuest;
 use App\Models\UnitNight;
 use App\Services\StayView\StayViewQuery;
 use Carbon\CarbonImmutable;
@@ -269,4 +273,38 @@ test('the number of queries does not grow with the number of stays', function ()
 
     expect($countQueries())->toBe($before)
         ->and(count($query->stays($property, $from, $to)))->toBe(7);
+});
+
+test('day uses lists live blocks with a room in the window and leaves out released, roomless and other dates', function () {
+    $property = stayViewProperty();
+    $room = Room::factory()->for($property)->create(['number' => '201']);
+    $reservation = Reservation::factory()->create(['property_id' => $property->id]);
+    $dayUse = fn (string $startsAt, array $attributes = [], string $date = '2026-10-15') => ReservationUnit::factory()->dayUse($date, $startsAt, 2, $room->id)->create([
+        'property_id' => $property->id,
+        'reservation_id' => $reservation->id,
+        ...$attributes,
+    ]);
+
+    $live = $dayUse('12:00');
+    UnitGuest::factory()->primary()->create([
+        'reservation_unit_id' => $live->id,
+        'guest_id' => Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Hanami Saki'])->id,
+    ]);
+    $released = $dayUse('15:00');
+    $released->dayUse->update(['released_at' => now()]);
+    ReservationUnit::factory()->dayUse('2026-10-15', '12:00', 2)->create(['property_id' => $property->id, 'reservation_id' => $reservation->id]);
+    $dayUse('12:00', date: '2026-11-20');
+    $dayUse('18:00', ['status' => UnitStatus::Cancelled]);
+
+    [$from, $to] = stayViewRange();
+    $result = app(StayViewQuery::class)->dayUses($property, $from, $to);
+
+    expect($result)->toHaveCount(1)
+        ->and($result[0]->unitId)->toBe($live->id)
+        ->and($result[0]->roomId)->toBe($room->id)
+        ->and($result[0]->date)->toBe('2026-10-15')
+        ->and($result[0]->startsAt)->toBe('12:00')
+        ->and($result[0]->endsAt)->toBe('14:00')
+        ->and($result[0]->hours)->toBe(2)
+        ->and($result[0]->guestLabel)->toBe('Hanami Saki');
 });
