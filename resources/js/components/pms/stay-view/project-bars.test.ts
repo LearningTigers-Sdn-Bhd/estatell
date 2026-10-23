@@ -303,3 +303,27 @@ test('day uses of one room on one date make one marker, sorted by start, and eac
             .map((marker) => marker.rowKey),
     ).toEqual(['bed-1', 'bed-2']);
 });
+
+test('a stay that began before the window is flush at the left edge, though the server sent only the nights inside', () => {
+    const [bar] = projectBars(
+        [
+            {
+                id: 'a',
+                rowKey: 'room-1',
+                firstNight: '2026-10-14',
+                lastNight: '2026-10-15',
+                stayFirstNight: '2026-10-12',
+                stayLastNight: '2026-10-15',
+                halfCells: true,
+            },
+        ],
+        dates,
+        new Set([dayUseCellKey('room-1', '2026-10-14')]),
+    );
+
+    expect(bar).toMatchObject({
+        openStart: true,
+        leftShift: 0,
+        rightShift: 0.5,
+    });
+});

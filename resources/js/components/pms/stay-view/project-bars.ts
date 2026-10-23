@@ -90,14 +90,17 @@ export function projectBars(
             continue;
         }
 
+        const openStart =
+            from === first && (input.stayFirstNight ?? from) < first;
+
         bars.push({
             id: input.id,
             rowKey: input.rowKey,
             start,
             span: end - start + 1,
-            openStart: from === first && (input.stayFirstNight ?? from) < first,
+            openStart,
             openEnd: to === last && (input.stayLastNight ?? to) > last,
-            leftShift: arrivalShift(input, from, dayUseCells),
+            leftShift: openStart ? 0 : arrivalShift(input, from, dayUseCells),
             rightShift:
                 input.halfCells && to === input.lastNight && to !== last
                     ? 0.5
