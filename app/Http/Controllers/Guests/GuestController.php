@@ -199,7 +199,7 @@ class GuestController extends Controller
      */
     private function renderTab(User $user, Guest $guest, string $tab, array $tabProps = []): Response
     {
-        $guest->load('tags');
+        $guest->load(['tags', 'documents.media']);
 
         return Inertia::render('guests/show', [
             'guest' => GuestData::fromModel($guest),

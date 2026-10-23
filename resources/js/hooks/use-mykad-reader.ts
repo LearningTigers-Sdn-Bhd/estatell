@@ -129,16 +129,10 @@ export function useMykadReader({
                 '';
             const line2 = raw.address_line2 || raw.address?.line2 || '';
             const postcode =
-                raw.postal_code ||
-                raw.postcode ||
-                raw.address?.postcode ||
-                '';
+                raw.postal_code || raw.postcode || raw.address?.postcode || '';
             const city = raw.city || raw.address?.city || '';
             const state =
-                raw.state_name ||
-                raw.state ||
-                raw.address?.state ||
-                '';
+                raw.state_name || raw.state || raw.address?.state || '';
             const photo = raw.photo_base64 || raw.photo || null;
 
             const normalized: MyKadData = {

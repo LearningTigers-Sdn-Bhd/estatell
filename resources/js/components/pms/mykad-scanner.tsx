@@ -1,4 +1,5 @@
 import { Download, IdCard, RefreshCw, TriangleAlert } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import {
@@ -79,83 +80,121 @@ export function MyKadScanner({
         return (
             <div
                 className={cn(
-                    'flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-muted/40 px-3 py-1.5 text-xs',
+                    'flex flex-col gap-2 rounded-md border border-border bg-muted/40 p-2.5 text-xs',
                     isScanning && 'border-primary/50 bg-primary/5',
                     className,
                 )}
             >
-                <div className="flex min-w-0 items-center gap-2">
-                    <IdCard
-                        className={cn(
-                            'h-4 w-4 shrink-0',
-                            isScanning
-                                ? 'animate-pulse text-primary'
-                                : 'text-primary',
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                        <IdCard
+                            className={cn(
+                                'h-4 w-4 shrink-0',
+                                isScanning
+                                    ? 'animate-pulse text-primary'
+                                    : 'text-primary',
+                            )}
+                        />
+                        <span className="font-semibold text-foreground">
+                            MyKad
+                        </span>
+                        <span className="text-muted-foreground">·</span>
+                        {statusBadge()}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        {isOffline ? (
+                            <Tooltip>
+                                <TooltipTrigger
+                                    render={
+                                        <Button
+                                            variant="outline"
+                                            size="xs"
+                                            className="h-7 gap-1.5 text-xs"
+                                            nativeButton={false}
+                                            render={
+                                                <a
+                                                    href="/downloads/mykad-bridge.zip"
+                                                    download="mykad-bridge.zip"
+                                                />
+                                            }
+                                        >
+                                            <Download className="h-3 w-3" />
+                                            <span>Download Bridge</span>
+                                        </Button>
+                                    }
+                                />
+                                <TooltipContent>
+                                    Download and run the local card reader
+                                    bridge for Windows/Mac
+                                </TooltipContent>
+                            </Tooltip>
+                        ) : (
+                            <Button
+                                type="button"
+                                size="xs"
+                                className="h-7 gap-1.5 text-xs"
+                                disabled={isScanning || !isReady}
+                                onClick={() => scan()}
+                            >
+                                {isScanning ? (
+                                    <Spinner className="h-3 w-3" />
+                                ) : (
+                                    <IdCard className="h-3 w-3" />
+                                )}
+                                <span>
+                                    {isScanning
+                                        ? 'Reading...'
+                                        : cardPresent
+                                          ? 'Re-scan'
+                                          : 'Scan Card'}
+                                </span>
+                            </Button>
                         )}
-                    />
-                    <span className="font-semibold text-foreground">MyKad</span>
-                    <span className="text-muted-foreground">·</span>
-                    {statusBadge()}
+                    </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                    {lastScannedData?.photo_base64 && (
+                {lastScannedData?.photo_base64 && (
+                    <div className="flex items-center gap-3 rounded border border-border/80 bg-background/80 p-2">
                         <img
                             src={lastScannedData.photo_base64}
                             alt="Scanned portrait"
-                            className="h-6 w-5 rounded border border-border object-cover shadow-2xs"
+                            className="h-16 w-13 shrink-0 rounded border border-border object-cover shadow-xs ring-1 ring-border"
                         />
-                    )}
-
-                    {isOffline ? (
-                        <Tooltip>
-                            <TooltipTrigger
-                                render={
-                                    <Button
-                                        variant="outline"
-                                        size="xs"
-                                        className="h-7 gap-1.5 text-xs"
-                                        nativeButton={false}
-                                        render={
-                                            <a
-                                                href="/downloads/mykad-bridge.zip"
-                                                download="mykad-bridge.zip"
-                                            />
-                                        }
-                                    >
-                                        <Download className="h-3 w-3" />
-                                        <span>Download Bridge</span>
-                                    </Button>
-                                }
-                            />
-                            <TooltipContent>
-                                Download and run the local card reader bridge
-                                for Windows/Mac
-                            </TooltipContent>
-                        </Tooltip>
-                    ) : (
-                        <Button
-                            type="button"
-                            size="xs"
-                            className="h-7 gap-1.5 text-xs"
-                            disabled={isScanning || !isReady}
-                            onClick={() => scan()}
-                        >
-                            {isScanning ? (
-                                <Spinner className="h-3 w-3" />
-                            ) : (
-                                <IdCard className="h-3 w-3" />
-                            )}
-                            <span>
-                                {isScanning
-                                    ? 'Reading...'
-                                    : cardPresent
-                                      ? 'Re-scan'
-                                      : 'Scan Card'}
+                        <div className="flex min-w-0 flex-1 flex-col gap-0.5 text-xs">
+                            <div className="flex items-center justify-between">
+                                <span className="truncate font-semibold text-foreground">
+                                    {lastScannedData.name}
+                                </span>
+                                <Badge
+                                    variant="outline"
+                                    className="border-emerald-300 text-[10px] text-emerald-600 dark:border-emerald-700"
+                                >
+                                    Scanned
+                                </Badge>
+                            </div>
+                            <span className="font-mono text-[11px] text-muted-foreground">
+                                {lastScannedData.formatted_ic ||
+                                    lastScannedData.ic_number}
                             </span>
-                        </Button>
-                    )}
-                </div>
+                            <span className="text-[11px] text-muted-foreground">
+                                {lastScannedData.date_of_birth} ·{' '}
+                                {lastScannedData.gender}
+                            </span>
+                            {lastScannedData.address_line1 && (
+                                <span className="truncate text-[11px] text-muted-foreground">
+                                    {[
+                                        lastScannedData.address_line1,
+                                        lastScannedData.city,
+                                        lastScannedData.state,
+                                    ]
+                                        .filter(Boolean)
+                                        .join(', ')}
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 {error && (
                     <div className="flex w-full items-center gap-1 pt-1 text-xs text-destructive">
@@ -199,14 +238,6 @@ export function MyKadScanner({
                 </div>
 
                 <div className="flex items-center gap-2">
-                    {lastScannedData?.photo_base64 && (
-                        <img
-                            src={lastScannedData.photo_base64}
-                            alt="MyKad Portrait"
-                            className="h-9 w-7 rounded border border-border object-cover shadow-2xs"
-                        />
-                    )}
-
                     {isOffline ? (
                         <div className="flex items-center gap-1.5">
                             <Button
@@ -259,6 +290,76 @@ export function MyKadScanner({
                     )}
                 </div>
             </div>
+
+            {lastScannedData?.photo_base64 && (
+                <div className="mt-3 flex items-start gap-4 rounded-md border border-border/80 bg-muted/40 p-3">
+                    <img
+                        src={lastScannedData.photo_base64}
+                        alt="MyKad Portrait"
+                        className="h-28 w-24 shrink-0 rounded-lg border-2 border-border object-cover shadow-sm ring-1 ring-border"
+                    />
+                    <div className="flex flex-1 flex-col gap-1 text-xs">
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold text-foreground">
+                                {lastScannedData.name}
+                            </span>
+                            <Badge
+                                variant="outline"
+                                className="border-emerald-300 text-[10px] text-emerald-600 dark:border-emerald-700"
+                            >
+                                Cardholder Verified
+                            </Badge>
+                        </div>
+                        <div className="mt-1 grid grid-cols-2 gap-x-4 gap-y-1 text-muted-foreground">
+                            <div>
+                                <span className="text-[11px]">NRIC / ID:</span>
+                                <p className="font-mono text-xs font-medium text-foreground">
+                                    {lastScannedData.formatted_ic ||
+                                        lastScannedData.ic_number}
+                                </p>
+                            </div>
+                            <div>
+                                <span className="text-[11px]">
+                                    Date of Birth:
+                                </span>
+                                <p className="text-xs font-medium text-foreground">
+                                    {lastScannedData.date_of_birth}
+                                </p>
+                            </div>
+                            <div>
+                                <span className="text-[11px]">Gender:</span>
+                                <p className="text-xs font-medium text-foreground capitalize">
+                                    {lastScannedData.gender}
+                                </p>
+                            </div>
+                            <div>
+                                <span className="text-[11px]">
+                                    Nationality:
+                                </span>
+                                <p className="text-xs font-medium text-foreground">
+                                    Malaysian (MY)
+                                </p>
+                            </div>
+                        </div>
+                        {lastScannedData.address_line1 && (
+                            <div className="mt-1 border-t border-border/50 pt-1 text-muted-foreground">
+                                <span className="text-[11px]">Address:</span>
+                                <p className="line-clamp-2 text-xs text-foreground">
+                                    {[
+                                        lastScannedData.address_line1,
+                                        lastScannedData.address_line2,
+                                        lastScannedData.city,
+                                        lastScannedData.state,
+                                        lastScannedData.postal_code,
+                                    ]
+                                        .filter(Boolean)
+                                        .join(', ')}
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {isOffline && (
                 <div className="mt-2.5 rounded-md bg-muted/60 p-2 text-xs text-muted-foreground">
