@@ -13,7 +13,7 @@ Every screen uses one archetype.
 | Wizard        | The Form archetype in the onboarding layout (`useLayoutProps`)                 | Onboarding                                      |
 | Board         | Grouped card grid + filters                                                    | Housekeeping, readiness panel                   |
 | Dashboard     | Alert + quick action buttons + a bento grid: one action list beside link tiles | [Dashboard](../18-front-desk/04-dashboard.md)   |
-| Grid calendar | Optional tab links + toolbar + the `pms/grid` engine, no `PageHeader`          | Rate calendar, Stay View                        |
+| Grid calendar | Optional tab links + toolbar + the `pms/grid` engine, no `PageHeader`          | Rate calendar, Timeline View                    |
 | Error         | Standalone wordmark, illustration, heading, explanation and recovery buttons   | 403, 404, 419, 500 and 503                      |
 
 ## Authentication layout
