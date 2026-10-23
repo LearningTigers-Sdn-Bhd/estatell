@@ -32,16 +32,16 @@ There is no copy-link entry point: a support user shares a staff URL, and the pa
 ## Flow
 
 ```
-Support user pastes  app.example.com/p/ES10142/reservations/881
+Support user pastes  app.example.com/p/ES1142/reservations/881
                          │
                          ▼
           Staff route group, middleware: property.access
                          │
    ┌─────────────────────┼──────────────────────────────┐
-   │ Staff of ES10142, or impersonating ES10142?            │──► page opens normally
+   │ Staff of ES1142, or impersonating ES1142?            │──► page opens normally
    ├─────────────────────┼──────────────────────────────┤
-   │ GET by an admin, or by the property's partner?     │──► /view-as/ES10142
-   │                                                    │      ?to=/p/ES10142/reservations/881
+   │ GET by an admin, or by the property's partner?     │──► /view-as/ES1142
+   │                                                    │      ?to=/p/ES1142/reservations/881
    ├─────────────────────┼──────────────────────────────┤
    │ Neither                                            │──► normal staff login
    └────────────────────────────────────────────────────┘
@@ -50,7 +50,7 @@ Support user pastes  app.example.com/p/ES10142/reservations/881
 View-as page (all fields pre-filled):
 
 ```
-┌ View as Pulau Inn (ES10142) ───────────────────── ✕ ┐
+┌ View as Pulau Inn (ES1142) ───────────────────── ✕ ┐
 │ You're signed in as support (admin or partner).   │
 │ User    [ Aisha (Owner)                     ⌄ ]   │
 │ Reason  [Onboarding help] [●Support] [Setup check]│
@@ -61,7 +61,7 @@ View-as page (all fields pre-filled):
 └───────────────────────────────────────────────────┘
           │ POST (CSRF-protected)
           ▼
-app.example.com/p/ES10142/reservations/881   with the support banner
+app.example.com/p/ES1142/reservations/881   with the support banner
 ```
 
 - **User**: the Owner is pre-selected. Other active staff of the property can be chosen.
@@ -74,7 +74,7 @@ While impersonating, every page shows a banner that cannot be dismissed:
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│ ⚠ Viewing as Aisha (Owner) · Pulau Inn (ES10142) · 28 min left [ Stop ]│
+│ ⚠ Viewing as Aisha (Owner) · Pulau Inn (ES1142) · 28 min left [ Stop ]│
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -82,19 +82,19 @@ While impersonating, every page shows a banner that cannot be dismissed:
 
 ## Cases
 
-| Support user's state when opening `/p/{code}/…`    | Result                                                                                                                                                                                                                                                                     |
-| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Not impersonating                                  | View-as page for that property, then the requested page                                                                                                                                                                                                                    |
-| Already impersonating the **same** property        | Opens directly, in any tab                                                                                                                                                                                                                                                 |
-| Impersonating **another** property                 | View-as page reads "Switch to Pulau Inn (ES10142)? This ends your session with KL Backpackers (ES10150)." Confirming stops the old session and starts the new one (two logged events, and the old owner is notified). Cancel returns to the dashboard of the open session. |
-| Requested page is blocked during support access    | Warning "This page isn't available during support access", with **Open dashboard instead**                                                                                                                                                                                 |
-| Owner disabled support access                      | "Owner has disabled support access". Start button disabled.                                                                                                                                                                                                                |
-| No confirmed 2FA while `SUPPORT_REQUIRE_2FA` is on | "Set up two-factor to view properties as their owner". Start button disabled                                                                                                                                                                                               |
-| Code does not exist                                | `404`. On the view-as page an admin is sent to the properties list with a toast "Property ES10142 not found." Partners and staff still get the plain `404`.                                                                                                                |
-| Non-GET request without a staff session            | `403`. Writes are never replayed after confirming.                                                                                                                                                                                                                         |
-| Link opened after the 30-minute session ended      | View-as page again. New session, new log entry.                                                                                                                                                                                                                            |
-| Unknown `reason` in the link                       | First chip is used                                                                                                                                                                                                                                                         |
-| Link opened by someone who may not view it         | `404`, so other partners cannot tell the code exists                                                                                                                                                                                                                       |
+| Support user's state when opening `/p/{code}/…`    | Result                                                                                                                                                                                                                                                                   |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Not impersonating                                  | View-as page for that property, then the requested page                                                                                                                                                                                                                  |
+| Already impersonating the **same** property        | Opens directly, in any tab                                                                                                                                                                                                                                               |
+| Impersonating **another** property                 | View-as page reads "Switch to Pulau Inn (ES1142)? This ends your session with KL Backpackers (ES1150)." Confirming stops the old session and starts the new one (two logged events, and the old owner is notified). Cancel returns to the dashboard of the open session. |
+| Requested page is blocked during support access    | Warning "This page isn't available during support access", with **Open dashboard instead**                                                                                                                                                                               |
+| Owner disabled support access                      | "Owner has disabled support access". Start button disabled.                                                                                                                                                                                                              |
+| No confirmed 2FA while `SUPPORT_REQUIRE_2FA` is on | "Set up two-factor to view properties as their owner". Start button disabled                                                                                                                                                                                             |
+| Code does not exist                                | `404`. On the view-as page an admin is sent to the properties list with a toast "Property ES1142 not found." Partners and staff still get the plain `404`.                                                                                                               |
+| Non-GET request without a staff session            | `403`. Writes are never replayed after confirming.                                                                                                                                                                                                                       |
+| Link opened after the 30-minute session ended      | View-as page again. New session, new log entry.                                                                                                                                                                                                                          |
+| Unknown `reason` in the link                       | First chip is used                                                                                                                                                                                                                                                       |
+| Link opened by someone who may not view it         | `404`, so other partners cannot tell the code exists                                                                                                                                                                                                                     |
 
 ## Guardrails
 
@@ -234,7 +234,7 @@ Then set, from the resolved property:
 ## UI
 
 - View-as page: a small full-screen page with the form above, in the admin layout for admins and the partner layout for partners. It is a page (not a Dialog) because it must work from a pasted URL.
-- Banner: shared Inertia prop `impersonation` (`ImpersonationData`: support user name, partner name or null, user name and role, property name and code, minutes left, stop URL, `canCorrectMoney`). A partner session reads "… · Pulau Inn (AS10101) · via Andaman Stays · 28 min left". Uses the `warning` status token.
+- Banner: shared Inertia prop `impersonation` (`ImpersonationData`: support user name, partner name or null, user name and role, property name and code, minutes left, stop URL, `canCorrectMoney`). A partner session reads "… · Pulau Inn (AS1101) · via Andaman Stays · 28 min left". Uses the `warning` status token.
 - Blocked actions are hidden using the same prop, read through `useIsImpersonating()` (`resources/js/hooks/use-is-impersonating.ts`). Money corrections are hidden only when the prop's `canCorrectMoney` is false (from `allow_support_money_corrections`), read through the same hook. Where a whole page is a write form (bulk add staff, notification preferences, the support tab), the page shows one line, "Not available during support access", instead of the form.
 
 ## Build choice

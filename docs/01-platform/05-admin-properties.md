@@ -24,7 +24,7 @@ One place for platform admins to find any property and see its details. Admin ac
 
 - Columns: code, name, status, type, city, owner (name and email), partner, created date. A partner filter (`filter[partner]`, including Direct) comes with partners (see [Partners](../17-onboarding/05-partners.md#admin)). A row click opens the show page.
 - Server-side filter, sort and pagination with `spatie/laravel-query-builder`, 25 per page. Filters live in the URL: `?filter[search]=kota&filter[status]=live&filter[type]=hostel&sort=-created_at&page=2`.
-- Search: a code (`ES10142`, any case) matches `code` exactly. Other text matches `name` or `city`, ignoring case.
+- Search: a code (`ES1142`, any case) matches `code` exactly. Other text matches `name` or `city`, ignoring case.
 - Sorts: `code`, `name`, `created_at`. Default `-created_at` (newest first). A code sort is a string sort, so it groups by prefix first.
 - Unknown filters or sorts return `400`.
 - The owner is the first active user with the property's Owner role (the first deactivated one when none is active). `PropertyOwners` (a Staff service) adds `owner_name` and `owner_email` as subqueries, so the list runs a fixed number of queries.
