@@ -15,8 +15,9 @@ class MovePropertyToPartner
 
     /**
      * Move a direct property to an Active partner, or a partner's property back to direct, and log it. The
-     * property gets a new code from the new owner's prefix (ES for direct), so the old code stops working. Returns false for a partner-to-partner move or an inactive target partner. Moving to where the
-     * property already is does nothing.
+     * property gets a new code from the new owner's prefix (ES for direct), so the old code stops working.
+     * Returns false for a partner-to-partner move or an inactive target partner. Moving to where the property already is
+     * does nothing.
      */
     public function __invoke(User $admin, Property $property, ?Partner $partner): bool
     {
@@ -44,7 +45,7 @@ class MovePropertyToPartner
 
             $property->forceFill([
                 'partner_id' => $partner?->id,
-                'code' => ($this->issuePropertyCode)($partner?->code_prefix ?? 'ES'),
+                'code' => ($this->issuePropertyCode)($partner === null ? 'ES' : $partner->code_prefix),
             ])->save();
 
             activity()
