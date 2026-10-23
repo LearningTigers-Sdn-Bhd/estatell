@@ -27,9 +27,10 @@ Two sidebar items under **Overview**, below Dashboard. Each is its own route. Th
 | **Status**     | Multi-select                                     | Filter by housekeeping status                                                             |
 | **Show**       | Multi-select                                     | Room View only: Arriving, In house, Departing, Vacant, Blocked                            |
 | **Group by**   | Select, items from `StayViewGrouping::options()` | None, Room group (default), Room type                                                     |
+| **Show rates** | Toggle                                           | Timeline only: shows or hides the rate row. Remembered in the browser                     |
 | Search         | Text                                             | Guest, reference or room. Placeholder "e.g. Ahmad or 201"                                 |
 
-- On narrow screens, Room group, Room type, Status and Group by collapse into one **Filters** popover. Date controls and Search stay visible.
+- On narrow screens, Room group, Room type, Status, Group by and Show rates collapse into one **Filters** popover. Date controls and Search stay visible.
 - Group by sets the row or card headers only. Filters decide which rooms appear.
 - Beds stay under their dorm in every option. With Room type, dorm beds group under the dorm's room type. With None, beds list under their room's number.
 - Each header shows its row count. On the Timeline a header can collapse, as in the rate calendar.
@@ -40,10 +41,11 @@ The page is a Grid calendar: no `PageHeader`, the toolbar on top and the grid fi
 
 ```
 ┌ Timeline View ───────────────────────────────────────────────────────────────────┐
-│ ◀ 12 Jun – 25 Jun ▶  [Today]   Room group ⌄  Room type ⌄  Status ⌄  Group by ⌄  🔍 │  StayViewToolbar
+│ ◀ 12 Jun – 25 Jun ▶  [Today]   Room group ⌄  Room type ⌄  Status ⌄  Group by ⌄ ☑ Show rates 🔍 │  StayViewToolbar
 ├───────────────┬───────┬───────┬───────┬───────┬───────┬───────┬───────┬──────────┤
 │               │ Fri 12│ Sat 13│ Sun 14│ Mon 15│ Tue 16│ Wed 17│ Thu 18│   …      │  DateHeader
-│  Rate         │ RM240 │ RM280 │ RM280 │ RM240 │ RM240 │ RM240 │ RM240 │          │  NightlyRateRow
+│ Deluxe ⌄      │ RM240 │ RM280 │ RM280 │ RM240 │ RM240 │ RM240 │ RM240 │          │  NightlyRateRow
+│ Walk-in ⌄     │       │       │       │       │       │       │       │          │
 ├ Left wing ────┴───────┴───────┴───────┴───────┴───────┴───────┴───────┴──────────┤  GroupHeader
 │ 201 Deluxe  ● │▐ Ahmad Faris · 2A ████████▌   │▐ Lim Wei ███████▌                │  RoomRow + StayBar
 │ 202 Deluxe  ◐ │       │▐◆ ABC Corp · Tan Mei ██████████████████▌                 │
@@ -62,6 +64,7 @@ The page is a Grid calendar: no `PageHeader`, the toolbar on top and the grid fi
 - The bar label is the guest and pax, with the unit status as a `StatusBadge`.
 - **Group bookings.** One bar per unit, each in its own room or bed. Every bar of a group has the `◆` marker and the group name. A label reads `ABC Corp · Tan Mei`, or `ABC Corp · Unit 2` with no named guest. Hovering a bar softly highlights the other bars with the same `reservationId`. A group booking is a reservation with a group name, so there is no separate group id. Status is per unit. The balance-due flag is the reservation's.
 - The footer counts only the visible rows, so it matches the screen.
+- **Rate row.** One row under the date header. Its label has two selects: a **room type** (default: the first room type in the property's order) and a **rate plan** (default: the first plan in the property's plan order). Each cell shows that plan's price for that room type and night, or "–" when the plan has no price or is closed that night. Derived plans use the same calculation as the rate calendar, so the numbers match. Changing a select, or the **Show rates** toggle, makes no request. Both choices are remembered in the browser, not in the URL. There is no hover card.
 - Clicking a stay bar opens **`StayPeekSheet`**. Clicking an empty cell opens **`CellActions`**: New booking here, Block room.
 
 ## Room View screen
@@ -134,7 +137,7 @@ The server sends compact, normalized data. The browser derives everything it sho
 | `rooms`              | All rooms and beds: id, label, room group, room type, sell unit, room status (`HousekeepingStatus`; out of service comes from `blocks`), priority, do-not-disturb                                                                                                                  | Immediate (bounded list) |
 | `stays`              | Units overlapping the window: unit id, reservation id and reference, guest label, pax, unit status, tone, balance-due flag (the reservation's), group name, arrival and departure time, **segments** (row key `room-{id}` or `bed-{id}` + first and last night, cut to the window) | Immediate                |
 | `blocks`             | id, room or bed, first and last night, reason                                                                                                                                                                                                                                      | Immediate                |
-| `rates`              | Standard rate per room type per date. Timeline View only                                                                                                                                                                                                                           | Immediate                |
+| `rates`              | Price per room type, rate plan and date for the active rate plans, and the plan list in order. Timeline View only                                                                                                                                                                  | Immediate                |
 | `version`            | Hash of the latest change for this property and window                                                                                                                                                                                                                             | Immediate                |
 | `filters`, `options` | Current filters, Group by and date (from the URL) and `EnumSelect` items                                                                                                                                                                                                           | Immediate                |
 
@@ -191,7 +194,7 @@ resources/js/
         ├── stay-bar.tsx
         ├── block-bar.tsx
         ├── cell-actions.tsx
-        ├── nightly-rate-row.tsx
+        ├── nightly-rate-row.tsx            room type and rate plan selects, prices
         ├── inventory-footer.tsx
         ├── stay-peek-sheet.tsx
         ├── rooms-board.tsx
@@ -207,14 +210,15 @@ resources/js/
 app/
 ├── Enums/StayViewGrouping.php                            None, RoomGroup, RoomType
 ├── Http/Controllers/FrontDesk/StayViewController.php     timeline, rooms, version
-├── Services/StayView/StayViewQuery.php                   loads rows, stays (with segments) and blocks
+├── Services/StayView/StayViewQuery.php                   loads rows, stays (with segments), blocks and rates
 ├── Services/StayView/StayViewVersion.php                 hash of latest change in the window
 └── Data/StayView/
     ├── StayViewWindowData.php
     ├── RoomRowData.php
     ├── StayData.php
     ├── StaySegmentData.php
-    └── BlockData.php
+    ├── BlockData.php
+    └── DateRateData.php
 ```
 
 TypeScript types come from the Data classes through `spatie/laravel-typescript-transformer`.
@@ -223,7 +227,7 @@ TypeScript types come from the Data classes through `spatie/laravel-typescript-t
 
 - Built first for the [rate calendar](../08-rates/02-daily-rates-and-restrictions.md), then reused here (`DateGrid`).
 - CSS grid with one column per night and a sticky first column, header and footer. Rows and columns are virtualized with `@tanstack/react-virtual`.
-- Fixed row height. `DateGrid` places cells with absolute offsets, so a stay bar is an overlay layer in each row. It uses the same column width and offsets, and `projectBars()` clips it to the window. If this needs a new prop on `DateGrid`, check the rate calendar still passes its tests.
+- Fixed row height. `DateGrid` places cells with absolute offsets, so a stay bar is an overlay layer in each row. It uses the same column width and offsets, and `projectBars()` clips it to the window. `DateGrid` gets an optional `renderRowOverlay` prop that draws this layer inside each row. The rate row stays in view under the date header, so `DateGrid` may also need an optional pinned row prop (to verify: it has a sticky footer today, not a sticky row under the header). Both props are additive. Run the rate calendar tests after the change.
 
 ## Rules
 
