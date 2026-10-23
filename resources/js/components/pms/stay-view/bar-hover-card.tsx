@@ -1,8 +1,10 @@
+import { Link } from '@inertiajs/react';
 import { Baby, Clock, Lock, User } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { BookingSourceBadge } from '@/components/pms/booking-source-badge';
 import { HoverCardContent } from '@/components/ui/hover-card';
 import { cn } from '@/lib/utils';
+import { show } from '@/routes/reservations';
 import { dayAfter, dayLabel, nightCount, placeLabel } from './stay-places';
 
 type Room = App.Data.StayView.RoomRowData;
@@ -179,9 +181,11 @@ export function BlockHoverCard({
 export function DayUseHoverCard({
     dayUses,
     room,
+    canViewReservations,
 }: {
     dayUses: DayUse[];
     room: Room | undefined;
+    canViewReservations: boolean;
 }) {
     return (
         <HoverCardContent
@@ -215,7 +219,19 @@ export function DayUseHoverCard({
                             {dayUse.guestLabel ?? 'No guest named'}
                         </span>
                         <span className="block truncate text-muted-foreground">
-                            {dayUse.reference} · {dayUse.status.label}
+                            {canViewReservations ? (
+                                <Link
+                                    href={show.url({
+                                        reservation: dayUse.reservationId,
+                                    })}
+                                    className="underline underline-offset-2"
+                                >
+                                    {dayUse.reference}
+                                </Link>
+                            ) : (
+                                dayUse.reference
+                            )}{' '}
+                            · {dayUse.status.label}
                         </span>
                     </Detail>
                 ))}

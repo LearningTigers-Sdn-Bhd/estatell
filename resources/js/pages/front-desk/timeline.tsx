@@ -120,6 +120,7 @@ export default function Timeline({
                             showRates={preferences.showRates}
                             rateChoice={preferences.rateChoice}
                             currency={currency}
+                            canViewReservations={canViewReservations}
                             onOpenStay={setPeekUnitId}
                         />
                     </div>

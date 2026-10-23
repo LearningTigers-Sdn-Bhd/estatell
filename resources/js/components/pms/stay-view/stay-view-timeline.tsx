@@ -52,6 +52,7 @@ export function StayViewTimeline({
     showRates,
     rateChoice,
     currency,
+    canViewReservations,
     onOpenStay,
 }: {
     gridRef: Ref<DateGridHandle>;
@@ -66,6 +67,7 @@ export function StayViewTimeline({
     showRates: boolean;
     rateChoice: RateChoice;
     currency: App.Data.Property.CurrencyData | null;
+    canViewReservations: boolean;
     onOpenStay: (unitId: number) => void;
 }) {
     const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
@@ -263,6 +265,7 @@ export function StayViewTimeline({
                                     room={roomByKey.get(marker.rowKey)}
                                     labelWidth={labelWidth}
                                     columnWidth={columnWidth}
+                                    canViewReservations={canViewReservations}
                                 />
                             ))}
                     </>
