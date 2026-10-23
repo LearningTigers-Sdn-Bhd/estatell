@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 title Estatell MyKad Reader Bridge
 echo ====================================================
-echo   Estatell / Wastays MyKad Smart Card Reader Bridge
+echo   Estatell MyKad Smart Card Reader Bridge
 echo ====================================================
 echo.
 

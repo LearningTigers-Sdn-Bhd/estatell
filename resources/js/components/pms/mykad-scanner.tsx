@@ -7,7 +7,11 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { useMykadReader, type MyKadData } from '@/hooks/use-mykad-reader';
+import {
+    bridgeDownload,
+    useMykadReader,
+    type MyKadData,
+} from '@/hooks/use-mykad-reader';
 import { cn } from '@/lib/utils';
 
 export type MyKadScannerProps = {
@@ -27,6 +31,7 @@ export function MyKadScanner({
         status,
         cardPresent,
         readerName,
+        isBridgeOutdated,
         error,
         lastScannedData,
         isScanning,
@@ -36,6 +41,11 @@ export function MyKadScanner({
 
     const isOffline = status === 'offline';
     const isReady = status === 'ready' || status === 'card_present';
+    const download = bridgeDownload();
+    const installHint =
+        download.platform === 'other'
+            ? 'Unzip it and run run_bridge.sh.'
+            : 'Open it once. The reader then starts by itself every time this computer starts.';
 
     const statusBadge = () => {
         if (isScanning) {
@@ -114,19 +124,19 @@ export function MyKadScanner({
                                             nativeButton={false}
                                             render={
                                                 <a
-                                                    href="/downloads/mykad-bridge.zip"
-                                                    download="mykad-bridge.zip"
+                                                    href={download.href}
+                                                    download={download.filename}
                                                 />
                                             }
                                         >
                                             <Download className="h-3 w-3" />
-                                            <span>Download Bridge</span>
+                                            <span>Install Bridge</span>
                                         </Button>
                                     }
                                 />
                                 <TooltipContent>
-                                    Download and run the local card reader
-                                    bridge for Windows/Mac
+                                    Install the card reader bridge.{' '}
+                                    {installHint}
                                 </TooltipContent>
                             </Tooltip>
                         ) : (
@@ -196,6 +206,16 @@ export function MyKadScanner({
                     </div>
                 )}
 
+                {isBridgeOutdated && (
+                    <a
+                        href={download.href}
+                        download={download.filename}
+                        className="text-xs font-medium text-foreground underline underline-offset-4"
+                    >
+                        Bridge update available. Install it once.
+                    </a>
+                )}
+
                 {error && (
                     <div className="flex w-full items-center gap-1 pt-1 text-xs text-destructive">
                         <TriangleAlert className="h-3 w-3 shrink-0" />
@@ -247,13 +267,13 @@ export function MyKadScanner({
                                 nativeButton={false}
                                 render={
                                     <a
-                                        href="/downloads/mykad-bridge.zip"
-                                        download="mykad-bridge.zip"
+                                        href={download.href}
+                                        download={download.filename}
                                     />
                                 }
                             >
                                 <Download className="h-3.5 w-3.5" />
-                                <span>Download Bridge</span>
+                                <span>Install Bridge</span>
                             </Button>
                             <Button
                                 variant="ghost"
@@ -364,17 +384,29 @@ export function MyKadScanner({
             {isOffline && (
                 <div className="mt-2.5 rounded-md bg-muted/60 p-2 text-xs text-muted-foreground">
                     <span>
-                        Bridge not detected on localhost:9292. Click{' '}
+                        The card reader bridge is not running on this computer.{' '}
                         <a
-                            href="/downloads/mykad-bridge.zip"
-                            download="mykad-bridge.zip"
+                            href={download.href}
+                            download={download.filename}
                             className="font-medium text-foreground underline underline-offset-4"
                         >
-                            Download Bridge
+                            Install Bridge
                         </a>
-                        , unzip and double-click <code>run_bridge.bat</code>{' '}
-                        (Windows) or <code>run_bridge.sh</code> (Mac).
+                        . {installHint} Already installed? Restart the computer.
                     </span>
+                </div>
+            )}
+
+            {isBridgeOutdated && (
+                <div className="mt-2.5 rounded-md bg-muted/60 p-2 text-xs text-muted-foreground">
+                    A newer card reader bridge is available.{' '}
+                    <a
+                        href={download.href}
+                        download={download.filename}
+                        className="font-medium text-foreground underline underline-offset-4"
+                    >
+                        Install update
+                    </a>
                 </div>
             )}
 

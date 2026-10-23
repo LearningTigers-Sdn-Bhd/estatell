@@ -1,29 +1,78 @@
-#!/usr/bin/env python3.11
-# frozen_string_literal: false
+#!/usr/bin/env python3
 """
-Wastays MyKad Bridge Daemon
-Runs locally on front-desk workstations to bridge the ACR39U reader to Wastays web app.
+Estatell MyKad Bridge Daemon
+Runs locally on front-desk workstations to bridge the ACR39U reader to the Estatell web app.
 Port: 127.0.0.1:9292
 Multi-threaded, supports Chrome Private Network Access (PNA) and fast non-blocking status.
+
+Only Estatell origins may call it (see ALLOWED_ORIGINS). Extra origins can be added with the
+ESTATELL_BRIDGE_ORIGINS environment variable (comma separated).
 """
 
+import os
+import re
 import sys
 import json
 import base64
+import errno
+import socket
 import struct
+import logging
+from logging.handlers import RotatingFileHandler
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse
+
+__version__ = "1.1.0"
+
+HOST = "127.0.0.1"
+PORT = 9292
+
+# Exact origins, plus any localhost / *.test origin for development.
+ALLOWED_ORIGINS = {
+    "https://app.estatell.com",
+    "https://demo.estatell.com",
+}
+ALLOWED_ORIGINS.update(
+    o.strip().rstrip("/") for o in os.environ.get("ESTATELL_BRIDGE_ORIGINS", "").split(",") if o.strip()
+)
+DEV_ORIGIN = re.compile(r"^https?://(localhost|127\.0\.0\.1|[a-z0-9-]+(\.[a-z0-9-]+)*\.test)(:\d+)?$")
+ALLOWED_HOSTS = {f"127.0.0.1:{PORT}", f"localhost:{PORT}"}
+
+
+def log_path():
+    if sys.platform == "win32":
+        base = os.path.join(os.environ.get("LOCALAPPDATA") or os.path.expanduser("~"), "Estatell")
+    elif sys.platform == "darwin":
+        base = os.path.expanduser("~/Library/Logs")
+    else:
+        base = os.path.expanduser("~/.local/state")
+    os.makedirs(base, exist_ok=True)
+    return os.path.join(base, "estatell-mykad-bridge.log")
+
+
+def setup_logging():
+    """Log to a capped file. A windowless build has no console, so stdout may be None."""
+    handlers = [RotatingFileHandler(log_path(), maxBytes=1_000_000, backupCount=2, encoding="utf-8")]
+    if sys.stderr is not None:
+        handlers.append(logging.StreamHandler(sys.stderr))
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s", handlers=handlers)
+
+
+log = logging.getLogger("mykad-bridge")
 
 try:
     from smartcard.System import readers
     from smartcard.scard import SCARD_SHARE_SHARED, SCARD_LEAVE_CARD
     from smartcard.Exceptions import NoCardException, CardConnectionException
 except ImportError:
-    print("[Error] pyscard is not installed. Run: pip3 install pyscard")
+    setup_logging()
+    log.error("pyscard is not installed. Run: pip3 install pyscard")
     sys.exit(1)
 
-HOST = "127.0.0.1"
-PORT = 9292
+
+def is_allowed_origin(origin):
+    origin = origin.rstrip("/")
+    return origin in ALLOWED_ORIGINS or bool(DEV_ORIGIN.match(origin))
 
 JPN_AID = [0x00, 0xA4, 0x04, 0x00, 0x0A, 0xA0, 0x00, 0x00, 0x00, 0x74, 0x4A, 0x50, 0x4E, 0x00, 0x10]
 
@@ -164,7 +213,7 @@ class MyKadReaderSession:
             if len(photo_bytes) > 100 and photo_bytes[0] == 0xFF and photo_bytes[1] == 0xD8:
                 photo_b64 = "data:image/jpeg;base64," + base64.b64encode(photo_bytes).decode('ascii')
         except Exception as e:
-            print(f"[Bridge] Photo warning: {e}", file=sys.stderr)
+            log.warning("Photo warning: %s", e)
 
         name = jpn1_1[3:153].decode("ascii", errors="replace").strip()
         raw_ic = jpn1_1[0x111:0x111+13].decode("ascii", errors="replace").strip()
@@ -221,14 +270,36 @@ class BridgeHTTPHandler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
     def _send_cors_headers(self):
-        self.send_header("Access-Control-Allow-Origin", "*")
+        origin = self.headers.get("Origin")
+        if origin and is_allowed_origin(origin):
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type, Accept, Authorization, X-Requested-With, Access-Control-Request-Private-Network")
         self.send_header("Access-Control-Allow-Private-Network", "true")
         self.send_header("Connection", "close")
         self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
 
+    def _reject_foreign_request(self):
+        """Refuse other websites (Origin) and DNS-rebinding hosts (Host) before touching the card."""
+        origin = self.headers.get("Origin")
+        host = (self.headers.get("Host") or "").lower()
+        if (origin and not is_allowed_origin(origin)) or host not in ALLOWED_HOSTS:
+            log.warning("Rejected request from origin=%s host=%s", origin, host)
+            body = b'{"error": "Origin not allowed"}'
+            self.send_response(403)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Connection", "close")
+            self.end_headers()
+            self.wfile.write(body)
+            self.close_connection = True
+            return True
+        return False
+
     def do_OPTIONS(self):
+        if self._reject_foreign_request():
+            return
         self.send_response(204)
         self._send_cors_headers()
         self.send_header("Content-Length", "0")
@@ -236,6 +307,8 @@ class BridgeHTTPHandler(BaseHTTPRequestHandler):
         self.close_connection = True
 
     def do_GET(self):
+        if self._reject_foreign_request():
+            return
         parsed = urlparse(self.path)
         if parsed.path in ("/status", "/health", "/"):
             self.handle_status()
@@ -246,6 +319,8 @@ class BridgeHTTPHandler(BaseHTTPRequestHandler):
         self.close_connection = True
 
     def do_POST(self):
+        if self._reject_foreign_request():
+            return
         parsed = urlparse(self.path)
         if parsed.path == "/read":
             self.handle_read()
@@ -259,6 +334,7 @@ class BridgeHTTPHandler(BaseHTTPRequestHandler):
             if not available:
                 payload = {
                     "online": True,
+                    "version": __version__,
                     "reader_connected": False,
                     "reader_name": None,
                     "card_present": False,
@@ -277,6 +353,7 @@ class BridgeHTTPHandler(BaseHTTPRequestHandler):
 
                 payload = {
                     "online": True,
+                    "version": __version__,
                     "reader_connected": True,
                     "reader_name": str(reader),
                     "card_present": card_present,
@@ -290,7 +367,7 @@ class BridgeHTTPHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
         except Exception as e:
-            err_body = json.dumps({"online": True, "error": str(e)}).encode("utf-8")
+            err_body = json.dumps({"online": True, "version": __version__, "error": str(e)}).encode("utf-8")
             self.send_response(500)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")
@@ -359,22 +436,36 @@ class BridgeHTTPHandler(BaseHTTPRequestHandler):
             self.wfile.write(err_body)
 
     def log_message(self, format, *args):
-        sys.stderr.write(f"[Wastays Card Bridge] {format % args}\n")
+        log.info(format, *args)
+
+
+class BridgeHTTPServer(ThreadingHTTPServer):
+    daemon_threads = True
+    # On Windows SO_REUSEADDR lets a second process bind the same port. Claim it exclusively instead.
+    allow_reuse_address = sys.platform != "win32"
+
+    def server_bind(self):
+        if sys.platform == "win32":
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        super().server_bind()
+
 
 def run():
-    server_address = (HOST, PORT)
-    httpd = ThreadingHTTPServer(server_address, BridgeHTTPHandler)
-    httpd.daemon_threads = True
-    print(f"============================================================")
-    print(f"       WASTAYS MYKAD CARD BRIDGE (ACR39U)                  ")
-    print(f"============================================================")
-    print(f"[✓] Multi-threaded daemon listening on http://{HOST}:{PORT}")
-    print(f"[✓] Chrome PNA + CORS enabled for Wastays web portal")
-    print(f"    Press Ctrl+C to stop.")
+    setup_logging()
+    try:
+        httpd = BridgeHTTPServer((HOST, PORT), BridgeHTTPHandler)
+    except OSError as e:
+        if e.errno in (errno.EADDRINUSE, getattr(errno, "WSAEADDRINUSE", None)) or getattr(e, "winerror", None) in (10048, 10013):
+            # Another copy already serves the port. Exit 0 so launchd (KeepAlive) does not respawn us.
+            log.info("Port %s is already in use. Another bridge is running; exiting.", PORT)
+            sys.exit(0)
+        raise
+
+    log.info("Estatell MyKad bridge %s listening on http://%s:%s (log: %s)", __version__, HOST, PORT, log_path())
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
-        print("\n[Bridge] Stopping...")
+        log.info("Stopping...")
         httpd.server_close()
 
 if __name__ == "__main__":

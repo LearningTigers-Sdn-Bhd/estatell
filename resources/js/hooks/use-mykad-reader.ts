@@ -35,6 +35,64 @@ export type UseMykadReaderOptions = {
 const DEFAULT_BRIDGE_URL = 'http://127.0.0.1:9292';
 const DEFAULT_POLL_INTERVAL = 2500;
 
+/** Oldest bridge the app works best with. Keep in step with `__version__` in tools/mykad-bridge/mykad_bridge.py. */
+export const REQUIRED_BRIDGE_VERSION = '1.1.0';
+
+export type BridgeDownload = {
+    href: string;
+    filename: string;
+    platform: 'windows' | 'macos' | 'other';
+};
+
+/**
+ * The one-click installer for this computer, or the manual zip on other systems.
+ */
+export function bridgeDownload(): BridgeDownload {
+    const userAgent =
+        typeof navigator === 'undefined' ? '' : navigator.userAgent;
+
+    if (/Windows/i.test(userAgent)) {
+        return {
+            href: '/downloads/estatell-mykad-setup.exe',
+            filename: 'estatell-mykad-setup.exe',
+            platform: 'windows',
+        };
+    }
+
+    if (/Macintosh|Mac OS X/i.test(userAgent)) {
+        return {
+            href: '/downloads/estatell-mykad.pkg',
+            filename: 'estatell-mykad.pkg',
+            platform: 'macos',
+        };
+    }
+
+    return {
+        href: '/downloads/mykad-bridge.zip',
+        filename: 'mykad-bridge.zip',
+        platform: 'other',
+    };
+}
+
+function isOlderVersion(version: string | null, required: string): boolean {
+    if (!version) {
+        return true;
+    }
+
+    const current = version.split('.').map(Number);
+    const target = required.split('.').map(Number);
+
+    for (let i = 0; i < target.length; i++) {
+        const difference = (current[i] ?? 0) - (target[i] ?? 0);
+
+        if (difference !== 0) {
+            return difference < 0;
+        }
+    }
+
+    return false;
+}
+
 /**
  * Converts a base64 Data URL (e.g. from MyKad portrait extraction) into a standard File object
  * that can be attached to Inertia / FormData form fields like front_scan.
@@ -69,6 +127,7 @@ export function useMykadReader({
     const [status, setStatus] = useState<ReaderStatus>('checking');
     const [cardPresent, setCardPresent] = useState(false);
     const [readerName, setReaderName] = useState<string | null>(null);
+    const [bridgeVersion, setBridgeVersion] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [lastScannedData, setLastScannedData] = useState<MyKadData | null>(
         null,
@@ -194,6 +253,10 @@ export function useMykadReader({
             }
 
             const data = await res.json();
+            setBridgeVersion(
+                typeof data.version === 'string' ? data.version : null,
+            );
+
             if (data.reader_connected) {
                 setReaderName(data.reader_name || 'ACR39U');
                 const present = Boolean(data.card_present);
@@ -237,6 +300,11 @@ export function useMykadReader({
         status,
         cardPresent,
         readerName,
+        bridgeVersion,
+        isBridgeOutdated:
+            status !== 'offline' &&
+            status !== 'checking' &&
+            isOlderVersion(bridgeVersion, REQUIRED_BRIDGE_VERSION),
         error,
         lastScannedData,
         isScanning,

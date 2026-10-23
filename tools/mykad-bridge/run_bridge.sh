@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Starts the Estatell / Wastays MyKad Smart Card Bridge locally
+# Starts the Estatell MyKad Smart Card Bridge locally
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "===================================================="
-echo "  Estatell / Wastays MyKad Smart Card Reader Bridge"
+echo "  Estatell MyKad Smart Card Reader Bridge"
 echo "===================================================="
 echo ""
 

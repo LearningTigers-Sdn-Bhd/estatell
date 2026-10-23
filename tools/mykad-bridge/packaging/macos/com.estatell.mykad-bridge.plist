@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.estatell.mykad-bridge</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Library/Application Support/Estatell/MyKadBridge/estatell-mykad-bridge</string>
+    </array>
+    <key>LimitLoadToSessionType</key>
+    <string>Aqua</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <!-- Restart after a crash, but not after a clean exit (another copy already owns the port). -->
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+    </dict>
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+</dict>
+</plist>

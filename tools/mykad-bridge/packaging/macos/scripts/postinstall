@@ -1,0 +1,12 @@
+#!/bin/bash
+# Start the bridge now for every logged-in user. launchd starts it at each later login.
+LABEL=com.estatell.mykad-bridge
+PLIST=/Library/LaunchAgents/$LABEL.plist
+chown root:wheel "$PLIST"
+chmod 644 "$PLIST"
+for uid in $(ps -axo uid=,comm= | awk '/loginwindow/ {print $1}' | sort -u); do
+    [ "$uid" = "0" ] && continue
+    launchctl bootout "gui/$uid/$LABEL" 2>/dev/null || true
+    launchctl bootstrap "gui/$uid" "$PLIST" || true
+done
+exit 0

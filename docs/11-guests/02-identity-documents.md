@@ -61,14 +61,9 @@ The Documents tab shows only to staff with `guests.view-documents`. An expired d
 | ----------------------- | --------------------------------------------------------------------------- | ----- | ------- | ---------- | ------- | ------------ |
 | `guests.view-documents` | See, reveal and open ID documents. With `guests.manage`: add, edit, remove. | ✓     | ✓       | ✓          | –       | –            |
 
-## MyKad Smart Card Reader Integration (ACR39U)
+## MyKad reader
 
-Front-desk staff can read verified identity and demographic details directly from a guest's physical MyKad chip using an ACS ACR39U contact smart card reader in under 2 seconds.
-
-- **Local Bridge Daemon (`tools/mykad-bridge/mykad_bridge.py`)**: Runs on `127.0.0.1:9292`, communicating with the smart card reader via PC/SC APDU commands.
-- **In-App Workstation Download**: If the bridge is not running, the scanner UI provides a 1-click download button for `public/downloads/mykad-bridge.zip` containing `run_bridge.bat` (Windows) and `run_bridge.sh` (macOS/Linux).
-- **Auto-Scan & Verification**: As soon as a MyKad is inserted into the reader, `useMykadReader` auto-detects card presence and extracts cardholder name, formatted IC, birth date, gender, address, and portrait photo. Active form state updates immediately for staff verification before saving.
-- **Touchpoints**: Check-In dialog, New reservation / Walk-in booking guests section, Reservation guests tab, Registration card, and Guest CRM document sheets. When adding a document, the extracted portrait photo is automatically converted into a file attachment for `front_scan`.
+Staff can fill a document from the chip on a guest's MyKad with a USB reader. When a document is added from a scan, the chip's portrait becomes the `id_front` file. See [MyKad reader](05-mykad-reader.md).
 
 ## Lessons from wastays
 
