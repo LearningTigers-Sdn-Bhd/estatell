@@ -32,6 +32,7 @@ use App\Services\Onboarding\Wastays\WastaysBundle;
 use App\Services\Onboarding\Wastays\WastaysCodeMap;
 use App\Services\Onboarding\Wastays\WastaysImportTarget;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 use Throwable;
@@ -90,6 +91,7 @@ class ImportWastaysSetup
         $this->rates($bundle, $property, $actor, $standard, $roomTypes, $newRoomTypeIds, $summary);
         $this->salesTax($bundle, $property, $actor, $summary);
         $this->skipDbkk($bundle, $summary);
+        $this->createdAt($bundle, $property);
 
         $codes = $bundle->rows('transaction_codes')->keyBy('id')->all();
         $targets = [];
@@ -263,6 +265,20 @@ class ImportWastaysSetup
         if ($priced !== [] && ($this->saveRates)($actor, $standard, $bundle->manifest->firstAuditDate, self::RATES_UNTIL, $priced) === false) {
             throw new RuntimeException('The rates could not be saved on Basic Rate.');
         }
+    }
+
+    /**
+     * The property keeps the date the hotel was created in wastays, so the admin list shows its real age.
+     */
+    private function createdAt(WastaysBundle $bundle, Property $property): void
+    {
+        $createdAt = ($bundle->rows('hotels')->first() ?? [])['created_at'] ?? null;
+
+        if (blank($createdAt)) {
+            return;
+        }
+
+        $property->forceFill(['created_at' => Carbon::parse($createdAt)])->save();
     }
 
     private function salesTax(WastaysBundle $bundle, Property $property, User $actor, WastaysSetupSummary $summary): void

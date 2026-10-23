@@ -38,7 +38,7 @@ function wastaysSetupTables(): array
     ];
 
     return [
-        'hotels' => [['id' => '3', 'sst_enabled' => 't', 'sst_registration_number' => 'W10-1234-56789012']],
+        'hotels' => [['id' => '3', 'created_at' => '2026-08-13T08:02:00.038624Z', 'sst_enabled' => 't', 'sst_registration_number' => 'W10-1234-56789012']],
         'room_types' => [
             ['id' => '1', 'name' => 'SUPERIOR DELUXE TWIN', 'base_price' => '162.0', 'max_adults' => '2', 'max_children' => '0'],
             ['id' => '2', 'name' => 'SUPERIOR DELUXE FAMILY', 'base_price' => '192.24', 'max_adults' => '4', 'max_children' => '2'],
@@ -119,6 +119,12 @@ it('imports the room types, rooms, rate plans and prices', function () {
     $price = fn (RoomType $type): string => (string) Rate::query()->where('rate_plan_id', $plans['Basic Rate']->id)->where('room_type_id', $type->id)->where('date', '2026-08-13')->value('amount');
     expect([$price($types[0]), $price($types[1]), $price($types[2]), $price($types[3])])->toBe(['150.00', '178.00', '133.00', '128.00'])
         ->and(Rate::query()->where('rate_plan_id', $plans['Basic Rate']->id)->where('room_type_id', $types[0]->id)->orderByDesc('date')->value('date')->toDateString())->toBe('2027-12-31');
+});
+
+it('gives the property the date the hotel was created in wastays', function () {
+    runSetupImport()->assertSuccessful();
+
+    expect($this->property->fresh()->created_at->utc()->toDateTimeString())->toBe('2026-08-13 08:02:00');
 });
 
 it('turns on SST and keeps the tourism tax off', function () {
