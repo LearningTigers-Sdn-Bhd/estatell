@@ -105,6 +105,7 @@ export function SettingsSwitch({
     error,
     description,
     disabled,
+    bordered = false,
 }: {
     name: string;
     label: string;
@@ -112,11 +113,17 @@ export function SettingsSwitch({
     error?: string;
     description: string;
     disabled?: boolean;
+    /** Draws the switch as its own bordered card that fills one grid cell, so two switches can sit in a row. */
+    bordered?: boolean;
 }) {
     return (
         <Field
             orientation="horizontal"
-            className="items-start justify-start md:col-span-2"
+            className={
+                bordered
+                    ? 'items-start justify-start rounded-lg border p-4'
+                    : 'items-start justify-start md:col-span-2'
+            }
         >
             <Switch
                 id={name}
@@ -126,7 +133,7 @@ export function SettingsSwitch({
                 aria-invalid={!!error}
                 className="mt-0.5"
             />
-            <FieldContent className="flex-none">
+            <FieldContent className={bordered ? 'min-w-0' : 'flex-none'}>
                 <FieldLabel htmlFor={name}>{label}</FieldLabel>
                 <FieldDescription>{description}</FieldDescription>
                 <FieldError>{error}</FieldError>

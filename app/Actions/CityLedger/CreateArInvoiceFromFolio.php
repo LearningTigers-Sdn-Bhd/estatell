@@ -2,6 +2,7 @@
 
 namespace App\Actions\CityLedger;
 
+use App\Actions\Accounting\QueueCompanyBillingSync;
 use App\Enums\ArInvoiceStatus;
 use App\Enums\ArInvoiceType;
 use App\Enums\FolioStatus;
@@ -53,6 +54,8 @@ class CreateArInvoiceFromFolio
         ]);
         $invoice->property_id = $folio->property_id;
         $invoice->save();
+
+        app(QueueCompanyBillingSync::class)($folio->property_id);
 
         activity()
             ->performedOn($company)
