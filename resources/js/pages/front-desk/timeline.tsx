@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
 import type { DateGridHandle } from '@/components/pms/grid/date-grid';
 import { StayPeekSheet } from '@/components/pms/stay-view/stay-peek-sheet';
+import { StayViewFilters } from '@/components/pms/stay-view/stay-view-filters';
 import { StayViewTimeline } from '@/components/pms/stay-view/stay-view-timeline';
 import { StayViewToolbar } from '@/components/pms/stay-view/stay-view-toolbar';
 import {
@@ -79,27 +80,9 @@ export default function Timeline({
                         <StayViewToolbar
                             window={range}
                             today={stayWindow.today}
-                            rooms={rooms}
                             filters={filters}
                             onFiltersChange={setFilters}
                             groupingOptions={groupingOptions}
-                            statusOptions={statusOptions}
-                            showRates={preferences.showRates}
-                            onShowRatesChange={(showRates) =>
-                                updatePreferences({ showRates })
-                            }
-                            planOptions={planChoices(rates).map((plan) => ({
-                                value: String(plan.id),
-                                label: plan.name,
-                            }))}
-                            ratePlanId={
-                                ratePlanId === null ? '' : String(ratePlanId)
-                            }
-                            onRatePlanChange={(planId) =>
-                                updatePreferences({
-                                    rateChoice: { ratePlanId: planId },
-                                })
-                            }
                             hrefFor={hrefFor}
                             onScrollToToday={() =>
                                 gridRef.current?.scrollToDate(stayWindow.today)
@@ -122,6 +105,34 @@ export default function Timeline({
                             currency={currency}
                             canViewReservations={canViewReservations}
                             onOpenStay={setPeekUnitId}
+                            corner={
+                                <StayViewFilters
+                                    rooms={rooms}
+                                    filters={filters}
+                                    onFiltersChange={setFilters}
+                                    statusOptions={statusOptions}
+                                    showRates={preferences.showRates}
+                                    onShowRatesChange={(showRates) =>
+                                        updatePreferences({ showRates })
+                                    }
+                                    planOptions={planChoices(rates).map(
+                                        (plan) => ({
+                                            value: String(plan.id),
+                                            label: plan.name,
+                                        }),
+                                    )}
+                                    ratePlanId={
+                                        ratePlanId === null
+                                            ? ''
+                                            : String(ratePlanId)
+                                    }
+                                    onRatePlanChange={(planId) =>
+                                        updatePreferences({
+                                            rateChoice: { ratePlanId: planId },
+                                        })
+                                    }
+                                />
+                            }
                         />
                     </div>
                     <StayPeekSheet

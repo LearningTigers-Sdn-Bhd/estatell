@@ -31,7 +31,8 @@ Two sidebar items under **Overview**, below Dashboard. Each is its own route. Th
 | Search         | Text                                             | Guest, reference or room. Placeholder "e.g. Ahmad or 201"                                 |
 
 - On narrow screens the toolbar scrolls sideways, as the rate calendar toolbar does.
-- Room group and Room type are lists of checkboxes with counts; Status lists the housekeeping statuses. The choices, Group by and search are written to the URL without a request.
+- **Timeline:** only the date controls, **Group by** (a toggle group) and the legend are in the toolbar. Room group, Room type, Status, Search, **Show rates** and the rate plan are in a **Filters** sheet, opened by the **Filters** button in the top-left corner of the date header. The button's badge is the number of filters set: each picked room group, room type and status, plus one for a search with text. Group by and the rate settings are not counted. The sheet has **Clear filters** and **Done**; changes apply as they are made. The rate plan select shows only while Show rates is on.
+- Room group and Room type are multi-select comboboxes with a room count on each item; Status lists the housekeeping statuses. The choices, Group by and search are written to the URL without a request.
 - Group by sets the row or card headers only. Filters decide which rooms appear.
 - Beds stay under their dorm in every option. With Room type, dorm beds group under the dorm's room type. With None, beds list under their room's number.
 - Each header shows its row count. On the Timeline a header can collapse, as in the rate calendar.
@@ -42,9 +43,9 @@ The page is a Grid calendar: no `PageHeader`, the toolbar on top and the grid fi
 
 ```
 ┌ Timeline View ───────────────────────────────────────────────────────────────────┐
-│ ◀ 12 Jun – 25 Jun ▶  [Today]   Room group ⌄  Room type ⌄  Status ⌄  Group by ⌄ ☑ Show rates  Plan ⌄ 🔍 │  StayViewToolbar
+│ ◀ 12 Jun – 25 Jun ▶  [Today]   Group by [None│Room group│Room type]   ⓘ │  StayViewToolbar
 ├───────────────┬───────┬───────┬───────┬───────┬───────┬───────┬───────┬──────────┤
-│               │ Fri 12│ Sat 13│ Sun 14│ Mon 15│ Tue 16│ Wed 17│ Thu 18│   …      │  DateHeader
+│ [⚲ Filters 3] │ Fri 12│ Sat 13│ Sun 14│ Mon 15│ Tue 16│ Wed 17│ Thu 18│   …      │  DateHeader, StayViewFilters in the corner
 │ Deluxe ⌄      │ RM240 │ RM280 │ RM280 │ RM240 │ RM240 │ RM240 │ RM240 │          │  NightlyRateRow
 │ Walk-in ⌄     │       │       │       │       │       │       │       │          │
 ├ Left wing ────┴───────┴───────┴───────┴───────┴───────┴───────┴───────┴──────────┤  GroupHeader

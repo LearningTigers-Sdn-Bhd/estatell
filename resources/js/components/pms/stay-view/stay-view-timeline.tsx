@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { Ref } from 'react';
+import type { ReactNode, Ref } from 'react';
 import { buildDateColumns } from '@/components/pms/grid/date-columns';
 import { DateGrid } from '@/components/pms/grid/date-grid';
 import type { DateGridHandle } from '@/components/pms/grid/date-grid';
@@ -54,6 +54,7 @@ export function StayViewTimeline({
     currency,
     canViewReservations,
     onOpenStay,
+    corner,
 }: {
     gridRef: Ref<DateGridHandle>;
     window: App.Data.StayView.StayViewWindowData;
@@ -69,6 +70,8 @@ export function StayViewTimeline({
     currency: App.Data.Property.CurrencyData | null;
     canViewReservations: boolean;
     onOpenStay: (unitId: number) => void;
+    /** The control in the top-left corner of the date header. */
+    corner?: ReactNode;
 }) {
     const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
     const [hoveredReservation, setHoveredReservation] = useState<number | null>(
@@ -197,6 +200,7 @@ export function StayViewTimeline({
             aria-label="Timeline View"
             className="rounded-none border-x-0"
             labelWidth={288}
+            renderCorner={() => corner}
             groupHeight={56}
             footerHeight={64}
             rows={rows}

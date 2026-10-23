@@ -27,6 +27,8 @@ type Props<Row extends GridRow> = {
     columns: DateColumn[];
     renderLabel: (row: Row) => ReactNode;
     renderCell: (row: Row, column: DateColumn) => ReactNode;
+    /** Content for the top-left corner, above the labels, in the date header. */
+    renderCorner?: () => ReactNode;
     /** Content for the date cells of a group row. A group row has none unless this is set. */
     renderGroupCell?: (row: Row, column: DateColumn) => ReactNode;
     /** A row that stays at the bottom of the grid while the rows scroll: the label, then a cell for each date. */
@@ -77,6 +79,7 @@ export function DateGrid<Row extends GridRow>({
     columns,
     renderLabel,
     renderCell,
+    renderCorner,
     renderGroupCell,
     renderFooterLabel,
     renderFooterCell,
@@ -229,9 +232,11 @@ export function DateGrid<Row extends GridRow>({
                 >
                     <div
                         role="columnheader"
-                        className="sticky left-0 z-10 h-full border-r border-grid-line bg-grid-header"
+                        className="sticky left-0 z-10 flex h-full items-center border-r border-grid-line bg-grid-header px-3"
                         style={{ width: labelWidth }}
-                    />
+                    >
+                        {renderCorner?.()}
+                    </div>
                     {virtualColumns.map((virtualColumn) => {
                         const column = columns[virtualColumn.index];
 
