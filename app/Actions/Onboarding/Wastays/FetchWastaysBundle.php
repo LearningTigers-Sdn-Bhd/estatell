@@ -7,6 +7,7 @@ use Illuminate\Contracts\Filesystem\Filesystem as Disk;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
+use RuntimeException;
 use ZipArchive;
 
 /**
@@ -33,10 +34,12 @@ class FetchWastaysBundle
 
         $this->files->ensureDirectoryExists(dirname($target));
 
+        $bundle = null;
+
         try {
             $this->download($disk, $key, $zipPath);
 
-            if ($expectedSha !== null && ! hash_equals(strtolower($expectedSha), hash_file('sha256', $zipPath))) {
+            if ($expectedSha !== null && ! hash_equals(strtolower($expectedSha), (string) hash_file('sha256', $zipPath))) {
                 return new WastaysFetchResult(null, ['The zip SHA-256 does not match the expected value.']);
             }
 
@@ -79,6 +82,11 @@ class FetchWastaysBundle
     {
         $stream = $disk->readStream($key);
         $out = fopen($zipPath, 'wb');
+
+        if ($out === false || $stream === null) {
+            throw new RuntimeException('The zip could not be written to local storage.');
+        }
+
         stream_copy_to_stream($stream, $out);
         fclose($out);
         fclose($stream);

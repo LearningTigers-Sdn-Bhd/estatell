@@ -119,7 +119,6 @@ final class WastaysDayCompare
      * Left-out lines of the night `$night` posted between two summary changes. A change recounted them into that
      * night's summary, but they already count on the day they were posted, so the change is taken without them.
      *
-     * @param  array<string, string>  $nights
      * @return array<string, BigDecimal>
      */
     private function countedOnTheirDay(WastaysBundle $bundle, WastaysDay $day, WastaysBookingIndex $index, string $night, CarbonImmutable $from, CarbonImmutable $to): array
@@ -211,17 +210,17 @@ final class WastaysDayCompare
 
     /**
      * @param  array<string, string|null>  $summary
-     * @return list<array{at: CarbonImmutable, previous: array<string, string>, new: array<string, string>}>
+     * @return list<array{at: CarbonImmutable, previous: array<string, mixed>, new: array<string, mixed>}>
      */
     private function changelog(array $summary): array
     {
         $entries = json_decode((string) ($summary['changelog'] ?? ''), true) ?: [];
 
-        return array_map(fn (array $entry): array => [
+        return array_values(array_map(fn (array $entry): array => [
             'at' => CarbonImmutable::parse((string) $entry['timestamp'])->utc(),
             'previous' => $entry['previous_values'] ?? [],
             'new' => $entry['new_values'] ?? [],
-        ], $entries);
+        ], $entries));
     }
 
     /**
@@ -230,7 +229,7 @@ final class WastaysDayCompare
      * a night of room revenue), the tax of an early departure fee dated to an earlier night and a staff adjustment dated
      * to an earlier night.
      *
-     * @return array{room_revenue: BigDecimal, tax_revenue: BigDecimal, adjustments_total: BigDecimal}
+     * @return array<string, BigDecimal> keyed room_revenue, tax_revenue and adjustments_total
      */
     private function leftOut(WastaysBundle $bundle, WastaysDay $day, string $date): array
     {

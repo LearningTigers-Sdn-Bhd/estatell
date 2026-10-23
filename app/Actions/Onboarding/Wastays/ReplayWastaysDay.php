@@ -13,7 +13,6 @@ use App\Actions\FrontDesk\UndoCheckIn;
 use App\Actions\NightAudit\RunNightAudit;
 use App\Actions\Payments\RecordPayment;
 use App\Actions\Reservations\AssignRoom;
-use App\Actions\Reservations\AttachGuest;
 use App\Actions\Reservations\ChangeNightPrice;
 use App\Actions\Reservations\CreateBooking;
 use App\Actions\Reservations\EnsureOtaBookingSource;
@@ -82,7 +81,6 @@ class ReplayWastaysDay
         private CreateBooking $createBooking,
         private AssignRoom $assignRoom,
         private AutoAssignRooms $autoAssignRooms,
-        private AttachGuest $attachGuest,
         private ChangeNightPrice $changeNightPrice,
         private CheckInUnit $checkInUnit,
         private UndoCheckIn $undoCheckIn,
@@ -343,7 +341,7 @@ class ReplayWastaysDay
 
         foreach ($byPrice as $price => $dates) {
             $ids = UnitNight::query()->where('reservation_unit_id', $unit->id)->whereIn('date', $dates)->pluck('id')->all();
-            $result = ($this->changeNightPrice)($context->actor, $unit, UnitNight::query()->whereIn('id', $ids)->get()->all(), (string) $price, 'wastays replay');
+            $result = ($this->changeNightPrice)($context->actor, $unit, array_values(UnitNight::query()->whereIn('id', $ids)->get()->all()), (string) $price, 'wastays replay');
 
             if ($result->isRefused()) {
                 throw new ReplayStopped("bookings {$bookingId}: the night price was refused ({$result->refusal}).");

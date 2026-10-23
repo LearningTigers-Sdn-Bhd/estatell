@@ -34,6 +34,7 @@ use App\Services\Onboarding\Wastays\WastaysEvent;
 use Brick\Money\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
+use LogicException;
 
 /**
  * Replays the corrections of a wastays day through the estatell Actions: price repairs, reversals and voids of payments,
@@ -246,7 +247,7 @@ class ReplayWastaysCorrections
             return;
         }
 
-        $before = $unit->nights()->pluck('date')->map(fn ($date) => $date->toDateString())->all();
+        $before = array_values($unit->nights()->pluck('date')->map(fn ($date) => $date->toDateString())->all());
         $this->done($event, ($this->changeUnitDates)($context->actor, $unit, $unit->arrival_date, CarbonImmutable::parse($departure), true, $reason), 'the nights of the undone check-out could not be given back');
         $this->priceAddedNights($context, $event, $unit, $before, $reason);
     }
@@ -294,7 +295,7 @@ class ReplayWastaysCorrections
             $arrival = $unit->arrival_date->toDateString();
         }
 
-        $before = $unit->nights()->pluck('date')->map(fn ($date) => $date->toDateString())->all();
+        $before = array_values($unit->nights()->pluck('date')->map(fn ($date) => $date->toDateString())->all());
         $result = ($this->changeUnitDates)($context->actor, $unit, CarbonImmutable::parse($arrival), CarbonImmutable::parse($departure), true, $reason);
         $this->done($event, $result, 'the stay dates could not be changed');
 
@@ -314,7 +315,7 @@ class ReplayWastaysCorrections
         $added = $unit->refresh()->nights()->get()->filter(fn (UnitNight $night): bool => ! in_array($night->date->toDateString(), $before, true) && isset($prices[$night->date->toDateString()]));
 
         foreach ($added->groupBy(fn (UnitNight $night): string => number_format((float) $prices[$night->date->toDateString()], 2, '.', '')) as $price => $nights) {
-            $priced = ($this->changeNightPrice)($context->actor, $unit, $nights->all(), (string) $price, $reason);
+            $priced = ($this->changeNightPrice)($context->actor, $unit, array_values($nights->all()), (string) $price, $reason);
             $this->done($event, $priced, 'the price of the added nights could not be set');
         }
     }
@@ -392,7 +393,15 @@ class ReplayWastaysCorrections
      */
     private function done(WastaysEvent $event, ?object $result, string $what): void
     {
-        if ($result !== null && $result->isRefused()) {
+        if ($result === null) {
+            return;
+        }
+
+        if (! method_exists($result, 'isRefused') || ! property_exists($result, 'refusal')) {
+            throw new LogicException('A replay step returned something that is not an Action result.');
+        }
+
+        if ($result->isRefused()) {
             throw new ReplayStopped("{$event->sourceTable} {$event->sourceId}: {$what} ({$result->refusal}).");
         }
     }
