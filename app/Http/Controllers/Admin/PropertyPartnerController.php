@@ -20,12 +20,16 @@ class PropertyPartnerController extends Controller
         $partnerId = $request->integer('partner_id') ?: null;
         $partner = $partnerId === null ? null : Partner::query()->findOrFail($partnerId);
 
-        Inertia::flash('toast', $movePropertyToPartner($request->user(), $property, $partner)
+        $moved = $movePropertyToPartner($request->user(), $property, $partner);
+
+        Inertia::flash('toast', $moved
             ? ['type' => 'success', 'message' => $partner === null
                 ? __('Property moved to direct.')
                 : __('Property moved to :name.', ['name' => $partner->name])]
             : ['type' => 'error', 'message' => __('A property can move between direct and an Active partner only.')]);
 
-        return back(fallback: route('admin.properties.show', $property));
+        return $moved
+            ? to_route('admin.properties.show', $property->refresh()->code)
+            : back(fallback: route('admin.properties.show', $property));
     }
 }
