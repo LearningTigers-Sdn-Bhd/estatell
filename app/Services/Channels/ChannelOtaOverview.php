@@ -52,7 +52,7 @@ class ChannelOtaOverview
             $rows[] = new ChannelOtaRowData(
                 otaChannelId: $channel->id,
                 name: $channel->name,
-                hotelId: $connection?->settings['hotel_id'] ?? $credential?->property_code,
+                hotelId: ($connection === null ? null : ChannelHotelId::from($connection->settings ?? [])) ?? $credential?->property_code,
                 status: $connection === null ? null : BadgeData::fromChannelConnectionStatus($connection->status),
                 connectionId: $connection?->id,
                 canConnect: $connection === null && $this->isSupported($channel),

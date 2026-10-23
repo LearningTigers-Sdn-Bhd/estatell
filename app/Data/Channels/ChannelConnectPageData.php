@@ -7,6 +7,7 @@ use App\Models\OtaChannel;
 use App\Models\Property;
 use App\Models\PropertyOtaCredential;
 use App\Models\User;
+use App\Services\Channels\ChannelHotelId;
 use Spatie\LaravelData\Data;
 
 /**
@@ -43,8 +44,10 @@ class ChannelConnectPageData extends Data
             $values[$field->name] = $field->default;
         }
 
-        if ($credential !== null && array_key_exists('hotel_id', $values)) {
-            $values['hotel_id'] = $credential->property_code;
+        $hotelKey = array_find(ChannelHotelId::KEYS, fn (string $key): bool => array_key_exists($key, $values));
+
+        if ($credential !== null && $hotelKey !== null) {
+            $values[$hotelKey] = $credential->property_code;
         }
 
         return new self(

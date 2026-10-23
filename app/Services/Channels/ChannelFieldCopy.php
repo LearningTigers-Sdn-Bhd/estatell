@@ -29,6 +29,9 @@ class ChannelFieldCopy
                 'hotel_id' => ['label' => __('Hotel ID'), 'hint' => __('Find it in the Agoda YCS, next to the property name.'), 'placeholder' => __('e.g. 1234567')],
                 'booking_tax_settings' => ['label' => __('Tax in booking amounts'), 'hint' => __('Decides how the booking total reaches the folio. To verify on staging.'), 'placeholder' => null],
             ],
+            'CTrip' => [
+                'hotel_code' => ['label' => __('Hotel ID'), 'hint' => __('Find it in Trip.com eBooking, under Connectivity settings.'), 'placeholder' => __('e.g. 28707116')],
+            ],
             'Hostelworld' => [
                 'hotel_id' => ['label' => __('Hotel ID'), 'hint' => __('Find it in the Hostelworld Hoscars extranet.'), 'placeholder' => __('e.g. 12345')],
                 'booking_amount_settings' => ['label' => __('Booking amount'), 'hint' => __('Decides how the booking total reaches the folio. To verify on staging.'), 'placeholder' => null],
