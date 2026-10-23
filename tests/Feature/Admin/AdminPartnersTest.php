@@ -48,14 +48,14 @@ test('add with a temp password creates the partner, its counter and its login', 
     expect($partner->status)->toBe(PartnerStatus::Active)
         ->and($partner->code_prefix)->toBe('AS')
         ->and($partner->signup_code)->toMatch('/^[A-HJ-NP-Z2-9]{6}$/')
-        ->and(DB::table('property_code_counters')->where('prefix', 'AS')->value('last_number'))->toBe(10100)
+        ->and(DB::table('property_code_counters')->where('prefix', 'AS')->value('last_number'))->toBe(1100)
         ->and($user->email)->toBe('ops@andaman.test')
         ->and($user->property_id)->toBeNull()
         ->and($user->must_change_password)->toBeTrue()
         ->and($user->temporary_password)->not->toBeNull()
         ->and($user->email_verified_at)->not->toBeNull();
 
-    DB::transaction(fn () => expect(app(IssuePropertyCode::class)('AS'))->toBe('AS10101'));
+    DB::transaction(fn () => expect(app(IssuePropertyCode::class)('AS'))->toBe('AS1101'));
 
     $this->assertDatabaseHas('activity_log', ['event' => 'partner.created-with-temp-password', 'causer_id' => $this->admin->id, 'subject_id' => $partner->id]);
 });

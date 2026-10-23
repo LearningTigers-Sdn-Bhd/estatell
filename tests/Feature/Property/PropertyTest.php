@@ -10,17 +10,17 @@ test('property codes are issued in order with the ES prefix', function () {
     $first = Property::factory()->create();
     $second = Property::factory()->create();
 
-    expect($first->code)->toBe('ES10101')
-        ->and($second->code)->toBe('ES10102');
+    expect($first->code)->toBe('ES1101')
+        ->and($second->code)->toBe('ES1102');
 });
 
 test('each prefix has its own counter', function () {
     Property::factory()->create();
 
     DB::transaction(function () {
-        expect(app(IssuePropertyCode::class)('AS'))->toBe('AS10101')
-            ->and(app(IssuePropertyCode::class)('AS'))->toBe('AS10102')
-            ->and(app(IssuePropertyCode::class)())->toBe('ES10102');
+        expect(app(IssuePropertyCode::class)('AS'))->toBe('AS1101')
+            ->and(app(IssuePropertyCode::class)('AS'))->toBe('AS1102')
+            ->and(app(IssuePropertyCode::class)())->toBe('ES1102');
     });
 });
 
@@ -36,7 +36,7 @@ test('the property code cannot be mass assigned', function () {
 
     $property->update(['code' => 'XX99999', 'name' => 'Renamed']);
 
-    expect($property->refresh()->code)->toBe('ES10101')
+    expect($property->refresh()->code)->toBe('ES1101')
         ->and($property->name)->toBe('Renamed');
 });
 

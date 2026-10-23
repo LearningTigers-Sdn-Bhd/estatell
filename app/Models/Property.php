@@ -20,7 +20,7 @@ use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
 /**
- * The tenant. `code` is issued by IssuePropertyCode (prefix plus number, for example ES10101) and never changes.
+ * The tenant. `code` is issued by IssuePropertyCode (prefix plus number, for example ES1101) and never changes.
  *
  * @property int $id
  * @property int|null $partner_id

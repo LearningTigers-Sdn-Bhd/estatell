@@ -16,9 +16,9 @@ Route::get('join/{signupCode}', JoinController::class)->middleware('guest')->nam
 Route::middleware(['auth', 'can:partner'])->prefix('partner')->name('partner.')->group(function () {
     Route::get('/', [PartnerPropertyController::class, 'index'])->name('properties.index');
     Route::post('properties', [PartnerPropertyController::class, 'store'])->middleware('support.2fa')->name('properties.store');
-    Route::get('properties/{code}', [PartnerPropertyController::class, 'show'])->where('code', '[A-Za-z]{2}[0-9]{5,}')->name('properties.show');
-    Route::get('properties/{code}/staff', [PartnerPropertyController::class, 'staff'])->where('code', '[A-Za-z]{2}[0-9]{5,}')->name('properties.staff');
-    Route::get('properties/{code}/features', [PartnerPropertyController::class, 'features'])->where('code', '[A-Za-z]{2}[0-9]{5,}')->name('properties.features');
+    Route::get('properties/{code}', [PartnerPropertyController::class, 'show'])->where('code', '[A-Za-z]{2}[0-9]{4,}')->name('properties.show');
+    Route::get('properties/{code}/staff', [PartnerPropertyController::class, 'staff'])->where('code', '[A-Za-z]{2}[0-9]{4,}')->name('properties.staff');
+    Route::get('properties/{code}/features', [PartnerPropertyController::class, 'features'])->where('code', '[A-Za-z]{2}[0-9]{4,}')->name('properties.features');
     Route::post('link', [PartnerSignupLinkController::class, 'regenerate'])->middleware('support.2fa')->name('link.regenerate');
     Route::put('link/message', [PartnerSignupLinkController::class, 'updateMessage'])->middleware('support.2fa')->name('link.message.update');
 });

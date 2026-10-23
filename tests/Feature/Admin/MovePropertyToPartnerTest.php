@@ -11,47 +11,50 @@ function moveRoute(Property $property): string
     return route('admin.properties.partner.update', $property->code);
 }
 
-test('a direct property moves to an Active partner and keeps its code', function () {
+test('a direct property moves to an Active partner and gets a code with its prefix', function () {
     $partner = Partner::factory()->create();
     $property = Property::factory()->create();
-    $code = $property->code;
+    $oldCode = $property->code;
     $admin = User::factory()->admin()->withTwoFactor()->create();
 
     $this->actingAs($admin)
         ->put(moveRoute($property), ['partner_id' => $partner->id])
-        ->assertRedirect()
+        ->assertRedirect(route('admin.properties.show', $partner->code_prefix.'1101'))
         ->assertInertiaFlash('toast', ['type' => 'success', 'message' => "Property moved to {$partner->name}."]);
 
     expect($property->refresh()->partner_id)->toBe($partner->id)
-        ->and($property->code)->toBe($code);
+        ->and($property->code)->toBe($partner->code_prefix.'1101');
 
     $activity = Activity::query()->sole();
 
     expect($activity->event)->toBe('property.partner-moved')
         ->and($activity->causer->is($admin))->toBeTrue()
         ->and($activity->subject->is($property))->toBeTrue()
-        ->and($activity->properties->all())->toBe(['from' => null, 'to' => ['id' => $partner->id, 'name' => $partner->name]]);
+        ->and($activity->properties->all())->toBe(['from' => null, 'to' => ['id' => $partner->id, 'name' => $partner->name], 'code' => ['from' => $oldCode, 'to' => $partner->code_prefix.'1101']]);
 });
 
-test('a partner property moves to direct and the old partner loses view as', function () {
+test('a partner property moves to direct, gets an ES code and the old partner loses view as', function () {
     $partnerUser = User::factory()->partner()->create();
     $partner = $partnerUser->partner;
-    $property = Property::factory()->create(['partner_id' => $partner->id]);
+    $property = Property::factory()->create(['partner_id' => $partner->id, 'code' => $partner->code_prefix.'1101']);
+    $oldCode = $property->code;
 
-    $this->actingAs($partnerUser)->get(route('view-as.show', $property->code))->assertOk();
+    $this->actingAs($partnerUser)->get(route('view-as.show', $oldCode))->assertOk();
 
     $this->actingAs(User::factory()->admin()->withTwoFactor()->create())
         ->put(moveRoute($property), ['partner_id' => null])
-        ->assertRedirect()
+        ->assertRedirect(route('admin.properties.show', 'ES1101'))
         ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Property moved to direct.']);
 
-    expect($property->refresh()->partner_id)->toBeNull();
+    expect($property->refresh()->partner_id)->toBeNull()
+        ->and($property->code)->toBe('ES1101');
 
     $activity = Activity::query()->sole();
 
-    expect($activity->properties->all())->toBe(['from' => ['id' => $partner->id, 'name' => $partner->name], 'to' => null]);
+    expect($activity->properties->all())->toBe(['from' => ['id' => $partner->id, 'name' => $partner->name], 'to' => null, 'code' => ['from' => $oldCode, 'to' => 'ES1101']]);
 
     $this->actingAs($partnerUser)->get(route('view-as.show', $property->code))->assertNotFound();
+    $this->get(route('view-as.show', $oldCode))->assertNotFound();
 });
 
 test('a move from one partner to another is refused', function () {
@@ -64,7 +67,10 @@ test('a move from one partner to another is refused', function () {
         ->assertRedirect()
         ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'A property can move between direct and an Active partner only.']);
 
+    $code = $property->code;
+
     expect($property->refresh()->partner_id)->toBe($old->id)
+        ->and($property->code)->toBe($code)
         ->and(Activity::query()->count())->toBe(0);
 });
 
@@ -94,6 +100,7 @@ test('moving to where the property already is changes and logs nothing', functio
     $partner = Partner::factory()->create();
     $direct = Property::factory()->create();
     $owned = Property::factory()->create(['partner_id' => $partner->id]);
+    $codes = [$direct->code, $owned->code];
 
     $this->actingAs(User::factory()->admin()->withTwoFactor()->create())
         ->put(moveRoute($direct), ['partner_id' => null])
@@ -101,6 +108,7 @@ test('moving to where the property already is changes and logs nothing', functio
     $this->put(moveRoute($owned), ['partner_id' => $partner->id])->assertRedirect();
 
     expect($owned->refresh()->partner_id)->toBe($partner->id)
+        ->and([$direct->refresh()->code, $owned->code])->toBe($codes)
         ->and(Activity::query()->count())->toBe(0);
 });
 
@@ -154,4 +162,18 @@ test('the property page offers Active partners for a direct property and none fo
         ->assertInertia(fn (Assert $page) => $page
             ->has('partnerOptions', 0)
             ->where('property.partnerName', $active->name));
+});
+
+test('each move takes the next number of the new prefix and a refused move uses none', function () {
+    $partner = Partner::factory()->create();
+    $first = Property::factory()->create();
+    $second = Property::factory()->create();
+    $admin = User::factory()->admin()->withTwoFactor()->create();
+
+    $this->actingAs($admin)->put(moveRoute($first), ['partner_id' => $partner->id]);
+    $this->put(moveRoute($second), ['partner_id' => Partner::factory()->suspended()->create()->id]);
+    $this->put(moveRoute($second), ['partner_id' => $partner->id]);
+
+    expect($first->refresh()->code)->toBe($partner->code_prefix.'1101')
+        ->and($second->refresh()->code)->toBe($partner->code_prefix.'1102');
 });

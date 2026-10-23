@@ -62,7 +62,8 @@ export function MovePropertyPartner({
                         </AlertDialogTitle>
                         <AlertDialogDescription>
                             {property.partnerName} loses access to this property
-                            at once. The property code stays {property.code}.
+                            at once. The property gets a new ES code in place of{' '}
+                            {property.code}, and the old link stops working.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <Form
@@ -103,7 +104,9 @@ export function MovePropertyPartner({
                     <DialogTitle>Move {property.name} to a partner</DialogTitle>
                     <DialogDescription>
                         The partner can view this property and its staff. The
-                        property code stays {property.code}.
+                        property gets a new code with the partner's prefix in
+                        place of {property.code}, and the old link stops
+                        working.
                     </DialogDescription>
                 </DialogHeader>
                 <Form

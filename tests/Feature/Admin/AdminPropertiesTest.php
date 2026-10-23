@@ -225,7 +225,7 @@ test('an unknown property code is a 404 for admins', function () {
 
 test('the list shows each property\'s partner and filters by partner or Direct', function () {
     $partner = Partner::factory()->create(['name' => 'Andaman Stays']);
-    $other = Partner::factory()->create();
+    $other = Partner::factory()->create(['name' => 'Zanzibar Stays']);
     $brought = Property::factory()->create(['partner_id' => $partner->id, 'created_at' => now()->subDays(3)]);
     $otherBrought = Property::factory()->create(['partner_id' => $other->id, 'created_at' => now()->subDays(2)]);
     $direct = Property::factory()->create(['created_at' => now()->subDay()]);

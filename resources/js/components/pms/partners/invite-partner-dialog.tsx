@@ -126,7 +126,7 @@ export function InvitePartnerDialog({
                                     />
                                     <FieldDescription>
                                         Two letters. Their properties get codes
-                                        like AS10101. It never changes.
+                                        like AS1101. It never changes.
                                     </FieldDescription>
                                     <FieldError>
                                         {errors.code_prefix}

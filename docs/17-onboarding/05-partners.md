@@ -41,7 +41,7 @@ partner_invitations       id, partner_id (cascade on delete), email, token_hash 
 
 ## Property codes
 
-Each prefix has its own counter. A partner's properties get the partner's prefix (`AS10101`, `AS10102`). Direct properties get `ES`. The code never changes, even when the property moves to another partner. See [Properties](../02-property/01-properties.md#property-code).
+Each prefix has its own counter. A partner's properties get the partner's prefix (`AS1101`, `AS1102`). Direct properties get `ES`. When a property moves between direct and a partner, it gets a new code from the new prefix's counter. See [Properties](../02-property/01-properties.md#property-code).
 
 ## Signup link
 
@@ -52,7 +52,7 @@ app.example.com/join/K7Q2MX
         └─ no ──► /register with the notice "This link is no longer active"
                           │
                           ▼
-          RegisterPropertyOwner(input, partner)  →  AS10102, partner_id set
+          RegisterPropertyOwner(input, partner)  →  AS1102, partner_id set
 ```
 
 - `signup_code`: 6 characters from `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (no 0/O, 1/I), random and unique. It is separate from the prefix, so the link is hard to guess.
@@ -92,8 +92,8 @@ app.example.com/join/K7Q2MX
 │ └──────────────────────────────────────── ⋯ → Regenerate link ───┘ │
 │ Properties                                  [New property] ← if on │
 │ Code     Name        Status      Created                           │
-│ AS10101  Pulau Inn   Onboarding  2 days ago                        │
-│ AS10102  Reef Lodge  Live        12 Sep                            │
+│ AS1101  Pulau Inn   Onboarding  2 days ago                        │
+│ AS1102  Reef Lodge  Live        12 Sep                            │
 └────────────────────────────────────────────────────────────────────┘
 Empty list: "Share your signup link to add a property."
 ```
@@ -223,7 +223,7 @@ Row ⋯ → Copy signup link · Suspend
 - **Can create properties** is a `Switch` on Active rows only, with an optimistic update that rolls back on failure. `SetPartnerCanCreateProperties` saves it (`support.2fa`, body `allowed` bool) and logs `partner.create-properties-allowed` or `partner.create-properties-disallowed`. Setting the same value again does nothing. Invited and Suspended rows show no switch; suspending keeps the value.
 - The Suspended tab has the same columns, with **Suspended** (the date) instead of status. Active rows have ⋯ → **Copy signup link** and **Suspend** with a confirm ("Suspend {name}? They can't sign in. Their properties keep running."). Suspended rows have ⋯ → **Reactivate** without a confirm. Only an Active partner can be suspended; an Invited one is revoked instead.
 - Admin properties list gets a **Partner** column and filter.
-- **Move to partner** / **Move to direct** on the admin property page. A direct property moves to an Active partner (a Dialog with a partner Select). A partner's property moves to direct (an AlertDialog, allowed even when the partner is suspended). A move from one partner to another is refused: go through direct. `MovePropertyToPartner` changes `partner_id` only. The code stays. The old partner loses view as at once. Logged as `property.partner-moved` with the old and new partner (id and name). The Partner row shows on the admin summary only.
+- **Move to partner** / **Move to direct** on the admin property page. A direct property moves to an Active partner (a Dialog with a partner Select). A partner's property moves to direct (an AlertDialog, allowed even when the partner is suspended). A move from one partner to another is refused: go through direct. `MovePropertyToPartner` changes `partner_id` and issues a new code from the new owner's prefix counter in the same transaction (`ES1103` → `AS1101`, back to `ES` takes the next `ES` number). Both dialogs say the code changes and the old link stops working. The old partner loses view as at once. Logged as `property.partner-moved` with the old and new partner (id and name) and the old and new code. The Partner row shows on the admin summary only.
 - Every admin write carries `support.2fa` and is logged. Reading an upload writes nothing, so it does not.
 - Add, Invite and Bulk add share one set of prefix and email rules (`App\Concerns\PartnerValidationRules`): emails are compared in lower case, and an email with an account or an open partner invitation is refused.
 - The **Add partner** menu lives in `components/pms/partners/add-partner-menu.tsx`.
@@ -238,7 +238,7 @@ Row ⋯ → Copy signup link · Suspend
 ## Actions and services
 
 - `InvitePartner`, `ResendPartnerInvitation`, `RevokePartnerInvitation`, `AcceptPartnerInvitation`, `CreatePartnerWithTemporaryPassword`, `BulkCreatePartners`, `ResetPartnerTemporaryPassword`, `SuspendPartner`, `ReactivatePartner`, `SetPartnerCanCreateProperties`, `RegeneratePartnerSignupCode`, `MovePropertyToPartner` (`app/Actions/Platform/`).
-- Partner creation shares one internal step, `CreatePartner` (partner row, counter row with `last_number` 10100, signup code), so the three ways cannot drift apart. `PartnerSignupCode` (`app/Services/Platform/`) generates the signup code and retries on a clash.
+- Partner creation shares one internal step, `CreatePartner` (partner row, counter row with `last_number` 1100, signup code), so the three ways cannot drift apart. `PartnerSignupCode` (`app/Services/Platform/`) generates the signup code and retries on a clash.
 - `ResetPartnerTemporaryPassword` is separate from the staff `ResetTemporaryPassword` (no Owner role check). Copy and export reuse `TemporaryPasswordMessage` and `TemporaryPasswordFile`; `TemporaryPasswordSlipData::fromPartner` puts the partner name where staff slips show the property.
 - `IssuePropertyCode` (`app/Actions/Property/`).
 - `PartnerProperties` service: the partner's property list (`app/Services/Platform/`).
@@ -246,7 +246,7 @@ Row ⋯ → Copy signup link · Suspend
 
 ## Tests
 
-- Codes: each prefix counts on its own; two sign-ups at once never share a code; moving a partner keeps the code.
+- Codes: each prefix counts on its own; two sign-ups at once never share a code; moving a property between direct and a partner issues a new code with the new prefix, and a rollback gives the number back.
 - The link registers an `AS` property linked to the partner; a regenerated or suspended link registers `ES`.
 - A partner sees only their properties; another partner's property returns 404.
 - A partner creates a property with their prefix when switched on; when off, there is no button and the store returns 403.

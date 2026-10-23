@@ -25,17 +25,17 @@ property_licences  id, property_id, issuer, number, expires_on (nullable), show_
 
 ## Property code
 
-- `code` is the public identifier: a 2-letter prefix and a number, for example `ES10101` or `AS10101`. CHECK `^[A-Z]{2}[0-9]{5,}$`.
+- `code` is the public identifier: a 2-letter prefix and a number, for example `ES1101` or `AS1101`. CHECK `^[A-Z]{2}[0-9]{4,}$`.
 - `ES` is for direct properties (self sign-up without a partner link, or created by an admin). A partner's properties use the partner's `code_prefix` (see [Partners](../17-onboarding/05-partners.md)).
-- Each prefix has its own counter, starting at **10101**. `ES10101` and `AS10101` can both exist.
+- Each prefix has its own counter, starting at **1101**. A code gets a fifth digit only after 9999. `ES1101` and `AS1101` can both exist.
 - Counters live in `property_code_counters` (`prefix` char 2 primary key, `last_number`). `IssuePropertyCode` takes the next number with one `INSERT … ON CONFLICT (prefix) DO UPDATE SET last_number = last_number + 1 RETURNING last_number` inside the creating transaction, so two sign-ups never get the same code.
-- Immutable after creation. It is not fillable. Moving a property to another partner keeps its code, so the prefix shows where the property started, not who it belongs to now.
-- Used in every staff URL: `app.example.com/p/ES10142/...` (see [Routing](../routing.md)). The route binding upper-cases the code, so `/p/es10142` also works.
+- Not fillable. It changes only when the property moves between direct and a partner: `MovePropertyToPartner` issues a new code from the new owner's prefix counter, so the prefix always shows who owns the property now. The old code stops working.
+- Used in every staff URL: `app.example.com/p/ES1142/...` (see [Routing](../routing.md)). The route binding upper-cases the code, so `/p/es1142` also works.
 - Easy to say on the phone. Admin ⌘K searches by code, name or city.
 - Not a secret. Access is always checked by `EnsurePropertyAccess`; a code that does not belong to the user returns `404`.
 - Not the [document prefix](#document-prefix), which is a separate column.
 - `slug` is added later, only when the public booking engine needs it.
-- History: codes were plain numbers from the sequence `property_code_seq` until the partners change. The migration prefixed every existing code with `ES` (10142 → `ES10142`), seeded the `ES` counter with the highest number, and dropped the sequence.
+- History: codes were plain numbers from the sequence `property_code_seq` until the partners change. The migration prefixed every existing code with `ES` (10142 → `ES10142`), seeded the `ES` counter with the highest number, and dropped the sequence. A second migration, before launch, renumbered every prefix from 1101 in creation order (`ES10142` → `ES1103`) and reset the counters. It refuses to run when a journal has been pushed to an accounting provider, because journal references include the code.
 
 ## Document prefix
 

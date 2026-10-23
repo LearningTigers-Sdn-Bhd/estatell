@@ -67,7 +67,7 @@ test('bulk add creates every partner with its prefix, counter, login and a log e
 
     expect($partners->pluck('code_prefix')->all())->toBe(['AS', 'KP'])
         ->and($partners->every(fn (Partner $partner): bool => $partner->status === PartnerStatus::Active && $partner->signup_code !== null))->toBeTrue()
-        ->and(DB::table('property_code_counters')->whereIn('prefix', ['AS', 'KP'])->pluck('last_number')->all())->toBe([10100, 10100]);
+        ->and(DB::table('property_code_counters')->whereIn('prefix', ['AS', 'KP'])->pluck('last_number')->all())->toBe([1100, 1100]);
 
     $users = User::query()->whereIn('email', ['ops@andaman.test', 'kp@kota.test'])->get();
 
