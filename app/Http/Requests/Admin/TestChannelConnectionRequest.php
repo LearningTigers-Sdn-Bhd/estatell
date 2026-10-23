@@ -7,7 +7,7 @@ use Illuminate\Foundation\Http\FormRequest;
 
 /**
  * The OTA connection settings an admin typed on the Connect form. The adapter decides which keys Channex takes, so only
- * the hotel ID is required here. The `can:admin` route middleware authorizes this request.
+ * the hotel ID is required here: `hotel_id`, or `hotel_code` for adapters that name it so (see ChannelHotelId). The `can:admin` route middleware authorizes this request.
  */
 class TestChannelConnectionRequest extends FormRequest
 {
@@ -23,7 +23,8 @@ class TestChannelConnectionRequest extends FormRequest
     {
         return [
             'settings' => ['required', 'array'],
-            'settings.hotel_id' => ['required', 'string', 'max:40'],
+            'settings.hotel_id' => ['required_without:settings.hotel_code', 'nullable', 'string', 'max:40'],
+            'settings.hotel_code' => ['required_without:settings.hotel_id', 'nullable', 'string', 'max:40'],
             'settings.*' => ['nullable'],
         ];
     }
@@ -34,7 +35,8 @@ class TestChannelConnectionRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'settings.hotel_id.required' => __('Enter the hotel ID.'),
+            'settings.hotel_id.required_without' => __('Enter the hotel ID.'),
+            'settings.hotel_code.required_without' => __('Enter the hotel ID.'),
         ];
     }
 

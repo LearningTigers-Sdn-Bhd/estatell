@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\Channels\ChannelActionResult;
 use App\Services\Channels\ChannelConnectionChecker;
 use App\Services\Channels\ChannelDriverManager;
+use App\Services\Channels\ChannelHotelId;
 use App\Services\Channels\Channex\ChannexChannelMapper;
 use App\Services\Channels\Channex\ChannexRequestFailed;
 use App\Services\Channels\Channex\ChannexRetryLater;
@@ -69,6 +70,6 @@ class ConnectChannel
             ->withProperties(['ota_channel_id' => $ota->id, 'connection_id' => $connection->id])
             ->log('OTA connected through Channex');
 
-        return ChannelActionResult::ok(__(':channel connected to hotel :hotel.', ['channel' => $ota->name, 'hotel' => $check->settings['hotel_id']]));
+        return ChannelActionResult::ok(__(':channel connected to hotel :hotel.', ['channel' => $ota->name, 'hotel' => ChannelHotelId::from($check->settings)]));
     }
 }

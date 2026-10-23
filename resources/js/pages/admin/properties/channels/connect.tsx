@@ -59,7 +59,9 @@ export default function ChannelConnect({
     );
     const [result, setResult] = useState<TestResult | null>(null);
     const values = form.data.settings;
-    const hotelId = String(values.hotel_id ?? '');
+    const hotelKey =
+        connect.fields.find((field) => field.required)?.name ?? 'hotel_id';
+    const hotelId = String(values[hotelKey] ?? '');
 
     const setValue = (name: string, value: string | boolean) => {
         setResult(null);

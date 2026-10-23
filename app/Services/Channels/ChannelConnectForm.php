@@ -36,7 +36,7 @@ class ChannelConnectForm
                 placeholder: $copy['placeholder'],
                 options: array_values($param['options'] ?? []),
                 default: is_bool($default) || is_int($default) || is_string($default) ? $default : null,
-                required: $name === 'hotel_id',
+                required: ChannelHotelId::isKey($name),
                 hiddenWhenField: $rule['influence_field'] ?? null,
                 hiddenWhenValue: $rule === null ? null : ($rule['when'] ?? null),
             );

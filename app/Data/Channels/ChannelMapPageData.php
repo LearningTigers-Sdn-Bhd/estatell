@@ -3,6 +3,7 @@
 namespace App\Data\Channels;
 
 use App\Models\ChannelConnection;
+use App\Services\Channels\ChannelHotelId;
 use App\Services\Channels\ChannelOtaCatalogue;
 use Spatie\LaravelData\Data;
 
@@ -42,7 +43,7 @@ class ChannelMapPageData extends Data
         return new self(
             connectionId: $connection->id,
             otaName: $connection->otaChannel->name,
-            hotelId: $connection->settings['hotel_id'] ?? null,
+            hotelId: ChannelHotelId::from($connection->settings ?? []),
             usesPrimary: array_key_exists('primary_occ', $params),
             usesType: array_key_exists('type', $params),
             pricingType: $catalogue->pricingType,
