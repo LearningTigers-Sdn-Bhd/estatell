@@ -32,7 +32,7 @@ class BillToGuest
             $locked = ReservationUnit::query()->lockForUpdate()->findOrFail($unit->id);
             $onUnit = $locked->guests()->where('guest_id', $guest->id)->first();
 
-            if ($locked->property_id !== $actor->property_id || $onUnit === null) {
+            if (($locked->property_id !== $actor->property_id && ! $actor->is_admin) || $onUnit === null) {
                 return BillToGuestResult::refused(BillToGuestResult::REFUSAL_GUEST_NOT_ON_UNIT);
             }
 

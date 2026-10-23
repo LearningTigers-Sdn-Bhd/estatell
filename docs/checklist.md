@@ -17,7 +17,7 @@ Legend: **Needs** lists items that must be done first.
 
 ## Now
 
-The critical path, manual entry and migration, and the admin onboarding board are done. The channel manager is next.
+The critical path, manual entry and migration, and the admin onboarding board are done. The channel manager and the wastays replay are next.
 
 ### 21 Channels
 
@@ -31,6 +31,25 @@ Build in this order. Certification needs items 1–4 only, so item 6 can be buil
 - [x] `feat(channels): connect an OTA through the Channel API` — `channel_connections`, `ChannelConnectionStatus`, `testConnection` and `createChannel` on the driver, `ConnectChannel`, `ChannexChannelMapper`, `ChannelFieldCopy`, the OTAs card and the connect page (adapter-driven fields, OTA lists rail, Test connection). A saved connection is a Draft at Channex with no mapping. Docs: [Mappings](21-channels/02-mappings-and-capability.md#ota-mapping-channel-api), [Admin Channels tab](21-channels/07-admin-channels-tab.md#connect-step-1-connection).
 - [x] `feat(channels): map OTA rooms and rates` — `channel_ota_mappings`, `mappingDetails` and `updateChannel`, `SaveChannelMapping`, the map page and the unmapped warning. A saved mapping makes the connection `Mapped`. Docs: [Mappings](21-channels/02-mappings-and-capability.md#ota-mapping-channel-api), [Admin Channels tab](21-channels/07-admin-channels-tab.md#connect-step-2-map).
 - [x] `feat(channels): activate, pause and disconnect OTAs` — `activate`, `deactivate`, `deleteChannel` and `loadFutureReservations`, `ActivateChannel`, `PauseChannel`, `DisconnectChannel`, `ImportFutureBookings`, and the OTAs card buttons and menu. Not done here: Ask owner for help and Mark help resolved (the owner help item). Docs: [Admin Channels tab](21-channels/07-admin-channels-tab.md#connect-step-3-activate).
+
+### wastays replay
+
+Grand Eastern goes live through a full replay from 13 Aug 2026. Cutover must be before 11 Nov 2026, when the migration window closes. Build in this order. The wastays export, the bundle reader and planned numbers can be built in parallel. Docs: [Grand Eastern](migration-plan/grand-eastern-hotel.md#importer).
+
+- [x] `docs(onboarding): plan the wastays replay importer` — the importer, mapping and runbook in the Grand Eastern plan, and this list.
+- [x] wastays repo: `feat: export a hotel for estatell` — `bin/rails "estatell:export[hotel_id]"`, read only, one CSV per table, guests decrypted, `manifest.json`, zip and SHA-256, uploaded through the Active Storage R2 service to `exports/{hotel}/{date}.zip`, prints the key. Never run on the clone. Docs: [Importer](migration-plan/grand-eastern-hotel.md#importer).
+- [x] `feat(onboarding): read a wastays export bundle` — `wastays:fetch {key}` from the `r2` disk to `storage/app/private/imports/`, the checksum and manifest check, `wastays:purge`, the readers in `app/Services/Onboarding/Wastays/` with simple-excel, and `import_links`. Docs: [Importer](migration-plan/grand-eastern-hotel.md#importer).
+- [x] `feat(night-audit): issue a planned document number` — `NextDocumentNumber` takes a planned number and refuses one that is not above `last_number`. The desk flow does not change. Docs: [Document numbers](migration-plan/grand-eastern-hotel.md#document-numbers).
+- [x] `feat(onboarding): import the setup of a wastays hotel` — `wastays:import-setup {bundle} {property} --actor= --dry-run`: room types, rooms, Basic Rate (renamed Standard Rate after go-live) plus Walk-in and Corporate at +0%, Corporate open to everyone, rates at base ÷ 1.08, SST 8% exclusive and Tourism tax turned on, charge items, payment methods, and one `import_links` row per wastays transaction code. Needs: read a wastays export bundle. Docs: [Setup import](migration-plan/grand-eastern-hotel.md#setup-import), [Both import commands](migration-plan/grand-eastern-hotel.md#both-import-commands).
+- [x] `feat(guests): import guests from a wastays bundle` — `wastays:import-guests {bundle} {property} --actor= --dry-run`: one guest per wastays guest, phone in E.164 (unreadable kept as a note), countries by name, VIP and blacklist, ID documents, linked through `import_links`. Needs: read a wastays export bundle. Docs: [Guest import](migration-plan/grand-eastern-hotel.md#guest-import), [Both import commands](migration-plan/grand-eastern-hotel.md#both-import-commands).
+- [x] wastays repo: `feat: export the booking audit log` — `booking_audit_logs` in the bundle (create, check-in, check-out, update, cancel, void and undo rows only, no guest keys), listed in the manifest. Docs: [Importer](migration-plan/grand-eastern-hotel.md#importer).
+- [x] `fix(onboarding): keep tourism tax off in the setup import` — `wastays:import-setup` no longer turns on Tourism tax; it is turned on at cutover. Docs: [Setup import](migration-plan/grand-eastern-hotel.md#setup-import).
+- [x] `feat(night-audit): queue planned document numbers` — `PlannedDocumentNumbers` (a queue per document type, empty in the desk flow); `NextDocumentNumber` takes the queued number. Tests: `CreateReservation`, `CloseFolio` and `RecordPayment` issue a queued number; an empty queue behaves as today. Docs: [Document numbers](migration-plan/grand-eastern-hotel.md#document-numbers).
+- [x] `feat(folio): replay helpers for OTA payments and adjustments` — `otaCollected` on `NewPaymentData`, an admin actor in `PostCharge` and `BillToGuest`, and `Folio\PostAdjustment` (signed amount, no tax). Docs: [Mapping](migration-plan/grand-eastern-hotel.md#mapping).
+- [x] `feat(onboarding): read one wastays business date` — `WastaysDay`: the business date windows, the sorted timeline with its tie order, the refusals, and the replay target for a live property. Needs: the audit log export. Docs: [Day loop](migration-plan/grand-eastern-hotel.md#day-loop).
+- [x] `feat(onboarding): replay bookings, check-ins and payments` — `ReplayWastaysDay` for created bookings (created with a past arrival and checked in as of it when backdated), night prices, check-ins, charges, payments, deposits and check-outs; the frozen clock; no messages. Needs: the items above. Docs: [Day loop](migration-plan/grand-eastern-hotel.md#day-loop).
+- [x] `feat(onboarding): replay corrections and the night audit` — price repairs, reversals, adjustments, refunds and voids, stay changes, cancels and voids of bookings, early check-outs, then `RunNightAudit`. A second run writes nothing. Needs: replay bookings, check-ins and payments. Docs: [Day loop](migration-plan/grand-eastern-hotel.md#day-loop).
+- [x] `feat(onboarding): replay wastays and compare each day` — `wastays:replay {bundle} {property} --actor= --until= --dry-run`, the per-day compare with the wastays night audit, the stop table and the non-zero exit. Needs: replay corrections and the night audit. Accepted differences are listed, not stopped on. Compare against `night_audit_financial_summaries`. Docs: [Dry run](migration-plan/grand-eastern-hotel.md#dry-run).
 
 ## Next
 

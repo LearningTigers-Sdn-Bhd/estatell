@@ -4,6 +4,7 @@ namespace App\Actions\FrontDesk;
 
 use App\Actions\NightAudit\PostRoomCharges;
 use App\Actions\NightAudit\PostScheduledAddOns;
+use App\Enums\UnitStatus;
 use App\Models\FolioLine;
 use App\Models\ReservationUnit;
 use App\Models\UnitAddOn;
@@ -28,18 +29,23 @@ class PostPendingNight
      * or departs on the business date has no such night and is skipped, not refused. It opens no transaction of its
      * own: the caller's transaction rolls the postings back when a later step refuses. It must run before the status
      * changes, because `PostRoomCharges` refuses a CheckedOut unit for the night of the business date. Returns the lines
-     * it wrote now, not the ones it replayed.
+     * it wrote now, not the ones it replayed. `$sameDayLeaver` (only the wastays replay passes it, through `CheckOutUnit`)
+     * posts the night of the business date while the audit is not pending, for a one-night stay that leaves on its
+     * arrival day.
      * See docs/18-front-desk/01-check-in-and-check-out.md#night-audit-pending.
      *
      * @return list<FolioLine>
      *
      * @throws UnitStayRefused when the night or an add-on is refused
      */
-    public function __invoke(?User $actor, ReservationUnit $unit): array
+    public function __invoke(?User $actor, ReservationUnit $unit, bool $sameDayLeaver = false): array
     {
         $businessDate = $this->currentBusinessDate->date($unit->property);
+        $applies = $businessDate !== null && ($sameDayLeaver
+            ? $unit->status === UnitStatus::CheckedIn && $unit->nights()->whereDate('date', $businessDate->toDateString())->exists()
+            : $this->pendingNightQuote->applies($unit, $businessDate));
 
-        if ($businessDate === null || ! $this->pendingNightQuote->applies($unit, $businessDate)) {
+        if (! $applies) {
             return [];
         }
 

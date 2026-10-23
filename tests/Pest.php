@@ -107,3 +107,41 @@ function assignUnit(Property $property, RoomType $roomType, array $attributes = 
         ...$attributes,
     ]);
 }
+
+/**
+ * Write an extracted wastays bundle (manifest.json plus one CSV per table) to a new temp folder and return its path.
+ *
+ * @param  array<string, list<array<string, string|null>>>  $tables  table name => rows, each row keyed by column
+ * @param  array<string, mixed>  $manifest  manifest keys to replace
+ */
+function wastaysBundleDir(array $tables, array $manifest = []): string
+{
+    $path = sys_get_temp_dir().'/wastays-bundle-'.bin2hex(random_bytes(6));
+    mkdir($path);
+
+    $files = [];
+    foreach ($tables as $table => $rows) {
+        $columns = array_keys($rows[0] ?? ['id' => null]);
+        $handle = fopen("{$path}/{$table}.csv", 'w');
+        fputcsv($handle, $columns, escape: '');
+        foreach ($rows as $row) {
+            fputcsv($handle, array_map(fn (string $column) => $row[$column] ?? '', $columns), escape: '');
+        }
+        fclose($handle);
+
+        $files["{$table}.csv"] = ['rows' => count($rows), 'sha256' => hash_file('sha256', "{$path}/{$table}.csv")];
+    }
+
+    file_put_contents("{$path}/manifest.json", json_encode(array_merge([
+        'format_version' => 1,
+        'hotel_id' => 3,
+        'hotel_code' => 'GEH',
+        'hotel_name' => 'Grand Eastern Hotel',
+        'exported_at' => '2026-10-22T10:15:00+08:00',
+        'first_audit_date' => '2026-08-13',
+        'last_audit_date' => '2026-10-21',
+        'files' => $files,
+    ], $manifest)));
+
+    return $path;
+}
