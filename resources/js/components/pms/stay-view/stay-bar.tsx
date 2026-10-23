@@ -41,6 +41,7 @@ export function StayBar({
     columnWidth,
     highlighted,
     onHover,
+    onOpen,
 }: {
     stay: Stay;
     bar: Bar;
@@ -49,16 +50,17 @@ export function StayBar({
     columnWidth: number;
     highlighted: boolean;
     onHover: (reservationId: number | null) => void;
+    onOpen: (unitId: number) => void;
 }) {
     const grouped = stay.groupName !== null;
 
     return (
-        <div
-            role="img"
+        <button
+            type="button"
             aria-label={stayLabel(stay, bar, dates)}
             title={stayLabel(stay, bar, dates)}
             className={cn(
-                'pointer-events-auto absolute top-1.5 bottom-1.5 flex items-center gap-1 overflow-hidden border-y border-l-4 px-2 text-xs text-foreground',
+                'pointer-events-auto absolute top-1.5 bottom-1.5 flex cursor-pointer items-center gap-1 overflow-hidden border-y border-l-4 px-2 text-left text-xs text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
                 TONE_CLASSES[stay.status.tone],
                 bar.openStart ? 'rounded-l-none border-l-0' : 'rounded-l-md',
                 bar.openEnd ? 'rounded-r-none' : 'rounded-r-md border-r',
@@ -68,6 +70,7 @@ export function StayBar({
                 left: labelWidth + bar.start * columnWidth + 2,
                 width: bar.span * columnWidth - 4,
             }}
+            onClick={() => onOpen(stay.unitId)}
             onMouseEnter={() =>
                 grouped ? onHover(stay.reservationId) : undefined
             }
@@ -98,6 +101,6 @@ export function StayBar({
                     className="absolute inset-y-0 right-0 w-1 bg-warning"
                 />
             )}
-        </div>
+        </button>
     );
 }

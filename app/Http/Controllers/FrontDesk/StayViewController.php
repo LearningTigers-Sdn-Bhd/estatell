@@ -3,12 +3,16 @@
 namespace App\Http\Controllers\FrontDesk;
 
 use App\Data\Property\CurrencyData;
+use App\Data\StayView\StayFolioData;
 use App\Enums\HousekeepingStatus;
+use App\Enums\PermissionEnum;
 use App\Enums\StayViewGrouping;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\FrontDesk\StayViewTimelineRequest;
 use App\Models\Property;
+use App\Models\Reservation;
 use App\Services\Property\PropertyToday;
+use App\Services\StayView\StayFolioPeek;
 use App\Services\StayView\StayViewQuery;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -35,6 +39,16 @@ class StayViewController extends Controller
             'statusOptions' => HousekeepingStatus::options(),
             'weekendDays' => $property->settings->weekend_nights->isoWeekdays(),
             'currency' => CurrencyData::forProperty($property),
+            'canViewReservations' => $request->user()->can(PermissionEnum::ReservationsView->value),
         ]);
+    }
+
+    /**
+     * The newest folio lines and the balance of a reservation, loaded when the peek sheet opens. The route needs
+     * `reservations.view`, because the lines are folio data.
+     */
+    public function folio(Property $property, Reservation $reservation, StayFolioPeek $peek): StayFolioData
+    {
+        return $peek->for($reservation);
     }
 }

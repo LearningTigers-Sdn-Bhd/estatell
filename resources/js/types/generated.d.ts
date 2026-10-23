@@ -3824,6 +3824,17 @@ arrivalTime: string,
 departureTime: string,
 segments: App.Data.StayView.StaySegmentData[],
 };
+export type StayFolioData = {
+balance: string,
+lines: App.Data.StayView.StayFolioLineData[],
+hasMore: boolean,
+};
+export type StayFolioLineData = {
+id: number,
+date: string,
+description: string,
+amount: string,
+};
 export type StaySegmentData = {
 rowKey: string,
 firstNight: string,

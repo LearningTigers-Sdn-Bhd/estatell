@@ -66,7 +66,7 @@ The page is a Grid calendar: no `PageHeader`, the toolbar on top and the grid fi
 - **Group bookings.** One bar per unit, each in its own room or bed. Every bar of a group has the `◆` marker and the group name. A label reads `ABC Corp · Tan Mei`, or `ABC Corp · Unit 2` with no named guest. Hovering a bar softly highlights the other bars with the same `reservationId`. A group booking is a reservation with a group name, so there is no separate group id. Status is per unit. The balance-due flag is the reservation's.
 - The footer counts only the visible rows, so it matches the screen.
 - **Rate row.** One row under the date header. Its label has two selects: a **room type** (default: the first room type in the property's order) and a **rate plan** (default: the first plan in the property's plan order). Each cell shows that plan's price for that room type and night, or "–" when the plan has no price or is closed that night. Derived plans use the same calculation as the rate calendar, so the numbers match. Package and day use plans are not listed: their price is not for one night. Changing a select, or the **Show rates** toggle, makes no request. Both choices are remembered in the browser, not in the URL. There is no hover card.
-- Clicking a stay bar opens **`StayPeekSheet`**. Clicking an empty cell opens **`CellActions`**: New booking here, Block room.
+- Clicking a stay bar opens **`StayPeekSheet`**. Clicking an empty cell opens **`CellActions`**: New booking here, Block room (a later item; see the checklist).
 
 ## Room View screen
 
@@ -118,13 +118,15 @@ The page is a Grid calendar: no `PageHeader`, the toolbar on top and the grid fi
 │  204  Siti A     Confirmed       │
 │ ─ Folio ─────────────────────    │
 │  ▒▒▒▒▒▒▒▒▒▒▒▒▒▒ (skeleton)       │
-│ [Open reservation] [Open group]  │
+│ [Open group booking]             │
 └──────────────────────────────────┘
 ```
 
 - The summary and the "This group" list come from `stays`. Folio lines load on open with `useHttp` and a `Skeleton`.
-- **Open reservation** and **Open group** link to the reservation or group page. Check in, Check out, Move and Record payment are done there for now, because the project allows one overlay level and their dialogs would sit on top of the Sheet. In-sheet actions are a later item.
-- Block room and New booking from `CellActions` open Sheets.
+- One link at the bottom: **Open reservation**, or **Open group booking** for a group (a group is one reservation, so both go to the reservation page). Check in, Check out, Move and Record payment are done there for now, because the project allows one overlay level and their dialogs would sit on top of the Sheet. The link and the Folio section need `reservations.view`; without it the Sheet shows the summary only.
+- The Folio section lists the 15 newest posted lines of the reservation's folios (voided folios left out) and its balance. They come from `GET front-desk/stays/{reservation}/folio` (`front-desk.stays.folio`), which needs `front-desk.view` and `reservations.view`.
+- The "This group" list holds only units loaded for the dates on screen. Click one to show it in the Sheet.
+- Block room and New booking from `CellActions` open Sheets. They need the booking form to take a room and a date, and the Block room form to be shared with the room blocks page, so they are their own item.
 
 ## Data loading
 
@@ -132,15 +134,16 @@ The server sends compact, normalized data. The browser derives everything it sho
 
 ### Props
 
-| Prop                 | Content                                                                                                                                                                                                                                                                            | Loaded                   |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| `window`             | from, to, today, business date                                                                                                                                                                                                                                                     | Immediate                |
-| `rooms`              | All rooms and beds: id, label, room group, room type, sell unit, room status (`HousekeepingStatus`; out of service comes from `blocks`), priority, do-not-disturb                                                                                                                  | Immediate (bounded list) |
-| `stays`              | Units overlapping the window: unit id, reservation id and reference, guest label, pax, unit status, tone, balance-due flag (the reservation's), group name, arrival and departure time, **segments** (row key `room-{id}` or `bed-{id}` + first and last night, cut to the window) | Immediate                |
-| `blocks`             | id, room or bed, first and last night, reason                                                                                                                                                                                                                                      | Immediate                |
-| `rates`              | Price per room type, rate plan and date for the active rate plans, and the plan list in order. Timeline View only                                                                                                                                                                  | Immediate                |
-| `version`            | Hash of the latest change for this property and window                                                                                                                                                                                                                             | Immediate                |
-| `filters`, `options` | Current filters, Group by and date (from the URL) and `EnumSelect` items                                                                                                                                                                                                           | Immediate                |
+| Prop                  | Content                                                                                                                                                                                                                                                                            | Loaded                   |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| `window`              | from, to, today, business date                                                                                                                                                                                                                                                     | Immediate                |
+| `rooms`               | All rooms and beds: id, label, room group, room type, sell unit, room status (`HousekeepingStatus`; out of service comes from `blocks`), priority, do-not-disturb                                                                                                                  | Immediate (bounded list) |
+| `stays`               | Units overlapping the window: unit id, reservation id and reference, guest label, pax, unit status, tone, balance-due flag (the reservation's), group name, arrival and departure time, **segments** (row key `room-{id}` or `bed-{id}` + first and last night, cut to the window) | Immediate                |
+| `blocks`              | id, room or bed, first and last night, reason                                                                                                                                                                                                                                      | Immediate                |
+| `rates`               | Price per room type, rate plan and date for the active rate plans, and the plan list in order. Timeline View only                                                                                                                                                                  | Immediate                |
+| `version`             | Hash of the latest change for this property and window                                                                                                                                                                                                                             | Immediate                |
+| `canViewReservations` | Whether the user has `reservations.view`: it shows the Folio section and the link in the peek sheet                                                                                                                                                                                | Immediate                |
+| `filters`, `options`  | Current filters, Group by and date (from the URL) and `EnumSelect` items                                                                                                                                                                                                           | Immediate                |
 
 - Segments come from `unit_nights`. Consecutive nights in the same room or bed form one segment. A room move creates a new segment.
 - Timeline default window: 14 days. Maximum: 30 days.

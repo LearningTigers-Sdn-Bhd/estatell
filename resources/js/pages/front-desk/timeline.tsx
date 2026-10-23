@@ -3,6 +3,7 @@ import { ChartGantt } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
 import type { DateGridHandle } from '@/components/pms/grid/date-grid';
+import { StayPeekSheet } from '@/components/pms/stay-view/stay-peek-sheet';
 import { StayViewTimeline } from '@/components/pms/stay-view/stay-view-timeline';
 import { StayViewToolbar } from '@/components/pms/stay-view/stay-view-toolbar';
 import {
@@ -27,6 +28,7 @@ export default function Timeline({
     statusOptions,
     weekendDays,
     currency,
+    canViewReservations,
 }: {
     window: App.Data.StayView.StayViewWindowData;
     rooms: App.Data.StayView.RoomRowData[];
@@ -38,9 +40,11 @@ export default function Timeline({
     statusOptions: { value: string; label: string }[];
     weekendDays: number[];
     currency: App.Data.Property.CurrencyData | null;
+    canViewReservations: boolean;
 }) {
     const gridRef = useRef<DateGridHandle>(null);
     const [filters, setFilters] = useState(initialFilters);
+    const [peekUnitId, setPeekUnitId] = useState<number | null>(null);
     const [preferences, updatePreferences] = useStayViewPreferences();
     const range: DateWindow = { from: stayWindow.from, to: stayWindow.to };
 
@@ -99,8 +103,21 @@ export default function Timeline({
                                 updatePreferences({ rateChoice })
                             }
                             currency={currency}
+                            onOpenStay={setPeekUnitId}
                         />
                     </div>
+                    <StayPeekSheet
+                        stay={
+                            stays.find((stay) => stay.unitId === peekUnitId) ??
+                            null
+                        }
+                        stays={stays}
+                        rooms={rooms}
+                        currency={currency}
+                        canViewReservations={canViewReservations}
+                        onSelect={setPeekUnitId}
+                        onClose={() => setPeekUnitId(null)}
+                    />
                 </>
             )}
         </div>

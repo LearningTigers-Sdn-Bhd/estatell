@@ -36,6 +36,7 @@ export function StayViewTimeline({
     rateChoice,
     onRateChoiceChange,
     currency,
+    onOpenStay,
 }: {
     gridRef: Ref<DateGridHandle>;
     window: App.Data.StayView.StayViewWindowData;
@@ -49,6 +50,7 @@ export function StayViewTimeline({
     rateChoice: RateChoice;
     onRateChoiceChange: (choice: RateChoice) => void;
     currency: App.Data.Property.CurrencyData | null;
+    onOpenStay: (unitId: number) => void;
 }) {
     const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
     const [hoveredReservation, setHoveredReservation] = useState<number | null>(
@@ -180,6 +182,7 @@ export function StayViewTimeline({
                                                 hoveredReservation
                                         }
                                         onHover={setHoveredReservation}
+                                        onOpen={onOpenStay}
                                     />
                                 ) : null,
                             )}
