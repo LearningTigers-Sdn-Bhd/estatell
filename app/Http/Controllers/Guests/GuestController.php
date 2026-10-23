@@ -95,10 +95,10 @@ class GuestController extends Controller
             $doc->save();
 
             if ($request->filled('identity_photo')) {
-                $doc->clearMediaCollection(\App\Models\GuestIdentityDocument::FRONT_SCAN);
+                $doc->clearMediaCollection(GuestIdentityDocument::FRONT_SCAN);
                 $doc->addMediaFromBase64($request->string('identity_photo')->value())
                     ->usingFileName('mykad_portrait.jpg')
-                    ->toMediaCollection(\App\Models\GuestIdentityDocument::FRONT_SCAN);
+                    ->toMediaCollection(GuestIdentityDocument::FRONT_SCAN);
             }
         }
 
@@ -170,10 +170,10 @@ class GuestController extends Controller
             $doc->save();
 
             if ($request->filled('identity_photo')) {
-                $doc->clearMediaCollection(\App\Models\GuestIdentityDocument::FRONT_SCAN);
+                $doc->clearMediaCollection(GuestIdentityDocument::FRONT_SCAN);
                 $doc->addMediaFromBase64($request->string('identity_photo')->value())
                     ->usingFileName('mykad_portrait.jpg')
-                    ->toMediaCollection(\App\Models\GuestIdentityDocument::FRONT_SCAN);
+                    ->toMediaCollection(GuestIdentityDocument::FRONT_SCAN);
             }
         }
 

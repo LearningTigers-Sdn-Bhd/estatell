@@ -3,6 +3,7 @@
 namespace App\Data\Guests;
 
 use App\Models\Guest;
+use App\Models\GuestIdentityDocument;
 use App\Models\Tag;
 use App\Services\Guests\CountryOptions;
 use Spatie\LaravelData\Data;
@@ -48,8 +49,8 @@ class GuestData extends Data
         $countries = app(CountryOptions::class);
 
         $primaryDoc = $guest->relationLoaded('documents')
-            ? $guest->documents->first(fn ($doc) => $doc->hasMedia(\App\Models\GuestIdentityDocument::FRONT_SCAN))
-            : $guest->documents()->with('media')->get()->first(fn ($doc) => $doc->hasMedia(\App\Models\GuestIdentityDocument::FRONT_SCAN));
+            ? $guest->documents->first(fn ($doc) => $doc->hasMedia(GuestIdentityDocument::FRONT_SCAN))
+            : $guest->documents()->with('media')->get()->first(fn ($doc) => $doc->hasMedia(GuestIdentityDocument::FRONT_SCAN));
 
         $photoUrl = $primaryDoc !== null
             ? route('guests.documents.scan', [

@@ -15,6 +15,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Symfony\Component\HttpFoundation\Response;
 
 class GuestIdentityDocumentController extends Controller
 {
@@ -65,7 +66,7 @@ class GuestIdentityDocumentController extends Controller
     /**
      * Open a scan through a short-lived link or direct file stream. The request is logged.
      */
-    public function scan(Request $request, Property $property, Guest $guest, GuestIdentityDocument $document, string $scan, RecordIdentityDocumentAccess $recordAccess): \Symfony\Component\HttpFoundation\Response
+    public function scan(Request $request, Property $property, Guest $guest, GuestIdentityDocument $document, string $scan, RecordIdentityDocumentAccess $recordAccess): Response
     {
         $collection = match ($scan) {
             'front' => GuestIdentityDocument::FRONT_SCAN,
