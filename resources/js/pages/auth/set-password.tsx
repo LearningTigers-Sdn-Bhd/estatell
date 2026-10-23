@@ -73,7 +73,8 @@ export default function SetPassword({ email, passwordRules }: Props) {
 
                         <Button
                             type="submit"
-                            className="w-full"
+                            size="lg"
+                            className="h-12 w-full rounded-full"
                             disabled={processing}
                             focusableWhenDisabled
                         >
