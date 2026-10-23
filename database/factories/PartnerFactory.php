@@ -31,12 +31,12 @@ class PartnerFactory extends Factory
     }
 
     /**
-     * Give the partner its property code counter, as CreatePartner does, so IssuePropertyCode starts at 10101.
+     * Give the partner its property code counter, as CreatePartner does, so IssuePropertyCode starts at 1101.
      */
     public function configure(): static
     {
         return $this->afterCreating(function (Partner $partner): void {
-            DB::table('property_code_counters')->insertOrIgnore(['prefix' => $partner->code_prefix, 'last_number' => 10100]);
+            DB::table('property_code_counters')->insertOrIgnore(['prefix' => $partner->code_prefix, 'last_number' => 1100]);
         });
     }
 
