@@ -3,10 +3,13 @@
 namespace App\Services\StayView;
 
 use App\Data\StayView\BlockData;
+use App\Data\StayView\DateRateData;
+use App\Data\StayView\RatePriceRowData;
 use App\Data\StayView\RoomRowData;
 use App\Data\StayView\StayData;
 use App\Data\StayView\StaySegmentData;
 use App\Data\StayView\StayViewWindowData;
+use App\Enums\PricingBasis;
 use App\Enums\SellUnit;
 use App\Enums\StayType;
 use App\Enums\UnitStatus;
@@ -18,6 +21,7 @@ use App\Models\UnitNight;
 use App\Services\Folio\FolioBalance;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Property\PropertyToday;
+use App\Services\Rates\RateCalendarService;
 use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
@@ -33,6 +37,7 @@ class StayViewQuery
         private CurrentBusinessDate $businessDate,
         private PropertyToday $propertyToday,
         private FolioBalance $folioBalance,
+        private RateCalendarService $rateCalendar,
     ) {}
 
     public function window(Property $property, CarbonImmutable $from, CarbonImmutable $to): StayViewWindowData
@@ -120,6 +125,36 @@ class StayViewQuery
             ->get();
 
         return array_values($blocks->map(fn (RoomBlock $block): BlockData => BlockData::fromModel($block))->all());
+    }
+
+    /**
+     * The nightly price of each rate plan for each room type, for the rate row. It reads the rate calendar, so a
+     * derived plan shows the same price as there. Package and day use plans are left out: their price is not for one
+     * night.
+     *
+     * @return list<RatePriceRowData>
+     */
+    public function rates(Property $property, CarbonImmutable $from, CarbonImmutable $to): array
+    {
+        $rows = [];
+
+        foreach ($this->rateCalendar->prices($property, $from, $to, $property->settings->currency->getCurrencyCode()) as $group) {
+            foreach ($group['plans'] as $plan) {
+                if ($plan->pricingBasis === PricingBasis::Package || $plan->pricingBasis === PricingBasis::DayUse) {
+                    continue;
+                }
+
+                $rows[] = new RatePriceRowData(
+                    roomTypeId: $group['roomType']->id,
+                    roomTypeName: $group['roomType']->name,
+                    ratePlanId: $plan->id,
+                    ratePlanName: $plan->name,
+                    days: array_map(DateRateData::fromCell(...), $plan->cells),
+                );
+            }
+        }
+
+        return $rows;
     }
 
     /**

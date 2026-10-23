@@ -39,6 +39,43 @@ class RateCalendarService
         $start = $from->startOfDay();
         $end = $to->startOfDay();
 
+        [$roomTypes, $plans, $rows] = $this->planRows($property, $start, $end, $currency);
+
+        $groups = $roomTypes->map(fn (RoomType $roomType): ?RateCalendarRoomTypeData => ($rows[$roomType->id] ?? []) === []
+            ? null
+            : RateCalendarRoomTypeData::fromModel($roomType, $rows[$roomType->id], $this->availability($roomType, $start, $end)))
+            ->filter()->values();
+
+        return new RateCalendarData(
+            from: $start->toDateString(),
+            to: $end->toDateString(),
+            dates: $this->datesOf($start, $end),
+            roomTypes: array_values($groups->all()),
+            ending: $this->ending($plans, $roomTypes, $today),
+        );
+    }
+
+    /**
+     * The plans that sell each active room type with their cells, without availability or ending notices. A room
+     * type no plan sells is left out. The Stay View reads its rate row from this.
+     *
+     * @return list<array{roomType: RoomType, plans: list<RateCalendarPlanData>}>
+     */
+    public function prices(Property $property, CarbonInterface $from, CarbonInterface $to, string $currency): array
+    {
+        [$roomTypes, , $rows] = $this->planRows($property, $from->startOfDay(), $to->startOfDay(), $currency);
+
+        return array_values($roomTypes
+            ->filter(fn (RoomType $roomType): bool => ($rows[$roomType->id] ?? []) !== [])
+            ->map(fn (RoomType $roomType): array => ['roomType' => $roomType, 'plans' => $rows[$roomType->id]])
+            ->all());
+    }
+
+    /**
+     * @return array{0: Collection<int, RoomType>, 1: Collection<int, RatePlan>, 2: array<int, list<RateCalendarPlanData>>}
+     */
+    private function planRows(Property $property, CarbonInterface $start, CarbonInterface $end, string $currency): array
+    {
         $roomTypes = $property->roomTypes()->active()->ordered()->get();
         $plans = $property->ratePlans()->active()->ordered()->with(['roomTypes', 'parent', 'arrivalWeekdays', 'inclusions.chargeItem'])->get();
 
@@ -59,25 +96,19 @@ class RateCalendarService
             ->get()
             ->groupBy(fn (PackagePrice $price): string => $price->rate_plan_id.'-'.$price->room_type_id);
 
-        $groups = $roomTypes->map(function (RoomType $roomType) use ($plans, $rates, $packagePrices, $start, $end, $currency): ?RateCalendarRoomTypeData {
-            $rows = array_values($plans
+        $rows = [];
+
+        foreach ($roomTypes as $roomType) {
+            $rows[$roomType->id] = array_values($plans
                 ->filter(fn (RatePlan $plan): bool => $plan->roomTypes->contains('id', $roomType->id))
                 ->map(fn (RatePlan $plan): RateCalendarPlanData => RateCalendarPlanData::fromModel(
                     $plan,
                     $this->cells($plan, $roomType, $rates, $packagePrices, $start, $end, $currency),
                 ))
                 ->all());
+        }
 
-            return $rows === [] ? null : RateCalendarRoomTypeData::fromModel($roomType, $rows, $this->availability($roomType, $start, $end));
-        })->filter()->values();
-
-        return new RateCalendarData(
-            from: $start->toDateString(),
-            to: $end->toDateString(),
-            dates: $this->datesOf($start, $end),
-            roomTypes: array_values($groups->all()),
-            ending: $this->ending($plans, $roomTypes, $today),
-        );
+        return [$roomTypes, $plans, $rows];
     }
 
     /**

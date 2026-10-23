@@ -3781,6 +3781,18 @@ lastNight: string,
 reason: string,
 reasonLabel: string,
 };
+export type DateRateData = {
+date: string,
+amount: string | null,
+closed: boolean,
+};
+export type RatePriceRowData = {
+roomTypeId: number,
+roomTypeName: string,
+ratePlanId: number,
+ratePlanName: string,
+days: App.Data.StayView.DateRateData[],
+};
 export type RoomRowData = {
 key: string,
 roomId: number,
@@ -3816,6 +3828,13 @@ export type StaySegmentData = {
 rowKey: string,
 firstNight: string,
 lastNight: string,
+};
+export type StayViewFiltersData = {
+roomGroupIds: number[],
+roomTypeIds: number[],
+statuses: string[],
+search: string,
+groupBy: App.Enums.StayViewGrouping,
 };
 export type StayViewWindowData = {
 from: string,

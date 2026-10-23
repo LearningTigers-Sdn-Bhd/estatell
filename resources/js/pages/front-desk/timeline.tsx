@@ -1,0 +1,113 @@
+import { Head } from '@inertiajs/react';
+import { ChartGantt } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { EmptyState } from '@/components/pms/empty-state';
+import type { DateGridHandle } from '@/components/pms/grid/date-grid';
+import { StayViewTimeline } from '@/components/pms/stay-view/stay-view-timeline';
+import { StayViewToolbar } from '@/components/pms/stay-view/stay-view-toolbar';
+import {
+    queryString,
+    viewQuery,
+} from '@/components/pms/stay-view/stay-view-url';
+import type { DateWindow } from '@/components/pms/stay-view/stay-view-url';
+import { useStayViewPreferences } from '@/components/pms/stay-view/use-stay-view-preferences';
+import { timeline } from '@/routes/front-desk';
+
+/**
+ * A Grid calendar page: no page header. The toolbar is the top of the page and the grid takes the rest of the window.
+ */
+export default function Timeline({
+    window: stayWindow,
+    rooms,
+    stays,
+    blocks,
+    rates,
+    filters: initialFilters,
+    groupingOptions,
+    statusOptions,
+    weekendDays,
+    currency,
+}: {
+    window: App.Data.StayView.StayViewWindowData;
+    rooms: App.Data.StayView.RoomRowData[];
+    stays: App.Data.StayView.StayData[];
+    blocks: App.Data.StayView.BlockData[];
+    rates: App.Data.StayView.RatePriceRowData[];
+    filters: App.Data.StayView.StayViewFiltersData;
+    groupingOptions: { value: string; label: string }[];
+    statusOptions: { value: string; label: string }[];
+    weekendDays: number[];
+    currency: App.Data.Property.CurrencyData | null;
+}) {
+    const gridRef = useRef<DateGridHandle>(null);
+    const [filters, setFilters] = useState(initialFilters);
+    const [preferences, updatePreferences] = useStayViewPreferences();
+    const range: DateWindow = { from: stayWindow.from, to: stayWindow.to };
+
+    const hrefFor = (target: DateWindow) =>
+        timeline.url() + queryString(viewQuery(target, filters));
+
+    // The filters live in the URL so a view can be bookmarked. Only the address changes; nothing is requested.
+    useEffect(() => {
+        window.history.replaceState(window.history.state, '', hrefFor(range));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [filters, range.from, range.to]);
+
+    return (
+        <div className="flex min-h-0 flex-1 flex-col gap-4 pt-4">
+            <Head title="Timeline View" />
+            {rooms.length === 0 ? (
+                <EmptyState
+                    icon={ChartGantt}
+                    title="No rooms yet"
+                    description="Add a room type and its rooms in settings, then the stays show here."
+                />
+            ) : (
+                <>
+                    <div className="px-4">
+                        <StayViewToolbar
+                            window={range}
+                            today={stayWindow.today}
+                            rooms={rooms}
+                            filters={filters}
+                            onFiltersChange={setFilters}
+                            groupingOptions={groupingOptions}
+                            statusOptions={statusOptions}
+                            showRates={preferences.showRates}
+                            onShowRatesChange={(showRates) =>
+                                updatePreferences({ showRates })
+                            }
+                            hrefFor={hrefFor}
+                            onScrollToToday={() =>
+                                gridRef.current?.scrollToDate(stayWindow.today)
+                            }
+                        />
+                    </div>
+                    <div className="relative flex min-h-0 flex-1 flex-col">
+                        <StayViewTimeline
+                            gridRef={gridRef}
+                            window={stayWindow}
+                            weekendDays={weekendDays}
+                            rooms={rooms}
+                            stays={stays}
+                            blocks={blocks}
+                            rates={rates}
+                            filters={filters}
+                            showRates={preferences.showRates}
+                            rateChoice={preferences.rateChoice}
+                            onRateChoiceChange={(rateChoice) =>
+                                updatePreferences({ rateChoice })
+                            }
+                            currency={currency}
+                        />
+                    </div>
+                </>
+            )}
+        </div>
+    );
+}
+
+Timeline.layout = {
+    variant: 'fixed',
+    breadcrumbs: [{ title: 'Timeline View', href: timeline() }],
+};

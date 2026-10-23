@@ -30,7 +30,8 @@ Two sidebar items under **Overview**, below Dashboard. Each is its own route. Th
 | **Show rates** | Toggle                                           | Timeline only: shows or hides the rate row. Remembered in the browser                     |
 | Search         | Text                                             | Guest, reference or room. Placeholder "e.g. Ahmad or 201"                                 |
 
-- On narrow screens, Room group, Room type, Status, Group by and Show rates collapse into one **Filters** popover. Date controls and Search stay visible.
+- On narrow screens the toolbar scrolls sideways, as the rate calendar toolbar does.
+- Room group and Room type are lists of checkboxes with counts; Status lists the housekeeping statuses. The choices, Group by and search are written to the URL without a request.
 - Group by sets the row or card headers only. Filters decide which rooms appear.
 - Beds stay under their dorm in every option. With Room type, dorm beds group under the dorm's room type. With None, beds list under their room's number.
 - Each header shows its row count. On the Timeline a header can collapse, as in the rate calendar.
@@ -64,7 +65,7 @@ The page is a Grid calendar: no `PageHeader`, the toolbar on top and the grid fi
 - The bar label is the guest and pax, with the unit status as a `StatusBadge`.
 - **Group bookings.** One bar per unit, each in its own room or bed. Every bar of a group has the `◆` marker and the group name. A label reads `ABC Corp · Tan Mei`, or `ABC Corp · Unit 2` with no named guest. Hovering a bar softly highlights the other bars with the same `reservationId`. A group booking is a reservation with a group name, so there is no separate group id. Status is per unit. The balance-due flag is the reservation's.
 - The footer counts only the visible rows, so it matches the screen.
-- **Rate row.** One row under the date header. Its label has two selects: a **room type** (default: the first room type in the property's order) and a **rate plan** (default: the first plan in the property's plan order). Each cell shows that plan's price for that room type and night, or "–" when the plan has no price or is closed that night. Derived plans use the same calculation as the rate calendar, so the numbers match. Changing a select, or the **Show rates** toggle, makes no request. Both choices are remembered in the browser, not in the URL. There is no hover card.
+- **Rate row.** One row under the date header. Its label has two selects: a **room type** (default: the first room type in the property's order) and a **rate plan** (default: the first plan in the property's plan order). Each cell shows that plan's price for that room type and night, or "–" when the plan has no price or is closed that night. Derived plans use the same calculation as the rate calendar, so the numbers match. Package and day use plans are not listed: their price is not for one night. Changing a select, or the **Show rates** toggle, makes no request. Both choices are remembered in the browser, not in the URL. There is no hover card.
 - Clicking a stay bar opens **`StayPeekSheet`**. Clicking an empty cell opens **`CellActions`**: New booking here, Block room.
 
 ## Room View screen
@@ -188,7 +189,11 @@ resources/js/
     ├── grid/                               shared with the rate calendar (DateGrid, date-columns, use-viewport-fit)
     └── stay-view/
         ├── stay-view-toolbar.tsx           shared by both views
-        ├── stay-view-filters.tsx           Room group, Room type, Status, Group by, Filters popover
+        ├── stay-view-filters.tsx           the checkbox list filter
+        ├── stay-view-url.ts                window and filter query, tested
+        ├── group-rows.ts                   rows by Group by, tested
+        ├── nightly-rate.ts                 rate row choices, tested
+        ├── use-stay-view-preferences.ts    Show rates and rate row choice, in the browser
         ├── stay-view-timeline.tsx
         ├── room-row.tsx
         ├── stay-bar.tsx
