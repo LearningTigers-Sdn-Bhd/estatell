@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from '@inertiajs/react';
 import { Menu, X, ArrowRight } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { home, login } from '@/routes';
 
 const links = [
@@ -42,10 +43,10 @@ export function Navbar() {
             }}
         >
             <div
-                className={`relative mx-auto w-full border bg-background/95 text-foreground backdrop-blur-xl transition-[max-width,border-radius,border-color,box-shadow] duration-300 ease-out motion-reduce:transition-none ${scrolled ? 'max-w-7xl rounded-2xl border-border shadow-lg shadow-foreground/10' : 'max-w-[100vw] rounded-none border-transparent border-b-border'}`}
+                className={`relative mx-auto w-full border bg-background/95 text-foreground backdrop-blur-xl transition-[max-width,border-radius,border-color,box-shadow] duration-300 ease-out motion-reduce:transition-none ${scrolled ? 'max-w-7xl rounded-full border-border shadow-lg shadow-foreground/10' : 'max-w-[100vw] rounded-none border-transparent border-b-border'}`}
             >
                 <div
-                    className={`mx-auto flex min-h-18 max-w-7xl items-center justify-between gap-3 py-3 transition-[padding] duration-300 ease-out motion-reduce:transition-none ${scrolled ? 'px-3 sm:px-5' : 'pr-[max(1.25rem,env(safe-area-inset-right))] pl-[max(1.25rem,env(safe-area-inset-left))] sm:pr-[max(2rem,env(safe-area-inset-right))] sm:pl-[max(2rem,env(safe-area-inset-left))]'}`}
+                    className={`mx-auto flex min-h-18 max-w-7xl items-center justify-between gap-3 py-3 transition-[padding] duration-300 ease-out motion-reduce:transition-none ${scrolled ? 'px-4 sm:px-7' : 'pr-[max(1.25rem,env(safe-area-inset-right))] pl-[max(1.25rem,env(safe-area-inset-left))] sm:pr-[max(2rem,env(safe-area-inset-right))] sm:pl-[max(2rem,env(safe-area-inset-left))]'}`}
                 >
                     <Link
                         href={home()}
@@ -90,7 +91,7 @@ export function Navbar() {
                                           rel: 'noopener noreferrer',
                                       }
                                     : {})}
-                                className="inline-flex min-h-11 items-center rounded-lg px-2.5 text-sm font-medium whitespace-nowrap text-foreground/70 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-ring motion-reduce:transition-none"
+                                className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-medium whitespace-nowrap text-foreground/70 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-ring motion-reduce:transition-none"
                             >
                                 {link.label}
                                 {link.external && (
@@ -106,7 +107,10 @@ export function Navbar() {
                     <div className="flex shrink-0 items-center gap-2">
                         <Link
                             href={login()}
-                            className={`${buttonVariants({ size: 'lg' })} h-11 rounded-full px-6`}
+                            className={cn(
+                                buttonVariants({ size: 'lg' }),
+                                'h-11 rounded-full px-6',
+                            )}
                         >
                             Sign in
                         </Link>
@@ -117,7 +121,7 @@ export function Navbar() {
                             aria-expanded={open}
                             aria-controls="mobile-navigation"
                             aria-label={open ? 'Close menu' : 'Open menu'}
-                            className="inline-flex size-11 items-center justify-center rounded-xl border border-border text-foreground transition-colors hover:bg-muted focus-visible:outline-ring motion-reduce:transition-none xl:hidden"
+                            className="inline-flex size-11 items-center justify-center rounded-full border border-border text-foreground transition-colors hover:bg-muted focus-visible:outline-ring motion-reduce:transition-none xl:hidden"
                         >
                             {open ? (
                                 <X className="size-5" aria-hidden="true" />

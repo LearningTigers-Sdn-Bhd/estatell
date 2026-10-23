@@ -29,7 +29,8 @@ export default function VerifyEmail({ status }: { status?: string }) {
                             type="submit"
                             disabled={processing}
                             focusableWhenDisabled
-                            className="w-full"
+                            size="lg"
+                            className="h-12 w-full rounded-full"
                         >
                             {processing && <Spinner data-icon="inline-start" />}
                             Resend verification email

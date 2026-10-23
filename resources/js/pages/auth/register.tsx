@@ -1,10 +1,15 @@
 import { Form, Head } from '@inertiajs/react';
-import InputError from '@/components/input-error';
+import { ArrowRight } from 'lucide-react';
 import PasswordInput from '@/components/password-input';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
+import {
+    Field,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { login } from '@/routes';
 import { store } from '@/routes/register';
@@ -32,115 +37,123 @@ export default function Register({
                 {({ processing, errors }) => (
                     <>
                         {partnerName && (
-                            <p className="text-center text-sm text-muted-foreground">
+                            <p className="text-sm text-muted-foreground">
                                 Joining via {partnerName}
                             </p>
                         )}
                         {notice && (
                             <p
                                 role="status"
-                                className="text-center text-sm text-muted-foreground"
+                                className="text-sm text-muted-foreground"
                             >
                                 {notice}
                             </p>
                         )}
-                        <div className="grid gap-6">
-                            <div className="grid gap-2">
-                                <Label htmlFor="name">Name</Label>
+                        <FieldGroup>
+                            <Field data-invalid={!!errors.name}>
+                                <FieldLabel htmlFor="name">Name</FieldLabel>
                                 <Input
                                     id="name"
                                     type="text"
+                                    name="name"
                                     required
                                     autoFocus
-                                    tabIndex={1}
+                                    aria-invalid={!!errors.name}
                                     autoComplete="name"
-                                    name="name"
                                     placeholder="Full name"
                                 />
-                                <InputError
-                                    message={errors.name}
-                                    className="mt-2"
-                                />
-                            </div>
+                                <FieldError>{errors.name}</FieldError>
+                            </Field>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="property_name">
+                            <Field data-invalid={!!errors.property_name}>
+                                <FieldLabel htmlFor="property_name">
                                     Property name
-                                </Label>
+                                </FieldLabel>
                                 <Input
                                     id="property_name"
                                     type="text"
-                                    required
-                                    tabIndex={2}
-                                    autoComplete="organization"
                                     name="property_name"
+                                    required
+                                    aria-invalid={!!errors.property_name}
+                                    autoComplete="organization"
                                     placeholder="e.g. Seaview Guesthouse"
                                 />
-                                <InputError message={errors.property_name} />
-                            </div>
+                                <FieldError>{errors.property_name}</FieldError>
+                            </Field>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
+                            <Field data-invalid={!!errors.email}>
+                                <FieldLabel htmlFor="email">
+                                    Email address
+                                </FieldLabel>
                                 <Input
                                     id="email"
                                     type="email"
-                                    required
-                                    tabIndex={3}
-                                    autoComplete="email"
                                     name="email"
+                                    required
+                                    aria-invalid={!!errors.email}
+                                    autoComplete="email"
                                     placeholder="email@example.com"
                                 />
-                                <InputError message={errors.email} />
-                            </div>
+                                <FieldError>{errors.email}</FieldError>
+                            </Field>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="password">Password</Label>
+                            <Field data-invalid={!!errors.password}>
+                                <FieldLabel htmlFor="password">
+                                    Password
+                                </FieldLabel>
                                 <PasswordInput
                                     id="password"
-                                    required
-                                    tabIndex={4}
-                                    autoComplete="new-password"
                                     name="password"
+                                    required
+                                    aria-invalid={!!errors.password}
+                                    autoComplete="new-password"
                                     placeholder="Password"
                                     passwordrules={passwordRules}
                                 />
-                                <InputError message={errors.password} />
-                            </div>
+                                <FieldError>{errors.password}</FieldError>
+                            </Field>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="password_confirmation">
+                            <Field
+                                data-invalid={!!errors.password_confirmation}
+                            >
+                                <FieldLabel htmlFor="password_confirmation">
                                     Confirm password
-                                </Label>
+                                </FieldLabel>
                                 <PasswordInput
                                     id="password_confirmation"
-                                    required
-                                    tabIndex={5}
-                                    autoComplete="new-password"
                                     name="password_confirmation"
+                                    required
+                                    aria-invalid={
+                                        !!errors.password_confirmation
+                                    }
+                                    autoComplete="new-password"
                                     placeholder="Confirm password"
                                     passwordrules={passwordRules}
                                 />
-                                <InputError
-                                    message={errors.password_confirmation}
-                                />
-                            </div>
+                                <FieldError>
+                                    {errors.password_confirmation}
+                                </FieldError>
+                            </Field>
+                        </FieldGroup>
 
-                            <Button
-                                type="submit"
-                                className="mt-2 w-full"
-                                tabIndex={6}
-                                data-test="register-user-button"
-                            >
-                                {processing && <Spinner />}
-                                Create account
-                            </Button>
-                        </div>
+                        <Button
+                            type="submit"
+                            size="lg"
+                            className="h-12 w-full rounded-full"
+                            disabled={processing}
+                            focusableWhenDisabled
+                            data-test="register-user-button"
+                        >
+                            {processing && <Spinner data-icon="inline-start" />}
+                            Create account
+                            {!processing && (
+                                <ArrowRight data-icon="inline-end" />
+                            )}
+                        </Button>
 
-                        <div className="text-center text-sm text-muted-foreground">
+                        <div className="border-t border-border pt-6 text-center text-sm text-muted-foreground">
                             Already have an account?{' '}
-                            <TextLink href={login()} tabIndex={7}>
-                                Log in
-                            </TextLink>
+                            <TextLink href={login()}>Log in</TextLink>
                         </div>
                     </>
                 )}

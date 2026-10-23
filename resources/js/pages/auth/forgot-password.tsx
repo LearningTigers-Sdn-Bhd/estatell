@@ -1,5 +1,5 @@
 import { Form, Head } from '@inertiajs/react';
-import { CheckCircle2 } from 'lucide-react';
+import { ArrowRight, CheckCircle2 } from 'lucide-react';
 import TextLink from '@/components/text-link';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -51,7 +51,8 @@ export default function ForgotPassword({ status }: { status?: string }) {
 
                             <Button
                                 type="submit"
-                                className="w-full"
+                                size="lg"
+                                className="h-12 w-full rounded-full"
                                 disabled={processing}
                                 focusableWhenDisabled
                                 data-test="email-password-reset-link-button"
@@ -60,12 +61,15 @@ export default function ForgotPassword({ status }: { status?: string }) {
                                     <Spinner data-icon="inline-start" />
                                 )}
                                 Email password reset link
+                                {!processing && (
+                                    <ArrowRight data-icon="inline-end" />
+                                )}
                             </Button>
                         </>
                     )}
                 </Form>
 
-                <div className="text-center text-sm text-muted-foreground">
+                <div className="border-t border-border pt-6 text-center text-sm text-muted-foreground">
                     <span>Or, return to </span>
                     <TextLink href={login()}>log in</TextLink>
                 </div>

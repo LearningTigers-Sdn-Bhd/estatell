@@ -84,7 +84,8 @@ export default function ResetPassword({ token, email, passwordRules }: Props) {
 
                         <Button
                             type="submit"
-                            className="w-full"
+                            size="lg"
+                            className="h-12 w-full rounded-full"
                             disabled={processing}
                             focusableWhenDisabled
                             data-test="reset-password-button"

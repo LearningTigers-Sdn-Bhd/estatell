@@ -1,5 +1,5 @@
 import { Form, Head } from '@inertiajs/react';
-import { CheckCircle2 } from 'lucide-react';
+import { ArrowRight, CheckCircle2 } from 'lucide-react';
 import PasswordInput from '@/components/password-input';
 import TextLink from '@/components/text-link';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -94,16 +94,20 @@ export default function Login({ status, canResetPassword }: Props) {
 
                         <Button
                             type="submit"
-                            className="w-full"
+                            size="lg"
+                            className="h-12 w-full rounded-full"
                             disabled={processing}
                             focusableWhenDisabled
                             data-test="login-button"
                         >
                             {processing && <Spinner data-icon="inline-start" />}
                             Log in
+                            {!processing && (
+                                <ArrowRight data-icon="inline-end" />
+                            )}
                         </Button>
 
-                        <div className="text-center text-sm text-muted-foreground">
+                        <div className="border-t border-border pt-6 text-center text-sm text-muted-foreground">
                             Don't have an account?{' '}
                             <TextLink href={register()}>Sign up</TextLink>
                         </div>

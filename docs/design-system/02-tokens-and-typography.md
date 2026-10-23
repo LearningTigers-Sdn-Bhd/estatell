@@ -49,7 +49,7 @@ Part of the [design system](../design-system.md). Short contract: [DESIGN.md](..
 
 ## App wordmark
 
-- The app and authentication layouts use **Estatell**, with a capital **E**, instead of the starter icon and app-name label.
+- The app layouts use **Estatell**, with a capital **E**, instead of the starter icon and app-name label. The authentication layout is the exception: it uses the landing logo image (see Error-page wordmark).
 - `AppLogoIcon` uses the email's font stack: Arial Black, Arial Bold, Arial, sans-serif, with weight 900.
 - The `font-wordmark` and `tracking-wordmark` tokens keep the same font and proportional letter spacing at each size. No font download is needed.
 - Authentication headers use `text-4xl`. Navigation uses `text-2xl`.
@@ -62,7 +62,7 @@ Part of the [design system](../design-system.md). Short contract: [DESIGN.md](..
 - Use the approved landing-page artwork, not a font recreation or the app icon. The error-page assets live in `public/images/errors/`.
 - Light mode uses the original green `wordmark-light.webp`. Dark mode uses `wordmark-dark.svg`, an off-white fill through the original artwork's alpha mask. The letter shapes and transparent boundary stay the same.
 - The `--error-wordmark` image URL changes in the existing light and dark theme definitions. The page uses that token, so the correct logo appears before React hydrates. Give it the accessible name **Estatell**.
-- These assets apply only to the standalone error page. App and authentication layouts use the text wordmark described above.
+- These assets apply only to the standalone error page. App layouts use the text wordmark described above. The authentication layout uses the landing navbar logo, `/images/landing/estatell-logo.webp`, so sign-in matches the public site.
 
 ## Landing page
 
