@@ -95,6 +95,15 @@ export function StayBar({
                     aria-hidden
                     className={cn('absolute inset-0 -z-10', tone.tint)}
                 />
+                {bar.openStart && (
+                    <span
+                        aria-hidden
+                        className={cn(
+                            'absolute inset-y-0 left-0 border-l-2 border-dashed',
+                            tone.border,
+                        )}
+                    />
+                )}
                 <span className="flex min-w-0 items-center gap-1">
                     <BookingSourceBadge
                         source={stay.source}
