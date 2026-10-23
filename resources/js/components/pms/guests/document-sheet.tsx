@@ -5,6 +5,8 @@ import { DatePicker } from '@/components/pms/date-picker';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { DuplicateWarning } from '@/components/pms/guests/duplicate-warning';
+import { MyKadScanner } from '@/components/pms/mykad-scanner';
+import { base64ToFile } from '@/hooks/use-mykad-reader';
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -127,29 +129,61 @@ function DocumentSheetForm({
                 <FieldDescription>
                     JPEG, PNG, WebP or PDF, up to 10 MB.
                 </FieldDescription>
-                {document && existing && (
-                    <div className="flex flex-wrap items-center gap-3 text-sm">
-                        <a
-                            href={scan.url({
+                {data[field] instanceof File && (
+                    <div className="mt-2 flex items-center gap-3 rounded border border-border/80 bg-muted/40 p-2">
+                        <img
+                            src={URL.createObjectURL(data[field] as File)}
+                            alt="Scan preview"
+                            className="h-20 w-16 rounded border border-border object-cover shadow-xs"
+                        />
+                        <div className="flex flex-col text-xs">
+                            <span className="font-semibold text-foreground">
+                                Attached: {(data[field] as File).name}
+                            </span>
+                            <span className="text-[11px] text-muted-foreground">
+                                Ready to be saved to guest ID document
+                            </span>
+                        </div>
+                    </div>
+                )}
+                {document && existing && !(data[field] instanceof File) && (
+                    <div className="mt-2 flex flex-wrap items-center gap-4 rounded border border-border/80 bg-muted/20 p-2 text-sm">
+                        <img
+                            src={scan.url({
                                 guest: guest.id,
                                 document: document.id,
                                 scan: side,
                             })}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="underline underline-offset-4"
-                        >
-                            View current scan
-                        </a>
-                        <label className="flex items-center gap-2">
-                            <Checkbox
-                                checked={data[removeField]}
-                                onCheckedChange={(checked) =>
-                                    form.setData(removeField, checked === true)
-                                }
-                            />
-                            Remove it
-                        </label>
+                            alt="Current scan"
+                            className="h-16 w-13 rounded border border-border object-cover shadow-xs"
+                            loading="lazy"
+                        />
+                        <div className="flex flex-col gap-1">
+                            <a
+                                href={scan.url({
+                                    guest: guest.id,
+                                    document: document.id,
+                                    scan: side,
+                                })}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs font-medium underline underline-offset-4"
+                            >
+                                View full scan
+                            </a>
+                            <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <Checkbox
+                                    checked={data[removeField]}
+                                    onCheckedChange={(checked) =>
+                                        form.setData(
+                                            removeField,
+                                            checked === true,
+                                        )
+                                    }
+                                />
+                                Remove current scan
+                            </label>
+                        </div>
                     </div>
                 )}
                 <FieldError>{errors[field]}</FieldError>
@@ -161,6 +195,26 @@ function DocumentSheetForm({
         <>
             <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
                 <FieldGroup className="flex-1 overflow-y-auto px-4">
+                    <MyKadScanner
+                        compact
+                        onScan={(card) => {
+                            form.setData('type', 'mykad');
+                            form.setData(
+                                'number',
+                                card.formatted_ic || card.ic_number,
+                            );
+                            form.setData('issuing_country_code', 'MY');
+                            if (card.photo_base64) {
+                                const photoFile = base64ToFile(
+                                    card.photo_base64,
+                                    `mykad_${card.ic_number || 'portrait'}.jpg`,
+                                );
+                                if (photoFile) {
+                                    form.setData('front_scan', photoFile);
+                                }
+                            }
+                        }}
+                    />
                     <Field data-invalid={!!errors.type}>
                         <FieldLabel htmlFor="document-type">
                             Document type

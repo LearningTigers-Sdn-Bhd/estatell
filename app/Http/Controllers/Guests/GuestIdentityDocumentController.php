@@ -15,6 +15,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Symfony\Component\HttpFoundation\Response;
 
 class GuestIdentityDocumentController extends Controller
 {
@@ -63,9 +64,9 @@ class GuestIdentityDocumentController extends Controller
     }
 
     /**
-     * Open a scan through a short-lived link. The request is logged.
+     * Open a scan through a short-lived link or direct file stream. The request is logged.
      */
-    public function scan(Request $request, Property $property, Guest $guest, GuestIdentityDocument $document, string $scan, RecordIdentityDocumentAccess $recordAccess): RedirectResponse
+    public function scan(Request $request, Property $property, Guest $guest, GuestIdentityDocument $document, string $scan, RecordIdentityDocumentAccess $recordAccess): Response
     {
         $collection = match ($scan) {
             'front' => GuestIdentityDocument::FRONT_SCAN,
@@ -75,6 +76,13 @@ class GuestIdentityDocumentController extends Controller
         $media = $document->getFirstMedia($collection) ?? abort(404);
 
         $recordAccess($request->user(), $document, $collection);
+
+        if ($media->disk === 'local' && file_exists($media->getPath())) {
+            return response()->file($media->getPath(), [
+                'Content-Type' => $media->mime_type,
+                'Cache-Control' => 'private, no-cache, no-store, must-revalidate',
+            ]);
+        }
 
         return redirect()->away($media->getTemporaryUrl(now()->addMinutes(self::SCAN_LINK_MINUTES)));
     }

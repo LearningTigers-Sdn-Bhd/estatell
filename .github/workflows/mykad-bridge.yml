@@ -1,0 +1,144 @@
+name: mykad-bridge
+
+# Builds the one-click MyKad bridge installers (docs/11-guests/05-mykad-reader.md).
+# Pull requests: build and smoke test only.
+# Run workflow (manual): also commits the installers to public/downloads on the chosen branch.
+
+on:
+  pull_request:
+    paths:
+      - 'tools/mykad-bridge/**'
+      - '.github/workflows/mykad-bridge.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+
+      - name: Build bridge (PyInstaller)
+        working-directory: tools/mykad-bridge
+        shell: bash
+        run: |
+          python -m pip install -r packaging/requirements-build.txt
+          pyinstaller --noconfirm --clean --onedir --noconsole \
+            --name estatell-mykad-bridge \
+            --distpath build/pyinstaller-dist --workpath build/pyinstaller-work --specpath build \
+            mykad_bridge.py
+
+      - name: Smoke test
+        working-directory: tools/mykad-bridge
+        shell: bash
+        run: |
+          ./build/pyinstaller-dist/estatell-mykad-bridge/estatell-mykad-bridge.exe &
+          sleep 5
+          curl -s -H "Origin: https://app.estatell.com" http://127.0.0.1:9292/status | tee status.json
+          grep -q '"version"' status.json
+          test "$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://evil.example' http://127.0.0.1:9292/status)" = "403"
+          taskkill //F //IM estatell-mykad-bridge.exe
+
+      - name: Build installer (Inno Setup)
+        working-directory: tools/mykad-bridge
+        shell: pwsh
+        run: |
+          $version = (Select-String -Path mykad_bridge.py -Pattern '^__version__ = "(.*)"').Matches[0].Groups[1].Value
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup --no-progress -y
+          }
+          & $iscc "/DAppVersion=$version" packaging\windows\installer.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload installer
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: windows-installer
+          path: tools/mykad-bridge/dist/estatell-mykad-setup.exe
+          if-no-files-found: error
+
+  macos:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The python.org build is universal2, so one pkg runs on Apple Silicon and Intel Macs.
+      - name: Install universal2 Python
+        run: |
+          curl -sSfLo python.pkg https://www.python.org/ftp/python/3.12.10/python-3.12.10-macos11.pkg
+          sudo installer -pkg python.pkg -target /
+          lipo -archs /Library/Frameworks/Python.framework/Versions/3.12/bin/python3.12
+
+      - name: Build pkg
+        env:
+          PYTHON: /Library/Frameworks/Python.framework/Versions/3.12/bin/python3.12
+          TARGET_ARCH: universal2
+        run: tools/mykad-bridge/packaging/macos/build.sh
+
+      - name: Smoke test
+        working-directory: tools/mykad-bridge
+        run: |
+          lipo -archs build/pyinstaller-dist/estatell-mykad-bridge/estatell-mykad-bridge | grep -q 'x86_64 arm64'
+          ./build/pyinstaller-dist/estatell-mykad-bridge/estatell-mykad-bridge &
+          pid=$!
+          sleep 5
+          curl -s -H "Origin: https://app.estatell.com" http://127.0.0.1:9292/status | tee status.json
+          grep -q '"version"' status.json
+          test "$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://evil.example' http://127.0.0.1:9292/status)" = "403"
+          kill "$pid"
+
+      - name: Upload pkg
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: macos-installer
+          path: tools/mykad-bridge/dist/estatell-mykad.pkg
+          if-no-files-found: error
+
+  publish:
+    if: github.event_name == 'workflow_dispatch'
+    needs: [windows, macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Download installers
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: installers
+          merge-multiple: true
+
+      - name: Copy into public/downloads
+        run: |
+          cp installers/estatell-mykad-setup.exe installers/estatell-mykad.pkg public/downloads/
+          rm -f public/downloads/mykad-bridge.zip
+          (cd tools && zip -qr ../public/downloads/mykad-bridge.zip mykad-bridge -x 'mykad-bridge/packaging/*' 'mykad-bridge/build/*' 'mykad-bridge/dist/*' '*/__pycache__/*' 'mykad-bridge/.gitignore')
+
+      - name: Commit installers
+        run: |
+          version=$(sed -n 's/^__version__ = "\(.*\)"/\1/p' tools/mykad-bridge/mykad_bridge.py)
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/downloads
+          git diff --cached --quiet && exit 0
+          git commit -m "chore(mykad): build bridge installers v${version}"
+          git push

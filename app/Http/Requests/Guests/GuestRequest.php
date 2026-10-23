@@ -26,6 +26,10 @@ class GuestRequest extends FormRequest
             ...GuestProfileRules::for($this->phoneRegion()),
             'tags' => ['nullable', 'array', 'max:20'],
             'tags.*' => ['required', 'string', 'max:50'],
+            'identity_number' => ['nullable', 'string', 'max:50'],
+            'identity_type' => ['nullable', 'string', 'max:20'],
+            'identity_country_code' => ['nullable', 'string', 'size:2'],
+            'identity_photo' => ['nullable', 'string'],
         ];
     }
 
@@ -36,7 +40,7 @@ class GuestRequest extends FormRequest
      */
     public function profileAttributes(): array
     {
-        return GuestProfileRules::attributes($this->safe()->except('tags'), $this->phoneRegion());
+        return GuestProfileRules::attributes($this->safe()->except(['tags', 'identity_number', 'identity_type', 'identity_country_code', 'identity_photo']), $this->phoneRegion());
     }
 
     /**

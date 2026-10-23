@@ -3,6 +3,7 @@
 namespace App\Data\Guests;
 
 use App\Models\Guest;
+use App\Models\GuestIdentityDocument;
 use App\Models\Tag;
 use App\Services\Guests\CountryOptions;
 use Spatie\LaravelData\Data;
@@ -40,11 +41,25 @@ class GuestData extends Data
         public ?string $anonymizedAt,
         public array $tags,
         public string $createdAt,
+        public ?string $photoUrl = null,
     ) {}
 
     public static function fromModel(Guest $guest): self
     {
         $countries = app(CountryOptions::class);
+
+        $primaryDoc = $guest->relationLoaded('documents')
+            ? $guest->documents->first(fn ($doc) => $doc->hasMedia(GuestIdentityDocument::FRONT_SCAN))
+            : $guest->documents()->with('media')->get()->first(fn ($doc) => $doc->hasMedia(GuestIdentityDocument::FRONT_SCAN));
+
+        $photoUrl = $primaryDoc !== null
+            ? route('guests.documents.scan', [
+                'property' => request()->route('property') ?? $guest->property,
+                'guest' => $guest->id,
+                'document' => $primaryDoc->id,
+                'scan' => 'front',
+            ])
+            : null;
 
         return new self(
             id: $guest->id,
@@ -71,6 +86,7 @@ class GuestData extends Data
             anonymizedAt: $guest->anonymized_at?->toDateString(),
             tags: array_values($guest->tags->sortBy(fn (Tag $tag): string => mb_strtolower($tag->name))->map(fn (Tag $tag): TagData => TagData::fromModel($tag))->all()),
             createdAt: $guest->created_at->toDateString(),
+            photoUrl: $photoUrl,
         );
     }
 }
