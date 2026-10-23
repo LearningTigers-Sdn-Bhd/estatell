@@ -7,6 +7,7 @@ use App\Enums\AuditStep;
 use App\Enums\AuditStepStatus;
 use App\Enums\AuditTrigger;
 use App\Jobs\NotifyNightAuditResultJob;
+use App\Jobs\PushDailyJournalJob;
 use App\Models\NightAudit;
 use App\Models\NightAuditException;
 use App\Models\NightAuditStep;
@@ -106,6 +107,10 @@ class RunNightAudit
             ->log('Night audit completed');
 
         NotifyNightAuditResultJob::dispatch($audit);
+
+        if ($property->accountingConnection()->where('enabled', true)->exists()) {
+            PushDailyJournalJob::dispatch($property->id, $audit->business_date_id);
+        }
 
         return NightAuditResult::completed($audit);
     }

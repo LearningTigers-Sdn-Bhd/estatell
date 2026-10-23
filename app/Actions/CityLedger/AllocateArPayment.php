@@ -2,6 +2,7 @@
 
 namespace App\Actions\CityLedger;
 
+use App\Actions\Accounting\QueueCompanyBillingSync;
 use App\Enums\ArInvoiceStatus;
 use App\Enums\ArInvoiceType;
 use App\Models\ArAllocation;
@@ -86,6 +87,8 @@ class AllocateArPayment
 
                 ($this->syncArInvoiceStatus)($invoices->get($invoiceId));
             }
+
+            app(QueueCompanyBillingSync::class)($locked->property_id);
 
             activity()
                 ->performedOn($locked->company)

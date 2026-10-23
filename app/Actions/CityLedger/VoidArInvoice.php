@@ -2,6 +2,7 @@
 
 namespace App\Actions\CityLedger;
 
+use App\Actions\Accounting\QueueCompanyBillingSync;
 use App\Enums\ArInvoiceStatus;
 use App\Enums\ArInvoiceType;
 use App\Models\ArAllocation;
@@ -46,6 +47,8 @@ class VoidArInvoice
                     $parent->update(['status' => ArInvoiceStatus::Open]);
                 }
             }
+
+            app(QueueCompanyBillingSync::class)($locked->property_id);
 
             activity()
                 ->performedOn($locked->company)

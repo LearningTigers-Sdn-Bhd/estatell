@@ -227,3 +227,4 @@ The build plan, as one commit per item, is in [checklist.md](checklist.md).
 | 23  | [Company portal](23-company-portal/) | Company users book and view their own stays across linked properties                           |
 | 24  | [Boats](24-boats/)                   | Boat departures, fares, trips per room and the boat manifest (feature flag)                    |
 | 25  | [Guest requests](25-guest-requests/) | Housekeeping, maintenance and complaint requests, and their resolution times                   |
+| 26  | [Accounting](26-accounting/)         | Daily journal of each closed business date pushed to the accounting software (feature flag)    |

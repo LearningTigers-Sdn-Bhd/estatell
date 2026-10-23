@@ -2,6 +2,7 @@
 
 namespace App\Actions\CityLedger;
 
+use App\Actions\Accounting\QueueCompanyBillingSync;
 use App\Models\ArAllocation;
 use App\Models\ArInvoice;
 use App\Models\ArPayment;
@@ -41,6 +42,8 @@ class ReverseAllocation
             ])->save();
 
             ($this->syncArInvoiceStatus)($invoice);
+
+            app(QueueCompanyBillingSync::class)($payment->property_id);
 
             activity()
                 ->performedOn($payment->company)

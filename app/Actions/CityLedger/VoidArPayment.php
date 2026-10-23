@@ -2,6 +2,7 @@
 
 namespace App\Actions\CityLedger;
 
+use App\Actions\Accounting\QueueCompanyBillingSync;
 use App\Models\ArAllocation;
 use App\Models\ArPayment;
 use App\Models\User;
@@ -28,6 +29,8 @@ class VoidArPayment
             }
 
             $locked->forceFill(['voided_at' => now(), 'voided_by' => $actor->id])->save();
+
+            app(QueueCompanyBillingSync::class)($locked->property_id);
 
             activity()
                 ->performedOn($locked->company)

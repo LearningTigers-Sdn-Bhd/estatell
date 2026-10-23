@@ -25,6 +25,15 @@ return [
         'webhook_secret' => env('CHANNEX_WEBHOOK_SECRET'),
     ],
 
+    'bukku' => [
+        'base_url' => env('BUKKU_BASE_URL', 'https://api.bukku.my'),
+        'staging_url' => env('BUKKU_STAGING_URL', 'https://api.staging.bukku.dev'),
+    ],
+
+    'qne' => [
+        'base_url' => env('QNE_BASE_URL', 'https://openapi.account.qne.cloud'),
+    ],
+
     'millionsend' => [
         'base_url' => env('MILLIONSEND_BASE_URL'),
         'api_key' => env('MILLIONSEND_API_KEY'),

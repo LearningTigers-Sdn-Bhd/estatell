@@ -2,6 +2,7 @@
 
 namespace App\Actions\CityLedger;
 
+use App\Actions\Accounting\QueueCompanyBillingSync;
 use App\Data\CityLedger\NewArPaymentData;
 use App\Enums\DocumentType;
 use App\Enums\PaymentMethodType;
@@ -90,6 +91,8 @@ class RecordArPayment
             ]);
             $payment->property_id = $locked->property_id;
             $payment->save();
+
+            app(QueueCompanyBillingSync::class)($locked->property_id);
 
             activity()
                 ->performedOn($locked)
