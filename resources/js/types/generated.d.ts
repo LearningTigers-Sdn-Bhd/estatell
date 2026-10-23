@@ -3771,6 +3771,59 @@ expiresOn: string,
 loginUrl: string,
 };
 }
+namespace StayView {
+export type BlockData = {
+id: number,
+roomId: number,
+bedId: number | null,
+firstNight: string,
+lastNight: string,
+reason: string,
+reasonLabel: string,
+};
+export type RoomRowData = {
+key: string,
+roomId: number,
+bedId: number | null,
+roomNumber: string,
+label: string,
+roomGroupId: number | null,
+roomGroupName: string | null,
+roomTypeId: number,
+roomTypeName: string,
+sellUnit: App.Enums.SellUnit,
+housekeepingStatus: App.Enums.HousekeepingStatus,
+isPriority: boolean,
+doNotDisturb: boolean,
+};
+export type StayData = {
+unitId: number,
+reservationId: number,
+reference: string,
+guestLabel: string | null,
+groupName: string | null,
+adults: number,
+children: number,
+status: App.Data.Shared.BadgeData,
+balanceDue: boolean,
+arrivalDate: string,
+departureDate: string,
+arrivalTime: string,
+departureTime: string,
+segments: App.Data.StayView.StaySegmentData[],
+};
+export type StaySegmentData = {
+rowKey: string,
+firstNight: string,
+lastNight: string,
+};
+export type StayViewWindowData = {
+from: string,
+to: string,
+today: string,
+businessDate: string,
+};
+}
 }
 namespace Enums {
 export type AccountingDocumentKind = 'invoice' | 'credit_note' | 'receipt';
@@ -3866,7 +3919,7 @@ export type PaymentStatus = 'pending' | 'completed' | 'failed';
 export type PdfFont = 'office' | 'modern' | 'fancy' | 'handwritten';
 export type PdfFontSize = 'small' | 'medium' | 'large';
 export type PerformancePreset = '7d' | '30d' | 'month' | 'last-month' | '12m';
-export type PermissionEnum = 'settings.manage' | 'settings.ota-lists' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'reservations.change-price' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'folio.manual' | 'folio.view-manual-entries' | 'payment.record' | 'payment.refund' | 'payment.refund-other-method' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void' | 'front-desk.check-in' | 'front-desk.check-out' | 'front-desk.check-in-without-card' | 'front-desk.waive-fees' | 'front-desk.undo-check-in' | 'front-desk.undo-check-out' | 'night-audit.run' | 'night-audit.force' | 'night-audit.receive-report' | 'reports.view' | 'housekeeping.view' | 'housekeeping.update' | 'housekeeping.inspect';
+export type PermissionEnum = 'settings.manage' | 'settings.ota-lists' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'reservations.change-price' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'folio.manual' | 'folio.view-manual-entries' | 'payment.record' | 'payment.refund' | 'payment.refund-other-method' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void' | 'front-desk.view' | 'front-desk.check-in' | 'front-desk.check-out' | 'front-desk.check-in-without-card' | 'front-desk.waive-fees' | 'front-desk.undo-check-in' | 'front-desk.undo-check-out' | 'night-audit.run' | 'night-audit.force' | 'night-audit.receive-report' | 'reports.view' | 'housekeeping.view' | 'housekeeping.update' | 'housekeeping.inspect';
 export type PlatformFeature = 'channel-manager' | 'boats' | 'accounting-integration';
 export type PolicyChargeMode = 'free' | 'fixed_amount' | 'percentage';
 export type PolicyRateBasis = 'booked_rate' | 'current_rate';
@@ -3897,6 +3950,7 @@ export type SellUnit = 'room' | 'bed';
 export type SpreadsheetFormat = 'csv' | 'xlsx';
 export type StayDiscountType = 'percent' | 'amount';
 export type StayType = 'overnight' | 'day_use';
+export type StayViewGrouping = 'none' | 'room_group' | 'room_type';
 export type StepState = 'locked' | 'not_started' | 'in_progress' | 'done' | 'needs_attention';
 export type SurchargeType = 'none' | 'fixed' | 'percent';
 export type SwatchColor = 'gray' | 'red' | 'orange' | 'amber' | 'green' | 'teal' | 'blue' | 'indigo' | 'violet' | 'pink';

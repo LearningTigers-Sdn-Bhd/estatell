@@ -60,7 +60,7 @@ The page is a Grid calendar: no `PageHeader`, the toolbar on top and the grid fi
 
 - A stay bar is one segment: the nights in the same room or bed. A room move starts a new bar in the new row. A bar clipped by the window shows an open edge.
 - The bar label is the guest and pax, with the unit status as a `StatusBadge`.
-- **Group bookings.** One bar per unit, each in its own room or bed. Every bar of a group has the `◆` marker and the group name. A label reads `ABC Corp · Tan Mei`, or `ABC Corp · Unit 2` with no named guest. Hovering a bar softly highlights the other bars with the same `group_id`. Status and balance are per unit.
+- **Group bookings.** One bar per unit, each in its own room or bed. Every bar of a group has the `◆` marker and the group name. A label reads `ABC Corp · Tan Mei`, or `ABC Corp · Unit 2` with no named guest. Hovering a bar softly highlights the other bars with the same `reservationId`. A group booking is a reservation with a group name, so there is no separate group id. Status is per unit. The balance-due flag is the reservation's.
 - The footer counts only the visible rows, so it matches the screen.
 - Clicking a stay bar opens **`StayPeekSheet`**. Clicking an empty cell opens **`CellActions`**: New booking here, Block room.
 
@@ -128,15 +128,15 @@ The server sends compact, normalized data. The browser derives everything it sho
 
 ### Props
 
-| Prop                 | Content                                                                                                                                                                                                                              | Loaded                   |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------ |
-| `window`             | from, to, today, business date                                                                                                                                                                                                       | Immediate                |
-| `rooms`              | All rooms and beds: id, label, room group, room type, sell unit, room status (`HousekeepingStatus`; out of service comes from `blocks`), priority, do-not-disturb                                                                    | Immediate (bounded list) |
-| `stays`              | Units overlapping the window: unit id, reservation id and reference, guest label, pax, unit status, tone, balance-due flag, `group_id` and group name, arrival and departure time, **segments** (room or bed + first and last night) | Immediate                |
-| `blocks`             | id, room or bed, first and last night, reason                                                                                                                                                                                        | Immediate                |
-| `rates`              | Standard rate per room type per date. Timeline View only                                                                                                                                                                             | Immediate                |
-| `version`            | Hash of the latest change for this property and window                                                                                                                                                                               | Immediate                |
-| `filters`, `options` | Current filters, Group by and date (from the URL) and `EnumSelect` items                                                                                                                                                             | Immediate                |
+| Prop                 | Content                                                                                                                                                                                                                                                                            | Loaded                   |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| `window`             | from, to, today, business date                                                                                                                                                                                                                                                     | Immediate                |
+| `rooms`              | All rooms and beds: id, label, room group, room type, sell unit, room status (`HousekeepingStatus`; out of service comes from `blocks`), priority, do-not-disturb                                                                                                                  | Immediate (bounded list) |
+| `stays`              | Units overlapping the window: unit id, reservation id and reference, guest label, pax, unit status, tone, balance-due flag (the reservation's), group name, arrival and departure time, **segments** (row key `room-{id}` or `bed-{id}` + first and last night, cut to the window) | Immediate                |
+| `blocks`             | id, room or bed, first and last night, reason                                                                                                                                                                                                                                      | Immediate                |
+| `rates`              | Standard rate per room type per date. Timeline View only                                                                                                                                                                                                                           | Immediate                |
+| `version`            | Hash of the latest change for this property and window                                                                                                                                                                                                                             | Immediate                |
+| `filters`, `options` | Current filters, Group by and date (from the URL) and `EnumSelect` items                                                                                                                                                                                                           | Immediate                |
 
 - Segments come from `unit_nights`. Consecutive nights in the same room or bed form one segment. A room move creates a new segment.
 - Timeline default window: 14 days. Maximum: 30 days.
@@ -207,15 +207,14 @@ resources/js/
 app/
 ├── Enums/StayViewGrouping.php                            None, RoomGroup, RoomType
 ├── Http/Controllers/FrontDesk/StayViewController.php     timeline, rooms, version
-├── Services/StayView/StayViewQuery.php                   loads rooms, stays (with segments), blocks, rates
+├── Services/StayView/StayViewQuery.php                   loads rows, stays (with segments) and blocks
 ├── Services/StayView/StayViewVersion.php                 hash of latest change in the window
 └── Data/StayView/
     ├── StayViewWindowData.php
     ├── RoomRowData.php
     ├── StayData.php
     ├── StaySegmentData.php
-    ├── BlockData.php
-    └── DateRateData.php
+    └── BlockData.php
 ```
 
 TypeScript types come from the Data classes through `spatie/laravel-typescript-transformer`.
@@ -229,7 +228,7 @@ TypeScript types come from the Data classes through `spatie/laravel-typescript-t
 ## Rules
 
 - Stay bars use `StatusBadge` tones from `UnitStatus::tone()`. The label is always shown; color never carries meaning alone.
-- Balance-due is a single flag on `StayData`, shown as an edge marker and in the peek sheet.
+- Balance-due is a single flag on `StayData`: the reservation's balance is above 0, from `FolioBalance::forReservations`. It is shown as an edge marker and in the peek sheet.
 - Props are built per permission. Guests' contact details and ID data are never in `stays`.
 - Filters, Group by and the date live in the URL so views can be bookmarked and the back button works.
 - Forms opened from the Stay View use a **Sheet** (see [Form containers](../design-system/05-form-containers.md)), so the grid stays visible.
