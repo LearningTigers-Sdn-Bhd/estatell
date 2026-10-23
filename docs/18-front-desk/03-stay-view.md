@@ -62,6 +62,7 @@ The page is a Grid calendar: no `PageHeader`, the toolbar on top and the grid fi
 ```
 
 - A stay bar is one segment: the nights in the same room or bed. A room move starts a new bar in the new row. A bar clipped by the window shows an open edge.
+- **Half cells.** A stay bar runs from the middle of the arrival column to the middle of the departure column, so a departure and an arrival on one day share that column (left half out, right half in). A room move uses the same edges at the handover day. A bar cut by the window is flush at the cut edge. Block bars stay full-cell.
 - The bar label is the guest and pax, with the unit status as a `StatusBadge`.
 - **Group bookings.** One bar per unit, each in its own room or bed. Every bar of a group has the `◆` marker and the group name. A label reads `ABC Corp · Tan Mei`, or `ABC Corp · Unit 2` with no named guest. Hovering a bar softly highlights the other bars with the same `reservationId`. A group booking is a reservation with a group name, so there is no separate group id. Status is per unit. The balance-due flag is the reservation's.
 - **Sticky group heading.** While the rooms of a group scroll, its heading stays under the date header, with its price cells, and the next heading pushes it up. `DateGrid` has an optional `stickyGroups` prop for this; the Timeline View turns it on.

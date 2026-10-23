@@ -3,7 +3,7 @@ import { BookingSourceBadge } from '@/components/pms/booking-source-badge';
 import { HoverCard, HoverCardTrigger } from '@/components/ui/hover-card';
 import { cn } from '@/lib/utils';
 import { StayHoverCard } from './bar-hover-card';
-import type { Bar } from './project-bars';
+import { barBox, type Bar } from './project-bars';
 
 type Stay = App.Data.StayView.StayData;
 type Room = App.Data.StayView.RoomRowData;
@@ -80,10 +80,7 @@ export function StayBar({
                             !bar.openEnd && 'border-r',
                             highlighted && 'ring-2 ring-ring',
                         )}
-                        style={{
-                            left: labelWidth + bar.start * columnWidth,
-                            width: bar.span * columnWidth,
-                        }}
+                        style={barBox(bar, labelWidth, columnWidth)}
                         onClick={() => onOpen(stay.unitId)}
                         onMouseEnter={() =>
                             grouped ? onHover(stay.reservationId) : undefined

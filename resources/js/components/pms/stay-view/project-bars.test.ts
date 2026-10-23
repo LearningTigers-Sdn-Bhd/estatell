@@ -1,5 +1,6 @@
 import { expect, test } from 'vite-plus/test';
 import {
+    barBox,
     blockBarInputs,
     lastNightOf,
     projectBars,
@@ -29,6 +30,8 @@ test('places a bar by its first column and span', () => {
             span: 2,
             openStart: false,
             openEnd: false,
+            leftShift: 0,
+            rightShift: 0,
         },
     ]);
 });
@@ -172,4 +175,68 @@ test('a room block takes every bed of a bed room, and a bed block takes one bed'
             rooms,
         ).map((input) => input.rowKey),
     ).toEqual(['room-3']);
+});
+
+test('a half-cell bar starts and ends in the middle of the arrival and departure columns', () => {
+    const [bar] = projectBars(
+        [
+            {
+                id: 'a',
+                rowKey: 'room-1',
+                firstNight: '2026-10-15',
+                lastNight: '2026-10-15',
+                halfCells: true,
+            },
+        ],
+        dates,
+    );
+
+    expect(bar).toMatchObject({ leftShift: 0.5, rightShift: 0.5 });
+    expect(barBox(bar, 100, 80)).toEqual({ left: 100 + 1.5 * 80, width: 80 });
+});
+
+test('a half-cell bar is flush at the window edges', () => {
+    const [bar] = projectBars(
+        [
+            {
+                id: 'a',
+                rowKey: 'room-1',
+                firstNight: '2026-10-12',
+                lastNight: '2026-10-17',
+                halfCells: true,
+            },
+        ],
+        dates,
+    );
+
+    expect(bar).toMatchObject({ leftShift: 0, rightShift: 0 });
+    expect(barBox(bar, 0, 10)).toEqual({ left: 0, width: 40 });
+});
+
+test('a departure and an arrival on one day fill the two halves of that column', () => {
+    const [out, into] = projectBars(
+        [
+            {
+                id: 'a',
+                rowKey: 'room-1',
+                firstNight: '2026-10-14',
+                lastNight: '2026-10-15',
+                halfCells: true,
+            },
+            {
+                id: 'b',
+                rowKey: 'room-1',
+                firstNight: '2026-10-16',
+                lastNight: '2026-10-16',
+                halfCells: true,
+            },
+        ],
+        dates,
+    );
+
+    const first = barBox(out, 0, 10);
+    const second = barBox(into, 0, 10);
+
+    expect(first.left + first.width).toBe(25);
+    expect(second.left).toBe(25);
 });

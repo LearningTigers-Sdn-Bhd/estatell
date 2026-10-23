@@ -1,7 +1,7 @@
 import { HoverCard, HoverCardTrigger } from '@/components/ui/hover-card';
 import { cn } from '@/lib/utils';
 import { BlockHoverCard } from './bar-hover-card';
-import type { Bar } from './project-bars';
+import { barBox, type Bar } from './project-bars';
 
 /** A room or bed taken out of sale, drawn as a hatched bar with its reason. */
 export function BlockBar({
@@ -33,10 +33,7 @@ export function BlockBar({
                             bar.openStart && 'border-l-0',
                             bar.openEnd && 'border-r-0',
                         )}
-                        style={{
-                            left: labelWidth + bar.start * columnWidth,
-                            width: bar.span * columnWidth,
-                        }}
+                        style={barBox(bar, labelWidth, columnWidth)}
                     />
                 }
             >

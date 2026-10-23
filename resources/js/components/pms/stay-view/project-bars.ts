@@ -11,6 +11,8 @@ export type BarInput = {
     /** The first and last night of the whole stay. A bar cut by the window has an open edge. */
     stayFirstNight?: string;
     stayLastNight?: string;
+    /** Draw the bar from the middle of the arrival column to the middle of the departure column. */
+    halfCells?: boolean;
 };
 
 export type Bar = {
@@ -24,6 +26,10 @@ export type Bar = {
     openStart: boolean;
     /** The stay goes on after the window. */
     openEnd: boolean;
+    /** Columns the left edge moves right: 0.5 when the bar begins at an arrival inside the window. */
+    leftShift: number;
+    /** Columns the right edge moves right: 0.5 when the bar ends at a departure column inside the window. */
+    rightShift: number;
 };
 
 /** The last night of a stay: the day before the departure date. */
@@ -68,13 +74,30 @@ export function projectBars(inputs: BarInput[], dates: string[]): Bar[] {
             span: end - start + 1,
             openStart: from === first && (input.stayFirstNight ?? from) < first,
             openEnd: to === last && (input.stayLastNight ?? to) > last,
+            leftShift: input.halfCells && from === input.firstNight ? 0.5 : 0,
+            rightShift:
+                input.halfCells && to === input.lastNight && to !== last
+                    ? 0.5
+                    : 0,
         });
     }
 
     return bars;
 }
 
-/** The segments of the stays as bar inputs. */
+/** The left edge and width of a bar, in pixels. */
+export function barBox(
+    bar: Bar,
+    labelWidth: number,
+    columnWidth: number,
+): { left: number; width: number } {
+    return {
+        left: labelWidth + (bar.start + bar.leftShift) * columnWidth,
+        width: (bar.span - bar.leftShift + bar.rightShift) * columnWidth,
+    };
+}
+
+/** The segments of the stays as bar inputs. Stays are drawn in half cells, so a departure and an arrival share a day. */
 export function stayBarInputs(stays: Stay[]): BarInput[] {
     return stays.flatMap((stay) =>
         stay.segments.map((segment, index) => ({
@@ -84,6 +107,7 @@ export function stayBarInputs(stays: Stay[]): BarInput[] {
             lastNight: segment.lastNight,
             stayFirstNight: stay.arrivalDate,
             stayLastNight: lastNightOf(stay.departureDate),
+            halfCells: true,
         })),
     );
 }
