@@ -52,20 +52,22 @@ class CheckOutUnit
      * with `ChangeUnitDates`. `$asOf` is the moment the guest really left, for a past stay entered after it ended
      * (`CreatePastStay`); it sets `checked_out_at`. `$skipBalanceCheck` (only `CreatePastStay` passes it) leaves the
      * balance, the scheduled-charge check and the folios alone: the folios stay Open with their balance, and the
-     * room is not marked Dirty, because the stay ended in the past. Permissions are checked by the route. See docs/18-front-desk/01-check-in-and-check-out.md.
+     * room is not marked Dirty, because the stay ended in the past. `$sameDayLeaver` (only the wastays replay passes it)
+     * checks out a one-night stay on its arrival date, before its departure date: its night posts first with the audit's
+     * key, so the folio closes and the invoice is issued on that business date. Permissions are checked by the route. See docs/18-front-desk/01-check-in-and-check-out.md.
      */
-    public function __invoke(User $actor, ReservationUnit $unit, ?CarbonImmutable $asOf = null, bool $skipBalanceCheck = false): UnitStayResult
+    public function __invoke(User $actor, ReservationUnit $unit, ?CarbonImmutable $asOf = null, bool $skipBalanceCheck = false, bool $sameDayLeaver = false): UnitStayResult
     {
         try {
-            return $this->checkOut($actor, $unit, $asOf, $skipBalanceCheck);
+            return $this->checkOut($actor, $unit, $asOf, $skipBalanceCheck, $sameDayLeaver);
         } catch (UnitStayRefused $refused) {
             return $refused->result;
         }
     }
 
-    private function checkOut(User $actor, ReservationUnit $unit, ?CarbonImmutable $asOf, bool $skipBalanceCheck): UnitStayResult
+    private function checkOut(User $actor, ReservationUnit $unit, ?CarbonImmutable $asOf, bool $skipBalanceCheck, bool $sameDayLeaver): UnitStayResult
     {
-        return DB::transaction(function () use ($actor, $unit, $asOf, $skipBalanceCheck): UnitStayResult {
+        return DB::transaction(function () use ($actor, $unit, $asOf, $skipBalanceCheck, $sameDayLeaver): UnitStayResult {
             $locked = ReservationUnit::query()->lockForUpdate()->findOrFail($unit->id);
 
             if (! $locked->status->canTransitionTo(UnitStatus::CheckedOut)) {
@@ -81,12 +83,14 @@ class CheckOutUnit
             $today = $businessDate->toDateString();
             $stayDay = $skipBalanceCheck || $asOf !== null || $locked->stay_type === StayType::DayUse ? $today : $this->stayDay->forCheckOut($locked->property, $businessDate)->toDateString();
 
-            if ($stayDay < $locked->departure_date->toDateString()) {
+            $leavesOnArrival = $sameDayLeaver && $locked->arrival_date->toDateString() === $today && $locked->departure_date->toDateString() === $businessDate->addDay()->toDateString();
+
+            if ($stayDay < $locked->departure_date->toDateString() && ! $leavesOnArrival) {
                 return UnitStayResult::refused(UnitStayResult::REFUSAL_BEFORE_DEPARTURE_DATE);
             }
 
             if (! $skipBalanceCheck && $asOf === null) {
-                ($this->postPendingNight)($actor, $locked);
+                ($this->postPendingNight)($actor, $locked, $leavesOnArrival);
             }
 
             if (! $skipBalanceCheck) {

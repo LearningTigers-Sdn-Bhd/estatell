@@ -23,11 +23,15 @@ class AvailablePaymentMethod
 {
     public function __construct(private MigrationWindow $migrationWindow) {}
 
-    public function find(Reservation $reservation, int $methodId, User $actor): ?PaymentMethod
+    public function find(Reservation $reservation, int $methodId, User $actor, bool $otaCollected = false): ?PaymentMethod
     {
         $method = PaymentMethod::query()
             ->where('property_id', $reservation->property_id)
-            ->whereNotIn('type', [PaymentMethodType::OtaCollected, PaymentMethodType::DirectBill])
+            ->when(
+                $otaCollected,
+                fn ($query) => $query->where('type', PaymentMethodType::OtaCollected),
+                fn ($query) => $query->whereNotIn('type', [PaymentMethodType::OtaCollected, PaymentMethodType::DirectBill]),
+            )
             ->with(['transactionCode', 'surchargeChargeItem.transactionCode'])
             ->find($methodId);
 

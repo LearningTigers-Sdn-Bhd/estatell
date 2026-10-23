@@ -6,6 +6,7 @@ use App\Models\DocumentSequence;
 use App\Models\Property;
 use App\Services\NightAudit\DocumentReference;
 use App\Services\NightAudit\NextDocumentNumber;
+use App\Services\NightAudit\PlannedNumberRefused;
 use Illuminate\Support\Facades\DB;
 
 beforeEach(function () {
@@ -111,6 +112,37 @@ test('the floor keeps a stale counter above the highest stored number', function
 
     expect($next($property, DocumentType::Folio, floor: 40)->number)->toBe(41)
         ->and($next($property, DocumentType::Folio, floor: 10)->number)->toBe(42);
+});
+
+test('a planned number above the last number is issued and the desk carries on after it', function () {
+    $property = liveProperty();
+    $next = app(NextDocumentNumber::class);
+
+    $next($property, DocumentType::Invoice);
+    $planned = $next($property, DocumentType::Invoice, planned: 123);
+
+    expect($planned->number)->toBe(123)
+        ->and($planned->reference)->toBe('GRH-26700123')
+        ->and(DocumentSequence::query()->sole()->last_number)->toBe(123)
+        ->and($next($property, DocumentType::Invoice)->number)->toBe(124);
+});
+
+test('a planned number that is not above the last number is refused and writes nothing', function (int $planned) {
+    $property = liveProperty();
+    $next = app(NextDocumentNumber::class);
+
+    $next($property, DocumentType::Invoice, planned: 50);
+
+    expect(fn () => $next($property, DocumentType::Invoice, planned: $planned))->toThrow(PlannedNumberRefused::class)
+        ->and(DocumentSequence::query()->sole()->last_number)->toBe(50);
+})->with([50, 12]);
+
+test('a planned number at or below the floor is refused', function () {
+    $property = liveProperty();
+    $next = app(NextDocumentNumber::class);
+
+    expect(fn () => $next($property, DocumentType::Invoice, floor: 80, planned: 80))->toThrow(PlannedNumberRefused::class)
+        ->and(DocumentSequence::query()->value('last_number'))->not->toBe(80);
 });
 
 test('a number is given back when the document it belongs to rolls back', function () {

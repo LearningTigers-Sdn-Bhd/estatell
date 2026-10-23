@@ -11,6 +11,7 @@ use Spatie\LaravelData\Data;
  * The manual folio page also gives `serviceDate` (a `Y-m-d` day in `ServiceDateRange`) and `manualBatchId`. An Old system
  * payment must give `serviceDate`, the day the old PMS took the money (any real day up to the business date).
  * `SaveOldFolios` also gives `migrated` (the line is copied from the old system) and `lineKey` (the key of the payment line, `migrated:{folio_id}:{uuid}`, in place of `payment:{idempotencyKey}`).
+ * `otaCollected` is set only by the wastays replay: the method must then be an OTA collected one, which the desk never offers.
  * See docs/14-payments/01-payments-and-refunds.md.
  */
 class NewPaymentData extends Data
@@ -25,5 +26,6 @@ class NewPaymentData extends Data
         public ?int $manualBatchId = null,
         public bool $migrated = false,
         public ?string $lineKey = null,
+        public bool $otaCollected = false,
     ) {}
 }
