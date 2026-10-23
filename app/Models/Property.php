@@ -20,7 +20,7 @@ use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
 /**
- * The tenant. `code` is issued by IssuePropertyCode (prefix plus number, for example ES10101) and never changes.
+ * The tenant. `code` is issued by IssuePropertyCode (prefix plus number, for example ES1101) and never changes.
  *
  * @property int $id
  * @property int|null $partner_id
@@ -348,6 +348,18 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
     public function documentPrefixHistories(): HasMany
     {
         return $this->hasMany(PropertyDocumentPrefixHistory::class);
+    }
+
+    /** @return HasOne<AccountingConnection, $this> */
+    public function accountingConnection(): HasOne
+    {
+        return $this->hasOne(AccountingConnection::class);
+    }
+
+    /** @return HasMany<AccountingSync, $this> */
+    public function accountingSyncs(): HasMany
+    {
+        return $this->hasMany(AccountingSync::class);
     }
 
     /** @return HasOne<ChannelProperty, $this> */

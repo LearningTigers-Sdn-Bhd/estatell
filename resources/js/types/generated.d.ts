@@ -1,5 +1,69 @@
 declare namespace App {
 namespace Data {
+namespace Accounting {
+export type AccountingConnectionData = {
+provider: string,
+providerLabel: string,
+hasApiKey: boolean,
+companySubdomain: string | null,
+sandbox: boolean,
+guestLedgerAccountCode: string | null,
+enabled: boolean,
+pushCompanyBilling: boolean,
+companyBillingSince: string | null,
+lastTestedAt: string | null,
+lastError: string | null,
+};
+export type AccountingDocumentData = {
+id: number,
+kindLabel: string,
+number: string,
+companyName: string,
+amount: string,
+date: string,
+status: App.Data.Shared.BadgeData,
+externalId: string | null,
+error: string | null,
+};
+export type AccountingMappingData = {
+id: number,
+code: string,
+name: string,
+kindLabel: string,
+accountCode: string | null,
+hint: string | null,
+};
+export type AccountingProviderData = {
+value: string,
+label: string,
+description: string,
+keyLabel: string,
+keyHelp: string,
+needsCompanySubdomain: boolean,
+supportsSandbox: boolean,
+};
+export type AccountingSetupData = {
+status: App.Data.Shared.BadgeData,
+providerLabel: string | null,
+connectionComplete: boolean,
+enabled: boolean,
+accountsMapped: number,
+accountsTotal: number,
+lastTestedAt: string | null,
+lastError: string | null,
+lastSync: App.Data.Accounting.AccountingSyncData | null,
+};
+export type AccountingSyncData = {
+id: number,
+date: string,
+status: App.Data.Shared.BadgeData,
+externalId: string | null,
+error: string | null,
+attempts: number,
+pushedAt: string | null,
+canRetry: boolean,
+};
+}
 namespace Boats {
 export type BoatDepartureData = {
 id: number,
@@ -3709,6 +3773,11 @@ loginUrl: string,
 }
 }
 namespace Enums {
+export type AccountingDocumentKind = 'invoice' | 'credit_note' | 'receipt';
+export type AccountingDocumentStatus = 'pending' | 'pushed' | 'failed' | 'voided';
+export type AccountingProvider = 'qne' | 'bukku';
+export type AccountingSetupStatus = 'not-connected' | 'needs-attention' | 'ready' | 'live';
+export type AccountingSyncStatus = 'pending' | 'pushed' | 'failed' | 'skipped';
 export type AgeBandPricing = 'free' | 'percent' | 'fixed';
 export type ArInvoiceStatus = 'open' | 'settled' | 'void';
 export type ArInvoiceType = 'invoice' | 'credit_note';
@@ -3798,7 +3867,7 @@ export type PdfFont = 'office' | 'modern' | 'fancy' | 'handwritten';
 export type PdfFontSize = 'small' | 'medium' | 'large';
 export type PerformancePreset = '7d' | '30d' | 'month' | 'last-month' | '12m';
 export type PermissionEnum = 'settings.manage' | 'settings.ota-lists' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'reservations.change-price' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'folio.manual' | 'folio.view-manual-entries' | 'payment.record' | 'payment.refund' | 'payment.refund-other-method' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void' | 'front-desk.check-in' | 'front-desk.check-out' | 'front-desk.check-in-without-card' | 'front-desk.waive-fees' | 'front-desk.undo-check-in' | 'front-desk.undo-check-out' | 'night-audit.run' | 'night-audit.force' | 'night-audit.receive-report' | 'reports.view' | 'housekeeping.view' | 'housekeeping.update' | 'housekeeping.inspect';
-export type PlatformFeature = 'channel-manager' | 'boats';
+export type PlatformFeature = 'channel-manager' | 'boats' | 'accounting-integration';
 export type PolicyChargeMode = 'free' | 'fixed_amount' | 'percentage';
 export type PolicyRateBasis = 'booked_rate' | 'current_rate';
 export type PolicyScope = 'first_night' | 'whole_stay' | 'unused_nights' | 'one_charge';

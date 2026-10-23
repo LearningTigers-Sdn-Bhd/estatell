@@ -2,6 +2,9 @@
 
 namespace App\Data\Shared;
 
+use App\Enums\AccountingDocumentStatus;
+use App\Enums\AccountingSetupStatus;
+use App\Enums\AccountingSyncStatus;
 use App\Enums\ArInvoiceStatus;
 use App\Enums\AuditStatus;
 use App\Enums\ChannelAlertEvent;
@@ -46,6 +49,21 @@ class BadgeData extends Data
     }
 
     public static function fromStatus(PropertyStatus $status): self
+    {
+        return new self($status->value, $status->label(), $status->tone());
+    }
+
+    public static function fromAccountingDocumentStatus(AccountingDocumentStatus $status): self
+    {
+        return new self($status->value, $status->label(), $status->tone());
+    }
+
+    public static function fromAccountingSetupStatus(AccountingSetupStatus $status): self
+    {
+        return new self($status->value, $status->label(), $status->tone());
+    }
+
+    public static function fromAccountingSyncStatus(AccountingSyncStatus $status): self
     {
         return new self($status->value, $status->label(), $status->tone());
     }

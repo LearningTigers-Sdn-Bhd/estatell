@@ -28,7 +28,7 @@ beforeEach(function () {
 });
 
 test('the Properties page lists only this partner\'s properties with the signup link', function () {
-    $mine = Property::factory()->create(['partner_id' => $this->partner->id, 'code' => 'AS10101']);
+    $mine = Property::factory()->create(['partner_id' => $this->partner->id, 'code' => 'AS1101']);
     Property::factory()->create(['partner_id' => Partner::factory()->create()->id]);
     Property::factory()->create();
 
@@ -70,7 +70,7 @@ test('a partner with the switch on creates a property with their prefix', functi
     $property = Property::query()->where('name', 'Pulau Inn')->sole();
 
     $response->assertRedirect(route('partner.properties.show', $property->code));
-    expect($property->code)->toBe('AS10101')
+    expect($property->code)->toBe('AS1101')
         ->and($property->partner_id)->toBe($this->partner->id)
         ->and(User::query()->where('email', 'aisyah@pulau.my')->sole()->property_id)->toBe($property->id)
         ->and(Activity::query()->where('event', 'property.created')->sole()->causer_id)->toBe($this->user->id);

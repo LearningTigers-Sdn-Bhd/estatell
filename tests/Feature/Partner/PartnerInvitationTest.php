@@ -60,7 +60,7 @@ test('invite reserves the prefix, emails the link and logs the partner', functio
     expect($partner->status)->toBe(PartnerStatus::Invited)
         ->and($partner->name)->toBe('Andaman Stays')
         ->and($partner->code_prefix)->toBe('AS')
-        ->and(DB::table('property_code_counters')->where('prefix', 'AS')->value('last_number'))->toBe(10100)
+        ->and(DB::table('property_code_counters')->where('prefix', 'AS')->value('last_number'))->toBe(1100)
         ->and($invitation->partner_id)->toBe($partner->id)
         ->and($invitation->email)->toBe('ops@andaman.test')
         ->and($invitation->token_hash)->toBe(hash('sha256', $token))

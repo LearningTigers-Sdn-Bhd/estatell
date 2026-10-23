@@ -2,6 +2,7 @@
 
 namespace App\Enums;
 
+use App\Features\AccountingIntegration;
 use App\Features\Boats;
 use App\Features\ChannelManager;
 
@@ -12,12 +13,14 @@ enum PlatformFeature: string
 {
     case ChannelManager = 'channel-manager';
     case Boats = 'boats';
+    case AccountingIntegration = 'accounting-integration';
 
     public function label(): string
     {
         return match ($this) {
             self::ChannelManager => __('Channel manager'),
             self::Boats => __('Boats'),
+            self::AccountingIntegration => __('Accounting integration'),
         };
     }
 
@@ -26,6 +29,7 @@ enum PlatformFeature: string
         return match ($this) {
             self::ChannelManager => __('Connect this property to Channex and sync OTAs.'),
             self::Boats => __('Boat departures, fares and boat trips for island and jetty properties.'),
+            self::AccountingIntegration => __('Push each closed business date to the property\'s accounting software.'),
         };
     }
 
@@ -37,6 +41,7 @@ enum PlatformFeature: string
         return match ($this) {
             self::ChannelManager => ChannelManager::class,
             self::Boats => Boats::class,
+            self::AccountingIntegration => AccountingIntegration::class,
         };
     }
 }

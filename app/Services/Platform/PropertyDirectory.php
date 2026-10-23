@@ -69,7 +69,7 @@ class PropertyDirectory
     {
         $search = trim($search);
 
-        if (preg_match('/^[A-Za-z]{2}[0-9]{5,}$/', $search) === 1) {
+        if (preg_match('/^[A-Za-z]{2}[0-9]{4,}$/', $search) === 1) {
             $query->where('code', Str::upper($search));
 
             return;

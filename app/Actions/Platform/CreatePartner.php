@@ -13,7 +13,7 @@ class CreatePartner
 
     /**
      * The step every way of adding a partner shares: the partner row, its signup code and its property code
-     * counter, which starts at 10100 so the first property is XX10101.
+     * counter, which starts at 1100 so the first property is XX1101.
      *
      * Call this inside the caller's transaction, so a failed login or invitation leaves no partner and no
      * reserved prefix. The request has already checked that the prefix is free.
@@ -28,7 +28,7 @@ class CreatePartner
         ]);
         $partner->save();
 
-        DB::table('property_code_counters')->insert(['prefix' => $prefix, 'last_number' => 10100]);
+        DB::table('property_code_counters')->insert(['prefix' => $prefix, 'last_number' => 1100]);
 
         return $partner;
     }

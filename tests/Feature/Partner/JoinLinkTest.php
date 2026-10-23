@@ -37,7 +37,7 @@ test('the link registers an owner and a property linked to the partner whether t
 
     $owner = User::query()->where('email', 'aisyah@pulau.my')->sole();
 
-    expect($owner->property->code)->toBe('AS10101')
+    expect($owner->property->code)->toBe('AS1101')
         ->and($owner->property->partner_id)->toBe($partner->id)
         ->and(session()->has('join_partner_id'))->toBeFalse();
 })->with([true, false]);

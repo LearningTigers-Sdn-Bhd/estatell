@@ -62,7 +62,7 @@ See [Dependencies](#approved-dependencies) for the full list.
 
 UI decisions (shadcn Nova on Base UI, preset `b3ZzDdiJy4`, component folders, form containers, data loading) are in [design-system.md](design-system.md). The short contract is [DESIGN.md](../DESIGN.md).
 
-URL shape, route groups and middleware are in [routing.md](routing.md). Staff URLs include the property code: `app.example.com/p/ES10142/...`.
+URL shape, route groups and middleware are in [routing.md](routing.md). Staff URLs include the property code: `app.example.com/p/ES1142/...`.
 
 ## Architecture rules
 
@@ -190,7 +190,7 @@ One word per idea, in docs, code and UI.
 | Company reference | The company's own voucher or file number (`reservations.external_reference`)                             | agent reference                            |
 | City ledger       | Money owed to the property by companies. UI name; tables keep `ar_*`                                     | receivables (in UI)                        |
 | Partner           | A reseller who brings properties and helps them onboard. Sees only their own properties, at `/partner`   | super agent, agent, reseller (in code)     |
-| Property code     | `ES10142`: a 2-letter prefix (`ES` direct, or the partner's) and a number per prefix                     | unique id, hotel prefix                    |
+| Property code     | `ES1142`: a 2-letter prefix (`ES` direct, or the partner's) and a number per prefix                      | unique id, hotel prefix                    |
 
 "Travel agent" appears only as a company type. "Portal" appears in UI labels and in `portal_*` columns.
 
@@ -227,3 +227,4 @@ The build plan, as one commit per item, is in [checklist.md](checklist.md).
 | 23  | [Company portal](23-company-portal/) | Company users book and view their own stays across linked properties                           |
 | 24  | [Boats](24-boats/)                   | Boat departures, fares, trips per room and the boat manifest (feature flag)                    |
 | 25  | [Guest requests](25-guest-requests/) | Housekeeping, maintenance and complaint requests, and their resolution times                   |
+| 26  | [Accounting](26-accounting/)         | Daily journal of each closed business date pushed to the accounting software (feature flag)    |

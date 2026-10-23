@@ -5,6 +5,7 @@ namespace App\Navigation;
 use App\Data\Navigation\NavGroupData;
 use App\Data\Navigation\NavItemData;
 use App\Enums\PermissionEnum;
+use App\Features\AccountingIntegration;
 use App\Features\Boats;
 use App\Models\Property;
 use App\Models\User;
@@ -40,6 +41,12 @@ class SettingsNavigation
                     href: route('settings.printing.general', ['property' => $property->code], absolute: false),
                     icon: 'printer',
                     active: request()->routeIs('settings.printing.*'),
+                ) : null,
+                $user->can(PermissionEnum::SettingsManage->value) && Feature::for($property)->active(AccountingIntegration::class) ? new NavItemData(
+                    title: __('Accounting'),
+                    href: route('settings.accounting.edit', ['property' => $property->code], absolute: false),
+                    icon: 'calculator',
+                    active: request()->routeIs('settings.accounting.*'),
                 ) : null,
                 $user->can(PermissionEnum::SettingsOtaLists->value) ? new NavItemData(
                     title: __('OTA lists'),

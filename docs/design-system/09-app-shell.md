@@ -8,7 +8,7 @@ The staff shell has three rows: the full-width navbar; the workspace label and b
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
-│ ☰  ▣ Pulau Inn · ID ES10142                                    👤  │  navbar
+│ ☰  ▣ Pulau Inn · ID ES1142                                    👤  │  navbar
 ├────────────────┬─────────────────────────────────────────────────────────┤
 │ ▣ Front desk   │ Breadcrumbs                                             │
 ├────────────────┼─────────────────────────────────────────────────────────┤

@@ -2,6 +2,7 @@
 
 namespace App\Actions\CityLedger;
 
+use App\Actions\Accounting\QueueCompanyBillingSync;
 use App\Enums\ArInvoiceStatus;
 use App\Enums\ArInvoiceType;
 use App\Enums\DocumentType;
@@ -74,6 +75,8 @@ class IssueCreditNote
             if (BigDecimal::of($this->arInvoiceBalance->forInvoice($locked))->isZero()) {
                 $locked->update(['status' => ArInvoiceStatus::Settled]);
             }
+
+            app(QueueCompanyBillingSync::class)($locked->property_id);
 
             activity()
                 ->performedOn($locked->company)

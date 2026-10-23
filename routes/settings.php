@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\PermissionEnum;
+use App\Http\Controllers\Accounting\AccountingSettingsController;
 use App\Http\Controllers\Boats\BoatDepartureController;
 use App\Http\Controllers\Boats\BoatFareController;
 use App\Http\Controllers\Catalogues\ChargeItemController;
@@ -178,6 +179,17 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::post('/', [PaymentMethodController::class, 'store'])->name('store');
         Route::put('order', [PaymentMethodController::class, 'reorder'])->name('reorder');
         Route::put('{paymentMethod}', [PaymentMethodController::class, 'update'])->name('update');
+    });
+
+    Route::prefix('accounting')->name('accounting.')->middleware(['accounting', 'can:'.PermissionEnum::SettingsManage->value])->scopeBindings()->group(function () {
+        Route::get('/', [AccountingSettingsController::class, 'edit'])->name('edit');
+        Route::get('accounts', [AccountingSettingsController::class, 'accounts'])->name('accounts');
+        Route::get('history', [AccountingSettingsController::class, 'history'])->name('history');
+        Route::put('/', [AccountingSettingsController::class, 'update'])->name('update');
+        Route::put('mappings', [AccountingSettingsController::class, 'mappings'])->name('mappings');
+        Route::post('test', [AccountingSettingsController::class, 'test'])->name('test');
+        Route::post('billing/sync', [AccountingSettingsController::class, 'syncBilling'])->name('billing.sync');
+        Route::post('syncs/{accountingSync}/retry', [AccountingSettingsController::class, 'retry'])->name('retry');
     });
 
     Route::prefix('ota-lists')->name('ota-lists.')->middleware('can:'.PermissionEnum::SettingsOtaLists->value)->group(function () {

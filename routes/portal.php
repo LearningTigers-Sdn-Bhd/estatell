@@ -18,7 +18,7 @@ Route::middleware(['auth', 'verified'])->prefix('portal')->name('portal.')->grou
         Route::post('decline', [PortalLinkController::class, 'decline'])->name('decline');
     });
 
-    Route::middleware('portal')->prefix('{property:code}')->where(['property' => '[A-Za-z]{2}[0-9]{5,}'])->group(function () {
+    Route::middleware('portal')->prefix('{property:code}')->where(['property' => '[A-Za-z]{2}[0-9]{4,}'])->group(function () {
         Route::get('/', [PortalController::class, 'show'])->name('show');
         Route::get('logo', [PropertyLogoController::class, 'show'])->name('logo');
 
