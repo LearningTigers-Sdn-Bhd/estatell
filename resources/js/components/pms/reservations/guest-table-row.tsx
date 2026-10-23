@@ -17,6 +17,7 @@ import { DuplicateWarning } from '@/components/pms/guests/duplicate-warning';
 import { GuestAutocompleteField } from '@/components/pms/guests/guest-autocomplete-field';
 import { GuestDetailsFields } from '@/components/pms/guests/guest-details-fields';
 import type { GuestDetails } from '@/components/pms/guests/guest-details-fields';
+import { MyKadScanner } from '@/components/pms/mykad-scanner';
 import { StatusBadge } from '@/components/pms/status-badge';
 import {
     emptyGuest,
@@ -472,6 +473,31 @@ export function SavedGuestRow({
 
                     <CollapsibleContent>
                         <div className="flex flex-col gap-4 px-3 pb-3 lg:px-14">
+                            <MyKadScanner
+                                compact
+                                onScan={(card) => {
+                                    setValues((current) =>
+                                        current === null
+                                            ? current
+                                            : {
+                                                  ...current,
+                                                  full_name: card.name,
+                                                  nationality_code: 'MY',
+                                                  date_of_birth: card.dob,
+                                                  gender: card.gender,
+                                                  address_line1:
+                                                      card.address.line1,
+                                                  address_line2:
+                                                      card.address.line2,
+                                                  postal_code:
+                                                      card.address.postcode,
+                                                  city: card.address.city,
+                                                  state: card.address.state,
+                                                  country_code: 'MY',
+                                              },
+                                    );
+                                }}
+                            />
                             {parts.linked}
                             {parts.email}
                             <GuestDetailsFields
@@ -738,6 +764,23 @@ export function DraftGuestRow({
 
                     <CollapsibleContent>
                         <div className="flex flex-col gap-4 px-3 pb-3 lg:px-14">
+                            <MyKadScanner
+                                compact
+                                onScan={(card) => {
+                                    onChange({
+                                        full_name: card.name,
+                                        nationality_code: 'MY',
+                                        date_of_birth: card.dob,
+                                        gender: card.gender,
+                                        address_line1: card.address.line1,
+                                        address_line2: card.address.line2,
+                                        postal_code: card.address.postcode,
+                                        city: card.address.city,
+                                        state: card.address.state,
+                                        country_code: 'MY',
+                                    });
+                                }}
+                            />
                             {replacing !== undefined && (
                                 <FieldDescription>
                                     Replacing {replacing.name} on{' '}

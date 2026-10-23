@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { PageHeader } from '@/components/pms/page-header';
 import { IdentityDocumentFields } from '@/components/pms/registration-card/identity-document-fields';
+import { MyKadScanner } from '@/components/pms/mykad-scanner';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { TermsPreview } from '@/components/pms/registration-card/terms-preview';
 import {
@@ -176,21 +177,43 @@ function DraftCard({
                     <h4 className="text-sm font-medium">Before handing over</h4>
                     <FieldGroup className="grid gap-4">
                         {shown.has('identity_document') && (
-                            <IdentityDocumentFields
-                                documents={card.documents}
-                                documentId={form.data.identity_document_id}
-                                identity={form.data.identity}
-                                onDocumentChange={(value) =>
-                                    form.setData('identity_document_id', value)
-                                }
-                                onIdentityChange={(value) =>
-                                    form.setData('identity', value)
-                                }
-                                identityTypes={identityTypes}
-                                countries={countries}
-                                errors={errors}
-                                label="ID document"
-                            />
+                            <>
+                                <MyKadScanner
+                                    compact
+                                    onScan={(card) => {
+                                        form.setData(
+                                            'identity_document_id',
+                                            '',
+                                        );
+                                        form.setData('identity', {
+                                            type: 'mykad',
+                                            number:
+                                                card.formatted_ic ||
+                                                card.ic_number,
+                                            issuing_country_code: 'MY',
+                                            expires_on: '',
+                                        });
+                                    }}
+                                />
+                                <IdentityDocumentFields
+                                    documents={card.documents}
+                                    documentId={form.data.identity_document_id}
+                                    identity={form.data.identity}
+                                    onDocumentChange={(value) =>
+                                        form.setData(
+                                            'identity_document_id',
+                                            value,
+                                        )
+                                    }
+                                    onIdentityChange={(value) =>
+                                        form.setData('identity', value)
+                                    }
+                                    identityTypes={identityTypes}
+                                    countries={countries}
+                                    errors={errors}
+                                    label="ID document"
+                                />
+                            </>
                         )}
                         {shown.has('vehicle_plate') && (
                             <Field data-invalid={!!errors.vehicle_plate}>

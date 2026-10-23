@@ -5,6 +5,8 @@ import { DatePicker } from '@/components/pms/date-picker';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { DuplicateWarning } from '@/components/pms/guests/duplicate-warning';
+import { MyKadScanner } from '@/components/pms/mykad-scanner';
+import { base64ToFile } from '@/hooks/use-mykad-reader';
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -127,6 +129,11 @@ function DocumentSheetForm({
                 <FieldDescription>
                     JPEG, PNG, WebP or PDF, up to 10 MB.
                 </FieldDescription>
+                {data[field] instanceof File && (
+                    <p className="text-xs font-medium text-success">
+                        Photo file attached: {(data[field] as File).name}
+                    </p>
+                )}
                 {document && existing && (
                     <div className="flex flex-wrap items-center gap-3 text-sm">
                         <a
@@ -161,6 +168,26 @@ function DocumentSheetForm({
         <>
             <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
                 <FieldGroup className="flex-1 overflow-y-auto px-4">
+                    <MyKadScanner
+                        compact
+                        onScan={(card) => {
+                            form.setData('type', 'mykad');
+                            form.setData(
+                                'number',
+                                card.formatted_ic || card.ic_number,
+                            );
+                            form.setData('issuing_country_code', 'MY');
+                            if (card.photo) {
+                                const photoFile = base64ToFile(
+                                    card.photo,
+                                    `mykad_${card.ic_number || 'portrait'}.jpg`,
+                                );
+                                if (photoFile) {
+                                    form.setData('front_scan', photoFile);
+                                }
+                            }
+                        }}
+                    />
                     <Field data-invalid={!!errors.type}>
                         <FieldLabel htmlFor="document-type">
                             Document type

@@ -6,6 +6,7 @@ import {
     GuestAddressFields,
     GuestPersonalFields,
 } from '@/components/pms/guests/guest-details-fields';
+import { MyKadScanner } from '@/components/pms/mykad-scanner';
 import { TagInput } from '@/components/pms/guests/tag-input';
 import { PhoneInput } from '@/components/pms/phone-input';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
@@ -138,6 +139,23 @@ export function GuestForm({ guest, countries, genders, locales, tags }: Props) {
         >
             <div className="grid gap-8 lg:grid-cols-2">
                 <div className="flex flex-col gap-8">
+                    <MyKadScanner
+                        onScan={(card) => {
+                            form.setData({
+                                ...form.data,
+                                full_name: card.name,
+                                nationality_code: 'MY',
+                                date_of_birth: card.dob,
+                                gender: card.gender,
+                                address_line1: card.address.line1,
+                                address_line2: card.address.line2,
+                                city: card.address.city,
+                                state: card.address.state,
+                                postal_code: card.address.postcode,
+                                country_code: 'MY',
+                            });
+                        }}
+                    />
                     <FieldSet>
                         <FieldLegend>Contact</FieldLegend>
                         <FieldGroup>
