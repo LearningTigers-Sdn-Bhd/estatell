@@ -1,5 +1,11 @@
 import { expect, test } from 'vite-plus/test';
-import { groupMates, nightCount, placeLabel, placesOf } from './stay-places';
+import {
+    dayAfter,
+    groupMates,
+    nightCount,
+    placeLabel,
+    placesOf,
+} from './stay-places';
 
 const room = (
     over: Partial<App.Data.StayView.RoomRowData>,
@@ -94,4 +100,10 @@ test('lists the loaded units of a group booking by arrival, and none for a singl
         2, 3,
     ]);
     expect(groupMates(stays, stays[3])).toEqual([]);
+});
+
+test('the day after a last night is the departure date, over a month end', () => {
+    expect(dayAfter('2026-10-23')).toBe('2026-10-24');
+    expect(dayAfter('2026-10-31')).toBe('2026-11-01');
+    expect(dayAfter('2026-12-31')).toBe('2027-01-01');
 });

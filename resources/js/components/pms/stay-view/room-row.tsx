@@ -32,12 +32,17 @@ export function RoomLabel({ room }: { room: Room }) {
     const isBed = room.bedId !== null;
 
     return (
-        <div className="flex min-w-0 items-center gap-2 text-sm">
-            <span className="min-w-0 flex-1 truncate">
-                <span className={cn('font-medium', isBed && 'pl-3')}>
+        <div className="flex min-w-0 items-center gap-2">
+            <span className="flex min-w-0 flex-1 flex-col">
+                <span className={cn('truncate text-sm', isBed && 'pl-3')}>
                     {isBed ? `Bed ${room.label}` : room.label}
-                </span>{' '}
-                <span className="text-xs text-grid-muted-foreground">
+                </span>
+                <span
+                    className={cn(
+                        'truncate text-xs text-grid-muted-foreground',
+                        isBed && 'pl-3',
+                    )}
+                >
                     {isBed ? room.roomNumber : room.roomTypeName}
                 </span>
             </span>
@@ -69,14 +74,17 @@ export function GroupLabel({
         <button
             type="button"
             aria-expanded={!row.collapsed}
-            className="flex min-w-0 flex-1 items-center gap-1.5 rounded-sm text-left text-sm font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+            title={row.collapsed ? 'Expand' : 'Collapse'}
+            className="flex w-full min-w-0 items-center gap-2 rounded-md text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
             onClick={() => onToggle(row.groupKey)}
         >
             <Chevron aria-hidden className="size-4 shrink-0" />
-            <span className="truncate">{row.title}</span>
-            <span className="text-xs font-normal text-grid-muted-foreground tabular-nums">
-                {row.count}
-            </span>
+            <span className="truncate text-sm font-semibold">{row.title}</span>
+            {row.collapsed && (
+                <span className="ml-auto shrink-0 text-xs text-grid-muted-foreground tabular-nums">
+                    {row.count}
+                </span>
+            )}
         </button>
     );
 }

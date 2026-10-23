@@ -1,5 +1,5 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { useImperativeHandle, useRef, useState } from 'react';
+import { useImperativeHandle, useMemo, useRef, useState } from 'react';
 import type { ReactNode, Ref } from 'react';
 import { cn } from '@/lib/utils';
 import type { DateColumn } from './date-columns';
@@ -46,6 +46,11 @@ type Props<Row extends GridRow> = {
         row: Row,
         layout: { labelWidth: number; columnWidth: number },
     ) => ReactNode;
+    /**
+     * Keep the heading of the group in view under the date header while its rows scroll. The next heading pushes it
+     * up as it arrives.
+     */
+    stickyGroups?: boolean;
     'aria-label': string;
     rowHeight?: number;
     groupHeight?: number;
@@ -80,6 +85,7 @@ export function DateGrid<Row extends GridRow>({
     renderPinnedCell,
     pinnedHeight = 64,
     renderRowOverlay,
+    stickyGroups = false,
     'aria-label': ariaLabel,
     rowHeight = 48,
     groupHeight = 36,
@@ -136,6 +142,60 @@ export function DateGrid<Row extends GridRow>({
     const hasPinned = renderPinnedCell !== undefined;
     const pinnedOffset = hasPinned ? pinnedHeight : 0;
     const virtualColumns = columnVirtualizer.getVirtualItems();
+
+    const rowTop = useMemo(() => {
+        let offset = 0;
+
+        return rows.map((row) => {
+            const start = offset;
+
+            offset += row.kind === 'group' ? groupHeight : rowHeight;
+
+            return start;
+        });
+    }, [rows, rowHeight, groupHeight]);
+    const scrolled = rowVirtualizer.scrollOffset ?? 0;
+    let stuck: { row: Row; push: number } | null = null;
+
+    if (stickyGroups) {
+        const groupIndexes = rows.flatMap((row, index) =>
+            row.kind === 'group' ? [index] : [],
+        );
+        const current = groupIndexes.findLast(
+            (index) => rowTop[index] < scrolled,
+        );
+
+        if (current !== undefined) {
+            const next = groupIndexes.find((index) => index > current);
+            const nextTop = next === undefined ? Infinity : rowTop[next];
+
+            stuck = {
+                row: rows[current],
+                push: Math.min(0, nextTop - scrolled - groupHeight),
+            };
+        }
+    }
+
+    const groupCells = (row: Row) =>
+        renderGroupCell
+            ? virtualColumns.map((virtualColumn) => {
+                  const column = columns[virtualColumn.index];
+
+                  return (
+                      <div
+                          key={column.date}
+                          role="gridcell"
+                          className="absolute top-0 h-full border-r border-grid-line"
+                          style={{
+                              left: labelWidth + virtualColumn.start,
+                              width: virtualColumn.size,
+                          }}
+                      >
+                          {renderGroupCell(row, column)}
+                      </div>
+                  );
+              })
+            : null;
 
     return (
         <div
@@ -253,6 +313,29 @@ export function DateGrid<Row extends GridRow>({
                         })}
                     </div>
                 )}
+                {stuck && (
+                    <div
+                        role="presentation"
+                        className="sticky z-15 shrink-0 border-b border-grid-line bg-grid-group"
+                        style={{
+                            top: headerHeight + pinnedOffset,
+                            width: totalWidth,
+                            height: groupHeight,
+                            marginBottom: -groupHeight,
+                            transform: `translateY(${stuck.push}px)`,
+                        }}
+                    >
+                        <div
+                            className="sticky left-0 z-10 flex h-full items-center border-r border-grid-line bg-grid-group px-3"
+                            style={{ width: labelWidth }}
+                        >
+                            <div className="relative min-w-0 flex-1">
+                                {renderLabel(stuck.row)}
+                            </div>
+                        </div>
+                        {groupCells(stuck.row)}
+                    </div>
+                )}
                 <div
                     aria-hidden
                     className="flex-1"
@@ -303,27 +386,7 @@ export function DateGrid<Row extends GridRow>({
                                     {renderLabel(row)}
                                 </div>
                             </div>
-                            {isGroup &&
-                                renderGroupCell &&
-                                virtualColumns.map((virtualColumn) => {
-                                    const column = columns[virtualColumn.index];
-
-                                    return (
-                                        <div
-                                            key={column.date}
-                                            role="gridcell"
-                                            className="absolute top-0 h-full border-r border-grid-line"
-                                            style={{
-                                                left:
-                                                    labelWidth +
-                                                    virtualColumn.start,
-                                                width: virtualColumn.size,
-                                            }}
-                                        >
-                                            {renderGroupCell(row, column)}
-                                        </div>
-                                    );
-                                })}
+                            {isGroup && groupCells(row)}
                             {!isGroup &&
                                 virtualColumns.map((virtualColumn) => {
                                     const column = columns[virtualColumn.index];

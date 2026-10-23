@@ -11,6 +11,10 @@ import {
     viewQuery,
 } from '@/components/pms/stay-view/stay-view-url';
 import type { DateWindow } from '@/components/pms/stay-view/stay-view-url';
+import {
+    planChoices,
+    resolveChoice,
+} from '@/components/pms/stay-view/nightly-rate';
 import { useStayViewPreferences } from '@/components/pms/stay-view/use-stay-view-preferences';
 import { timeline } from '@/routes/front-desk';
 
@@ -46,6 +50,7 @@ export default function Timeline({
     const [filters, setFilters] = useState(initialFilters);
     const [peekUnitId, setPeekUnitId] = useState<number | null>(null);
     const [preferences, updatePreferences] = useStayViewPreferences();
+    const ratePlanId = resolveChoice(rates, preferences.rateChoice).ratePlanId;
     const range: DateWindow = { from: stayWindow.from, to: stayWindow.to };
 
     const hrefFor = (target: DateWindow) =>
@@ -81,6 +86,18 @@ export default function Timeline({
                             onShowRatesChange={(showRates) =>
                                 updatePreferences({ showRates })
                             }
+                            planOptions={planChoices(rates).map((plan) => ({
+                                value: String(plan.id),
+                                label: plan.name,
+                            }))}
+                            ratePlanId={
+                                ratePlanId === null ? '' : String(ratePlanId)
+                            }
+                            onRatePlanChange={(planId) =>
+                                updatePreferences({
+                                    rateChoice: { ratePlanId: planId },
+                                })
+                            }
                             hrefFor={hrefFor}
                             onScrollToToday={() =>
                                 gridRef.current?.scrollToDate(stayWindow.today)
@@ -99,9 +116,6 @@ export default function Timeline({
                             filters={filters}
                             showRates={preferences.showRates}
                             rateChoice={preferences.rateChoice}
-                            onRateChoiceChange={(rateChoice) =>
-                                updatePreferences({ rateChoice })
-                            }
                             currency={currency}
                             onOpenStay={setPeekUnitId}
                         />

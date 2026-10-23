@@ -63,3 +63,22 @@ export function groupMates(stays: Stay[], stay: Stay): Stay[] {
                 a.unitId - b.unitId,
         );
 }
+
+/** A date as a person reads it on the grid: "Fri 23 Oct". */
+export function dayLabel(date: string): string {
+    return new Intl.DateTimeFormat(undefined, {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        timeZone: 'UTC',
+    }).format(new Date(`${date}T00:00:00Z`));
+}
+
+/** The date after the given one. A stay's last night plus one is its departure date. */
+export function dayAfter(date: string): string {
+    const next = new Date(`${date}T00:00:00Z`);
+
+    next.setUTCDate(next.getUTCDate() + 1);
+
+    return next.toISOString().slice(0, 10);
+}

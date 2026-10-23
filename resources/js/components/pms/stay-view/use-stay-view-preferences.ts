@@ -7,7 +7,7 @@ type Preferences = { showRates: boolean; rateChoice: RateChoice };
 
 const DEFAULTS: Preferences = {
     showRates: true,
-    rateChoice: { roomTypeId: null, ratePlanId: null },
+    rateChoice: { ratePlanId: null },
 };
 
 function read(): Preferences {
@@ -23,7 +23,7 @@ function read(): Preferences {
 }
 
 /**
- * What the Timeline View remembers in this browser: whether the rate row shows, and its room type and rate plan.
+ * What the Timeline View remembers in this browser: whether the rates show, and which rate plan.
  * Storage can be blocked, so a failed read or write falls back to the defaults.
  */
 export function useStayViewPreferences() {

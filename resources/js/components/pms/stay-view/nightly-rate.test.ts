@@ -1,9 +1,9 @@
 import { expect, test } from 'vite-plus/test';
 import {
     planChoices,
-    pricesByDate,
+    plansOnDate,
+    pricesByRoomType,
     resolveChoice,
-    roomTypeChoices,
 } from './nightly-rate';
 
 const row = (
@@ -21,47 +21,49 @@ const row = (
 const rates = [
     row(1, 10, [{ date: '2026-10-14', amount: '240.00', closed: false }]),
     row(1, 11),
-    row(2, 10),
+    row(2, 10, [{ date: '2026-10-14', amount: '300.00', closed: true }]),
 ];
 
-test('lists room types once and the plans that sell one, in order', () => {
-    expect(roomTypeChoices(rates).map((type) => type.id)).toEqual([1, 2]);
-    expect(planChoices(rates, 1).map((plan) => plan.id)).toEqual([10, 11]);
-    expect(planChoices(rates, null)).toEqual([]);
+test('lists each plan once, in order', () => {
+    expect(planChoices(rates).map((plan) => plan.id)).toEqual([10, 11]);
+    expect(planChoices([])).toEqual([]);
 });
 
-test('defaults to the first room type and its first plan', () => {
-    expect(
-        resolveChoice(rates, { roomTypeId: null, ratePlanId: null }),
-    ).toEqual({
-        roomTypeId: 1,
-        ratePlanId: 10,
-    });
-});
-
-test('keeps a saved choice and repairs one that no longer exists', () => {
-    expect(resolveChoice(rates, { roomTypeId: 1, ratePlanId: 11 })).toEqual({
-        roomTypeId: 1,
+test('keeps a saved plan and falls back to the first one', () => {
+    expect(resolveChoice(rates, { ratePlanId: 11 })).toEqual({
         ratePlanId: 11,
     });
-    expect(resolveChoice(rates, { roomTypeId: 2, ratePlanId: 11 })).toEqual({
-        roomTypeId: 2,
+    expect(resolveChoice(rates, { ratePlanId: null })).toEqual({
         ratePlanId: 10,
     });
-    expect(resolveChoice(rates, { roomTypeId: 99, ratePlanId: 99 })).toEqual({
-        roomTypeId: 1,
+    expect(resolveChoice(rates, { ratePlanId: 99 })).toEqual({
         ratePlanId: 10,
     });
-    expect(resolveChoice([], { roomTypeId: 1, ratePlanId: 10 })).toEqual({
-        roomTypeId: null,
+    expect(resolveChoice([], { ratePlanId: 10 })).toEqual({
         ratePlanId: null,
     });
 });
 
-test('reads the prices of the chosen plan by date', () => {
-    const prices = pricesByDate(rates, { roomTypeId: 1, ratePlanId: 10 });
+test('reads the prices of the chosen plan by room type and date', () => {
+    const prices = pricesByRoomType(rates, { ratePlanId: 10 });
 
-    expect(prices.get('2026-10-14')?.amount).toBe('240.00');
-    expect(prices.get('2026-10-15')).toBeUndefined();
-    expect(pricesByDate(rates, { roomTypeId: 9, ratePlanId: 9 }).size).toBe(0);
+    expect(prices.get(1)?.get('2026-10-14')?.amount).toBe('240.00');
+    expect(prices.get(2)?.get('2026-10-14')?.closed).toBe(true);
+    expect(prices.get(1)?.get('2026-10-15')).toBeUndefined();
+});
+
+test('a room type that does not sell the plan has no prices', () => {
+    const prices = pricesByRoomType(rates, { ratePlanId: 11 });
+
+    expect(prices.has(1)).toBe(true);
+    expect(prices.has(2)).toBe(false);
+});
+
+test('lists every plan of a room type on a date, with a price or none', () => {
+    const plans = plansOnDate(rates, 1, '2026-10-14');
+
+    expect(plans.map((plan) => plan.id)).toEqual([10, 11]);
+    expect(plans[0].day?.amount).toBe('240.00');
+    expect(plans[1].day).toBeUndefined();
+    expect(plansOnDate(rates, 9, '2026-10-14')).toEqual([]);
 });

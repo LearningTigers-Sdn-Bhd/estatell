@@ -42,7 +42,7 @@ The page is a Grid calendar: no `PageHeader`, the toolbar on top and the grid fi
 
 ```
 ┌ Timeline View ───────────────────────────────────────────────────────────────────┐
-│ ◀ 12 Jun – 25 Jun ▶  [Today]   Room group ⌄  Room type ⌄  Status ⌄  Group by ⌄ ☑ Show rates 🔍 │  StayViewToolbar
+│ ◀ 12 Jun – 25 Jun ▶  [Today]   Room group ⌄  Room type ⌄  Status ⌄  Group by ⌄ ☑ Show rates  Plan ⌄ 🔍 │  StayViewToolbar
 ├───────────────┬───────┬───────┬───────┬───────┬───────┬───────┬───────┬──────────┤
 │               │ Fri 12│ Sat 13│ Sun 14│ Mon 15│ Tue 16│ Wed 17│ Thu 18│   …      │  DateHeader
 │ Deluxe ⌄      │ RM240 │ RM280 │ RM280 │ RM240 │ RM240 │ RM240 │ RM240 │          │  NightlyRateRow
@@ -64,8 +64,17 @@ The page is a Grid calendar: no `PageHeader`, the toolbar on top and the grid fi
 - A stay bar is one segment: the nights in the same room or bed. A room move starts a new bar in the new row. A bar clipped by the window shows an open edge.
 - The bar label is the guest and pax, with the unit status as a `StatusBadge`.
 - **Group bookings.** One bar per unit, each in its own room or bed. Every bar of a group has the `◆` marker and the group name. A label reads `ABC Corp · Tan Mei`, or `ABC Corp · Unit 2` with no named guest. Hovering a bar softly highlights the other bars with the same `reservationId`. A group booking is a reservation with a group name, so there is no separate group id. Status is per unit. The balance-due flag is the reservation's.
+- **Sticky group heading.** While the rooms of a group scroll, its heading stays under the date header, with its price cells, and the next heading pushes it up. `DateGrid` has an optional `stickyGroups` prop for this; the Timeline View turns it on.
 - The footer counts only the visible rows, so it matches the screen.
-- **Rate row.** One row under the date header. Its label has two selects: a **room type** (default: the first room type in the property's order) and a **rate plan** (default: the first plan in the property's plan order). Each cell shows that plan's price for that room type and night, or "–" when the plan has no price or is closed that night. Derived plans use the same calculation as the rate calendar, so the numbers match. Package and day use plans are not listed: their price is not for one night. Changing a select, or the **Show rates** toggle, makes no request. Both choices are remembered in the browser, not in the URL. There is no hover card.
+- **Nightly rates.** A price is shown only next to the rooms it is for. A **rate plan** select sits in the toolbar beside **Show rates** (default: the first plan in the property's plan order). Each price is that plan's price for a room type and night, or "–" when the plan has no price, does not sell that room type, or is closed that night. Derived plans use the same calculation as the rate calendar, so the numbers match. Package and day use plans are not listed: their price is not for one night.
+    - **Group by Room type:** each group heading shows its own room type's prices in its date cells.
+    - **Other grouping, with all rooms on screen of one room type** (for example a Room type filter with one type): one row under the date header. Its label reads "Nightly rate · {currency}" over the room type and plan.
+    - **Other grouping, with several room types on screen:** no price is shown, because one price would not be right for every room.
+    - Changing the plan or the **Show rates** toggle makes no request. Both are remembered in the browser, not in the URL.
+    - **Hover card.** Hovering a price shows every rate plan of that room type for that night, with the chosen plan in medium weight, "–" for no price and a struck-through price for a stop sell night. It reads the loaded rates, so it makes no request.
+- **Bar second line.** Under the guest name a stay bar shows icons with counts, with no "4P" or "2A" text: adults (person icon), children (baby icon, only when there are any) and units of the reservation (layers icon, only for a group of 2 or more). The counts are also in the bar's accessible label.
+- **Booking source badge on the bar.** Each stay bar starts with the source badge in `sm` size, before the group marker and the guest name. The name is in the bar's accessible label ("via Walk-in"), and the badge has no tooltip of its own, since the hover card names it.
+- **Bar hover card.** Hovering a bar for 300ms shows a card from the loaded data, with no request. A stay bar shows the source badge (`BookingSourceBadge`, large, no tooltip), the guest name, "{reference} · {n} unit(s)" (the units the whole reservation holds), "via {booking source}", then Status, Stay (arrival – departure, nights), Room, Guests (adult and child icons with counts) and Payment ("Balance due" or "Nothing due", the flag only; the amount stays in the peek sheet). A block bar shows "Blocked", the reason, the dates and the room. `StayData` carries `unitCount` and `source` (`BookingSourceBadgeData`), read with one extra eager load, so the query count does not grow with the stays.
 - Clicking a stay bar opens **`StayPeekSheet`**. Clicking an empty cell opens **`CellActions`**: New booking here, Block room (a later item; see the checklist).
 
 ## Room View screen
@@ -195,8 +204,8 @@ resources/js/
         ├── stay-view-filters.tsx           the checkbox list filter
         ├── stay-view-url.ts                window and filter query, tested
         ├── group-rows.ts                   rows by Group by, tested
-        ├── nightly-rate.ts                 rate row choices, tested
-        ├── use-stay-view-preferences.ts    Show rates and rate row choice, in the browser
+        ├── nightly-rate.ts                 rate plan choice and prices by room type, tested
+        ├── use-stay-view-preferences.ts    Show rates and rate plan choice, in the browser
         ├── stay-view-timeline.tsx
         ├── room-row.tsx
         ├── stay-bar.tsx

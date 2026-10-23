@@ -7,8 +7,17 @@ import { BlockBar } from './block-bar';
 import { filterStays } from './filter-stays';
 import { buildRows, toggleCollapsed } from './group-rows';
 import { InventoryFooterCell, InventoryFooterLabel } from './inventory-footer';
-import { NightlyRateCell, NightlyRateLabel } from './nightly-rate-row';
-import { pricesByDate, resolveChoice } from './nightly-rate';
+import {
+    NightlyRateCell,
+    NightlyRateHoverCard,
+    NightlyRateLabel,
+} from './nightly-rate-row';
+import {
+    planChoices,
+    plansOnDate,
+    pricesByRoomType,
+    resolveChoice,
+} from './nightly-rate';
 import type { RateChoice } from './nightly-rate';
 import { blockBarInputs, projectBars, stayBarInputs } from './project-bars';
 import { GroupLabel, RoomLabel } from './room-row';
@@ -34,7 +43,6 @@ export function StayViewTimeline({
     filters,
     showRates,
     rateChoice,
-    onRateChoiceChange,
     currency,
     onOpenStay,
 }: {
@@ -48,7 +56,6 @@ export function StayViewTimeline({
     filters: Filters;
     showRates: boolean;
     rateChoice: RateChoice;
-    onRateChoiceChange: (choice: RateChoice) => void;
     currency: App.Data.Property.CurrencyData | null;
     onOpenStay: (unitId: number) => void;
 }) {
@@ -88,6 +95,10 @@ export function StayViewTimeline({
         () => buildRows(visible.rooms, filters.groupBy, collapsed),
         [visible.rooms, filters.groupBy, collapsed],
     );
+    const roomByKey = useMemo(
+        () => new Map(visible.rooms.map((room) => [room.key, room])),
+        [visible.rooms],
+    );
     const bars = useMemo(() => {
         const stayById = new Map(
             visible.stays.map((stay) => [stay.unitId, stay]),
@@ -124,14 +135,51 @@ export function StayViewTimeline({
         () => resolveChoice(rates, rateChoice),
         [rates, rateChoice],
     );
-    const prices = useMemo(() => pricesByDate(rates, choice), [rates, choice]);
+    const pricesByType = useMemo(
+        () => pricesByRoomType(rates, choice),
+        [rates, choice],
+    );
+    const planName =
+        planChoices(rates).find((plan) => plan.id === choice.ratePlanId)
+            ?.name ?? null;
+    const priceCell = (
+        roomTypeId: number,
+        roomTypeName: string,
+        date: string,
+    ) => (
+        <NightlyRateHoverCard
+            roomTypeName={roomTypeName}
+            date={date}
+            plans={plansOnDate(rates, roomTypeId, date)}
+            chosenPlanId={choice.ratePlanId}
+            currency={currency}
+        >
+            <NightlyRateCell
+                day={pricesByType.get(roomTypeId)?.get(date)}
+                currency={currency}
+            />
+        </NightlyRateHoverCard>
+    );
     const hasRates = showRates && rates.length > 0;
+    // A price is only right next to the rooms it is for: in the heading of a room type group, or in one row when the
+    // rooms on screen are all of one room type.
+    const priceInGroups = hasRates && filters.groupBy === 'room_type';
+    const shownTypes = new Set(visible.rooms.map((room) => room.roomTypeId));
+    const pinnedType =
+        hasRates && !priceInGroups && shownTypes.size === 1
+            ? visible.rooms[0]
+            : null;
 
     return (
         <DateGrid
             ref={gridRef}
             fill
+            stickyGroups
             aria-label="Timeline View"
+            className="rounded-none border-x-0"
+            labelWidth={288}
+            groupHeight={56}
+            footerHeight={64}
             rows={rows}
             columns={columns}
             rowHeight={ROW_HEIGHT}
@@ -159,6 +207,8 @@ export function StayViewTimeline({
                                 <BlockBar
                                     key={bar.id}
                                     bar={bar}
+                                    block={block}
+                                    room={roomByKey.get(bar.rowKey)}
                                     reason={block?.reasonLabel ?? 'Blocked'}
                                     labelWidth={labelWidth}
                                     columnWidth={columnWidth}
@@ -171,6 +221,7 @@ export function StayViewTimeline({
                                     <StayBar
                                         key={bar.id}
                                         stay={stay}
+                                        room={roomByKey.get(bar.rowKey)}
                                         bar={bar}
                                         dates={dates}
                                         labelWidth={labelWidth}
@@ -189,25 +240,38 @@ export function StayViewTimeline({
                     </>
                 )
             }
+            pinnedHeight={48}
             renderPinnedLabel={
-                hasRates
+                pinnedType
                     ? () => (
                           <NightlyRateLabel
-                              rates={rates}
-                              choice={choice}
-                              onChange={onRateChoiceChange}
+                              currencyCode={currency?.code ?? null}
+                              roomTypeName={pinnedType.roomTypeName}
+                              planName={planName}
                           />
                       )
                     : undefined
             }
             renderPinnedCell={
-                hasRates
-                    ? (column) => (
-                          <NightlyRateCell
-                              day={prices.get(column.date)}
-                              currency={currency}
-                          />
-                      )
+                pinnedType
+                    ? (column) =>
+                          priceCell(
+                              pinnedType.roomTypeId,
+                              pinnedType.roomTypeName,
+                              column.date,
+                          )
+                    : undefined
+            }
+            renderGroupCell={
+                priceInGroups
+                    ? (row, column) =>
+                          row.kind === 'group' && row.roomTypeId !== null
+                              ? priceCell(
+                                    row.roomTypeId,
+                                    row.title,
+                                    column.date,
+                                )
+                              : null
                     : undefined
             }
             renderFooterLabel={() => <InventoryFooterLabel />}

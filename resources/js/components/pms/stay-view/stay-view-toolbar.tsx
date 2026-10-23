@@ -55,7 +55,7 @@ export function countedOptions(
 }
 
 /**
- * The top of the Timeline View: the step arrows, the date range, Today, the filters, Group by, the rate row switch,
+ * The top of the Timeline View: the step arrows, the date range, Today, the filters, Group by, the rates switch and plan,
  * search and the legend. A change of window asks the server for it and the neighbouring windows are prefetched. The
  * filters, Group by and search change the loaded data in the browser.
  */
@@ -69,6 +69,9 @@ export function StayViewToolbar({
     statusOptions,
     showRates,
     onShowRatesChange,
+    planOptions,
+    ratePlanId,
+    onRatePlanChange,
     hrefFor,
     onScrollToToday,
 }: {
@@ -81,6 +84,10 @@ export function StayViewToolbar({
     statusOptions: Option[];
     showRates: boolean;
     onShowRatesChange: (show: boolean) => void;
+    /** The rate plans the prices can show, and the one chosen. */
+    planOptions: Option[];
+    ratePlanId: string;
+    onRatePlanChange: (ratePlanId: number) => void;
     /** The URL of a window with the current filters. */
     hrefFor: (window: DateWindow) => string;
     onScrollToToday: () => void;
@@ -211,6 +218,15 @@ export function StayViewToolbar({
                 />
                 <Label htmlFor="stay-view-show-rates">Show rates</Label>
             </div>
+            {showRates && planOptions.length > 0 && (
+                <EnumSelect
+                    aria-label="Rate plan for the prices"
+                    className="w-36"
+                    options={planOptions}
+                    value={ratePlanId}
+                    onValueChange={(value) => onRatePlanChange(Number(value))}
+                />
+            )}
             <div className="relative">
                 <Search
                     aria-hidden

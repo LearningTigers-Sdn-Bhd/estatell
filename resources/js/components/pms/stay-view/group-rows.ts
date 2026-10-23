@@ -7,6 +7,8 @@ export type TimelineRow =
           /** The key to pass to `toggleCollapsed`. */
           groupKey: string;
           title: string;
+          /** The room type of the group when rooms are grouped by room type. */
+          roomTypeId: number | null;
           count: number;
           collapsed: boolean;
       }
@@ -15,14 +17,19 @@ export type TimelineRow =
 function groupOf(
     room: Room,
     grouping: App.Enums.StayViewGrouping,
-): { key: string; title: string } {
+): { key: string; title: string; roomTypeId: number | null } {
     if (grouping === 'room_type') {
-        return { key: `type-${room.roomTypeId}`, title: room.roomTypeName };
+        return {
+            key: `type-${room.roomTypeId}`,
+            title: room.roomTypeName,
+            roomTypeId: room.roomTypeId,
+        };
     }
 
     return {
         key: `group-${room.roomGroupId ?? 'none'}`,
         title: room.roomGroupName ?? 'No room group',
+        roomTypeId: null,
     };
 }
 
@@ -49,11 +56,14 @@ export function buildRows(
             .map(({ room }) => ({ key: room.key, kind: 'row', room }));
     }
 
-    const groups = new Map<string, { title: string; rooms: Room[] }>();
+    const groups = new Map<
+        string,
+        { title: string; roomTypeId: number | null; rooms: Room[] }
+    >();
 
     for (const room of rooms) {
-        const { key, title } = groupOf(room, grouping);
-        const group = groups.get(key) ?? { title, rooms: [] };
+        const { key, title, roomTypeId } = groupOf(room, grouping);
+        const group = groups.get(key) ?? { title, roomTypeId, rooms: [] };
 
         group.rooms.push(room);
         groups.set(key, group);
@@ -68,6 +78,7 @@ export function buildRows(
                 kind: 'group',
                 groupKey,
                 title: group.title,
+                roomTypeId: group.roomTypeId,
                 count: group.rooms.length,
                 collapsed: isCollapsed,
             },
