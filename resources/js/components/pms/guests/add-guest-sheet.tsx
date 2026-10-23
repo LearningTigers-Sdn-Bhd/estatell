@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { CountrySelect } from '@/components/pms/country-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { DuplicateWarning } from '@/components/pms/guests/duplicate-warning';
+import { MyKadScanner } from '@/components/pms/mykad-scanner';
 import { PhoneInput } from '@/components/pms/phone-input';
 import {
     AlertDialog,
@@ -104,6 +105,13 @@ export function AddGuestSheet({
                         className="flex min-h-0 flex-1 flex-col"
                     >
                         <FieldGroup className="flex-1 overflow-y-auto px-4">
+                            <MyKadScanner
+                                compact
+                                onScan={(card) => {
+                                    form.setData('full_name', card.name);
+                                    form.setData('nationality_code', 'MY');
+                                }}
+                            />
                             <Field data-invalid={!!errors.full_name}>
                                 <FieldLabel htmlFor="add-full_name">
                                     Full name

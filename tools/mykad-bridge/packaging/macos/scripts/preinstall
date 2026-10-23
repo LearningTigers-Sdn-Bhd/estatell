@@ -1,0 +1,8 @@
+#!/bin/bash
+# Stop a running bridge so the new files can replace it.
+LABEL=com.estatell.mykad-bridge
+for uid in $(ps -axo uid=,comm= | awk '/loginwindow/ {print $1}' | sort -u); do
+    launchctl bootout "gui/$uid/$LABEL" 2>/dev/null || true
+done
+pkill -f "Estatell/MyKadBridge/estatell-mykad-bridge" 2>/dev/null || true
+exit 0

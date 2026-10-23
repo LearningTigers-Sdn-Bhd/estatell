@@ -182,7 +182,9 @@ test('revealing a number and opening a scan are logged', function () {
         ->assertExactJson(['number' => '900101-14-1234']);
     expect(Activity::query()->where('event', 'guest.document_number_viewed')->count())->toBe(1);
 
-    $this->get(route('guests.documents.scan', [$property->code, $guest, $document, 'front']))->assertRedirect();
+    $this->get(route('guests.documents.scan', [$property->code, $guest, $document, 'front']))
+        ->assertOk()
+        ->assertHeader('Content-Type', 'image/jpeg');
     expect(Activity::query()->where('event', 'guest.document_scan_viewed')->sole()->properties['scan'])->toBe('id_front');
 
     $this->get(route('guests.documents.scan', [$property->code, $guest, $document, 'back']))->assertNotFound();

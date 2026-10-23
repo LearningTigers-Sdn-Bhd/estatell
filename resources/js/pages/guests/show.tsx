@@ -78,6 +78,23 @@ function Details({ guest }: { guest: Guest }) {
 
     return (
         <div className="flex flex-col gap-5">
+            {guest.photoUrl && (
+                <Section title="ID Photo / Portrait">
+                    <div className="flex items-start gap-4">
+                        <img
+                            src={guest.photoUrl}
+                            alt={`${guest.fullName} ID Portrait`}
+                            className="h-28 w-24 rounded-lg border-2 border-border object-cover shadow-sm ring-1 ring-border"
+                        />
+                        <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+                            <span className="font-semibold text-foreground">
+                                Verified Cardholder Portrait
+                            </span>
+                            <span>Stored on guest identity document</span>
+                        </div>
+                    </div>
+                </Section>
+            )}
             <Section title="Email">{guest.email ?? NOT_SET}</Section>
             <Section title="Phone">{guest.phone ?? NOT_SET}</Section>
             <Section title="Tags">
@@ -158,35 +175,46 @@ export default function GuestShow({
             <Head title={guest.fullName} />
 
             <div className="flex flex-1 flex-col gap-6 p-4">
-                <PageHeader
-                    title={guest.fullName}
-                    description={
-                        <>
-                            Added <DateText date={guest.createdAt} />
-                        </>
-                    }
-                    badge={
-                        <GuestFlags
-                            isVip={guest.isVip}
-                            isAnonymized={isAnonymized}
-                            isBlacklisted={guest.blacklistedAt !== null}
+                <div className="flex items-center gap-4">
+                    {guest.photoUrl && (
+                        <img
+                            src={guest.photoUrl}
+                            alt={guest.fullName}
+                            className="h-16 w-13 shrink-0 rounded-md border border-border object-cover shadow-xs ring-1 ring-border"
                         />
-                    }
-                    back={{ href: index.url(), label: 'Guests' }}
-                    actions={
-                        <>
-                            {canManage && !isAnonymized && (
-                                <VipButton guest={guest} />
-                            )}
-                            {canBlacklist && !isAnonymized && (
-                                <BlacklistButton guest={guest} />
-                            )}
-                            {canAnonymize && !isAnonymized && (
-                                <AnonymizeGuestDialog guest={guest} />
-                            )}
-                        </>
-                    }
-                />
+                    )}
+                    <div className="min-w-0 flex-1">
+                        <PageHeader
+                            title={guest.fullName}
+                            description={
+                                <>
+                                    Added <DateText date={guest.createdAt} />
+                                </>
+                            }
+                            badge={
+                                <GuestFlags
+                                    isVip={guest.isVip}
+                                    isAnonymized={isAnonymized}
+                                    isBlacklisted={guest.blacklistedAt !== null}
+                                />
+                            }
+                            back={{ href: index.url(), label: 'Guests' }}
+                            actions={
+                                <>
+                                    {canManage && !isAnonymized && (
+                                        <VipButton guest={guest} />
+                                    )}
+                                    {canBlacklist && !isAnonymized && (
+                                        <BlacklistButton guest={guest} />
+                                    )}
+                                    {canAnonymize && !isAnonymized && (
+                                        <AnonymizeGuestDialog guest={guest} />
+                                    )}
+                                </>
+                            }
+                        />
+                    </div>
+                </div>
 
                 {isAnonymized && (
                     <Alert>

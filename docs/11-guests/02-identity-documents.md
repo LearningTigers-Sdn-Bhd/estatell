@@ -29,7 +29,7 @@ media                       two single-file collections on each document: id_fro
 - The number is **masked** (`•••• 1234`) everywhere except the Reveal button and the edit sheet. Page props never carry the full number. Both fetch it with the logged `reveal` request.
 - Revealing a number, opening the edit sheet (it fetches the number the same way) and opening a scan are written to the activity log on the guest: `guest.document_number_viewed` and `guest.document_scan_viewed`. Adding, changing and removing are logged too. No log entry contains the number.
 - The Non-national guests and Police reports follow the same rule: the ID number is masked without `guests.view-documents`, and a PDF or spreadsheet export that holds full numbers writes `report.exported_identity_numbers` to the activity log. See [Core reports](../22-reports/01-core-reports.md#built-non-national-guests-and-police-report).
-- Scans open through `guests.documents.scan`. It checks the permission, logs the view, then redirects to a temporary link that works for 5 minutes (a presigned URL on R2, a signed route on the `local` disk).
+- Scans open through `guests.documents.scan`. It checks the permission and logs the view. On the `local` disk it then streams the file with `Cache-Control: no-store`. On R2 it redirects to a presigned URL that works for 5 minutes.
 - Removing a document deletes the row, its blind index and its scan files. Registration cards (module 16) must keep their own snapshot of what was signed, so a card does not depend on the live document. See [Card fields](../16-registration/01-card-fields.md).
 - A guest that was merged into another guest or anonymized cannot get or change documents.
 
@@ -49,7 +49,7 @@ Routes under `/p/{code}/guests/{guest}/documents` (`guests.documents.*`).
 | -------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `index`                    | `guests.view-documents`                     | Documents tab on the guest page, with masked numbers                                                                                                                                       |
 | `reveal` (POST, JSON)      | `guests.view-documents`                     | The full number for the Reveal button                                                                                                                                                      |
-| `scan` (`front` or `back`) | `guests.view-documents`                     | Redirect to a short-lived scan link                                                                                                                                                        |
+| `scan` (`front` or `back`) | `guests.view-documents`                     | The scan file (`local`) or a short-lived link (R2)                                                                                                                                         |     |
 | `store`, `update`          | `guests.view-documents` and `guests.manage` | Add and edit in one Sheet on the Documents tab (uploads inside a small Sheet are allowed, see [form containers](../design-system/05-form-containers.md)). There is no create or edit page. |
 | `destroy`                  | `guests.view-documents` and `guests.manage` | Remove a document (confirm dialog)                                                                                                                                                         |
 
@@ -60,6 +60,10 @@ The Documents tab shows only to staff with `guests.view-documents`. An expired d
 | Permission              | Guards                                                                      | Owner | Manager | Front desk | Finance | Housekeeping |
 | ----------------------- | --------------------------------------------------------------------------- | ----- | ------- | ---------- | ------- | ------------ |
 | `guests.view-documents` | See, reveal and open ID documents. With `guests.manage`: add, edit, remove. | ✓     | ✓       | ✓          | –       | –            |
+
+## MyKad reader
+
+Staff can fill a document from the chip on a guest's MyKad with a USB reader. When a document is added from a scan, the chip's portrait becomes the `id_front` file. See [MyKad reader](05-mykad-reader.md).
 
 ## Lessons from wastays
 

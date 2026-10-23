@@ -280,26 +280,102 @@ export function DocumentsTab({
                                         'No expiry date'
                                     )}
                                 </p>
-                                <div className="flex flex-wrap items-center gap-2">
-                                    {document.hasFrontScan &&
-                                        !impersonating && (
-                                            <ScanLink
-                                                guest={guest}
-                                                document={document}
-                                                side="front"
-                                            />
-                                        )}
-                                    {document.hasBackScan && !impersonating && (
-                                        <ScanLink
-                                            guest={guest}
-                                            document={document}
-                                            side="back"
-                                        />
+
+                                {(document.hasFrontScan ||
+                                    document.hasBackScan) &&
+                                    !impersonating && (
+                                        <div className="flex flex-wrap items-center gap-4 rounded-md border border-border/80 bg-muted/30 p-2.5">
+                                            {document.hasFrontScan && (
+                                                <div className="flex items-center gap-3">
+                                                    <a
+                                                        href={scan.url({
+                                                            guest: guest.id,
+                                                            document:
+                                                                document.id,
+                                                            scan: 'front',
+                                                        })}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="group relative block overflow-hidden rounded-md border border-border shadow-xs hover:ring-2 hover:ring-primary/40"
+                                                        title="Click to view full image in new tab"
+                                                    >
+                                                        <img
+                                                            src={scan.url({
+                                                                guest: guest.id,
+                                                                document:
+                                                                    document.id,
+                                                                scan: 'front',
+                                                            })}
+                                                            alt={`${document.typeLabel} front scan`}
+                                                            className="h-24 w-20 object-cover transition group-hover:scale-105"
+                                                            loading="lazy"
+                                                        />
+                                                        <span className="absolute inset-x-0 bottom-0 bg-black/60 py-0.5 text-center text-[10px] font-medium text-white">
+                                                            Front
+                                                        </span>
+                                                    </a>
+                                                    <div className="flex flex-col gap-1">
+                                                        <span className="text-xs font-medium text-foreground">
+                                                            Front Scan /
+                                                            Portrait
+                                                        </span>
+                                                        <ScanLink
+                                                            guest={guest}
+                                                            document={document}
+                                                            side="front"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {document.hasBackScan && (
+                                                <div className="flex items-center gap-3 border-l border-border/60 pl-4">
+                                                    <a
+                                                        href={scan.url({
+                                                            guest: guest.id,
+                                                            document:
+                                                                document.id,
+                                                            scan: 'back',
+                                                        })}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="group relative block overflow-hidden rounded-md border border-border shadow-xs hover:ring-2 hover:ring-primary/40"
+                                                        title="Click to view full image in new tab"
+                                                    >
+                                                        <img
+                                                            src={scan.url({
+                                                                guest: guest.id,
+                                                                document:
+                                                                    document.id,
+                                                                scan: 'back',
+                                                            })}
+                                                            alt={`${document.typeLabel} back scan`}
+                                                            className="h-24 w-20 object-cover transition group-hover:scale-105"
+                                                            loading="lazy"
+                                                        />
+                                                        <span className="absolute inset-x-0 bottom-0 bg-black/60 py-0.5 text-center text-[10px] font-medium text-white">
+                                                            Back
+                                                        </span>
+                                                    </a>
+                                                    <div className="flex flex-col gap-1">
+                                                        <span className="text-xs font-medium text-foreground">
+                                                            Back Scan
+                                                        </span>
+                                                        <ScanLink
+                                                            guest={guest}
+                                                            document={document}
+                                                            side="back"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
                                     )}
+
+                                <div className="flex flex-wrap items-center gap-2">
                                     {!document.hasFrontScan &&
                                         !document.hasBackScan && (
                                             <span className="text-sm text-muted-foreground">
-                                                No scans
+                                                No scans attached
                                             </span>
                                         )}
                                     {canManage && (

@@ -5,6 +5,7 @@ import { DateText } from '@/components/pms/date-text';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { MoneyText } from '@/components/pms/money-text';
+import { MyKadScanner } from '@/components/pms/mykad-scanner';
 import {
     AuditPendingNote,
     AuditPendingStrip,
@@ -171,6 +172,17 @@ function CheckInForm({
                 <>
                     <AuditPendingStrip pending={preview.auditPending} />
                     <AuditPendingNote pending={preview.auditPending} />
+                    <MyKadScanner
+                        compact
+                        onScan={(card) => {
+                            if (preview.needsNationality) {
+                                form.setData(
+                                    'nationality_code',
+                                    card.nationality_code || 'MY',
+                                );
+                            }
+                        }}
+                    />
                     {preview.error !== null && (
                         <p className="text-sm text-destructive">
                             {preview.error}

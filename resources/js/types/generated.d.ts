@@ -1184,6 +1184,7 @@ blacklistReason: string | null,
 anonymizedAt: string | null,
 tags: App.Data.Guests.TagData[],
 createdAt: string,
+photoUrl: string | null,
 };
 export type GuestIdentityDocumentData = {
 id: number,
