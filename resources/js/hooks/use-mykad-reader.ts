@@ -1,24 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-export type MyKadAddress = {
-    line1: string;
-    line2: string;
-    postcode: string;
-    city: string;
-    state: string;
-    state_code?: string;
-};
-
 export type MyKadData = {
+    name: string;
     ic_number: string;
     formatted_ic: string;
-    name: string;
-    dob: string; // YYYY-MM-DD
+    date_of_birth: string; // YYYY-MM-DD
     gender: string;
-    nationality: string;
-    nationality_code: string;
-    address: MyKadAddress;
-    photo: string | null; // data:image/jpeg;base64,...
+    nationality_code: string; // 'MY'
+    address_line1: string;
+    address_line2: string;
+    city: string;
+    state: string;
+    postal_code: string;
+    country_code: string; // 'MY'
+    photo_base64: string | null;
 };
 
 export type ReaderStatus =
@@ -114,30 +109,52 @@ export function useMykadReader({
             }
 
             const raw = result.data;
+            const dob = raw.date_of_birth || raw.dob || '';
+            const rawIc =
+                raw.raw_ic ||
+                raw.ic_number ||
+                (typeof raw.government_id === 'string'
+                    ? raw.government_id.replace(/\D/g, '')
+                    : '');
+            const formattedIc =
+                raw.government_id ||
+                raw.formatted_ic ||
+                (rawIc
+                    ? rawIc.replace(/^(\d{6})(\d{2})(\d{4})$/, '$1-$2-$3')
+                    : '');
+            const line1 =
+                raw.address_line1 ||
+                raw.address?.line1 ||
+                raw.home_address ||
+                '';
+            const line2 = raw.address_line2 || raw.address?.line2 || '';
+            const postcode =
+                raw.postal_code ||
+                raw.postcode ||
+                raw.address?.postcode ||
+                '';
+            const city = raw.city || raw.address?.city || '';
+            const state =
+                raw.state_name ||
+                raw.state ||
+                raw.address?.state ||
+                '';
+            const photo = raw.photo_base64 || raw.photo || null;
+
             const normalized: MyKadData = {
-                ic_number: raw.ic_number || '',
-                formatted_ic:
-                    raw.formatted_ic ||
-                    (raw.ic_number
-                        ? raw.ic_number.replace(
-                              /^(\d{6})(\d{2})(\d{4})$/,
-                              '$1-$2-$3',
-                          )
-                        : ''),
                 name: raw.name || '',
-                dob: raw.dob || '',
+                ic_number: rawIc,
+                formatted_ic: formattedIc,
+                date_of_birth: dob,
                 gender: raw.gender === 'female' ? 'female' : 'male',
-                nationality: raw.nationality || 'MALAYSIAN',
                 nationality_code: 'MY',
-                address: {
-                    line1: raw.address?.line1 || '',
-                    line2: raw.address?.line2 || '',
-                    postcode: raw.address?.postcode || '',
-                    city: raw.address?.city || '',
-                    state: raw.address?.state || '',
-                    state_code: raw.address?.state_code || '',
-                },
-                photo: raw.photo || null,
+                address_line1: line1,
+                address_line2: line2,
+                city,
+                state,
+                postal_code: postcode,
+                country_code: 'MY',
+                photo_base64: photo,
             };
 
             setLastScannedData(normalized);

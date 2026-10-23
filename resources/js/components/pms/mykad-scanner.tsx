@@ -99,9 +99,9 @@ export function MyKadScanner({
                 </div>
 
                 <div className="flex items-center gap-2">
-                    {lastScannedData?.photo && (
+                    {lastScannedData?.photo_base64 && (
                         <img
-                            src={lastScannedData.photo}
+                            src={lastScannedData.photo_base64}
                             alt="Scanned portrait"
                             className="h-6 w-5 rounded border border-border object-cover shadow-2xs"
                         />
@@ -199,9 +199,9 @@ export function MyKadScanner({
                 </div>
 
                 <div className="flex items-center gap-2">
-                    {lastScannedData?.photo && (
+                    {lastScannedData?.photo_base64 && (
                         <img
-                            src={lastScannedData.photo}
+                            src={lastScannedData.photo_base64}
                             alt="MyKad Portrait"
                             className="h-9 w-7 rounded border border-border object-cover shadow-2xs"
                         />

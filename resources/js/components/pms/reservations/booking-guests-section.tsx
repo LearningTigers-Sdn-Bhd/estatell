@@ -230,13 +230,13 @@ function GuestRow({
                                     onChange({
                                         full_name: card.name,
                                         nationality_code: 'MY',
-                                        date_of_birth: card.dob,
+                                        date_of_birth: card.date_of_birth,
                                         gender: card.gender,
-                                        address_line1: card.address.line1,
-                                        address_line2: card.address.line2,
-                                        postal_code: card.address.postcode,
-                                        city: card.address.city,
-                                        state: card.address.state,
+                                        address_line1: card.address_line1,
+                                        address_line2: card.address_line2,
+                                        postal_code: card.postal_code,
+                                        city: card.city,
+                                        state: card.state,
                                         country_code: 'MY',
                                     });
                                 }}

@@ -177,9 +177,9 @@ function DocumentSheetForm({
                                 card.formatted_ic || card.ic_number,
                             );
                             form.setData('issuing_country_code', 'MY');
-                            if (card.photo) {
+                            if (card.photo_base64) {
                                 const photoFile = base64ToFile(
-                                    card.photo,
+                                    card.photo_base64,
                                     `mykad_${card.ic_number || 'portrait'}.jpg`,
                                 );
                                 if (photoFile) {
