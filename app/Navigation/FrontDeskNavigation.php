@@ -21,14 +21,20 @@ class FrontDeskNavigation
     public function groups(Property $property, User $user): array
     {
         return [
-            new NavGroupData(label: __('Overview'), items: [
+            new NavGroupData(label: __('Overview'), items: array_filter([
                 new NavItemData(
                     title: __('Dashboard'),
                     href: route('dashboard', ['property' => $property->code], absolute: false),
                     icon: 'layout-grid',
                     active: request()->routeIs('dashboard'),
                 ),
-            ]),
+                $user->can(PermissionEnum::FrontDeskView->value) ? new NavItemData(
+                    title: __('Timeline View'),
+                    href: route('front-desk.timeline', ['property' => $property->code], absolute: false),
+                    icon: 'chart-gantt',
+                    active: request()->routeIs('front-desk.timeline'),
+                ) : null,
+            ])),
             new NavGroupData(label: __('Rooms'), items: array_values(array_filter([
                 $user->can(PermissionEnum::RoomsBlock->value) ? new NavItemData(
                     title: __('Room blocks'),

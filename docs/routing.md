@@ -4,7 +4,7 @@ URL shape, route groups, names and middleware for estatell. Wayfinder generates 
 
 ## Principles
 
-- **Property code in the URL.** Staff routes live under `/p/{property:code}`, for example `app.example.com/p/ES1142/front-desk/stay-view`.
+- **Property code in the URL.** Staff routes live under `/p/{property:code}`, for example `app.example.com/p/ES1142/front-desk/timeline`.
 - **One app domain.** Staff app, admin and guest links share `app.example.com`, so impersonation works within one session. The marketing site is `example.com`. The app is `app.estatell.com`. `/` is the public landing page (`Route::inertia('/', 'landing')`, name `home`), with `/terms-and-conditions` (`terms`) and `/privacy-policy` (`privacy`) beside it. They are guest pages with no layout, no auth and no property scope. Sign-in is `auth`, and signed-in users reach their home through `home.redirect` (`/dashboard`).
 - **Names match folders.** The URL prefix, route name prefix, page folder and `pms/{feature}` folder use the same word, for example `front-desk`.
 - Error-page previews use `GET /_preview/errors/{status}` (`errors.preview`) for 403, 404, 419, 500 and 503. They are available only when `APP_ENV=local`; other environments return 404.
@@ -96,7 +96,8 @@ Guest bulk actions use `POST /p/{code}/guests/bulk/{operation}`: `mark-vip`, `un
 
 | URL                                                               | Name                                           | Page                                             |
 | ----------------------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------ |
-| `GET /p/ES1142/front-desk/stay-view`                              | `front-desk.stay-view`                         | `pages/front-desk/stay-view.tsx`                 |
+| `GET /p/ES1142/front-desk/timeline`                               | `front-desk.timeline`                          | `pages/front-desk/timeline.tsx`                  |
+| `GET /p/ES1142/front-desk/rooms`                                  | `front-desk.rooms`                             | `pages/front-desk/rooms.tsx`                     |
 | `GET /p/ES1142/front-desk/stay-view/version`                      | `front-desk.stay-view.version`                 | – (JSON)                                         |
 | `GET /p/ES1142/front-desk/room-blocks`                            | `front-desk.room-blocks.index`                 | `pages/front-desk/room-blocks/index.tsx`         |
 | `POST /p/ES1142/front-desk/room-blocks/{roomBlock}/end`           | `front-desk.room-blocks.end`                   | – (Action)                                       |
@@ -164,7 +165,7 @@ The full list of admin channel routes is in [Admin Channels tab](21-channels/07-
 Frontend import example:
 
 ```ts
-import { stayView } from '@/routes/front-desk';
+import { timeline } from '@/routes/front-desk';
 ```
 
 ## Configuration vs operations (decided)
@@ -214,7 +215,7 @@ The staff app has four contexts, chosen with links in the sidebar footer; the ot
 
 | Context        | Route groups                                                                                            | Items                                                                                                       |
 | -------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| **Front desk** | `dashboard`, `front-desk.*`, `reservations.*`, `guests.*`, `housekeeping.*`, `rates.*`, `night-audit.*` | Dashboard, Stay View, Reservations, Guests, Housekeeping, Rate calendar, Night audit                        |
+| **Front desk** | `dashboard`, `front-desk.*`, `reservations.*`, `guests.*`, `housekeeping.*`, `rates.*`, `night-audit.*` | Dashboard, Timeline View, Room View, Reservations, Guests, Housekeeping, Rate calendar, Night audit         |
 | **Finance**    | `finance.*`                                                                                             | Folios, Payments, City ledger (Companies, Invoices, Payments received, Statements, Aging)                   |
 | **Reports**    | `reports.*`                                                                                             | Front desk, Revenue, Finance and Kitchen reports (see Core reports), Night audit history, Activity log      |
 | **Settings**   | `settings.*`, `channels.*`                                                                              | Property, Rooms, Rates, Billing setup, Guests, Team, Notifications, Channels (feature flag), Support access |
