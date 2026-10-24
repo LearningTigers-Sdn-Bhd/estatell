@@ -89,18 +89,39 @@ export function ReservationMarkers({ reservation }: { reservation: Item }) {
     );
 }
 
-/**
- * The booker (groups only) and the reference. OTA bookings add the source name. The external reference follows when set.
- */
-export function reservationSubtitle(reservation: Item): string {
+/** The booker when it differs from the title (groups), then the internal reference. The list has its own Ref column. */
+export function reservationSubtitle(
+    reservation: Item,
+    { withReference = true }: { withReference?: boolean } = {},
+): string {
     return [
         reservation.isGroup || reservation.title !== reservation.bookerName
             ? reservation.bookerName
             : null,
-        reservation.reference,
-        reservation.source.type === 'ota' ? reservation.source.name : null,
-        reservation.externalReference,
+        withReference ? reservation.reference : null,
     ]
         .filter(Boolean)
         .join(' · ');
+}
+
+/** The channel's own booking number, labelled and never truncated, so staff can quote it to the OTA. */
+export function ExternalReference({
+    reservation,
+    className,
+}: {
+    reservation: Item;
+    className?: string;
+}) {
+    if (!reservation.externalReference) {
+        return null;
+    }
+
+    return (
+        <span className={cn('text-xs text-muted-foreground', className)}>
+            Ext. ref{' '}
+            <span className="font-medium break-all text-foreground tabular-nums">
+                {reservation.externalReference}
+            </span>
+        </span>
+    );
 }

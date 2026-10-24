@@ -24,6 +24,7 @@ import { show } from '@/routes/reservations';
 import {
     ReservationMarkers,
     RoomTotalLabel,
+    ExternalReference,
     reservationSubtitle,
 } from './reservation-parts';
 import { RoomBox } from './room-box';
@@ -176,6 +177,7 @@ export function ReservationCard({ reservation }: { reservation: Item }) {
                         </span>
                     </span>
                 </div>
+                <ExternalReference reservation={reservation} />
                 <dl className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 text-sm">
                     <dt className="text-xs text-muted-foreground">Room type</dt>
                     <dt className="text-right text-xs text-muted-foreground">
