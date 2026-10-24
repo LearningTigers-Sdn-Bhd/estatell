@@ -25,7 +25,7 @@ function IconWithTooltip({
                     <span
                         role="img"
                         aria-label={label}
-                        className="inline-flex shrink-0"
+                        className="relative z-10 inline-flex shrink-0"
                     />
                 }
             >
