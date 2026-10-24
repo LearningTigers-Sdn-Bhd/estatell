@@ -10,6 +10,7 @@ use App\Enums\FolioType;
 use App\Enums\HousekeepingStatus;
 use App\Enums\StayType;
 use App\Enums\UnitStatus;
+use App\Events\StayCheckedOut;
 use App\Models\Bed;
 use App\Models\Folio;
 use App\Models\ReservationUnit;
@@ -149,6 +150,8 @@ class CheckOutUnit
                 ->log('Unit checked out');
 
             ($this->syncReservationStatus)($locked->reservation);
+
+            StayCheckedOut::dispatch($locked->property_id, $locked->id);
 
             return UnitStayResult::done($locked);
         });

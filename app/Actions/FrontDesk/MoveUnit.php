@@ -6,6 +6,7 @@ use App\Actions\Reservations\AssignmentResult;
 use App\Enums\SellUnit;
 use App\Enums\StayType;
 use App\Enums\UnitStatus;
+use App\Events\StayRoomChanged;
 use App\Models\Bed;
 use App\Models\ReservationUnit;
 use App\Models\Room;
@@ -140,6 +141,8 @@ class MoveUnit
                     'reason' => trim($reason) === '' ? null : trim($reason),
                 ])
                 ->log('Unit moved');
+
+            StayRoomChanged::dispatch($locked->property_id, $locked->id);
 
             return AssignmentResult::assigned();
         });

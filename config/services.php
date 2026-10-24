@@ -18,6 +18,12 @@ return [
         'key' => env('POSTMARK_API_KEY'),
     ],
 
+    'ttlock' => [
+        'base_url' => env('TTLOCK_BASE_URL', 'https://euapi.ttlock.com'),
+        'client_id' => env('TTLOCK_CLIENT_ID'),
+        'client_secret' => env('TTLOCK_CLIENT_SECRET'),
+    ],
+
     'channex' => [
         'base_url' => env('CHANNEX_BASE_URL', 'https://staging.channex.io/api/v1'),
         'api_key' => env('CHANNEX_API_KEY'),
