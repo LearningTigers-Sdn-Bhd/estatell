@@ -80,6 +80,7 @@ roles    spatie columns + property_id (NOT NULL, FK) + default_role (nullable)
 | `city-ledger.payment`              | Record and void AR payments                                                 | ✓     | ✓       | Finance                           |
 | `city-ledger.allocate`             | Allocate AR payments, reverse allocations                                   | ✓     | ✓       | Finance                           |
 | `reports.view`                     | Report pages, report exports, the night audit packet                        | ✓     | ✓       | Finance                           |
+| `front-desk.view`                  | Timeline View, Room View                                                    | ✓     | ✓       | Front desk                        |
 | `housekeeping.view`                | Housekeeping board, print and export                                        | ✓     | ✓       | Front desk, Housekeeping          |
 | `housekeeping.update`              | Mark clean or dirty, assign, priority, DND, remark, raise Needs maintenance | ✓     | ✓       | Front desk, Housekeeping          |
 | `housekeeping.inspect`             | Mark a room Inspected                                                       | ✓     | ✓       | Front desk                        |

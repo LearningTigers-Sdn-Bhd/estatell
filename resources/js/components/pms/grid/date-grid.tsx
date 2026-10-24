@@ -1,5 +1,5 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { useImperativeHandle, useRef, useState } from 'react';
+import { useImperativeHandle, useMemo, useRef, useState } from 'react';
 import type { ReactNode, Ref } from 'react';
 import { cn } from '@/lib/utils';
 import type { DateColumn } from './date-columns';
@@ -27,12 +27,32 @@ type Props<Row extends GridRow> = {
     columns: DateColumn[];
     renderLabel: (row: Row) => ReactNode;
     renderCell: (row: Row, column: DateColumn) => ReactNode;
+    /** Content for the top-left corner, above the labels, in the date header. */
+    renderCorner?: () => ReactNode;
     /** Content for the date cells of a group row. A group row has none unless this is set. */
     renderGroupCell?: (row: Row, column: DateColumn) => ReactNode;
     /** A row that stays at the bottom of the grid while the rows scroll: the label, then a cell for each date. */
     renderFooterLabel?: () => ReactNode;
     renderFooterCell?: (column: DateColumn) => ReactNode;
     footerHeight?: number;
+    /** A row that stays under the date header while the rows scroll: the label, then a cell for each date. */
+    renderPinnedLabel?: () => ReactNode;
+    renderPinnedCell?: (column: DateColumn) => ReactNode;
+    pinnedHeight?: number;
+    /**
+     * A layer drawn over the cells of a plain row, for a bar that covers several dates. A bar starting in column `i`
+     * is `left: labelWidth + i * columnWidth` wide `n * columnWidth`. The layer lets clicks through, so a bar sets
+     * `pointer-events-auto` itself.
+     */
+    renderRowOverlay?: (
+        row: Row,
+        layout: { labelWidth: number; columnWidth: number },
+    ) => ReactNode;
+    /**
+     * Keep the heading of the group in view under the date header while its rows scroll. The next heading pushes it
+     * up as it arrives.
+     */
+    stickyGroups?: boolean;
     'aria-label': string;
     rowHeight?: number;
     groupHeight?: number;
@@ -59,10 +79,16 @@ export function DateGrid<Row extends GridRow>({
     columns,
     renderLabel,
     renderCell,
+    renderCorner,
     renderGroupCell,
     renderFooterLabel,
     renderFooterCell,
     footerHeight = 44,
+    renderPinnedLabel,
+    renderPinnedCell,
+    pinnedHeight = 64,
+    renderRowOverlay,
+    stickyGroups = false,
     'aria-label': ariaLabel,
     rowHeight = 48,
     groupHeight = 36,
@@ -116,7 +142,63 @@ export function DateGrid<Row extends GridRow>({
     const totalWidth = labelWidth + columnVirtualizer.getTotalSize();
     const rowsHeight = rowVirtualizer.getTotalSize();
     const hasFooter = renderFooterCell !== undefined;
+    const hasPinned = renderPinnedCell !== undefined;
+    const pinnedOffset = hasPinned ? pinnedHeight : 0;
     const virtualColumns = columnVirtualizer.getVirtualItems();
+
+    const rowTop = useMemo(() => {
+        let offset = 0;
+
+        return rows.map((row) => {
+            const start = offset;
+
+            offset += row.kind === 'group' ? groupHeight : rowHeight;
+
+            return start;
+        });
+    }, [rows, rowHeight, groupHeight]);
+    const scrolled = rowVirtualizer.scrollOffset ?? 0;
+    let stuck: { row: Row; push: number } | null = null;
+
+    if (stickyGroups) {
+        const groupIndexes = rows.flatMap((row, index) =>
+            row.kind === 'group' ? [index] : [],
+        );
+        const current = groupIndexes.findLast(
+            (index) => rowTop[index] < scrolled,
+        );
+
+        if (current !== undefined) {
+            const next = groupIndexes.find((index) => index > current);
+            const nextTop = next === undefined ? Infinity : rowTop[next];
+
+            stuck = {
+                row: rows[current],
+                push: Math.min(0, nextTop - scrolled - groupHeight),
+            };
+        }
+    }
+
+    const groupCells = (row: Row) =>
+        renderGroupCell
+            ? virtualColumns.map((virtualColumn) => {
+                  const column = columns[virtualColumn.index];
+
+                  return (
+                      <div
+                          key={column.date}
+                          role="gridcell"
+                          className="absolute top-0 h-full border-r border-grid-line"
+                          style={{
+                              left: labelWidth + virtualColumn.start,
+                              width: virtualColumn.size,
+                          }}
+                      >
+                          {renderGroupCell(row, column)}
+                      </div>
+                  );
+              })
+            : null;
 
     return (
         <div
@@ -150,9 +232,11 @@ export function DateGrid<Row extends GridRow>({
                 >
                     <div
                         role="columnheader"
-                        className="sticky left-0 z-10 h-full border-r border-grid-line bg-grid-header"
+                        className="sticky left-0 z-10 flex h-full items-center border-r border-grid-line bg-grid-header px-3"
                         style={{ width: labelWidth }}
-                    />
+                    >
+                        {renderCorner?.()}
+                    </div>
                     {virtualColumns.map((virtualColumn) => {
                         const column = columns[virtualColumn.index];
 
@@ -195,6 +279,68 @@ export function DateGrid<Row extends GridRow>({
                         );
                     })}
                 </div>
+                {hasPinned && (
+                    <div
+                        role="row"
+                        className="sticky z-20 shrink-0 border-b border-grid-line bg-grid-header"
+                        style={{
+                            top: headerHeight,
+                            width: totalWidth,
+                            height: pinnedHeight,
+                        }}
+                    >
+                        <div
+                            role="rowheader"
+                            className="sticky left-0 z-10 flex h-full items-center border-r border-grid-line bg-grid-header px-3"
+                            style={{ width: labelWidth }}
+                        >
+                            {renderPinnedLabel?.()}
+                        </div>
+                        {virtualColumns.map((virtualColumn) => {
+                            const column = columns[virtualColumn.index];
+
+                            return (
+                                <div
+                                    key={column.date}
+                                    role="gridcell"
+                                    className={cn(
+                                        'absolute top-0 h-full border-r border-grid-line',
+                                        column.isToday && 'bg-grid-today-soft',
+                                    )}
+                                    style={{
+                                        left: labelWidth + virtualColumn.start,
+                                        width: virtualColumn.size,
+                                    }}
+                                >
+                                    {renderPinnedCell(column)}
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+                {stuck && (
+                    <div
+                        role="presentation"
+                        className="sticky z-15 shrink-0 border-b border-grid-line bg-grid-group"
+                        style={{
+                            top: headerHeight + pinnedOffset,
+                            width: totalWidth,
+                            height: groupHeight,
+                            marginBottom: -groupHeight,
+                            transform: `translateY(${stuck.push}px)`,
+                        }}
+                    >
+                        <div
+                            className="sticky left-0 z-10 flex h-full items-center border-r border-grid-line bg-grid-group px-3"
+                            style={{ width: labelWidth }}
+                        >
+                            <div className="relative min-w-0 flex-1">
+                                {renderLabel(stuck.row)}
+                            </div>
+                        </div>
+                        {groupCells(stuck.row)}
+                    </div>
+                )}
                 <div
                     aria-hidden
                     className="flex-1"
@@ -214,7 +360,10 @@ export function DateGrid<Row extends GridRow>({
                                 isGroup && 'bg-grid-group',
                             )}
                             style={{
-                                top: headerHeight + virtualRow.start,
+                                top:
+                                    headerHeight +
+                                    pinnedOffset +
+                                    virtualRow.start,
                                 height: virtualRow.size,
                                 width: totalWidth,
                             }}
@@ -242,27 +391,7 @@ export function DateGrid<Row extends GridRow>({
                                     {renderLabel(row)}
                                 </div>
                             </div>
-                            {isGroup &&
-                                renderGroupCell &&
-                                virtualColumns.map((virtualColumn) => {
-                                    const column = columns[virtualColumn.index];
-
-                                    return (
-                                        <div
-                                            key={column.date}
-                                            role="gridcell"
-                                            className="absolute top-0 h-full border-r border-grid-line"
-                                            style={{
-                                                left:
-                                                    labelWidth +
-                                                    virtualColumn.start,
-                                                width: virtualColumn.size,
-                                            }}
-                                        >
-                                            {renderGroupCell(row, column)}
-                                        </div>
-                                    );
-                                })}
+                            {isGroup && groupCells(row)}
                             {!isGroup &&
                                 virtualColumns.map((virtualColumn) => {
                                     const column = columns[virtualColumn.index];
@@ -299,6 +428,14 @@ export function DateGrid<Row extends GridRow>({
                                         </div>
                                     );
                                 })}
+                            {!isGroup && renderRowOverlay && (
+                                <div className="pointer-events-none absolute inset-0">
+                                    {renderRowOverlay(row, {
+                                        labelWidth,
+                                        columnWidth,
+                                    })}
+                                </div>
+                            )}
                         </div>
                     );
                 })}

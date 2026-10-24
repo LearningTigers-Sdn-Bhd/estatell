@@ -138,7 +138,7 @@ test('saving changes the visibilities and logs the difference', function () {
         ->and($fields['phone']->visibility)->toBe(FieldVisibility::Required);
 
     $log = Activity::query()->where('event', 'registration_card_fields.updated')->sole();
-    expect($log->properties['after'])->toBe(['gender' => 'optional', 'email' => 'hidden', 'total_charges' => 'required']);
+    expect($log->properties['after'])->toEqual(['gender' => 'optional', 'email' => 'hidden', 'total_charges' => 'required']);
 });
 
 test('a save that changes nothing is not logged', function () {

@@ -71,13 +71,36 @@ const sizeClasses = {
 export function BookingSourceBadge({
     source,
     size = 'default',
+    tooltip = true,
     className,
 }: {
     source: Pick<Source, 'name' | 'icon' | 'letters' | 'color'>;
     size?: 'sm' | 'default';
+    /** Turn the tooltip off where the name is already shown, such as inside a hover card. */
+    tooltip?: boolean;
     className?: string;
 }) {
     const Icon = source.icon === null ? null : bookingSourceIcons[source.icon];
+
+    const classes = cn(
+        'inline-flex shrink-0 items-center justify-center rounded-md text-xs leading-none font-semibold select-none',
+        sizeClasses[size].box,
+        swatchClasses[source.color],
+        className,
+    );
+    const content = Icon ? (
+        <Icon aria-hidden className={sizeClasses[size].icon} />
+    ) : (
+        <span aria-hidden>{source.letters}</span>
+    );
+
+    if (!tooltip) {
+        return (
+            <span role="img" aria-label={source.name} className={classes}>
+                {content}
+            </span>
+        );
+    }
 
     return (
         <Tooltip>
@@ -86,20 +109,11 @@ export function BookingSourceBadge({
                     <span
                         role="img"
                         aria-label={source.name}
-                        className={cn(
-                            'inline-flex shrink-0 items-center justify-center rounded-md text-xs leading-none font-semibold select-none',
-                            sizeClasses[size].box,
-                            swatchClasses[source.color],
-                            className,
-                        )}
+                        className={classes}
                     />
                 }
             >
-                {Icon ? (
-                    <Icon aria-hidden className={sizeClasses[size].icon} />
-                ) : (
-                    <span aria-hidden>{source.letters}</span>
-                )}
+                {content}
             </TooltipTrigger>
             <TooltipContent>{source.name}</TooltipContent>
         </Tooltip>
