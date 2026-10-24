@@ -59,6 +59,7 @@ import { Switch } from '@/components/ui/switch';
 import type { GuestMatchCriteria } from '@/hooks/use-guest-matches';
 import { show as showGuest } from '@/routes/guests';
 import { show as showCard } from '@/routes/registration';
+import { update as updateBooker } from '@/routes/reservations/booker';
 import {
     replace as replaceGuest,
     store as storeGuest,
@@ -229,7 +230,7 @@ function RowMenu({
 
 /**
  * A guest already on a unit, a unit with no guest, or the booker who does not stay. With `canEdit` the row opens to the
- * profile of the guest; the unit link never changes here. Save and Cancel show only after an edit.
+ * profile of the guest (the booker who does not stay saves through the reservation); the unit link never changes here. Save and Cancel show only after an edit.
  */
 export function SavedGuestRow({
     rowId,
@@ -363,29 +364,31 @@ export function SavedGuestRow({
     }
 
     const save = () => {
-        if (row.unitId === null || row.guestId === null) {
+        if (row.guestId === null) {
             return;
         }
 
-        router.put(
-            updateGuest.url({
-                reservation: reservationId,
-                unit: row.unitId,
-                guestId: row.guestId,
-            }),
-            profilePayload(values),
-            {
-                preserveScroll: true,
-                preserveState: true,
-                onStart: () => setProcessing(true),
-                onFinish: () => setProcessing(false),
-                onError: (found) => setErrors(found),
-                onSuccess: () => {
-                    setErrors({});
-                    setBase(values);
-                },
+        // The booker who does not stay has no unit, so the profile saves through the reservation.
+        const url =
+            row.unitId === null
+                ? updateBooker.url({ reservation: reservationId })
+                : updateGuest.url({
+                      reservation: reservationId,
+                      unit: row.unitId,
+                      guestId: row.guestId,
+                  });
+
+        router.put(url, profilePayload(values), {
+            preserveScroll: true,
+            preserveState: true,
+            onStart: () => setProcessing(true),
+            onFinish: () => setProcessing(false),
+            onError: (found) => setErrors(found),
+            onSuccess: () => {
+                setErrors({});
+                setBase(values);
             },
-        );
+        });
     };
 
     const cancel = () => {

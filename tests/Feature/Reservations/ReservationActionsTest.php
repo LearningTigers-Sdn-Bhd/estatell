@@ -861,3 +861,28 @@ test('a day use unit gets only the auto-add items that do not charge by the nigh
     expect(array_map(fn (ChargeItem $item): int => $item->id, $items))->toBe([$perStay->id])
         ->and(array_map(fn (ChargeItem $item): int => $item->id, app(AutoAddOns::class)->items($setup['property'])))->toBe([$nightly->id, $perStay->id]);
 });
+
+test('the profile of a booker who does not stay is saved from the reservation', function () {
+    $setup = actionsSetup();
+    $booker = $setup['reservation']->booker;
+
+    $this->actingAs($setup['user'])
+        ->put(actionsRoute($setup, 'reservations.booker.update'), ['full_name' => 'Fujita Kotone Jr', 'city' => 'Osaka'])
+        ->assertSessionHasNoErrors()
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Fujita Kotone Jr saved.']);
+
+    expect($booker->refresh()->full_name)->toBe('Fujita Kotone Jr')
+        ->and($booker->city)->toBe('Osaka');
+});
+
+test('the booker can be saved only with guests.manage', function () {
+    $setup = actionsSetup();
+    $viewer = User::factory()->create(['property_id' => $setup['property']->id]);
+    actionsRoleWith($viewer, ['reservations.view', 'reservations.manage', 'guests.view']);
+
+    $this->actingAs($viewer)
+        ->put(actionsRoute($setup, 'reservations.booker.update'), ['full_name' => 'Changed'])
+        ->assertForbidden();
+
+    expect($setup['reservation']->booker->refresh()->full_name)->not->toBe('Changed');
+});

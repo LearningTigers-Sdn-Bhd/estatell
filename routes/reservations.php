@@ -3,6 +3,7 @@
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Reservations\BookingSummaryController;
 use App\Http\Controllers\Reservations\ReservationBoatTripController;
+use App\Http\Controllers\Reservations\ReservationBookerController;
 use App\Http\Controllers\Reservations\ReservationBookingController;
 use App\Http\Controllers\Reservations\ReservationCityLedgerController;
 use App\Http\Controllers\Reservations\ReservationCompanyController;
@@ -154,6 +155,7 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
 
     Route::middleware('can:'.PermissionEnum::ReservationsManage->value)->prefix('{reservation}')->group(function () {
         Route::put('group', [ReservationGroupController::class, 'update'])->name('group.update');
+        Route::put('booker', [ReservationBookerController::class, 'update'])->middleware('can:'.PermissionEnum::GuestsManage->value)->name('booker.update');
         Route::put('company', [ReservationCompanyController::class, 'update'])->middleware('can:'.PermissionEnum::CompanyView->value)->name('company.update');
         Route::middleware('boats')->put('boat-trips', [ReservationBoatTripController::class, 'setMany'])->name('boat-trips.set-many');
         Route::post('cancel/preview', [ReservationUnitStayController::class, 'cancelAllPreview'])->name('cancel-preview');

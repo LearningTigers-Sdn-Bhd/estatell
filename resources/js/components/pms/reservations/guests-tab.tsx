@@ -351,7 +351,6 @@ export function GuestsTab({
                                     canManage &&
                                     canManageGuests &&
                                     row.guest !== null &&
-                                    row.unitId !== null &&
                                     row.guestId !== null
                                 }
                                 canChange={
