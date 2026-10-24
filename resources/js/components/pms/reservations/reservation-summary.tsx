@@ -5,8 +5,10 @@ import {
     CalendarArrowDown,
     CalendarArrowUp,
     CalendarPlus,
+    ExternalLink,
     Globe,
     HandCoins,
+    Hash,
     Landmark,
     Mail,
     Moon,
@@ -20,6 +22,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { BookingSourceBadge } from '@/components/pms/booking-source-badge';
 import { DateText } from '@/components/pms/date-text';
 import { MoneyText } from '@/components/pms/money-text';
 import { Separator } from '@/components/ui/separator';
@@ -177,8 +180,29 @@ export function ReservationSummary({
                         {reservation.billingModeLabel}
                     </Row>
                 )}
+                <Row icon={Hash} label="Ref">
+                    <strong className="font-semibold">
+                        {reservation.reference}
+                    </strong>
+                </Row>
                 <Row icon={Globe} label="Source">
-                    {reservation.sourceName}
+                    <span className="inline-flex items-center gap-1.5">
+                        <BookingSourceBadge
+                            source={reservation.source}
+                            size="sm"
+                            tooltip={false}
+                        />
+                        {reservation.source.name}
+                    </span>
+                </Row>
+                <Row icon={ExternalLink} label="Ext. ref">
+                    {reservation.externalReference === null ? (
+                        <span className="text-muted-foreground">None</span>
+                    ) : (
+                        <strong className="font-semibold break-all">
+                            {reservation.externalReference}
+                        </strong>
+                    )}
                 </Row>
                 <Row icon={Building2} label="Company">
                     {reservation.companyId === null ? (

@@ -21,7 +21,9 @@ Find a reservation and see everything about it on one page, with the same flow s
 | `POST …/{reservation}/units`                                 | `reservations.units.store`            | – (`AddUnit`)                                               |
 | `POST …/{reservation}/units/{unit}/guests`                   | `reservations.units.guests.store`     | – (`AddGuestToUnit`, then `AttachGuest`)                    |
 | `PUT …/{reservation}/units/{unit}/guests/{guestId}`          | `reservations.units.guests.update`    | `guests.manage` (`UpdateGuest`)                             |
+| `PUT …/{reservation}/booker`                                 | `reservations.booker.update`          | `guests.manage` (`UpdateGuest`)                             |
 | `POST …/{reservation}/units/{unit}/guests/{guestId}/replace` | `reservations.units.guests.replace`   | – (`ReplaceUnitGuest`)                                      |
+| `POST …/{reservation}/units/{unit}/guests/{guestId}/move`    | `reservations.units.guests.move`      | – (`MoveGuestToUnit`)                                       |
 | `DELETE …/{reservation}/units/{unit}/guests/{guestId}`       | `reservations.units.guests.destroy`   | – (`DetachGuest`)                                           |
 | `POST …/{reservation}/units/{unit}/add-ons`                  | `reservations.units.add-ons.store`    | – (`AddUnitAddOn`)                                          |
 | `DELETE …/{reservation}/units/{unit}/add-ons/{addOn}`        | `reservations.units.add-ons.destroy`  | – (`RemoveUnitAddOn`)                                       |
@@ -112,7 +114,7 @@ Status tabs, filters, and two views of the same page of results: **Cards** (defa
 | Room box    | See [Room box](#room-box)                                                                                                                                                                        |
 | Title       | `group_name`, or the booker's name. For an OTA booking without a group name: the booker.                                                                                                         |
 | Markers     | ★ VIP (`is_vip`), ⛔ blacklisted, ↻ repeat guest (the booker has another Completed reservation with a lower id), 👥 group (2 or more units)                                                      |
-| Subtitle    | Booker (groups only), reference. OTA bookings add the source name. `external_reference` when set.                                                                                                |
+| Subtitle    | Booker (groups only), reference. A separate line under the badges shows `Ext. ref {external_reference}` when set, in full and never in a tooltip.                                                |
 | Menu `[⋯]`  | Open reservation, Open guest. Unit actions come with front desk.                                                                                                                                 |
 | Stay strip  | Earliest arrival, nights, latest departure of units that hold inventory. When none does (a cancelled reservation), of all units. A day use reads "Day use · 4h" (`stayLabel`), never "0 nights". |
 | Badges      | `StatusBadge`, the [source badge](11-booking-sources.md#badge) (the source name on hover), unit count (groups only), adults and children of units that hold inventory                            |
@@ -156,16 +158,16 @@ Room or bed numbers when assigned (from the first night of each unit). Every oth
 
 ### List view
 
-| Column | Shows                                                                                                       | Sort |
-| ------ | ----------------------------------------------------------------------------------------------------------- | ---- |
-| Ref    | `reference`                                                                                                 | Yes  |
-| Booker | Title, markers and subtitle as on the card                                                                  | –    |
-| Stay   | Earliest arrival → latest departure, nights                                                                 | Yes  |
-| Units  | Unit count                                                                                                  | –    |
-| Rooms  | The room box rules, inline                                                                                  | –    |
-| Source | The [source badge](11-booking-sources.md#badge) and the source name. OTA bookings add `external_reference`. | –    |
-| Total  | As on the card                                                                                              | Yes  |
-| Status | `StatusBadge`                                                                                               | –    |
+| Column | Shows                                                                                                                                       | Sort |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| Ref    | `reference`                                                                                                                                 | Yes  |
+| Booker | Title and markers as on the card. The subtitle shows only the booker (groups); the Ref column has the reference.                            | –    |
+| Stay   | Earliest arrival → latest departure, nights                                                                                                 | Yes  |
+| Units  | Unit count                                                                                                                                  | –    |
+| Rooms  | The room box rules, inline                                                                                                                  | –    |
+| Source | The [source badge](11-booking-sources.md#badge) and the source name, with `Ext. ref {external_reference}` under it for any source when set. | –    |
+| Total  | As on the card                                                                                                                              | Yes  |
+| Status | `StatusBadge`                                                                                                                               | –    |
 
 Below `lg`, List view shows the cards, as wastays does.
 
@@ -195,8 +197,9 @@ The Units list is hidden for one unit, and the Folio rail for one folio, so thos
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────────┐
 │ ← Reservations                                                                           │
-│ WA1-0142 · Tan family trip  [Group]  ●Confirmed ▾                [Add unit] [⋯ More ▾]   │
-│ 12 Oct → 15 Oct 2026 · 5 units · Phone · Ext. ref —                                      │
+│ Tan family trip  [Group]  ●Confirmed ▾                           [Add unit] [⋯ More ▾]   │
+│ Ref: WA1-0142 · 12 Oct → 15 Oct 2026 · 5 units                                           │
+│ [☎] Phone · Ext. ref: —                                                                  │
 ├────────────────────────────────────────────────────────────┬─────────────────────────────┤
 │ [🛏 Units] [👤 Guests] [🧾 Add-ons] [🕘 Activity]          │ Booker                      │
 │ ─────────                                                  │ Tan Wei Ming  VIP           │
@@ -211,8 +214,10 @@ The Units list is hidden for one unit, and the Folio rail for one folio, so thos
 │ │   — · Cancelled    ││ Night      Room  Rate     Amount │ │ Balance      from folio     │
 │ │   Family Suite     ││ Mon 12 Oct 101   BAR RO   280.00 │ │ ─────────────────────────── │
 │ │   auto · Confirmed ││ Tue 13 Oct 101   BAR RO   280.00 │ │ Billing   Master pays rooms │
-│ │                    ││ Wed 14 Oct 101   BAR RO   280.00 │ │ Source    Phone             │
-│ │                    ││                  Total    840.00 │ │ Company   —                 │
+│ │                    ││ Wed 14 Oct 101   BAR RO   280.00 │ │ Ref       WA1-0142          │
+│ │                    ││                  Total    840.00 │ │ Source    [☎] Phone         │
+│ │                    ││                                  │ │ Ext. ref  None              │
+│ │                    ││                                  │ │ Company   —                 │
 │ │                    ││ ⓘ Price override by Aina:        │ │ Created   02 Oct · Aina     │
 │ │                    ││   "Corporate rate"               │ │                             │
 │ └────────────────────┘└──────────────────────────────────┘ │                             │
@@ -221,7 +226,7 @@ The Units list is hidden for one unit, and the Folio rail for one folio, so thos
 
 ### Header
 
-- Reference, `group_name` (or the booker's name), a **Group** badge with 2 or more units, and the reservation status.
+- Title: `group_name` (or the booker's name), a **Group** badge with 2 or more units, and the reservation status. The description has two rows. Row 1: `Ref: {reference}` (bold), the stay dates and the unit count. Row 2: the source badge icon and name, then `Ext. ref: {external_reference}` (bold) when set.
 - The status opens a **Status by unit** popover: each unit's room type, room or bed, and status.
 - **Add unit** opens a Sheet with one booking line (room type, rate plan, dates, adults, child ages) and calls `AddUnit` (needs `reservations.manage`). Room or bed is not picked here: `AssignRoom` and `AssignBed` come with the booking form, so the new unit shows as not assigned. A collapsed **Price override** section holds the stay total and reason. After a `restricted` refusal, a restriction override reason field appears for staff with `rates.override-restrictions`. Add-ons, the catalogue discount and a live price preview are not in this Sheet. The server adds the [auto-add items](04-add-ons.md#added-automatically) to the new unit and the toast names them. The room types and plans load as an Inertia optional prop when the Sheet opens. The Sheet has no time fields: the new unit copies the arrival and departure times of the reservation's first unit (see [Expected times](01-reservation-shape.md#expected-times)). With the Boats feature on, an overnight unit also copies the first unit's boat trips, skipping a departure that is now unavailable (see [Boat trips](../24-boats/02-boat-trips.md#booking-form)). Hidden on Cancelled and Completed reservations.
 - **⋯ More**: **Check in** and **Check out** for a single-unit reservation (exactly one live unit): the first items, shown only while the unit menu offers them, so the same rules and permissions apply, and they open the unit's own Dialogs on any tab. The server sends that unit as `singleUnit` (the Units tab reuses the unit it already built). **Check in all** shows only for 2 or more units with at least one Confirmed (`hasUnitToCheckIn`). Edit group (a Dialog with group name, and billing mode when there are 2 or more units, `UpdateReservationGroup`) and **Change company** (a Dialog with the company combobox, `UpdateReservationCompany`; needs `company.view`, hidden on closed reservations). A `master_has_payments`, `master_has_ar_invoice`, `company_plan_conflict` or `company_not_available` refusal shows inline on the combobox. The Active company list loads as an Inertia optional prop when the Dialog opens. Edit group works on closed reservations too. **Print booking summary** opens the [booking summary](08-booking-summary.md) PDF in a new tab, and **Print without prices** is added when the reservation has a company (needs `reservations.view`, shown on closed reservations too). **Cancel reservation** opens the [Cancel reservation](../18-front-desk/01-check-in-and-check-out.md#cancel-reservation) Dialog, with `reservations.manage`, when at least one unit is Confirmed. **Check out all** goes to the [group check-out](../18-front-desk/05-group-check-out.md) page, with `front-desk.check-out`, for 2 or more units with one CheckedIn or one holding money. **Print receipts** opens one PDF with every receipt of the reservation (all payments that are not refunds, through `reservations.check-out.receipts`) in a new tab, with `payment.record`, when the reservation has a payment; shown on closed reservations too, so receipts stay printable after a group check-out.
@@ -259,29 +264,30 @@ The tab is one table of guests, edited in place. It reuses the booking form's Gu
 └─────────────────────────────────────────────────────────┴──────────────┘
 ```
 
-| Part           | Rule                                                                                                                                                                                                                                                                                                       |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Toolbar        | Left: the **All / Grouped** toggle. Right: the summary icon button with a tooltip ("Hide summary" or "Show summary"). With one unit the toggle is hidden and only the icon shows.                                                                                                                          |
-| Summary icon   | The same state as on the Folio tab (`useSummaryHidden`, one remembered choice for both tabs, key `reservations.summary-hidden`). It applies on the Folio and Guests tabs. The other tabs always show the summary.                                                                                          |
-| All            | One flat table in unit order. Columns: chevron, Guest, Phone, Stays in, Role and the **⋯** menu. A booker who does not stay is the first row, with "Not staying" in Stays in.                                                                                                                              |
-| Grouped        | A left rail (14rem) lists the units like the Units tab: unit label, status when not open, guest count. "Not staying" is the first entry when the booker does not stay. The table shows the picked unit only, with no Stays in column. The rail shows for 2 or more units, and becomes a select below `lg`. |
-| View choice    | All is the default. The choice is kept in the browser (`reservations.guests-view`). Switching makes no request: the server sends all rows and the browser groups them.                                                                                                                                     |
-| Row            | Main row: Name (autocomplete), Phone (autocomplete), Stays in (select, read only on a saved row), Role badges (Booker, Primary, Guest) and **⋯**. The expanded part has Email, the guest card, **Update guest profile**, `DuplicateWarning` and the guest details.                                         |
-| Unit, no guest | In All view a muted row "No guest yet" with a small **Add** button. It adds a draft row with that unit picked. In Grouped view the draft row uses the open unit.                                                                                                                                           |
-| Footer         | Left: "N units without a guest" (All), "N guests in this unit" (Grouped) or "The booker does not stay." (Not staying). Right: **+ Add guest**, outline, like the booking form. It adds a draft row at the end and focuses its Name.                                                                        |
-| Not staying    | **+ Add guest** shows here too, with the Stays in select (the rail names no unit). The draft row stays in this entry until it is saved; Save puts the guest on the picked unit.                                                                                                                            |
-| Draft row      | Opens expanded. Buttons: **Discard** and **Save**. Leaving the page with a draft row asks first (`useUnsavedChanges`).                                                                                                                                                                                     |
-| Saved row      | **Save** and **Cancel** appear only after an edit in the expanded part. Name, Phone, Email and the details are the CRM profile of the guest, so Save always updates it and there is no **Update guest profile** switch. The unit link does not change.                                                     |
+| Part           | Rule                                                                                                                                                                                                                                                                                                                                                       |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Toolbar        | Left: the **All / Grouped** toggle. Right: the summary icon button with a tooltip ("Hide summary" or "Show summary"). With one unit the toggle is hidden and only the icon shows.                                                                                                                                                                          |
+| Summary icon   | The same state as on the Folio tab (`useSummaryHidden`, one remembered choice for both tabs, key `reservations.summary-hidden`). It applies on the Folio and Guests tabs. The other tabs always show the summary.                                                                                                                                          |
+| All            | One flat table in unit order. Columns: chevron, Guest, Phone, Stays in, Role and the **⋯** menu. A booker who does not stay is the first row, with "Not staying" in Stays in.                                                                                                                                                                              |
+| Grouped        | A left rail (14rem) lists the units like the Units tab: unit label, status when not open, guest count. "Not staying" is the first entry when the booker does not stay. The table shows the picked unit only, with no Stays in column. The rail shows for 2 or more units, and becomes a select below `lg`.                                                 |
+| View choice    | All is the default. The choice is kept in the browser (`reservations.guests-view`). Switching makes no request: the server sends all rows and the browser groups them.                                                                                                                                                                                     |
+| Row            | Main row: Name (autocomplete), Phone (autocomplete), Stays in (select, read only on a saved row), Role badges (Booker, Primary, Guest) and **⋯**. The expanded part has Email, the guest card, **Update guest profile**, `DuplicateWarning` and the guest details.                                                                                         |
+| Unit, no guest | In All view a muted row "No guest yet" with a small **Add** button. It adds a draft row with that unit picked. In Grouped view the draft row uses the open unit.                                                                                                                                                                                           |
+| Footer         | Left: "N units without a guest" (All), "N guests in this unit" (Grouped) or "The booker does not stay." (Not staying). Right: **+ Add guest**, outline, like the booking form. It adds a draft row at the end and focuses its Name.                                                                                                                        |
+| Not staying    | **+ Add guest** shows here too, with the Stays in select (the rail names no unit). The draft row stays in this entry until it is saved; Save puts the guest on the picked unit.                                                                                                                                                                            |
+| Draft row      | Opens expanded. Buttons: **Discard** and **Save**. Leaving the page with a draft row asks first (`useUnsavedChanges`).                                                                                                                                                                                                                                     |
+| Saved row      | **Save** and **Cancel** appear only after an edit in the expanded part. Name, Phone, Email and the details are the CRM profile of the guest, so Save always updates it and there is no **Update guest profile** switch. The unit link does not change. A booker who does not stay opens like any saved row and saves through `reservations.booker.update`. |
 
 ### Save rules
 
 There is no per-stay snapshot. `unit_guests` is a link to a CRM guest (`reservation_unit_id`, `guest_id`, `is_primary`), and a row is either a link to an existing guest or a new guest.
 
-| Row                             | Save does                                                                                                                             |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Draft, an existing guest picked | `AttachGuest` for the picked guest. With **Update guest profile** on, `UpdateGuest` runs first with the typed changes.                |
-| Draft, no guest picked          | `CreateGuest` with the typed profile, then `AttachGuest`. The `DuplicateWarning` (Use existing, Create new anyway) shows before save. |
-| Saved row, profile edited       | `UpdateGuest` only, through `reservations.units.guests.update`. The unit link and the guest's tags do not change.                     |
+| Row                              | Save does                                                                                                                             |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Draft, an existing guest picked  | `AttachGuest` for the picked guest. With **Update guest profile** on, `UpdateGuest` runs first with the typed changes.                |
+| Draft, no guest picked           | `CreateGuest` with the typed profile, then `AttachGuest`. The `DuplicateWarning` (Use existing, Create new anyway) shows before save. |
+| Saved row, profile edited        | `UpdateGuest` only, through `reservations.units.guests.update`. The unit link and the guest's tags do not change.                     |
+| Booker who does not stay, edited | `UpdateGuest` only, through `reservations.booker.update`. The booker has no unit.                                                     |
 
 - One route saves a draft row: `reservations.units.guests.store` (`ReservationUnitController::storeGuest`). The Action `AddGuestToUnit` runs `CreateGuest` or `UpdateGuest` and `AttachGuest` in one transaction and rolls back on a refusal, like `CreateBooking`, and keeps the tags of an updated guest. A saved row's profile edit uses `reservations.units.guests.update` (`guests.manage`), not the guest page route, which redirects to the guest page and syncs tags. The `{guestId}` is read through the unit's guests, so a guest who is not on the unit is a 404.
 - Refusals are the `AttachGuest` codes in the table below. They show inline on the row: `already_attached` and `bed_unit_full` on Stays in, `guest_not_found` on Name, `unit_not_open` as a row error.
@@ -316,6 +322,23 @@ Both items are in the **⋯** menu of a saved guest, on a Confirmed, CheckedIn o
 - **Last guest.** Removing the only guest leaves the unit as "No guest yet". The booker of the reservation is not a unit guest when not staying, so Remove never changes the booking's booker.
 - **Errors.** A refusal of Replace shows inline on the row (`guest_id` and `full_name` on Name, the rest at the top of the row). A refusal of Remove shows as an error toast and nothing is written.
 - Moving a guest to another unit and changing the primary guest by hand still have no Action.
+
+### Move a guest to another unit
+
+**Move to unit** is in the **⋯** menu of a saved guest, on an open unit of a reservation with another open unit, for `reservations.manage`. A booker who does not stay has **Add to a unit** in the same place. It uses the same Dialog and adds the booker through `reservations.units.guests.store`.
+
+The Dialog has one Select, **Move to**, listing the other units of the reservation. A unit that is not open is listed but cannot be picked. `MoveGuestToUnit(User $actor, ReservationUnit $from, UnitGuest $occupant, ReservationUnit $target): AttachGuestResult` locks both units in id order and moves the `unit_guests` row to the target. It posts and reprices nothing, because a folio points at the guest, not at the row.
+
+| Rule                                              | Result                                                                                                                                            |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Target is not open, or the old unit is not open   | Refused: `unit_not_open`                                                                                                                          |
+| The guest already stays in the target             | Refused: `already_attached`                                                                                                                       |
+| The target is a bed unit that already has a guest | Refused: `bed_unit_full`                                                                                                                          |
+| The guest has a signed or void registration card  | Refused: `has_registration_card`                                                                                                                  |
+| The guest has a Draft registration card           | The card is deleted with the move                                                                                                                 |
+| Primary role                                      | The guest is primary on the target when it had no guest; when the guest was primary on the old unit, the oldest other guest there becomes primary |
+
+A refusal writes and logs nothing and shows inline in the Dialog. A move logs `reservation.guest_moved` with ids only. A moved primary guest on a CheckedOut unit can return the same foreign-tax warning as `AttachGuest`.
 
 ### Attach rules
 
