@@ -168,6 +168,7 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                 Route::post('guests', [ReservationUnitController::class, 'storeGuest'])->name('guests.store');
                 Route::put('guests/{guestId}', [ReservationUnitController::class, 'updateGuest'])->whereNumber('guestId')->middleware('can:'.PermissionEnum::GuestsManage->value)->name('guests.update');
                 Route::post('guests/{guestId}/replace', [ReservationUnitController::class, 'replaceGuest'])->whereNumber('guestId')->name('guests.replace');
+                Route::post('guests/{guestId}/move', [ReservationUnitController::class, 'moveGuest'])->whereNumber('guestId')->name('guests.move');
                 Route::delete('guests/{guestId}', [ReservationUnitController::class, 'destroyGuest'])->whereNumber('guestId')->name('guests.destroy');
                 Route::middleware('boats')->group(function () {
                     Route::put('boat-trips/{direction}', [ReservationBoatTripController::class, 'set'])->name('boat-trips.set');

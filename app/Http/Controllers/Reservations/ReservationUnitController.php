@@ -6,6 +6,7 @@ use App\Actions\Guests\UpdateGuest;
 use App\Actions\Reservations\AddGuestToUnit;
 use App\Actions\Reservations\AddUnit;
 use App\Actions\Reservations\DetachGuest;
+use App\Actions\Reservations\MoveGuestToUnit;
 use App\Actions\Reservations\ReplaceUnitGuest;
 use App\Data\Reservations\NewAddOnData;
 use App\Enums\PermissionEnum;
@@ -13,6 +14,7 @@ use App\Enums\StayType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Reservations\AddUnitRequest;
 use App\Http\Requests\Reservations\AttachGuestRequest;
+use App\Http\Requests\Reservations\MoveUnitGuestRequest;
 use App\Http\Requests\Reservations\UpdateUnitGuestRequest;
 use App\Models\ChargeItem;
 use App\Models\Property;
@@ -132,6 +134,27 @@ class ReservationUnitController extends Controller
         Inertia::flash('toast', $refusal === null
             ? ['type' => 'success', 'message' => __(':name removed from the unit.', ['name' => $name])]
             : ['type' => 'error', 'message' => (string) Arr::first($refusals->errors($refusal))]);
+
+        return back(fallback: $this->page($property, $reservation));
+    }
+
+    /**
+     * Move a guest to another unit of the reservation. A refusal goes back to the Dialog as an inline error and writes
+     * nothing.
+     */
+    public function moveGuest(MoveUnitGuestRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, int $guestId, MoveGuestToUnit $moveGuest, ReservationRefusals $refusals): RedirectResponse
+    {
+        $occupant = $unit->guests()->where('guest_id', $guestId)->with('guest')->firstOrFail();
+        $target = $reservation->units()->findOrFail($request->integer('target_unit_id'));
+        $result = $moveGuest($request->user(), $unit, $occupant, $target);
+
+        if ($result->isRefused()) {
+            return back(fallback: $this->page($property, $reservation))->withErrors($refusals->errors((string) $result->refusal));
+        }
+
+        Inertia::flash('toast', $result->taxWarning !== null
+            ? ['type' => 'warning', 'message' => $result->taxWarning]
+            : ['type' => 'success', 'message' => __(':name moved to :unit.', ['name' => $occupant->guest->full_name, 'unit' => $target->roomType->name])]);
 
         return back(fallback: $this->page($property, $reservation));
     }

@@ -886,3 +886,106 @@ test('the booker can be saved only with guests.manage', function () {
 
     expect($setup['reservation']->booker->refresh()->full_name)->not->toBe('Changed');
 });
+
+/**
+ * A second unit of the setup's reservation, on the same room type and dates.
+ */
+function actionsSecondUnit(array $setup): ReservationUnit
+{
+    return ReservationUnit::factory()->for($setup['reservation'])->withNights()->create([
+        'room_type_id' => $setup['roomType']->id,
+        'rate_plan_id' => $setup['plan']->id,
+        'arrival_date' => '2026-10-20',
+        'departure_date' => '2026-10-22',
+    ]);
+}
+
+test('a guest moves to another unit, takes the primary role there and hands it on here', function () {
+    $setup = actionsSetup();
+    $target = actionsSecondUnit($setup);
+    $moving = actionsOccupant($setup, ['is_primary' => true], ['full_name' => 'Ahmad Faiz']);
+    $staying = actionsOccupant($setup, ['is_primary' => false]);
+    RegistrationCard::factory()->create(['unit_guest_id' => $moving->id]);
+
+    $this->actingAs($setup['user'])
+        ->post(actionsRoute($setup, 'reservations.units.guests.move', ['unit' => $setup['unit']->id, 'guestId' => $moving->guest_id]), ['target_unit_id' => $target->id])
+        ->assertSessionHasNoErrors()
+        ->assertInertiaFlash('toast.type', 'success');
+
+    expect($moving->refresh()->reservation_unit_id)->toBe($target->id)
+        ->and($moving->is_primary)->toBeTrue()
+        ->and($staying->refresh()->is_primary)->toBeTrue()
+        ->and(RegistrationCard::query()->count())->toBe(0)
+        ->and(Activity::query()->where('event', 'reservation.guest_moved')->count())->toBe(1);
+});
+
+test('a moved guest is not primary on a unit that already has a guest', function () {
+    $setup = actionsSetup();
+    $target = actionsSecondUnit($setup);
+    $moving = actionsOccupant($setup, ['is_primary' => true]);
+    $resident = UnitGuest::factory()->create(['reservation_unit_id' => $target->id, 'guest_id' => Guest::factory()->create(['property_id' => $setup['property']->id])->id, 'is_primary' => true]);
+
+    $this->actingAs($setup['user'])
+        ->post(actionsRoute($setup, 'reservations.units.guests.move', ['unit' => $setup['unit']->id, 'guestId' => $moving->guest_id]), ['target_unit_id' => $target->id])
+        ->assertSessionHasNoErrors();
+
+    expect($moving->refresh()->is_primary)->toBeFalse()
+        ->and($resident->refresh()->is_primary)->toBeTrue();
+});
+
+test('a refused move writes and logs nothing', function (string $case, string $field, string $message) {
+    $setup = actionsSetup();
+    $target = actionsSecondUnit($setup);
+    $moving = actionsOccupant($setup, ['is_primary' => true]);
+
+    match ($case) {
+        'signed card' => RegistrationCard::factory()->create([
+            'unit_guest_id' => $moving->id,
+            'status' => RegistrationCardStatus::Signed,
+            'signed_at' => now(),
+            'terms_id' => RegistrationCardTerms::factory()->create()->id,
+            'snapshot' => ['guest' => 'signed'],
+            'number' => 'RC-1',
+        ]),
+        'closed target' => $target->forceFill(['status' => UnitStatus::Cancelled])->save(),
+        'already there' => UnitGuest::factory()->create(['reservation_unit_id' => $target->id, 'guest_id' => $moving->guest_id]),
+        'bed full' => (function () use ($setup, $target): void {
+            $setup['roomType']->forceFill(['sell_unit' => 'bed'])->save();
+            UnitGuest::factory()->create(['reservation_unit_id' => $target->id, 'guest_id' => Guest::factory()->create(['property_id' => $setup['property']->id])->id]);
+        })(),
+    };
+
+    $this->actingAs($setup['user'])
+        ->post(actionsRoute($setup, 'reservations.units.guests.move', ['unit' => $setup['unit']->id, 'guestId' => $moving->guest_id]), ['target_unit_id' => $target->id])
+        ->assertSessionHasErrors([$field => $message]);
+
+    expect($moving->refresh()->reservation_unit_id)->toBe($setup['unit']->id)
+        ->and(Activity::query()->where('event', 'reservation.guest_moved')->count())->toBe(0);
+})->with([
+    ['signed card', 'form', 'This guest has a registration card on this unit, so they cannot be changed.'],
+    ['closed target', 'form', 'This unit is closed, so it cannot change.'],
+    ['already there', 'guest_id', 'This guest already stays in this unit.'],
+    ['bed full', 'form', 'A bed unit holds one guest.'],
+]);
+
+test('the target must be another unit of the same reservation', function () {
+    $setup = actionsSetup();
+    $moving = actionsOccupant($setup, ['is_primary' => true]);
+    $strangerUnit = ReservationUnit::factory()->for(Reservation::factory()->create(['property_id' => $setup['property']->id]))->withNights()->create();
+    $url = actionsRoute($setup, 'reservations.units.guests.move', ['unit' => $setup['unit']->id, 'guestId' => $moving->guest_id]);
+
+    $this->actingAs($setup['user'])->post($url, ['target_unit_id' => $strangerUnit->id])->assertSessionHasErrors('target_unit_id');
+    $this->actingAs($setup['user'])->post($url, ['target_unit_id' => $setup['unit']->id])->assertSessionHasErrors('target_unit_id');
+
+    expect($moving->refresh()->reservation_unit_id)->toBe($setup['unit']->id);
+});
+
+test('moving a guest needs reservations.manage', function () {
+    $setup = actionsSetup(DefaultRoleEnum::Finance);
+    $target = actionsSecondUnit($setup);
+    $moving = actionsOccupant($setup);
+
+    $this->actingAs($setup['user'])
+        ->post(actionsRoute($setup, 'reservations.units.guests.move', ['unit' => $setup['unit']->id, 'guestId' => $moving->guest_id]), ['target_unit_id' => $target->id])
+        ->assertForbidden();
+});
