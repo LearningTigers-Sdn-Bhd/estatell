@@ -3,6 +3,8 @@
 use App\Actions\Property\SeedPropertyDefaults;
 use App\Enums\ChargingUnit;
 use App\Enums\CompanyAccess;
+use App\Enums\CompanyRateMarket;
+use App\Enums\PricingBasis;
 use App\Enums\PropertyType;
 use App\Models\ChargeItem;
 use App\Models\DocumentSequence;
@@ -16,6 +18,7 @@ use App\Models\RoomType;
 use App\Models\Tax;
 use App\Models\TransactionCode;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Testing\PendingCommand;
 
 beforeEach(function () {
@@ -317,4 +320,85 @@ it('creates priced charge items for the Sand Bay codes', function () {
         ->and($boat->default_amount)->toBe('280.00')
         ->and($boat->charging_unit)->toBe(ChargingUnit::PerItem)
         ->and(ImportLink::query()->where('source_table', 'transaction_codes')->where('source_id', '201')->exists())->toBeTrue();
+});
+
+/**
+ * A Sand Bay shaped bundle: per-person plans repeated for each room type, an archived Walk-in, Base Rate for the room
+ * type Standard Rate does not cover, an agent plan, a plan only for one company and an "except" plan with a named company.
+ *
+ * @return array<string, list<array<string, string>>>
+ */
+function wastaysOccupancyTables(): array
+{
+    $tables = wastaysSetupTables();
+    $plan = fn (string $id, string $name, string $access = 'hidden', string $market = 'all', string $archived = ''): array => [
+        'id' => $id, 'name' => $name, 'sell_mode' => 'per_person', 'archived_at' => $archived, 'ta_access' => $access, 'ta_market' => $market,
+    ];
+    $tables['rate_plans'] = [
+        $plan('10', 'Standard Rate'), $plan('11', 'Base Rate'), $plan('12', 'Malaysian Agent Rate', 'all', 'local'),
+        $plan('13', 'Super Sightseeing', 'only'), $plan('14', 'CU World Travel', 'except'), $plan('15', 'Walk-in', archived: '2026-10-01 00:00:00'),
+    ];
+    $tables['room_type_rate_plans'] = array_map(fn (array $row): array => ['id' => $row[0], 'room_type_id' => $row[1], 'rate_plan_id' => $row[2]], [
+        ['100', '1', '10'], ['101', '2', '10'], ['102', '3', '11'], ['103', '1', '12'], ['104', '1', '13'], ['105', '1', '14'], ['106', '1', '15'],
+    ]);
+    $tables['room_type_rate_plan_occupancy_prices'] = [];
+
+    foreach (['100' => 600, '101' => 700, '102' => 525, '103' => 500, '104' => 400, '105' => 450, '106' => 300] as $linkId => $one) {
+        foreach ([1, 2] as $adults) {
+            $tables['room_type_rate_plan_occupancy_prices'][] = ['id' => $linkId.$adults, 'room_type_rate_plan_id' => $linkId, 'adults' => (string) $adults, 'price' => number_format($one * $adults, 2, '.', '')];
+        }
+    }
+
+    $tables['rate_plan_age_bands'] = [
+        ['id' => '1', 'rate_plan_id' => '10', 'min_age' => '0', 'max_age' => '3', 'price_value' => '0.00', 'pricing_mode' => 'amount'],
+        ['id' => '2', 'rate_plan_id' => '10', 'min_age' => '4', 'max_age' => '12', 'price_value' => '0.00', 'pricing_mode' => 'amount'],
+        ['id' => '3', 'rate_plan_id' => '12', 'min_age' => '0', 'max_age' => '3', 'price_value' => '0.00', 'pricing_mode' => 'multiplier'],
+        ['id' => '4', 'rate_plan_id' => '12', 'min_age' => '4', 'max_age' => '12', 'price_value' => '50.00', 'pricing_mode' => 'multiplier'],
+    ];
+    $tables['rate_plan_stay_discounts'] = [['id' => '1', 'rate_plan_id' => '12', 'min_nights' => '2', 'discount_type' => 'amount', 'value' => '100.00', 'from_night' => '2']];
+    $tables['rate_plan_agency_rules'] = [
+        ['id' => '1', 'rate_plan_id' => '13', 'hotel_corporate_account_id' => '8'],
+        ['id' => '2', 'rate_plan_id' => '14', 'hotel_corporate_account_id' => '9'],
+    ];
+
+    return $tables;
+}
+
+it('merges the copies of each per-person plan into one per-guest plan with its prices, children, discounts and access', function () {
+    runSetupImport(wastaysOccupancyTables())->assertSuccessful();
+
+    $plans = RatePlan::query()->where('property_id', $this->property->id)->active()->get()->keyBy('name');
+
+    expect($plans->keys()->sort()->values()->all())->toBe(['Basic Rate', 'CU World Travel', 'Malaysian Agent Rate', 'Super Sightseeing'])
+        ->and($plans['Basic Rate']->pricing_basis)->toBe(PricingBasis::PerGuest)
+        ->and($plans['Basic Rate']->roomTypes()->count())->toBe(4)
+        ->and($plans['Basic Rate']->company_access)->toBe(CompanyAccess::Everyone)
+        ->and($plans['Malaysian Agent Rate']->company_access)->toBe(CompanyAccess::All)
+        ->and($plans['Malaysian Agent Rate']->company_market)->toBe(CompanyRateMarket::Local)
+        ->and($plans['Super Sightseeing']->company_access)->toBe(CompanyAccess::Selected)
+        ->and($plans['CU World Travel']->company_access)->toBe(CompanyAccess::Selected);
+
+    $baseRoomType = ImportLink::query()->where('property_id', $this->property->id)->where('source_table', 'room_types')->where('source_id', '3')->value('target_id');
+    $rate = Rate::query()->where('rate_plan_id', $plans['Basic Rate']->id)->where('room_type_id', $baseRoomType)->whereDate('date', '2026-08-13')->sole();
+
+    expect($rate->amount)->toBe('525.00')
+        ->and(DB::table('rate_occupancy_prices')->where('rate_id', $rate->id)->orderBy('adults')->pluck('amount', 'adults')->all())->toBe([1 => '525.00', 2 => '1050.00']);
+
+    $children = $plans['Malaysian Agent Rate']->childPrices()->get()->sortBy('property_age_group_id')->values();
+    $standardChildren = $plans['Basic Rate']->childPrices()->get()->sortBy('property_age_group_id')->values();
+
+    expect($children->pluck('pricing')->map->value->all())->toBe(['free', 'percent'])
+        ->and($children[1]->value)->toBe('50.00')
+        ->and($standardChildren->pluck('pricing')->map->value->all())->toBe(['free', 'free'])
+        ->and($plans['Malaysian Agent Rate']->stayDiscounts()->sole()->value)->toBe('100.00');
+});
+
+it('imports the per-person plans once', function () {
+    runSetupImport(wastaysOccupancyTables())->assertSuccessful();
+    $rates = Rate::query()->count();
+    $plans = RatePlan::query()->count();
+
+    runSetupImport(wastaysOccupancyTables())->assertSuccessful();
+
+    expect(Rate::query()->count())->toBe($rates)->and(RatePlan::query()->count())->toBe($plans);
 });

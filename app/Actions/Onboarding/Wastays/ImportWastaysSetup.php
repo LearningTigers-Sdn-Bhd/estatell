@@ -57,6 +57,7 @@ class ImportWastaysSetup
         private UpdatePaymentMethod $updatePaymentMethod,
         private CreateChargeItem $createChargeItem,
         private ImportWastaysDetails $importDetails,
+        private ImportWastaysOccupancyRatePlans $occupancyRatePlans,
         private AlignWastaysDocumentPrefix $alignPrefix,
         private RecordImportLink $recordImportLink,
         private ImportLinks $links,
@@ -91,8 +92,12 @@ class ImportWastaysSetup
 
         [$roomTypes, $newRoomTypeIds] = $this->roomTypes($bundle, $property, $actor, $summary);
         $this->rooms($bundle, $property, $actor, $roomTypes, $summary);
-        $standard = $this->ratePlans($bundle, $property, $actor, $roomTypes, $summary);
-        $this->rates($bundle, $property, $actor, $standard, $roomTypes, $newRoomTypeIds, $summary);
+        if (ImportWastaysOccupancyRatePlans::applies($bundle, $this->map)) {
+            ($this->occupancyRatePlans)($bundle, $property, $actor, $roomTypes, $summary);
+        } else {
+            $standard = $this->ratePlans($bundle, $property, $actor, $roomTypes, $summary);
+            $this->rates($bundle, $property, $actor, $standard, $roomTypes, $newRoomTypeIds, $summary);
+        }
         $this->salesTax($bundle, $property, $actor, $summary);
         $this->skipDbkk($bundle, $summary);
         $this->createdAt($bundle, $property);

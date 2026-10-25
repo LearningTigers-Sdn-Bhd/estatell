@@ -55,7 +55,19 @@ Prices are nightly totals by number of adults, for example Malaysian Publish Rat
 | CU World Travel, Good Earth Travel, GuangZhou Asian World, Zeng Jiaming | 1 each | **All agents except** the named company | Almost certainly meant "only". Confirm                          |
 | Aladdin Holiday Tours, Guangdong Everbright                             | 1 each | All agents except nobody                | Confirm who should use them                                     |
 
-**Decision needed:** estatell allows Only these companies on a derived plan only. The company plans have their own prices by occupancy, so a single percentage from a parent will not fit. Choose one: allow Only these companies on a plan with its own prices, or make each company plan a derived plan with an Amount and accept small price differences.
+**Decided 25 Oct 2026:** estatell now allows Only these companies on any plan ([Who can use this rate](../08-rates/01-rate-plans.md#who-can-use-this-rate)), so the company plans keep their own prices. The import (`wastays:import-setup`, `ImportWastaysOccupancyRatePlans`) does this when the bundle has an active plan that is not Standard, Walk-in or Corporate:
+
+| Step           | Rule                                                                                                                                                                                                                                                             |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Merge          | Active copies with the same name become one per-guest plan that sells all their room types. Archived plans (Walk-in) are not imported. Base Rate joins Standard Rate, because it is the Standard Rate of the one room type Standard Rate lacks. Result: 14 plans |
+| Standard Rate  | The seeded Basic Rate, switched to per guest. It keeps the name Basic Rate until the hotel renames it after go-live                                                                                                                                              |
+| Prices         | Daily rates from the first audit date to 31 Dec 2027. The 1-adult price is the rate amount and every adult count is an occupancy price. No SST division, because SST is off. The room type base price (0) is ignored                                             |
+| Children       | The youngest band goes to the youngest age group. A band of 0 is Free, a multiplier is Percent, an amount is Fixed. Child prices that differ by room type are not copied                                                                                         |
+| Stay discounts | Amount or percent, from the night wastays names                                                                                                                                                                                                                  |
+| Access         | hidden → Everyone. all → All companies, with the market when the copies agree (else all). only → Only these companies. except with a named company → Only that company. except with nobody → All companies                                                       |
+| Companies      | Not in the export, so a limited plan starts with an empty list. The summary names the wastays company ids to list after the companies import                                                                                                                     |
+
+Re-running writes nothing: every wastays plan copy and every room type price has an `import_links` row.
 
 ## History
 

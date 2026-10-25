@@ -66,10 +66,10 @@ class ImportWastaysSetupCommand extends Command
             return null;
         }
 
-        if (! preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', (string) $value)) {
+        if (! is_string($value) || ! preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $value)) {
             throw new InvalidArgumentException("--{$option} must be a time as HH:MM, for example 15:00.");
         }
 
-        return (string) $value;
+        return $value;
     }
 }
