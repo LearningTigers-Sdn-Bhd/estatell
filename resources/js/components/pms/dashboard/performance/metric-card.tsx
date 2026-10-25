@@ -1,6 +1,6 @@
-import { BedDouble, ChartLine, Coins, TrendingUp } from 'lucide-react';
+import { IconChip } from '@/components/pms/dashboard/performance/icon-chip';
+import { BedDouble, Coins, TrendingUp } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useState } from 'react';
 import {
     Bar,
     CartesianGrid,
@@ -15,14 +15,14 @@ import type { BarShapeProps } from 'recharts';
 import { EmptyState } from '@/components/pms/empty-state';
 import { MoneyText } from '@/components/pms/money-text';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { cn } from 'cn';
 import {
     ChartContainer,
     ChartTooltip,
     ChartTooltipContent,
 } from '@/components/ui/chart';
 import type { ChartConfig } from '@/components/ui/chart';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { ChangeLine } from '@/components/pms/dashboard/performance/kpi-tiles';
+import { ChangeLine } from '@/components/pms/dashboard/performance/change-line';
 import {
     describeChange,
     longDate,
@@ -32,14 +32,13 @@ import {
     whole,
 } from '@/components/pms/dashboard/performance/format';
 
-type Metric = 'occupancy' | 'adr' | 'revpar';
+export type Metric = 'occupancy' | 'adr' | 'revpar';
 
-/** The same icons as the KPI tiles. */
-const metrics: { value: Metric; label: string; icon: LucideIcon }[] = [
-    { value: 'occupancy', label: 'Occupancy', icon: BedDouble },
-    { value: 'adr', label: 'ADR', icon: Coins },
-    { value: 'revpar', label: 'RevPAR', icon: TrendingUp },
-];
+const metrics: Record<Metric, { label: string; icon: LucideIcon }> = {
+    occupancy: { label: 'Occupancy', icon: BedDouble },
+    adr: { label: 'ADR', icon: Coins },
+    revpar: { label: 'RevPAR', icon: TrendingUp },
+};
 
 const previousKeys = {
     occupancy: 'previousOccupancy',
@@ -78,19 +77,21 @@ const compact = new Intl.NumberFormat('en', {
 });
 
 /**
- * The trend of one metric as bars by day, or by month for 12 months, with the compared range as a dashed line. A day
- * without a figure has no bar: no night audit yet, or for ADR no rooms sold. Revenue counts on its posting date, so a
- * correction can take a day below zero; that bar hangs from the zero line in the warning color. The metric switch is
- * display only.
+ * One metric (occupancy, ADR or RevPAR): the period figure, its change, and the bars by day, or by month for 12 months,
+ * with the compared range as a dashed line. A day without a figure has no bar: no night audit yet, or for ADR no rooms
+ * sold. Revenue counts on its posting date, so a correction can take a day below zero; that bar hangs from the zero line
+ * in the warning color.
  */
-export function TrendCard({
+export function MetricCard({
+    metric,
     summary,
     period,
 }: {
+    metric: Metric;
     summary: App.Data.Dashboard.PerformanceSummaryData;
     period: App.Data.Dashboard.PerformancePeriodData;
 }) {
-    const [metric, setMetric] = useState<Metric>('occupancy');
+    const { label, icon: Icon } = metrics[metric];
     const byMonth = period.groupBy === 'month';
     const step = byMonth ? 'Months' : 'Days';
     const isMoney = metric !== 'occupancy';
@@ -114,7 +115,8 @@ export function TrendCard({
         (point) => point.occupancy !== null,
     );
     const notes = [
-        firstWithFigure > 0 &&
+        metric === 'occupancy' &&
+            firstWithFigure > 0 &&
             `No night audit figures before ${byMonth ? monthLabel(summary.trend[firstWithFigure].date) : shortDate(summary.trend[firstWithFigure].date)}`,
         data.some((point) => point.reason === 'No rooms sold') &&
             `${step} without a bar had no rooms sold`,
@@ -142,79 +144,66 @@ export function TrendCard({
             `${whole(kpi.value)}%`
         );
 
+    const emptyText = summary.hasStays
+        ? 'No night audit figures for this period'
+        : 'No stays in this period';
+
     return (
         <Card className="min-w-0 flex-1">
-            <CardHeader className="flex flex-wrap items-center justify-between gap-2">
+            <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                    <ChartLine
-                        aria-hidden
-                        className="size-5 text-muted-foreground"
-                    />
-                    Trend
+                    <IconChip icon={Icon} />
+                    {label}
                 </CardTitle>
-                <ToggleGroup
-                    variant="outline"
-                    size="sm"
-                    spacing={0}
-                    value={[metric]}
-                    onValueChange={(value) =>
-                        value[0] && setMetric(value[0] as Metric)
-                    }
-                    aria-label="Trend metric"
-                >
-                    {metrics.map((item) => (
-                        <ToggleGroupItem key={item.value} value={item.value}>
-                            <item.icon data-icon="inline-start" />
-                            {item.label}
-                        </ToggleGroupItem>
-                    ))}
-                </ToggleGroup>
             </CardHeader>
             <CardContent className="flex flex-1 flex-col gap-3">
-                {headline !== null && (
-                    <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-heading text-2xl font-semibold tabular-nums">
-                            {headline}
+                <div className="flex flex-wrap items-center gap-2">
+                    <p
+                        className={cn(
+                            'font-heading text-2xl font-semibold tabular-nums',
+                            headline === null && 'text-muted-foreground',
+                        )}
+                    >
+                        {headline ?? 'No data'}
+                    </p>
+                    {headline === null ? (
+                        <p className="text-xs text-muted-foreground">
+                            {emptyText}
                         </p>
-                        <ChangeLine
-                            change={describeChange(
-                                kpi.change,
-                                isMoney ? '%' : 'pt',
-                            )}
-                        />
-                        {kpi.change !== null && (
-                            <p className="text-xs text-muted-foreground">
-                                vs{' '}
-                                {rangeLabel(
-                                    period.previousFrom,
-                                    period.previousTo,
+                    ) : (
+                        <>
+                            <ChangeLine
+                                change={describeChange(
+                                    kpi.change,
+                                    isMoney ? '%' : 'pt',
                                 )}
-                            </p>
-                        )}
-                    </div>
-                )}
+                            />
+                            {kpi.change !== null && (
+                                <p className="text-xs text-muted-foreground">
+                                    vs{' '}
+                                    {rangeLabel(
+                                        period.previousFrom,
+                                        period.previousTo,
+                                    )}
+                                </p>
+                            )}
+                        </>
+                    )}
+                </div>
                 {empty ? (
-                    <div className="flex min-h-64 flex-1 items-center justify-center">
-                        {summary.hasStays ? (
-                            <EmptyState
-                                icon={ChartLine}
-                                title="No night audit figures for this period"
-                                description="Figures appear after the night audit closes each day."
-                            />
-                        ) : (
-                            <EmptyState
-                                icon={ChartLine}
-                                title="No stays in this period"
-                                description="The trend shows once guests stay nights in the range."
-                            />
-                        )}
+                    <div className="flex min-h-40 flex-1 items-center justify-center">
+                        <EmptyState
+                            icon={Icon}
+                            title={emptyText}
+                            description="Figures appear after the night audit closes each day."
+                        />
                     </div>
                 ) : (
                     <ChartContainer
                         config={config}
-                        className="aspect-auto min-h-64 w-full flex-1"
+                        className="aspect-auto min-h-40 w-full flex-1"
                         role="img"
-                        aria-label={`${metrics.find((item) => item.value === metric)?.label} trend`}
+                        aria-label={`${label} by ${byMonth ? 'month' : 'day'}`}
                     >
                         <ComposedChart
                             accessibilityLayer

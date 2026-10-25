@@ -1,4 +1,5 @@
-import { Hourglass } from 'lucide-react';
+import { IconChip } from '@/components/pms/dashboard/performance/icon-chip';
+import { CalendarClock, Hourglass } from 'lucide-react';
 import {
     Card,
     CardContent,
@@ -6,7 +7,11 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { rangeLabel } from '@/components/pms/dashboard/performance/format';
+import { ChangeLine } from '@/components/pms/dashboard/performance/change-line';
+import {
+    describeChange,
+    rangeLabel,
+} from '@/components/pms/dashboard/performance/format';
 import { EmptyState } from '@/components/pms/empty-state';
 
 const labels: Record<string, string> = {
@@ -17,9 +22,55 @@ const labels: Record<string, string> = {
 };
 
 /**
- * How far ahead guests book: four buckets as a share of the counted arrivals. Walk-ins are left out.
+ * The average lead time: whole days from booking to arrival. Neither direction is good or bad, so the change stays muted.
  */
 export function LeadTimeCard({
+    leadTime,
+}: {
+    leadTime: App.Data.Dashboard.LeadTimeData;
+}) {
+    const lead = leadTime.average;
+    const days = lead.value === null ? null : Number(lead.value);
+
+    return (
+        <Card className="min-w-0">
+            <CardHeader>
+                <div className="flex items-center gap-2">
+                    <IconChip icon={CalendarClock} />
+                    <div className="flex min-w-0 flex-col gap-1">
+                        <CardTitle>Lead time</CardTitle>
+                        <CardDescription>
+                            Average days between booking and arrival. A longer
+                            lead time means guests plan earlier.
+                        </CardDescription>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent className="flex flex-col items-end gap-2">
+                <p className="font-heading text-2xl font-semibold tabular-nums">
+                    {days === null
+                        ? 'No data'
+                        : `${days} ${days === 1 ? 'day' : 'days'}`}
+                </p>
+                {days === null ? (
+                    <p className="text-xs text-muted-foreground">
+                        No arrivals in this period
+                    </p>
+                ) : (
+                    <ChangeLine
+                        change={describeChange(lead.change, 'days')}
+                        neutral
+                    />
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
+/**
+ * How far ahead guests book: four buckets as a share of the counted arrivals. Walk-ins are left out.
+ */
+export function HowFarAheadCard({
     leadTime,
     period,
 }: {
@@ -27,13 +78,10 @@ export function LeadTimeCard({
     period: App.Data.Dashboard.PerformancePeriodData;
 }) {
     return (
-        <Card className="min-w-0">
+        <Card className="min-w-0 flex-1">
             <CardHeader>
                 <div className="flex items-center gap-2">
-                    <Hourglass
-                        aria-hidden
-                        className="size-5 shrink-0 text-muted-foreground"
-                    />
+                    <IconChip icon={Hourglass} />
                     <div className="flex min-w-0 flex-col gap-1">
                         <CardTitle>How far ahead guests book</CardTitle>
                         <CardDescription>

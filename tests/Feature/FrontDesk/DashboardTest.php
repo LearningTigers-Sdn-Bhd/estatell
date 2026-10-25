@@ -190,7 +190,7 @@ test('quick actions follow their permissions', function () {
 test('the tiles are deferred and a partial reload returns them', function () {
     $setup = dashboardSetup();
 
-    $this->actingAs($setup['user'])->get(route('dashboard', $setup['property']->code))
+    $this->actingAs($setup['user'])->get(route('dashboard', $setup['property']->code).'?tab=today')
         ->assertInertia(fn (Assert $page) => $page
             ->missing('tiles')
             ->loadDeferredProps(fn (Assert $page) => $page
@@ -204,11 +204,11 @@ test('a tile the user may not see is not sent', function () {
     $reports = dashboardSetup([PermissionEnum::ReportsView]);
     $units = dashboardSetup([PermissionEnum::ReservationsView]);
 
-    $this->actingAs($reports['user'])->get(route('dashboard', $reports['property']->code))
+    $this->actingAs($reports['user'])->get(route('dashboard', $reports['property']->code).'?tab=today')
         ->assertInertia(fn (Assert $page) => $page->loadDeferredProps(fn (Assert $page) => $page
             ->where('tiles.arrivals', null)->where('tiles.departures', null)->where('tiles.tonight', null)->has('tiles.month')));
 
-    $this->actingAs($units['user'])->get(route('dashboard', $units['property']->code))
+    $this->actingAs($units['user'])->get(route('dashboard', $units['property']->code).'?tab=today')
         ->assertInertia(fn (Assert $page) => $page->loadDeferredProps(fn (Assert $page) => $page
             ->where('tiles.month', null)->has('tiles.arrivals')->has('tiles.departures')->has('tiles.tonight')));
 });
@@ -231,7 +231,7 @@ test('arrivals and departures count what the reports count for the business date
     $arrivals = app(ArrivalsReport::class)->rows($property, $filters);
     $departures = app(DeparturesReport::class)->rows($property, $filters);
 
-    $this->actingAs($setup['user'])->get(route('dashboard', $property->code))
+    $this->actingAs($setup['user'])->get(route('dashboard', $property->code).'?tab=today')
         ->assertInertia(fn (Assert $page) => $page->loadDeferredProps(fn (Assert $page) => $page
             ->where('tiles.arrivals.total', count($arrivals))
             ->where('tiles.arrivals.remaining', 2)
@@ -261,7 +261,7 @@ test('posted equals the revenue report without tax and booked counts live units 
     dashboardUnit($property, '2026-10-30', '2026-11-02', 'checkedIn');
     dashboardUnit($property, '2026-10-12', '2026-10-13', 'cancelled');
 
-    $this->actingAs($setup['user'])->get(route('dashboard', $property->code))
+    $this->actingAs($setup['user'])->get(route('dashboard', $property->code).'?tab=today')
         ->assertInertia(fn (Assert $page) => $page->loadDeferredProps(fn (Assert $page) => $page
             ->where('tiles.month.month', 'October')
             ->where('tiles.month.from', '2026-10-01')
@@ -284,7 +284,7 @@ test('tonight reads all room types and the next seven nights', function () {
     dashboardUnit($property, '2026-10-12', '2026-10-14', 'checkedIn', ['room_type_id' => $double->id]);
     dashboardUnit($property, '2026-10-13', '2026-10-14', 'confirmed', ['room_type_id' => $double->id]);
 
-    $this->actingAs($setup['user'])->get(route('dashboard', $property->code))
+    $this->actingAs($setup['user'])->get(route('dashboard', $property->code).'?tab=today')
         ->assertInertia(fn (Assert $page) => $page->loadDeferredProps(fn (Assert $page) => $page
             ->where('tiles.tonight.occupancy', 17)
             ->where('tiles.tonight.roomsFree', 3)
