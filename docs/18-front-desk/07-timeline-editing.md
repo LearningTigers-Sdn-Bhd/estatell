@@ -2,13 +2,13 @@
 
 ## Purpose
 
-Change stays straight from the [Timeline View](03-stay-view.md#timeline-view-screen): drag a bar to another room, drag its edges to change dates, and click an empty cell to book. Every write goes through the Actions the reservation page already uses, so the rules and refusals are the same.
+Change stays straight from the [Timeline View](03-stay-view.md#timeline-view-screen): drag a bar to another room, drag its edges to change dates, and click an empty cell to book or block the room. Every write goes through the Actions the reservation page already uses, so the rules and refusals are the same.
 
 ## Gestures
 
 | Gesture                                       | Units                    | Server                                                                                       |
 | --------------------------------------------- | ------------------------ | -------------------------------------------------------------------------------------------- |
-| Click an empty cell                           | —                        | Opens `reservations.new` with the arrival, departure and room or bed filled in               |
+| Click an empty cell                           | —                        | `CellActions`: `reservations.new` with the room and night filled in, or `CreateRoomBlock`    |
 | Drag a bar up or down                         | Confirmed and Checked-in | `reservations.units.move-preview`, then `MoveUnit`                                           |
 | Drag a bar from the Unassigned lane to a room | Confirmed                | `MoveUnit` as a first assignment, so no reason                                               |
 | Drag the right edge                           | Confirmed and Checked-in | `reservations.units.dates-preview`, then `ChangeUnitDates` (`ExtendStay` when later)         |
@@ -136,12 +136,38 @@ A booking shows **Auto** for its room until check-in, so many Confirmed units ha
 
 ## Empty cell
 
-- With `reservations.manage`, clicking an empty cell on or after the business date opens the booking form with arrival = that night, departure = the next day and that room or bed picked.
-- The cell in a room with a block or out of service on that night takes no click.
-- A cell whose left half holds a departure can still be clicked: the new arrival takes the right half.
+```
+            Mon 26  Tue 27  Wed 28
+202 Deluxe │       │   ✚   │       │
+                       │ click
+                       ▼
+               ┌ 202 · Tue 27 Oct ─┐
+               │ ＋ New booking     │   reservations.manage
+               │ ⊘  Block room      │   rooms.block
+               └───────────────────┘
+```
+
+- An empty cell on or after the business date takes a click for a user with `reservations.manage` or `rooms.block`. A cell that a stay or a block holds that night takes no click.
+- A cell whose left half holds a departure can still be clicked: the new arrival or block takes that night.
+- **`CellActions`** is a menu at the cell, titled with the room or bed and the date. It lists the actions the user may take:
+
+| Action      | Needs                 | Shown when                  | Does                                                                                        |
+| ----------- | --------------------- | --------------------------- | ------------------------------------------------------------------------------------------- |
+| New booking | `reservations.manage` | Always                      | Opens the booking form with arrival = that night, departure = the next day, room or bed set |
+| Block room  | `rooms.block`         | The night is today or later | Opens the Block room Sheet on the Timeline                                                  |
+
+- With only one action to show, the click runs it at once and no menu opens.
+- Block room starts on the property's calendar date (`window.today`), not the business date, because room blocks use `PropertyToday`. So before the night audit runs, yesterday's cell offers only New booking.
 - `reservations.new` reads `arrival`, `room` and `bed` from the query. A bad or foreign value is ignored and the form opens blank.
-- Until **Block room** is built, the click goes straight to the booking form. When Block room ships, the click opens `CellActions` with both.
 - Availability is checked by the booking form when it is saved, as for any booking.
+
+### Block room Sheet
+
+- The Sheet holds `RoomBlockForm`, the same form as the [Room blocks page](../05-rooms/04-room-blocks-and-statuses.md#ui). The room is fixed and shown as text. On a bed row the bed select starts on that bed and also offers **Whole room** and the other beds. On a room row of a dorm it starts on **Whole room**.
+- Nights start as that night only (first = last = the clicked date). Staff can widen them with the `DateRangePicker`.
+- Save posts to `front-desk.room-blocks.store`, which redirects back to the Timeline. A refusal shows as a toast: another open block on these nights, or a stay on these nights (`has_stay`). On success the Sheet closes and the new block bar shows.
+- The menu closes before the Sheet opens, so there is one overlay level. Version polling pauses while the Sheet is open.
+- The Timeline sends `canBlockRooms`, `blockReasons` (`RoomBlockReason::options()`) and `maxBlockNights` (`RoomBlockRequest::MAX_NIGHTS`).
 
 ## Window edge
 
@@ -165,7 +191,9 @@ resources/js/components/pms/stay-view/
 ├── timeline-dates-dialog.tsx the confirm Dialog for a date change
 ├── timeline-move-stay-dialog.tsx the confirm Dialog for dates and room together
 ├── unassigned-lane.ts       packUnassigned(); tested
-└── cell-actions.tsx         empty cell click
+└── cell-actions.tsx         empty cell click, the CellActions menu and the Block room Sheet
+
+resources/js/components/pms/room-block-form.tsx  the block form, shared with the Room blocks page
 
 app/Actions/FrontDesk/MoveUnitStay.php         dates and room in one transaction
 app/Actions/FrontDesk/MoveUnitStayRefused.php  raised inside it to roll back; never leaves the Action
@@ -177,7 +205,8 @@ UnitActionPreview::moveStay()                  the read-only preview (UnitMoveSt
 - Pest (`FrontDeskMoveStayTest`): `MoveUnitStay` saves a shift with a room change, keeps the room with no reason, rolls back when the room, the reason or the dates are refused (restriction, sold out, past arrival) with no activity rows left, refuses a unit that is not Confirmed; the `move-stay` route needs `reservations.manage` and refuses another property's room; `move-stay-preview` reports `targetFree`, `roomTypeAllowed`, `restricted` and `reasonRequired`.
 - Pest: `ChangeUnitDates` charges no early departure fee for a Confirmed unit; `StayViewQuery` returns unassigned segments with a fixed query count; `move-preview` returns every drag target with its `freeFrom`; the booking form prefill ignores bad values.
 - Pest: `StayData::$isPackagePlan` is true for a unit on a Package plan; the Timeline page carries `canOverrideRestrictions` and `canWaiveFees`.
-- Browser unit tests (`vp test`): `drop-target.ts` (half-cell snap, business date stop, in-house rules, Confirmed starts on the first movable night), `resize-target.ts` (handles, clamp rules, `clampShift()`) and `packUnassigned()`.
+- Pest (`RoomBlockTest`): a block over a night with a stay is refused on create and on edit, for a room, a bed and the whole room over a bed, and a Cancelled stay does not count; the store route redirects back; the Timeline carries `canBlockRooms`, `blockReasons` and `maxBlockNights`, with `canBlockRooms` false without `rooms.block`.
+- Browser unit tests (`vp test`): `isCellBookable()` with only `rooms.block`, with neither permission, and `cellActions()` (which actions a cell offers), `drop-target.ts` (half-cell snap, business date stop, in-house rules, Confirmed starts on the first movable night), `resize-target.ts` (handles, clamp rules, `clampShift()`) and `packUnassigned()`.
 
 ## Build order
 

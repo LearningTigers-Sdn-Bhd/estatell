@@ -78,7 +78,7 @@ The page is a Grid calendar: no `PageHeader`, the toolbar on top and the grid fi
 - **Bar second line.** Under the guest name a stay bar shows icons with counts, with no "4P" or "2A" text: adults (person icon), children (baby icon, only when there are any) and units of the reservation (layers icon, only for a group of 2 or more). The counts are also in the bar's accessible label.
 - **Booking source badge on the bar.** Each stay bar starts with the source badge in `sm` size, before the group marker and the guest name. The name is in the bar's accessible label ("via Walk-in"), and the badge has no tooltip of its own, since the hover card names it.
 - **Bar hover card.** Hovering a bar for 300ms shows a card from the loaded data, with no request. A stay bar shows the source badge (`BookingSourceBadge`, large, no tooltip), the guest name, "{reference} · {n} unit(s)" (the units the whole reservation holds), "via {booking source}", then Status, Stay (arrival – departure, nights), Room, Guests (adult and child icons with counts) and Payment ("Balance due" or "Nothing due", the flag only; the amount stays in the peek sheet). A block bar shows "Blocked", the reason, the dates and the room. `StayData` carries `unitCount` and `source` (`BookingSourceBadgeData`), read with one extra eager load, so the query count does not grow with the stays.
-- Clicking a stay bar opens **`StayPeekSheet`**. Clicking an empty cell opens the booking form for that room and night; when Block room is built it opens **`CellActions`** with both.
+- Clicking a stay bar opens **`StayPeekSheet`**. Clicking an empty cell opens **`CellActions`**: New booking and Block room (see [Empty cell](07-timeline-editing.md#empty-cell)).
 - **Editing.** Dragging a bar to another room, dragging its edges to change dates, the Unassigned lane and the empty cell click are in [Timeline editing](07-timeline-editing.md).
 
 ## Room View screen
@@ -139,7 +139,7 @@ The page is a Grid calendar: no `PageHeader`, the toolbar on top and the grid fi
 - One link at the bottom: **Open reservation**, or **Open group booking** for a group (a group is one reservation, so both go to the reservation page). Check in, Check out, Move and Record payment are done there for now, because the project allows one overlay level and their dialogs would sit on top of the Sheet. The link and the Folio section need `reservations.view`; without it the Sheet shows the summary only.
 - The Folio section lists the 15 newest posted lines of the reservation's folios (voided folios left out) and its balance. They come from `GET front-desk/stays/{reservation}/folio` (`front-desk.stays.folio`), which needs `front-desk.view` and `reservations.view`.
 - The "This group" list holds only units loaded for the dates on screen. Click one to show it in the Sheet.
-- New booking from an empty cell goes to the booking form page with the room and date filled in (see [Empty cell](07-timeline-editing.md#empty-cell)). Block room opens a Sheet. It needs the Block room form to be shared with the room blocks page, so it is its own item.
+- New booking from an empty cell goes to the booking form page with the room and date filled in. Block room opens a Sheet with the shared `RoomBlockForm`. See [Empty cell](07-timeline-editing.md#empty-cell).
 
 ## Data loading
 
