@@ -1,0 +1,106 @@
+<?php
+
+use App\Actions\Onboarding\Wastays\ImportWastaysStays;
+use App\Enums\PaymentMethodType;
+use App\Models\ImportLink;
+use App\Models\Payment;
+use App\Models\PaymentMethod;
+use App\Models\Reservation;
+use App\Services\Onboarding\Wastays\WastaysImportTarget;
+
+require_once __DIR__.'/../Support/WastaysReplaySetup.php';
+
+/**
+ * Five bookings against the go-live date 13 Aug: a completed stay that ended before it, a confirmed booking with a
+ * payment and a refund, an OTA booking, a cancelled booking and a stay still due out.
+ *
+ * @return array<string, list<array<string, string|null>>>
+ */
+function wastaysStayTables(): array
+{
+    $booking = fn (string $id, string $status, string $in, string $out, string $source, string $number): array => [
+        'id' => $id, 'status' => $status, 'source' => $source, 'check_in' => "{$in} 00:00:00", 'check_out' => "{$out} 00:00:00", 'adults' => '2', 'children' => '0',
+        'reservation_number' => $number, 'created_at' => '2026-08-01T02:00:00.000000Z',
+    ];
+
+    return [
+        'bookings' => [
+            $booking('1', 'completed', '2026-08-10', '2026-08-12', 'phone', '41'),
+            $booking('2', 'confirmed', '2026-08-13', '2026-08-15', 'phone', '42'),
+            $booking('3', 'confirmed', '2026-08-13', '2026-08-15', 'ota', '43'),
+            $booking('4', 'cancelled', '2026-08-25', '2026-08-26', 'phone', '44'),
+            $booking('5', 'due_out_detected', '2026-08-11', '2026-08-12', 'phone', '45'),
+        ],
+        'booking_rooms' => array_map(fn (string $id): array => [
+            'id' => $id, 'booking_id' => $id, 'room_type_id' => '1', 'rate_plan_id' => '5', 'room_id' => $id === '1' ? '21' : '', 'room_number' => '101',
+            'nightly_rate_snapshot' => json_encode(['2026-08-13' => ['price' => '100.0'], '2026-08-14' => ['price' => '100.0']]),
+        ], ['1', '2', '3', '4', '5']),
+        'booking_guests' => array_map(fn (string $id): array => ['id' => $id, 'booking_id' => $id, 'guest_id' => '11', 'role' => 'primary'], ['1', '2', '3', '4', '5']),
+        'booking_folios' => [['id' => '1', 'booking_id' => '2', 'payer_type' => 'guest']],
+        'folio_transactions' => [
+            ['id' => '10', 'booking_folio_id' => '1', 'transaction_type' => 'payment', 'category' => 'booking_payment', 'amount' => '500.00', 'created_at' => '2026-08-05T02:00:00.000000Z', 'metadata' => '{}', 'reversal_of_transaction_id' => null, 'moved_from_transaction_id' => null],
+            ['id' => '11', 'booking_folio_id' => '1', 'transaction_type' => 'payment', 'category' => 'refund', 'amount' => '-100.00', 'created_at' => '2026-08-08T02:00:00.000000Z', 'metadata' => '{}', 'reversal_of_transaction_id' => null, 'moved_from_transaction_id' => null],
+        ],
+        'receipts' => [['id' => '1', 'folio_transaction_id' => '10', 'deposit_id' => null, 'receipt_number' => '9', 'public_number' => 'X-26500009']],
+    ];
+}
+
+beforeEach(function () {
+    $this->setup = wastaysReplaySetup();
+    PaymentMethod::factory()->create(['property_id' => $this->setup['property']->id, 'type' => PaymentMethodType::OldSystem, 'requires_reference' => true]);
+});
+
+function runStayImport(array $tables, bool $dryRun = false)
+{
+    $path = wastaysDayBundleDir($tables, ['hotel_code' => test()->setup['property']->document_prefix]);
+    $target = WastaysImportTarget::resolveForReplay($path, test()->setup['property']->code, test()->setup['admin']->email);
+
+    return app(ImportWastaysStays::class)($target, $dryRun);
+}
+
+it('imports an Old stay, a future booking with one old system payment, and leaves the rest', function () {
+    $summary = runStayImport(wastaysStayTables());
+
+    expect($summary->counts)->toMatchArray([
+        'old stays' => 1,
+        'future bookings' => 1,
+        'payments from the old system' => 1,
+        'OTA bookings left to Channex' => 1,
+        'cancelled, voided or no-show bookings left in wastays' => 1,
+        'stays in the house or past due, for the hotel to decide' => 1,
+    ]);
+
+    $reservations = Reservation::query()->where('property_id', $this->setup['property']->id)->get();
+    $payment = Payment::query()->sole();
+
+    expect($reservations)->toHaveCount(2)
+        ->and($reservations->flatMap->units->pluck('status')->map->value->sort()->values()->all())->toBe(['checked_out', 'confirmed'])
+        ->and($payment->amount)->toBe('400.00')
+        ->and($payment->reference)->toBe('wastays X-26500009')
+        ->and($payment->paymentMethod->type)->toBe(PaymentMethodType::OldSystem);
+});
+
+it('imports once, and writes nothing on a dry run', function () {
+    runStayImport(wastaysStayTables(), true);
+
+    expect(Reservation::query()->count())->toBe(0)->and(ImportLink::query()->where('source_table', 'bookings')->count())->toBe(0);
+
+    runStayImport(wastaysStayTables());
+    $again = runStayImport(wastaysStayTables());
+
+    expect($again->counts)->toMatchArray(['already imported' => 2])
+        ->and(Reservation::query()->count())->toBe(2)
+        ->and(Payment::query()->count())->toBe(1);
+});
+
+it('lists a stay that cannot be imported and carries on with the others', function () {
+    $tables = wastaysStayTables();
+    $tables['booking_rooms'][0]['room_id'] = '';
+    $tables['booking_rooms'][0]['room_number'] = '999';
+
+    $summary = runStayImport($tables);
+
+    expect($summary->counts)->toMatchArray(['bookings that could not be imported' => 1, 'future bookings' => 1])
+        ->and($summary->notes[0])->toContain('bookings 1')
+        ->and(Reservation::query()->count())->toBe(1);
+});

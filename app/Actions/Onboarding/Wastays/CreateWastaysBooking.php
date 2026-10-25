@@ -2,13 +2,16 @@
 
 namespace App\Actions\Onboarding\Wastays;
 
+use App\Actions\Reservations\BookingResult;
 use App\Actions\Reservations\CreateBooking;
 use App\Actions\Reservations\CreateBookingSource;
+use App\Actions\Reservations\CreateOldStay;
 use App\Actions\Reservations\EnsureOtaBookingSource;
 use App\Actions\Reservations\ReservationResult;
 use App\Data\Reservations\NewBookingData;
 use App\Data\Reservations\NewBookingGuestData;
 use App\Data\Reservations\NewUnitData;
+use App\Data\Reservations\UnitPickData;
 use App\Enums\BillingMode;
 use App\Enums\BookingSourceType;
 use App\Enums\CompanyAccess;
@@ -18,7 +21,9 @@ use App\Models\OtaChannel;
 use App\Models\Property;
 use App\Models\RatePlan;
 use App\Models\ReservationUnit;
+use App\Models\Room;
 use App\Models\User;
+use App\Services\Onboarding\BasicRatePlans;
 use App\Services\Onboarding\Wastays\ImportLinks;
 use App\Services\Onboarding\Wastays\PlannedNumberRunner;
 use Carbon\CarbonImmutable;
@@ -33,6 +38,7 @@ class CreateWastaysBooking
 {
     public function __construct(
         private CreateBooking $createBooking,
+        private CreateOldStay $createOldStay,
         private EnsureOtaBookingSource $ensureOtaBookingSource,
         private CreateBookingSource $createBookingSource,
         private PlannedNumberRunner $numbers,
@@ -48,11 +54,102 @@ class CreateWastaysBooking
      */
     public function __invoke(ReplayContext $context, string $bookingId, string $arrival, string $departure, ?string $overrideTotal, string $overrideReason, bool $allowPastArrival): ReservationUnit
     {
+        $data = $this->data($context, $bookingId, $arrival, $departure, $overrideTotal, $overrideReason);
+        $skipsCompanyCheck = $this->skipsCompanyCheck($context, $bookingId, $data);
+        $book = fn (bool $skipChecks) => $this->numbers->run(DocumentType::Reservation, $this->number($context, $bookingId), fn () => ($this->createBooking)($context->actor, $context->property, $data, $skipChecks, $allowPastArrival), true, $bookingId);
+        $result = $book($skipsCompanyCheck);
+
+        if ($result->isRefused() && $result->refusal === ReservationResult::REFUSAL_NOT_AVAILABLE) {
+            // wastays let staff book more rooms of a type than it has. The booking is kept, as an over-capacity stay.
+            $result = $book(true);
+            $context->summary->count('bookings over the room type capacity');
+        }
+
+        return $this->saved($context, $bookingId, $arrival, $departure, $result);
+    }
+
+    /**
+     * A stay that began and ended before go-live: room and guest history, no money. The room is the one wastays gave it.
+     *
+     * @throws ReplayStopped when a link is missing or the stay is refused
+     */
+    public function old(ReplayContext $context, string $bookingId, string $arrival, string $departure, string $reason): ReservationUnit
+    {
+        $room = $this->oldStayRoom($context, $bookingId);
+        $result = $this->bookOld($context, $bookingId, $arrival, $departure, $reason, $room, null);
+
+        if ($result->isRefused() && $result->refusal === ReservationResult::REFUSAL_RATE_PLAN_NOT_LINKED_TO_COMPANY) {
+            // A history-only stay on a plan that needs a company, booked without one in wastays: it goes on Basic Rate.
+            $basic = (new BasicRatePlans)->forProperty($context->property)->first();
+            $result = $this->bookOld($context, $bookingId, $arrival, $departure, $reason, $room, $basic);
+            $context->summary->count('old stays moved to Basic Rate because their plan needs a company');
+        }
+
+        return $this->saved($context, $bookingId, $arrival, $departure, $result);
+    }
+
+    private function bookOld(ReplayContext $context, string $bookingId, string $arrival, string $departure, string $reason, Room $room, ?RatePlan $plan): BookingResult
+    {
+        $data = $this->data($context, $bookingId, $arrival, $departure, null, '', $plan);
+        $data->picks = [new UnitPickData(unitIndex: 0, roomId: $room->id)];
+
+        return $this->numbers->run(DocumentType::Reservation, $this->number($context, $bookingId), fn () => ($this->createOldStay)($context->actor, $context->property, $data, $reason, true), true, $bookingId);
+    }
+
+    /**
+     * The room wastays gave the stay. When that room belongs to another room type (the stay was upgraded later), the
+     * room named on the booking when it was made.
+     */
+    private function oldStayRoom(ReplayContext $context, string $bookingId): Room
+    {
+        $row = $context->index->room($bookingId);
+        $roomType = $this->linked($context->property, 'room_types', (string) $row['room_type_id']);
+        $room = $this->links->target($context->property, 'rooms', (string) ($row['room_id'] ?? ''));
+
+        if ($room instanceof Room && $room->room_type_id === $roomType->getKey()) {
+            return $room;
+        }
+
+        $byNumber = Room::query()->where('property_id', $context->property->id)->where('room_type_id', $roomType->getKey())->where('number', (string) ($row['room_number'] ?? ''))->first();
+
+        return $byNumber ?? throw new ReplayStopped("bookings {$bookingId}: the stay has no room of its room type in estatell.");
+    }
+
+    private function number(ReplayContext $context, string $bookingId): int
+    {
+        return (int) $context->index->booking($bookingId)['reservation_number'];
+    }
+
+    private function saved(ReplayContext $context, string $bookingId, string $arrival, string $departure, BookingResult $result): ReservationUnit
+    {
+        if ($result->isRefused()) {
+            throw new ReplayStopped("bookings {$bookingId}: the booking was refused ({$result->refusal}) for {$arrival} to {$departure}.");
+        }
+
+        $unit = $result->reservation->units()->orderBy('id')->firstOrFail();
+        ($this->recordImportLink)($context->property, 'bookings', $bookingId, $unit);
+        $context->summary->count('bookings created');
+
+        return $unit;
+    }
+
+    /**
+     * A booking with no company on a plan limited to companies: wastays allowed it, so the company check is skipped.
+     */
+    private function skipsCompanyCheck(ReplayContext $context, string $bookingId, NewBookingData $data): bool
+    {
+        $plan = RatePlan::query()->find($data->units[0]->ratePlanId);
+
+        return $data->companyId === null && $plan instanceof RatePlan && $plan->company_access !== CompanyAccess::Everyone;
+    }
+
+    private function data(ReplayContext $context, string $bookingId, string $arrival, string $departure, ?string $overrideTotal, string $overrideReason, ?RatePlan $plan = null): NewBookingData
+    {
         $property = $context->property;
         $booking = $context->index->booking($bookingId);
         $room = $context->index->room($bookingId);
         $roomType = $this->linked($property, 'room_types', (string) $room['room_type_id']);
-        $plan = $this->linked($property, 'rate_plans', (string) $room['rate_plan_id']);
+        $plan ??= $this->linked($property, 'rate_plans', (string) $room['rate_plan_id']);
         $guestIds = array_map(fn (string $id): int => $this->linked($property, 'guests', $id)->getKey(), $context->index->guestIds($bookingId));
 
         if ($guestIds === []) {
@@ -69,7 +166,8 @@ class CreateWastaysBooking
             overrideTotal: $overrideTotal,
             overrideReason: $overrideTotal !== null ? $overrideReason : null,
         );
-        $data = new NewBookingData(
+
+        return new NewBookingData(
             bookingSource: $this->bookingSource($property, $context->actor, (string) $booking['source']),
             units: [$line],
             guests: array_map(fn (int $guestId): NewBookingGuestData => new NewBookingGuestData(guestId: $guestId, unitIndex: 0), $guestIds),
@@ -78,26 +176,6 @@ class CreateWastaysBooking
             companyId: $companyId = $this->companyOf($property, $bookingId, $context->index->companyAccountId($bookingId)),
             billingMode: $companyId !== null ? BillingMode::MasterPaysAll : BillingMode::MasterPays,
         );
-        $number = (int) $booking['reservation_number'];
-        $fromChannel = $companyId === null && $plan instanceof RatePlan && $plan->company_access !== CompanyAccess::Everyone;
-        $book = fn (bool $skipChecks) => $this->numbers->run(DocumentType::Reservation, $number, fn () => ($this->createBooking)($context->actor, $property, $data, $skipChecks, $allowPastArrival), true, $bookingId);
-        $result = $book($fromChannel);
-
-        if ($result->isRefused() && $result->refusal === ReservationResult::REFUSAL_NOT_AVAILABLE) {
-            // wastays let staff book more rooms of a type than it has. The booking is kept, as an over-capacity stay.
-            $result = $book(true);
-            $context->summary->count('bookings over the room type capacity');
-        }
-
-        if ($result->isRefused()) {
-            throw new ReplayStopped("bookings {$bookingId}: the booking was refused ({$result->refusal}) for {$arrival} to {$departure}.");
-        }
-
-        $unit = $result->reservation->units()->orderBy('id')->firstOrFail();
-        ($this->recordImportLink)($property, 'bookings', $bookingId, $unit);
-        $context->summary->count('bookings created');
-
-        return $unit;
     }
 
     /** The Direct source with this name, added when the property has none. */

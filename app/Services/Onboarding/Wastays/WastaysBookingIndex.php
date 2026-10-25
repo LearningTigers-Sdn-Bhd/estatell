@@ -2,6 +2,7 @@
 
 namespace App\Services\Onboarding\Wastays;
 
+use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
 
 /**
@@ -38,6 +39,9 @@ final class WastaysBookingIndex
     /** @var array<string, array<string, string|null>>|null */
     private ?array $folioRows = null;
 
+    /** @var array<string, string>|null the booking of each wastays folio */
+    private ?array $folioBookings = null;
+
     /** @var array<string, bool>|null wastays folio ids that belong to a company, by id */
     private ?array $companyFolios = null;
 
@@ -56,6 +60,40 @@ final class WastaysBookingIndex
         $this->folioRows ??= $this->keyed('folio_transactions', 'id');
 
         return $this->folioRows[$id] ?? [];
+    }
+
+    /**
+     * What a booking has been paid net of refunds and reversals, the date of the last payment line, and the wastays
+     * receipt numbers of its payments, from every folio of the booking.
+     *
+     * @return array{amount: string, date: string|null, lines: list<string>}
+     */
+    public function paid(string $bookingId, string $timeZone): array
+    {
+        if ($this->folioBookings === null) {
+            $this->folioBookings = [];
+
+            foreach ($this->rows('booking_folios') as $folio) {
+                $this->folioBookings[(string) $folio['id']] = (string) $folio['booking_id'];
+            }
+        }
+
+        $total = '0';
+        $date = null;
+        $lines = [];
+
+        foreach ($this->rows('folio_transactions') as $row) {
+            if (($row['transaction_type'] ?? null) !== 'payment' || ($this->folioBookings[(string) ($row['booking_folio_id'] ?? '')] ?? null) !== $bookingId) {
+                continue;
+            }
+
+            $total = (string) BigDecimal::of($total)->plus((string) $row['amount']);
+            $day = CarbonImmutable::parse((string) $row['created_at'])->setTimezone($timeZone)->toDateString();
+            $date = $date === null || $day > $date ? $day : $date;
+            $lines[] = (string) $row['id'];
+        }
+
+        return ['amount' => $total, 'date' => $date, 'lines' => $lines];
     }
 
     /**

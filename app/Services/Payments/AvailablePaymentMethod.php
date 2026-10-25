@@ -59,10 +59,10 @@ class AvailablePaymentMethod
     }
 
     /**
-     * Whether the user may take an Old system payment now: `folio.manual` and an open migration window.
+     * Whether the user may take an Old system payment now: `folio.manual` (or a platform admin, who runs the console imports) and an open migration window.
      */
     public function oldSystemOffered(Property $property, User $actor): bool
     {
-        return $actor->can(PermissionEnum::FolioManual->value) && $this->migrationWindow->isOpen($property);
+        return ($actor->is_admin || $actor->can(PermissionEnum::FolioManual->value)) && $this->migrationWindow->isOpen($property);
     }
 }

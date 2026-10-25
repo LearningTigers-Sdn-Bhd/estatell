@@ -98,6 +98,20 @@ Re-running writes nothing: every wastays plan copy and every room type price has
 
 Each wastays company has an `import_links` row (`hotel_corporate_accounts`), which the replay uses to put a booking on its company. A second run writes nothing.
 
+### Stays
+
+Sand Bay does not use the day-by-day replay. Its first weeks were typed into wastays after the fact (72 of 92 check-ins were recorded on or after the departure date), so the daily figures cannot match. It follows the [Migration](../17-onboarding/07-migration.md) rule instead: before go-live belongs to wastays, and only what is open comes across. Go-live is the cutover day (`wastays:go-live --opening-date=2026-10-23`), then `wastays:import-stays {bundle} {property} --actor= --dry-run`:
+
+| wastays                                          | Bookings | estatell                                                                                                                                                                                                                              |
+| ------------------------------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Completed, left before go-live                   | 88       | **Old stay**: room and guest history, no money. The room is the one wastays gave it (or the room named on the booking when the stay was upgraded). A stay on a plan that needs a company, booked without one (11), goes on Basic Rate |
+| Confirmed, arriving on or after go-live, not OTA | 110      | Normal booking with its company, source, plan and wastays price. What was paid in wastays, net of refunds, is one **Old system** payment on the Master folio (companies) or the unit folio. 12 bookings, RM 14,145.00                 |
+| Confirmed OTA                                    | 13       | Not imported. They come through Channex                                                                                                                                                                                               |
+| Cancelled, voided, no-show                       | 63       | Not imported. History stays in wastays                                                                                                                                                                                                |
+| In the house or due out                          | 4        | Not imported yet. The hotel decides (see below)                                                                                                                                                                                       |
+
+Bookings go in by wastays reservation number, so the numbers stay in order, and a second run writes nothing. The command exits with a failure and lists any stay it could not place (for example a room that is not free); the others are kept.
+
 ### Company bookings in the replay
 
 | wastays                                                                                              | estatell                                                                                                                                                                                       |
