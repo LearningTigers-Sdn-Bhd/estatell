@@ -9,7 +9,7 @@ Move a unit through its stay.
 - `CheckInUnit`: requires an assigned room or bed for tonight (with `auto_assign_rooms` on, it first calls `AutoAssignRooms`), enforces the registration card scope, needs a known nationality when an enabled foreign-only tax exists (`nationality_required`), posts undated add-ons, sets `checked_in_at` and `UnitStatus::CheckedIn`.
 - `CheckOutUnit`: requires the unit folio balance to be 0 or transferred to the master folio (`balance_not_settled`). A held security deposit is a credit on the folio, so it must be refunded or used against charges first. It sets `checked_out_at`, `UnitStatus::CheckedOut` and marks the room Dirty.
 - `ChangeUnitDates`: changes the arrival and departure of a Confirmed unit, or the departure of a CheckedIn unit. Kept nights keep their prices, plan and rooms. Removed nights are deleted. Added nights are priced for the added stretch only and try to keep the neighbouring night's room or bed.
-- `ProcessEarlyDeparture`: called by `ChangeUnitDates` when the departure moves earlier. It applies the early departure [room revenue policy](../06-catalogues/06-room-revenue.md#policies) and removes the unused nights.
+- `ProcessEarlyDeparture`: called by `ChangeUnitDates` when the departure moves earlier. For a CheckedIn unit it applies the early departure [room revenue policy](../06-catalogues/06-room-revenue.md#policies) and removes the unused nights.
 - `EarlyCheckOut`: check a CheckedIn unit out before its departure date, in one step. It runs `ProcessEarlyDeparture` with the stay day (see [Night audit pending](#night-audit-pending)) as the new departure, then `CheckOutAndRefund`, in one transaction. A refusal of either rolls both back. See [Early check-out](#early-check-out).
 - `ExtendStay`: a later departure with the arrival kept. A thin wrapper over `ChangeUnitDates` (`not_an_extension` for a date that is not later). The night audit's "Extend stay" fix calls it.
 - `ExtendDepartureTime`: late check-out on the departure date. Sets a later `departure_time` and posts the late check-out policy charge. Refused unless the unit is CheckedIn, on its departure date, and the new time is later and before midnight.
@@ -302,7 +302,7 @@ One Dialog cancels several units, so a group is not cancelled one Dialog at a ti
 - **Prices:** nights that stay never change: a rate change does not touch an existing booking. Added nights are quoted for the added stretch only, so a long-stay discount does not reach the old nights. A stay override keeps its share on the old nights.
 - **Rooms:** an added night takes the room or bed of the nearest kept night when it is free on those nights. If not, it stays unassigned and counts in `unassignedNights`. Staff assign with `AssignRoom` or `AssignBed`.
 - **Add-ons:** `AddNightlyAddOnRows` gives each nightly add-on (PerNight, PerGuestNight) rows for the new nights on or after the business date. A shorter stay deletes the unposted rows of the removed nights. Other add-ons and posted add-ons stay.
-- **Early departure fee:** `PolicyChargeCalculator` reads it with the new departure while the unit still holds its booked nights. It posts with `PostUnitPolicyFee` and the key `early_departure:{unit}:{n}`. Only a shorter departure with the arrival unchanged is an early departure. A change that also moves the arrival is a new booking of the unit and has no fee.
+- **Early departure fee:** `PolicyChargeCalculator` reads it with the new departure while the unit still holds its booked nights. It posts with `PostUnitPolicyFee` and the key `early_departure:{unit}:{n}`. Only a CheckedIn unit with a shorter departure and the arrival unchanged is an early departure. A Confirmed unit that has not arrived is a date change with no fee: the guest has not left early, and the cancellation policy (first night or whole stay) does not price removed nights. Staff post a manual charge if the hotel wants one. A change that also moves the arrival is a new booking of the unit and has no fee.
 - **Restrictions:** the route passes `$restrictionOverrideReason` only to a user with `rates.override-restrictions`. Without a reason, a restriction is refused.
 - **Late check-out:** the fee is the late check-out policy (`OneCharge`) with the key `late_checkout:{unit}:{n}`. A second extension on the same day posts the fee again, and staff can choose Do not charge.
 - Permissions: `ChangeUnitDates` and `ExtendStay` need `reservations.manage`. `ExtendDepartureTime` needs `front-desk.check-out`. Do not charge needs `front-desk.waive-fees`.
@@ -438,7 +438,7 @@ Mark no-show has the same layout, with the no-show policy and no free-until line
 │ │ Was RM 840.00     Now RM 560.00            │  │
 │ │ Difference                    - RM 280.00  │  │
 │ └────────────────────────────────────────────┘  │
-│ Shorter stay · early departure policy           │  Only when the stay is shorter
+│ Shorter stay · early departure policy           │  Only when an in-house stay is shorter
 │ Unused night 14 Oct   RM 280.00 + tax           │
 │ ☐ Do not charge   Reason [ ____________ ]       │
 │ Room 101 is free for the new nights  ✓          │
@@ -446,7 +446,7 @@ Mark no-show has the same layout, with the no-show policy and no free-until line
 └─────────────────────────────────────────────────┘
 ```
 
-An in-house unit can change only the departure date. Extend stay opens this form with Arrival locked.
+An in-house unit can change only the departure date. Extend stay opens this form with Arrival locked. A Confirmed unit with a shorter stay shows no fee block.
 
 ### Late check-out
 
