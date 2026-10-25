@@ -247,4 +247,4 @@ The 4 available deposits (ids 30–33, received 1 Oct) belong to bookings 482–
 1. City ledger item 10.
 2. Setup import with the company plan decision.
 3. `wastays:import-companies`, then guests, then `wastays:go-live` without an opening date (16 Sep 2026), then `wastays:replay` to 21 Oct.
-4. After the replay: `wastays:import-balances` for company debt and credit, and the Channex switch for OTA bookings. The cutover route (`go-live --opening-date`, `import-stays`) stays for a hotel that wants only what is open.
+4. After the replay: `wastays:import-balances` for company debt and credit (it keeps each invoice's real date, which is after the 16 Sep go-live: 16 invoices, RM 30,900, and 7 credits, RM 6,980), and the Channex switch for OTA bookings. The cutover route (`go-live --opening-date`, `import-stays`) stays for a hotel that wants only what is open.

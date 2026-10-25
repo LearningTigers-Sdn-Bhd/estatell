@@ -25,12 +25,12 @@ class AddOldSystemInvoice
      * Bring an invoice a company still owes from the old PMS into the city ledger: an Open invoice with no folio, the
      * old number, the old dates and what is still unpaid, marked `migrated`. The company row is locked first and every
      * check runs before the first write, so a refusal writes and logs nothing. It needs an open migration window and
-     * an Active company of the property. Permissions (`folio.manual`) are checked by the route. See
+     * an Active company of the property. `$importing` (only the wastays balances import passes it) lets an invoice keep its real date when the hotel replays its history and the invoice is dated after go-live. Permissions (`folio.manual`) are checked by the route. See
      * docs/15-city-ledger/05-old-system-balances.md.
      */
-    public function __invoke(User $actor, Company $company, string $number, CarbonImmutable $issuedOn, CarbonImmutable $dueOn, string $amount, string $reason): ArInvoiceResult
+    public function __invoke(User $actor, Company $company, string $number, CarbonImmutable $issuedOn, CarbonImmutable $dueOn, string $amount, string $reason, bool $importing = false): ArInvoiceResult
     {
-        return DB::transaction(function () use ($actor, $company, $number, $issuedOn, $dueOn, $amount, $reason): ArInvoiceResult {
+        return DB::transaction(function () use ($actor, $company, $number, $issuedOn, $dueOn, $amount, $reason, $importing): ArInvoiceResult {
             $locked = Company::query()->lockForUpdate()->findOrFail($company->id);
             $property = $locked->property;
 
@@ -46,7 +46,7 @@ class AddOldSystemInvoice
             $reason = trim($reason);
             $goLive = $this->firstBusinessDate->date($property);
 
-            if ($goLive === null || $issuedOn->startOfDay()->greaterThanOrEqualTo($goLive)) {
+            if ($goLive === null || (! $importing && $issuedOn->startOfDay()->greaterThanOrEqualTo($goLive))) {
                 return ArInvoiceResult::refused(ArInvoiceResult::REFUSAL_ISSUED_AFTER_GO_LIVE);
             }
 

@@ -127,7 +127,7 @@ class ImportWastaysBalances
             $summary->count('due dates before the issue date moved to the issue date');
         }
 
-        $result = ($this->addInvoice)($target->actor, $company, $number, $issuedOn, $dueOn, (string) $owed->toScale(2), 'Migrated from wastays. Original total '.BigDecimal::of($row['amount'])->toScale(2));
+        $result = ($this->addInvoice)($target->actor, $company, $number, $issuedOn, $dueOn, (string) $owed->toScale(2), 'Migrated from wastays. Original total '.BigDecimal::of($row['amount'])->toScale(2), importing: true);
 
         if ($result->refusal !== null || $result->invoice === null) {
             $this->stopped($summary, "invoice {$number}: refused ({$result->refusal}).");
@@ -185,6 +185,7 @@ class ImportWastaysBalances
             (string) $credit->toScale(2),
             'Migrated from wastays. Original payment '.BigDecimal::of($row['amount'])->toScale(2),
             'wastays:import-balances:ar_payments:'.$id,
+            importing: true,
         );
 
         if ($result->isRefused() || $result->payment === null) {

@@ -109,3 +109,16 @@ it('imports once, and writes nothing on a dry run', function () {
         ->and(ArInvoice::query()->count())->toBe(2)
         ->and(ArPayment::query()->count())->toBe(2);
 });
+
+it('keeps the real date of a balance dated after go-live, as a replay of the history needs', function () {
+    $tables = wastaysBalanceTables();
+    $tables['ar_invoices'][0]['issued_on'] = '2026-08-20';
+    $tables['ar_invoices'][0]['due_on'] = '2026-09-20';
+    $tables['ar_payments'][0]['received_at'] = '2026-08-25';
+
+    $summary = runBalanceImport($tables);
+
+    expect($summary->counts)->toMatchArray(['unpaid invoices' => 2, 'credit on account' => 2])
+        ->and(ArInvoice::query()->where('number', 'SBR-264001')->sole()->issued_on->toDateString())->toBe('2026-08-20')
+        ->and(ArPayment::query()->where('reference', 'TT-1')->sole()->received_on->toDateString())->toBe('2026-08-25');
+});
