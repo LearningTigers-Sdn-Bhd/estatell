@@ -247,3 +247,50 @@ it('refuses a prefix that another property holds', function () {
 
     expect($this->property->refresh()->document_prefix)->toBe('ABC')->and(RoomType::query()->count())->toBe(0);
 });
+
+/**
+ * @return array<string, list<array<string, string>>>
+ */
+function wastaysTablesWithDetails(): array
+{
+    $tables = wastaysSetupTables();
+    $tables['hotels'] = [[...$tables['hotels'][0], 'address' => 'Jalan Pantai 1', 'city' => 'Semporna', 'contact_phone' => '+60 89 781 000', 'contact_email' => 'info@hotel.test', 'ssm_number' => '202601000001', 'tin' => 'C1234567890']];
+
+    return $tables;
+}
+
+it('fills the details and the check-in times of a property that has only an account', function () {
+    $this->property->forceFill(['document_prefix' => 'XYZ'])->save();
+    $this->property = Property::factory()->onboarding()->create(['document_prefix' => 'ABC', 'city' => null]);
+    expect($this->property->settings()->exists())->toBeFalse();
+
+    runSetupImport(wastaysTablesWithDetails(), ['--check-in' => '15:00', '--check-out' => '12:00'])->assertSuccessful();
+
+    $this->property->refresh();
+
+    expect($this->property->address_line1)->toBe('Jalan Pantai 1')
+        ->and($this->property->city)->toBe('Semporna')
+        ->and($this->property->contact_email)->toBe('info@hotel.test')
+        ->and($this->property->registration_number)->toBe('202601000001')
+        ->and($this->property->tin)->toBe('C1234567890')
+        ->and(substr($this->property->settings->check_in_time, 0, 5))->toBe('15:00')
+        ->and(substr($this->property->settings->check_out_time, 0, 5))->toBe('12:00')
+        ->and(RoomType::query()->count())->toBe(4);
+});
+
+it('keeps what the owner already entered', function () {
+    $this->property->forceFill(['address_line1' => 'Owner street', 'city' => 'Tawau'])->save();
+
+    runSetupImport(wastaysTablesWithDetails())->assertSuccessful();
+
+    $this->property->refresh();
+
+    expect($this->property->address_line1)->toBe('Owner street')
+        ->and($this->property->city)->toBe('Tawau')
+        ->and($this->property->contact_email)->toBe('info@hotel.test');
+});
+
+it('refuses a time that is not HH:MM or only one of the two', function () {
+    runSetupImport(options: ['--check-in' => '3pm', '--check-out' => '12:00'])->expectsOutputToContain('must be a time as HH:MM')->assertFailed();
+    runSetupImport(options: ['--check-in' => '15:00'])->expectsOutputToContain('Give both')->assertFailed();
+});

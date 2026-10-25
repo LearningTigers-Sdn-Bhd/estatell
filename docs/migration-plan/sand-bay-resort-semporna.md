@@ -4,6 +4,8 @@ wastays id 5 · Semporna · 41 rooms · in wastays since 16 Sep 2026 · **Full m
 
 ## Summary
 
+Check-in 15:00 and check-out 12:00 (confirmed 25 Oct 2026). Property `AS1102` exists in production with an account only, so the setup import fills its details: `wastays:import-setup ... --check-in=15:00 --check-out=12:00`.
+
 The hardest move. The resort sells to travel agents on company rates, has real company debt and credit, and has bookings out to August 2027. It moves after the Grand Eastern pilot and after [city ledger item 10](../15-city-ledger/05-old-system-balances.md) is built.
 
 ## Setup

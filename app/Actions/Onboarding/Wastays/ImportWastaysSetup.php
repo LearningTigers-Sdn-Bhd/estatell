@@ -56,6 +56,7 @@ class ImportWastaysSetup
         private UpdateTax $updateTax,
         private UpdatePaymentMethod $updatePaymentMethod,
         private CreateChargeItem $createChargeItem,
+        private ImportWastaysDetails $importDetails,
         private AlignWastaysDocumentPrefix $alignPrefix,
         private RecordImportLink $recordImportLink,
         private ImportLinks $links,
@@ -65,12 +66,12 @@ class ImportWastaysSetup
     /**
      * @throws RuntimeException with a sentence for the console when the bundle cannot be imported; nothing is written then
      */
-    public function __invoke(WastaysImportTarget $target, bool $dryRun = false): WastaysSetupSummary
+    public function __invoke(WastaysImportTarget $target, bool $dryRun = false, ?string $checkIn = null, ?string $checkOut = null): WastaysSetupSummary
     {
         DB::beginTransaction();
 
         try {
-            $summary = $this->import($target->bundle, $target->property, $target->actor);
+            $summary = $this->import($target->bundle, $target->property, $target->actor, $checkIn, $checkOut);
 
             $dryRun ? DB::rollBack() : DB::commit();
         } catch (Throwable $exception) {
@@ -82,9 +83,10 @@ class ImportWastaysSetup
         return $summary;
     }
 
-    private function import(WastaysBundle $bundle, Property $property, User $actor): WastaysSetupSummary
+    private function import(WastaysBundle $bundle, Property $property, User $actor, ?string $checkIn, ?string $checkOut): WastaysSetupSummary
     {
         $summary = new WastaysSetupSummary;
+        ($this->importDetails)($property, $actor, $bundle->rows('hotels')->first() ?? [], $checkIn, $checkOut, $summary);
         $summary->prefixChange = ($this->alignPrefix)($property, $bundle->manifest->hotelCode);
 
         [$roomTypes, $newRoomTypeIds] = $this->roomTypes($bundle, $property, $actor, $summary);
