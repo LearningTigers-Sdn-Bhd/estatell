@@ -61,6 +61,7 @@ class ImportWastaysSetup
         private ImportWastaysDetails $importDetails,
         private SkipOnboardingStep $skipOnboardingStep,
         private ImportWastaysOccupancyRatePlans $occupancyRatePlans,
+        private ImportWastaysFixedRatePlans $fixedRatePlans,
         private AlignWastaysDocumentPrefix $alignPrefix,
         private RecordImportLink $recordImportLink,
         private ImportLinks $links,
@@ -70,12 +71,12 @@ class ImportWastaysSetup
     /**
      * @throws RuntimeException with a sentence for the console when the bundle cannot be imported; nothing is written then
      */
-    public function __invoke(WastaysImportTarget $target, bool $dryRun = false, ?string $checkIn = null, ?string $checkOut = null): WastaysSetupSummary
+    public function __invoke(WastaysImportTarget $target, bool $dryRun = false, ?string $checkIn = null, ?string $checkOut = null, bool $netPrices = false): WastaysSetupSummary
     {
         DB::beginTransaction();
 
         try {
-            $summary = $this->import($target->bundle, $target->property, $target->actor, $checkIn, $checkOut);
+            $summary = $this->import($target->bundle, $target->property, $target->actor, $checkIn, $checkOut, $netPrices);
 
             $dryRun ? DB::rollBack() : DB::commit();
         } catch (Throwable $exception) {
@@ -87,7 +88,7 @@ class ImportWastaysSetup
         return $summary;
     }
 
-    private function import(WastaysBundle $bundle, Property $property, User $actor, ?string $checkIn, ?string $checkOut): WastaysSetupSummary
+    private function import(WastaysBundle $bundle, Property $property, User $actor, ?string $checkIn, ?string $checkOut, bool $netPrices): WastaysSetupSummary
     {
         $summary = new WastaysSetupSummary;
         ($this->importDetails)($property, $actor, $bundle->rows('hotels')->first() ?? [], $checkIn, $checkOut, $summary);
@@ -98,8 +99,14 @@ class ImportWastaysSetup
         if (ImportWastaysOccupancyRatePlans::applies($bundle, $this->map)) {
             ($this->occupancyRatePlans)($bundle, $property, $actor, $roomTypes, $summary);
         } else {
-            $standard = $this->ratePlans($bundle, $property, $actor, $roomTypes, $summary);
-            $this->rates($bundle, $property, $actor, $standard, $roomTypes, $newRoomTypeIds, $summary);
+            $grossPrices = $this->map->isTrue($bundle->rows('hotels')->first()['sst_enabled'] ?? null) && ! $netPrices;
+            $hasFixedPlans = ImportWastaysFixedRatePlans::applies($bundle, $this->map);
+            $standard = $this->ratePlans($bundle, $property, $actor, $roomTypes, $hasFixedPlans, $summary);
+            $this->rates($bundle, $property, $actor, $standard, $roomTypes, $newRoomTypeIds, $grossPrices, $summary);
+
+            if ($hasFixedPlans) {
+                ($this->fixedRatePlans)($bundle, $property, $actor, $roomTypes, $grossPrices, $this->map, $summary);
+            }
         }
         $this->salesTax($bundle, $property, $actor, $summary);
         $this->skipDbkk($bundle, $summary);
@@ -200,8 +207,9 @@ class ImportWastaysSetup
      * everyone, and link the wastays rate plans by name.
      *
      * @param  array<string, RoomType>  $roomTypes
+     * @param  bool  $otherPlansImported  the fixed-price plans import places the plans that are not Standard, Walk-in or Corporate
      */
-    private function ratePlans(WastaysBundle $bundle, Property $property, User $actor, array $roomTypes, WastaysSetupSummary $summary): RatePlan
+    private function ratePlans(WastaysBundle $bundle, Property $property, User $actor, array $roomTypes, bool $otherPlansImported, WastaysSetupSummary $summary): RatePlan
     {
         $standard = $this->activePlan($property, 'Basic Rate') ?? $this->activePlan($property, 'Standard Rate')
             ?? throw new RuntimeException('The property has no Basic Rate plan.');
@@ -234,7 +242,9 @@ class ImportWastaysSetup
             if ($row['archived_at'] ?? null) {
                 $summary->count('Rate plans', 'skipped');
             } elseif ($key === null) {
-                $summary->skip('Rate plans', 'wastays plan '.$id.' matches none of Standard, Walk-in or Corporate');
+                if (! $otherPlansImported) {
+                    $summary->skip('Rate plans', 'wastays plan '.$id.' matches none of Standard, Walk-in or Corporate');
+                }
             } elseif ($this->links->has($property, 'rate_plans', $id)) {
                 $summary->count('Rate plans', 'linked');
             } else {
@@ -247,12 +257,13 @@ class ImportWastaysSetup
     }
 
     /**
-     * Price the new room types on Basic Rate from the first audit date, at base price without SST.
+     * Price the new room types on Basic Rate from the first audit date, at base price without SST. A wastays price that
+     * includes SST is divided by it; a price that is already before tax, or of a hotel with SST off, is kept.
      *
      * @param  array<string, RoomType>  $roomTypes
      * @param  list<string>  $newRoomTypeIds
      */
-    private function rates(WastaysBundle $bundle, Property $property, User $actor, RatePlan $standard, array $roomTypes, array $newRoomTypeIds, WastaysSetupSummary $summary): void
+    private function rates(WastaysBundle $bundle, Property $property, User $actor, RatePlan $standard, array $roomTypes, array $newRoomTypeIds, bool $grossPrices, WastaysSetupSummary $summary): void
     {
         $priced = [];
 
@@ -264,7 +275,7 @@ class ImportWastaysSetup
             } elseif (blank($row['base_price'] ?? null)) {
                 $summary->skip('Rates', "room type {$id} has no base price");
             } else {
-                $amount = $this->map->netPrice((string) $row['base_price']);
+                $amount = $grossPrices ? $this->map->netPrice((string) $row['base_price']) : number_format((float) $row['base_price'], 2, '.', '');
 
                 $priced[] = [
                     'room_type_id' => $roomTypes[$id]->id,

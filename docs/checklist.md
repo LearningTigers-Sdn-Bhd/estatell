@@ -839,6 +839,7 @@ Smaller fixes and reverts are in `git log`.
 - [x] `feat(front-desk): show boat times on arrivals and departures` — the Boat column on Arrivals and Departures. Needs: set boat trips. Docs: [Boat trips](24-boats/02-boat-trips.md#front-desk).
 - [x] `feat(boats): show boat in and out on the reservation card` — the boat line on the reservations list card (`ReservationBoatSummary`, `boatIn` and `boatOut` on `ReservationListItemData`), and the card uses tighter padding. Needs: show boat times on arrivals and departures. Docs: [Boat trips](24-boats/02-boat-trips.md#front-desk).
 - [x] `feat(company-market): offer rates by company market` — `companies.market` (`CompanyMarket`), `rate_plans.company_market` (`CompanyRateMarket`), the check in `CompanyRateAccess`, `CompanyRatePlans` and `PortalRatePlans`, the Market field on the company and the Market radio on the plan's Companies tab, and the `market` import column. Needs: company access on rate plans. Docs: [Market](08-rates/01-rate-plans.md#market).
+- [x] `feat(onboarding): import the per-room plans of a wastays hotel` — `wastays:import-setup` places the plans that are not Standard, Walk-in or Corporate on a per-room hotel (`ImportWastaysFixedRatePlans`): one plan per name with a fixed price per room type, a Day use plan when wastays sets hours. `--net-prices` keeps prices that are already before SST; a hotel with SST off is never divided. Docs: [Hotel Asia City](migration-plan/hotel-asia-city.md#rate-plans).
 
 ### Deferred items to pick up along the way
 

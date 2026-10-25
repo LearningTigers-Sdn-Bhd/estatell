@@ -10,7 +10,7 @@ use Illuminate\Console\Command;
 use InvalidArgumentException;
 use RuntimeException;
 
-#[Signature('wastays:import-setup {bundle : Path of the extracted bundle that wastays:fetch printed} {property : Code of the estatell property} {--actor= : Email of an admin user, shown in the activity log} {--check-in= : Check-in time as HH:MM, not in the export} {--check-out= : Check-out time as HH:MM, not in the export} {--dry-run : Run everything, roll back and print the summary}')]
+#[Signature('wastays:import-setup {bundle : Path of the extracted bundle that wastays:fetch printed} {property : Code of the estatell property} {--actor= : Email of an admin user, shown in the activity log} {--check-in= : Check-in time as HH:MM, not in the export} {--check-out= : Check-out time as HH:MM, not in the export} {--net-prices : The wastays prices are already before SST, so they are not divided by it} {--dry-run : Run everything, roll back and print the summary}')]
 #[Description('Import the setup of a wastays hotel (rooms, rates, taxes, charges, payments) into a property that has not gone live, and set its document prefix to the hotel code')]
 class ImportWastaysSetupCommand extends Command
 {
@@ -27,7 +27,7 @@ class ImportWastaysSetupCommand extends Command
             $checkIn = $this->time('check-in');
             $checkOut = $this->time('check-out');
             $dryRun = (bool) $this->option('dry-run');
-            $summary = $import($target, $dryRun, $checkIn, $checkOut);
+            $summary = $import($target, $dryRun, $checkIn, $checkOut, (bool) $this->option('net-prices'));
         } catch (InvalidArgumentException|RuntimeException $e) {
             $this->error($e->getMessage());
 
