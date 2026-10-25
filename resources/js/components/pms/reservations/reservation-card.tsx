@@ -24,6 +24,7 @@ import { show } from '@/routes/reservations';
 import {
     ReservationMarkers,
     RoomTotalLabel,
+    ExternalReference,
     reservationSubtitle,
 } from './reservation-parts';
 import { RoomBox } from './room-box';
@@ -40,7 +41,7 @@ export function ReservationCard({ reservation }: { reservation: Item }) {
         <Card
             size="sm"
             className={cn(
-                'relative h-full data-[size=sm]:[--card-spacing:--spacing(2.5)]',
+                'relative h-full transition-shadow hover:ring-foreground/30 has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-ring data-[size=sm]:[--card-spacing:--spacing(2.5)] motion-reduce:transition-none',
                 reservation.isCancelled && 'bg-muted/50 text-muted-foreground',
                 reservation.isBlacklisted &&
                     'bg-muted ring-2 ring-destructive/50',
@@ -149,7 +150,11 @@ export function ReservationCard({ reservation }: { reservation: Item }) {
                 </dl>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
                     <StatusBadge status={reservation.status} />
-                    <BookingSourceBadge source={reservation.source} size="sm" />
+                    <BookingSourceBadge
+                        source={reservation.source}
+                        size="sm"
+                        className="relative z-10"
+                    />
                     {reservation.isGroup && (
                         <span className="tabular-nums">
                             {reservation.unitCount} units
@@ -172,6 +177,7 @@ export function ReservationCard({ reservation }: { reservation: Item }) {
                         </span>
                     </span>
                 </div>
+                <ExternalReference reservation={reservation} />
                 <dl className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 text-sm">
                     <dt className="text-xs text-muted-foreground">Room type</dt>
                     <dt className="text-right text-xs text-muted-foreground">

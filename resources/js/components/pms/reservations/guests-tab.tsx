@@ -19,6 +19,8 @@ import {
     takenBedUnits,
     unitsWithoutGuest,
 } from '@/components/pms/reservations/guest-rows';
+import { MoveGuestDialog } from '@/components/pms/reservations/move-guest-dialog';
+import type { MovingGuest } from '@/components/pms/reservations/move-guest-dialog';
 import type { GuestsView } from '@/components/pms/reservations/use-guests-view';
 import {
     DraftGuestRow,
@@ -108,6 +110,7 @@ export function GuestsTab({
         Record<string, Replacement>
     >({});
     const [removing, setRemoving] = useState<Row | null>(null);
+    const [moving, setMoving] = useState<MovingGuest | null>(null);
     const [dirtySaved, setDirtySaved] = useState<Set<string>>(new Set());
     const openUnits = units.filter((unit) =>
         ATTACHABLE_STATUSES.includes(unit.status.value),
@@ -220,6 +223,19 @@ export function GuestsTab({
         );
     };
 
+    const startMove = (row: Row) => {
+        if (row.guestId === null || row.name === null) {
+            return;
+        }
+
+        setMoving({
+            unitId: row.unitId,
+            guestId: row.guestId,
+            name: row.name,
+            unitLabel: row.unitLabel ?? '',
+        });
+    };
+
     const markDirty = useCallback((key: string, isDirty: boolean) => {
         setDirtySaved((current) => {
             if (current.has(key) === isDirty) {
@@ -308,7 +324,7 @@ export function GuestsTab({
                     <TooltipContent>{summaryLabel}</TooltipContent>
                 </Tooltip>
             </div>
-            <div className="rounded-lg border">
+            <div className="rounded-lg border text-sm">
                 <GuestsHeader showUnit={showUnit} />
                 <div className="divide-y">
                     {shownRows.map((row, index) => {
@@ -351,7 +367,6 @@ export function GuestsTab({
                                     canManage &&
                                     canManageGuests &&
                                     row.guest !== null &&
-                                    row.unitId !== null &&
                                     row.guestId !== null
                                 }
                                 canChange={
@@ -363,12 +378,26 @@ export function GuestsTab({
                                         row.unitStatus.value,
                                     )
                                 }
+                                canMove={
+                                    canManage &&
+                                    row.guestId !== null &&
+                                    (row.unitId === null
+                                        ? openUnits.length > 0
+                                        : row.unitStatus !== null &&
+                                          ATTACHABLE_STATUSES.includes(
+                                              row.unitStatus.value,
+                                          ) &&
+                                          openUnits.some(
+                                              (unit) => unit.id !== row.unitId,
+                                          ))
+                                }
                                 countries={countries}
                                 genders={genders}
                                 locales={locales}
                                 onAdd={addDraft}
                                 onBill={bill}
                                 onReplace={(one) => startReplace(one, key)}
+                                onMove={startMove}
                                 onRemove={setRemoving}
                                 onDirtyChange={markDirty}
                             />
@@ -419,6 +448,14 @@ export function GuestsTab({
                     )}
                 </div>
             </div>
+
+            <MoveGuestDialog
+                open={moving !== null}
+                onOpenChange={(open) => !open && setMoving(null)}
+                reservationId={reservationId}
+                guest={moving}
+                units={units}
+            />
 
             <AlertDialog
                 open={removing !== null}

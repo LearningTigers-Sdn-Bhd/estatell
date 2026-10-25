@@ -3362,6 +3362,7 @@ balance: string | null,
 billingMode: string,
 billingModeLabel: string,
 sourceName: string,
+source: App.Data.Reservations.BookingSourceBadgeData,
 externalReference: string | null,
 notes: string | null,
 companyId: number | null,
@@ -3930,7 +3931,7 @@ export type CompanyRateMarket = 'all' | 'local' | 'international';
 export type CompanyStatus = 'active' | 'suspended';
 export type CompanyType = 'corporate' | 'travel_agent' | 'government';
 export type CompanyUserStatus = 'pending' | 'active' | 'revoked';
-export type DashboardTab = 'today' | 'performance';
+export type DashboardTab = 'performance' | 'today';
 export type DefaultMealPeriod = 'breakfast' | 'lunch' | 'dinner';
 export type DefaultRoleEnum = 'owner' | 'manager' | 'front_desk' | 'housekeeping' | 'finance';
 export type DiscountScope = 'room_only' | 'all_charges' | 'selected';

@@ -223,17 +223,19 @@ export default function Dashboard({
                         panelClassName="flex flex-1 flex-col gap-3"
                         tabs={[
                             {
-                                value: 'today',
-                                label: 'Today',
-                                icon: CalendarCheck,
-                                href: dashboard.url(code),
-                            },
-                            {
                                 value: 'performance',
                                 label: 'Performance',
                                 icon: ChartLine,
                                 href: dashboard.url(code, {
                                     query: { tab: 'performance' },
+                                }),
+                            },
+                            {
+                                value: 'today',
+                                label: 'Today',
+                                icon: CalendarCheck,
+                                href: dashboard.url(code, {
+                                    query: { tab: 'today' },
                                 }),
                             },
                         ]}
