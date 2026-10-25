@@ -1,9 +1,11 @@
+import { useDraggable } from '@dnd-kit/core';
 import { Baby, Diamond, Layers, User } from 'lucide-react';
 import { BookingSourceBadge } from '@/components/pms/booking-source-badge';
 import { HoverCard, HoverCardTrigger } from '@/components/ui/hover-card';
 import { cn } from '@/lib/utils';
 import { StayHoverCard } from './bar-hover-card';
 import { barBox, type Bar } from './project-bars';
+import type { StayDragData } from './use-timeline-drag';
 
 type Stay = App.Data.StayView.StayData;
 type Room = App.Data.StayView.RoomRowData;
@@ -38,7 +40,7 @@ export function stayLabel(stay: Stay, bar: Bar, dates: string[]): string {
 /**
  * One segment of a stay, drawn over the cells of its row. The status label is always in the text, so colour never
  * carries meaning alone. A group booking has a marker and the group name; the other bars of the group light up when
- * one is hovered.
+ * one is hovered. A bar that `canDrag` can be dragged to another row; a short press is still a click.
  */
 export function StayBar({
     stay,
@@ -48,6 +50,7 @@ export function StayBar({
     labelWidth,
     columnWidth,
     highlighted,
+    canDrag,
     onHover,
     onOpen,
 }: {
@@ -59,11 +62,17 @@ export function StayBar({
     labelWidth: number;
     columnWidth: number;
     highlighted: boolean;
+    canDrag: boolean;
     onHover: (reservationId: number | null) => void;
     onOpen: (unitId: number) => void;
 }) {
     const grouped = stay.groupName !== null;
     const tone = TONE_CLASSES[stay.status.tone];
+    const { listeners, setNodeRef, isDragging } = useDraggable({
+        id: bar.id,
+        data: { stay } satisfies StayDragData,
+        disabled: !canDrag,
+    });
 
     return (
         <HoverCard>
@@ -71,6 +80,7 @@ export function StayBar({
                 delay={300}
                 render={
                     <button
+                        ref={setNodeRef}
                         type="button"
                         aria-label={stayLabel(stay, bar, dates)}
                         className={cn(
@@ -79,8 +89,10 @@ export function StayBar({
                             bar.openStart && 'border-l-0',
                             !bar.openEnd && 'border-r',
                             highlighted && 'ring-2 ring-ring',
+                            isDragging && 'opacity-50',
                         )}
                         style={barBox(bar, labelWidth, columnWidth)}
+                        {...listeners}
                         onClick={() => onOpen(stay.unitId)}
                         onMouseEnter={() =>
                             grouped ? onHover(stay.reservationId) : undefined

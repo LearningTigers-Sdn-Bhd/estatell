@@ -317,6 +317,39 @@ test('the move preview lists the free rooms of the chosen room type from the nig
     expect(array_column($deluxe['units'], 'label'))->toBe(['201']);
 });
 
+test('the move preview lists every row a Timeline drag may drop on, with the night each is free from', function () {
+    $setup = moveSetup();
+    moveOtherUnit($setup, $setup['rooms']['102'], '+0 days', '+1 day');
+    $url = route('reservations.units.move-preview', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id, 'unit' => $setup['unit']->id]);
+
+    $targets = $this->actingAs($setup['user'])->postJson($url, ['from_night' => today()->toDateString(), 'targets' => true])->assertOk()->json('targets');
+
+    expect(array_column($targets, 'freeFrom', 'rowKey'))->toBe([
+        'room-'.$setup['rooms']['101']->id => today()->toDateString(),
+        'room-'.$setup['rooms']['102']->id => today()->addDay()->toDateString(),
+        'room-'.$setup['rooms']['103']->id => today()->toDateString(),
+        'room-'.$setup['rooms']['201']->id => today()->toDateString(),
+    ]);
+
+    $this->actingAs($setup['user'])->postJson($url, ['from_night' => today()->toDateString()])->assertJsonPath('targets', []);
+});
+
+test('the drag targets leave out a room taken on the last night and another room type unless the move is the whole stay', function () {
+    $setup = moveSetup();
+    moveOtherUnit($setup, $setup['rooms']['103'], '+2 days', '+3 days');
+    moveOtherUnit($setup, $setup['rooms']['201'], '+1 day', '+2 days');
+    $url = route('reservations.units.move-preview', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id, 'unit' => $setup['unit']->id]);
+
+    $whole = $this->actingAs($setup['user'])->postJson($url, ['from_night' => today()->toDateString(), 'targets' => true])->json('targets');
+
+    expect(array_column($whole, 'rowKey'))->toBe(['room-'.$setup['rooms']['101']->id, 'room-'.$setup['rooms']['102']->id]);
+
+    $later = $this->actingAs($setup['user'])->postJson($url, ['from_night' => today()->addDay()->toDateString(), 'targets' => true])->json('targets');
+
+    expect(array_column($later, 'roomTypeId'))->each->toBe($setup['standard']->id)
+        ->and(array_column($later, 'rowKey'))->not->toContain('room-'.$setup['rooms']['201']->id);
+});
+
 test('a first assignment needs no reason but a real move still does', function () {
     $setup = moveSetup();
     $setup['unit']->nights()->update(['room_id' => null]);

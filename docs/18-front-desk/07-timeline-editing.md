@@ -50,10 +50,11 @@ The server checks again. If the night audit moves the business date during a dra
 
 - The column under the pointer at the drop is the first night in the new room. A past column means tonight. The Dialog shows it as **From** and staff can change it.
 - Earlier nights keep their room, so the bar splits at that night.
-- A Checked-in guest moves from tonight or later (`night_in_past`) and only within the room type (`whole_stay_required`). Dropping on tomorrow's column keeps the guest in the old room tonight.
+- A Checked-in guest moves from tonight or later (`night_in_past`). Dropping on tomorrow's column keeps the guest in the old room tonight. Another room type needs the whole stay (`whole_stay_required`), so a guest in house can change room type only on the arrival night.
 - A Confirmed unit can move to another room type that its rate plan sells with the same sell unit. The move is for the whole stay, so **From** is fixed to the arrival.
 - Beds move to beds and rooms move to rooms. Each unit of a group moves alone.
-- On drag start one `move-preview` request returns the free rooms or beds for every room type the unit can move to. Rows that are not free, out of service, blocked or of a room type the plan does not sell are greyed out and are not drop targets. `move-preview` gets this option as an additive change.
+- On drag start one `move-preview` request with `targets` returns every room or bed the unit can move to (`MoveTargetData`: row key, room type, `freeFrom`, from `FreeUnits::freeFrom()`). `freeFrom` is the first night from which the row is free to the departure, so a drop on a later night is checked without another request. Rows of another room type are listed only when the move can start on the arrival, and only when free from it. Other rows are greyed out and are not drop targets.
+- The row under the pointer comes from `data-row-key` on the `DateGrid` row, and the night from the pointer's column. While dragging, a dashed outline shows the nights the unit takes in that row.
 - A Dirty room for tonight is allowed, with a warning in the Dialog.
 
 ## Date change
@@ -126,8 +127,8 @@ A bar or edge stops at the edge of the loaded window. There is no auto-scroll, b
 ```
 resources/js/components/pms/stay-view/
 ├── use-timeline-drag.ts     dnd-kit sensors, drag state, preview request
-├── drop-target.ts           row and column under the pointer, business date stop, allowed rows; tested
-├── timeline-drop-dialog.tsx the confirm Dialog
+├── drop-target.ts           column under the pointer, business date stop, drop check, allowed rows; tested
+├── timeline-move-dialog.tsx the confirm Dialog
 ├── unassigned-lane.ts       packUnassigned(); tested
 └── cell-actions.tsx         empty cell click
 
@@ -136,7 +137,7 @@ app/Actions/FrontDesk/MoveUnitStay.php   dates and room in one transaction
 
 ## Tests
 
-- Pest: `MoveUnitStay` rolls back when the room or the dates are refused; `ChangeUnitDates` charges no early departure fee for a Confirmed unit; `StayViewQuery` returns unassigned segments with a fixed query count; `move-preview` returns free rooms for every allowed room type; the booking form prefill ignores bad values.
+- Pest: `MoveUnitStay` rolls back when the room or the dates are refused; `ChangeUnitDates` charges no early departure fee for a Confirmed unit; `StayViewQuery` returns unassigned segments with a fixed query count; `move-preview` returns every drag target with its `freeFrom`; the booking form prefill ignores bad values.
 - Browser unit tests (`vp test`): `drop-target.ts` (half-cell snap, business date stop, in-house rules) and `packUnassigned()`.
 
 ## Build order

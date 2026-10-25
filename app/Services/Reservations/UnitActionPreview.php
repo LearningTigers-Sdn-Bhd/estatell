@@ -8,6 +8,7 @@ use App\Data\Reservations\CancelAllPreviewData;
 use App\Data\Reservations\CheckInAllPreviewData;
 use App\Data\Reservations\CheckOutDamageItemData;
 use App\Data\Reservations\FreeUnitData;
+use App\Data\Reservations\MoveTargetData;
 use App\Data\Reservations\UnitCheckInPreviewData;
 use App\Data\Reservations\UnitCheckOutPreviewData;
 use App\Data\Reservations\UnitDatesPreviewData;
@@ -208,9 +209,10 @@ class UnitActionPreview
      * The Move room form for a first night: the current room or bed, the room types the unit can move to and the free
      * rooms or beds of the chosen type (its own when none is chosen). An unknown or unlinked type falls back to the
      * unit's own. A day use unit has no night to pick and keeps its room type: the form shows the current room and
-     * the rooms free for the block's hours (`moveDayUse()`).
+     * the rooms free for the block's hours (`moveDayUse()`). With `$withTargets` it also lists every row the Timeline
+     * may drop the unit on (`moveTargets()`).
      */
-    public function move(ReservationUnit $unit, CarbonInterface $fromNight, ?int $roomTypeId): UnitMovePreviewData
+    public function move(ReservationUnit $unit, CarbonInterface $fromNight, ?int $roomTypeId, bool $withTargets = false): UnitMovePreviewData
     {
         if ($unit->stay_type === StayType::DayUse) {
             return $this->moveDayUse($unit);
@@ -242,7 +244,37 @@ class UnitActionPreview
             reasonRequired: $night === null || $night->room_id !== null || $night->bed_id !== null,
             units: $chosen === null ? [] : $this->freeUnits->forStay(RoomType::query()->findOrFail($chosen->id), $from, $unit->departure_date, $unit->id, $unit->arrival_time, $unit->departure_time),
             error: null,
+            targets: $withTargets ? $this->moveTargets($unit, $from, $own, $types->pluck('id')->all()) : [],
         );
+    }
+
+    /**
+     * The rows a drag may drop the unit on, with the first night each is free from. Its own room type is read from
+     * `$from` to the departure. Another room type needs the whole stay (`whole_stay_required`), so it is listed only
+     * when `$from` is the arrival, and only its rows free from the arrival.
+     *
+     * @param  list<int>  $typeIds  The room types the unit can move to, its own included.
+     * @return list<MoveTargetData>
+     */
+    private function moveTargets(ReservationUnit $unit, CarbonImmutable $from, RoomType $own, array $typeIds): array
+    {
+        $prefix = $own->sell_unit === SellUnit::Bed ? 'bed-' : 'room-';
+        $isWholeStay = $from->equalTo($unit->arrival_date->startOfDay());
+        $targets = [];
+
+        foreach (RoomType::query()->whereIn('id', $typeIds)->orderBy('id')->get() as $type) {
+            if ($type->id !== $own->id && ! $isWholeStay) {
+                continue;
+            }
+
+            foreach ($this->freeUnits->freeFrom($type, $from, $unit->departure_date, $unit->id, $unit->arrival_time, $unit->departure_time) as $id => $freeFrom) {
+                if ($type->id === $own->id || $freeFrom === $from->toDateString()) {
+                    $targets[] = new MoveTargetData($prefix.$id, $type->id, $freeFrom);
+                }
+            }
+        }
+
+        return $targets;
     }
 
     private function moveDayUse(ReservationUnit $unit): UnitMovePreviewData

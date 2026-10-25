@@ -87,6 +87,44 @@ class FreeUnits
         return $dates === [] ? null : CarbonImmutable::parse(min($dates));
     }
 
+    /**
+     * For each room or bed of the room type, the first night from which it is free on every night to the departure:
+     * `$from` when it is free for all of them, the night after its last taken night otherwise. A room or bed taken on
+     * the last night is left out. The Timeline reads this once when a drag starts, so a drop on a later night needs no
+     * new request.
+     *
+     * @param  int|null  $exceptUnitId  A reservation unit whose own assignment does not count.
+     * @return array<int, string> The first free night (`Y-m-d`) by room or bed id, in the order of the property's room list.
+     */
+    public function freeFrom(RoomType $roomType, CarbonInterface $from, CarbonInterface $departure, ?int $exceptUnitId = null, ?string $arrivalTime = null, ?string $departureTime = null): array
+    {
+        $stay = $this->stay($from, $departure);
+
+        if ($stay === null) {
+            return [];
+        }
+
+        $unitsByRoom = $this->availability->unitsByRoom($roomType);
+        $taken = $this->takenNights($roomType, $unitsByRoom, $stay, $exceptUnitId, $arrivalTime, $departureTime);
+        $lastNight = $stay->includedEnd()->format('Y-m-d');
+        $rooms = Room::query()->whereIn('id', array_keys($unitsByRoom))->orderBy('position')->orderBy('id')->pluck('id');
+        $free = [];
+
+        foreach ($rooms as $roomId) {
+            foreach ($unitsByRoom[$roomId] as $unitId) {
+                $lastTaken = isset($taken[$unitId]) ? max($taken[$unitId]) : null;
+
+                if ($lastTaken === null) {
+                    $free[$unitId] = $stay->includedStart()->format('Y-m-d');
+                } elseif ($lastTaken < $lastNight) {
+                    $free[$unitId] = CarbonImmutable::parse($lastTaken)->addDay()->toDateString();
+                }
+            }
+        }
+
+        return $free;
+    }
+
     private function stay(CarbonInterface $arrival, CarbonInterface $departure): ?Period
     {
         $first = $arrival->toImmutable()->startOfDay();

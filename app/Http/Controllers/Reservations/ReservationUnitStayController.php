@@ -109,7 +109,7 @@ class ReservationUnitStayController extends Controller
 
     public function movePreview(MoveUnitPreviewRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, UnitActionPreview $preview): JsonResponse
     {
-        return response()->json($preview->move($unit, $request->fromNight(), $request->roomTypeId()));
+        return response()->json($preview->move($unit, $request->fromNight(), $request->roomTypeId(), $request->wantsTargets()));
     }
 
     /**

@@ -19,6 +19,7 @@ class StayData extends Data
     public function __construct(
         public int $unitId,
         public int $reservationId,
+        public int $roomTypeId,
         public string $reference,
         public ?string $guestLabel,
         public ?string $groupName,
@@ -45,6 +46,7 @@ class StayData extends Data
         return new self(
             unitId: $unit->id,
             reservationId: $unit->reservation_id,
+            roomTypeId: $unit->room_type_id,
             reference: $unit->reservation->reference,
             guestLabel: $unit->guests->first()?->guest?->full_name,
             groupName: $unit->reservation->group_name,
