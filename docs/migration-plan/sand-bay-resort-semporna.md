@@ -100,7 +100,7 @@ Each wastays company has an `import_links` row (`hotel_corporate_accounts`), whi
 
 ### Replay
 
-Sand Bay replays like Grand Eastern: `wastays:go-live` on the first wastays date (16 Sep 2026), then `wastays:replay {bundle} {property} --actor=` up to the last closed night (21 Oct 2026). 22 Oct was still open in wastays at the export, so it is not replayed. Its first weeks were typed in after the fact, so some days cannot match the night audit. The replay lists each case it cannot hold, and the day compare explains the rest.
+Sand Bay replays like Grand Eastern: `wastays:go-live` on the first wastays date (16 Sep 2026), then `wastays:replay {bundle} {property} --actor=` up to the last night audit in the export (22 Oct 2026, which wastays had started but not completed). estatell then trades on 23 Oct. Its first weeks were typed in after the fact, so some days cannot match the night audit. The replay lists each case it cannot hold, and the day compare explains the rest.
 
 What the replay does for Sand Bay that it did not for Grand Eastern:
 
@@ -118,7 +118,7 @@ What the replay does for Sand Bay that it did not for Grand Eastern:
 | A stay moved to a night that has closed, or into a room that is not free                                   | The stay keeps its dates and the booking is listed (6 stays, one night off)                                                                                                          |
 | A charge before check-in that is reversed before it posts                                                  | The wait is dropped                                                                                                                                                                  |
 
-Local rehearsal on the 25 Oct bundle (a throwaway database, 37 days, 16 Sep to 21 Oct, all 278 bookings checked against wastays):
+Local rehearsal on the 25 Oct bundle (a throwaway database, 37 days, 16 Sep to 22 Oct, all 278 bookings checked against wastays):
 
 | Check                               | Result                                                                                                                                                                                                                                                                                                                         |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -247,4 +247,4 @@ The 4 available deposits (ids 30–33, received 1 Oct) belong to bookings 482–
 1. City ledger item 10.
 2. Setup import with the company plan decision.
 3. `wastays:import-companies`, then guests, then `wastays:go-live` without an opening date (16 Sep 2026), then `wastays:replay` to 21 Oct.
-4. After the replay: `wastays:import-balances` for company debt and credit (it keeps each invoice's real date, which is after the 16 Sep go-live: 16 invoices, RM 30,900, and 7 credits, RM 6,980), and the Channex switch for OTA bookings. The cutover route (`go-live --opening-date`, `import-stays`) stays for a hotel that wants only what is open.
+4. After the replay, **do not run `wastays:import-balances`**: the replay leaves the invoiced company stays on open company folios (RM 62,400 across 59 stays), so importing the invoices as well would count the debt twice. A one-time script settles those folios to the city ledger instead: each wastays invoice settles the company folio that holds exactly its amount, with its wastays number and dates, then the company payments and their allocations come in, and each company's surplus credit goes to its oldest open invoices. It rolls back unless it is told to commit. In the rehearsal it brought 19 invoices in with their wastays numbers, left 9 wastays invoices with no matching folio (the group and regrouped ones) and kept the credit at RM 6,980. Four of five debtor companies end within RM 20 of wastays. Company 8 (Perfect Vacation) ends RM 5,839 over in invoices that wastays never raised, which the hotel must review. Then the Channex switch for OTA bookings. The cutover route (`go-live --opening-date`, `import-stays`, `import-balances`) stays for a hotel that wants only what is open.
