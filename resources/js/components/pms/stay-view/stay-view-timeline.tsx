@@ -3,7 +3,9 @@ import type { ReactNode, Ref } from 'react';
 import { buildDateColumns } from '@/components/pms/grid/date-columns';
 import { DateGrid } from '@/components/pms/grid/date-grid';
 import type { DateGridHandle } from '@/components/pms/grid/date-grid';
+import { isCellBookable, takenNights } from './bookable-cell';
 import { BlockBar } from './block-bar';
+import { EmptyCell } from './cell-actions';
 import { DayUseBar } from './day-use-bar';
 import { filterStays } from './filter-stays';
 import { buildRows, toggleCollapsed } from './group-rows';
@@ -53,6 +55,7 @@ export function StayViewTimeline({
     rateChoice,
     currency,
     canViewReservations,
+    canManageReservations,
     onOpenStay,
     corner,
 }: {
@@ -69,6 +72,7 @@ export function StayViewTimeline({
     rateChoice: RateChoice;
     currency: App.Data.Property.CurrencyData | null;
     canViewReservations: boolean;
+    canManageReservations: boolean;
     onOpenStay: (unitId: number) => void;
     /** The control in the top-left corner of the date header. */
     corner?: ReactNode;
@@ -153,6 +157,11 @@ export function StayViewTimeline({
         [visible.rooms, visible.stays, blocks, dates],
     );
 
+    const taken = useMemo(
+        () => takenNights(visible.rooms, visible.stays, blocks, dates),
+        [visible.rooms, visible.stays, blocks, dates],
+    );
+
     const choice = useMemo(
         () => resolveChoice(rates, rateChoice),
         [rates, rateChoice],
@@ -220,7 +229,18 @@ export function StayViewTimeline({
                     <RoomLabel room={row.room} />
                 )
             }
-            renderCell={() => null}
+            renderCell={(row, column) =>
+                row.kind === 'row' &&
+                isCellBookable({
+                    canManageReservations,
+                    rowKey: row.key,
+                    date: column.date,
+                    businessDate: window.businessDate,
+                    taken,
+                }) ? (
+                    <EmptyCell room={row.room} date={column.date} />
+                ) : null
+            }
             renderRowOverlay={(row, { labelWidth, columnWidth }) =>
                 row.kind === 'row' && (
                     <>

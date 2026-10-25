@@ -36,6 +36,7 @@ use App\Services\Property\MigrationWindow;
 use App\Services\Property\PropertyToday;
 use App\Services\Rates\DayUseOffers;
 use App\Services\Reservations\BookingErrorKeys;
+use App\Services\Reservations\BookingPrefill;
 use App\Services\Reservations\BookingQuote;
 use App\Services\Reservations\BookingSourceOptions;
 use App\Services\Reservations\ReservationFormOptions;
@@ -55,7 +56,7 @@ class ReservationBookingController extends Controller
      */
     public function new(Request $request, Property $property, ReservationFormOptions $options, CurrentBusinessDate $businessDate, PropertyToday $today, BookingSourceOptions $sourceOptions): Response
     {
-        return $this->form($request, $property, $options, $businessDate, $today, $sourceOptions, walkIn: false);
+        return $this->form($request, $property, $options, $businessDate, $today, $sourceOptions, walkIn: false, readsPrefill: true);
     }
 
     /**
@@ -305,8 +306,9 @@ class ReservationBookingController extends Controller
         return response()->json(['seats' => (object) $boatSeats->forDate($direction, $request->date('date', 'Y-m-d')->toImmutable(), $departureIds)]);
     }
 
-    private function form(Request $request, Property $property, ReservationFormOptions $options, CurrentBusinessDate $businessDate, PropertyToday $today, BookingSourceOptions $sourceOptions, bool $walkIn, bool $pastStay = false, bool $migratedStay = false, bool $oldStay = false): Response
+    private function form(Request $request, Property $property, ReservationFormOptions $options, CurrentBusinessDate $businessDate, PropertyToday $today, BookingSourceOptions $sourceOptions, bool $walkIn, bool $pastStay = false, bool $migratedStay = false, bool $oldStay = false, bool $readsPrefill = false): Response
     {
+        $todayDate = $businessDate->date($property) ?? $today->date($property);
         $canManageGuests = $request->user()->can(PermissionEnum::GuestsManage->value);
         $companies = $request->user()->can(PermissionEnum::CompanyView->value) ? app(CompanyOptions::class)->active($property) : [];
 
@@ -315,13 +317,14 @@ class ReservationBookingController extends Controller
             'isPastStay' => $pastStay,
             'isMigratedStay' => $migratedStay,
             'isOldStay' => $oldStay,
+            'prefill' => $readsPrefill ? app(BookingPrefill::class)->fromQuery($property, $request->query(), $todayDate) : null,
             'canEnterMigratedStay' => $request->user()->can(PermissionEnum::FolioManual->value) && app(MigrationWindow::class)->isOpen($property),
             'canEnterOldStay' => $request->user()->can(PermissionEnum::FolioManual->value) && app(MigrationWindow::class)->isOpen($property),
             'oldFolioModes' => OldFolioMode::options(),
             'goLiveDate' => (app(FirstBusinessDate::class)->date($property) ?? $today->date($property))->toDateString(),
             'canEnterPastStay' => $request->user()->can(PermissionEnum::FolioManual->value),
             'sources' => $sourceOptions->forBooking($property, $walkIn, canUseCompany: $companies !== []),
-            'today' => ($businessDate->date($property) ?? $today->date($property))->toDateString(),
+            'today' => $todayDate->toDateString(),
             'checkInTime' => substr($property->settings->check_in_time ?? '15:00', 0, 5),
             'checkOutTime' => substr($property->settings->check_out_time ?? '11:00', 0, 5),
             'nowTime' => CarbonImmutable::now($property->settings->time_zone ?? config('app.timezone'))->format('H:i'),

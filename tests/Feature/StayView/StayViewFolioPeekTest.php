@@ -111,3 +111,15 @@ test('the timeline tells the page whether the user may view reservations', funct
     $this->actingAs($limited)->get(route('front-desk.timeline', $owner->property->code))
         ->assertInertia(fn ($page) => $page->where('canViewReservations', false));
 });
+
+test('the timeline tells the page whether the user may manage reservations', function () {
+    $owner = User::factory()->owner()->create();
+    PropertySetting::factory()->for($owner->property)->create();
+    BusinessDate::factory()->create(['property_id' => $owner->property_id, 'date' => '2026-10-14']);
+    $viewer = User::factory()->for($owner->property)->withPermissions(['front-desk.view', 'reservations.view'])->create();
+
+    $this->actingAs($owner)->get(route('front-desk.timeline', $owner->property->code))
+        ->assertInertia(fn ($page) => $page->where('canManageReservations', true));
+    $this->actingAs($viewer)->get(route('front-desk.timeline', $owner->property->code))
+        ->assertInertia(fn ($page) => $page->where('canManageReservations', false));
+});

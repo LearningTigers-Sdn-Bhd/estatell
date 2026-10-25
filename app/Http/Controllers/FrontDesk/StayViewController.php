@@ -41,6 +41,7 @@ class StayViewController extends Controller
             'weekendDays' => $property->settings->weekend_nights->isoWeekdays(),
             'currency' => CurrencyData::forProperty($property),
             'canViewReservations' => $request->user()->can(PermissionEnum::ReservationsView->value),
+            'canManageReservations' => $request->user()->can(PermissionEnum::ReservationsManage->value),
         ]);
     }
 
