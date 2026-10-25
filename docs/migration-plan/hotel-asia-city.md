@@ -12,7 +12,7 @@ Set up in wastays with many rate plans, but only one booking (6 Oct, reversed). 
 | --------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
 | Room types      | 4: Deluxe Queen 18, Deluxe Twin 12, Superior Triple 5, Executive 1                        | Copy                                                           |
 | Rooms           | 59, of which 23 archived                                                                  | Copy the 36 active rooms only                                  |
-| Rate plans      | 24 active (Standard and Walk-in repeated per room type), 4 archived DayUse plans          | 11 plans, see below                                            |
+| Rate plans      | 24 active (Standard and Walk-in repeated per room type), 4 archived DayUse plans          | 14 plans, see below                                            |
 | Taxes           | SST on (8%). "Service Tax" 10%                                                            | Service Tax 8%, plus a custom 10% named "Service charge" (ask) |
 | Extra charges   | Mattress set 50, Key & tag lost 55, Pillow, Parking, Miscellaneous, Miscellaneous Revenue | Charge items                                                   |
 | Payment methods | 7                                                                                         | Copy                                                           |
@@ -31,7 +31,7 @@ Prices per room type: Deluxe Queen / Deluxe Twin / Superior Triple / Executive.
 | ADVANCE PAYMENT                                                           | PerRoom                    | 83.90 / 83.90 / 114.41 / 122.03 |
 | BOOKING.COM, OYO, AGODA, EXPEDIA, MEITUAN, CTRIP, TRAVELOKA, DIDA TRAVELS | PerRoom, one plan each     | 67.80 / 67.80 / 110.17 / 118.64 |
 
-All plans are Everyone. The fixed plans cannot be derived: their discount is not one percentage (the OTA plans are 27% below Standard on Queen, 7% on Triple). The import creates 12 months of daily rates from go-live.
+All plans are Everyone. The fixed plans cannot be derived: their discount is not one percentage (the OTA plans are 27% below Standard on Queen, 7% on Triple). The import creates 12 months of daily rates from the first audit date (`ImportWastaysFixedRatePlans`). A plan whose price is not fixed is skipped with a note. Run it with `--net-prices`, because these prices are already before tax.
 
 ### Tax basis
 

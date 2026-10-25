@@ -26,7 +26,7 @@ Mid-onboarding in wastays: room types and rate plans exist, rooms do not. Copy w
 | Walk-in Rate   | Derived from Standard, +0% | Follows Standard                                                | Everyone       |
 | Corporate Rate | Derived from Standard, +0% | Follows Standard                                                | All companies  |
 
-88.89 and 98.15 look like prices before SST (96.00 and 106.00 with 8%). Confirm the tax basis with the hotel (see [Tax basis](README.md#rate-plan-mapping)).
+88.89 and 98.15 look like prices before SST (96.00 and 106.00 with 8%). Run the import with `--net-prices` so they stay 88.89 and 98.15. Confirm the tax basis with the hotel (see [Tax basis](README.md#rate-plan-mapping)).
 
 ## Questions for the hotel
 

@@ -47,11 +47,11 @@ class ImportWastaysOccupancyRatePlans
     ) {}
 
     /**
-     * Whether the bundle has an active plan the Standard, Walk-in and Corporate import cannot place.
+     * Whether the bundle has an active per-person plan the Standard, Walk-in and Corporate import cannot place.
      */
     public static function applies(WastaysBundle $bundle, WastaysCodeMap $map): bool
     {
-        return $bundle->rows('rate_plans')->contains(fn (array $row): bool => blank($row['archived_at'] ?? null) && $map->ratePlanKey((string) $row['name']) === null);
+        return $bundle->rows('rate_plans')->contains(fn (array $row): bool => blank($row['archived_at'] ?? null) && ($row['sell_mode'] ?? null) === 'per_person' && $map->ratePlanKey((string) $row['name']) === null);
     }
 
     /**

@@ -414,3 +414,95 @@ it('answers the Taxes step when the hotel has SST off and no tax is on', functio
 
     expect(OnboardingSkip::query()->where('property_id', $this->property->id)->where('step', OnboardingStep::Taxes)->exists())->toBeTrue();
 });
+
+/**
+ * A Hotel Asia City shaped bundle: per-room plans repeated for each room type, a half day plan with hours, a staff
+ * plan, an OTA plan with a price that is not fixed and an archived plan. Prices are before SST.
+ *
+ * @return array<string, list<array<string, string>>>
+ */
+function wastaysFixedTables(): array
+{
+    $tables = wastaysSetupTables();
+    $tables['room_types'] = [
+        ['id' => '1', 'name' => 'Deluxe Queen', 'base_price' => '93.22', 'max_adults' => '2', 'max_children' => '0'],
+        ['id' => '2', 'name' => 'Superior Triple', 'base_price' => '118.65', 'max_adults' => '3', 'max_children' => '0'],
+    ];
+    $tables['rooms'] = [['id' => '1', 'number' => '101', 'room_type_id' => '1', 'archived_at' => '']];
+    $plan = fn (string $id, string $name, string $hours = '', string $archived = ''): array => [
+        'id' => $id, 'name' => $name, 'sell_mode' => 'per_room', 'archived_at' => $archived, 'ta_access' => 'hidden', 'day_use_hours' => $hours,
+    ];
+    $tables['rate_plans'] = [
+        $plan('1', 'Standard Rate'), $plan('2', 'Standard Rate'), $plan('3', 'HALFDAY', '4'), $plan('4', 'HALFDAY', '4'),
+        $plan('5', 'STAFF'), $plan('6', 'STAFF'), $plan('7', 'OYO'), $plan('8', 'DayUse Rate', '4', '2026-10-06 00:00:00'),
+    ];
+    $link = fn (string $id, string $roomType, string $plan, string $mode = 'fixed', string $value = ''): array => [
+        'id' => $id, 'room_type_id' => $roomType, 'rate_plan_id' => $plan, 'pricing_mode' => $mode, 'pricing_value' => $value,
+    ];
+    $tables['room_type_rate_plans'] = [
+        $link('1', '1', '1'), $link('2', '2', '2'),
+        $link('3', '1', '3', value: '50.85'), $link('4', '2', '4', value: '63.56'),
+        $link('5', '1', '5', value: '76.27'), $link('6', '2', '6', value: '110.17'),
+        $link('7', '1', '7', 'multiplier', '0.80'), $link('8', '1', '8', value: '50.85'),
+    ];
+
+    return $tables;
+}
+
+it('imports the other per-room plans with a fixed price for each room type', function () {
+    runSetupImport(wastaysFixedTables(), ['--net-prices' => true])->assertSuccessful();
+
+    $plans = RatePlan::query()->where('property_id', $this->property->id)->active()->get()->keyBy('name');
+    $roomTypes = $this->property->roomTypes()->orderBy('id')->get();
+    $price = fn (string $plan, RoomType $type): string => (string) Rate::query()->where('rate_plan_id', $plans[$plan]->id)->where('room_type_id', $type->id)->whereDate('date', '2026-08-13')->value('amount');
+
+    expect($plans->keys()->sort()->values()->all())->toBe(['Basic Rate', 'Corporate Rate', 'HALFDAY', 'STAFF', 'Walk-in Rate'])
+        ->and($plans['STAFF']->pricing_basis)->toBe(PricingBasis::PerRoom)
+        ->and($plans['STAFF']->roomTypes()->count())->toBe(2)
+        ->and([$price('STAFF', $roomTypes[0]), $price('STAFF', $roomTypes[1])])->toBe(['76.27', '110.17'])
+        ->and([$price('Basic Rate', $roomTypes[0]), $price('Basic Rate', $roomTypes[1])])->toBe(['93.22', '118.65'])
+        ->and($plans['HALFDAY']->pricing_basis)->toBe(PricingBasis::DayUse)
+        ->and([$plans['HALFDAY']->day_use_min_hours, $plans['HALFDAY']->day_use_max_hours])->toBe([4, 4])
+        ->and(DB::table('rate_hour_prices')->join('rates', 'rates.id', '=', 'rate_hour_prices.rate_id')->where('rates.rate_plan_id', $plans['HALFDAY']->id)->whereDate('rates.date', '2026-08-13')->orderBy('amount')->pluck('rate_hour_prices.amount', 'rate_hour_prices.hours')->all())->toBe([4 => '63.56']);
+});
+
+it('skips a plan whose price is not fixed and an archived plan, and says so', function () {
+    runSetupImport(wastaysFixedTables(), ['--net-prices' => true])
+        ->expectsOutputToContain('OYO has no room type with a fixed price')
+        ->assertSuccessful();
+
+    expect($this->property->ratePlans()->whereIn('name', ['OYO', 'DayUse Rate'])->exists())->toBeFalse();
+});
+
+it('imports the other per-room plans once', function () {
+    runSetupImport(wastaysFixedTables(), ['--net-prices' => true])->assertSuccessful();
+    $counts = setupSnapshot($this->property);
+
+    runSetupImport(wastaysFixedTables(), ['--net-prices' => true])->assertSuccessful();
+
+    expect(setupSnapshot($this->property))->toBe($counts);
+});
+
+function wastaysBasicRatePrice(array $options, string $sst): string
+{
+    $tables = wastaysSetupTables();
+    $tables['hotels'] = [['id' => '3', 'created_at' => '2026-08-13T08:02:00.038624Z', 'sst_enabled' => $sst]];
+    $tables['room_types'] = [['id' => '1', 'name' => 'Deluxe Queen', 'base_price' => '108.00', 'max_adults' => '2', 'max_children' => '0']];
+    $tables['rooms'] = [];
+
+    runSetupImport($tables, $options)->assertSuccessful();
+
+    return (string) Rate::query()->whereIn('rate_plan_id', RatePlan::query()->where('property_id', test()->property->id)->where('name', 'Basic Rate')->pluck('id'))->whereDate('date', '2026-08-13')->value('amount');
+}
+
+it('divides a price that includes SST by it', function () {
+    expect(wastaysBasicRatePrice([], 't'))->toBe('100.00');
+});
+
+it('keeps a price that is before SST', function () {
+    expect(wastaysBasicRatePrice(['--net-prices' => true], 't'))->toBe('108.00');
+});
+
+it('keeps the price of a hotel with SST off', function () {
+    expect(wastaysBasicRatePrice([], 'f'))->toBe('108.00');
+});
