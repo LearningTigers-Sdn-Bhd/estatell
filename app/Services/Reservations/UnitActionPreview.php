@@ -247,7 +247,7 @@ class UnitActionPreview
             reasonRequired: $night === null || $night->room_id !== null || $night->bed_id !== null,
             units: $chosen === null ? [] : $this->freeUnits->forStay(RoomType::query()->findOrFail($chosen->id), $from, $unit->departure_date, $unit->id, $unit->arrival_time, $unit->departure_time),
             error: null,
-            targets: $withTargets ? $this->moveTargets($unit, $from, $own, $types->pluck('id')->all()) : [],
+            targets: $withTargets ? $this->moveTargets($unit, $from, $own, array_values($types->map(fn (RoomType $type): int => $type->id)->all())) : [],
         );
     }
 

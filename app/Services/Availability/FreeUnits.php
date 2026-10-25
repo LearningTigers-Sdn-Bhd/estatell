@@ -112,7 +112,8 @@ class FreeUnits
 
         foreach ($rooms as $roomId) {
             foreach ($unitsByRoom[$roomId] as $unitId) {
-                $lastTaken = isset($taken[$unitId]) ? max($taken[$unitId]) : null;
+                $takenDates = $taken[$unitId] ?? [];
+                $lastTaken = $takenDates === [] ? null : max($takenDates);
 
                 if ($lastTaken === null) {
                     $free[$unitId] = $stay->includedStart()->format('Y-m-d');
