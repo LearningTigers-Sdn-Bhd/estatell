@@ -108,11 +108,29 @@ The page is a Grid calendar: no `PageHeader`, the toolbar on top and the grid fi
 - A card shows the room or bed, the type, the housekeeping status icon and label, the stay state for the date, the guest and pax, the arrival or departure time, the balance-due flag and do-not-disturb.
 - A room with a departure and an arrival on the date shows both lines, Departing first.
 - A dirty room that must be ready today shows `!`, from the housekeeping `priority`.
-- A vacant card offers **New booking** and **Block room**.
 - Clicking a card with a stay opens the same `StayPeekSheet`.
-- Mark room clean and do-not-disturb are quick optimistic changes on the card.
 - There is no rate row, no bars and no footer. The day summary line replaces the footer.
 - Cards are ordered by the Group by choice, then by room number.
+
+### Vacant card
+
+A card is **Vacant** when the room or bed has no stay and no block on the date. A guest who leaves on the date makes it **Departing**, and a block makes it **Blocked**.
+
+| Case                          | The card shows                                                                            |
+| ----------------------------- | ----------------------------------------------------------------------------------------- |
+| Vacant                        | Room, type, housekeeping status icon, "Vacant"                                            |
+| `reservations.manage`         | **New booking**: the booking form with the room or bed, the date and `back=rooms`         |
+| `rooms.block`                 | **Block room**: the Block room Dialog with the room fixed and the date as the first night |
+| Date before the business date | No New booking and no Block room, the same rule as the Timeline cell                      |
+| Dorm room                     | One card per bed                                                                          |
+
+- Clicking the card body of a vacant card does nothing. There is no stay to show.
+
+### Quick changes
+
+- **Mark clean** shows on a dirty card. **Do-not-disturb** shows on a card with a guest in house. A vacant card has no do-not-disturb toggle, because there is no guest to disturb.
+- Both need `housekeeping.update`. Without it the card shows the status and the 🔕 icon only.
+- Both use the housekeeping routes (`housekeeping.rooms.status`, `housekeeping.rooms.dnd`) with an Inertia 3 optimistic update. If the server rejects the change, the card rolls back and a `toast` shows the error.
 
 ## Peek sheet
 

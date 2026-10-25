@@ -59,11 +59,13 @@ The back arrow in the page header and **Cancel** go back to the page that opened
 | `back`                   | Opened from                                    | Back and Cancel go to                          |
 | ------------------------ | ---------------------------------------------- | ---------------------------------------------- |
 | `timeline`               | An empty Timeline cell (New booking)           | The Timeline, with the same window and filters |
+| `rooms`                  | A vacant Room View card (New booking)          | The Room View, with the same date and filters  |
 | `dashboard`              | Dashboard quick actions (New booking, Walk-in) | The Dashboard                                  |
 | missing or anything else | Reservations `New ▾`, a typed URL              | Reservations                                   |
 
 - Every booking type reads it: New booking, Walk-in, Past stay, Migrated stay and Old stay. They share `form()` in `ReservationBookingController`.
 - `back=timeline` takes `back_query`, the Timeline's own query string. `BookingFormBack` keeps only the Timeline keys (`from`, `to`, `groups[]`, `types[]`, `statuses[]`, `q`, `group_by`) and builds the link with `front-desk.timeline`. The Timeline checks the values again when it opens.
+- `back=rooms` takes `back_query` the same way. `BookingFormBack` keeps only the Room View keys (`date`, `groups[]`, `types[]`, `statuses[]`, `show[]`, `q`, `group_by`) and builds the link with `front-desk.rooms`.
 - The page gets `back` as `BookingBackData` (`href`, `label`). The label reads "Back to {label}" on the arrow. The breadcrumb does not change.
 - Switching **Reservation mode** keeps the back link.
 - After a save the form goes to the reservation page or the folio, as before.
