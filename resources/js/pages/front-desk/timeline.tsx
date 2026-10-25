@@ -3,6 +3,8 @@ import { ChartGantt } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
 import type { DateGridHandle } from '@/components/pms/grid/date-grid';
+import { BlockRoomSheet } from '@/components/pms/stay-view/cell-actions';
+import type { BlockCell } from '@/components/pms/stay-view/cell-actions';
 import { StayPeekSheet } from '@/components/pms/stay-view/stay-peek-sheet';
 import { StayViewFilters } from '@/components/pms/stay-view/stay-view-filters';
 import { StayViewTimeline } from '@/components/pms/stay-view/stay-view-timeline';
@@ -38,6 +40,9 @@ export default function Timeline({
     canManageReservations,
     canOverrideRestrictions,
     canWaiveFees,
+    canBlockRooms,
+    blockReasons,
+    maxBlockNights,
 }: {
     window: App.Data.StayView.StayViewWindowData;
     rooms: App.Data.StayView.RoomRowData[];
@@ -54,10 +59,14 @@ export default function Timeline({
     canManageReservations: boolean;
     canOverrideRestrictions: boolean;
     canWaiveFees: boolean;
+    canBlockRooms: boolean;
+    blockReasons: { value: string; label: string }[];
+    maxBlockNights: number;
 }) {
     const gridRef = useRef<DateGridHandle>(null);
     const [filters, setFilters] = useState(initialFilters);
     const [peekUnitId, setPeekUnitId] = useState<number | null>(null);
+    const [blockCell, setBlockCell] = useState<BlockCell | null>(null);
     const [preferences, updatePreferences] = useStayViewPreferences();
     const ratePlanId = resolveChoice(rates, preferences.rateChoice).ratePlanId;
     const range: DateWindow = { from: stayWindow.from, to: stayWindow.to };
@@ -113,7 +122,9 @@ export default function Timeline({
                             canManageReservations={canManageReservations}
                             canOverrideRestrictions={canOverrideRestrictions}
                             canWaiveFees={canWaiveFees}
+                            canBlockRooms={canBlockRooms}
                             onOpenStay={setPeekUnitId}
+                            onBlockRoom={setBlockCell}
                             corner={
                                 <StayViewFilters
                                     rooms={rooms}
@@ -155,6 +166,14 @@ export default function Timeline({
                         canViewReservations={canViewReservations}
                         onSelect={setPeekUnitId}
                         onClose={() => setPeekUnitId(null)}
+                    />
+                    <BlockRoomSheet
+                        cell={blockCell}
+                        rooms={rooms}
+                        reasons={blockReasons}
+                        today={stayWindow.today}
+                        maxNights={maxBlockNights}
+                        onClose={() => setBlockCell(null)}
                     />
                 </>
             )}

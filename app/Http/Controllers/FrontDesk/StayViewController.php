@@ -6,9 +6,11 @@ use App\Data\Property\CurrencyData;
 use App\Data\StayView\StayFolioData;
 use App\Enums\HousekeepingStatus;
 use App\Enums\PermissionEnum;
+use App\Enums\RoomBlockReason;
 use App\Enums\StayViewGrouping;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\FrontDesk\StayViewTimelineRequest;
+use App\Http\Requests\Rooms\RoomBlockRequest;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Services\Property\PropertyToday;
@@ -44,6 +46,9 @@ class StayViewController extends Controller
             'canManageReservations' => $request->user()->can(PermissionEnum::ReservationsManage->value),
             'canOverrideRestrictions' => $request->user()->can(PermissionEnum::RatesOverrideRestrictions->value),
             'canWaiveFees' => $request->user()->can(PermissionEnum::FrontDeskWaiveFees->value),
+            'canBlockRooms' => $request->user()->can(PermissionEnum::RoomsBlock->value),
+            'blockReasons' => RoomBlockReason::options(),
+            'maxBlockNights' => RoomBlockRequest::MAX_NIGHTS,
         ]);
     }
 

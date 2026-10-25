@@ -4008,6 +4008,7 @@ export type ReservationRoomBoxState = 'assigned' | 'unassigned' | 'auto_assign' 
 export type ReservationStatus = 'confirmed' | 'in_house' | 'completed' | 'cancelled';
 export type RevisionKind = 'new' | 'modified' | 'cancelled';
 export type RoomBlockReason = 'maintenance' | 'owner_use' | 'out_of_order' | 'other';
+export type RoomBlockRefusal = 'unavailable' | 'ended' | 'blocked' | 'has_stay';
 export type RoutingRuleSource = 'billing_mode' | 'manual';
 export type SellUnit = 'room' | 'bed';
 export type SpreadsheetFormat = 'csv' | 'xlsx';

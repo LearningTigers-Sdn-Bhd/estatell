@@ -6,9 +6,11 @@ use App\Enums\RoomBlockReason;
 use App\Models\Bed;
 use App\Models\Property;
 use App\Models\PropertySetting;
+use App\Models\ReservationUnit;
 use App\Models\Room;
 use App\Models\RoomBlock;
 use App\Models\RoomType;
+use App\Models\UnitNight;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -74,6 +76,7 @@ test('front desk staff block a room', function () {
     $room = Room::factory()->for($property)->create(['number' => '203']);
 
     $this->actingAs($frontDesk)
+        ->from(route('front-desk.room-blocks.index', $property->code))
         ->post(route('front-desk.room-blocks.store', $property->code), [...blockPayload(), 'room_id' => $room->id, 'notes' => '  Aircon repair '])
         ->assertRedirect(route('front-desk.room-blocks.index', $property->code))
         ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Room 203 blocked.']);
@@ -167,6 +170,66 @@ test('overlapping blocks are refused', function (?string $existingBed, ?string $
     'same bed' => ['A1', 'A1', true],
     'different beds' => ['A1', 'A2', false],
 ]);
+
+test('a block over a night with a stay is refused', function (string $stayOn, ?string $blockBed, bool $refused, string $date = '2026-10-13', bool $cancelled = false) {
+    $owner = User::factory()->owner()->create();
+    $dorm = blockedDorm($owner->property);
+    $dorm->update(['number' => '12']);
+    $beds = ['A1' => Bed::factory()->for($dorm)->create(['label' => 'A1']), 'A2' => Bed::factory()->for($dorm)->create(['label' => 'A2'])];
+    UnitNight::factory()->create([
+        'reservation_unit_id' => ($cancelled ? ReservationUnit::factory()->cancelled() : ReservationUnit::factory())->create()->id,
+        'date' => $date,
+        ...($stayOn === 'room' ? ['room_id' => $dorm->id] : ['bed_id' => $beds[$stayOn]->id]),
+    ]);
+
+    $response = $this->actingAs($owner)
+        ->post(route('front-desk.room-blocks.store', $owner->property->code), [
+            ...blockPayload(),
+            'room_id' => $dorm->id,
+            'bed_id' => $blockBed ? $beds[$blockBed]->id : null,
+        ]);
+
+    expect(RoomBlock::query()->count())->toBe($refused ? 0 : 1);
+
+    if ($refused) {
+        $unit = $blockBed ? "Room 12, bed {$blockBed}" : 'Room 12';
+        $response->assertInertiaFlash('toast', ['type' => 'error', 'message' => "{$unit} has a stay on some of these nights. Move the stay first."]);
+        expect(Activity::query()->where('event', 'room_block.created')->count())->toBe(0);
+    }
+})->with([
+    'room over its room' => ['room', null, true],
+    'room over a bed' => ['A1', null, true],
+    'bed over the same bed' => ['A1', 'A1', true],
+    'bed over the whole room' => ['room', 'A1', true],
+    'bed over another bed' => ['A1', 'A2', false],
+    'night after the last night' => ['room', null, false, '2026-10-15'],
+    'cancelled stay' => ['room', null, false, '2026-10-13', true],
+]);
+
+test('editing a block over a night with a stay is refused', function () {
+    $owner = User::factory()->owner()->create();
+    $room = Room::factory()->for($owner->property)->create(['number' => '203']);
+    $block = blockOn($room, ['starts_on' => '2026-10-12', 'ends_on' => '2026-10-14']);
+    UnitNight::factory()->create(['room_id' => $room->id, 'date' => '2026-10-16']);
+
+    $this->actingAs($owner)
+        ->put(route('front-desk.room-blocks.update', [$owner->property->code, $block]), blockPayload(['ends_on' => '2026-10-16']))
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'Room 203 has a stay on some of these nights. Move the stay first.']);
+
+    expect($block->refresh()->ends_on->toDateString())->toBe('2026-10-14')
+        ->and(Activity::query()->where('event', 'room_block.updated')->count())->toBe(0);
+});
+
+test('a block made from the Timeline returns to the Timeline', function () {
+    $owner = User::factory()->owner()->create();
+    $room = Room::factory()->for($owner->property)->create();
+    $timeline = route('front-desk.timeline', $owner->property->code);
+
+    $this->actingAs($owner)
+        ->from($timeline)
+        ->post(route('front-desk.room-blocks.store', $owner->property->code), [...blockPayload(), 'room_id' => $room->id])
+        ->assertRedirect($timeline);
+});
 
 test('back-to-back blocks do not overlap', function () {
     $owner = User::factory()->owner()->create();

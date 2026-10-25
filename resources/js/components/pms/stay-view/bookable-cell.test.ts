@@ -1,5 +1,5 @@
 import { expect, test } from 'vite-plus/test';
-import { isCellBookable, takenNights } from './bookable-cell';
+import { cellActions, isCellBookable, takenNights } from './bookable-cell';
 
 const room = (
     over: Partial<App.Data.StayView.RoomRowData>,
@@ -33,7 +33,6 @@ const block = (
 
 const dates = ['2026-10-13', '2026-10-14', '2026-10-15', '2026-10-16'];
 const base = {
-    canManageReservations: true,
     rowKey: 'room-1',
     businessDate: '2026-10-14',
 };
@@ -51,17 +50,55 @@ test('a column before the business date is not bookable', () => {
     expect(isCellBookable({ ...base, date: '2026-10-13', taken })).toBe(false);
 });
 
-test('a user without reservations.manage gets no click', () => {
+const both = {
+    ...base,
+    canManageReservations: true,
+    canBlockRooms: true,
+    today: '2026-10-14',
+};
+
+test('a cell offers a booking and a block to a user with both permissions', () => {
+    const taken = takenNights([room({})], [], [], dates);
+
+    expect(cellActions({ ...both, date: '2026-10-15', taken })).toEqual([
+        'booking',
+        'block',
+    ]);
+});
+
+test('a cell offers only the action the user may take', () => {
+    const taken = takenNights([room({})], [], [], dates);
+    const at = (canManageReservations: boolean, canBlockRooms: boolean) =>
+        cellActions({
+            ...both,
+            canManageReservations,
+            canBlockRooms,
+            date: '2026-10-15',
+            taken,
+        });
+
+    expect(at(true, false)).toEqual(['booking']);
+    expect(at(false, true)).toEqual(['block']);
+    expect(at(false, false)).toEqual([]);
+});
+
+test('a block is not offered before the calendar date, while the business date is behind', () => {
     const taken = takenNights([room({})], [], [], dates);
 
     expect(
-        isCellBookable({
-            ...base,
-            canManageReservations: false,
-            date: '2026-10-15',
+        cellActions({
+            ...both,
+            today: '2026-10-15',
+            date: '2026-10-14',
             taken,
         }),
-    ).toBe(false);
+    ).toEqual(['booking']);
+});
+
+test('a taken cell offers nothing', () => {
+    const taken = takenNights([room({})], [], [block({})], dates);
+
+    expect(cellActions({ ...both, date: '2026-10-15', taken })).toEqual([]);
 });
 
 test('the departure day stays free and the nights of the stay are taken', () => {

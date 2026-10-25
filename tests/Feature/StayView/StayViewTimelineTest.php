@@ -138,6 +138,23 @@ test('the Overview group has no Timeline View for staff without front-desk.view'
             }));
 });
 
+test('the timeline carries the block room props, and canBlockRooms needs rooms.block', function () {
+    [$owner, $property] = timelineSetup();
+    $viewer = User::factory()->for($property)->withPermissions(['front-desk.view'])->create();
+
+    $this->actingAs($owner)
+        ->get(route('front-desk.timeline', $property->code))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('canBlockRooms', true)
+            ->has('blockReasons', 4)
+            ->where('blockReasons.0.value', 'maintenance')
+            ->where('maxBlockNights', 365));
+
+    $this->actingAs($viewer)
+        ->get(route('front-desk.timeline', $property->code))
+        ->assertInertia(fn (Assert $page) => $page->where('canBlockRooms', false));
+});
+
 test('staff without front-desk.view cannot open the timeline', function () {
     $finance = User::factory()->withRole(DefaultRoleEnum::Finance)->create();
 
