@@ -80,6 +80,24 @@ Re-running writes nothing: every wastays plan copy and every room type price has
 | Folio lines  | 570                          | Stay in wastays                    |
 | Companies    | 187                          | Copy. Confirm which are still used |
 
+### Companies
+
+`wastays:import-companies {bundle} {property} --actor= --dry-run` runs after the setup import and before go-live. It reads `hotel_corporate_accounts` with the account name from `accounts`.
+
+| wastays                                                            | estatell                                                                                                                                      |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Account name                                                       | Company name. Two wastays companies with the same name (ignoring case) become one company, and both ids link to it. Sand Bay has 3 such pairs |
+| `account_type`                                                     | travel_agent → Travel agent, government → Government, anything else (company, salesperson, airline) → Corporate                               |
+| `market`                                                           | Local or International                                                                                                                        |
+| `relationship_type` direct_bill                                    | Direct bill on. City ledger is turned on when a company is created                                                                            |
+| Contact email, phone                                               | Email lower case, dropped if invalid. Phone as E.164, dropped if unreadable (18 at Sand Bay)                                                  |
+| Credit limit, payment terms, BRN, TIN, SST number, billing address | Copied. The export has no billing state or country                                                                                            |
+| `status` suspended                                                 | Suspended                                                                                                                                     |
+| Agent code, agent booking switches, portal login                   | Not copied. No portal login is created, so nobody gets an invitation                                                                          |
+| `rate_plan_agency_rules`                                           | The company is listed on the merged plan that is limited to companies (6 links)                                                               |
+
+Each wastays company has an `import_links` row (`hotel_corporate_accounts`), which the replay uses to put a booking on its company. A second run writes nothing.
+
 ### Booking sources
 
 The replay places each wastays `bookings.source` like this. A booking with a wastays corporate account takes its company from the companies import (`import_links` table `hotel_corporate_accounts`), and the replay stops with "Import the companies first" when the company is missing.
@@ -159,5 +177,5 @@ The 4 available deposits (ids 30–33, received 1 Oct) belong to bookings 482–
 
 1. City ledger item 10.
 2. Setup import with the company plan decision.
-3. Companies, guests, Old stays, daily figures.
+3. `wastays:import-companies`, then guests, then `wastays:go-live` and the replay.
 4. On go-live day: in-house stays, travel-agent and phone bookings with Old system payments, company debt and credit, and the Channex switch for OTA bookings.
