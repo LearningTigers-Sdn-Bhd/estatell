@@ -62,6 +62,20 @@ final class WastaysDocumentNumbers
         return $this->receiptReferences[$kind.':'.$sourceId] ?? null;
     }
 
+    /**
+     * The highest receipt number wastays issued, for any receipt (payment, deposit or company payment).
+     */
+    public function highestReceipt(): ?int
+    {
+        $highest = null;
+
+        foreach ($this->rows('receipts') as $row) {
+            $highest = max($highest ?? 0, (int) $row['receipt_number']);
+        }
+
+        return $highest;
+    }
+
     public function invoice(string $bookingId): ?int
     {
         if ($this->invoices === null) {

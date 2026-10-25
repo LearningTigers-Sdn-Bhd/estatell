@@ -16,6 +16,30 @@ class PlannedDocumentNumbers
     /** @var array<string, list<int>> */
     private array $queues = [];
 
+    /** @var array<string, int> */
+    private array $ceilings = [];
+
+    /**
+     * Lets the replay issue a planned number of the type that is below the last number, as long as it is not above the
+     * ceiling (the highest number wastays issued), and gives an unplanned number above the ceiling. Unique by
+     * construction: wastays numbers are unique and the unplanned ones start above all of them.
+     */
+    public function setCeiling(DocumentType $type, ?int $ceiling): void
+    {
+        if ($ceiling === null) {
+            unset($this->ceilings[$type->value]);
+
+            return;
+        }
+
+        $this->ceilings[$type->value] = $ceiling;
+    }
+
+    public function ceiling(DocumentType $type): ?int
+    {
+        return $this->ceilings[$type->value] ?? null;
+    }
+
     public function push(DocumentType $type, int $number): void
     {
         $this->queues[$type->value][] = $number;

@@ -52,22 +52,22 @@ class CheckOutUnit
      * with `ChangeUnitDates`. `$asOf` is the moment the guest really left, for a past stay entered after it ended
      * (`CreatePastStay`); it sets `checked_out_at`. `$skipBalanceCheck` (only `CreatePastStay` passes it) leaves the
      * balance, the scheduled-charge check and the folios alone: the folios stay Open with their balance, and the
-     * room is not marked Dirty, because the stay ended in the past. `$sameDayLeaver` (only the wastays replay passes it)
+     * room is not marked Dirty, because the stay ended in the past. `$groupSettled` (only the wastays replay passes it) lets a stay whose money is settled across its group check out with a balance on its folio, which then stays Open. `$sameDayLeaver` (only the wastays replay passes it)
      * checks out a one-night stay on its arrival date, before its departure date: its night posts first with the audit's
      * key, so the folio closes and the invoice is issued on that business date. Permissions are checked by the route. See docs/18-front-desk/01-check-in-and-check-out.md.
      */
-    public function __invoke(User $actor, ReservationUnit $unit, ?CarbonImmutable $asOf = null, bool $skipBalanceCheck = false, bool $sameDayLeaver = false): UnitStayResult
+    public function __invoke(User $actor, ReservationUnit $unit, ?CarbonImmutable $asOf = null, bool $skipBalanceCheck = false, bool $sameDayLeaver = false, bool $groupSettled = false): UnitStayResult
     {
         try {
-            return $this->checkOut($actor, $unit, $asOf, $skipBalanceCheck, $sameDayLeaver);
+            return $this->checkOut($actor, $unit, $asOf, $skipBalanceCheck, $sameDayLeaver, $groupSettled);
         } catch (UnitStayRefused $refused) {
             return $refused->result;
         }
     }
 
-    private function checkOut(User $actor, ReservationUnit $unit, ?CarbonImmutable $asOf, bool $skipBalanceCheck, bool $sameDayLeaver): UnitStayResult
+    private function checkOut(User $actor, ReservationUnit $unit, ?CarbonImmutable $asOf, bool $skipBalanceCheck, bool $sameDayLeaver, bool $groupSettled): UnitStayResult
     {
-        return DB::transaction(function () use ($actor, $unit, $asOf, $skipBalanceCheck, $sameDayLeaver): UnitStayResult {
+        return DB::transaction(function () use ($actor, $unit, $asOf, $skipBalanceCheck, $sameDayLeaver, $groupSettled): UnitStayResult {
             $locked = ReservationUnit::query()->lockForUpdate()->findOrFail($unit->id);
 
             if (! $locked->status->canTransitionTo(UnitStatus::CheckedOut)) {
@@ -101,7 +101,7 @@ class CheckOutUnit
                     return UnitStayResult::refused(UnitStayResult::REFUSAL_RECEIVES_SCHEDULED_CHARGES, $incoming);
                 }
 
-                $unsettled = $folios->contains(fn (Folio $folio): bool => ! BigDecimal::of($this->folioBalance->forFolio($folio))->isZero());
+                $unsettled = ! $groupSettled && $folios->contains(fn (Folio $folio): bool => ! BigDecimal::of($this->folioBalance->forFolio($folio))->isZero());
 
                 if ($unsettled) {
                     return UnitStayResult::refused(UnitStayResult::REFUSAL_BALANCE_NOT_SETTLED, $this->checkOutSettlement->heldForOtherRooms($locked, $folios));
@@ -115,6 +115,10 @@ class CheckOutUnit
             $openFolios = $skipBalanceCheck ? [] : $this->openUnitFolios($locked);
 
             foreach ($openFolios as $folio) {
+                if ($groupSettled && ! BigDecimal::of($this->folioBalance->forFolio($folio))->isZero()) {
+                    continue;
+                }
+
                 $closed = ($this->closeFolio)($actor, $folio);
 
                 if ($closed->refusal === FolioStatusResult::REFUSAL_RECEIVES_SCHEDULED_CHARGES) {

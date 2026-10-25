@@ -26,12 +26,12 @@ class AddOldSystemCredit
      * Bring money a company paid in advance in the old PMS into the city ledger: an AR payment on the Old system
      * method with the old receipt number as its reference, the old date and no receipt number of its own. It stays
      * unallocated, so it is credit on the company. The company row is locked first and every check runs before the
-     * first write, so a refusal writes and logs nothing. Permissions (`folio.manual`) are checked by the route. See
+     * first write, so a refusal writes and logs nothing. `$importing` (only the wastays balances import passes it) lets a payment keep its real date when the hotel replays its history. Permissions (`folio.manual`) are checked by the route. See
      * docs/15-city-ledger/05-old-system-balances.md#credit-on-account.
      */
-    public function __invoke(User $actor, Company $company, string $oldReceiptNumber, CarbonImmutable $receivedOn, string $amount, string $reason, string $idempotencyKey): ArPaymentResult
+    public function __invoke(User $actor, Company $company, string $oldReceiptNumber, CarbonImmutable $receivedOn, string $amount, string $reason, string $idempotencyKey, bool $importing = false): ArPaymentResult
     {
-        return DB::transaction(function () use ($actor, $company, $oldReceiptNumber, $receivedOn, $amount, $reason, $idempotencyKey): ArPaymentResult {
+        return DB::transaction(function () use ($actor, $company, $oldReceiptNumber, $receivedOn, $amount, $reason, $idempotencyKey, $importing): ArPaymentResult {
             $locked = Company::query()->lockForUpdate()->findOrFail($company->id);
 
             $existing = ArPayment::query()
@@ -68,7 +68,7 @@ class AddOldSystemCredit
             $reason = trim($reason);
             $goLive = $this->firstBusinessDate->date($property);
 
-            if ($goLive === null || $receivedOn->startOfDay()->greaterThanOrEqualTo($goLive)) {
+            if ($goLive === null || (! $importing && $receivedOn->startOfDay()->greaterThanOrEqualTo($goLive))) {
                 return ArPaymentResult::refused(ArPaymentResult::REFUSAL_DATE_NOT_BEFORE_GO_LIVE);
             }
 
