@@ -117,7 +117,7 @@ Each wastays company has an `import_links` row (`hotel_corporate_accounts`), whi
 | Receipt of a prepayment deposit, issued when the deposit came in        | The first payment taken from the deposit takes that receipt number (the numbers stay in order). Later payments from the same deposit get the next estatell number                       |
 | Payment with no reference on a method that needs one                    | Reference `wastays folio_transactions {id}`, or the wastays receipt number when there is one                                                                                            |
 
-Open: 72 of the 92 check-ins were recorded on or after the booking's departure date (late entry, with the check-in time set back). estatell refuses a check-in on the departure day (`stay_ended`), so the replay stops at the first one (booking 477, 2 Oct).
+A check-in that wastays recorded on or after the departure date (72 of the 92 check-ins) is made as of the arrival day, and the day is listed as an accepted difference. The nights then post on the check-in day, while wastays posted them on the day it caught up. Local run: 2 Oct shows room revenue 3,930 in estatell against 0 in wastays, and 4 Oct shows 0 against 2,880, so the replay stops on 4 Oct.
 
 ### Booking sources
 

@@ -326,3 +326,24 @@ it('keeps a booking that wastays took over the room type capacity', function () 
     expect(Reservation::query()->where('property_id', $setup['property']->id)->count())->toBe(3)
         ->and($summary->counts['bookings over the room type capacity'])->toBeGreaterThanOrEqual(1);
 });
+
+it('checks a guest in on the arrival day when wastays recorded the check-in on the departure day', function () {
+    $setup = wastaysReplaySetup();
+    $tables = wastaysReplayTables();
+    $tables['booking_audit_logs'] = array_values(array_filter($tables['booking_audit_logs'], fn (array $row): bool => $row['id'] !== '1'));
+    $tables['booking_audit_logs'][] = [
+        'id' => '9', 'auditable_type' => 'Booking', 'auditable_id' => '1', 'action_type' => 'check_in', 'occurred_at' => '2026-08-15T01:00:00.000000Z', 'old_value' => '{}', 'new_value' => '{}',
+    ];
+    [$target, $day] = wastaysReplayTarget($setup, $tables);
+
+    replayDay($setup, $day, $target, '2026-08-13');
+    auditDay($setup);
+    replayDay($setup, $day, $target, '2026-08-14');
+    auditDay($setup);
+    $third = replayDay($setup, $day, $target, '2026-08-15');
+
+    $unit = Reservation::query()->where('property_id', $setup['property']->id)->where('reference', 'like', '%41')->sole()->units()->sole();
+
+    expect($third->counts)->toMatchArray(['late check-ins moved to the arrival day' => 1])
+        ->and($unit->checked_in_at->toDateString())->toBe('2026-08-13');
+});

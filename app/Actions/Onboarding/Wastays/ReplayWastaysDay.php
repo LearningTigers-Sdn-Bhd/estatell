@@ -432,7 +432,12 @@ class ReplayWastaysDay
             return;
         }
 
-        $this->doCheckIn($context, $unit, 'check-ins');
+        // wastays recorded some check-ins on or after the departure date, with the check-in time set back. estatell
+        // refuses a check-in on the departure day, so the guest is checked in as of the arrival day.
+        $late = $unit->departure_date->toDateString() <= $context->date;
+        $asOf = $late ? CarbonImmutable::parse($unit->arrival_date->toDateString().' '.($context->property->settings->check_in_time ?? '15:00')) : null;
+
+        $this->doCheckIn($context, $unit, $late ? 'late check-ins moved to the arrival day' : 'check-ins', $asOf);
         ($this->recordImportLink)($context->property, 'booking_audit_logs', $event->sourceId, $unit);
     }
 
@@ -716,7 +721,8 @@ class ReplayWastaysDay
     {
         // A folio reopened by an undone check-out keeps its invoice number, so closing it again issues none.
         $invoiced = Folio::query()->where('reservation_unit_id', $unit->id)->where('type', FolioType::Unit)->whereNotNull('invoice_number')->exists();
-        $invoice = $invoiced ? null : $context->numbers->invoice($bookingId);
+        // The invoice of a company booking sits on the company folio, so the Master folio takes the wastays number when it closes.
+        $invoice = $invoiced || $context->index->companyAccountId($bookingId) !== null ? null : $context->numbers->invoice($bookingId);
         $result = $this->numbers->run(DocumentType::Invoice, $invoice, fn () => ($this->checkOutUnit)($context->actor, $unit->refresh(), sameDayLeaver: $sameDayLeaver), $invoice !== null, "bookings {$bookingId}");
 
         if ($result->isRefused()) {
