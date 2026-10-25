@@ -1,12 +1,15 @@
 <?php
 
+use App\Enums\GoLiveDecision;
 use App\Enums\PropertyStatus;
 use App\Models\BusinessDate;
+use App\Models\GoLiveReview;
 use App\Models\PlatformSetting;
 use App\Models\Property;
 use App\Models\User;
 use App\Services\Platform\PlatformSettings;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Testing\PendingCommand;
 
 require_once __DIR__.'/../Support/OnboardingSetup.php';
@@ -62,4 +65,17 @@ it('refuses a property that is already live and one with another prefix', functi
 
     $this->property = Property::factory()->onboarding()->create(['document_prefix' => 'ABC']);
     goLiveWastays()->expectsOutputToContain('The bundle is for GEH')->assertFailed();
+});
+
+it('requests and approves go-live itself when the platform asks for approval, and sends no message', function () {
+    PlatformSetting::query()->whereKey(1)->update(['require_go_live_approval' => true]);
+    Cache::forget(PlatformSettings::CACHE_KEY);
+    $this->property = Property::factory()->onboarding()->create(['document_prefix' => 'GEH']);
+    completeRequiredOnboardingSteps($this->property);
+
+    goLiveWastays()->expectsOutputToContain('is live from 2026-08-13')->assertSuccessful();
+
+    expect($this->property->refresh()->status)->toBe(PropertyStatus::Live)
+        ->and(GoLiveReview::query()->sole()->decision)->toBe(GoLiveDecision::Approved);
+    expect(DB::table('notifications')->count())->toBe(0);
 });

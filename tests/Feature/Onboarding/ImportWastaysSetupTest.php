@@ -4,11 +4,13 @@ use App\Actions\Property\SeedPropertyDefaults;
 use App\Enums\ChargingUnit;
 use App\Enums\CompanyAccess;
 use App\Enums\CompanyRateMarket;
+use App\Enums\OnboardingStep;
 use App\Enums\PricingBasis;
 use App\Enums\PropertyType;
 use App\Models\ChargeItem;
 use App\Models\DocumentSequence;
 use App\Models\ImportLink;
+use App\Models\OnboardingSkip;
 use App\Models\PaymentMethod;
 use App\Models\Property;
 use App\Models\Rate;
@@ -401,4 +403,14 @@ it('imports the per-person plans once', function () {
     runSetupImport(wastaysOccupancyTables())->assertSuccessful();
 
     expect(Rate::query()->count())->toBe($rates)->and(RatePlan::query()->count())->toBe($plans);
+});
+
+it('answers the Taxes step when the hotel has SST off and no tax is on', function () {
+    $tables = wastaysOccupancyTables();
+    $tables['hotels'] = [['id' => '5', 'created_at' => '2026-09-16T08:00:00Z', 'sst_enabled' => 'f', 'address' => 'Jalan Pantai 1', 'city' => 'Semporna']];
+    Tax::query()->where('property_id', $this->property->id)->update(['enabled' => false]);
+
+    runSetupImport($tables)->assertSuccessful();
+
+    expect(OnboardingSkip::query()->where('property_id', $this->property->id)->where('step', OnboardingStep::Taxes)->exists())->toBeTrue();
 });

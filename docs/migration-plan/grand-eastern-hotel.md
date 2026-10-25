@@ -271,7 +271,7 @@ The replay checks guests in and out on their real days, so the guests in-house o
 
 1. The evening before: the last wastays night audit. Staff stop using wastays.
 2. wastays terminal: `bin/rails "estatell:export[3]"`. In the R2 dashboard, download the zip from `wastays-bucket` and drag it into `estatell-production` at `imports/grand-eastern-hotel/`.
-3. estatell terminal: `wastays:fetch`. Create the property and set `migration_window_days` to 90. Run `wastays:import-setup` (it sets the document prefix), `wastays:import-guests`, then `wastays:go-live`, which opens the first wastays business date (13 Aug 2026) once every required onboarding step is done. Each command takes `--dry-run`; the imports refuse a live property, so they run first.
+3. estatell terminal: `wastays:fetch`. Create the property and set `migration_window_days` to 90. Run `wastays:import-setup` (it sets the document prefix), `wastays:import-guests`, then `wastays:go-live`, which opens the first wastays business date (13 Aug 2026) once every required onboarding step is done. When the platform asks for approval it requests and approves go-live itself, with no queue and no mail, so nobody is notified. Each command takes `--dry-run`; the imports refuse a live property, so they run first.
 4. Rename Basic Rate to Standard Rate on the Rates page.
 5. `wastays:replay` up to the last wastays date. Every day must match.
 6. Check that Tourism tax is on: the replay turned it on from 12 Oct.

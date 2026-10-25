@@ -69,6 +69,8 @@ Prices are nightly totals by number of adults, for example Malaysian Publish Rat
 
 Re-running writes nothing: every wastays plan copy and every room type price has an `import_links` row.
 
+**Taxes step:** SST is off, so the setup import answers the Taxes step with "We don't charge tax" when no tax is on. Go-live would otherwise stay locked. The replay turns Tourism tax on from the day wastays first charged it.
+
 ## History
 
 | Item         | Count                        | estatell                           |

@@ -5,6 +5,7 @@ namespace App\Actions\Onboarding\Wastays;
 use App\Actions\Catalogues\CreateChargeItem;
 use App\Actions\Catalogues\UpdatePaymentMethod;
 use App\Actions\Catalogues\UpdateTax;
+use App\Actions\Onboarding\SkipOnboardingStep;
 use App\Actions\Rates\CreateDerivedRatePlan;
 use App\Actions\Rates\SaveRates;
 use App\Actions\Rates\SetRatePlanCompanyAccess;
@@ -13,6 +14,7 @@ use App\Actions\Rooms\CreateRoom;
 use App\Actions\Rooms\CreateRoomType;
 use App\Data\Catalogues\TaxInputData;
 use App\Enums\CompanyAccess;
+use App\Enums\OnboardingStep;
 use App\Enums\RateDerivation;
 use App\Enums\SellUnit;
 use App\Enums\SurchargeType;
@@ -57,6 +59,7 @@ class ImportWastaysSetup
         private UpdatePaymentMethod $updatePaymentMethod,
         private CreateChargeItem $createChargeItem,
         private ImportWastaysDetails $importDetails,
+        private SkipOnboardingStep $skipOnboardingStep,
         private ImportWastaysOccupancyRatePlans $occupancyRatePlans,
         private AlignWastaysDocumentPrefix $alignPrefix,
         private RecordImportLink $recordImportLink,
@@ -296,6 +299,11 @@ class ImportWastaysSetup
 
         if (! $this->map->isTrue($hotel['sst_enabled'] ?? null)) {
             $summary->skip('SST', 'the hotel has SST off');
+
+            if (! $property->taxes()->where('enabled', true)->exists()) {
+                ($this->skipOnboardingStep)($property, OnboardingStep::Taxes, $actor);
+                $summary->skip('Taxes', 'answered "We don\'t charge tax" so go-live can open; the replay turns Tourism tax on from the day wastays first charged it');
+            }
 
             return;
         }
