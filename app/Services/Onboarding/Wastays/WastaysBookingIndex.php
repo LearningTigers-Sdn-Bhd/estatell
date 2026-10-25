@@ -97,6 +97,27 @@ final class WastaysBookingIndex
     }
 
     /**
+     * What the guest or company still owes on the booking, from every folio: charges and adjustments less payments and refunds.
+     * A negative amount is credit.
+     */
+    public function balance(string $bookingId): string
+    {
+        $this->paid($bookingId, 'UTC');
+        $total = '0';
+
+        foreach ($this->rows('folio_transactions') as $row) {
+            if (($this->folioBookings[(string) ($row['booking_folio_id'] ?? '')] ?? null) !== $bookingId) {
+                continue;
+            }
+
+            $amount = BigDecimal::of((string) $row['amount']);
+            $total = (string) BigDecimal::of($total)->plus(($row['transaction_type'] ?? null) === 'payment' ? $amount->negated() : $amount);
+        }
+
+        return $total;
+    }
+
+    /**
      * The wastays corporate account that pays for the booking: the one on the booking, or else the company billing party.
      */
     public function companyAccountId(string $bookingId): ?string

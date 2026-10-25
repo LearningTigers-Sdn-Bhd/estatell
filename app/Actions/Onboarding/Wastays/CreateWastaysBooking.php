@@ -5,6 +5,7 @@ namespace App\Actions\Onboarding\Wastays;
 use App\Actions\Reservations\BookingResult;
 use App\Actions\Reservations\CreateBooking;
 use App\Actions\Reservations\CreateBookingSource;
+use App\Actions\Reservations\CreateMigratedStay;
 use App\Actions\Reservations\CreateOldStay;
 use App\Actions\Reservations\EnsureOtaBookingSource;
 use App\Actions\Reservations\ReservationResult;
@@ -16,6 +17,7 @@ use App\Enums\BillingMode;
 use App\Enums\BookingSourceType;
 use App\Enums\CompanyAccess;
 use App\Enums\DocumentType;
+use App\Enums\OldFolioMode;
 use App\Models\BookingSource;
 use App\Models\OtaChannel;
 use App\Models\Property;
@@ -39,6 +41,7 @@ class CreateWastaysBooking
     public function __construct(
         private CreateBooking $createBooking,
         private CreateOldStay $createOldStay,
+        private CreateMigratedStay $createMigratedStay,
         private EnsureOtaBookingSource $ensureOtaBookingSource,
         private CreateBookingSource $createBookingSource,
         private PlannedNumberRunner $numbers,
@@ -84,6 +87,21 @@ class CreateWastaysBooking
             $result = $this->bookOld($context, $bookingId, $arrival, $departure, $reason, $room, $basic);
             $context->summary->count('old stays moved to Basic Rate because their plan needs a company');
         }
+
+        return $this->saved($context, $bookingId, $arrival, $departure, $result);
+    }
+
+    /**
+     * A guest in the house on go-live day, from a stay that began before it. The old folio comes across as one amount.
+     *
+     * @throws ReplayStopped when a link is missing or the stay is refused
+     */
+    public function migrated(ReplayContext $context, string $bookingId, string $arrival, string $departure, string $reason, string $openingAmount, string $legacyNumber): ReservationUnit
+    {
+        $room = $this->oldStayRoom($context, $bookingId);
+        $data = $this->data($context, $bookingId, $arrival, $departure, null, '');
+        $data->picks = [new UnitPickData(unitIndex: 0, roomId: $room->id)];
+        $result = $this->numbers->run(DocumentType::Reservation, $this->number($context, $bookingId), fn () => ($this->createMigratedStay)($context->actor, $context->property, $data, $reason, OldFolioMode::OneAmount, $openingAmount, $legacyNumber, true), true, $bookingId);
 
         return $this->saved($context, $bookingId, $arrival, $departure, $result);
     }

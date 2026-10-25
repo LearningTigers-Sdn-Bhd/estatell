@@ -92,6 +92,7 @@ class ImportWastaysStays
         }
 
         $bucket = match (true) {
+            in_array($status, ['checked_in', 'due_out_detected'], true) && $arrival < $goLive->toDateString() => 'migrated',
             $status === 'completed' && $departure < $goLive->toDateString() => 'old',
             $status === 'confirmed' && $arrival >= $goLive->toDateString() => $booking['source'] === 'ota' ? 'ota' : 'future',
             default => 'left',
@@ -110,7 +111,16 @@ class ImportWastaysStays
         }
 
         try {
-            DB::transaction(function () use ($context, $id, $arrival, $departure, $bucket, $timeZone): void {
+            DB::transaction(function () use ($context, $id, $arrival, $departure, $bucket, $timeZone, $goLive): void {
+                if ($bucket === 'migrated') {
+                    // A guest still in the house leaves after the business date, so a departure already past moves to the next day.
+                    $leaves = max($departure, $goLive->addDay()->toDateString());
+                    $this->createBooking->migrated($context, $id, $arrival, $leaves, 'Imported from wastays', (string) BigDecimal::of($context->index->balance($id))->toScale(2), "wastays booking {$id}");
+                    $context->summary->count('migrated stays in the house');
+
+                    return;
+                }
+
                 if ($bucket === 'old') {
                     $this->createBooking->old($context, $id, $arrival, $departure, 'Imported from wastays');
                     $context->summary->count('old stays');
