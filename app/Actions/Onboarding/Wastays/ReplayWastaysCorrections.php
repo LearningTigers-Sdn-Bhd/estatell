@@ -166,7 +166,7 @@ class ReplayWastaysCorrections
     private function adjustment(ReplayContext $context, WastaysEvent $event): void
     {
         $unit = $this->unitOf($context, $event);
-        $folio = $this->unitFolio($unit) ?? ($this->createFolio)($unit->reservation, $unit);
+        $folio = $this->lineFolio($context, $event, $unit) ?? ($this->createFolio)($unit->reservation, $unit);
         $result = ($this->postAdjustment)($context->actor, $folio, (string) $event->row['amount'], (string) ($event->row['description'] ?? ''), 'wastays:folio_transactions:'.$event->sourceId);
 
         if ($result->isRefused()) {
@@ -180,7 +180,7 @@ class ReplayWastaysCorrections
     private function refund(ReplayContext $context, WastaysEvent $event): void
     {
         $unit = $this->unitOf($context, $event);
-        $folio = $this->unitFolio($unit) ?? throw new ReplayStopped("folio_transactions {$event->sourceId}: the booking has no folio to refund from.");
+        $folio = $this->lineFolio($context, $event, $unit) ?? throw new ReplayStopped("folio_transactions {$event->sourceId}: the booking has no folio to refund from.");
         $result = ($this->refundFolioCredit)($context->actor, $folio, $this->amount($event->row['amount']), null, 'wastays replay: refund', 'wastays:folio_transactions:'.$event->sourceId);
 
         if ($result->isRefused()) {
@@ -420,6 +420,18 @@ class ReplayWastaysCorrections
         }
 
         return $unit->load('reservation');
+    }
+
+    /**
+     * The folio a wastays line sits on: the Master folio for a company folio, otherwise the unit's folio.
+     */
+    private function lineFolio(ReplayContext $context, WastaysEvent $event, ReservationUnit $unit): ?Folio
+    {
+        if ($context->index->onCompanyFolio($event->row)) {
+            return Folio::query()->where('reservation_id', $unit->reservation_id)->where('type', FolioType::Master)->orderBy('id')->first();
+        }
+
+        return $this->unitFolio($unit);
     }
 
     private function unitFolio(ReservationUnit $unit): ?Folio

@@ -90,7 +90,7 @@ One setting on the rate plan owns it: **Who can use this rate** (`rate_plans.com
 | Only these companies | Only when a listed company with Front desk on is picked on the booking | Only listed companies with Portal on               |
 
 - **Columns:** `rate_plans.company_access` (CHECK in everyone, all, selected), `company_at_desk` and `company_in_portal` (booleans, default true, used by All companies; CHECK at least one is true when `company_access` is all). The rows of Only these companies are in `company_rate_plans` (`company_id`, `rate_plan_id`, `at_desk` default true, `in_portal` default false, CHECK `at_desk OR in_portal`).
-- **Only derived plans** can be Only these companies, as with company links before. The radio is disabled on other plans, with the hint "Only a derived plan can be limited to some companies."
+- **Any plan** can be Only these companies, including a plan with its own prices. Sand Bay's company plans carry their own occupancy prices, so one percentage from a parent cannot copy them (decided 25 Oct 2026).
 - **Day use plans** are front desk only and always Everyone. The Companies tab is a 404 for them. An archived plan cannot change.
 - **Switching away** from Only these companies keeps the rows. They apply again if the choice is switched back.
 - **Day use, channels and rates:** the choice never changes price. A plan priced for companies is still priced by `RateQuoteService`. Channel ingestion skips the front desk check (`fromChannel`).
@@ -130,12 +130,12 @@ The tab replaces the Portal tab in the same position. A radio group "Who can use
 
 All in `app/Actions/Rates/`. Each returns null when done, or a refusal code when the state refuses, and writes nothing then. Each logs one activity entry.
 
-| Action                     | Does                                                                                                                                                                                                                         | Log                                |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| `SetRatePlanCompanyAccess` | Saves `company_access`, `company_market` and, for All companies, the two switches. Refuses an archived or Day use plan, non derived plan with Only these companies, and both switches off. Everyone resets the market to all | `rate_plan.company_access_updated` |
-| `AddRatePlanCompanies`     | Adds Active companies of the property to an Only these companies plan, both switches on. Skips companies already listed                                                                                                      | `rate_plan.companies_added`        |
-| `UpdateRatePlanCompany`    | Saves `at_desk` and `in_portal` of one row. Refuses both off                                                                                                                                                                 | `rate_plan.company_updated`        |
-| `RemoveRatePlanCompany`    | Deletes the row. Allowed for the last one                                                                                                                                                                                    | `rate_plan.company_removed`        |
+| Action                     | Does                                                                                                                                                                             | Log                                |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| `SetRatePlanCompanyAccess` | Saves `company_access`, `company_market` and, for All companies, the two switches. Refuses an archived or Day use plan, and both switches off. Everyone resets the market to all | `rate_plan.company_access_updated` |
+| `AddRatePlanCompanies`     | Adds Active companies of the property to an Only these companies plan, both switches on. Skips companies already listed                                                          | `rate_plan.companies_added`        |
+| `UpdateRatePlanCompany`    | Saves `at_desk` and `in_portal` of one row. Refuses both off                                                                                                                     | `rate_plan.company_updated`        |
+| `RemoveRatePlanCompany`    | Deletes the row. Allowed for the last one                                                                                                                                        | `rate_plan.company_removed`        |
 
 `CompanyRateAccess` (a Service in `app/Services/Rates/`) answers the read side: `deskAllows($plan, $companyId)` for the front desk and `usableBy($plan, $companyId)` (any company the plan is open to, desk or portal) for the company change check. `PortalRatePlans` answers the portal side.
 
@@ -242,14 +242,14 @@ A right-side Sheet with one short form, not a wizard: a name, how it is priced (
 
 A full page with tab links (one URL per tab): **Details · Room types · Pricing · Children · Discounts · Portal**. Background text goes in info tooltips, not paragraphs under each heading.
 
-| Tab        | Content                                                                                                                                                        |
-| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Details    | Name, description (shown to guests and company users), extra guest charges, single supplement                                                                  |
-| Room types | A checkbox per room type. Room types of the other family are shown disabled, with the reason in a tooltip.                                                     |
-| Pricing    | Step 1: "Set prices directly" or "Follow another plan". Package plans show package prices instead, or follow a package with a percent.                         |
-| Children   | PerGuest plans and per-guest packages only. One row per age group: Free, Percent or Fixed.                                                                     |
-| Discounts  | Long-stay discounts and a price preview. "Add long-stay discount" sits in the table footer. Not for Package plans.                                             |
-| Companies  | Who can use this rate: Everyone, All companies or Only these companies (derived plans only), with the front desk and portal switches. A 404 for Day use plans. |
+| Tab        | Content                                                                                                                                   |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Details    | Name, description (shown to guests and company users), extra guest charges, single supplement                                             |
+| Room types | A checkbox per room type. Room types of the other family are shown disabled, with the reason in a tooltip.                                |
+| Pricing    | Step 1: "Set prices directly" or "Follow another plan". Package plans show package prices instead, or follow a package with a percent.    |
+| Children   | PerGuest plans and per-guest packages only. One row per age group: Free, Percent or Fixed.                                                |
+| Discounts  | Long-stay discounts and a price preview. "Add long-stay discount" sits in the table footer. Not for Package plans.                        |
+| Companies  | Who can use this rate: Everyone, All companies or Only these companies, with the front desk and portal switches. A 404 for Day use plans. |
 
 - The Pricing and Discounts tabs use the full panel width (`panelWidth="full"`), not the 80% of the other tabs. Pricing needs it for the By day view (7 columns). On Discounts, the rules table is full width. Under it, a 3-column grid holds the sample stay (column 1) and the price preview (columns 2–3). Save is in the form footer under the preview.
 - "Set prices directly" uses the shared [pricing form](02-daily-rates-and-restrictions.md#pricing-form). It writes `rates` rows and stores nothing on the plan.

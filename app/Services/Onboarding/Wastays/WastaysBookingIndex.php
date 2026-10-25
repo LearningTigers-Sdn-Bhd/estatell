@@ -2,6 +2,7 @@
 
 namespace App\Services\Onboarding\Wastays;
 
+use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
 
 /**
@@ -35,7 +36,128 @@ final class WastaysBookingIndex
     /** @var array<string, array<string, string>>|null the price each night was first charged at, by booking and date */
     private ?array $posted = null;
 
+    /** @var array<string, array<string, string|null>>|null */
+    private ?array $folioRows = null;
+
+    /** @var array<string, string>|null the booking of each wastays folio */
+    private ?array $folioBookings = null;
+
+    /** @var array<string, bool>|null wastays folio ids that belong to a company, by id */
+    private ?array $companyFolios = null;
+
     public function __construct(private readonly WastaysBundle $bundle) {}
+
+    /** @var array<string, string>|null the corporate account of each booking's company billing party */
+    private ?array $companyParties = null;
+
+    /**
+     * A wastays `folio_transactions` row by id.
+     *
+     * @return array<string, string|null>
+     */
+    public function folioRow(string $id): array
+    {
+        $this->folioRows ??= $this->keyed('folio_transactions', 'id');
+
+        return $this->folioRows[$id] ?? [];
+    }
+
+    /**
+     * What a booking has been paid net of refunds and reversals, the date of the last payment line, and the wastays
+     * receipt numbers of its payments, from every folio of the booking.
+     *
+     * @return array{amount: string, date: string|null, lines: list<string>}
+     */
+    public function paid(string $bookingId, string $timeZone): array
+    {
+        if ($this->folioBookings === null) {
+            $this->folioBookings = [];
+
+            foreach ($this->rows('booking_folios') as $folio) {
+                $this->folioBookings[(string) $folio['id']] = (string) $folio['booking_id'];
+            }
+        }
+
+        $total = '0';
+        $date = null;
+        $lines = [];
+
+        foreach ($this->rows('folio_transactions') as $row) {
+            if (($row['transaction_type'] ?? null) !== 'payment' || ($this->folioBookings[(string) ($row['booking_folio_id'] ?? '')] ?? null) !== $bookingId) {
+                continue;
+            }
+
+            $total = (string) BigDecimal::of($total)->plus((string) $row['amount']);
+            $day = CarbonImmutable::parse((string) $row['created_at'])->setTimezone($timeZone)->toDateString();
+            $date = $date === null || $day > $date ? $day : $date;
+            $lines[] = (string) $row['id'];
+        }
+
+        return ['amount' => $total, 'date' => $date, 'lines' => $lines];
+    }
+
+    /**
+     * What the guest or company still owes on the booking, from every folio: charges and adjustments less payments and refunds.
+     * A negative amount is credit.
+     */
+    public function balance(string $bookingId): string
+    {
+        $this->paid($bookingId, 'UTC');
+        $total = '0';
+
+        foreach ($this->rows('folio_transactions') as $row) {
+            if (($this->folioBookings[(string) ($row['booking_folio_id'] ?? '')] ?? null) !== $bookingId) {
+                continue;
+            }
+
+            $amount = BigDecimal::of((string) $row['amount']);
+            $total = (string) BigDecimal::of($total)->plus(($row['transaction_type'] ?? null) === 'payment' ? $amount->negated() : $amount);
+        }
+
+        return $total;
+    }
+
+    /**
+     * The wastays corporate account that pays for the booking: the one on the booking, or else the company billing party.
+     */
+    public function companyAccountId(string $bookingId): ?string
+    {
+        $onBooking = $this->booking($bookingId)['hotel_corporate_account_id'] ?? null;
+
+        if (filled($onBooking)) {
+            return (string) $onBooking;
+        }
+
+        if ($this->companyParties === null) {
+            $this->companyParties = [];
+
+            foreach ($this->rows('booking_billing_parties') as $party) {
+                if (($party['party_kind'] ?? null) === 'company' && blank($party['archived_at'] ?? null) && filled($party['hotel_corporate_account_id'] ?? null)) {
+                    $this->companyParties[(string) $party['booking_id']] ??= (string) $party['hotel_corporate_account_id'];
+                }
+            }
+        }
+
+        return $this->companyParties[$bookingId] ?? null;
+    }
+
+    /**
+     * Whether a folio transaction sits on a wastays company folio (an external folio paid by a company), not on the guest's.
+     *
+     * @param  array<string, string|null>  $row  a `folio_transactions` row
+     */
+    public function onCompanyFolio(array $row): bool
+    {
+        if ($this->companyFolios === null) {
+            $this->companyFolios = [];
+
+            foreach ($this->rows('booking_folios') as $folio) {
+                $this->companyFolios[(string) $folio['id']] = ($folio['payer_type'] ?? null) === 'company';
+            }
+        }
+
+        return $this->companyFolios[(string) ($row['booking_folio_id'] ?? '')] ?? false;
+    }
 
     /** @return array<string, string|null> */
     public function booking(string $id): array
