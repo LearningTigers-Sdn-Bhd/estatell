@@ -75,8 +75,8 @@ class ImportWastaysStays
     {
         $id = (string) $booking['id'];
         $status = (string) $booking['status'];
-        $arrival = substr((string) $booking['check_in'], 0, 10);
-        $departure = substr((string) $booking['check_out'], 0, 10);
+        $arrival = $context->index->localDate((string) $booking['check_in']);
+        $departure = $context->index->localDate((string) $booking['check_out']);
         $summary = $context->summary;
 
         if ($this->links->has($context->property, 'bookings', $id)) {

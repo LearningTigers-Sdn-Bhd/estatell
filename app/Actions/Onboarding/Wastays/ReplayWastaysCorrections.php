@@ -240,7 +240,7 @@ class ReplayWastaysCorrections
         $this->done($event, ($this->undoCheckOut)($context->actor, $unit, $reason), 'the check-out could not be undone');
         $context->summary->count('check-outs undone');
 
-        $departure = substr((string) ((json_decode((string) $undo['new_value'], true) ?: [])['check_out'] ?? ''), 0, 10);
+        $departure = $context->index->localDate((string) ((json_decode((string) $undo['new_value'], true) ?: [])['check_out'] ?? ''));
         $unit->refresh();
 
         if ($departure === '' || $departure <= $unit->departure_date->toDateString()) {
@@ -270,8 +270,8 @@ class ReplayWastaysCorrections
     {
         $new = json_decode((string) $event->row['new_value'], true) ?: [];
         $old = json_decode((string) $event->row['old_value'], true) ?: [];
-        $arrival = substr((string) ($new['check_in'] ?? $unit->arrival_date->toDateString()), 0, 10);
-        $departure = substr((string) ($new['check_out'] ?? $unit->departure_date->toDateString()), 0, 10);
+        $arrival = $context->index->localDate((string) ($new['check_in'] ?? $unit->arrival_date->toDateString()));
+        $departure = $context->index->localDate((string) ($new['check_out'] ?? $unit->departure_date->toDateString()));
 
         if (($old['check_in'] ?? null) === ($new['check_in'] ?? null) && ($old['check_out'] ?? null) === ($new['check_out'] ?? null)) {
             $context->summary->count('room type changes left out');

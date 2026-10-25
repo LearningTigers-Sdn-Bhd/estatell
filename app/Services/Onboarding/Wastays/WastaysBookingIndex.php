@@ -47,6 +47,12 @@ final class WastaysBookingIndex
 
     public function __construct(private readonly WastaysBundle $bundle) {}
 
+    /** The date a wastays booking timestamp falls on in the hotel's time zone. */
+    public function localDate(string $value): string
+    {
+        return $this->bundle->localDate($value);
+    }
+
     /** @var array<string, string>|null the corporate account of each booking's company billing party */
     private ?array $companyParties = null;
 
@@ -249,8 +255,8 @@ final class WastaysBookingIndex
     public function firstDates(string $bookingId, ?string $businessDate = null, ?WastaysDay $day = null): array
     {
         $booking = $this->booking($bookingId);
-        $arrival = substr((string) $booking['check_in'], 0, 10);
-        $departure = substr((string) $booking['check_out'], 0, 10);
+        $arrival = $this->localDate((string) $booking['check_in']);
+        $departure = $this->localDate((string) $booking['check_out']);
 
         foreach ($this->audit($bookingId) as $row) {
             if ($row['action_type'] !== 'update') {
@@ -264,8 +270,8 @@ final class WastaysBookingIndex
                 $movedIntoClosedNight = $businessDate !== null && isset($new['check_in'], $new['check_out'])
                     && $this->movesIntoClosedNight($row, $old, $new, $businessDate, $day);
                 $dates = $movedIntoClosedNight ? $new : $old;
-                $arrival = substr((string) ($dates['check_in'] ?? $arrival), 0, 10);
-                $departure = substr((string) ($dates['check_out'] ?? $departure), 0, 10);
+                $arrival = $this->localDate((string) ($dates['check_in'] ?? $arrival));
+                $departure = $this->localDate((string) ($dates['check_out'] ?? $departure));
 
                 break;
             }
@@ -327,8 +333,8 @@ final class WastaysBookingIndex
     private function movesIntoClosedNight(array $row, array $old, array $new, string $businessDate, ?WastaysDay $day): bool
     {
         $at = CarbonImmutable::parse((string) $row['occurred_at']);
-        $arrival = substr((string) $new['check_in'], 0, 10);
-        $oldArrival = substr((string) ($old['check_in'] ?? ''), 0, 10);
+        $arrival = $this->localDate((string) $new['check_in']);
+        $oldArrival = $this->localDate((string) ($old['check_in'] ?? ''));
         $arrivalClosed = $day?->window($arrival)['closed'] ?? null;
         $oldClosed = $day?->window($oldArrival)['closed'] ?? null;
 
@@ -373,7 +379,7 @@ final class WastaysBookingIndex
     {
         $booking = $this->booking($bookingId);
 
-        return substr((string) ($booking['check_out'] ?? ''), 0, 10) <= substr((string) ($booking['check_in'] ?? ''), 0, 10);
+        return $this->localDate((string) ($booking['check_out'] ?? '')) <= $this->localDate((string) ($booking['check_in'] ?? ''));
     }
 
     public function hasEarlyDeparture(string $bookingId): bool
