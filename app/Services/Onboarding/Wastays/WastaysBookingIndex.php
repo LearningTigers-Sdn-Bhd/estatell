@@ -35,7 +35,55 @@ final class WastaysBookingIndex
     /** @var array<string, array<string, string>>|null the price each night was first charged at, by booking and date */
     private ?array $posted = null;
 
+    /** @var array<string, bool>|null wastays folio ids that belong to a company, by id */
+    private ?array $companyFolios = null;
+
     public function __construct(private readonly WastaysBundle $bundle) {}
+
+    /** @var array<string, string>|null the corporate account of each booking's company billing party */
+    private ?array $companyParties = null;
+
+    /**
+     * The wastays corporate account that pays for the booking: the one on the booking, or else the company billing party.
+     */
+    public function companyAccountId(string $bookingId): ?string
+    {
+        $onBooking = $this->booking($bookingId)['hotel_corporate_account_id'] ?? null;
+
+        if (filled($onBooking)) {
+            return (string) $onBooking;
+        }
+
+        if ($this->companyParties === null) {
+            $this->companyParties = [];
+
+            foreach ($this->rows('booking_billing_parties') as $party) {
+                if (($party['party_kind'] ?? null) === 'company' && blank($party['archived_at'] ?? null) && filled($party['hotel_corporate_account_id'] ?? null)) {
+                    $this->companyParties[(string) $party['booking_id']] ??= (string) $party['hotel_corporate_account_id'];
+                }
+            }
+        }
+
+        return $this->companyParties[$bookingId] ?? null;
+    }
+
+    /**
+     * Whether a folio transaction sits on a wastays company folio (an external folio paid by a company), not on the guest's.
+     *
+     * @param  array<string, string|null>  $row  a `folio_transactions` row
+     */
+    public function onCompanyFolio(array $row): bool
+    {
+        if ($this->companyFolios === null) {
+            $this->companyFolios = [];
+
+            foreach ($this->rows('booking_folios') as $folio) {
+                $this->companyFolios[(string) $folio['id']] = ($folio['payer_type'] ?? null) === 'company';
+            }
+        }
+
+        return $this->companyFolios[(string) ($row['booking_folio_id'] ?? '')] ?? false;
+    }
 
     /** @return array<string, string|null> */
     public function booking(string $id): array

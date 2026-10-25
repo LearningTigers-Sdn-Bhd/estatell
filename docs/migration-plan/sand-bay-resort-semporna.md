@@ -98,6 +98,16 @@ Re-running writes nothing: every wastays plan copy and every room type price has
 
 Each wastays company has an `import_links` row (`hotel_corporate_accounts`), which the replay uses to put a booking on its company. A second run writes nothing.
 
+### Company bookings in the replay
+
+| wastays                                                                                              | estatell                                                                                                                                                                                       |
+| ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The company of a booking: `bookings.hotel_corporate_account_id`, else its company billing party      | The reservation's company. Billing mode Master pays all, so room charges and company money sit on the Master folio                                                                             |
+| A line on a company folio (`booking_folios.payer_type` company): charge, payment, adjustment, refund | Master folio. Payments are Advance before check-in and Settlement after                                                                                                                        |
+| A line on a guest folio of the same booking                                                          | The unit folio                                                                                                                                                                                 |
+| A booking with no company on a plan limited to companies (15 bookings)                               | Created as an imported stay: the company check is skipped, because wastays allowed it                                                                                                          |
+| `deposits` of kind prepayment                                                                        | Not replayed. The part wastays applied to a folio is already a payment line, and the rest (4 available deposits, RM 4,374; 1 cancelled group deposit) is held outside any folio. Ask the hotel |
+
 ### Booking sources
 
 The replay places each wastays `bookings.source` like this. A booking with a wastays corporate account takes its company from the companies import (`import_links` table `hotel_corporate_accounts`), and the replay stops with "Import the companies first" when the company is missing.

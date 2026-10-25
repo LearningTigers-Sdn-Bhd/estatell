@@ -24,7 +24,9 @@ use App\Data\Reservations\NewBookingData;
 use App\Data\Reservations\NewBookingGuestData;
 use App\Data\Reservations\NewUnitData;
 use App\Enums\AuditTrigger;
+use App\Enums\BillingMode;
 use App\Enums\BookingSourceType;
+use App\Enums\CompanyAccess;
 use App\Enums\DocumentType;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
@@ -41,6 +43,7 @@ use App\Models\ImportLink;
 use App\Models\OtaChannel;
 use App\Models\PaymentMethod;
 use App\Models\Property;
+use App\Models\RatePlan;
 use App\Models\ReservationUnit;
 use App\Models\Room;
 use App\Models\Tax;
@@ -305,11 +308,12 @@ class ReplayWastaysDay
             guests: array_map(fn (int $guestId): NewBookingGuestData => new NewBookingGuestData(guestId: $guestId, unitIndex: 0), $guestIds),
             externalReference: $booking['external_reference'] ?? $booking['channel_manager_reference'] ?? $booking['agent_reference'] ?? null,
             groupName: $context->index->groupName($bookingId),
-            companyId: $this->companyOf($property, $bookingId, $booking),
+            companyId: $companyId = $this->companyOf($property, $bookingId, $context->index->companyAccountId($bookingId)),
+            billingMode: $companyId !== null ? BillingMode::MasterPaysAll : BillingMode::MasterPays,
         );
         $backdated = $arrival < $context->date;
         $number = (int) $booking['reservation_number'];
-        $result = $this->numbers->run(DocumentType::Reservation, $number, fn () => ($this->createBooking)($context->actor, $property, $data, false, $backdated), true, $bookingId);
+        $result = $this->numbers->run(DocumentType::Reservation, $number, fn () => ($this->createBooking)($context->actor, $property, $data, $companyId === null && $plan instanceof RatePlan && $plan->company_access !== CompanyAccess::Everyone, $backdated), true, $bookingId);
 
         if ($result->isRefused()) {
             throw new ReplayStopped("bookings {$bookingId}: the booking was refused ({$result->refusal}).");
@@ -332,13 +336,9 @@ class ReplayWastaysDay
 
     /**
      * The estatell company of a booking made through a wastays corporate account, from the companies import.
-     *
-     * @param  array<string, string|null>  $booking
      */
-    private function companyOf(Property $property, string $bookingId, array $booking): ?int
+    private function companyOf(Property $property, string $bookingId, ?string $accountId): ?int
     {
-        $accountId = $booking['hotel_corporate_account_id'] ?? null;
-
         if (blank($accountId)) {
             return null;
         }
@@ -542,7 +542,7 @@ class ReplayWastaysDay
             quantity: 1,
             unitAmount: $this->amount($row['amount']),
             idempotencyKey: 'wastays:folio_transactions:'.$event->sourceId,
-            ownFolio: true,
+            ownFolio: ! $context->index->onCompanyFolio($row),
             taxIds: [],
         ));
 
@@ -568,7 +568,8 @@ class ReplayWastaysDay
         $reference = json_decode((string) $row['metadata'], true)['reference'] ?? null;
         $reference = filled($reference) ? (string) $reference : ($method->requires_reference ? $context->numbers->receiptReference('folio_transaction', $event->sourceId) : null);
         $number = $context->numbers->receipt('folio_transaction', $event->sourceId);
-        $payment = $this->pay($context, $unit, $method, $unit->status === UnitStatus::Confirmed ? PaymentPurpose::Advance : PaymentPurpose::Settlement, $this->amount($row['amount']), $reference, 'wastays:folio_transactions:'.$event->sourceId, $number, "folio_transactions {$event->sourceId}");
+        $folio = $context->index->onCompanyFolio($row) ? $this->masterFolio($unit, $event) : null;
+        $payment = $this->pay($context, $unit, $method, $unit->status === UnitStatus::Confirmed ? PaymentPurpose::Advance : PaymentPurpose::Settlement, $this->amount($row['amount']), $reference, 'wastays:folio_transactions:'.$event->sourceId, $number, "folio_transactions {$event->sourceId}", $folio);
 
         ($this->recordImportLink)($context->property, 'folio_transactions', $event->sourceId, $payment);
         $context->summary->count('payments recorded');
@@ -590,9 +591,18 @@ class ReplayWastaysDay
         $context->summary->count('deposits recorded');
     }
 
-    private function pay(ReplayContext $context, ReservationUnit $unit, PaymentMethod $method, PaymentPurpose $purpose, string $amount, ?string $reference, string $key, ?int $receipt, string $label): Model
+    /**
+     * The Master folio of the unit's reservation, where a company's money and charges go.
+     */
+    private function masterFolio(ReservationUnit $unit, WastaysEvent $event): Folio
     {
-        $result = $this->numbers->run(DocumentType::Receipt, $receipt, fn () => ($this->recordPayment)($context->actor, $unit->reservation, null, $unit, new NewPaymentData(
+        return Folio::query()->where('reservation_id', $unit->reservation_id)->where('type', FolioType::Master)->orderBy('id')->first()
+            ?? throw new ReplayStopped("folio_transactions {$event->sourceId}: the company booking has no Master folio.");
+    }
+
+    private function pay(ReplayContext $context, ReservationUnit $unit, PaymentMethod $method, PaymentPurpose $purpose, string $amount, ?string $reference, string $key, ?int $receipt, string $label, ?Folio $folio = null): Model
+    {
+        $result = $this->numbers->run(DocumentType::Receipt, $receipt, fn () => ($this->recordPayment)($context->actor, $unit->reservation, $folio, $folio === null ? $unit : null, new NewPaymentData(
             paymentMethodId: $method->id,
             purpose: $purpose,
             amount: $amount,

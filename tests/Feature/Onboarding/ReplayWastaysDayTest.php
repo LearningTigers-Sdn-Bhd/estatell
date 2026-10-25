@@ -6,7 +6,9 @@ use App\Actions\Onboarding\Wastays\ReplayStopped;
 use App\Actions\Onboarding\Wastays\ReplayWastaysDay;
 use App\Actions\Reservations\CreateBookingSource;
 use App\Actions\Reservations\SeedBookingSources;
+use App\Enums\BillingMode;
 use App\Enums\FolioStatus;
+use App\Enums\FolioType;
 use App\Enums\PaymentPurpose;
 use App\Enums\UnitStatus;
 use App\Models\Company;
@@ -229,4 +231,49 @@ it('stops when a booking belongs to a company that was not imported, and uses th
     replayDay($setup, $day, $target, '2026-08-13');
 
     expect(Reservation::query()->where('property_id', $setup['property']->id)->sole()->company_id)->toBe($company->id);
+});
+
+it('puts the payments and charges of a company booking on the Master folio and keeps the guest folio on the unit', function () {
+    $setup = wastaysReplaySetup();
+    app(SeedBookingSources::class)($setup['property']);
+    $company = Company::factory()->for($setup['property'])->create();
+    app(RecordImportLink::class)($setup['property'], 'hotel_corporate_accounts', '8', $company);
+    $tables = wastaysReplayTables();
+    $tables['bookings'][0]['source'] = 'travel_agent';
+    $tables['bookings'][0]['hotel_corporate_account_id'] = '8';
+    $tables['booking_folios'] = [['id' => '1', 'booking_id' => '1', 'payer_type' => 'company'], ['id' => '2', 'booking_id' => '1', 'payer_type' => 'guest']];
+    $tables['folio_transactions'][0]['booking_folio_id'] = '1';
+    $tables['folio_transactions'][1]['booking_folio_id'] = '2';
+    $tables['folio_transactions'][2]['booking_folio_id'] = '1';
+    [$target, $day] = wastaysReplayTarget($setup, $tables);
+
+    replayDay($setup, $day, $target, '2026-08-13');
+
+    $reservation = Reservation::query()->where('property_id', $setup['property']->id)->sole();
+    $master = Folio::query()->where('reservation_id', $reservation->id)->where('type', FolioType::Master)->sole();
+    $unitFolio = Folio::query()->where('reservation_id', $reservation->id)->where('type', FolioType::Unit)->sole();
+
+    expect($reservation->billing_mode)->toBe(BillingMode::MasterPaysAll)
+        ->and($reservation->company_id)->toBe($company->id)
+        ->and(Payment::query()->where('folio_id', $master->id)->sole()->reference)->toBe('RESIT 1')
+        ->and(Payment::query()->where('folio_id', $unitFolio->id)->count())->toBe(0)
+        ->and(FolioLine::query()->where('folio_id', $unitFolio->id)->where('amount', '20.00')->exists())->toBeTrue();
+});
+
+it('takes the company from the billing party when the booking has none, and does not replay a prepayment as a deposit', function () {
+    $setup = wastaysReplaySetup();
+    app(SeedBookingSources::class)($setup['property']);
+    $company = Company::factory()->for($setup['property'])->create();
+    app(RecordImportLink::class)($setup['property'], 'hotel_corporate_accounts', '8', $company);
+    $tables = wastaysReplayTables([
+        'deposits' => [['id' => '5', 'booking_id' => '1', 'kind' => 'prepayment', 'amount' => '50.00', 'received_at' => '2026-08-13T03:30:00.000000Z']],
+    ]);
+    $tables['bookings'][0]['source'] = 'travel_agent';
+    $tables['booking_billing_parties'] = [['id' => '1', 'booking_id' => '1', 'party_kind' => 'company', 'hotel_corporate_account_id' => '8', 'archived_at' => '']];
+    [$target, $day] = wastaysReplayTarget($setup, $tables);
+
+    replayDay($setup, $day, $target, '2026-08-13');
+
+    expect(Reservation::query()->where('property_id', $setup['property']->id)->sole()->company_id)->toBe($company->id)
+        ->and(Payment::query()->where('purpose', PaymentPurpose::SecurityDeposit)->exists())->toBeFalse();
 });
