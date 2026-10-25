@@ -159,6 +159,7 @@ A booking shows **Auto** for its room until check-in, so many Confirmed units ha
 - With only one action to show, the click runs it at once and no menu opens.
 - Block room starts on the property's calendar date (`window.today`), not the business date, because room blocks use `PropertyToday`. So before the night audit runs, yesterday's cell offers only New booking.
 - `reservations.new` reads `arrival`, `room` and `bed` from the query. A bad or foreign value is ignored and the form opens blank.
+- The booking link also carries `back=timeline` and `back_query` (this window and its filters), so the form's back arrow and Cancel return here. See [Back link](../12-reservations/05-booking-form.md#back-link).
 - Availability is checked by the booking form when it is saved, as for any booking.
 
 ### Block room Sheet
