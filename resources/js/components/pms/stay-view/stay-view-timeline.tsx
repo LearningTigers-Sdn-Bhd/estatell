@@ -36,8 +36,10 @@ import {
 import { GroupLabel, LaneLabel, RoomLabel } from './room-row';
 import { StayBar } from './stay-bar';
 import { summarizeInventory } from './summarize-inventory';
+import { TimelineDatesDialog } from './timeline-dates-dialog';
 import { TimelineMoveDialog } from './timeline-move-dialog';
 import { unassignedLanes } from './unassigned-lane';
+import { useEdgeDrag } from './use-edge-drag';
 import { lockToVerticalAxis, useTimelineDrag } from './use-timeline-drag';
 
 type Filters = App.Data.StayView.StayViewFiltersData;
@@ -50,7 +52,7 @@ const COLUMN_WIDTH = 88;
  * The Timeline View grid: rooms and beds by night, with stay and block bars drawn over the cells. Filtering, grouping,
  * the bar positions, the footer counts and the rate row are all worked out here from the loaded props. A stay bar can
  * be dragged to another room or bed: rows that cannot take it are greyed out, the drop shows where the unit goes, and
- * a confirm Dialog saves it.
+ * a confirm Dialog saves it. Dragging the edge of a bar changes the arrival or the departure the same way.
  */
 export function StayViewTimeline({
     gridRef,
@@ -67,6 +69,8 @@ export function StayViewTimeline({
     currency,
     canViewReservations,
     canManageReservations,
+    canOverrideRestrictions,
+    canWaiveFees,
     onOpenStay,
     corner,
 }: {
@@ -84,6 +88,8 @@ export function StayViewTimeline({
     currency: App.Data.Property.CurrencyData | null;
     canViewReservations: boolean;
     canManageReservations: boolean;
+    canOverrideRestrictions: boolean;
+    canWaiveFees: boolean;
     onOpenStay: (unitId: number) => void;
     /** The control in the top-left corner of the date header. */
     corner?: ReactNode;
@@ -231,31 +237,43 @@ export function StayViewTimeline({
         labelWidth: LABEL_WIDTH,
         columnWidth: COLUMN_WIDTH,
     });
+    const edgeDrag = useEdgeDrag({
+        enabled: canManageReservations,
+        canOverrideRestrictions,
+        businessDate: window.businessDate,
+        dates,
+        labelWidth: LABEL_WIDTH,
+        columnWidth: COLUMN_WIDTH,
+    });
     const { drag, move } = timelineDrag;
+    const { outline } = edgeDrag;
+    // The dashed outline: the nights a moved unit takes in the new row, or the new span of a stay whose edge is dragged.
     const dropBar = useMemo(() => {
-        if (!drag?.drop) {
-            return null;
-        }
+        const span = drag?.drop
+            ? {
+                  rowKey: drag.drop.rowKey,
+                  firstNight: drag.drop.fromNight,
+                  lastNight: lastNightOf(drag.stay.departureDate),
+                  stayFirstNight: drag.stay.arrivalDate,
+                  stayLastNight: lastNightOf(drag.stay.departureDate),
+              }
+            : outline
+              ? {
+                    rowKey: outline.rowKey,
+                    firstNight: outline.arrivalDate,
+                    lastNight: lastNightOf(outline.departureDate),
+                    stayFirstNight: outline.arrivalDate,
+                    stayLastNight: lastNightOf(outline.departureDate),
+                }
+              : null;
 
-        const lastNight = lastNightOf(drag.stay.departureDate);
-
-        return (
-            projectBars(
-                [
-                    {
-                        id: 'drop',
-                        rowKey: drag.drop.rowKey,
-                        firstNight: drag.drop.fromNight,
-                        lastNight,
-                        stayFirstNight: drag.stay.arrivalDate,
-                        stayLastNight: lastNight,
-                        halfCells: true,
-                    },
-                ],
-                dates,
-            )[0] ?? null
-        );
-    }, [drag, dates]);
+        return span
+            ? (projectBars(
+                  [{ id: 'drop', ...span, halfCells: true }],
+                  dates,
+              )[0] ?? null)
+            : null;
+    }, [drag, outline, dates]);
     const movedFromKey = move
         ? rowOnNight(move.stay, move.drop.fromNight)
         : null;
@@ -276,9 +294,18 @@ export function StayViewTimeline({
     return (
         <DndContext
             sensors={timelineDrag.sensors}
-            onDragStart={timelineDrag.onDragStart}
-            onDragEnd={timelineDrag.onDragEnd}
-            onDragCancel={timelineDrag.onDragCancel}
+            onDragStart={(event) => {
+                timelineDrag.onDragStart(event);
+                edgeDrag.onDragStart(event);
+            }}
+            onDragEnd={() => {
+                timelineDrag.onDragEnd();
+                edgeDrag.onDragEnd();
+            }}
+            onDragCancel={() => {
+                timelineDrag.onDragCancel();
+                edgeDrag.onDragCancel();
+            }}
         >
             <DateGrid
                 ref={gridRef}
@@ -389,6 +416,10 @@ export function StayViewTimeline({
                                                     hoveredReservation
                                             }
                                             canDrag={timelineDrag.canDrag(stay)}
+                                            handles={edgeDrag.handlesFor(
+                                                stay,
+                                                bar,
+                                            )}
                                             onHover={setHoveredReservation}
                                             onOpen={openStay}
                                         />
@@ -463,6 +494,13 @@ export function StayViewTimeline({
                 current={movedFrom}
                 businessDate={window.businessDate}
                 onClose={timelineDrag.closeMove}
+            />
+            <TimelineDatesDialog
+                change={edgeDrag.change}
+                currency={currency}
+                canWaiveFees={canWaiveFees}
+                canOverrideRestrictions={canOverrideRestrictions}
+                onClose={edgeDrag.closeChange}
             />
         </DndContext>
     );

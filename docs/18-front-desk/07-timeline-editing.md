@@ -21,14 +21,14 @@ Change stays straight from the [Timeline View](03-stay-view.md#timeline-view-scr
 
 ## Who can drag
 
-| Bar                                  | Drag                                                |
-| ------------------------------------ | --------------------------------------------------- |
-| User without `reservations.manage`   | None. Click opens the peek sheet as before          |
-| Checked out, cancelled, no-show      | None                                                |
-| Day use marker, block bar            | None                                                |
-| Package plan unit                    | Up or down only (`package_plan`)                    |
-| Bar cut by the window's left edge    | Up or down only                                     |
-| Phone width (below `md`) or keyboard | None. The reservation page dialogs do the same work |
+| Bar                                  | Drag                                                         |
+| ------------------------------------ | ------------------------------------------------------------ |
+| User without `reservations.manage`   | None. Click opens the peek sheet as before                   |
+| Checked out, cancelled, no-show      | None                                                         |
+| Day use marker, block bar            | None                                                         |
+| Package plan unit                    | Up or down only (`package_plan`, `StayData::$isPackagePlan`) |
+| Bar cut by the window's left edge    | Up or down only                                              |
+| Phone width (below `md`) or keyboard | None. The reservation page dialogs do the same work          |
 
 ## Past dates
 
@@ -64,7 +64,8 @@ The server checks again. If the night audit moves the business date during a dra
 - The right edge cannot pass the arrival: a stay is at least one night (`invalid_stay`).
 - A Checked-in unit has no left edge (`arrival_locked`).
 - **Early departure fee.** Only a Checked-in unit with a shorter departure gets the early departure policy fee. A Confirmed unit that has not arrived changes dates with no fee. See [Check-in and check-out](01-check-in-and-check-out.md#how-the-forms-work).
-- Sold out (`not_available`) or no price on an added night: toast, and the bar goes back.
+- Sold out (`not_available`) or no price on an added night: toast, and the bar goes back. `dates-preview` quotes the added nights, so a missing price shows before the Dialog. It does not check availability: a sold out night is refused when **Save dates** is pressed, and the Dialog closes with the toast and reloads the grid.
+- `dates-preview` does not return `unassignedNights` yet, so the Dialog cannot warn "2 nights without a room" before saving. The reservation page toast reports it after the save.
 
 ## Restrictions
 
@@ -89,6 +90,9 @@ Every drop opens a small Dialog. Nothing saves until **Save**. Cancel or Esc put
 | Shorter stay, Confirmed         | Old and new departure, price difference                                                                                                     |
 | Left edge, sideways or diagonal | Old and new room and dates, price difference, a warning for nights without a room                                                           |
 
+- **Edge drag.** The handle is a thin strip at the bar's edge (a sibling of the bar button, `aria-hidden`, resize cursor). The column under the pointer is the new date, clamped by `clampEdgeDate()`: right edge, Confirmed at least arrival + 1 and business date + 1; right edge, Checked-in at least the business date and arrival + 1; left edge at least the business date and the first loaded date, at most departure − 1; the right edge stops at the last loaded date + 1. A drop on the same date does nothing. A dashed outline shows the new span in the bar's row while dragging and while the Dialog is open. A stay that changes room has handles only on the bar that holds the arrival (left) or the last night (right).
+- **Move or edge.** Both drags share one `DndContext`. The draggable's data `kind` tells them apart: `move` for the bar, `edge` for a handle. Each hook ignores the other's kind.
+- On a drop `dates-preview` is read once. An `error`, or `restricted` for a user without `rates.override-restrictions`, shows as a toast and opens no Dialog. The Dialog sends `arrival_date`, `departure_date`, `do_not_charge`, `reason`, `restriction_override_reason` and `expected_fee`, and reads the preview again on `fee_changed`.
 - It is a `FormOverlay` Dialog, not a Sheet: it opens from the grid with nothing else open, so it is the only overlay.
 - Save is disabled while saving. A refusal shows on its field, or as a toast for `room_not_free` and `bed_not_free` ("Room 204 was just taken"), then the grid reloads.
 - After a save the Action redirects back with a partial reload of `stays`, `blocks` and `rooms`.
@@ -136,9 +140,13 @@ A bar or edge stops at the edge of the loaded window. There is no auto-scroll, b
 
 ```
 resources/js/components/pms/stay-view/
-├── use-timeline-drag.ts     dnd-kit sensors, drag state, preview request
+├── use-timeline-drag.ts     dnd-kit sensors, drag state, preview request (kind `move`)
 ├── drop-target.ts           column under the pointer, business date stop, drop check, allowed rows; tested
-├── timeline-move-dialog.tsx the confirm Dialog
+├── timeline-move-dialog.tsx the confirm Dialog for a room move
+├── use-edge-drag.ts         edge drag state (kind `edge`), outline, one dates-preview on drop
+├── resize-target.ts         handle rules, clampEdgeDate(), resizedDates(); tested
+├── edge-handle.tsx          the handle on a bar edge
+├── timeline-dates-dialog.tsx the confirm Dialog for a date change
 ├── unassigned-lane.ts       packUnassigned(); tested
 └── cell-actions.tsx         empty cell click
 
@@ -148,7 +156,8 @@ app/Actions/FrontDesk/MoveUnitStay.php   dates and room in one transaction
 ## Tests
 
 - Pest: `MoveUnitStay` rolls back when the room or the dates are refused; `ChangeUnitDates` charges no early departure fee for a Confirmed unit; `StayViewQuery` returns unassigned segments with a fixed query count; `move-preview` returns every drag target with its `freeFrom`; the booking form prefill ignores bad values.
-- Browser unit tests (`vp test`): `drop-target.ts` (half-cell snap, business date stop, in-house rules) and `packUnassigned()`.
+- Pest: `StayData::$isPackagePlan` is true for a unit on a Package plan; the Timeline page carries `canOverrideRestrictions` and `canWaiveFees`.
+- Browser unit tests (`vp test`): `drop-target.ts` (half-cell snap, business date stop, in-house rules), `resize-target.ts` (handles, clamp rules) and `packUnassigned()`.
 
 ## Build order
 

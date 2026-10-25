@@ -15,6 +15,7 @@ use App\Enums\SellUnit;
 use App\Enums\StayType;
 use App\Enums\UnitStatus;
 use App\Models\Property;
+use App\Models\RatePlan;
 use App\Models\ReservationUnit;
 use App\Models\Room;
 use App\Models\RoomBlock;
@@ -91,6 +92,8 @@ class StayViewQuery
             ->where('property_id', $property->id)
             ->where('stay_type', StayType::Overnight->value)
             ->whereIn('status', [UnitStatus::Confirmed->value, UnitStatus::CheckedIn->value, UnitStatus::CheckedOut->value])
+            ->select('reservation_units.*')
+            ->addSelect(['package_nights' => RatePlan::query()->withoutGlobalScopes()->select('fixed_nights')->whereColumn('rate_plans.id', 'reservation_units.rate_plan_id')->limit(1)])
             ->whereDate('arrival_date', '<=', $to)
             ->whereDate('departure_date', '>', $from)
             ->with([

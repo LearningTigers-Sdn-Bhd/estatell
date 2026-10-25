@@ -32,7 +32,7 @@ export type TimelineMove = {
 };
 
 /** The data a stay bar gives its draggable. */
-export type StayDragData = { stay: Stay };
+export type StayDragData = { kind: 'move'; stay: Stay };
 
 /** A dragged bar moves up and down only: a drag changes the room, not the dates. */
 export const lockToVerticalAxis: Modifier = ({ transform }) => ({
@@ -153,7 +153,8 @@ export function useTimelineDrag({
     }, [activeUnit, targets, dates, labelWidth, columnWidth]);
 
     const onDragStart = ({ active, activatorEvent }: DragStartEvent) => {
-        const stay = (active.data.current as StayDragData | undefined)?.stay;
+        const data = active.data.current as StayDragData | undefined;
+        const stay = data?.kind === 'move' ? data.stay : undefined;
         const nights = stay ? movableNights(stay, businessDate) : null;
 
         if (!stay || !nights) {

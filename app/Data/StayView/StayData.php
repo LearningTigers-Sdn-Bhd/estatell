@@ -9,7 +9,7 @@ use Spatie\LaravelData\Data;
 
 /**
  * One reservation unit in the window. It carries no contact or ID data. Units of one group booking share
- * `reservationId` and `groupName`. `unitCount` is the units the whole reservation holds, not only those in the window. `balanceDue` is the reservation's, not the unit's.
+ * `reservationId` and `groupName`. `unitCount` is the units the whole reservation holds, not only those in the window. `balanceDue` is the reservation's, not the unit's. `isPackagePlan` is true when the unit's rate plan has fixed nights: its dates cannot change.
  */
 class StayData extends Data
 {
@@ -29,6 +29,7 @@ class StayData extends Data
         public int $children,
         public BadgeData $status,
         public bool $balanceDue,
+        public bool $isPackagePlan,
         public string $arrivalDate,
         public string $departureDate,
         public string $arrivalTime,
@@ -37,7 +38,7 @@ class StayData extends Data
     ) {}
 
     /**
-     * Expects `reservation.bookingSource`, `reservation.live_units_count` and the primary `guests.guest` loaded.
+     * Expects `reservation.bookingSource`, `reservation.live_units_count`, the primary `guests.guest` and the `package_nights` column (the rate plan's `fixed_nights`) loaded.
      *
      * @param  list<StaySegmentData>  $segments
      */
@@ -56,6 +57,7 @@ class StayData extends Data
             children: $unit->children,
             status: BadgeData::fromUnitStatus($unit->status),
             balanceDue: $balanceDue,
+            isPackagePlan: $unit->getAttribute('package_nights') !== null,
             arrivalDate: $unit->arrival_date->toDateString(),
             departureDate: $unit->departure_date->toDateString(),
             arrivalTime: substr($unit->arrival_time, 0, 5),

@@ -42,6 +42,8 @@ class StayViewController extends Controller
             'currency' => CurrencyData::forProperty($property),
             'canViewReservations' => $request->user()->can(PermissionEnum::ReservationsView->value),
             'canManageReservations' => $request->user()->can(PermissionEnum::ReservationsManage->value),
+            'canOverrideRestrictions' => $request->user()->can(PermissionEnum::RatesOverrideRestrictions->value),
+            'canWaiveFees' => $request->user()->can(PermissionEnum::FrontDeskWaiveFees->value),
         ]);
     }
 

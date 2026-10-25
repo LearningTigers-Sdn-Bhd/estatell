@@ -25,6 +25,7 @@ function stay(overrides: Partial<Stay> = {}): Stay {
         children: 0,
         status: { value: 'confirmed', label: 'Confirmed', tone: 'info' },
         balanceDue: false,
+        isPackagePlan: false,
         arrivalDate: '2026-10-14',
         departureDate: '2026-10-17',
         arrivalTime: '15:00',

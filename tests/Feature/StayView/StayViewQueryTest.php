@@ -7,6 +7,7 @@ use App\Models\Bed;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Guest;
+use App\Models\RatePlan;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\Room;
@@ -293,6 +294,20 @@ test('the number of queries does not grow with the number of stays', function ()
 
     expect($countQueries())->toBe($before)
         ->and(count($query->stays($property, $from, $to)))->toBe(14);
+});
+
+test('a stay says whether its rate plan is a package, which has fixed nights', function () {
+    $property = stayViewProperty();
+    [$from, $to] = stayViewRange();
+    $plain = stayViewUnit($property, Room::factory()->for($property)->create());
+    $package = stayViewUnit($property, Room::factory()->for($property)->create(), [
+        'rate_plan_id' => RatePlan::factory()->for($property)->package(nights: 3)->create()->id,
+    ]);
+
+    $stays = collect(app(StayViewQuery::class)->stays($property, $from, $to))->keyBy('unitId');
+
+    expect($stays[$plain->id]->isPackagePlan)->toBeFalse()
+        ->and($stays[$package->id]->isPackagePlan)->toBeTrue();
 });
 
 test('day uses lists live blocks with a room in the window and leaves out released, roomless and other dates', function () {
