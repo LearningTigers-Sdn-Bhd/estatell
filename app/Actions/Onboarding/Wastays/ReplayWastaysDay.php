@@ -7,10 +7,12 @@ use App\Actions\Folio\CloseFolio;
 use App\Actions\Folio\PostCharge;
 use App\Actions\Folio\ReopenFolio;
 use App\Actions\FrontDesk\AutoAssignRooms;
+use App\Actions\FrontDesk\CancelUnit;
 use App\Actions\FrontDesk\CheckInUnit;
 use App\Actions\FrontDesk\CheckOutUnit;
 use App\Actions\FrontDesk\UndoCheckIn;
 use App\Actions\NightAudit\RunNightAudit;
+use App\Actions\Payments\PaymentResult;
 use App\Actions\Payments\RecordPayment;
 use App\Actions\Reservations\AssignRoom;
 use App\Actions\Reservations\ChangeNightPrice;
@@ -79,6 +81,7 @@ class ReplayWastaysDay
         private AutoAssignRooms $autoAssignRooms,
         private ChangeNightPrice $changeNightPrice,
         private CheckInUnit $checkInUnit,
+        private CancelUnit $cancelUnit,
         private UndoCheckIn $undoCheckIn,
         private CheckOutUnit $checkOutUnit,
         private PostCharge $postCharge,
@@ -111,14 +114,21 @@ class ReplayWastaysDay
         }
 
         return $this->quietly($target->property, $date, function () use ($target, $day, $date): WastaysReplaySummary {
-            return DB::transaction(fn (): WastaysReplaySummary => $this->replay(new ReplayContext(
-                $target->property,
-                $target->actor,
-                $date,
-                new WastaysBookingIndex($target->bundle),
-                new WastaysDocumentNumbers($target->bundle),
-                new WastaysReplaySummary,
-            ), $day));
+            $numbers = new WastaysDocumentNumbers($target->bundle);
+            $this->numbers->useReceiptCeiling($numbers->highestReceipt());
+
+            try {
+                return DB::transaction(fn (): WastaysReplaySummary => $this->replay(new ReplayContext(
+                    $target->property,
+                    $target->actor,
+                    $date,
+                    new WastaysBookingIndex($target->bundle),
+                    $numbers,
+                    new WastaysReplaySummary,
+                ), $day));
+            } finally {
+                $this->numbers->useReceiptCeiling(null);
+            }
         });
     }
 
@@ -143,6 +153,7 @@ class ReplayWastaysDay
                 WastaysEventType::Payment => $this->payment($context, $event),
                 WastaysEventType::Deposit => $this->deposit($context, $event),
                 WastaysEventType::CheckOut => $this->checkOut($context, $event),
+                WastaysEventType::FolioMovement => $this->leaveFolioMovement($context, $event),
                 default => ($this->corrections)($context, $event),
             };
 
@@ -154,6 +165,20 @@ class ReplayWastaysDay
         $this->closeDay($context, $day);
 
         return $context->summary;
+    }
+
+    /**
+     * wastays moved a line to another folio of the same payer: a reversal and a new line. estatell keeps the line on the
+     * folio it was first posted on, and the summary names the booking so the hotel can see which folios differ.
+     */
+    private function leaveFolioMovement(ReplayContext $context, WastaysEvent $event): void
+    {
+        $context->summary->count('folio movements left in place');
+        $note = "folio movements left in place on wastays booking {$event->bookingId}";
+
+        if (! in_array($note, $context->summary->notes, true)) {
+            $context->summary->note($note);
+        }
     }
 
     /**
@@ -288,6 +313,20 @@ class ReplayWastaysDay
 
         $this->assignRoom($context, $unit, (string) ($room['room_id'] ?? ''));
 
+        // wastays can create a booking that is already cancelled (its own bulk entry of old bookings). It is kept, and
+        // cancelled at once, so it does not hold a room.
+        if ($context->index->createdCancelled($bookingId)) {
+            $cancelled = ($this->cancelUnit)($context->actor, $unit->refresh(), true, 'wastays replay: created cancelled');
+
+            if ($cancelled->isRefused()) {
+                throw new ReplayStopped("bookings {$bookingId}: the booking created as cancelled could not be cancelled ({$cancelled->refusal}).");
+            }
+
+            $context->summary->count('bookings created already cancelled');
+
+            return;
+        }
+
         if ($backdated && $context->index->hasCheckIn($bookingId)) {
             $this->doCheckIn($context, $unit, 'backdated booking checked in as of its arrival', CarbonImmutable::parse($arrival.' '.($property->settings->check_in_time ?? '15:00')));
         }
@@ -361,6 +400,12 @@ class ReplayWastaysDay
 
         if ($unit->arrival_date->toDateString() > $context->date) {
             $context->summary->count('check-ins before the arrival date moved');
+
+            return;
+        }
+
+        if ($context->index->arrivalMovesEarlierAfter((string) $event->bookingId, $event->at, $unit->arrival_date->toDateString())) {
+            $context->summary->count('check-ins left for a later move to an earlier arrival');
 
             return;
         }
@@ -526,6 +571,15 @@ class ReplayWastaysDay
             throw new ReplayStopped("folio_transactions {$sourceId}: the transaction code has no charge item or code in estatell.");
         }
 
+        // wastays let staff post on a code it had since turned off. estatell posts on active codes only, so the code is
+        // on for this one posting and put back.
+        $reactivated = ! $code->active;
+
+        if ($reactivated) {
+            $code->forceFill(['active' => true])->save();
+            $context->summary->count('charges posted on a code that was turned off');
+        }
+
         $result = ($this->postCharge)($context->actor, $unit, new NewChargeData(
             chargeItemId: $code instanceof ChargeItem ? $code->id : null,
             transactionCodeId: $code instanceof TransactionCode ? $code->id : null,
@@ -536,6 +590,10 @@ class ReplayWastaysDay
             ownFolio: ! $context->index->onCompanyFolio($row),
             taxIds: [],
         ));
+
+        if ($reactivated) {
+            $code->forceFill(['active' => false])->save();
+        }
 
         if ($result->isRefused()) {
             throw new ReplayStopped("folio_transactions {$sourceId}: the charge was refused ({$result->refusal}).");
@@ -607,7 +665,7 @@ class ReplayWastaysDay
 
     private function pay(ReplayContext $context, ReservationUnit $unit, PaymentMethod $method, PaymentPurpose $purpose, string $amount, ?string $reference, string $key, ?int $receipt, string $label, ?Folio $folio = null): Model
     {
-        $result = $this->numbers->run(DocumentType::Receipt, $receipt, fn () => ($this->recordPayment)($context->actor, $unit->reservation, $folio, $folio === null ? $unit : null, new NewPaymentData(
+        $take = fn (PaymentPurpose $purpose) => $this->numbers->run(DocumentType::Receipt, $receipt, fn () => ($this->recordPayment)($context->actor, $unit->reservation, $folio, $folio === null ? $unit : null, new NewPaymentData(
             paymentMethodId: $method->id,
             purpose: $purpose,
             amount: $amount,
@@ -616,6 +674,14 @@ class ReplayWastaysDay
             lineKey: $key,
             otaCollected: $method->type === PaymentMethodType::OtaCollected,
         )), $receipt !== null, $label);
+
+        $result = $take($purpose);
+
+        // The guest paid before wastays added the company that now takes the room charges, so estatell, which has the company from the start, refuses an advance on the unit. The money goes in as a settlement instead.
+        if ($result->isRefused() && $result->refusal === PaymentResult::REFUSAL_ADVANCE_ON_MASTER && $purpose === PaymentPurpose::Advance) {
+            $result = $take(PaymentPurpose::Settlement);
+            $context->summary->count('advances taken as settlements, the company pays the rooms');
+        }
 
         if ($result->isRefused()) {
             throw new ReplayStopped("{$label}: the payment was refused ({$result->refusal}).");
@@ -656,10 +722,21 @@ class ReplayWastaysDay
         $invoiced = Folio::query()->where('reservation_unit_id', $unit->id)->where('type', FolioType::Unit)->whereNotNull('invoice_number')->exists();
         // The invoice of a company booking sits on the company folio, so the Master folio takes the wastays number when it closes.
         $invoice = $invoiced || $context->index->companyAccountId($bookingId) !== null ? null : $context->numbers->invoice($bookingId);
-        $result = $this->numbers->run(DocumentType::Invoice, $invoice, fn () => ($this->checkOutUnit)($context->actor, $unit->refresh(), sameDayLeaver: $sameDayLeaver), $invoice !== null, "bookings {$bookingId}");
+        // One payer can cover a whole group: wastays kept that money on the payer's booking, and every booking of the group checked out with its own balance.
+        $balance = $context->index->groupBalance($bookingId);
+        $result = $this->numbers->run(DocumentType::Invoice, $invoice, fn () => ($this->checkOutUnit)($context->actor, $unit->refresh(), sameDayLeaver: $sameDayLeaver, groupSettled: $balance !== null), $invoice !== null && $balance === null, "bookings {$bookingId}");
+
+        if ($balance !== null && ! $result->isRefused()) {
+            $context->summary->count('group bookings checked out with a balance');
+            $context->summary->note("wastays booking {$bookingId} (group {$context->index->groupId($bookingId)}) checked out with a balance of RM {$balance} left on its folio, settled across its group".($invoice !== null ? " (wastays invoice {$invoice} is not issued: the folio stays open)" : ''));
+        }
 
         if ($result->isRefused()) {
-            throw new ReplayStopped("bookings {$bookingId}: the check-out was refused ({$result->refusal}).");
+            $lines = Folio::query()->where('reservation_id', $unit->reservation_id)->with('lines')->get()
+                ->map(fn (Folio $folio): string => $folio->type->value.' '.$folio->lines->map(fn ($line): string => $line->posting_date->toDateString().' '.$line->kind->value.' '.$line->amount)->implode(', '))
+                ->implode('; ');
+
+            throw new ReplayStopped("bookings {$bookingId}: the check-out was refused ({$result->refusal}). Folio lines: {$lines}.");
         }
 
         $context->summary->count($label);

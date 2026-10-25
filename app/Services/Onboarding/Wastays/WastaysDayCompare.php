@@ -41,6 +41,7 @@ final class WastaysDayCompare
 
         $original = $this->original($summary);
         $late = $this->leftOut($bundle, $day, $date);
+        $moved = $this->movements($bundle, $day, $date);
         $amended = $this->amendments($bundle, $day, $date);
         $redated = $this->redated($bundle, $day, $date);
         $figures = [];
@@ -50,6 +51,10 @@ final class WastaysDayCompare
 
             if (isset($late[$figure])) {
                 $total = $total->plus($late[$figure]);
+            }
+
+            if (isset($moved[$figure])) {
+                $total = $total->minus($moved[$figure]);
             }
 
             $figures[$figure] = $this->decimal((string) $total);
@@ -226,15 +231,15 @@ final class WastaysDayCompare
     /**
      * Lines wastays posted during the date's window that its summary leaves out but estatell counts on that day:
      * catch-up nights (an earlier night's date and no night audit), the fee of a same-day leaver (estatell keeps it as
-     * a night of room revenue), the tax of an early departure fee dated to an earlier night and a staff adjustment dated
+     * a night of room revenue), the tax of an early departure fee dated to an earlier night and a staff adjustment and a payment dated
      * to an earlier night.
      *
-     * @return array<string, BigDecimal> keyed room_revenue, tax_revenue and adjustments_total
+     * @return array<string, BigDecimal> keyed room_revenue, tax_revenue, adjustments_total and payments_total
      */
     private function leftOut(WastaysBundle $bundle, WastaysDay $day, string $date): array
     {
         $window = $day->window($date);
-        $totals = ['room_revenue' => BigDecimal::zero(), 'tax_revenue' => BigDecimal::zero(), 'adjustments_total' => BigDecimal::zero()];
+        $totals = ['room_revenue' => BigDecimal::zero(), 'tax_revenue' => BigDecimal::zero(), 'adjustments_total' => BigDecimal::zero(), 'payments_total' => BigDecimal::zero()];
 
         if ($window === null) {
             return $totals;
@@ -260,6 +265,47 @@ final class WastaysDayCompare
     }
 
     /**
+     * Lines that moved to another folio during the date's window. wastays counts the reversal as an adjustment and the
+     * new line as room revenue or tax, and estatell keeps the line where it was, so the wastays figures lose them.
+     *
+     * @return array<string, BigDecimal> keyed room_revenue, tax_revenue and adjustments_total
+     */
+    private function movements(WastaysBundle $bundle, WastaysDay $day, string $date): array
+    {
+        $window = $day->window($date);
+        $totals = ['room_revenue' => BigDecimal::zero(), 'tax_revenue' => BigDecimal::zero(), 'adjustments_total' => BigDecimal::zero()];
+
+        if ($window === null) {
+            return $totals;
+        }
+
+        foreach ($bundle->rows('folio_transactions') as $row) {
+            if ((json_decode((string) ($row['metadata'] ?? ''), true)['posting_source'] ?? null) !== 'folio_movement') {
+                continue;
+            }
+
+            $at = CarbonImmutable::parse((string) $row['created_at']);
+
+            if ($at->lt($window['opened']) || ($window['closed'] !== null && $at->gte($window['closed']))) {
+                continue;
+            }
+
+            $figure = match (true) {
+                ($row['transaction_type'] ?? null) === 'adjustment' => 'adjustments_total',
+                $row['category'] === 'accommodation' => 'room_revenue',
+                $row['category'] === 'tax' => 'tax_revenue',
+                default => null,
+            };
+
+            if ($figure !== null) {
+                $totals[$figure] = $totals[$figure]->plus((string) $row['amount']);
+            }
+        }
+
+        return $totals;
+    }
+
+    /**
      * The figure a line counts in when its summary leaves it out, for a line posted during the window of `$date`.
      *
      * @param  array<string, string|null>  $row
@@ -274,6 +320,9 @@ final class WastaysDayCompare
             $source === 'catch_up' && $row['category'] === 'tax' => 'tax_revenue',
             $source === 'early_departure' && $row['category'] === 'early_departure_charge' && $index->sameDayLeaver((string) $row['source_booking_id']) => 'room_revenue',
             $source === 'early_departure' && $row['category'] === 'tax' && ($row['posting_date'] ?? null) !== $date => 'tax_revenue',
+            // A payment dated to an earlier, closed night. wastays leaves it out of that night's total and of the day it was taken.
+            ($row['transaction_type'] ?? null) === 'payment' && ($row['reversal_of_transaction_id'] ?? null) === null && BigDecimal::of((string) $row['amount'])->isPositive()
+                && ($row['posting_date'] ?? $date) < $date => 'payments_total',
             // A staff adjustment dated to an earlier, closed night.
             $source === 'staff' && in_array($row['category'], ['adjustment', 'correction'], true) && ($row['reversal_of_transaction_id'] ?? null) === null
                 && ($row['posting_date'] ?? $date) < $date => 'adjustments_total',

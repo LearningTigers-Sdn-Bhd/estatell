@@ -98,9 +98,41 @@ Re-running writes nothing: every wastays plan copy and every room type price has
 
 Each wastays company has an `import_links` row (`hotel_corporate_accounts`), which the replay uses to put a booking on its company. A second run writes nothing.
 
-### Stays
+### Replay
 
-Sand Bay does not use the day-by-day replay. Its first weeks were typed into wastays after the fact (72 of 92 check-ins were recorded on or after the departure date), so the daily figures cannot match. It follows the [Migration](../17-onboarding/07-migration.md) rule instead: before go-live belongs to wastays, and only what is open comes across. Go-live is the cutover day (`wastays:go-live --opening-date=2026-10-23`), then `wastays:import-stays {bundle} {property} --actor= --dry-run`:
+Sand Bay replays like Grand Eastern: `wastays:go-live` on the first wastays date (16 Sep 2026), then `wastays:replay {bundle} {property} --actor=` up to the last closed night (21 Oct 2026). 22 Oct was still open in wastays at the export, so it is not replayed. Its first weeks were typed in after the fact, so some days cannot match the night audit. The replay lists each case it cannot hold, and the day compare explains the rest.
+
+What the replay does for Sand Bay that it did not for Grand Eastern:
+
+| wastays                                                                                                    | estatell                                                                                                                                                                             |
+| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `check_in` and `check_out` are UTC timestamps (a 03:00 check-in is stored the evening before)              | The date is read in the hotel's time zone (`hotels.csv`, Kuala Lumpur)                                                                                                               |
+| A booking created already cancelled (31, from its bulk entry of old bookings)                              | Created, then cancelled at once                                                                                                                                                      |
+| A receipt number that arrives out of order, and a payment wastays never numbered (91 deposit applications) | Only the replay may issue a wastays receipt number below the last one, up to wastays' highest. A payment with no number takes one above wastays' highest. The desk flow is unchanged |
+| A payment dated to an earlier, closed night                                                                | Posted on the business date. The day compare leaves it out of the estatell day, as wastays leaves it out of every total                                                              |
+| A line moved to another folio of the same payer (156 lines)                                                | Stays on the folio it was first posted on. Counted, with the wastays booking named                                                                                                   |
+| One payer covers a whole group, and every booking checks out with its own balance (6 credits, RM 15,471)   | The unit checks out with a balance and its folio stays open. The note names the booking and the group. The desk still refuses a balance                                              |
+| A charge on a code wastays had turned off (MISC)                                                           | Posted once on the code, which is then turned off again                                                                                                                              |
+| A guest paid before the company that now takes the rooms was added                                         | The advance goes in as a settlement                                                                                                                                                  |
+| A stay moved to an earlier arrival after its check-in                                                      | The check-in waits for the move and is made as of the new arrival                                                                                                                    |
+| A stay moved to a night that has closed, or into a room that is not free                                   | The stay keeps its dates and the booking is listed (6 stays, one night off)                                                                                                          |
+| A charge before check-in that is reversed before it posts                                                  | The wait is dropped                                                                                                                                                                  |
+
+Local rehearsal on the 25 Oct bundle (a throwaway database, 37 days, 16 Sep to 21 Oct, all 278 bookings checked against wastays):
+
+| Check                               | Result                                                                                                                                                                                                                                                                                                                         |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Days that match the night audit     | 27 of 37 exactly. The other 10 differ by the cases below                                                                                                                                                                                                                                                                       |
+| Stay dates                          | 272 of 278 match. The 6 that differ (519, 536 to 540) were moved by wastays into a night that had closed                                                                                                                                                                                                                       |
+| Status                              | 277 of 278 match. Booking 961 is a no-show wastays only detected                                                                                                                                                                                                                                                               |
+| Balance of each booking             | 255 of 278 match to the sen. The 23 that differ: 13 pre-arrival charges that estatell posts at check-in (599 to 609 except 603, and 972 to 974), 5 from the moved stays (519, 536 to 539), 4 tourism tax lines of RM 10 that wastays charged and estatell did not (523, 534, 535, 880) and the RM 20 of a voided booking (472) |
+| Room revenue the compare cannot tie | 10 Oct and 15 to 16 Oct match once folio movements are taken out. The 7, 8, 13 and 14 Oct differences (RM 972, 228, 3,360, 840) match the nights of the six moved stays. 2 Oct (RM 1,050, booking 720) is a night wastays posted after its audit                                                                               |
+
+Nothing is written to production until a dry run on the real bundle gives these figures.
+
+### Stays (cutover route)
+
+Sand Bay does not use the day-by-day replay on this route. Its first weeks were typed into wastays after the fact (72 of 92 check-ins were recorded on or after the departure date), so the daily figures cannot match. It follows the [Migration](../17-onboarding/07-migration.md) rule instead: before go-live belongs to wastays, and only what is open comes across. Go-live is the cutover day (`wastays:go-live --opening-date=2026-10-23`), then `wastays:import-stays {bundle} {property} --actor= --dry-run`:
 
 | wastays                                          | Bookings | estatell                                                                                                                                                                                                                              |
 | ------------------------------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -214,5 +246,5 @@ The 4 available deposits (ids 30–33, received 1 Oct) belong to bookings 482–
 
 1. City ledger item 10.
 2. Setup import with the company plan decision.
-3. `wastays:import-companies`, then guests, then `wastays:go-live` and the replay.
-4. On go-live day: in-house stays, travel-agent and phone bookings with Old system payments, company debt and credit, and the Channex switch for OTA bookings.
+3. `wastays:import-companies`, then guests, then `wastays:go-live` without an opening date (16 Sep 2026), then `wastays:replay` to 21 Oct.
+4. After the replay: `wastays:import-balances` for company debt and credit (it keeps each invoice's real date, which is after the 16 Sep go-live: 16 invoices, RM 30,900, and 7 credits, RM 6,980), and the Channex switch for OTA bookings. The cutover route (`go-live --opening-date`, `import-stays`) stays for a hotel that wants only what is open.

@@ -24,6 +24,7 @@ use App\Enums\UnitStatus;
 use App\Enums\WastaysEventType;
 use App\Models\Folio;
 use App\Models\FolioLine;
+use App\Models\ImportLink;
 use App\Models\Payment;
 use App\Models\ReservationUnit;
 use App\Models\RoomRevenuePolicy;
@@ -128,6 +129,16 @@ class ReplayWastaysCorrections
         // A tax line is a child of its charge in estatell, and ReverseLine reversed it with the charge.
         if ($original === null && $group !== '' && $group !== (string) $row['reversal_of_transaction_id'] && $this->links->has($context->property, 'folio_transactions', $group)) {
             $context->summary->count('tax lines reversed with their charge');
+
+            return;
+        }
+
+        // A charge taken before the check-in is still waiting in estatell, so reversing it only drops the wait.
+        $waiting = $original === null ? ImportLink::query()->forSource($context->property->id, 'waiting_charges', (string) $row['reversal_of_transaction_id'])->first() : null;
+
+        if ($waiting !== null) {
+            $waiting->delete();
+            $context->summary->count('waiting charges reversed before check-in');
 
             return;
         }
@@ -293,10 +304,30 @@ class ReplayWastaysCorrections
 
         if ($unit->status === UnitStatus::CheckedIn) {
             $arrival = $unit->arrival_date->toDateString();
+
+            // wastays let staff move a checked-in stay to the day before it was checked in. estatell keeps the arrival
+            // it checked in on, so a new departure on or before it leaves no night to keep.
+            if ($departure <= $arrival) {
+                $context->summary->count('stays moved earlier after check-in left out');
+
+                return;
+            }
         }
 
         $before = array_values($unit->nights()->pluck('date')->map(fn ($date) => $date->toDateString())->all());
         $result = ($this->changeUnitDates)($context->actor, $unit, CarbonImmutable::parse($arrival), CarbonImmutable::parse($departure), true, $reason);
+
+        // estatell placed the room itself, so wastays can have moved a stay into a night that room already holds, and it
+        // cannot move a stay to a night that has closed. The stay keeps its dates and is listed.
+        $left = ['not_available' => 'stay dates left: the room is not free', 'arrival_in_past' => 'stay dates left: the new arrival is in a closed night'];
+
+        if ($result->isRefused() && isset($left[$result->refusal])) {
+            $context->summary->count($left[$result->refusal]);
+            $context->summary->note("stay dates of wastays booking {$event->bookingId} left as they were: {$left[$result->refusal]} ({$arrival} to {$departure})");
+
+            return;
+        }
+
         $this->done($event, $result, 'the stay dates could not be changed');
 
         $this->priceAddedNights($context, $event, $unit, $before, $reason);

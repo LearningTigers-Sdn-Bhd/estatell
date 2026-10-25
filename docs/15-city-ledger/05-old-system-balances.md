@@ -28,16 +28,16 @@ Credit on account shows **Old receipt no.**, **Received on** and **Amount** inst
 
 `AddOldSystemInvoice` (`app/Actions/CityLedger/`) creates an `ar_invoices` row:
 
-| Column      | Value                                       |
-| ----------- | ------------------------------------------- |
-| `type`      | Invoice                                     |
-| `folio_id`  | null                                        |
-| `number`    | The old invoice number                      |
-| `issued_on` | The old issue date, before the go-live date |
-| `due_on`    | The old due date, on or after `issued_on`   |
-| `amount`    | What is still owed, greater than 0          |
-| `reason`    | The reason                                  |
-| `migrated`  | true (new column, default false)            |
+| Column      | Value                                                                                                                                                                |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `type`      | Invoice                                                                                                                                                              |
+| `folio_id`  | null                                                                                                                                                                 |
+| `number`    | The old invoice number                                                                                                                                               |
+| `issued_on` | The old issue date, before the go-live date. The wastays balances import is the only caller that may pass a date after go-live, for a hotel that replays its history |
+| `due_on`    | The old due date, on or after `issued_on`                                                                                                                            |
+| `amount`    | What is still owed, greater than 0                                                                                                                                   |
+| `reason`    | The reason                                                                                                                                                           |
+| `migrated`  | true (new column, default false)                                                                                                                                     |
 
 | Check                                                  | Refusal                   |
 | ------------------------------------------------------ | ------------------------- |

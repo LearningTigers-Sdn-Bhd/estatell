@@ -17,6 +17,15 @@ final class PlannedNumberRunner
     public function __construct(private readonly PlannedDocumentNumbers $planned) {}
 
     /**
+     * The replay may issue the receipt numbers wastays issued in any order, up to `$ceiling`, and numbers a payment
+     * wastays gave none above it. Null turns that off.
+     */
+    public function useReceiptCeiling(?int $ceiling): void
+    {
+        $this->planned->setCeiling(DocumentType::Receipt, $ceiling);
+    }
+
+    /**
      * @template T
      *
      * @param  Closure(): T  $run

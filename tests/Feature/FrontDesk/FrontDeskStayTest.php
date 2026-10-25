@@ -493,3 +493,16 @@ test('the front desk permissions go to the default roles', function () {
         ->and($manager)->toContain(PermissionEnum::FrontDeskCheckIn, PermissionEnum::FrontDeskCheckOut, PermissionEnum::FrontDeskCheckInWithoutCard)
         ->and(DefaultRoleEnum::Owner->permissions())->toContain(PermissionEnum::FrontDeskCheckInWithoutCard);
 });
+
+test('a stay settled across its group may check out with a balance that stays open, and the desk refuses it', function (string $amount) {
+    $desk = tap(stayDeskInHouse(), fn (array $setup) => stayDeskFolio($setup, $amount));
+    $replay = tap(stayDeskInHouse(), fn (array $setup) => stayDeskFolio($setup, $amount));
+
+    $refused = stayDeskCheckOut($desk);
+    $kept = app(CheckOutUnit::class)($replay['actor'], $replay['unit'], groupSettled: true);
+
+    expect($refused->refusal)->toBe(UnitStayResult::REFUSAL_BALANCE_NOT_SETTLED)
+        ->and($kept->isRefused())->toBeFalse()
+        ->and($replay['unit']->fresh()->status)->toBe(UnitStatus::CheckedOut)
+        ->and(Folio::query()->where('reservation_unit_id', $replay['unit']->id)->first()->status)->toBe(FolioStatus::Open);
+})->with(['owes' => ['80.00'], 'credit' => ['-100.00']]);
