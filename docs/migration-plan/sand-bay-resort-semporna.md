@@ -158,9 +158,11 @@ The replay places each wastays `bookings.source` like this. A booking with a was
 | Guangzhou Asian World International | 4,620.00  | 17, 18, 29         |
 | Guangzhou Youxieren Trip Service    | 3,720.00  | 1, 2               |
 
-13 of the 16 unpaid invoices are overdue. Each comes in with **Add from old system**, with its wastays reference (SBR-264000xx) and real dates.
+13 of the 16 unpaid invoices are overdue. Each comes in with **Add from old system**, with its wastays reference (SBR-264000xx) and real dates. `wastays:import-balances {bundle} {property} --actor= --dry-run` does it on go-live day, after `wastays:import-companies`. It works out what is owed from the allocations that were never reversed (never from the stored `paid_amount`), leaves void invoices, fully paid invoices and voided payments, and moves a due date that is before the issue date to the issue date (question 6 below). Each row has an `import_links` row (`ar_invoices`, `ar_payments`), so a second run writes nothing. It exits with a failure and lists any row it could not place.
 
 ### Company credit: RM 6,980
+
+What is left of each payment after its allocations that were not reversed comes in as Old system credit, with the wastays reference number and the real date.
 
 | Company                    | Credit   | Payments                       |
 | -------------------------- | -------- | ------------------------------ |
