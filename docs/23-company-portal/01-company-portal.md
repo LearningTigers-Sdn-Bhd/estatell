@@ -110,7 +110,7 @@ Portal
 - The `portal` middleware lets a user in when they are a company user, have an Active link at the property in the URL, and the property is Live. Anything else returns 404.
 - A Suspended company can still view its bookings and statements. It cannot book or cancel.
 - Company users never get staff roles.
-- A company user sees active nightly plans that are All companies with Portal on, and Only these companies plans where their company's row has Portal on. Everyone plans and Day use plans are never offered. Only derived plans can be Only these companies.
+- A company user sees active nightly plans that are All companies with Portal on, and Only these companies plans where their company's row has Portal on. Everyone plans and Day use plans are never offered.
 - A company user sees only reservations of the company linked at that property. Another company's or property's booking or document returns 404.
 
 ### Booking
