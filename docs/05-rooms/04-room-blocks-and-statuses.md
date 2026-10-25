@@ -86,10 +86,10 @@ Room          Reason        Nights                      Notes
 ```
 
 - One load: every current and upcoming block, the latest 50 past blocks, and the active rooms with their active beds. Tabs and filters work in the browser.
-- **Block room** opens a sheet: room, bed (dorm rooms only, default "Whole room"), reason, nights (`DateRangePicker`) and notes.
+- **Block room** and **Edit** open a Dialog: room, bed (dorm rooms only, default "Whole room"), reason (full width), nights (`DateRangePicker`) and notes.
 - **End now** opens a confirm dialog. For a whole-room block it asks "Room is Dirty / Clean" (default Dirty).
 - **Cancel** opens a confirm dialog.
-- The form is `RoomBlockForm` (`components/pms/room-block-form.tsx`). The Timeline's **Block room** cell action opens the same form with the room fixed. See [Empty cell](../18-front-desk/07-timeline-editing.md#empty-cell).
+- The form is `RoomBlockForm` (`components/pms/room-block-form.tsx`). The Timeline's **Block room** cell action opens the same form in the same Dialog, with the room fixed. See [Empty cell](../18-front-desk/07-timeline-editing.md#empty-cell).
 - Create, edit, end and cancel redirect back, so a block made from the Timeline returns to the Timeline.
 - The housekeeping board's row menu **Block room…** links to this page for a user with `rooms.block`.
 

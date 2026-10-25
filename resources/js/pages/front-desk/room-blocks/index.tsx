@@ -18,6 +18,13 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import {
     Field,
     FieldContent,
     FieldDescription,
@@ -27,13 +34,6 @@ import {
     FieldSet,
 } from '@/components/ui/field';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import {
-    Sheet,
-    SheetContent,
-    SheetDescription,
-    SheetHeader,
-    SheetTitle,
-} from '@/components/ui/sheet';
 import { Spinner } from '@/components/ui/spinner';
 import {
     Table,
@@ -496,22 +496,22 @@ export default function RoomBlocksIndex({
                 )}
             </div>
 
-            <Sheet
+            <Dialog
                 open={editing !== undefined}
                 onOpenChange={(open) => !open && setEditing(undefined)}
             >
-                <SheetContent className="data-[side=right]:sm:max-w-xl">
-                    <SheetHeader>
-                        <SheetTitle>
+                <DialogContent className="max-w-full max-md:top-auto max-md:bottom-0 max-md:translate-y-0 max-md:rounded-b-none sm:max-w-none md:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>
                             {editing
                                 ? `Edit block on ${unitName(editing)}`
                                 : 'Block room'}
-                        </SheetTitle>
-                        <SheetDescription>
+                        </DialogTitle>
+                        <DialogDescription>
                             A blocked room or bed cannot be sold for these
                             nights.
-                        </SheetDescription>
-                    </SheetHeader>
+                        </DialogDescription>
+                    </DialogHeader>
                     {editing !== undefined && (
                         <RoomBlockForm
                             key={editing?.id ?? 'new'}
@@ -523,8 +523,8 @@ export default function RoomBlocksIndex({
                             onDone={() => setEditing(undefined)}
                         />
                     )}
-                </SheetContent>
-            </Sheet>
+                </DialogContent>
+            </Dialog>
 
             <EndBlockDialog
                 key={ending?.id ?? 'none'}

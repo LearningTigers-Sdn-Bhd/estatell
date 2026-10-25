@@ -154,7 +154,7 @@ A booking shows **Auto** for its room until check-in, so many Confirmed units ha
 | Action      | Needs                 | Shown when                  | Does                                                                                        |
 | ----------- | --------------------- | --------------------------- | ------------------------------------------------------------------------------------------- |
 | New booking | `reservations.manage` | Always                      | Opens the booking form with arrival = that night, departure = the next day, room or bed set |
-| Block room  | `rooms.block`         | The night is today or later | Opens the Block room Sheet on the Timeline                                                  |
+| Block room  | `rooms.block`         | The night is today or later | Opens the Block room Dialog on the Timeline                                                 |
 
 - With only one action to show, the click runs it at once and no menu opens.
 - Block room starts on the property's calendar date (`window.today`), not the business date, because room blocks use `PropertyToday`. So before the night audit runs, yesterday's cell offers only New booking.
@@ -162,12 +162,12 @@ A booking shows **Auto** for its room until check-in, so many Confirmed units ha
 - The booking link also carries `back=timeline` and `back_query` (this window and its filters), so the form's back arrow and Cancel return here. See [Back link](../12-reservations/05-booking-form.md#back-link).
 - Availability is checked by the booking form when it is saved, as for any booking.
 
-### Block room Sheet
+### Block room Dialog
 
-- The Sheet holds `RoomBlockForm`, the same form as the [Room blocks page](../05-rooms/04-room-blocks-and-statuses.md#ui). The room is fixed and shown as text. On a bed row the bed select starts on that bed and also offers **Whole room** and the other beds. On a room row of a dorm it starts on **Whole room**.
+- The Dialog holds `RoomBlockForm`, the same form and Dialog as the [Room blocks page](../05-rooms/04-room-blocks-and-statuses.md#ui). The room is fixed and shown as text. On a bed row the bed select starts on that bed and also offers **Whole room** and the other beds. On a room row of a dorm it starts on **Whole room**.
 - Nights start as that night only (first = last = the clicked date). Staff can widen them with the `DateRangePicker`.
-- Save posts to `front-desk.room-blocks.store`, which redirects back to the Timeline. A refusal shows as a toast: another open block on these nights, or a stay on these nights (`has_stay`). On success the Sheet closes and the new block bar shows.
-- The menu closes before the Sheet opens, so there is one overlay level. Version polling pauses while the Sheet is open.
+- Save posts to `front-desk.room-blocks.store`, which redirects back to the Timeline. A refusal shows as a toast: another open block on these nights, or a stay on these nights (`has_stay`). On success the Dialog closes and the new block bar shows.
+- The menu closes before the Dialog opens, so there is one overlay level. Version polling pauses while the Dialog is open.
 - The Timeline sends `canBlockRooms`, `blockReasons` (`RoomBlockReason::options()`) and `maxBlockNights` (`RoomBlockRequest::MAX_NIGHTS`).
 
 ## Window edge
@@ -192,7 +192,7 @@ resources/js/components/pms/stay-view/
 ├── timeline-dates-dialog.tsx the confirm Dialog for a date change
 ├── timeline-move-stay-dialog.tsx the confirm Dialog for dates and room together
 ├── unassigned-lane.ts       packUnassigned(); tested
-└── cell-actions.tsx         empty cell click, the CellActions menu and the Block room Sheet
+└── cell-actions.tsx         empty cell click, the CellActions menu and the Block room Dialog
 
 resources/js/components/pms/room-block-form.tsx  the block form, shared with the Room blocks page
 

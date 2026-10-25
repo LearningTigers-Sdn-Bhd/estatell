@@ -3,7 +3,7 @@ import { ChartGantt } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
 import type { DateGridHandle } from '@/components/pms/grid/date-grid';
-import { BlockRoomSheet } from '@/components/pms/stay-view/cell-actions';
+import { BlockRoomDialog } from '@/components/pms/stay-view/cell-actions';
 import type { BlockCell } from '@/components/pms/stay-view/cell-actions';
 import { StayPeekSheet } from '@/components/pms/stay-view/stay-peek-sheet';
 import { StayViewFilters } from '@/components/pms/stay-view/stay-view-filters';
@@ -167,7 +167,7 @@ export default function Timeline({
                         onSelect={setPeekUnitId}
                         onClose={() => setPeekUnitId(null)}
                     />
-                    <BlockRoomSheet
+                    <BlockRoomDialog
                         cell={blockCell}
                         rooms={rooms}
                         reasons={blockReasons}

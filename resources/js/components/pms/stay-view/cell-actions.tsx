@@ -12,12 +12,12 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-    Sheet,
-    SheetContent,
-    SheetDescription,
-    SheetHeader,
-    SheetTitle,
-} from '@/components/ui/sheet';
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { newMethod } from '@/routes/reservations';
 import type { CellAction } from './bookable-cell';
 import { dayLabel, placeLabel } from './stay-places';
@@ -119,10 +119,10 @@ export function EmptyCell({
 }
 
 /**
- * The Block room Sheet of the Timeline. The room is fixed to the cell's room, and a bed row starts on its bed. The
+ * The Block room Dialog of the Timeline. The room is fixed to the cell's room, and a bed row starts on its bed. The
  * room and its beds come from the loaded rows, so opening it makes no request.
  */
-export function BlockRoomSheet({
+export function BlockRoomDialog({
     cell,
     rooms,
     reasons,
@@ -170,14 +170,17 @@ export function BlockRoomSheet({
         : undefined;
 
     return (
-        <Sheet open={cell !== null} onOpenChange={(open) => !open && onClose()}>
-            <SheetContent className="data-[side=right]:sm:max-w-xl">
-                <SheetHeader>
-                    <SheetTitle>Block room</SheetTitle>
-                    <SheetDescription>
+        <Dialog
+            open={cell !== null}
+            onOpenChange={(open) => !open && onClose()}
+        >
+            <DialogContent className="max-w-full max-md:top-auto max-md:bottom-0 max-md:translate-y-0 max-md:rounded-b-none sm:max-w-none md:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>Block room</DialogTitle>
+                    <DialogDescription>
                         A blocked room or bed cannot be sold for these nights.
-                    </SheetDescription>
-                </SheetHeader>
+                    </DialogDescription>
+                </DialogHeader>
                 {cell && blockRoom && (
                     <RoomBlockForm
                         key={`${cell.room.key}|${cell.date}`}
@@ -190,7 +193,7 @@ export function BlockRoomSheet({
                         onDone={onClose}
                     />
                 )}
-            </SheetContent>
-        </Sheet>
+            </DialogContent>
+        </Dialog>
     );
 }

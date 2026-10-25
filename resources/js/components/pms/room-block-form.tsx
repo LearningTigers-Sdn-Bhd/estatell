@@ -2,6 +2,7 @@ import { useForm } from '@inertiajs/react';
 import { DateRangePicker } from '@/components/pms/date-range-picker';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { Button } from '@/components/ui/button';
+import { DialogClose, DialogFooter } from '@/components/ui/dialog';
 import {
     Field,
     FieldDescription,
@@ -9,7 +10,6 @@ import {
     FieldGroup,
     FieldLabel,
 } from '@/components/ui/field';
-import { SheetClose, SheetFooter } from '@/components/ui/sheet';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { store, update } from '@/routes/front-desk/room-blocks';
@@ -36,7 +36,7 @@ export type RoomBlockStart = {
 };
 
 /**
- * The Block room form inside a Sheet: create a block, or edit the reason, nights and notes of one. The Room blocks
+ * The Block room form inside a Dialog: create a block, or edit the reason, nights and notes of one. The Room blocks
  * page picks the room here. The Timeline passes `start`, so the room is fixed and only the bed can change. Both save
  * through the room block routes, which redirect back to the page that opened the form.
  */
@@ -96,6 +96,13 @@ export function RoomBlockForm({
         }
     };
 
+    const submitButton = (
+        <Button type="submit" disabled={form.processing} focusableWhenDisabled>
+            {form.processing && <Spinner data-icon="inline-start" />}
+            {block ? 'Save changes' : 'Block room'}
+        </Button>
+    );
+
     const bedField = room?.sellsBeds && (
         <Field data-invalid={!!form.errors.bed_id}>
             <FieldLabel htmlFor="block-bed">Bed</FieldLabel>
@@ -114,8 +121,8 @@ export function RoomBlockForm({
     );
 
     return (
-        <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
-            <FieldGroup className="flex-1 overflow-y-auto px-4">
+        <form onSubmit={submit} className="flex flex-col gap-4">
+            <FieldGroup>
                 {block ? (
                     <Field>
                         <FieldLabel>Room</FieldLabel>
@@ -179,7 +186,7 @@ export function RoomBlockForm({
                             )
                         }
                         aria-invalid={!!form.errors.reason}
-                        className="w-full sm:max-w-60"
+                        className="w-full"
                     />
                     <FieldError>{form.errors.reason}</FieldError>
                 </Field>
@@ -239,19 +246,14 @@ export function RoomBlockForm({
                     <FieldError>{form.errors.notes}</FieldError>
                 </Field>
             </FieldGroup>
-            <SheetFooter>
-                <SheetClose render={<Button type="button" variant="outline" />}>
-                    Cancel
-                </SheetClose>
-                <Button
-                    type="submit"
-                    disabled={form.processing}
-                    focusableWhenDisabled
+            <DialogFooter>
+                <DialogClose
+                    render={<Button type="button" variant="outline" />}
                 >
-                    {form.processing && <Spinner data-icon="inline-start" />}
-                    {block ? 'Save changes' : 'Block room'}
-                </Button>
-            </SheetFooter>
+                    Cancel
+                </DialogClose>
+                {submitButton}
+            </DialogFooter>
         </form>
     );
 }

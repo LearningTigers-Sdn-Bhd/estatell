@@ -139,7 +139,7 @@ The page is a Grid calendar: no `PageHeader`, the toolbar on top and the grid fi
 - One link at the bottom: **Open reservation**, or **Open group booking** for a group (a group is one reservation, so both go to the reservation page). Check in, Check out, Move and Record payment are done there for now, because the project allows one overlay level and their dialogs would sit on top of the Sheet. The link and the Folio section need `reservations.view`; without it the Sheet shows the summary only.
 - The Folio section lists the 15 newest posted lines of the reservation's folios (voided folios left out) and its balance. They come from `GET front-desk/stays/{reservation}/folio` (`front-desk.stays.folio`), which needs `front-desk.view` and `reservations.view`.
 - The "This group" list holds only units loaded for the dates on screen. Click one to show it in the Sheet.
-- New booking from an empty cell goes to the booking form page with the room and date filled in. Block room opens a Sheet with the shared `RoomBlockForm`. See [Empty cell](07-timeline-editing.md#empty-cell).
+- New booking from an empty cell goes to the booking form page with the room and date filled in. Block room opens a Dialog with the shared `RoomBlockForm`. See [Empty cell](07-timeline-editing.md#empty-cell).
 
 ## Data loading
 
