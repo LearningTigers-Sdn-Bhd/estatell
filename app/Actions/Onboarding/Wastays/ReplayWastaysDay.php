@@ -15,6 +15,7 @@ use App\Actions\Payments\RecordPayment;
 use App\Actions\Reservations\AssignRoom;
 use App\Actions\Reservations\ChangeNightPrice;
 use App\Actions\Reservations\CreateBooking;
+use App\Actions\Reservations\CreateBookingSource;
 use App\Actions\Reservations\EnsureOtaBookingSource;
 use App\Data\Catalogues\TaxInputData;
 use App\Data\Folio\NewChargeData;
@@ -45,6 +46,7 @@ use App\Models\Room;
 use App\Models\Tax;
 use App\Models\TransactionCode;
 use App\Models\UnitNight;
+use App\Models\User;
 use App\Services\Folio\FolioBalance;
 use App\Services\Onboarding\Wastays\ImportLinks;
 use App\Services\Onboarding\Wastays\PlannedNumberRunner;
@@ -88,6 +90,7 @@ class ReplayWastaysDay
         private PostCharge $postCharge,
         private RecordPayment $recordPayment,
         private EnsureOtaBookingSource $ensureOtaBookingSource,
+        private CreateBookingSource $createBookingSource,
         private RecordImportLink $recordImportLink,
         private ImportLinks $links,
         private PlannedNumberRunner $numbers,
@@ -297,11 +300,12 @@ class ReplayWastaysDay
             overrideReason: $all ? 'wastays replay' : null,
         );
         $data = new NewBookingData(
-            bookingSource: $this->bookingSource($property, (string) $booking['source']),
+            bookingSource: $this->bookingSource($property, $context->actor, (string) $booking['source']),
             units: [$line],
             guests: array_map(fn (int $guestId): NewBookingGuestData => new NewBookingGuestData(guestId: $guestId, unitIndex: 0), $guestIds),
             externalReference: $booking['external_reference'] ?? $booking['channel_manager_reference'] ?? $booking['agent_reference'] ?? null,
             groupName: $context->index->groupName($bookingId),
+            companyId: $this->companyOf($property, $bookingId, $booking),
         );
         $backdated = $arrival < $context->date;
         $number = (int) $booking['reservation_number'];
@@ -324,6 +328,23 @@ class ReplayWastaysDay
         if ($backdated && $context->index->hasCheckIn($bookingId)) {
             $this->doCheckIn($context, $unit, 'backdated booking checked in as of its arrival', CarbonImmutable::parse($arrival.' '.($property->settings->check_in_time ?? '15:00')));
         }
+    }
+
+    /**
+     * The estatell company of a booking made through a wastays corporate account, from the companies import.
+     *
+     * @param  array<string, string|null>  $booking
+     */
+    private function companyOf(Property $property, string $bookingId, array $booking): ?int
+    {
+        $accountId = $booking['hotel_corporate_account_id'] ?? null;
+
+        if (blank($accountId)) {
+            return null;
+        }
+
+        return $this->links->targetId($property, 'hotel_corporate_accounts', (string) $accountId)
+            ?? throw new ReplayStopped("bookings {$bookingId}: the company {$accountId} is not in estatell. Import the companies first.");
     }
 
     /**
@@ -639,11 +660,22 @@ class ReplayWastaysDay
         return $unit->load('reservation');
     }
 
-    private function bookingSource(Property $property, string $source): BookingSource
+    /** The Direct source with this name, added when the property has none. */
+    private function directSource(Property $property, User $actor, string $name): ?BookingSource
+    {
+        return BookingSource::query()->where('property_id', $property->id)->whereRaw('lower(name) = ?', [mb_strtolower($name)])->first()
+            ?? ($this->createBookingSource)($property, $actor, ['name' => $name, 'type' => BookingSourceType::Direct]);
+    }
+
+    private function bookingSource(Property $property, User $actor, string $source): BookingSource
     {
         $found = match ($source) {
             'walk_in' => BookingSource::query()->where('property_id', $property->id)->where('type', BookingSourceType::WalkIn)->first(),
             'phone' => BookingSource::query()->where('property_id', $property->id)->whereRaw('lower(name) = ?', ['phone'])->first(),
+            'email' => BookingSource::query()->where('property_id', $property->id)->whereRaw('lower(name) = ?', ['email'])->first(),
+            'travel_agent' => BookingSource::query()->where('property_id', $property->id)->where('type', BookingSourceType::Company)->first(),
+            'internal' => $this->directSource($property, $actor, 'Internal'),
+            'ota' => ($this->ensureOtaBookingSource)($property, OtaChannel::query()->where('code', 'other')->firstOrFail(), 'OTA'),
             'booking_com', 'agoda' => ($this->ensureOtaBookingSource)($property, OtaChannel::query()->where('code', $source)->firstOrFail()),
             'traveloka' => ($this->ensureOtaBookingSource)($property, OtaChannel::query()->where('code', 'other')->firstOrFail(), 'Traveloka'),
             default => null,

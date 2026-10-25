@@ -1,14 +1,19 @@
 <?php
 
 use App\Actions\NightAudit\RunNightAudit;
+use App\Actions\Onboarding\Wastays\RecordImportLink;
 use App\Actions\Onboarding\Wastays\ReplayStopped;
 use App\Actions\Onboarding\Wastays\ReplayWastaysDay;
+use App\Actions\Reservations\CreateBookingSource;
+use App\Actions\Reservations\SeedBookingSources;
 use App\Enums\FolioStatus;
 use App\Enums\PaymentPurpose;
 use App\Enums\UnitStatus;
+use App\Models\Company;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\ImportLink;
+use App\Models\OtaChannel;
 use App\Models\Payment;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
@@ -186,4 +191,42 @@ it('uses the wastays receipt number as the reference when the method needs one a
     replayDay($setup, $day, $target, '2026-08-13');
 
     expect(Payment::query()->sole()->reference)->toBe('wastays GEH-26500077');
+});
+
+it('places the Sand Bay booking sources, with the travel agent company from the companies import', function (string $source, string $name, string $type) {
+    $setup = wastaysReplaySetup();
+    app(SeedBookingSources::class)($setup['property']);
+    app(CreateBookingSource::class)($setup['property'], $setup['admin'], ['name' => 'Email', 'type' => 'direct']);
+    OtaChannel::factory()->other()->create();
+    $tables = wastaysReplayTables();
+    $tables['bookings'][0]['source'] = $source;
+    [$target, $day] = wastaysReplayTarget($setup, $tables);
+
+    replayDay($setup, $day, $target, '2026-08-13');
+
+    $source = Reservation::query()->where('property_id', $setup['property']->id)->sole()->bookingSource;
+
+    expect($source->name)->toBe($name)->and($source->type->value)->toBe($type);
+})->with([
+    'email' => ['email', 'Email', 'direct'],
+    'travel agent' => ['travel_agent', 'Company / Travel agent', 'company'],
+    'internal' => ['internal', 'Internal', 'direct'],
+    'ota' => ['ota', 'OTA', 'ota'],
+]);
+
+it('stops when a booking belongs to a company that was not imported, and uses the company when it was', function () {
+    $setup = wastaysReplaySetup();
+    app(SeedBookingSources::class)($setup['property']);
+    $tables = wastaysReplayTables();
+    $tables['bookings'][0]['source'] = 'travel_agent';
+    $tables['bookings'][0]['hotel_corporate_account_id'] = '8';
+    [$target, $day] = wastaysReplayTarget($setup, $tables);
+
+    expect(fn () => replayDay($setup, $day, $target, '2026-08-13'))->toThrow(ReplayStopped::class, 'the company 8 is not in estatell');
+
+    $company = Company::factory()->for($setup['property'])->create();
+    app(RecordImportLink::class)($setup['property'], 'hotel_corporate_accounts', '8', $company);
+    replayDay($setup, $day, $target, '2026-08-13');
+
+    expect(Reservation::query()->where('property_id', $setup['property']->id)->sole()->company_id)->toBe($company->id);
 });

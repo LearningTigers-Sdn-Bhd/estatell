@@ -80,6 +80,19 @@ Re-running writes nothing: every wastays plan copy and every room type price has
 | Folio lines  | 570                          | Stay in wastays                    |
 | Companies    | 187                          | Copy. Confirm which are still used |
 
+### Booking sources
+
+The replay places each wastays `bookings.source` like this. A booking with a wastays corporate account takes its company from the companies import (`import_links` table `hotel_corporate_accounts`), and the replay stops with "Import the companies first" when the company is missing.
+
+| wastays source | Bookings                 | estatell source                                |
+| -------------- | ------------------------ | ---------------------------------------------- |
+| travel_agent   | 218 (211 with a company) | Company / Travel agent                         |
+| phone          | 25                       | Phone                                          |
+| ota            | 24                       | OTA (the Other channel, named OTA)             |
+| internal       | 8                        | Internal (a Direct source, added when missing) |
+| walk_in        | 2                        | Walk-in                                        |
+| email          | 1                        | Email                                          |
+
 ## Open at cutover
 
 ### Company debt: RM 30,900
