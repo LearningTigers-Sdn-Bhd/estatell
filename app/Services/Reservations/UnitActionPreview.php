@@ -708,7 +708,7 @@ class UnitActionPreview
             $total = $total->plus($quote->total);
         }
 
-        $isEarlyDeparture = $newDeparture->lt($oldDeparture) && $newArrival->equalTo($oldArrival);
+        $isEarlyDeparture = $unit->status === UnitStatus::CheckedIn && $newDeparture->lt($oldDeparture) && $newArrival->equalTo($oldArrival);
         $fee = null;
 
         if ($isEarlyDeparture) {
