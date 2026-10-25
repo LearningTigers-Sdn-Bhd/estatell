@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Property\SeedPropertyDefaults;
+use App\Enums\ChargingUnit;
 use App\Enums\CompanyAccess;
 use App\Enums\PropertyType;
 use App\Models\ChargeItem;
@@ -293,4 +294,27 @@ it('keeps what the owner already entered', function () {
 it('refuses a time that is not HH:MM or only one of the two', function () {
     runSetupImport(options: ['--check-in' => '3pm', '--check-out' => '12:00'])->expectsOutputToContain('must be a time as HH:MM')->assertFailed();
     runSetupImport(options: ['--check-in' => '15:00'])->expectsOutputToContain('Give both')->assertFailed();
+});
+
+it('creates priced charge items for the Sand Bay codes', function () {
+    $tables = wastaysSetupTables();
+    $tables['transaction_codes'][] = ['id' => '201', 'code' => 'JETTY', 'name' => 'Tourist Jetty Fee', 'active' => 't'];
+    $tables['transaction_codes'][] = ['id' => '202', 'code' => 'CB', 'name' => 'Charter Boat', 'active' => 't'];
+    $tables['hotel_extra_charges'] = [
+        ['id' => '14', 'transaction_code_id' => '201', 'position' => '8', 'pricing_type' => 'fixed', 'rate_value' => '10.0000', 'charging_unit' => 'per_person'],
+        ['id' => '35', 'transaction_code_id' => '202', 'position' => '9', 'pricing_type' => 'fixed', 'rate_value' => '280.0000', 'charging_unit' => 'per_item'],
+        ...$tables['hotel_extra_charges'],
+    ];
+    $tables['folio_transactions'][] = ['id' => '9', 'transaction_code_id' => '201'];
+
+    runSetupImport($tables)->assertSuccessful();
+
+    $jetty = ChargeItem::query()->where('property_id', $this->property->id)->where('name', 'Tourist Jetty Fee')->sole();
+    $boat = ChargeItem::query()->where('property_id', $this->property->id)->where('name', 'Charter Boat')->sole();
+
+    expect($jetty->default_amount)->toBe('10.00')
+        ->and($jetty->charging_unit)->toBe(ChargingUnit::PerGuest)
+        ->and($boat->default_amount)->toBe('280.00')
+        ->and($boat->charging_unit)->toBe(ChargingUnit::PerItem)
+        ->and(ImportLink::query()->where('source_table', 'transaction_codes')->where('source_id', '201')->exists())->toBeTrue();
 });

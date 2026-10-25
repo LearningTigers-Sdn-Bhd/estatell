@@ -20,6 +20,23 @@ The hardest move. The resort sells to travel agents on company rates, has real c
 | Taxes          | SST off. Tourist Jetty Fee 10.00 flat, off                                                                                                                                                                                       | Ask the hotel                                            |
 | Extra charges  | Tourist Jetty Fee 10 per person, Tourism Tax 10 per room-night, Charter Boat 280, Peak Season 100 per person-night, 1/2kg Cake 65, Sea Fishing (Half Day) 340, Single Occupancy, Food & Beverage, Miscellaneous Revenue, Parking | Charge items. Tourism Tax maps to the Tourism tax preset |
 
+### Charge codes
+
+The setup import maps these wastays codes to charge items, with the wastays price and unit when the extra charge is fixed. The folio lines of the replay land on them.
+
+| wastays code | estatell charge item                                      | Price and unit         |
+| ------------ | --------------------------------------------------------- | ---------------------- |
+| JETTY        | Tourist Jetty Fee                                         | 10.00 per guest        |
+| TTX          | TTX (a charge, no tax; `TAX_TTX` is the real tourism tax) | 10.00 per night        |
+| SO           | Single Occupancy                                          | none (manual)          |
+| MISC, PARK   | Miscellaneous Revenue, Parking                            | none (manual)          |
+| CB           | Charter Boat                                              | 280.00 per item        |
+| CAKE         | 1/2kg Cake                                                | 65.00 per item         |
+| PS           | Peak Season                                               | 100.00 per guest-night |
+| SFS          | Sea Fishing (Half Day)                                    | 340.00 per item        |
+
+`auto_apply` on the Jetty Fee is not copied. The replay posts the wastays lines as they were, so it does not need it. Decide after cutover whether the item should add itself to new bookings.
+
 ### Rate plans
 
 Prices are nightly totals by number of adults, for example Malaysian Publish Rate on Deluxe King: 1 adult 937.50, 2 adults 1,250.00, 3 adults 1,875.00. They map to PerGuest plans with occupancy prices.

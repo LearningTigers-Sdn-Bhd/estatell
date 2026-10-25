@@ -367,6 +367,10 @@ class ImportWastaysSetup
                     'code' => $new['code'],
                     'category' => $new['category']->value,
                     'active' => $this->map->isTrue($wastaysCode['active'] ?? 'true'),
+                    ...(($row['pricing_type'] ?? null) === 'fixed' && filled($row['rate_value'] ?? null) ? [
+                        'default_amount' => number_format((float) $row['rate_value'], 2, '.', ''),
+                        'charging_unit' => $this->map->chargingUnit($row['charging_unit'] ?? null),
+                    ] : []),
                 ]);
             }
 
