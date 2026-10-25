@@ -10,7 +10,10 @@ use App\Models\PaymentMethod;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\TransactionCode;
+use App\Services\Onboarding\Wastays\WastaysBookingIndex;
+use App\Services\Onboarding\Wastays\WastaysBundle;
 use App\Services\Onboarding\Wastays\WastaysImportTarget;
+use Carbon\CarbonImmutable;
 
 require_once __DIR__.'/../Support/WastaysReplaySetup.php';
 
@@ -129,4 +132,42 @@ it('reads the booking dates in the hotel time zone, not in UTC', function () {
     expect($summary->counts)->toMatchArray(['future bookings' => 1])
         ->and($reservation->arrival_date->toDateString())->toBe('2026-08-13')
         ->and($reservation->departure_date->toDateString())->toBe('2026-08-15');
+});
+
+it('finds what a booking of a group paid beyond or still owes', function () {
+    $tables = wastaysStayTables();
+    $tables['bookings'][1]['group_booking_id'] = '9';
+    $tables['bookings'][0]['group_booking_id'] = '9';
+    $tables['folio_transactions'][] = ['id' => '90', 'booking_folio_id' => '1', 'transaction_type' => 'payment', 'category' => 'booking_payment', 'amount' => '700.00', 'source_booking_id' => '2', 'created_at' => '2026-08-06T02:00:00.000000Z', 'metadata' => '{}', 'reversal_of_transaction_id' => null, 'moved_from_transaction_id' => null];
+    $tables['folio_transactions'][] = ['id' => '91', 'booking_folio_id' => '1', 'transaction_type' => 'charge', 'category' => 'accommodation', 'amount' => '200.00', 'source_booking_id' => '2', 'created_at' => '2026-08-06T03:00:00.000000Z', 'metadata' => '{}', 'reversal_of_transaction_id' => null, 'moved_from_transaction_id' => null];
+    $index = new WastaysBookingIndex(WastaysBundle::open(wastaysDayBundleDir($tables, ['hotel_code' => test()->setup['property']->document_prefix])));
+
+    expect($index->groupBalance('2'))->toBe('500.00')
+        ->and($index->groupBalance('1'))->toBeNull()
+        ->and($index->groupId('2'))->toBe('9');
+});
+
+it('knows a booking that wastays created already cancelled', function () {
+    $tables = wastaysStayTables();
+    $tables['booking_audit_logs'] = [
+        ['id' => '1', 'auditable_type' => 'Booking', 'auditable_id' => '4', 'action_type' => 'create', 'occurred_at' => '2026-08-01T02:00:00.000000Z', 'old_value' => '{}', 'new_value' => '{"status":"cancelled"}'],
+        ['id' => '2', 'auditable_type' => 'Booking', 'auditable_id' => '2', 'action_type' => 'create', 'occurred_at' => '2026-08-01T02:00:00.000000Z', 'old_value' => '{}', 'new_value' => '{"status":"confirmed"}'],
+    ];
+    $index = new WastaysBookingIndex(WastaysBundle::open(wastaysDayBundleDir($tables, ['hotel_code' => test()->setup['property']->document_prefix])));
+
+    expect($index->createdCancelled('4'))->toBeTrue()->and($index->createdCancelled('2'))->toBeFalse()->and($index->createdCancelled('9'))->toBeFalse();
+});
+
+it('sees a stay moved to an earlier arrival after a given moment', function () {
+    $tables = wastaysStayTables();
+    $update = fn (string $id, string $at, string $oldIn, string $newIn): array => ['id' => $id, 'auditable_type' => 'Booking', 'auditable_id' => '2', 'action_type' => 'update', 'occurred_at' => $at, 'old_value' => json_encode(['check_in' => $oldIn]), 'new_value' => json_encode(['check_in' => $newIn])];
+    $tables['booking_audit_logs'] = [
+        $update('1', '2026-08-13T04:00:00.000000Z', '2026-08-13T03:00:00.000+08:00', '2026-08-12T15:00:00.000+08:00'),
+        $update('2', '2026-08-14T04:00:00.000000Z', '2026-08-12T15:00:00.000+08:00', '2026-08-13T15:00:00.000+08:00'),
+    ];
+    $index = new WastaysBookingIndex(WastaysBundle::open(wastaysDayBundleDir($tables, ['hotel_code' => test()->setup['property']->document_prefix])));
+
+    expect($index->arrivalMovesEarlierAfter('2', CarbonImmutable::parse('2026-08-13T03:00:00Z'), '2026-08-13'))->toBeTrue()
+        ->and($index->arrivalMovesEarlierAfter('2', CarbonImmutable::parse('2026-08-13T03:00:00Z'), '2026-08-12'))->toBeFalse()
+        ->and($index->arrivalMovesEarlierAfter('2', CarbonImmutable::parse('2026-08-13T05:00:00Z'), '2026-08-13'))->toBeFalse();
 });

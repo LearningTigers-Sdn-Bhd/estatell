@@ -39,6 +39,9 @@ final class WastaysBookingIndex
     /** @var array<string, array<string, string|null>>|null */
     private ?array $folioRows = null;
 
+    /** @var array<string, BigDecimal>|null */
+    private ?array $groupBalances = null;
+
     /** @var array<string, string>|null the booking of each wastays folio */
     private ?array $folioBookings = null;
 
@@ -235,12 +238,51 @@ final class WastaysBookingIndex
         return array_map(fn (array $row): string => (string) $row['guest_id'], $rows);
     }
 
+    public function groupId(string $bookingId): ?string
+    {
+        $id = $this->booking($bookingId)['group_booking_id'] ?? null;
+
+        return $id === null ? null : (string) $id;
+    }
+
     public function groupName(string $bookingId): ?string
     {
         $this->groups ??= array_map(fn (array $row): string => (string) $row['name'], $this->keyed('group_bookings', 'id'));
         $groupId = $this->booking($bookingId)['group_booking_id'] ?? null;
 
         return $groupId === null ? null : ($this->groups[$groupId] ?? null);
+    }
+
+    /**
+     * What a booking of a group paid beyond its own charges (a credit) or still owes (a negative figure), over the whole
+     * of its wastays history, or null when it is not in a group or its money balances. One payer can cover a whole group,
+     * and wastays keeps that money on the payer's booking, so every booking of the group checks out with its own balance.
+     * Payments count as they are and every other line, charge or correction, against them.
+     */
+    public function groupBalance(string $bookingId): ?string
+    {
+        if (($this->booking($bookingId)['group_booking_id'] ?? null) === null) {
+            return null;
+        }
+
+        if ($this->groupBalances === null) {
+            $this->groupBalances = [];
+
+            foreach ($this->bundle->rows('folio_transactions') as $row) {
+                $id = (string) ($row['source_booking_id'] ?? '');
+
+                if ($id === '') {
+                    continue;
+                }
+
+                $amount = BigDecimal::of((string) $row['amount']);
+                $this->groupBalances[$id] = ($this->groupBalances[$id] ?? BigDecimal::zero())->plus($row['transaction_type'] === 'payment' ? $amount : $amount->negated());
+            }
+        }
+
+        $balance = $this->groupBalances[$bookingId] ?? BigDecimal::zero();
+
+        return $balance->abs()->isGreaterThan('0.5') ? (string) $balance->toScale(2) : null;
     }
 
     /**
@@ -357,6 +399,28 @@ final class WastaysBookingIndex
         }
 
         return null;
+    }
+
+    /**
+     * Whether staff move the booking to an arrival earlier than `$currentArrival` after `$at`. wastays let them do it after the check-in, which
+     * estatell cannot, so the replay leaves that check-in for the move and checks the guest in as of the new arrival.
+     */
+    public function arrivalMovesEarlierAfter(string $bookingId, CarbonImmutable $at, string $currentArrival): bool
+    {
+        foreach ($this->audit($bookingId) as $row) {
+            if ($row['action_type'] !== 'update' || CarbonImmutable::parse((string) $row['occurred_at'])->lte($at)) {
+                continue;
+            }
+
+            $old = json_decode((string) $row['old_value'], true) ?: [];
+            $new = json_decode((string) $row['new_value'], true) ?: [];
+
+            if (isset($old['check_in'], $new['check_in']) && $this->localDate((string) $new['check_in']) < $this->localDate((string) $old['check_in']) && $this->localDate((string) $new['check_in']) < $currentArrival) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function checkOutAt(string $bookingId): ?CarbonImmutable
@@ -480,6 +544,16 @@ final class WastaysBookingIndex
         }
 
         return $this->repairs;
+    }
+
+    /**
+     * Whether wastays created the booking already cancelled. Its bulk entry of old bookings did, and no cancel follows.
+     */
+    public function createdCancelled(string $bookingId): bool
+    {
+        $create = collect($this->audit($bookingId))->first(fn (array $row): bool => $row['action_type'] === 'create');
+
+        return ((json_decode((string) ($create['new_value'] ?? ''), true) ?: [])['status'] ?? null) === 'cancelled';
     }
 
     /**

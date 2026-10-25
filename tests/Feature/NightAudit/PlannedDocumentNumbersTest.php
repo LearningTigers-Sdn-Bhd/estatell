@@ -119,3 +119,38 @@ test('CloseFolio issues a queued invoice number', function () {
     expect($result->isRefused())->toBeFalse()
         ->and($folio->refresh()->invoice_number)->toBe('GRH-26700670');
 });
+
+test('with a ceiling the replay may issue an unused number below the last, and an unplanned one goes above the ceiling', function () {
+    $property = plannedProperty();
+    $queue = app(PlannedDocumentNumbers::class);
+    $next = app(NextDocumentNumber::class);
+    $queue->setCeiling(DocumentType::Receipt, 150);
+
+    $unplanned = [$next($property, DocumentType::Receipt)->number, $next($property, DocumentType::Receipt)->number];
+    $queue->push(DocumentType::Receipt, 113);
+    $late = $next($property, DocumentType::Receipt)->number;
+    expect($unplanned)->toBe([151, 152])
+        ->and($late)->toBe(113)
+        ->and(DocumentSequence::query()->where('property_id', $property->id)->where('type', DocumentType::Receipt->value)->value('last_number'))->toBeGreaterThanOrEqual(152);
+});
+
+test('a number above the ceiling is still refused when it is not above the last one', function () {
+    $property = plannedProperty();
+    $queue = app(PlannedDocumentNumbers::class);
+    $next = app(NextDocumentNumber::class);
+    $queue->setCeiling(DocumentType::Receipt, 150);
+    $next($property, DocumentType::Receipt);
+    $queue->push(DocumentType::Receipt, 151);
+
+    expect(fn () => $next($property, DocumentType::Receipt))->toThrow(PlannedNumberRefused::class);
+});
+
+test('without a ceiling a late planned number is refused as before', function () {
+    $property = plannedProperty();
+    $queue = app(PlannedDocumentNumbers::class);
+    $next = app(NextDocumentNumber::class);
+    $next($property, DocumentType::Receipt);
+    $queue->push(DocumentType::Receipt, 1);
+
+    expect(fn () => $next($property, DocumentType::Receipt))->toThrow(PlannedNumberRefused::class);
+});

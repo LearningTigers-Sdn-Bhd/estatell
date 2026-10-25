@@ -274,6 +274,11 @@ final class WastaysDay
         $category = (string) $row['category'];
         $source = json_decode((string) $row['metadata'], true)['posting_source'] ?? null;
 
+        // Moving a line to another folio of the same payer is a reversal and a new line. estatell keeps the line where it is.
+        if ($source === 'folio_movement') {
+            return WastaysEventType::FolioMovement;
+        }
+
         if ($category === 'tax') {
             return null;
         }
