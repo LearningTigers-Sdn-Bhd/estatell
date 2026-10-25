@@ -185,6 +185,8 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                 Route::post('early-check-out', [ReservationUnitStayController::class, 'earlyCheckOut'])->middleware('can:'.PermissionEnum::FrontDeskCheckOut->value)->name('early-check-out');
                 Route::post('move/preview', [ReservationUnitStayController::class, 'movePreview'])->name('move-preview');
                 Route::post('move', [ReservationUnitStayController::class, 'move'])->name('move');
+                Route::post('move-stay/preview', [ReservationUnitStayController::class, 'moveStayPreview'])->name('move-stay-preview');
+                Route::post('move-stay', [ReservationUnitStayController::class, 'moveStay'])->name('move-stay');
             });
         });
     });

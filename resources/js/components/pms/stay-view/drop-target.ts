@@ -60,10 +60,12 @@ export function rowOnNight(stay: Stay, date: string): string | null {
 }
 
 /**
- * What a drop on a row and date does, or null when the row does not take it. The night is kept inside the movable
- * nights, so a past date means the first one (tonight for a guest in house). Another room type moves the whole stay,
- * so it needs the arrival to be movable and starts there. The row must be free from that night (`freeFrom`), and it
- * must not be the row the unit is already in on that night.
+ * What a drop on a row and date does, or null when the row does not take it. A Confirmed unit moves the whole stay:
+ * the pointer column is the date shift, not the night, so the move starts on the first movable night (or on the night
+ * the row is free from, when that is later and the stay splits there). A Checked-in unit starts on the night under the
+ * pointer, kept inside the movable nights, so a past date means tonight. Another room type moves the whole stay, so it
+ * needs the arrival to be movable and starts there. The row must be free from that night (`freeFrom`), and it must
+ * not be the row the unit is already in on that night.
  */
 export function dropAt({
     stay,
@@ -92,11 +94,13 @@ export function dropAt({
 
     const fromNight = isRoomTypeChange
         ? stay.arrivalDate
-        : date < nights.first
-          ? nights.first
-          : date > nights.last
-            ? nights.last
-            : date;
+        : stay.status.value === 'confirmed'
+          ? maxNight(nights.first, target.freeFrom)
+          : date < nights.first
+            ? nights.first
+            : date > nights.last
+              ? nights.last
+              : date;
 
     if (target.freeFrom > fromNight || rowOnNight(stay, fromNight) === rowKey) {
         return null;
@@ -123,4 +127,8 @@ export function rowTakesDrop(
             (date) => dropAt({ stay, nights, rowKey, date, targets }) !== null,
         )
     );
+}
+
+function maxNight(a: string, b: string): string {
+    return a > b ? a : b;
 }

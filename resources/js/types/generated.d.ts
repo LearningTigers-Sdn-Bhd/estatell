@@ -3605,6 +3605,14 @@ isDayUse: boolean,
 hoursLabel: string | null,
 targets: App.Data.Reservations.MoveTargetData[],
 };
+export type UnitMoveStayPreviewData = {
+dates: App.Data.Reservations.UnitDatesPreviewData | null,
+targetFree: boolean,
+firstTakenNight: string | null,
+roomTypeAllowed: boolean,
+reasonRequired: boolean,
+error: string | null,
+};
 export type UnitOverdueData = {
 nightDate: string,
 nightTotal: string,

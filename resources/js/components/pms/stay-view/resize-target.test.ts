@@ -1,10 +1,13 @@
 import { expect, test } from 'vite-plus/test';
 import {
     addDays,
+    canShiftDates,
     clampEdgeDate,
+    clampShift,
     daysBetween,
     edgeHandles,
     resizedDates,
+    shiftedDates,
 } from './resize-target';
 
 type Stay = App.Data.StayView.StayData;
@@ -231,4 +234,72 @@ test('resizedDates moves one edge and is null on the same date', () => {
     });
     expect(resizedDates(stay(), 'right', '2026-10-19')).toBeNull();
     expect(resizedDates(stay(), 'left', '2026-10-16')).toBeNull();
+});
+
+test('only a confirmed stay that is fully inside the window can move sideways', () => {
+    expect(canShiftDates(stay(), '2026-10-10', '2026-10-30')).toBe(true);
+    expect(canShiftDates(checkedIn(), '2026-10-10', '2026-10-30')).toBe(false);
+    expect(
+        canShiftDates(
+            stay({ isPackagePlan: true }),
+            '2026-10-10',
+            '2026-10-30',
+        ),
+    ).toBe(false);
+    // Cut by the left edge, or running past the right edge.
+    expect(canShiftDates(stay(), '2026-10-17', '2026-10-30')).toBe(false);
+    expect(canShiftDates(stay(), '2026-10-10', '2026-10-17')).toBe(false);
+    // Departing on the day after the last loaded date still fits.
+    expect(canShiftDates(stay(), '2026-10-10', '2026-10-18')).toBe(true);
+});
+
+test('a shift keeps the arrival off the past and the departure inside the window', () => {
+    const clamp = (columns: number, businessDate = '2026-10-14') =>
+        clampShift({
+            stay: stay(),
+            columns,
+            businessDate,
+            firstDate: '2026-10-10',
+            lastDate: '2026-10-30',
+        });
+
+    expect(clamp(2)).toBe(2);
+    expect(clamp(-2)).toBe(-2);
+    // Arrival 16 Oct, business date 14 Oct: two columns left at most.
+    expect(clamp(-5)).toBe(-2);
+    // Departure 19 Oct, last loaded date 30 Oct: 12 columns right at most.
+    expect(clamp(40)).toBe(12);
+    // Past the business date the first loaded date does not matter.
+    expect(clamp(-5, '2026-10-12')).toBe(-4);
+});
+
+test('a stay that begins before the business date moves by enough to leave the past, or not at all', () => {
+    const late = stay({
+        arrivalDate: '2026-10-13',
+        departureDate: '2026-10-16',
+    });
+    const clamp = (columns: number) =>
+        clampShift({
+            stay: late,
+            columns,
+            businessDate: '2026-10-15',
+            firstDate: '2026-10-10',
+            lastDate: '2026-10-30',
+        });
+
+    expect(clamp(-1)).toBe(0);
+    expect(clamp(1)).toBe(0);
+    expect(clamp(2)).toBe(2);
+    expect(clamp(5)).toBe(5);
+});
+
+test('a shift gives the stay both new dates', () => {
+    expect(shiftedDates(stay(), 2)).toEqual({
+        arrivalDate: '2026-10-18',
+        departureDate: '2026-10-21',
+    });
+    expect(shiftedDates(stay(), -3)).toEqual({
+        arrivalDate: '2026-10-13',
+        departureDate: '2026-10-16',
+    });
 });

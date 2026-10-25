@@ -16,6 +16,7 @@ use App\Data\Reservations\UnitEarlyDepartureData;
 use App\Data\Reservations\UnitFeePreviewData;
 use App\Data\Reservations\UnitLateCheckOutPreviewData;
 use App\Data\Reservations\UnitMovePreviewData;
+use App\Data\Reservations\UnitMoveStayPreviewData;
 use App\Data\Reservations\UnitOverdueData;
 use App\Data\Reservations\UnitReinstatePreviewData;
 use App\Data\Reservations\UnitUndoPreviewData;
@@ -27,10 +28,12 @@ use App\Enums\StayType;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
+use App\Models\Bed;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
+use App\Models\Room;
 use App\Models\RoomRevenuePolicy;
 use App\Models\RoomType;
 use App\Models\Tax;
@@ -275,6 +278,46 @@ class UnitActionPreview
         }
 
         return $targets;
+    }
+
+    /**
+     * The drop of a Confirmed bar on new dates and a room or bed, as `MoveUnitStay` will work it out: the dates preview,
+     * whether the target is free on every new night (the unit's own nights do not count), whether its room type is
+     * allowed and whether a reason is needed. It checks the same things as the Actions but never writes.
+     */
+    public function moveStay(ReservationUnit $unit, CarbonInterface $arrival, CarbonInterface $departure, Room|Bed $target): UnitMoveStayPreviewData
+    {
+        if ($unit->status !== UnitStatus::Confirmed) {
+            return UnitMoveStayPreviewData::refused($this->refusals->message(UnitStayResult::REFUSAL_INVALID_STATUS));
+        }
+
+        $dates = $this->dates($unit, $arrival, $departure);
+
+        if ($dates->error !== null) {
+            return UnitMoveStayPreviewData::refused($dates->error);
+        }
+
+        $isBed = $target instanceof Bed;
+        $own = $unit->roomType()->firstOrFail();
+        $targetType = RoomType::query()->findOrFail($isBed ? $target->room()->firstOrFail()->room_type_id : $target->room_type_id);
+        $isAllowed = $targetType->sell_unit === ($isBed ? SellUnit::Bed : SellUnit::Room)
+            && $this->freeUnits->isSellable($targetType, $target->id)
+            && ($targetType->id === $own->id || ($targetType->sell_unit === $own->sell_unit && $targetType->archived_at === null && $unit->ratePlan()->firstOrFail()->roomTypes()->whereKey($targetType->id)->exists()));
+        $taken = $isAllowed
+            ? $this->freeUnits->firstTakenNight($targetType, $target->id, $arrival, $departure, $unit->id, $unit->arrival_time, $unit->departure_time)
+            : null;
+        $nights = $unit->nights()->get();
+        $keepsRoom = $nights->isNotEmpty() && $nights->every(fn (UnitNight $night): bool => ($isBed ? $night->bed_id : $night->room_id) === $target->id);
+        $holdsRoom = $nights->contains(fn (UnitNight $night): bool => $night->room_id !== null || $night->bed_id !== null);
+
+        return new UnitMoveStayPreviewData(
+            dates: $dates,
+            targetFree: $isAllowed && $taken === null,
+            firstTakenNight: $taken?->toDateString(),
+            roomTypeAllowed: $isAllowed,
+            reasonRequired: $holdsRoom && ! $keepsRoom,
+            error: null,
+        );
     }
 
     private function moveDayUse(ReservationUnit $unit): UnitMovePreviewData

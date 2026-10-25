@@ -34,10 +34,12 @@ import {
     stayBarInputs,
 } from './project-bars';
 import { GroupLabel, LaneLabel, RoomLabel } from './room-row';
+import { placeLabel } from './stay-places';
 import { StayBar } from './stay-bar';
 import { summarizeInventory } from './summarize-inventory';
 import { TimelineDatesDialog } from './timeline-dates-dialog';
 import { TimelineMoveDialog } from './timeline-move-dialog';
+import { TimelineMoveStayDialog } from './timeline-move-stay-dialog';
 import { unassignedLanes } from './unassigned-lane';
 import { useEdgeDrag } from './use-edge-drag';
 import { lockToVerticalAxis, useTimelineDrag } from './use-timeline-drag';
@@ -232,10 +234,16 @@ export function StayViewTimeline({
     );
     const timelineDrag = useTimelineDrag({
         enabled: canManageReservations,
+        canOverrideRestrictions,
         businessDate: window.businessDate,
         dates,
         labelWidth: LABEL_WIDTH,
         columnWidth: COLUMN_WIDTH,
+        placeName: (rowKey) => {
+            const room = roomByKey.get(rowKey);
+
+            return room ? placeLabel(room) : 'That room';
+        },
     });
     const edgeDrag = useEdgeDrag({
         enabled: canManageReservations,
@@ -247,25 +255,36 @@ export function StayViewTimeline({
     });
     const { drag, move } = timelineDrag;
     const { outline } = edgeDrag;
-    // The dashed outline: the nights a moved unit takes in the new row, or the new span of a stay whose edge is dragged.
+    const { stayOutline } = timelineDrag;
+    // The dashed outline: the nights a moved unit takes in the new row, the new place of a stay dragged sideways, or
+    // the new span of a stay whose edge is dragged.
     const dropBar = useMemo(() => {
-        const span = drag?.drop
+        const shifted = drag?.shifted ?? (drag ? null : stayOutline);
+        const span = shifted
             ? {
-                  rowKey: drag.drop.rowKey,
-                  firstNight: drag.drop.fromNight,
-                  lastNight: lastNightOf(drag.stay.departureDate),
-                  stayFirstNight: drag.stay.arrivalDate,
-                  stayLastNight: lastNightOf(drag.stay.departureDate),
+                  rowKey: shifted.rowKey,
+                  firstNight: shifted.arrivalDate,
+                  lastNight: lastNightOf(shifted.departureDate),
+                  stayFirstNight: shifted.arrivalDate,
+                  stayLastNight: lastNightOf(shifted.departureDate),
               }
-            : outline
+            : drag?.drop
               ? {
-                    rowKey: outline.rowKey,
-                    firstNight: outline.arrivalDate,
-                    lastNight: lastNightOf(outline.departureDate),
-                    stayFirstNight: outline.arrivalDate,
-                    stayLastNight: lastNightOf(outline.departureDate),
+                    rowKey: drag.drop.rowKey,
+                    firstNight: drag.drop.fromNight,
+                    lastNight: lastNightOf(drag.stay.departureDate),
+                    stayFirstNight: drag.stay.arrivalDate,
+                    stayLastNight: lastNightOf(drag.stay.departureDate),
                 }
-              : null;
+              : outline
+                ? {
+                      rowKey: outline.rowKey,
+                      firstNight: outline.arrivalDate,
+                      lastNight: lastNightOf(outline.departureDate),
+                      stayFirstNight: outline.arrivalDate,
+                      stayLastNight: lastNightOf(outline.departureDate),
+                  }
+                : null;
 
         return span
             ? (projectBars(
@@ -273,12 +292,16 @@ export function StayViewTimeline({
                   dates,
               )[0] ?? null)
             : null;
-    }, [drag, outline, dates]);
+    }, [drag, stayOutline, outline, dates]);
     const movedFromKey = move
         ? rowOnNight(move.stay, move.drop.fromNight)
         : null;
     const movedFrom =
         movedFromKey === null ? undefined : roomByKey.get(movedFromKey);
+    const stayMove = timelineDrag.stayMove;
+    const stayMovedFromKey = stayMove
+        ? rowOnNight(stayMove.stay, stayMove.stay.arrivalDate)
+        : null;
     const openStay = (unitId: number) =>
         timelineDrag.isClickAfterDrop() ? undefined : onOpenStay(unitId);
     const hasRates = showRates && rates.length > 0;
@@ -361,6 +384,7 @@ export function StayViewTimeline({
                     row.kind === 'row' && (
                         <>
                             {drag?.targets &&
+                                drag.shift === 0 &&
                                 !rowTakesDrop(
                                     drag.stay,
                                     drag.nights,
@@ -481,7 +505,10 @@ export function StayViewTimeline({
                     <InventoryFooterCell day={inventory.get(column.date)} />
                 )}
             />
-            <DragOverlay modifiers={[lockToVerticalAxis]} dropAnimation={null}>
+            <DragOverlay
+                modifiers={drag?.verticalOnly ? [lockToVerticalAxis] : []}
+                dropAnimation={null}
+            >
                 {drag && (
                     <div className="flex size-full items-center truncate border-y border-l-4 border-ring bg-background px-2 text-xs shadow-md">
                         {drag.stay.guestLabel ?? 'No guest named'}
@@ -494,6 +521,18 @@ export function StayViewTimeline({
                 current={movedFrom}
                 businessDate={window.businessDate}
                 onClose={timelineDrag.closeMove}
+            />
+            <TimelineMoveStayDialog
+                change={stayMove}
+                target={stayMove ? roomByKey.get(stayMove.rowKey) : undefined}
+                current={
+                    stayMovedFromKey === null
+                        ? undefined
+                        : roomByKey.get(stayMovedFromKey)
+                }
+                currency={currency}
+                canOverrideRestrictions={canOverrideRestrictions}
+                onClose={timelineDrag.closeStayMove}
             />
             <TimelineDatesDialog
                 change={edgeDrag.change}

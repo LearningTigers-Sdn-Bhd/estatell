@@ -129,3 +129,62 @@ export function resizedDates(
         ? null
         : dates;
 }
+
+/**
+ * Whether a bar can be dragged sideways. Only a Confirmed unit changes both dates, a Package plan has fixed nights
+ * (`ChangeUnitDates` refuses it), and a bar cut by either edge of the window cannot be placed from what is on screen.
+ */
+export function canShiftDates(
+    stay: Stay,
+    firstDate: string,
+    lastDate: string,
+): boolean {
+    return (
+        stay.status.value === 'confirmed' &&
+        !stay.isPackagePlan &&
+        stay.arrivalDate >= firstDate &&
+        stay.departureDate <= addDays(lastDate, 1)
+    );
+}
+
+/**
+ * The whole columns a Confirmed bar moves, the pointer's column change kept inside what the server accepts and the
+ * window: the new arrival is not before the business date or the first loaded date, and the new departure is not
+ * after the last loaded date + 1 (no auto-scroll). A stay that already begins before the business date cannot take a
+ * shift that keeps it there, so it moves by at least the days to the business date or not at all. 0 when no shift fits.
+ */
+export function clampShift({
+    stay,
+    columns,
+    businessDate,
+    firstDate,
+    lastDate,
+}: {
+    stay: Stay;
+    columns: number;
+    businessDate: string;
+    firstDate: string;
+    lastDate: string;
+}): number {
+    const earliest = businessDate > firstDate ? businessDate : firstDate;
+    const min = daysBetween(stay.arrivalDate, earliest);
+    const max = daysBetween(stay.departureDate, addDays(lastDate, 1));
+
+    if (min > max || max < 0) {
+        return 0;
+    }
+
+    if (min > 0) {
+        return columns >= min ? Math.min(columns, max) : 0;
+    }
+
+    return Math.min(Math.max(columns, min), max);
+}
+
+/** The stay's dates moved by whole days. */
+export function shiftedDates(stay: Stay, days: number): EdgeDates {
+    return {
+        arrivalDate: addDays(stay.arrivalDate, days),
+        departureDate: addDays(stay.departureDate, days),
+    };
+}

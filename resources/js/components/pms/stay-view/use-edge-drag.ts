@@ -37,7 +37,7 @@ export type EdgeChange = {
 export type EdgeOutline = { rowKey: string; stay: Stay } & EdgeDates;
 
 /** The refusal for restricted nights when the user may not book past restrictions. Same words as Change dates. */
-const RESTRICTED_MESSAGE =
+export const RESTRICTED_MESSAGE =
     'The new nights break a rate restriction, for example a minimum stay. Ask someone who may book past restrictions.';
 
 /**

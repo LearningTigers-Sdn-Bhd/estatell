@@ -41,6 +41,14 @@ function stay(overrides: Partial<Stay> = {}): Stay {
     };
 }
 
+/** The same stay, checked in: a drop starts on the night under the pointer. */
+function checkedIn(overrides: Partial<Stay> = {}): Stay {
+    return stay({
+        status: { value: 'checked_in', label: 'Checked in', tone: 'success' },
+        ...overrides,
+    });
+}
+
 function targets(list: Target[]): Map<string, Target> {
     return new Map(list.map((target) => [target.rowKey, target]));
 }
@@ -106,12 +114,12 @@ test('the row on a night comes from the segments', () => {
     expect(rowOnNight(moved, '2026-10-17')).toBeNull();
 });
 
-test('a drop moves from the night under the pointer', () => {
+test('a guest in house moves from the night under the pointer', () => {
     const nights = { first: '2026-10-14', last: '2026-10-16' };
 
     expect(
         dropAt({
-            stay: stay(),
+            stay: checkedIn(),
             nights,
             rowKey: 'room-2',
             date: '2026-10-15',
@@ -124,12 +132,12 @@ test('a drop moves from the night under the pointer', () => {
     });
 });
 
-test('a drop on a past night moves from tonight, and one after the stay from the last night', () => {
+test('a drop of a guest in house on a past night moves from tonight, and one after the stay from the last night', () => {
     const nights = { first: '2026-10-15', last: '2026-10-16' };
 
     expect(
         dropAt({
-            stay: stay(),
+            stay: checkedIn(),
             nights,
             rowKey: 'room-2',
             date: '2026-10-10',
@@ -138,7 +146,7 @@ test('a drop on a past night moves from tonight, and one after the stay from the
     ).toBe('2026-10-15');
     expect(
         dropAt({
-            stay: stay(),
+            stay: checkedIn(),
             nights,
             rowKey: 'room-2',
             date: '2026-10-20',
@@ -147,13 +155,30 @@ test('a drop on a past night moves from tonight, and one after the stay from the
     ).toBe('2026-10-16');
 });
 
-test('a row taken tonight takes a drop from the night it is free', () => {
+test('a row taken tonight takes a drop of a guest in house from the night it is free', () => {
     const nights = { first: '2026-10-14', last: '2026-10-16' };
     const drop = (date: string) =>
-        dropAt({ stay: stay(), nights, rowKey: 'room-3', date, targets: free });
+        dropAt({
+            stay: checkedIn(),
+            nights,
+            rowKey: 'room-3',
+            date,
+            targets: free,
+        });
 
     expect(drop('2026-10-14')).toBeNull();
     expect(drop('2026-10-15')?.fromNight).toBe('2026-10-15');
+});
+
+test('a confirmed stay moves from its first movable night whatever column the pointer is in', () => {
+    const nights = { first: '2026-10-14', last: '2026-10-16' };
+    const drop = (rowKey: string, date: string) =>
+        dropAt({ stay: stay(), nights, rowKey, date, targets: free });
+
+    expect(drop('room-2', '2026-10-16')?.fromNight).toBe('2026-10-14');
+    expect(drop('room-2', '2026-10-10')?.fromNight).toBe('2026-10-14');
+    // Room 3 is free only from the 15th, so the stay splits there.
+    expect(drop('room-3', '2026-10-14')?.fromNight).toBe('2026-10-15');
 });
 
 test('another room type moves the whole stay, and only when the arrival can move', () => {
@@ -229,7 +254,7 @@ test('a stay in the unassigned lane drops on a room from the arrival, and the la
         }),
     ).toEqual({
         rowKey: 'room-1',
-        fromNight: '2026-10-15',
+        fromNight: '2026-10-14',
         isRoomTypeChange: false,
     });
     expect(
