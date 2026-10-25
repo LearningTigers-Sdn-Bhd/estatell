@@ -56,6 +56,7 @@ class ImportWastaysSetup
         private UpdateTax $updateTax,
         private UpdatePaymentMethod $updatePaymentMethod,
         private CreateChargeItem $createChargeItem,
+        private AlignWastaysDocumentPrefix $alignPrefix,
         private RecordImportLink $recordImportLink,
         private ImportLinks $links,
         private WastaysCodeMap $map,
@@ -84,6 +85,7 @@ class ImportWastaysSetup
     private function import(WastaysBundle $bundle, Property $property, User $actor): WastaysSetupSummary
     {
         $summary = new WastaysSetupSummary;
+        $summary->prefixChange = ($this->alignPrefix)($property, $bundle->manifest->hotelCode);
 
         [$roomTypes, $newRoomTypeIds] = $this->roomTypes($bundle, $property, $actor, $summary);
         $this->rooms($bundle, $property, $actor, $roomTypes, $summary);

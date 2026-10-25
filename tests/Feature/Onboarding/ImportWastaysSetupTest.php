@@ -4,6 +4,7 @@ use App\Actions\Property\SeedPropertyDefaults;
 use App\Enums\CompanyAccess;
 use App\Enums\PropertyType;
 use App\Models\ChargeItem;
+use App\Models\DocumentSequence;
 use App\Models\ImportLink;
 use App\Models\PaymentMethod;
 use App\Models\Property;
@@ -208,14 +209,41 @@ it('stops and writes nothing when a code with lines has no estatell target', fun
     expect(setupSnapshot($this->property))->toBe($before);
 });
 
-it('refuses a property that is not the bundle hotel', function () {
-    $other = Property::factory()->onboarding()->create(['document_prefix' => 'ABC']);
+it('replaces a different document prefix with the bundle hotel code, once', function () {
+    $this->property->forceFill(['document_prefix' => 'ABC'])->save();
 
-    $this->artisan('wastays:import-setup', [
-        'bundle' => wastaysBundleDir(wastaysSetupTables()),
-        'property' => $other->code,
-        '--actor' => $this->admin->email,
-    ])->expectsOutputToContain('The bundle is for GEH')->assertFailed();
+    runSetupImport()->expectsOutputToContain('Document prefix ABC → GEH')->assertSuccessful();
 
-    expect(RoomType::query()->count())->toBe(0);
+    expect($this->property->refresh()->document_prefix)->toBe('GEH')
+        ->and($this->property->documentPrefixHistories()->where('prefix', 'GEH')->count())->toBe(1);
+
+    runSetupImport()->doesntExpectOutputToContain('Document prefix')->assertSuccessful();
+
+    expect($this->property->refresh()->document_prefix)->toBe('GEH');
+});
+
+it('leaves the prefix alone on a dry run', function () {
+    $this->property->forceFill(['document_prefix' => 'ABC'])->save();
+
+    runSetupImport(options: ['--dry-run' => true])->expectsOutputToContain('Document prefix ABC → GEH')->assertSuccessful();
+
+    expect($this->property->refresh()->document_prefix)->toBe('ABC');
+});
+
+it('refuses a new prefix when the property has issued documents', function () {
+    $this->property->forceFill(['document_prefix' => 'ABC'])->save();
+    DocumentSequence::factory()->create(['property_id' => $this->property->id]);
+
+    runSetupImport()->expectsOutputToContain('already issued documents')->assertFailed();
+
+    expect($this->property->refresh()->document_prefix)->toBe('ABC')->and(RoomType::query()->count())->toBe(0);
+});
+
+it('refuses a prefix that another property holds', function () {
+    $this->property->forceFill(['document_prefix' => 'ABC'])->save();
+    Property::factory()->onboarding()->create(['document_prefix' => 'GEH']);
+
+    runSetupImport()->expectsOutputToContain('Another property holds or held the prefix GEH')->assertFailed();
+
+    expect($this->property->refresh()->document_prefix)->toBe('ABC')->and(RoomType::query()->count())->toBe(0);
 });

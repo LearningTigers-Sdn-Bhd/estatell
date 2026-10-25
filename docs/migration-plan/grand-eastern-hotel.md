@@ -46,7 +46,7 @@ Figures are from the 22 Oct dump. They grow until cutover.
 
 ### Day loop
 
-`ApproveGoLive` opens the first business date on 13 Aug 2026. The importer then replays every wastays business date in order. `wastays:replay` loops over the dates; `ReplayWastaysDay` replays one.
+`wastays:go-live` opens the first business date on 13 Aug 2026. The importer then replays every wastays business date in order. `wastays:replay` loops over the dates; `ReplayWastaysDay` replays one.
 
 **Which day a row belongs to.** Each wastays business date has a window in `hotel_business_dates`: `opened_at <= created_at < closed_at`. A row belongs to the day whose window holds its `created_at`. `posting_date` is not used: room, tax, correction and early-departure lines carry the night date, not the day they were posted.
 
@@ -201,7 +201,8 @@ On any mismatch it deletes what it extracted, prints why and exits non-zero. On 
 
 - `{bundle}` is the extracted bundle path that `wastays:fetch` prints. `{property}` is the estatell property code. The property is created in the admin first, so it already has its seeded defaults.
 - `--actor` is the email of an admin user (`is_admin`). The activity log shows that user.
-- Each command refuses, and writes nothing, when the bundle's `hotel_code` is not the property's document prefix, or when go-live is already approved.
+- `wastays:import-setup` sets the property's document prefix to the bundle's `hotel_code` when they differ, once, and records it in the prefix history. It refuses, and writes nothing, when the property has already issued a document or another property holds or held that prefix. `--dry-run` shows the change and rolls it back.
+- `wastays:import-guests` refuses when the bundle's `hotel_code` is not the property's document prefix, so run the setup import first. Both commands refuse when go-live is already approved.
 - Every write goes through Actions in one transaction. `--dry-run` runs everything, rolls back and prints the summary.
 - Every written wastays row gets an `import_links` row, so a second run skips it.
 - The output shows counts only, never names, emails, phones or ID numbers.
@@ -269,7 +270,7 @@ The replay checks guests in and out on their real days, so the guests in-house o
 
 1. The evening before: the last wastays night audit. Staff stop using wastays.
 2. wastays terminal: `bin/rails "estatell:export[3]"`. In the R2 dashboard, download the zip from `wastays-bucket` and drag it into `estatell-production` at `imports/grand-eastern-hotel/`.
-3. estatell terminal: `wastays:fetch`. Create the property, set `migration_window_days` to 90, run `wastays:import-setup` and `wastays:import-guests`, then `ApproveGoLive` with opening date 13 Aug 2026. Both imports refuse a live property, so they run first.
+3. estatell terminal: `wastays:fetch`. Create the property and set `migration_window_days` to 90. Run `wastays:import-setup` (it sets the document prefix), `wastays:import-guests`, then `wastays:go-live`, which opens the first wastays business date (13 Aug 2026) once every required onboarding step is done. Each command takes `--dry-run`; the imports refuse a live property, so they run first.
 4. Rename Basic Rate to Standard Rate on the Rates page.
 5. `wastays:replay` up to the last wastays date. Every day must match.
 6. Check that Tourism tax is on: the replay turned it on from 12 Oct.
