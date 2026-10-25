@@ -49,9 +49,10 @@ class ChangeUnitDates
      * the neighbouring night when it is free (`unassignedNights` counts those that could not). Each nightly add-on
      * gets rows for the new nights (`AddNightlyAddOnRows`).
      *
-     * A shorter departure runs `ProcessEarlyDeparture`: the early departure policy fee (`$doNotCharge`, `$reason` and
-     * `$expectedFee` work as in `CancelUnit`) and the removal of the unused nights. A change that also moves the
-     * arrival is a new booking of the unit, not an early departure, so it has no fee. New nights must pass `RestrictionCheck`: a restriction needs `$restrictionOverrideReason`,
+     * A shorter departure runs `ProcessEarlyDeparture`: the removal of the unused nights, and the early departure policy
+     * fee (`$doNotCharge`, `$reason` and `$expectedFee` work as in `CancelUnit`) only for a CheckedIn unit. A Confirmed
+     * unit that has not arrived changes dates with no fee and no policy checks. A change that also moves the arrival is
+     * a new booking of the unit, not an early departure, so it has no fee either. New nights must pass `RestrictionCheck`: a restriction needs `$restrictionOverrideReason`,
      * which the route passes only to a user with `rates.override-restrictions`. A Package plan is refused
      * (`package_plan`) and so is a day use unit (`day_use_unit`), which has no nights to change. Permissions are checked by the route. See docs/18-front-desk/01-check-in-and-check-out.md.
      */
@@ -162,7 +163,7 @@ class ChangeUnitDates
             $feeCharged = false;
 
             if ($newDeparture->lt($oldDeparture)) {
-                $early = ($this->processEarlyDeparture)($actor, $locked, $newDeparture, $doNotCharge, $reason, $expectedFee, $newArrival->equalTo($oldArrival), $newArrival);
+                $early = ($this->processEarlyDeparture)($actor, $locked, $newDeparture, $doNotCharge, $reason, $expectedFee, $locked->status === UnitStatus::CheckedIn, $newArrival);
 
                 if ($early->isRefused()) {
                     return $early;

@@ -113,3 +113,37 @@ test('search and filters work together', () => {
     expect(result.rooms).toEqual([]);
     expect(result.stays).toEqual([]);
 });
+
+test('a stay with no room stays while its room type passes, whatever the room group and status', () => {
+    const lane = [
+        stay(4, 'unassigned-10', { roomTypeId: 10 }),
+        stay(5, 'unassigned-20', { roomTypeId: 20 }),
+    ];
+
+    expect(filterStays(rooms, lane, none).stays).toHaveLength(2);
+    expect(
+        filterStays(rooms, lane, {
+            ...none,
+            roomGroupIds: [99],
+            statuses: ['dirty'],
+        }).stays,
+    ).toHaveLength(2);
+    expect(
+        filterStays(rooms, lane, { ...none, roomTypeIds: [10] }).stays.map(
+            (kept) => kept.unitId,
+        ),
+    ).toEqual([4]);
+});
+
+test('search keeps a stay with no room only when the stay matches', () => {
+    const lane = [
+        stay(4, 'unassigned-10', { roomTypeId: 10, guestLabel: 'Aminah' }),
+        stay(5, 'unassigned-10', { roomTypeId: 10, guestLabel: 'Bala' }),
+    ];
+
+    expect(
+        filterStays(rooms, lane, { ...none, search: 'amin' }).stays.map(
+            (kept) => kept.unitId,
+        ),
+    ).toEqual([4]);
+});

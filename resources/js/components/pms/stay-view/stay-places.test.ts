@@ -107,3 +107,20 @@ test('the day after a last night is the departure date, over a month end', () =>
     expect(dayAfter('2026-10-31')).toBe('2026-11-01');
     expect(dayAfter('2026-12-31')).toBe('2027-01-01');
 });
+
+test('nights with no room list as not assigned', () => {
+    const places = placesOf(
+        stay({
+            segments: [
+                {
+                    rowKey: 'unassigned-10',
+                    firstNight: '2026-10-14',
+                    lastNight: '2026-10-15',
+                },
+            ],
+        }),
+        [],
+    );
+
+    expect(places.map((place) => place.label)).toEqual(['Not assigned']);
+});

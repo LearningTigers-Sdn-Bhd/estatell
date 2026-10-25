@@ -3217,6 +3217,11 @@ settleMaster: boolean,
 masterAfter: string | null,
 onePayment: string | null,
 };
+export type MoveTargetData = {
+rowKey: string,
+roomTypeId: number,
+freeFrom: string,
+};
 export type NewAddOnData = {
 chargeItemId: number,
 quantity: number | null,
@@ -3598,6 +3603,15 @@ units: App.Data.Reservations.FreeUnitData[],
 error: string | null,
 isDayUse: boolean,
 hoursLabel: string | null,
+targets: App.Data.Reservations.MoveTargetData[],
+};
+export type UnitMoveStayPreviewData = {
+dates: App.Data.Reservations.UnitDatesPreviewData | null,
+targetFree: boolean,
+firstTakenNight: string | null,
+roomTypeAllowed: boolean,
+reasonRequired: boolean,
+error: string | null,
 };
 export type UnitOverdueData = {
 nightDate: string,
@@ -3825,6 +3839,7 @@ doNotDisturb: boolean,
 export type StayData = {
 unitId: number,
 reservationId: number,
+roomTypeId: number,
 reference: string,
 guestLabel: string | null,
 groupName: string | null,
@@ -3834,6 +3849,7 @@ adults: number,
 children: number,
 status: App.Data.Shared.BadgeData,
 balanceDue: boolean,
+isPackagePlan: boolean,
 arrivalDate: string,
 departureDate: string,
 arrivalTime: string,

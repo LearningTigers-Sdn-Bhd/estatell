@@ -245,10 +245,19 @@ test('the dates preview shows the price difference of a longer and a shorter sta
     $this->actingAs($setup['user'])
         ->postJson(uaUrl($setup, 'dates-preview'), ['arrival_date' => today()->toDateString(), 'departure_date' => today()->addDay()->toDateString()])
         ->assertOk()
-        ->assertJson(['newTotal' => '100.00', 'difference' => '-100.00', 'nights' => 1, 'isEarlyDeparture' => true, 'fee' => '40.00']);
+        ->assertJson(['newTotal' => '100.00', 'difference' => '-100.00', 'nights' => 1, 'isEarlyDeparture' => false, 'fee' => null]);
 
     expect(Activity::query()->count())->toBe(0)
         ->and($setup['unit']->fresh()->departure_date->toDateString())->toBe(today()->addDays(2)->toDateString());
+});
+
+test('the dates preview shows the early departure fee of a checked-in unit that leaves early', function () {
+    $setup = uaSetup(DefaultRoleEnum::Owner, ['status' => UnitStatus::CheckedIn, 'checked_in_at' => now()]);
+
+    $this->actingAs($setup['user'])
+        ->postJson(uaUrl($setup, 'dates-preview'), ['arrival_date' => today()->toDateString(), 'departure_date' => today()->addDay()->toDateString()])
+        ->assertOk()
+        ->assertJson(['newTotal' => '100.00', 'difference' => '-100.00', 'nights' => 1, 'isEarlyDeparture' => true, 'fee' => '40.00']);
 });
 
 test('the dates preview treats a shorter stay that also moves the arrival as a new booking, with no fee', function () {
@@ -272,7 +281,7 @@ test('the dates preview refuses a departure that is not after arrival', function
         ->assertJson(['newTotal' => null, 'error' => 'Departure must be after arrival.']);
 });
 
-test('change dates extends the stay and a shorter stay posts the early departure fee', function () {
+test('change dates extends a confirmed stay, and a shorter confirmed stay saves with no fee', function () {
     $setup = uaSetup();
 
     $this->actingAs($setup['user'])
@@ -288,7 +297,7 @@ test('change dates extends the stay and a shorter stay posts the early departure
         ->assertSessionHasNoErrors();
 
     expect($setup['unit']->fresh()->departure_date->toDateString())->toBe(today()->addDay()->toDateString())
-        ->and(FolioLine::query()->sole()->amount)->toBe('40.00');
+        ->and(FolioLine::query()->count())->toBe(0);
 });
 
 test('unchanged dates are refused on the departure field', function () {

@@ -354,6 +354,7 @@ export function DateGrid<Row extends GridRow>({
                         <div
                             key={row.key}
                             role="row"
+                            data-row-key={isGroup ? undefined : row.key}
                             aria-rowindex={virtualRow.index + 2}
                             className={cn(
                                 'absolute left-0 border-b border-grid-line',

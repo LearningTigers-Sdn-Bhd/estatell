@@ -35,6 +35,9 @@ export default function Timeline({
     weekendDays,
     currency,
     canViewReservations,
+    canManageReservations,
+    canOverrideRestrictions,
+    canWaiveFees,
 }: {
     window: App.Data.StayView.StayViewWindowData;
     rooms: App.Data.StayView.RoomRowData[];
@@ -48,6 +51,9 @@ export default function Timeline({
     weekendDays: number[];
     currency: App.Data.Property.CurrencyData | null;
     canViewReservations: boolean;
+    canManageReservations: boolean;
+    canOverrideRestrictions: boolean;
+    canWaiveFees: boolean;
 }) {
     const gridRef = useRef<DateGridHandle>(null);
     const [filters, setFilters] = useState(initialFilters);
@@ -104,6 +110,9 @@ export default function Timeline({
                             rateChoice={preferences.rateChoice}
                             currency={currency}
                             canViewReservations={canViewReservations}
+                            canManageReservations={canManageReservations}
+                            canOverrideRestrictions={canOverrideRestrictions}
+                            canWaiveFees={canWaiveFees}
                             onOpenStay={setPeekUnitId}
                             corner={
                                 <StayViewFilters
