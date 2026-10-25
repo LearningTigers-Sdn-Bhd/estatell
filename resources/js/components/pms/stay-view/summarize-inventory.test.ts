@@ -83,3 +83,25 @@ test('a stay in a hidden row is not counted and an empty grid has no occupancy',
         occupancy: 0,
     });
 });
+
+test('a night with no room counts as sold for its room type', () => {
+    const typed = [
+        { key: 'room-1', roomTypeId: 7 },
+        { key: 'room-2', roomTypeId: 7 },
+        { key: 'room-3', roomTypeId: 8 },
+    ] as App.Data.StayView.RoomRowData[];
+    const days = summarizeInventory(
+        typed,
+        [
+            stay('room-1', '2026-10-14', '2026-10-14'),
+            stay('unassigned-7', '2026-10-14', '2026-10-15'),
+            stay('unassigned-7', '2026-10-15', '2026-10-15'),
+            stay('unassigned-99', '2026-10-14', '2026-10-14'),
+        ],
+        [],
+        dates,
+    );
+
+    expect(days[0]).toMatchObject({ occupied: 2, available: 1 });
+    expect(days[1]).toMatchObject({ occupied: 2, available: 1 });
+});

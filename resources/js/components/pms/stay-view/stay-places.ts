@@ -1,3 +1,5 @@
+import { isUnassignedRow } from './unassigned-lane';
+
 type Room = App.Data.StayView.RoomRowData;
 type Stay = App.Data.StayView.StayData;
 
@@ -16,7 +18,8 @@ export function placeLabel(room: Room): string {
 
 /**
  * Where the stay sleeps, night by night: one place for each segment, in date order. A segment whose row is not on
- * screen (hidden by a filter, or archived) still lists, as "Unknown room".
+ * screen (hidden by a filter, or archived) still lists, as "Unknown room". Nights with no room yet list as "Not
+ * assigned".
  */
 export function placesOf(stay: Stay, rooms: Room[]): StayPlace[] {
     const byKey = new Map(rooms.map((room) => [room.key, room]));
@@ -27,7 +30,11 @@ export function placesOf(stay: Stay, rooms: Room[]): StayPlace[] {
             const room = byKey.get(segment.rowKey);
 
             return {
-                label: room ? placeLabel(room) : 'Unknown room',
+                label: room
+                    ? placeLabel(room)
+                    : isUnassignedRow(segment.rowKey)
+                      ? 'Not assigned'
+                      : 'Unknown room',
                 firstNight: segment.firstNight,
                 lastNight: segment.lastNight,
             };

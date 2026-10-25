@@ -5,6 +5,7 @@ import { HoverCard, HoverCardTrigger } from '@/components/ui/hover-card';
 import { cn } from '@/lib/utils';
 import { StayHoverCard } from './bar-hover-card';
 import { barBox, type Bar } from './project-bars';
+import { isUnassignedRow } from './unassigned-lane';
 import type { StayDragData } from './use-timeline-drag';
 
 type Stay = App.Data.StayView.StayData;
@@ -171,7 +172,11 @@ export function StayBar({
                     />
                 )}
             </HoverCardTrigger>
-            <StayHoverCard stay={stay} room={room} />
+            <StayHoverCard
+                stay={stay}
+                room={room}
+                unassigned={isUnassignedRow(bar.rowKey)}
+            />
         </HoverCard>
     );
 }

@@ -204,3 +204,44 @@ test('a row that is not a target, or the row the unit is already in, takes no dr
     expect(rowTakesDrop(stay(), nights, 'room-1', free)).toBe(false);
     expect(rowTakesDrop(stay(), nights, 'room-3', free)).toBe(true);
 });
+
+test('a stay in the unassigned lane drops on a room from the arrival, and the lane takes no drop', () => {
+    const unassigned = stay({
+        segments: [
+            {
+                rowKey: 'unassigned-7',
+                firstNight: '2026-10-14',
+                lastNight: '2026-10-16',
+            },
+        ],
+    });
+    const nights = { first: '2026-10-14', last: '2026-10-16' };
+
+    expect(rowOnNight(unassigned, '2026-10-15')).toBe('unassigned-7');
+    expect(
+        dropAt({
+            stay: unassigned,
+            nights,
+            rowKey: 'room-1',
+            date: '2026-10-15',
+            targets: free,
+        }),
+    ).toEqual({
+        rowKey: 'room-1',
+        fromNight: '2026-10-15',
+        isRoomTypeChange: false,
+    });
+    expect(
+        dropAt({
+            stay: unassigned,
+            nights,
+            rowKey: 'unassigned-7-0',
+            date: '2026-10-15',
+            targets: free,
+        }),
+    ).toBeNull();
+    expect(rowTakesDrop(unassigned, nights, 'unassigned-7-0', free)).toBe(
+        false,
+    );
+    expect(rowTakesDrop(unassigned, nights, 'room-1', free)).toBe(true);
+});

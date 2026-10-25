@@ -33,10 +33,11 @@ import {
     projectBars,
     stayBarInputs,
 } from './project-bars';
-import { GroupLabel, RoomLabel } from './room-row';
+import { GroupLabel, LaneLabel, RoomLabel } from './room-row';
 import { StayBar } from './stay-bar';
 import { summarizeInventory } from './summarize-inventory';
 import { TimelineMoveDialog } from './timeline-move-dialog';
+import { unassignedLanes } from './unassigned-lane';
 import { lockToVerticalAxis, useTimelineDrag } from './use-timeline-drag';
 
 type Filters = App.Data.StayView.StayViewFiltersData;
@@ -119,9 +120,20 @@ export function StayViewTimeline({
         () => filterStays(rooms, stays, filters),
         [rooms, stays, filters],
     );
+    // Lane names and order come from every room, so a room group or status filter does not rename or reorder them.
+    const unassigned = useMemo(
+        () => unassignedLanes(visible.stays, rooms),
+        [visible.stays, rooms],
+    );
     const rows = useMemo(
-        () => buildRows(visible.rooms, filters.groupBy, collapsed),
-        [visible.rooms, filters.groupBy, collapsed],
+        () =>
+            buildRows(
+                visible.rooms,
+                filters.groupBy,
+                collapsed,
+                unassigned.lanes,
+            ),
+        [visible.rooms, filters.groupBy, collapsed, unassigned.lanes],
     );
     const roomByKey = useMemo(
         () => new Map(visible.rooms.map((room) => [room.key, room])),
@@ -142,7 +154,11 @@ export function StayViewTimeline({
             dates,
             dayUseCells,
         ).map((bar) => ({
-            bar,
+            // A bar with no room is drawn in its sub-row of the lane. The stay keeps its own segment.
+            bar: {
+                ...bar,
+                rowKey: unassigned.subRowOf.get(bar.id) ?? bar.rowKey,
+            },
             stay: stayById.get(Number(bar.id.split('-')[1])),
         }));
         const blockList = blockBarInputs(blocks, visible.rooms);
@@ -153,7 +169,14 @@ export function StayViewTimeline({
         }));
 
         return { stayBars, blockBars, markers };
-    }, [visible.stays, visible.rooms, blocks, dayUses, dates]);
+    }, [
+        visible.stays,
+        visible.rooms,
+        blocks,
+        dayUses,
+        dates,
+        unassigned.subRowOf,
+    ]);
     const inventory = useMemo(
         () =>
             new Map(
@@ -281,17 +304,22 @@ export function StayViewTimeline({
                                 )
                             }
                         />
+                    ) : row.room === null ? (
+                        <LaneLabel lane={row.lane} />
                     ) : (
                         <RoomLabel room={row.room} />
                     )
                 }
                 renderCell={(row, column) =>
-                    row.kind === 'row' && column.date < window.businessDate ? (
+                    row.kind === 'row' &&
+                    row.room !== null &&
+                    column.date < window.businessDate ? (
                         <span
                             aria-hidden
                             className="pointer-events-none absolute inset-0 bg-muted/50"
                         />
                     ) : row.kind === 'row' &&
+                      row.room !== null &&
                       isCellBookable({
                           canManageReservations,
                           rowKey: row.key,

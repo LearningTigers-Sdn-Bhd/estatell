@@ -97,12 +97,22 @@ Every drop opens a small Dialog. Nothing saves until **Save**. Cancel or Esc put
 
 A booking shows **Auto** for its room until check-in, so many Confirmed units have no room. Without a lane the Timeline shows those rooms as free.
 
-- One collapsible **Unassigned** row per room type, at the top of its group, shown only when a unit in the window has a night with no room or bed.
-- A segment with no room or bed gets the row key `unassigned-{roomTypeId}`. Today `StayViewQuery` leaves these nights out.
-- The lane has as many rows as it needs: the browser packs the bars into rows so none overlap (`packUnassigned()`, unit tested).
-- The footer counts an unassigned night as sold for that date.
-- Dragging a bar from the lane to a room row is a first assignment through `MoveUnit`, so no reason.
-- The query count stays fixed. The Pest test asserts it.
+- A segment with no room or bed gets the row key `unassigned-{roomTypeId}` (the unit's room type), and consecutive nights form one segment. `StayViewQuery` does this with no extra query.
+- The lane rows come from the browser, not the `rooms` prop. A lane shows only when a visible stay has an `unassigned-{roomTypeId}` segment in the window, and only for room types that pass the Room type filter. The Room group and Status filters are about physical rooms, so they never hide a lane or a stay with no room.
+- **Placement.**
+
+| Group by   | Where the lanes sit                                                                                                                        |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Room type  | At the top of that room type's group. A room type with a lane but no room on screen still gets its group                                   |
+| Room group | One **Unassigned** group at the top of the grid, with one lane for each room type, in room type order                                      |
+| None       | The same **Unassigned** group at the top, then an **All rooms** group heading above the room list, so the heading does not claim the rooms |
+
+- The label reads "Unassigned · {room type name}", with the count of units on its first row. Room type order is the order the room types first appear in the rooms. The **Unassigned** and **All rooms** groups collapse like other groups. A lane inside a room type group has no fold of its own: it folds with the group.
+- A lane has as many rows as it needs. `packUnassigned()` packs the bars into the fewest sub-rows so none overlap (unit tested). A bar may begin on the day another ends, as with half cells elsewhere. Each sub-row is a normal grid row with the key `unassigned-{roomTypeId}-{n}`. A bar is drawn in its sub-row only for display: the stay keeps its `unassigned-{roomTypeId}` segment.
+- A lane row is never a drop target, and its cells take no click for a new booking. The hover card shows "Not assigned" as the room.
+- The footer counts an unassigned night as sold for that date, so Available drops by one for each unit. It counts only while a row of that room type is on screen.
+- Dragging a bar from the lane to a room row is a first assignment through `MoveUnit`: the Dialog omits the "from" room and the reason is optional (`reasonRequired` is false for a night with no room).
+- The query count stays fixed. The Pest test asserts it with unassigned units in the data.
 
 ## Empty cell
 

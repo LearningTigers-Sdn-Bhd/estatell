@@ -1,4 +1,5 @@
 import { blockRowKeys } from './project-bars';
+import { isUnassignedRow, unassignedRoomType } from './unassigned-lane';
 
 type Room = App.Data.StayView.RoomRowData;
 type Stay = App.Data.StayView.StayData;
@@ -21,8 +22,9 @@ function nightsOf(first: string, last: string, dates: string[]): string[] {
 }
 
 /**
- * Availability and occupancy for each date, from the rows, stays and blocks on screen. Display only: the server
- * decides availability when it books.
+ * Availability and occupancy for each date, from the rows, stays and blocks on screen. A night with no room yet
+ * counts as sold, so Available drops by one for each such unit, whichever room it will get. It counts only when a
+ * row of that room type is on screen. Display only: the server decides availability when it books.
  */
 export function summarizeInventory(
     rooms: Room[],
@@ -33,9 +35,30 @@ export function summarizeInventory(
     const visible = new Set(rooms.map((room) => room.key));
     const occupied = new Set<string>();
     const blocked = new Set<string>();
+    const shownTypes = new Set(rooms.map((room) => room.roomTypeId));
+    /** Units with no room that night, by room type and date. */
+    const unassigned = new Map<string, number>();
 
     for (const stay of stays) {
         for (const segment of stay.segments) {
+            if (isUnassignedRow(segment.rowKey)) {
+                const roomTypeId = unassignedRoomType(segment.rowKey);
+
+                if (shownTypes.has(roomTypeId)) {
+                    for (const date of nightsOf(
+                        segment.firstNight,
+                        segment.lastNight,
+                        dates,
+                    )) {
+                        const key = `${roomTypeId}|${date}`;
+
+                        unassigned.set(key, (unassigned.get(key) ?? 0) + 1);
+                    }
+                }
+
+                continue;
+            }
+
             if (!visible.has(segment.rowKey)) {
                 continue;
             }
@@ -73,6 +96,12 @@ export function summarizeInventory(
                 blockedCount += 1;
             } else if (occupied.has(key)) {
                 occupiedCount += 1;
+            }
+        }
+
+        for (const [key, count] of unassigned) {
+            if (key.endsWith(`|${date}`)) {
+                occupiedCount += count;
             }
         }
 

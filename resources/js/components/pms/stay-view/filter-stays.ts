@@ -1,3 +1,5 @@
+import { isUnassignedRow } from './unassigned-lane';
+
 type Room = App.Data.StayView.RoomRowData;
 type Stay = App.Data.StayView.StayData;
 type Filters = App.Data.StayView.StayViewFiltersData;
@@ -9,7 +11,9 @@ function matches(value: string | null | undefined, text: string): boolean {
 /**
  * The rows and stays that pass the filters. An empty list filter means all. Search matches a room number or label, a
  * guest, a reservation reference or a group name; a stay that matches shows its rows even when the room does not.
- * Stays are kept only when one of their segments is in a visible row. Display only.
+ * Stays are kept only when one of their segments is in a visible row, or in the unassigned lane of a room type that
+ * passes the Room type filter: the room group and status filters are about physical rooms, so they never hide a
+ * stay with no room yet. Display only.
  */
 export function filterStays(
     rooms: Room[],
@@ -20,6 +24,12 @@ export function filterStays(
     >,
 ): { rooms: Room[]; stays: Stay[] } {
     const text = filters.search.trim().toLowerCase();
+    const typePasses = (stay: Stay) =>
+        filters.roomTypeIds.length === 0 ||
+        filters.roomTypeIds.includes(stay.roomTypeId);
+    const hasUnassigned = (stay: Stay) =>
+        typePasses(stay) &&
+        stay.segments.some((segment) => isUnassignedRow(segment.rowKey));
 
     const passing = rooms.filter(
         (room) =>
@@ -37,8 +47,10 @@ export function filterStays(
 
         return {
             rooms: passing,
-            stays: stays.filter((stay) =>
-                stay.segments.some((segment) => keys.has(segment.rowKey)),
+            stays: stays.filter(
+                (stay) =>
+                    stay.segments.some((segment) => keys.has(segment.rowKey)) ||
+                    hasUnassigned(stay),
             ),
         };
     }
@@ -64,8 +76,10 @@ export function filterStays(
 
     return {
         rooms: visible,
-        stays: stays.filter((stay) =>
-            stay.segments.some((segment) => keys.has(segment.rowKey)),
+        stays: stays.filter(
+            (stay) =>
+                stay.segments.some((segment) => keys.has(segment.rowKey)) ||
+                (matchingStays.includes(stay) && hasUnassigned(stay)),
         ),
     };
 }
