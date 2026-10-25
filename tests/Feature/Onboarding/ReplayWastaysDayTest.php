@@ -277,3 +277,52 @@ it('takes the company from the billing party when the booking has none, and does
     expect(Reservation::query()->where('property_id', $setup['property']->id)->sole()->company_id)->toBe($company->id)
         ->and(Payment::query()->where('purpose', PaymentPurpose::SecurityDeposit)->exists())->toBeFalse();
 });
+
+it('posts a charge wastays took before the check-in when the unit checks in', function () {
+    $setup = wastaysReplaySetup();
+    $tables = wastaysReplayTables();
+    $tables['folio_transactions'][1]['created_at'] = '2026-08-13T02:30:00.000000Z';
+    [$target, $day] = wastaysReplayTarget($setup, $tables);
+
+    $summary = replayDay($setup, $day, $target, '2026-08-13');
+
+    expect($summary->counts)->toMatchArray(['charges waiting for check-in' => 1, 'charges moved to the check-in day' => 1])
+        ->and($summary->counts)->not->toHaveKey('charges posted')
+        ->and(FolioLine::query()->where('amount', '20.00')->count())->toBe(1)
+        ->and(ImportLink::query()->where('source_table', 'waiting_charges')->count())->toBe(0)
+        ->and(ImportLink::query()->where('source_table', 'folio_transactions')->where('source_id', '11')->count())->toBe(1);
+});
+
+it('gives the first payment taken from a prepayment the receipt number wastays issued for the deposit', function () {
+    $setup = wastaysReplaySetup();
+    $tables = wastaysReplayTables();
+    $tables['folio_transactions'][0]['metadata'] = json_encode(['reference' => 'RESIT 1', 'deposit_id' => 7]);
+    $tables['receipts'] = [
+        ['id' => '1', 'folio_transaction_id' => null, 'deposit_id' => '7', 'receipt_number' => '70', 'public_number' => 'X-26500070'],
+        ['id' => '2', 'folio_transaction_id' => '13', 'deposit_id' => null, 'receipt_number' => '79'],
+        ['id' => '3', 'folio_transaction_id' => '12', 'deposit_id' => null, 'receipt_number' => '78'],
+    ];
+    [$target, $day] = wastaysReplayTarget($setup, $tables);
+    $prefix = $setup['property']->document_prefix;
+
+    replayDay($setup, $day, $target, '2026-08-13');
+
+    expect(Payment::query()->where('reference', 'RESIT 1')->sole()->receipt_number)->toBe("{$prefix}-26500070")
+        ->and(ImportLink::query()->where('source_table', 'deposit_receipts')->where('source_id', '7')->count())->toBe(1);
+});
+
+it('keeps a booking that wastays took over the room type capacity', function () {
+    $setup = wastaysReplaySetup();
+    $tables = wastaysReplayTables();
+    foreach ([3, 4] as $id) {
+        $tables['bookings'][] = ['id' => (string) $id, 'source' => 'walk_in', 'created_at' => '2026-08-13T02:10:00.000000Z', 'check_in' => '2026-08-13 00:00:00', 'check_out' => '2026-08-15 00:00:00', 'adults' => '1', 'children' => '0', 'reservation_number' => (string) (40 + $id)];
+        $tables['booking_rooms'][] = ['id' => (string) $id, 'booking_id' => (string) $id, 'room_type_id' => '1', 'rate_plan_id' => '5', 'room_id' => '', 'nightly_rate_snapshot' => json_encode(['2026-08-13' => ['price' => '100.0'], '2026-08-14' => ['price' => '100.0']])];
+        $tables['booking_guests'][] = ['id' => (string) $id, 'booking_id' => (string) $id, 'guest_id' => '11', 'role' => 'primary'];
+    }
+    [$target, $day] = wastaysReplayTarget($setup, $tables);
+
+    $summary = replayDay($setup, $day, $target, '2026-08-13');
+
+    expect(Reservation::query()->where('property_id', $setup['property']->id)->count())->toBe(3)
+        ->and($summary->counts['bookings over the room type capacity'])->toBeGreaterThanOrEqual(1);
+});

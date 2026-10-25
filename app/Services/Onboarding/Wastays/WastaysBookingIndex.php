@@ -35,6 +35,9 @@ final class WastaysBookingIndex
     /** @var array<string, array<string, string>>|null the price each night was first charged at, by booking and date */
     private ?array $posted = null;
 
+    /** @var array<string, array<string, string|null>>|null */
+    private ?array $folioRows = null;
+
     /** @var array<string, bool>|null wastays folio ids that belong to a company, by id */
     private ?array $companyFolios = null;
 
@@ -42,6 +45,18 @@ final class WastaysBookingIndex
 
     /** @var array<string, string>|null the corporate account of each booking's company billing party */
     private ?array $companyParties = null;
+
+    /**
+     * A wastays `folio_transactions` row by id.
+     *
+     * @return array<string, string|null>
+     */
+    public function folioRow(string $id): array
+    {
+        $this->folioRows ??= $this->keyed('folio_transactions', 'id');
+
+        return $this->folioRows[$id] ?? [];
+    }
 
     /**
      * The wastays corporate account that pays for the booking: the one on the booking, or else the company billing party.

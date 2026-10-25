@@ -17,6 +17,7 @@ use App\Actions\Reservations\ChangeNightPrice;
 use App\Actions\Reservations\CreateBooking;
 use App\Actions\Reservations\CreateBookingSource;
 use App\Actions\Reservations\EnsureOtaBookingSource;
+use App\Actions\Reservations\ReservationResult;
 use App\Data\Catalogues\TaxInputData;
 use App\Data\Folio\NewChargeData;
 use App\Data\Payments\NewPaymentData;
@@ -78,6 +79,10 @@ use Illuminate\Support\Facades\Mail;
  */
 class ReplayWastaysDay
 {
+    private const string WAITING_CHARGES = 'waiting_charges';
+
+    private const string DEPOSIT_RECEIPTS = 'deposit_receipts';
+
     public function __construct(
         private ReopenFolio $reopenFolio,
         private CloseFolio $closeFolio,
@@ -313,10 +318,18 @@ class ReplayWastaysDay
         );
         $backdated = $arrival < $context->date;
         $number = (int) $booking['reservation_number'];
-        $result = $this->numbers->run(DocumentType::Reservation, $number, fn () => ($this->createBooking)($context->actor, $property, $data, $companyId === null && $plan instanceof RatePlan && $plan->company_access !== CompanyAccess::Everyone, $backdated), true, $bookingId);
+        $fromChannel = $companyId === null && $plan instanceof RatePlan && $plan->company_access !== CompanyAccess::Everyone;
+        $book = fn (bool $skipChecks) => $this->numbers->run(DocumentType::Reservation, $number, fn () => ($this->createBooking)($context->actor, $property, $data, $skipChecks, $backdated), true, $bookingId);
+        $result = $book($fromChannel);
+
+        if ($result->isRefused() && $result->refusal === ReservationResult::REFUSAL_NOT_AVAILABLE) {
+            // wastays let staff book more rooms of a type than it has. The replay keeps the booking, as an over-capacity stay.
+            $result = $book(true);
+            $context->summary->count('bookings over the room type capacity');
+        }
 
         if ($result->isRefused()) {
-            throw new ReplayStopped("bookings {$bookingId}: the booking was refused ({$result->refusal}).");
+            throw new ReplayStopped("bookings {$bookingId}: the booking was refused ({$result->refusal}) for {$arrival} to {$departure}.");
         }
 
         $unit = $result->reservation->units()->orderBy('id')->firstOrFail();
@@ -464,6 +477,7 @@ class ReplayWastaysDay
         }
 
         $context->summary->count($label);
+        $this->postWaitingCharges($context, $unit);
     }
 
     /**
@@ -528,11 +542,50 @@ class ReplayWastaysDay
         }
 
         $unit = $this->unitOf($context, $event);
+
+        if (! in_array($unit->status, [UnitStatus::CheckedIn, UnitStatus::CheckedOut], true)) {
+            ($this->recordImportLink)($context->property, self::WAITING_CHARGES, $event->sourceId, $unit);
+            $context->summary->count('charges waiting for check-in');
+
+            return;
+        }
+
         $this->reopenAfterCheckOut($context, $unit, $event);
+        $this->postChargeLine($context, $unit, $row, $event->sourceId);
+        $context->summary->count('charges posted');
+    }
+
+    /**
+     * estatell posts a charge only on a unit that is checked in. A charge wastays took before the check-in waits for it
+     * and is posted when the unit checks in, on the check-in day.
+     */
+    private function postWaitingCharges(ReplayContext $context, ReservationUnit $unit): void
+    {
+        $waiting = ImportLink::query()
+            ->where('property_id', $context->property->id)
+            ->where('source_table', self::WAITING_CHARGES)
+            ->where('target_type', $unit->getMorphClass())
+            ->where('target_id', $unit->id)
+            ->orderBy('id')
+            ->get();
+
+        foreach ($waiting as $link) {
+            $unit->refresh();
+            $this->postChargeLine($context, $unit->load('reservation'), $context->index->folioRow($link->source_id), $link->source_id);
+            $link->delete();
+            $context->summary->count('charges moved to the check-in day');
+        }
+    }
+
+    /**
+     * @param  array<string, string|null>  $row  the wastays `folio_transactions` row
+     */
+    private function postChargeLine(ReplayContext $context, ReservationUnit $unit, array $row, string $sourceId): void
+    {
         $code = $this->links->target($context->property, 'transaction_codes', (string) $row['transaction_code_id']);
 
         if (! $code instanceof ChargeItem && ! $code instanceof TransactionCode) {
-            throw new ReplayStopped("folio_transactions {$event->sourceId}: the transaction code has no charge item or code in estatell.");
+            throw new ReplayStopped("folio_transactions {$sourceId}: the transaction code has no charge item or code in estatell.");
         }
 
         $result = ($this->postCharge)($context->actor, $unit, new NewChargeData(
@@ -541,17 +594,16 @@ class ReplayWastaysDay
             description: $row['description'],
             quantity: 1,
             unitAmount: $this->amount($row['amount']),
-            idempotencyKey: 'wastays:folio_transactions:'.$event->sourceId,
+            idempotencyKey: 'wastays:folio_transactions:'.$sourceId,
             ownFolio: ! $context->index->onCompanyFolio($row),
             taxIds: [],
         ));
 
         if ($result->isRefused()) {
-            throw new ReplayStopped("folio_transactions {$event->sourceId}: the charge was refused ({$result->refusal}).");
+            throw new ReplayStopped("folio_transactions {$sourceId}: the charge was refused ({$result->refusal}).");
         }
 
-        ($this->recordImportLink)($context->property, 'folio_transactions', $event->sourceId, $result->line());
-        $context->summary->count('charges posted');
+        ($this->recordImportLink)($context->property, 'folio_transactions', $sourceId, $result->line());
     }
 
     private function payment(ReplayContext $context, WastaysEvent $event): void
@@ -565,13 +617,28 @@ class ReplayWastaysDay
             throw new ReplayStopped("folio_transactions {$event->sourceId}: the transaction code has no payment method in estatell.");
         }
 
-        $reference = json_decode((string) $row['metadata'], true)['reference'] ?? null;
-        $reference = filled($reference) ? (string) $reference : ($method->requires_reference ? $context->numbers->receiptReference('folio_transaction', $event->sourceId) : null);
-        $number = $context->numbers->receipt('folio_transaction', $event->sourceId);
+        $metadata = json_decode((string) $row['metadata'], true) ?: [];
+        $depositId = isset($metadata['deposit_id']) ? (string) $metadata['deposit_id'] : null;
+        $useDepositReceipt = $depositId !== null && ! $this->links->has($context->property, self::DEPOSIT_RECEIPTS, $depositId);
+        $reference = $metadata['reference'] ?? null;
+        $reference = filled($reference) ? (string) $reference : ($method->requires_reference
+            ? ($context->numbers->receiptReference('folio_transaction', $event->sourceId)
+                ?? ($depositId !== null ? $context->numbers->receiptReference('deposit', $depositId) : null)
+                ?? "wastays folio_transactions {$event->sourceId}")
+            : null);
+        // wastays issued the receipt of a prepayment when the deposit came in, and applied it to a folio later. The first
+        // payment taken from the deposit carries that receipt number.
+        $number = $context->numbers->receipt('folio_transaction', $event->sourceId)
+            ?? ($useDepositReceipt ? $context->numbers->receipt('deposit', $depositId) : null);
         $folio = $context->index->onCompanyFolio($row) ? $this->masterFolio($unit, $event) : null;
         $payment = $this->pay($context, $unit, $method, $unit->status === UnitStatus::Confirmed ? PaymentPurpose::Advance : PaymentPurpose::Settlement, $this->amount($row['amount']), $reference, 'wastays:folio_transactions:'.$event->sourceId, $number, "folio_transactions {$event->sourceId}", $folio);
 
         ($this->recordImportLink)($context->property, 'folio_transactions', $event->sourceId, $payment);
+
+        if ($useDepositReceipt && $number !== null && $number === $context->numbers->receipt('deposit', $depositId)) {
+            ($this->recordImportLink)($context->property, self::DEPOSIT_RECEIPTS, $depositId, $payment);
+        }
+
         $context->summary->count('payments recorded');
     }
 

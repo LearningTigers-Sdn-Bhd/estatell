@@ -108,6 +108,17 @@ Each wastays company has an `import_links` row (`hotel_corporate_accounts`), whi
 | A booking with no company on a plan limited to companies (15 bookings)                               | Created as an imported stay: the company check is skipped, because wastays allowed it                                                                                                          |
 | `deposits` of kind prepayment                                                                        | Not replayed. The part wastays applied to a folio is already a payment line, and the rest (4 available deposits, RM 4,374; 1 cancelled group deposit) is held outside any folio. Ask the hotel |
 
+### Other rules the replay needed
+
+| wastays                                                                 | estatell                                                                                                                                                                                |
+| ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A charge taken before the guest checked in (28 Jetty fee lines)         | estatell posts charges only on a checked-in unit. The charge waits and is posted when the unit checks in, on the check-in day. The day compare lists these days as accepted differences |
+| More bookings of a room type than rooms (a group of 11 in a type of 10) | The booking is kept as an over-capacity stay: the replay retries it without the availability check and counts it                                                                        |
+| Receipt of a prepayment deposit, issued when the deposit came in        | The first payment taken from the deposit takes that receipt number (the numbers stay in order). Later payments from the same deposit get the next estatell number                       |
+| Payment with no reference on a method that needs one                    | Reference `wastays folio_transactions {id}`, or the wastays receipt number when there is one                                                                                            |
+
+Open: 72 of the 92 check-ins were recorded on or after the booking's departure date (late entry, with the check-in time set back). estatell refuses a check-in on the departure day (`stay_ended`), so the replay stops at the first one (booking 477, 2 Oct).
+
 ### Booking sources
 
 The replay places each wastays `bookings.source` like this. A booking with a wastays corporate account takes its company from the companies import (`import_links` table `hotel_corporate_accounts`), and the replay stops with "Import the companies first" when the company is missing.
