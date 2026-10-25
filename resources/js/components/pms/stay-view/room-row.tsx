@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { TimelineRow } from './group-rows';
+import type { LaneRow, TimelineRow } from './group-rows';
 
 type Room = App.Data.StayView.RoomRowData;
 
@@ -57,6 +57,25 @@ export function RoomLabel({ room }: { room: Room }) {
                 className={cn('size-4 shrink-0', status.className)}
             />
         </div>
+    );
+}
+
+/**
+ * The label of a row of an unassigned lane: the room type and, on the first row, how many units wait for a room.
+ * The lane is not a room, so it has no housekeeping status.
+ */
+export function LaneLabel({ lane }: { lane: LaneRow['lane'] }) {
+    return (
+        <span className="flex min-w-0 flex-col">
+            <span className="truncate text-sm">
+                Unassigned · {lane.roomTypeName}
+            </span>
+            {lane.units !== null && (
+                <span className="truncate text-xs text-grid-muted-foreground tabular-nums">
+                    {lane.units} {lane.units === 1 ? 'unit' : 'units'}
+                </span>
+            )}
+        </span>
     );
 }
 

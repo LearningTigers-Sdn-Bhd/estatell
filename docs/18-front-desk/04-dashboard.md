@@ -6,7 +6,7 @@ The first page staff see after login: start the day's work in one click, see wha
 
 `GET /p/{code}/dashboard` uses `DashboardController::show` and `pages/dashboard.tsx`.
 
-This doc covers the **Today** tab. Users with `reports.view` also get a **Performance** tab with occupancy, ADR, RevPAR, channel mix and lead time over a period. See [Dashboard: Performance tab](06-dashboard-performance.md). The Today tab does not change.
+This doc covers the **Today** tab. Users with `reports.view` also get a **Performance** tab, which opens first (Today is at `?tab=today`), with occupancy, ADR, RevPAR, channel mix and lead time over a period. See [Dashboard: Performance tab](06-dashboard-performance.md). The Today tab does not change.
 
 ## Layout
 
@@ -19,7 +19,7 @@ On both tabs the header, rows and cards sit 12px apart (`gap-3`), tighter than t
 ```
 Dashboard                                                      [Run night audit]
 Today's front desk work and how the property is doing.
-[Today] [Performance]
+[Performance] [Today]
 ┌ ⚠ Night audit for 11 Oct did not finish.                       [Open audit] ┐
 └─────────────────────────────────────────────────────────────────────────────┘
 [+ New booking]  [Walk-in]  [Find reservation]

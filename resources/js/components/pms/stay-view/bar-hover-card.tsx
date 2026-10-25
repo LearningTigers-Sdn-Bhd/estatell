@@ -55,9 +55,12 @@ function Heading({
 export function StayHoverCard({
     stay,
     room,
+    unassigned = false,
 }: {
     stay: Stay;
     room: Room | undefined;
+    /** The bar is in the Unassigned lane: the nights have no room yet. */
+    unassigned?: boolean;
 }) {
     const nights = nightCount(stay.arrivalDate, stay.departureDate);
 
@@ -94,6 +97,7 @@ export function StayHoverCard({
                     </span>
                 </Detail>
                 {room && <Detail label="Room">{placeLabel(room)}</Detail>}
+                {unassigned && <Detail label="Room">Not assigned</Detail>}
                 <Detail label="Guests">
                     <span className="flex items-center gap-3 tabular-nums">
                         <span className="flex items-center gap-1">

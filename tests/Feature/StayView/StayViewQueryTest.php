@@ -7,6 +7,7 @@ use App\Models\Bed;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Guest;
+use App\Models\RatePlan;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\Room;
@@ -87,7 +88,7 @@ test('a room move starts a new segment and consecutive nights in one room form o
         ]);
 });
 
-test('a bed stay has a bed segment, and a night without a place is left out', function () {
+test('a bed stay has a bed segment, and a night without a place is in the unassigned row of its room type', function () {
     $property = stayViewProperty();
     $dormRoom = Room::factory()->for($property)->create(['room_type_id' => RoomType::factory()->for($property)->bed()->create()->id]);
     $bed = Bed::factory()->for($dormRoom)->create();
@@ -99,7 +100,24 @@ test('a bed stay has a bed segment, and a night without a place is left out', fu
 
     expect(array_map(fn ($segment): array => [$segment->rowKey, $segment->firstNight, $segment->lastNight], $stays[0]->segments))->toBe([
         ['bed-'.$bed->id, '2026-10-14', '2026-10-14'],
+        ['unassigned-'.$unit->room_type_id, '2026-10-15', '2026-10-15'],
         ['bed-'.$bed->id, '2026-10-16', '2026-10-16'],
+    ]);
+});
+
+test('consecutive nights with no room form one unassigned segment', function () {
+    $property = stayViewProperty();
+    $room = Room::factory()->for($property)->create();
+    $unit = stayViewUnit($property, $room, ['arrival_date' => '2026-10-14', 'departure_date' => '2026-10-19']);
+    UnitNight::query()->where('reservation_unit_id', $unit->id)->whereDate('date', '>=', '2026-10-15')->whereDate('date', '<=', '2026-10-16')->update(['room_id' => null]);
+    [$from, $to] = stayViewRange();
+
+    $stays = app(StayViewQuery::class)->stays($property, $from, $to);
+
+    expect(array_map(fn ($segment): array => [$segment->rowKey, $segment->firstNight, $segment->lastNight], $stays[0]->segments))->toBe([
+        ['room-'.$room->id, '2026-10-14', '2026-10-14'],
+        ['unassigned-'.$unit->room_type_id, '2026-10-15', '2026-10-16'],
+        ['room-'.$room->id, '2026-10-17', '2026-10-18'],
     ]);
 });
 
@@ -261,6 +279,9 @@ test('the number of queries does not grow with the number of stays', function ()
         }
 
         RoomBlock::factory()->create(['room_id' => $room->id, 'starts_on' => '2026-10-20', 'ends_on' => '2026-10-21']);
+
+        $unassigned = stayViewUnit($property, Room::factory()->for($property)->create(), reservation: $reservation, guestName: 'Auto '.$index);
+        UnitNight::query()->where('reservation_unit_id', $unassigned->id)->update(['room_id' => null]);
     };
 
     $addStay(1);
@@ -272,7 +293,21 @@ test('the number of queries does not grow with the number of stays', function ()
     }
 
     expect($countQueries())->toBe($before)
-        ->and(count($query->stays($property, $from, $to)))->toBe(7);
+        ->and(count($query->stays($property, $from, $to)))->toBe(14);
+});
+
+test('a stay says whether its rate plan is a package, which has fixed nights', function () {
+    $property = stayViewProperty();
+    [$from, $to] = stayViewRange();
+    $plain = stayViewUnit($property, Room::factory()->for($property)->create());
+    $package = stayViewUnit($property, Room::factory()->for($property)->create(), [
+        'rate_plan_id' => RatePlan::factory()->for($property)->package(nights: 3)->create()->id,
+    ]);
+
+    $stays = collect(app(StayViewQuery::class)->stays($property, $from, $to))->keyBy('unitId');
+
+    expect($stays[$plain->id]->isPackagePlan)->toBeFalse()
+        ->and($stays[$package->id]->isPackagePlan)->toBeTrue();
 });
 
 test('day uses lists live blocks with a room in the window and leaves out released, roomless and other dates', function () {

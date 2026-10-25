@@ -15,6 +15,7 @@ use App\Enums\SellUnit;
 use App\Enums\StayType;
 use App\Enums\UnitStatus;
 use App\Models\Property;
+use App\Models\RatePlan;
 use App\Models\ReservationUnit;
 use App\Models\Room;
 use App\Models\RoomBlock;
@@ -80,8 +81,8 @@ class StayViewQuery
     }
 
     /**
-     * Overnight units that hold a night in the window. Cancelled and no-show units are left out, and so are nights
-     * with no room or bed yet. Day use is read by `dayUses()`.
+     * Overnight units that hold a night in the window. Cancelled and no-show units are left out. A night with no
+     * room or bed yet is in the unit's `unassigned-{roomTypeId}` segment. Day use is read by `dayUses()`.
      *
      * @return list<StayData>
      */
@@ -91,6 +92,8 @@ class StayViewQuery
             ->where('property_id', $property->id)
             ->where('stay_type', StayType::Overnight->value)
             ->whereIn('status', [UnitStatus::Confirmed->value, UnitStatus::CheckedIn->value, UnitStatus::CheckedOut->value])
+            ->select('reservation_units.*')
+            ->addSelect(['package_nights' => RatePlan::query()->withoutGlobalScopes()->select('fixed_nights')->whereColumn('rate_plans.id', 'reservation_units.rate_plan_id')->limit(1)])
             ->whereDate('arrival_date', '<=', $to)
             ->whereDate('departure_date', '>', $from)
             ->with([
@@ -110,7 +113,7 @@ class StayViewQuery
         return array_values($units
             ->map(fn (ReservationUnit $unit): StayData => StayData::fromUnit(
                 $unit,
-                $this->segments($unit->nights),
+                $this->segments($unit->nights, $unit->room_type_id),
                 BigDecimal::of($balances[$unit->reservation_id] ?? '0.00')->isGreaterThan(0),
             ))
             ->all());
@@ -189,12 +192,13 @@ class StayViewQuery
     }
 
     /**
-     * Join consecutive nights in the same room or bed. A night with neither has no place on the grid.
+     * Join consecutive nights in the same room or bed. A night with neither is in the `unassigned-{roomTypeId}` row,
+     * which the browser draws as the Unassigned lane. See docs/18-front-desk/07-timeline-editing.md.
      *
      * @param  Collection<int, UnitNight>  $nights  Sorted by date.
      * @return list<StaySegmentData>
      */
-    private function segments(Collection $nights): array
+    private function segments(Collection $nights, int $roomTypeId): array
     {
         /** @var list<array{rowKey: string, firstNight: string, lastNight: string}> $runs */
         $runs = [];
@@ -204,14 +208,8 @@ class StayViewQuery
             $rowKey = match (true) {
                 $night->bed_id !== null => 'bed-'.$night->bed_id,
                 $night->room_id !== null => 'room-'.$night->room_id,
-                default => null,
+                default => 'unassigned-'.$roomTypeId,
             };
-
-            if ($rowKey === null) {
-                $last = null;
-
-                continue;
-            }
 
             $date = $night->date->toDateString();
             $continues = $last !== null && $last['rowKey'] === $rowKey && $last['date']->addDay()->toDateString() === $date;

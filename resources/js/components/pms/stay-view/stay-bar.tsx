@@ -1,9 +1,14 @@
+import { useDraggable } from '@dnd-kit/core';
 import { Baby, Diamond, Layers, User } from 'lucide-react';
 import { BookingSourceBadge } from '@/components/pms/booking-source-badge';
 import { HoverCard, HoverCardTrigger } from '@/components/ui/hover-card';
 import { cn } from '@/lib/utils';
 import { StayHoverCard } from './bar-hover-card';
+import { EdgeHandle } from './edge-handle';
 import { barBox, type Bar } from './project-bars';
+import type { EdgeHandles } from './resize-target';
+import { isUnassignedRow } from './unassigned-lane';
+import type { StayDragData } from './use-timeline-drag';
 
 type Stay = App.Data.StayView.StayData;
 type Room = App.Data.StayView.RoomRowData;
@@ -38,7 +43,8 @@ export function stayLabel(stay: Stay, bar: Bar, dates: string[]): string {
 /**
  * One segment of a stay, drawn over the cells of its row. The status label is always in the text, so colour never
  * carries meaning alone. A group booking has a marker and the group name; the other bars of the group light up when
- * one is hovered.
+ * one is hovered. A bar that `canDrag` can be dragged to another row; a short press is still a click. The edges in
+ * `handles` carry a handle that drags the arrival or the departure.
  */
 export function StayBar({
     stay,
@@ -48,6 +54,8 @@ export function StayBar({
     labelWidth,
     columnWidth,
     highlighted,
+    canDrag,
+    handles,
     onHover,
     onOpen,
 }: {
@@ -59,107 +67,138 @@ export function StayBar({
     labelWidth: number;
     columnWidth: number;
     highlighted: boolean;
+    canDrag: boolean;
+    handles: EdgeHandles;
     onHover: (reservationId: number | null) => void;
     onOpen: (unitId: number) => void;
 }) {
     const grouped = stay.groupName !== null;
     const tone = TONE_CLASSES[stay.status.tone];
+    const { listeners, setNodeRef, isDragging } = useDraggable({
+        id: bar.id,
+        data: { kind: 'move', stay } satisfies StayDragData,
+        disabled: !canDrag,
+    });
 
     return (
-        <HoverCard>
-            <HoverCardTrigger
-                delay={300}
-                render={
-                    <button
-                        type="button"
-                        aria-label={stayLabel(stay, bar, dates)}
-                        className={cn(
-                            'pointer-events-auto absolute inset-y-0 isolate flex cursor-pointer flex-col justify-center gap-0.5 overflow-hidden border-y border-l-4 bg-background px-2 text-left text-xs text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
-                            tone.border,
-                            bar.openStart && 'border-l-0',
-                            !bar.openEnd && 'border-r',
-                            highlighted && 'ring-2 ring-ring',
-                        )}
-                        style={barBox(bar, labelWidth, columnWidth)}
-                        onClick={() => onOpen(stay.unitId)}
-                        onMouseEnter={() =>
-                            grouped ? onHover(stay.reservationId) : undefined
-                        }
-                        onMouseLeave={() =>
-                            grouped ? onHover(null) : undefined
-                        }
-                    />
-                }
-            >
-                <span
-                    aria-hidden
-                    className={cn('absolute inset-0 -z-10', tone.tint)}
-                />
-                {bar.openStart && (
+        <>
+            <HoverCard>
+                <HoverCardTrigger
+                    delay={300}
+                    render={
+                        <button
+                            ref={setNodeRef}
+                            type="button"
+                            aria-label={stayLabel(stay, bar, dates)}
+                            className={cn(
+                                'pointer-events-auto absolute inset-y-0 isolate flex cursor-pointer flex-col justify-center gap-0.5 overflow-hidden border-y border-l-4 bg-background px-2 text-left text-xs text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
+                                tone.border,
+                                bar.openStart && 'border-l-0',
+                                !bar.openEnd && 'border-r',
+                                highlighted && 'ring-2 ring-ring',
+                                isDragging && 'opacity-50',
+                            )}
+                            style={barBox(bar, labelWidth, columnWidth)}
+                            {...listeners}
+                            onClick={() => onOpen(stay.unitId)}
+                            onMouseEnter={() =>
+                                grouped
+                                    ? onHover(stay.reservationId)
+                                    : undefined
+                            }
+                            onMouseLeave={() =>
+                                grouped ? onHover(null) : undefined
+                            }
+                        />
+                    }
+                >
                     <span
                         aria-hidden
-                        className={cn(
-                            'absolute inset-y-0 left-0 border-l-2 border-dashed',
-                            tone.border,
-                        )}
+                        className={cn('absolute inset-0 -z-10', tone.tint)}
                     />
-                )}
-                <span className="flex min-w-0 items-center gap-1">
-                    <BookingSourceBadge
-                        source={stay.source}
-                        size="sm"
-                        tooltip={false}
-                        className="rounded-none"
-                    />
-                    {grouped && (
-                        <Diamond
+                    {bar.openStart && (
+                        <span
                             aria-hidden
-                            className="size-3 shrink-0 fill-current"
+                            className={cn(
+                                'absolute inset-y-0 left-0 border-l-2 border-dashed',
+                                tone.border,
+                            )}
                         />
                     )}
-                    <span className="min-w-0 flex-1 truncate">
+                    <span className="flex min-w-0 items-center gap-1">
+                        <BookingSourceBadge
+                            source={stay.source}
+                            size="sm"
+                            tooltip={false}
+                            className="rounded-none"
+                        />
                         {grouped && (
-                            <span className="font-medium">
-                                {stay.groupName} ·{' '}
+                            <Diamond
+                                aria-hidden
+                                className="size-3 shrink-0 fill-current"
+                            />
+                        )}
+                        <span className="min-w-0 flex-1 truncate">
+                            {grouped && (
+                                <span className="font-medium">
+                                    {stay.groupName} ·{' '}
+                                </span>
+                            )}
+                            {stay.guestLabel ?? 'No guest named'}
+                        </span>
+                        {bar.span >= 2 && (
+                            <span className="shrink-0 text-muted-foreground">
+                                {stay.status.label}
                             </span>
                         )}
-                        {stay.guestLabel ?? 'No guest named'}
                     </span>
-                    {bar.span >= 2 && (
-                        <span className="shrink-0 text-muted-foreground">
-                            {stay.status.label}
-                        </span>
-                    )}
-                </span>
-                <span
-                    aria-hidden
-                    className="flex items-center gap-2 pl-6 text-muted-foreground tabular-nums"
-                >
-                    <span className="flex items-center gap-0.5">
-                        <User className="size-3" />
-                        {stay.adults}
-                    </span>
-                    {stay.children > 0 && (
-                        <span className="flex items-center gap-0.5">
-                            <Baby className="size-3" />
-                            {stay.children}
-                        </span>
-                    )}
-                    {stay.unitCount > 1 && (
-                        <span className="flex items-center gap-0.5">
-                            <Layers className="size-3" />
-                            {stay.unitCount}
-                        </span>
-                    )}
-                </span>
-                {stay.balanceDue && (
                     <span
                         aria-hidden
-                        className="absolute inset-y-0 right-0 w-1 bg-warning"
-                    />
-                )}
-            </HoverCardTrigger>
-            <StayHoverCard stay={stay} room={room} />
-        </HoverCard>
+                        className="flex items-center gap-2 pl-6 text-muted-foreground tabular-nums"
+                    >
+                        <span className="flex items-center gap-0.5">
+                            <User className="size-3" />
+                            {stay.adults}
+                        </span>
+                        {stay.children > 0 && (
+                            <span className="flex items-center gap-0.5">
+                                <Baby className="size-3" />
+                                {stay.children}
+                            </span>
+                        )}
+                        {stay.unitCount > 1 && (
+                            <span className="flex items-center gap-0.5">
+                                <Layers className="size-3" />
+                                {stay.unitCount}
+                            </span>
+                        )}
+                    </span>
+                    {stay.balanceDue && (
+                        <span
+                            aria-hidden
+                            className="absolute inset-y-0 right-0 w-1 bg-warning"
+                        />
+                    )}
+                </HoverCardTrigger>
+                <StayHoverCard
+                    stay={stay}
+                    room={room}
+                    unassigned={isUnassignedRow(bar.rowKey)}
+                />
+            </HoverCard>
+            {(['left', 'right'] as const).map(
+                (edge) =>
+                    handles[edge] && (
+                        <EdgeHandle
+                            key={edge}
+                            stay={stay}
+                            bar={bar}
+                            edge={edge}
+                            labelWidth={labelWidth}
+                            columnWidth={columnWidth}
+                        />
+                    ),
+            )}
+        </>
     );
 }

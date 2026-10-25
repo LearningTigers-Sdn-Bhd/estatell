@@ -85,3 +85,82 @@ test('a collapsed group keeps its heading only', () => {
     ]);
     expect([...toggleCollapsed(collapsed, 'group-1')]).toEqual([]);
 });
+
+const lanes = [
+    {
+        roomTypeId: 20,
+        roomTypeName: 'Suite',
+        rowKeys: ['unassigned-20-0', 'unassigned-20-1'],
+        units: 3,
+    },
+    {
+        roomTypeId: 30,
+        roomTypeName: 'Family',
+        rowKeys: ['unassigned-30-0'],
+        units: 1,
+    },
+];
+
+test('by room type the lanes sit at the top of their group, and a type with no room gets a group', () => {
+    const rows = buildRows(rooms, 'room_type', new Set(), lanes);
+
+    expect(rows.map((row) => row.key)).toEqual([
+        'type-10',
+        'room-1',
+        'room-3',
+        'room-4',
+        'type-20',
+        'unassigned-20-0',
+        'unassigned-20-1',
+        'room-2',
+        'type-30',
+        'unassigned-30-0',
+    ]);
+    expect(rows.find((row) => row.key === 'unassigned-20-0')).toMatchObject({
+        room: null,
+        lane: { roomTypeName: 'Suite', units: 3 },
+    });
+    expect(rows.find((row) => row.key === 'unassigned-20-1')).toMatchObject({
+        lane: { units: null },
+    });
+});
+
+test('by room group the lanes share one Unassigned group at the top', () => {
+    const rows = buildRows(rooms, 'room_group', new Set(), lanes);
+
+    expect(rows.slice(0, 5).map((row) => row.key)).toEqual([
+        'unassigned',
+        'unassigned-20-0',
+        'unassigned-20-1',
+        'unassigned-30-0',
+        'group-1',
+    ]);
+    expect(rows[0]).toMatchObject({ title: 'Unassigned', count: 4 });
+    expect(
+        buildRows(rooms, 'room_group', new Set(['unassigned']), lanes)
+            .slice(0, 2)
+            .map((row) => row.key),
+    ).toEqual(['unassigned', 'group-1']);
+});
+
+test('with no grouping the lanes are a group and the rooms follow under All rooms', () => {
+    const rows = buildRows(rooms, 'none', new Set(), lanes);
+
+    expect(rows.map((row) => row.key)).toEqual([
+        'unassigned',
+        'unassigned-20-0',
+        'unassigned-20-1',
+        'unassigned-30-0',
+        'all-rooms',
+        'room-1',
+        'room-2',
+        'room-3',
+        'room-4',
+    ]);
+    expect(buildRows(rooms, 'none').map((row) => row.key)).toEqual([
+        'room-1',
+        'room-2',
+        'room-3',
+        'room-4',
+    ]);
+});

@@ -138,6 +138,13 @@ type Props = {
     canEnterMigratedStay: boolean;
     /** Old stay mode (it shares the Past stay form): a stay that began and ended before go-live, kept for history only. */
     isOldStay: boolean;
+    /** New booking only: what an empty Timeline cell passed in the query. Each part is already checked; a bad one is null. */
+    prefill: {
+        arrival: string | null;
+        roomTypeId: number | null;
+        roomId: number | null;
+        bedId: number | null;
+    } | null;
     /** Whether Old stay shows in the select: `folio.manual` inside the migration window. */
     canEnterOldStay: boolean;
     /** The ways to carry the old folio over, from `OldFolioMode::options()`. */
@@ -204,6 +211,7 @@ export default function ReservationCreate({
     isPastStay,
     isMigratedStay,
     isOldStay,
+    prefill,
     canEnterPastStay,
     canEnterMigratedStay,
     canEnterOldStay,
@@ -237,6 +245,21 @@ export default function ReservationCreate({
                 sources[0]?.id ||
                 '',
         );
+    /** The first line: blank, or with the room or bed a Timeline cell picked. */
+    function prefilledLine(): BookingLine {
+        const line = emptyLine(autoAddOns(chargeItems, 'overnight'));
+
+        if (prefill?.roomTypeId == null) {
+            return line;
+        }
+
+        return {
+            ...line,
+            room_type_id: String(prefill.roomTypeId),
+            room_id: prefill.roomId === null ? '' : String(prefill.roomId),
+            bed_ids: prefill.bedId === null ? [] : [String(prefill.bedId)],
+        };
+    }
     const form = useForm<BookingForm>({
         stay_type: 'overnight',
         start_time: '',
@@ -254,8 +277,8 @@ export default function ReservationCreate({
               ? addDays(goLiveDate, -1)
               : isPastStay
                 ? addDays(today, -1)
-                : today,
-        departure_date: '',
+                : (prefill?.arrival ?? today),
+        departure_date: prefill?.arrival ? addDays(prefill.arrival, 1) : '',
         arrival_time: isWalkIn ? nowTime : checkInTime,
         departure_time: checkOutTime,
         group_name: '',
@@ -264,7 +287,7 @@ export default function ReservationCreate({
         billing_mode: billingModes[0]?.value ?? 'master_pays',
         notes: '',
         guests: [emptyGuest()],
-        lines: [emptyLine(autoAddOns(chargeItems, 'overnight'))],
+        lines: [prefilledLine()],
         boat_in: NOT_SET,
         boat_out: NOT_SET,
     });
