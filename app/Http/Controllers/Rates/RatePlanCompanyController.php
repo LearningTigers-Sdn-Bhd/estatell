@@ -63,7 +63,6 @@ class RatePlanCompanyController extends Controller
         $refusal = $setRatePlanCompanyAccess($request->user(), $ratePlan, $request->companyAccess(), $request->atDesk(), $request->inPortal(), $request->companyMarket());
 
         return $this->back($property, $ratePlan, $refusal, __('Company access saved.'), [
-            SetRatePlanCompanyAccess::REFUSAL_NOT_DERIVED => __('Only a derived plan can be limited to some companies.'),
             SetRatePlanCompanyAccess::REFUSAL_NOTHING_ON => __('Turn on Front desk or Portal.'),
         ]);
     }

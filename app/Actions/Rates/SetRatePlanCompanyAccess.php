@@ -13,15 +13,12 @@ class SetRatePlanCompanyAccess
 {
     public const string REFUSAL_PLAN_CLOSED = 'plan_closed';
 
-    public const string REFUSAL_NOT_DERIVED = 'not_derived';
-
     public const string REFUSAL_NOTHING_ON = 'nothing_on';
 
     /**
      * Set who can use the plan. For All companies the Front desk and Portal switches are saved too; the other choices
      * leave them alone. Returns null when saved, otherwise the refusal code and nothing is written: an archived plan or
-     * a Day use plan (front desk only) cannot change, Only these companies is for derived plans, and All companies
-     * needs at least one switch on. Listed companies are kept when the choice moves away from Only these companies.
+     * a Day use plan (front desk only) cannot change, and All companies needs at least one switch on. Listed companies are kept when the choice moves away from Only these companies.
      * The market (null keeps the current one) limits the plan to local or international companies; Everyone always
      * resets it to all. A save that changes nothing is not logged. See docs/08-rates/01-rate-plans.md#who-can-use-this-rate.
      */
@@ -32,10 +29,6 @@ class SetRatePlanCompanyAccess
 
             if ($ratePlan->archived_at !== null || $ratePlan->pricing_basis === PricingBasis::DayUse) {
                 return self::REFUSAL_PLAN_CLOSED;
-            }
-
-            if ($access === CompanyAccess::Selected && $ratePlan->parent_rate_plan_id === null) {
-                return self::REFUSAL_NOT_DERIVED;
             }
 
             if ($access === CompanyAccess::All && ! $atDesk && ! $inPortal) {

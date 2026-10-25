@@ -2,13 +2,11 @@
 
 namespace App\Actions\Onboarding;
 
-use App\Actions\Catalogues\UpdatePaymentMethod;
 use App\Actions\CityLedger\CreateCompany;
+use App\Actions\CityLedger\EnableCityLedger;
 use App\Actions\CityLedger\UpdateCompany;
 use App\Enums\OnboardingStep;
-use App\Enums\PaymentMethodType;
 use App\Models\Company;
-use App\Models\PaymentMethod;
 use App\Models\Property;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -18,7 +16,7 @@ class SaveOnboardingCompanies
     public function __construct(
         private CreateCompany $createCompany,
         private UpdateCompany $updateCompany,
-        private UpdatePaymentMethod $updatePaymentMethod,
+        private EnableCityLedger $enableCityLedger,
         private UnskipOnboardingStep $unskipStep,
     ) {}
 
@@ -63,29 +61,7 @@ class SaveOnboardingCompanies
             }
 
             return array_any($rows, fn (array $row): bool => $row['direct_bill_enabled'])
-                && $this->turnOnCityLedger($property, $actor);
+                && ($this->enableCityLedger)($property, $actor);
         });
-    }
-
-    private function turnOnCityLedger(Property $property, User $actor): bool
-    {
-        $cityLedger = $property->paymentMethods()
-            ->where('type', PaymentMethodType::DirectBill)
-            ->with('transactionCode')
-            ->first();
-
-        if (! $cityLedger instanceof PaymentMethod || $cityLedger->active) {
-            return false;
-        }
-
-        return ($this->updatePaymentMethod)($actor, $cityLedger, [
-            'name' => $cityLedger->name,
-            'code' => $cityLedger->transactionCode->code,
-            'surcharge_type' => $cityLedger->surcharge_type->value,
-            'surcharge_value' => $cityLedger->surcharge_value,
-            'surcharge_charge_item_id' => $cityLedger->surcharge_charge_item_id,
-            'requires_reference' => $cityLedger->requires_reference,
-            'active' => true,
-        ]);
     }
 }

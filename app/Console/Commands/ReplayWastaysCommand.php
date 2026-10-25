@@ -25,6 +25,10 @@ class ReplayWastaysCommand extends Command
         'check-out moved to the departure day',
         'room type changes left out',
         'room edits at check-in left out',
+        'charges waiting for check-in',
+        'bookings over the room type capacity',
+        'charges moved to the check-in day',
+        'late check-ins moved to the arrival day',
     ];
 
     public function handle(ReplayWastaysDay $replay, WastaysDayCompare $compare, CurrentBusinessDate $currentBusinessDate): int

@@ -209,6 +209,12 @@ final class WastaysDay
         }
 
         foreach ($this->rows('deposits') as $row) {
+            // A prepayment is money a booking paid before it was made. The part wastays applied to a folio is already a
+            // payment line, and the rest is held outside any folio, so only a security deposit is replayed.
+            if (($row['kind'] ?? null) === 'prepayment') {
+                continue;
+            }
+
             yield $this->event(WastaysEventType::Deposit, $row['received_at'], 'deposits', $row['id'], $row['booking_id'], $row);
         }
     }

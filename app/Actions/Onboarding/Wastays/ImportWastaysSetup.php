@@ -5,6 +5,7 @@ namespace App\Actions\Onboarding\Wastays;
 use App\Actions\Catalogues\CreateChargeItem;
 use App\Actions\Catalogues\UpdatePaymentMethod;
 use App\Actions\Catalogues\UpdateTax;
+use App\Actions\Onboarding\SkipOnboardingStep;
 use App\Actions\Rates\CreateDerivedRatePlan;
 use App\Actions\Rates\SaveRates;
 use App\Actions\Rates\SetRatePlanCompanyAccess;
@@ -13,6 +14,7 @@ use App\Actions\Rooms\CreateRoom;
 use App\Actions\Rooms\CreateRoomType;
 use App\Data\Catalogues\TaxInputData;
 use App\Enums\CompanyAccess;
+use App\Enums\OnboardingStep;
 use App\Enums\RateDerivation;
 use App\Enums\SellUnit;
 use App\Enums\SurchargeType;
@@ -56,6 +58,10 @@ class ImportWastaysSetup
         private UpdateTax $updateTax,
         private UpdatePaymentMethod $updatePaymentMethod,
         private CreateChargeItem $createChargeItem,
+        private ImportWastaysDetails $importDetails,
+        private SkipOnboardingStep $skipOnboardingStep,
+        private ImportWastaysOccupancyRatePlans $occupancyRatePlans,
+        private AlignWastaysDocumentPrefix $alignPrefix,
         private RecordImportLink $recordImportLink,
         private ImportLinks $links,
         private WastaysCodeMap $map,
@@ -64,12 +70,12 @@ class ImportWastaysSetup
     /**
      * @throws RuntimeException with a sentence for the console when the bundle cannot be imported; nothing is written then
      */
-    public function __invoke(WastaysImportTarget $target, bool $dryRun = false): WastaysSetupSummary
+    public function __invoke(WastaysImportTarget $target, bool $dryRun = false, ?string $checkIn = null, ?string $checkOut = null): WastaysSetupSummary
     {
         DB::beginTransaction();
 
         try {
-            $summary = $this->import($target->bundle, $target->property, $target->actor);
+            $summary = $this->import($target->bundle, $target->property, $target->actor, $checkIn, $checkOut);
 
             $dryRun ? DB::rollBack() : DB::commit();
         } catch (Throwable $exception) {
@@ -81,14 +87,20 @@ class ImportWastaysSetup
         return $summary;
     }
 
-    private function import(WastaysBundle $bundle, Property $property, User $actor): WastaysSetupSummary
+    private function import(WastaysBundle $bundle, Property $property, User $actor, ?string $checkIn, ?string $checkOut): WastaysSetupSummary
     {
         $summary = new WastaysSetupSummary;
+        ($this->importDetails)($property, $actor, $bundle->rows('hotels')->first() ?? [], $checkIn, $checkOut, $summary);
+        $summary->prefixChange = ($this->alignPrefix)($property, $bundle->manifest->hotelCode);
 
         [$roomTypes, $newRoomTypeIds] = $this->roomTypes($bundle, $property, $actor, $summary);
         $this->rooms($bundle, $property, $actor, $roomTypes, $summary);
-        $standard = $this->ratePlans($bundle, $property, $actor, $roomTypes, $summary);
-        $this->rates($bundle, $property, $actor, $standard, $roomTypes, $newRoomTypeIds, $summary);
+        if (ImportWastaysOccupancyRatePlans::applies($bundle, $this->map)) {
+            ($this->occupancyRatePlans)($bundle, $property, $actor, $roomTypes, $summary);
+        } else {
+            $standard = $this->ratePlans($bundle, $property, $actor, $roomTypes, $summary);
+            $this->rates($bundle, $property, $actor, $standard, $roomTypes, $newRoomTypeIds, $summary);
+        }
         $this->salesTax($bundle, $property, $actor, $summary);
         $this->skipDbkk($bundle, $summary);
         $this->createdAt($bundle, $property);
@@ -288,6 +300,11 @@ class ImportWastaysSetup
         if (! $this->map->isTrue($hotel['sst_enabled'] ?? null)) {
             $summary->skip('SST', 'the hotel has SST off');
 
+            if (! $property->taxes()->where('enabled', true)->exists()) {
+                ($this->skipOnboardingStep)($property, OnboardingStep::Taxes, $actor);
+                $summary->skip('Taxes', 'answered "We don\'t charge tax" so go-live can open; the replay turns Tourism tax on from the day wastays first charged it');
+            }
+
             return;
         }
 
@@ -363,6 +380,10 @@ class ImportWastaysSetup
                     'code' => $new['code'],
                     'category' => $new['category']->value,
                     'active' => $this->map->isTrue($wastaysCode['active'] ?? 'true'),
+                    ...(($row['pricing_type'] ?? null) === 'fixed' && filled($row['rate_value'] ?? null) ? [
+                        'default_amount' => number_format((float) $row['rate_value'], 2, '.', ''),
+                        'charging_unit' => $this->map->chargingUnit($row['charging_unit'] ?? null),
+                    ] : []),
                 ]);
             }
 
