@@ -42,6 +42,9 @@ function openBooking(room: Room, date: string) {
                 ...(room.bedId === null
                     ? { room: room.roomId }
                     : { bed: room.bedId }),
+                // The Timeline keeps its window and filters in the address, so the form can link back to this view.
+                back: 'timeline',
+                back_query: globalThis.location.search.replace(/^\?/, ''),
             },
         }),
     );
@@ -49,7 +52,7 @@ function openBooking(room: Room, date: string) {
 
 /**
  * The click target of an empty Timeline cell. New booking opens the booking form with this night as the arrival, the
- * next day as the departure and this room or bed picked. Block room hands the cell to `onBlock`. With two actions the
+ * next day as the departure and this room or bed picked, and a back link to this view. Block room hands the cell to `onBlock`. With two actions the
  * click opens a menu at the cell, with one it runs that action at once, and with none the cell takes no click.
  */
 export function EmptyCell({

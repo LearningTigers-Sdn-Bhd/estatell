@@ -2966,6 +2966,11 @@ export type AddUnitOptionsData = {
 roomTypes: App.Data.Reservations.RoomTypeOptionData[],
 ratePlans: App.Data.Reservations.RatePlanOptionData[],
 };
+export type BookingBackData = {
+href: string,
+label: string,
+query: Record<string, string>,
+};
 export type BookingQuoteData = {
 nights: App.Data.Reservations.BookingQuoteNightData[],
 unitTotal: string | null,

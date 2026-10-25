@@ -20,12 +20,19 @@ export function QuickActions({
         <div className="flex flex-wrap items-center gap-2">
             {can.canManageReservations && (
                 <>
-                    <Link href={newMethod.url()} className={buttonVariants()}>
+                    <Link
+                        href={newMethod.url(undefined, {
+                            query: { back: 'dashboard' },
+                        })}
+                        className={buttonVariants()}
+                    >
                         <Plus data-icon="inline-start" />
                         New booking
                     </Link>
                     <Link
-                        href={walkIn.url()}
+                        href={walkIn.url(undefined, {
+                            query: { back: 'dashboard' },
+                        })}
                         className={buttonVariants({ variant: 'outline' })}
                     >
                         <UserRoundPlus data-icon="inline-start" />
