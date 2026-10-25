@@ -18,7 +18,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Mail;
 use InvalidArgumentException;
 
-#[Signature('wastays:go-live {bundle : Path of the extracted bundle that wastays:fetch printed} {property : Code of the estatell property} {--actor= : Email of an admin user, shown in the activity log} {--dry-run : Print the readiness checks and the opening date, change nothing}')]
+#[Signature('wastays:go-live {bundle : Path of the extracted bundle that wastays:fetch printed} {property : Code of the estatell property} {--actor= : Email of an admin user, shown in the activity log} {--opening-date= : Opening date as Y-m-d, default the first wastays business date} {--dry-run : Print the readiness checks and the opening date, change nothing}')]
 #[Description('Take the property live with the first wastays business date as its opening date, so the replay can run')]
 class GoLiveWastaysCommand extends Command
 {
@@ -37,9 +37,17 @@ class GoLiveWastaysCommand extends Command
         }
 
         $property = $target->property;
-        $openingDate = CarbonImmutable::parse($target->bundle->manifest->firstAuditDate);
+        $given = $this->option('opening-date');
 
-        $this->line("Opening date {$openingDate->toDateString()} (the first wastays business date).");
+        if ($given !== null && (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $given) || ! checkdate((int) substr($given, 5, 2), (int) substr($given, 8, 2), (int) substr($given, 0, 4)))) {
+            $this->error('--opening-date must be a date as Y-m-d, for example 2026-10-23.');
+
+            return self::FAILURE;
+        }
+
+        $openingDate = CarbonImmutable::parse($given ?? $target->bundle->manifest->firstAuditDate);
+
+        $this->line("Opening date {$openingDate->toDateString()} ".($given === null ? '(the first wastays business date).' : '(given).'));
         $this->table(
             ['Step', 'Done'],
             collect($readiness->checks($property))->map(fn (GoLiveCheckData $check): array => [$check->label, $check->done ? 'yes' : 'NO'])->all(),

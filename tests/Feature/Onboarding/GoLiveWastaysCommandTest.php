@@ -79,3 +79,14 @@ it('requests and approves go-live itself when the platform asks for approval, an
         ->and(GoLiveReview::query()->sole()->decision)->toBe(GoLiveDecision::Approved);
     expect(DB::table('notifications')->count())->toBe(0);
 });
+
+it('opens on the date it is given, and refuses a date that is not Y-m-d', function () {
+    $this->property = Property::factory()->onboarding()->create(['document_prefix' => 'GEH']);
+    completeRequiredOnboardingSteps($this->property);
+
+    goLiveWastays(['--opening-date' => '13/08/2026'])->expectsOutputToContain('must be a date as Y-m-d')->assertFailed();
+
+    goLiveWastays(['--opening-date' => '2026-10-13'])->expectsOutputToContain('is live from 2026-10-13')->assertSuccessful();
+
+    expect(BusinessDate::query()->where('property_id', $this->property->id)->value('date')->toDateString())->toBe('2026-10-13');
+});
