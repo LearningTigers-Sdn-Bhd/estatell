@@ -8,6 +8,7 @@ use App\Models\ImportLink;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
 use App\Models\Reservation;
+use App\Models\ReservationUnit;
 use App\Models\TransactionCode;
 use App\Services\Onboarding\Wastays\WastaysImportTarget;
 
@@ -113,4 +114,19 @@ it('lists a stay that cannot be imported and carries on with the others', functi
     expect($summary->counts)->toMatchArray(['bookings that could not be imported' => 1, 'future bookings' => 1])
         ->and($summary->notes[0])->toContain('bookings 1')
         ->and(Reservation::query()->count())->toBe(2);
+});
+
+it('reads the booking dates in the hotel time zone, not in UTC', function () {
+    $tables = wastaysStayTables();
+    // 03:00 Kuala Lumpur on the 13th is stored on the evening of the 12th, and midnight on the 15th on the 14th.
+    $tables['bookings'][1]['check_in'] = '2026-08-12T19:00:00.000000Z';
+    $tables['bookings'][1]['check_out'] = '2026-08-14T16:00:00.000000Z';
+
+    $summary = runStayImport($tables);
+
+    $reservation = ReservationUnit::query()->findOrFail(ImportLink::query()->where('source_table', 'bookings')->where('source_id', '2')->value('target_id'));
+
+    expect($summary->counts)->toMatchArray(['future bookings' => 1])
+        ->and($reservation->arrival_date->toDateString())->toBe('2026-08-13')
+        ->and($reservation->departure_date->toDateString())->toBe('2026-08-15');
 });
