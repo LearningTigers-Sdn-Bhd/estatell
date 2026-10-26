@@ -16,6 +16,7 @@ import {
     PaginationFooter,
     toPaginationData,
 } from '@/components/pms/pagination-footer';
+import { formatBusinessDay } from '@/lib/business-date';
 
 type Activity = App.Data.Reservations.ReservationActivityData;
 
@@ -48,17 +49,17 @@ function iconFor(kind: string | null): LucideIcon {
     return kindIcons[kind] ?? Circle;
 }
 
-const dayFormat = new Intl.DateTimeFormat('en-GB', {
-    weekday: 'short',
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-});
+/**
+ * `createdAt` comes in the property time zone (`2026-10-14T20:00:00+08:00`). Reading the parts from the string, not
+ * through `Date`, keeps the text the same on the server and in a browser set to another time zone.
+ */
+function dayOf(createdAt: string): string {
+    return formatBusinessDay(createdAt.slice(0, 10));
+}
 
-const timeFormat = new Intl.DateTimeFormat('en-GB', {
-    hour: '2-digit',
-    minute: '2-digit',
-});
+function timeOf(createdAt: string): string {
+    return createdAt.slice(11, 16);
+}
 
 /**
  * The Activity tab: the reservation's log, newest first, grouped by day with a dot on a thin line.
@@ -73,9 +74,7 @@ export function ActivityTab({
     }
 
     const days = [
-        ...Map.groupBy(activity.data, (entry) =>
-            dayFormat.format(new Date(entry.createdAt)),
-        ),
+        ...Map.groupBy(activity.data, (entry) => dayOf(entry.createdAt)),
     ];
 
     return (
@@ -112,9 +111,7 @@ export function ActivityTab({
                                                 dateTime={entry.createdAt}
                                                 className="shrink-0 text-xs text-muted-foreground tabular-nums"
                                             >
-                                                {timeFormat.format(
-                                                    new Date(entry.createdAt),
-                                                )}
+                                                {timeOf(entry.createdAt)}
                                             </time>
                                         </div>
                                         {entry.reason && (
