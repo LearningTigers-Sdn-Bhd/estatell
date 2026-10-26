@@ -133,7 +133,7 @@ A Sheet (`FormOverlay`, `md`, 6 fields), opened from a section's Add button or f
 Add departure                                    ×
 Direction      (•) Boat in   ( ) Boat out
 Leaves         [09:00]      Arrives  [09:45]
-               Meals: Breakfast · Lunch · Dinner
+               Meals: [Breakfast] [Lunch] [Dinner]
 Pick-up point  [Kuala Besut jetty          ]
 Seats          [20]   Leave empty for no limit
 Fare           [Speedboat · RM35.00       ▾]
@@ -147,7 +147,7 @@ Fare           [Speedboat · RM35.00       ▾]
 - When an edit changes the property-side time (**Arrives** for Boat in, **Leaves** for Boat out) on a departure with upcoming trips, a note shows above the buttons: "Updates the times on 12 upcoming bookings." ("the time on 1 upcoming booking" for one). The other time moves no booking, so it shows no note.
 - The Departures page gets `upcomingBookings` per departure from one grouped query (`BoatTripUsage::upcomingBookingCounts`). The turn-off AlertDialog posts the row's values with `active` false in a `<Form>`. Turning on, or off with no upcoming bookings, stays the optimistic switch.
 - A change of fare or seats applies to new trips only.
-- **Meals preview.** A muted line under the times shows the meals for the current Direction and property-side time, and updates as staff type. It uses the [Meals column](#meals-column) rule in the browser with the page's `mealPeriods` (`departureMeals()` in `resources/js/lib/departure-meals.ts`). It is a preview only: after saving, the column shows the server's list. With no active meal periods: "No meal periods yet." With no match: "Meals: none". With no valid time yet, the line is hidden.
+- **Meals preview.** A muted line under the times shows the meals for the current Direction and property-side time as outline badges, like the column, and updates as staff type. It uses the [Meals column](#meals-column) rule in the browser with the page's `mealPeriods` (`departureMeals()` in `resources/js/lib/departure-meals.ts`). It is a preview only: after saving, the column shows the server's list. With no active meal periods: "No meal periods yet." With no match: "Meals: none". With no valid time yet, the line is hidden.
 
 ### Actions
 

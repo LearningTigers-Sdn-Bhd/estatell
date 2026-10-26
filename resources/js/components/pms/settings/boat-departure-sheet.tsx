@@ -4,6 +4,7 @@ import type { EnumOption } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
 import { fareLabel } from '@/components/pms/settings/boat-departure-table';
+import { Badge } from '@/components/ui/badge';
 import {
     Field,
     FieldDescription,
@@ -222,10 +223,27 @@ function BoatDepartureForm({
                         <FieldError>{errors.arrives_at}</FieldError>
                     </Field>
                     {propertyTime !== '' && (
-                        <FieldDescription className="sm:col-span-2">
-                            {mealPeriods.length === 0
-                                ? 'No meal periods yet.'
-                                : `Meals: ${previewMeals.length === 0 ? 'none' : previewMeals.join(' · ')}`}
+                        <FieldDescription
+                            className="flex flex-wrap items-center gap-1 sm:col-span-2"
+                            aria-live="polite"
+                        >
+                            {mealPeriods.length === 0 ? (
+                                'No meal periods yet.'
+                            ) : (
+                                <>
+                                    Meals:
+                                    {previewMeals.length === 0
+                                        ? ' none'
+                                        : previewMeals.map((meal) => (
+                                              <Badge
+                                                  key={meal}
+                                                  variant="outline"
+                                              >
+                                                  {meal}
+                                              </Badge>
+                                          ))}
+                                </>
+                            )}
                         </FieldDescription>
                     )}
                 </div>
