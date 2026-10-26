@@ -99,6 +99,7 @@ test('the new booking page sends the lists the form needs', function () {
             ->where('canOverrideRestrictions', true)
             ->where('canManageGuests', true)
             ->has('countries')
+            ->where('defaultNationalityCode', 'MY')
             ->has('genders')
             ->has('locales'));
 });

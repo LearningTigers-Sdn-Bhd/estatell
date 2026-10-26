@@ -81,6 +81,7 @@ test('changing the guest keeps what is typed and unlinks', () => {
 
 test('more details open by themselves only when one is filled', () => {
     expect(hasDetails(emptyGuest())).toBe(false);
+    expect(emptyGuest('', 'MY').nationality_code).toBe('MY');
     expect(hasDetails(linkGuest(emptyGuest(), guest))).toBe(true);
 });
 

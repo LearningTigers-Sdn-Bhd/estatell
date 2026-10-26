@@ -344,6 +344,7 @@ class ReservationBookingController extends Controller
             'canOverrideRestrictions' => $request->user()->can(PermissionEnum::RatesOverrideRestrictions->value),
             'canManageGuests' => $canManageGuests,
             'countries' => $canManageGuests ? app(CountryOptions::class)->options() : [],
+            'defaultNationalityCode' => $property->country_code ?? 'MY',
             'genders' => Gender::options(),
             'locales' => Locale::options(),
         ]);
