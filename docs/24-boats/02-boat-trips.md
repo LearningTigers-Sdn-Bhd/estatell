@@ -129,6 +129,7 @@ When the feature is on, kitchen counts use the unit times on the first and last 
 - It changes the **kitchen counts** only (`MealCounts`). Folio postings and prices do not change.
 - An island full-board plan sets Lunch and Dinner to start on the arrival day and lets the boat time trim them.
 - Example: a boat in that arrives 12:45 counts lunch (ends 14:30). A boat out that leaves 12:00 does not count lunch (starts 12:00).
+- The two checks live in `MealTimeRule`. The [Meals column](01-boat-settings.md#meals-column) on Departures shows the result for each departure.
 
 ## Front desk
 
