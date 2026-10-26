@@ -11,6 +11,7 @@ use App\Models\Property;
 use App\Models\ReservationUnit;
 use App\Services\Boats\BoatTimeLabel;
 use App\Services\Reservations\ReservationRoomBox;
+use Illuminate\Database\Eloquent\Builder;
 use Laravel\Pennant\Feature;
 
 /**
@@ -26,6 +27,19 @@ class DeparturesReport implements Report
     ) {}
 
     /**
+     * The units that depart in the range, without order or relations. The Guest list counts them with it.
+     *
+     * @return Builder<ReservationUnit>
+     */
+    public function query(Property $property, ReportFilters $filters): Builder
+    {
+        return ReservationUnit::query()
+            ->where('property_id', $property->id)
+            ->whereBetween('departure_date', [$filters->from, $filters->to])
+            ->whereIn('status', UnitStatus::holdingInventory());
+    }
+
+    /**
      * @param  list<int|string>|null  $rowKeys
      * @return list<DepartureRow>
      */
@@ -34,10 +48,7 @@ class DeparturesReport implements Report
         $boats = Feature::for($property)->active(Boats::class);
 
         return $this->unitRows->rows(
-            ReservationUnit::query()
-                ->where('property_id', $property->id)
-                ->whereBetween('departure_date', [$filters->from, $filters->to])
-                ->whereIn('status', UnitStatus::holdingInventory())
+            $this->query($property, $filters)
                 ->orderBy('departure_date')
                 ->orderBy('departure_time')
                 ->when($boats, fn ($query) => $query->with('boatTrips'))

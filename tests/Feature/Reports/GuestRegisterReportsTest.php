@@ -398,7 +398,7 @@ test('the foreign filter is only accepted by the police report', function () {
 
     $this->actingAs($user)->get(nonNationalUrl($property, '?from=2026-10-01&to=2026-10-31&foreign=1'))->assertOk();
     $this->actingAs($user)->get(policeUrl($property, '?from=2026-10-01&to=2026-10-31&foreign=maybe'))->assertSessionHasErrors('foreign');
-    $this->actingAs($user)->get("/p/{$property->code}/reports/arrivals?from=2026-10-01&to=2026-10-31&foreign=maybe")->assertOk();
+    $this->actingAs($user)->get("/p/{$property->code}/reports/guest-list?tab=arrivals&from=2026-10-01&to=2026-10-31&foreign=maybe")->assertOk();
 
     expect(ReportKey::PoliceReport->hasForeignFilter())->toBeTrue()
         ->and(ReportKey::NonNationalGuests->hasForeignFilter())->toBeFalse();

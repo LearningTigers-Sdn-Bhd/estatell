@@ -43,7 +43,7 @@ function arrivingUnit(Property $property, string $arrival = '2026-10-10', array 
 
 function arrivalsUrl(Property $property, string $query = ''): string
 {
-    return "/p/{$property->code}/reports/arrivals".$query;
+    return "/p/{$property->code}/reports/guest-list?tab=arrivals".($query === '' ? '' : '&'.ltrim($query, '?'));
 }
 
 test('a user without reports.view gets 403 and another property returns 404', function () {
@@ -64,7 +64,7 @@ test('the page opens on the business date and lists the units that arrive', func
     arrivingUnit($property, '2026-10-11');
 
     $this->actingAs($user)->get(arrivalsUrl($property))->assertInertia(fn (Assert $page) => $page
-        ->component('reports/arrivals')
+        ->component('reports/guest-list')
         ->where('from', '2026-10-10')
         ->where('to', '2026-10-10')
         ->where('businessDate.date', '2026-10-10')

@@ -8,6 +8,7 @@ use App\Enums\UnitStatus;
 use App\Models\Property;
 use App\Models\ReservationUnit;
 use App\Services\Reservations\ReservationRoomBox;
+use Illuminate\Database\Eloquent\Builder;
 
 /**
  * The units that checked out in the date range, by departure date, with their balance. An early check-out moves the
@@ -22,6 +23,19 @@ class CheckedOutReport implements Report
     ) {}
 
     /**
+     * The units that checked out in the range, without order or relations. The Guest list counts them with it.
+     *
+     * @return Builder<ReservationUnit>
+     */
+    public function query(Property $property, ReportFilters $filters): Builder
+    {
+        return ReservationUnit::query()
+            ->where('property_id', $property->id)
+            ->whereBetween('departure_date', [$filters->from, $filters->to])
+            ->where('status', UnitStatus::CheckedOut);
+    }
+
+    /**
      * @param  list<int|string>|null  $rowKeys
      * @return list<CheckedOutRow>
      */
@@ -30,10 +44,7 @@ class CheckedOutReport implements Report
         $timeZone = $property->loadMissing('settings')->settings->time_zone ?? config('app.timezone');
 
         return $this->unitRows->rows(
-            ReservationUnit::query()
-                ->where('property_id', $property->id)
-                ->whereBetween('departure_date', [$filters->from, $filters->to])
-                ->where('status', UnitStatus::CheckedOut)
+            $this->query($property, $filters)
                 ->orderBy('departure_date')
                 ->orderBy('id'),
             $rowKeys,

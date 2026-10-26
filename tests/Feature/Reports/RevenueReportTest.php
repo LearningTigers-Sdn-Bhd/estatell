@@ -120,7 +120,7 @@ test('the group must be day or month', function () {
 test('other reports ignore the group', function () {
     [$user, $property] = reportSetup();
 
-    $this->actingAs($user)->get("/p/{$property->code}/reports/in-house?group=week")->assertOk();
+    $this->actingAs($user)->get("/p/{$property->code}/reports/guest-list?tab=in-house&group=week")->assertOk();
 });
 
 test('the PDF and CSV keep the group and end with the total row of the selected rows', function () {

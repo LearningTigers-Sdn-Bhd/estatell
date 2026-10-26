@@ -42,7 +42,7 @@ function checkedOutUnit(Property $property, string $departure = '2026-10-10', ar
 
 function checkedOutUrl(Property $property, string $query = ''): string
 {
-    return "/p/{$property->code}/reports/checked-out".$query;
+    return "/p/{$property->code}/reports/guest-list?tab=checked-out".($query === '' ? '' : '&'.ltrim($query, '?'));
 }
 
 test('the page needs reports.view and is scoped to the property', function () {
@@ -55,7 +55,7 @@ test('the page needs reports.view and is scoped to the property', function () {
     $this->actingAs($front)->get(checkedOutUrl($frontProperty))->assertForbidden();
     $this->actingAs($manager)->get(checkedOutUrl($other))->assertNotFound();
     $this->actingAs($manager)->get(checkedOutUrl($own))->assertInertia(fn (Assert $page) => $page
-        ->component('reports/checked-out')
+        ->component('reports/guest-list')
         ->has('rows.data', 1)
         ->where('rows.data.0.key', $mine->id));
 });

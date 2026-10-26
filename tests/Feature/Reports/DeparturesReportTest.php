@@ -38,7 +38,7 @@ function departingUnit(Property $property, string $departure = '2026-10-10', arr
 
 function departuresUrl(Property $property, string $query = ''): string
 {
-    return "/p/{$property->code}/reports/departures".$query;
+    return "/p/{$property->code}/reports/guest-list?tab=departures".($query === '' ? '' : '&'.ltrim($query, '?'));
 }
 
 test('the page needs reports.view and is scoped to the property', function () {
@@ -51,7 +51,7 @@ test('the page needs reports.view and is scoped to the property', function () {
     $this->actingAs($front)->get(departuresUrl($frontProperty))->assertForbidden();
     $this->actingAs($manager)->get(departuresUrl($other))->assertNotFound();
     $this->actingAs($manager)->get(departuresUrl($own))->assertInertia(fn (Assert $page) => $page
-        ->component('reports/departures')
+        ->component('reports/guest-list')
         ->has('rows.data', 1)
         ->where('rows.data.0.key', $mine->id));
 });

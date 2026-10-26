@@ -43,11 +43,9 @@ test('the sidebar entry is active on the page and on the old pages of its unlist
         ->and(TabbedReport::DailyReport->activeRouteNames())->toBe(['reports.daily-report', 'reports.daily-revenue']);
 });
 
-test('until their tabs are built, the pages open their first report with the query', function () {
+test('until its tabs are built, the daily report opens its first report with the query', function () {
     [$manager, $property] = reportSetup();
 
-    $this->actingAs($manager)->get("/p/{$property->code}/reports/guest-list?tab=arrivals&from=2026-10-01&to=2026-10-07")
-        ->assertRedirect("/p/{$property->code}/reports/arrivals?from=2026-10-01&to=2026-10-07");
     $this->actingAs($manager)->get("/p/{$property->code}/reports/daily-report?group=month")
         ->assertRedirect("/p/{$property->code}/reports/revenue?group=month");
 });

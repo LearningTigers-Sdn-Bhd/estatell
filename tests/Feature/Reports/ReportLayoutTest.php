@@ -223,7 +223,7 @@ test('the arrivals page receives the saved layout and canEditLayout', function (
     [$manager, $property] = reportSetup();
     storeLayout($property, [['balance', true], ['guest', true], ['reservation', false]], PageOrientation::Landscape);
 
-    $this->actingAs($manager)->get("/p/{$property->code}/reports/arrivals")->assertInertia(fn (Assert $page) => $page
+    $this->actingAs($manager)->get("/p/{$property->code}/reports/guest-list?tab=arrivals")->assertInertia(fn (Assert $page) => $page
         ->where('canEditLayout', true)
         ->where('layout.orientation', 'landscape')
         ->has('layout.columns', 15)
@@ -233,7 +233,7 @@ test('the arrivals page receives the saved layout and canEditLayout', function (
 
     [$finance, $financeProperty] = reportSetup(DefaultRoleEnum::Finance);
 
-    $this->actingAs($finance)->get("/p/{$financeProperty->code}/reports/arrivals")->assertInertia(fn (Assert $page) => $page
+    $this->actingAs($finance)->get("/p/{$financeProperty->code}/reports/guest-list?tab=arrivals")->assertInertia(fn (Assert $page) => $page
         ->where('canEditLayout', false)
         ->where('layout.orientation', 'portrait'));
 });
@@ -242,10 +242,10 @@ test('the sort falls back to the default when the sorted column is hidden', func
     [$manager, $property] = reportSetup();
     storeLayout($property, [['guest', false], ['reservation', true], ['arrival', true]]);
 
-    $this->actingAs($manager)->get("/p/{$property->code}/reports/arrivals?sort=-guest")->assertInertia(fn (Assert $page) => $page
+    $this->actingAs($manager)->get("/p/{$property->code}/reports/guest-list?tab=arrivals&sort=-guest")->assertInertia(fn (Assert $page) => $page
         ->where('sort', 'arrival'));
 
-    $this->actingAs($manager)->get("/p/{$property->code}/reports/arrivals?sort=-reservation")->assertInertia(fn (Assert $page) => $page
+    $this->actingAs($manager)->get("/p/{$property->code}/reports/guest-list?tab=arrivals&sort=-reservation")->assertInertia(fn (Assert $page) => $page
         ->where('sort', '-reservation'));
 });
 
