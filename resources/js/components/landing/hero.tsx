@@ -61,8 +61,8 @@ export function Hero() {
                                 Run your hotel from one system, not five.
                                 Property Management, Channel Manager and Booking
                                 Engine — unified with AI, automation and
-                                self-service. Built for independent and boutique
-                                hotels.
+                                self-service. Built for independent & boutique
+                                hotels — architected to scale to hotel groups.
                             </p>
                             <div
                                 data-hero-cta

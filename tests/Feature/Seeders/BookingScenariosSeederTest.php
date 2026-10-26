@@ -47,7 +47,7 @@ test('the booking scenarios seeder builds the property and rolls it forward to t
     expect($property->status)->toBe(PropertyStatus::Live)
         ->and(Room::query()->where('property_id', $property->id)->count())->toBe(21)
         ->and(Bed::query()->whereIn('room_id', Room::query()->where('property_id', $property->id)->select('id'))->count())->toBe(6)
-        ->and(RatePlan::query()->where('property_id', $property->id)->pluck('name')->all())->toBe(['Room Only', 'Bed & Breakfast', 'Dorm Bed', 'Corporate'])
+        ->and(RatePlan::query()->where('property_id', $property->id)->orderBy('id')->pluck('name')->all())->toBe(['Room Only', 'Bed & Breakfast', 'Dorm Bed', 'Corporate'])
         ->and(Reservation::query()->where('property_id', $property->id)->count())->toBe(28)
         ->and(ReservationUnit::query()->where('property_id', $property->id)->count())->toBe(60)
         ->and($property->businessDates()->where('status', BusinessDateStatus::Closed)->count())->toBe(BookingScenariosSeeder::DAYS_BACK)

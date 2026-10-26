@@ -4,42 +4,42 @@ import { usePreviewPlayback } from './use-preview-playback';
 
 const steps = [
     [
-        'Search & compare',
-        'Find your stay',
-        'Select dates. Make yourself at home.',
+        'Availability & rates',
+        'Sell more rooms direct',
+        'Turn searches into direct bookings.',
         [
             ['Check-in', '18 Oct'],
             ['Check-out', '20 Oct'],
             ['Guests', '2 adults'],
         ],
-        'City, dates and guest count show live availability and the cheapest room.',
+        'Give guests live room availability and your best available rates, synced directly with your hotel inventory.',
     ],
     [
-        'Instant payment',
-        'Secure checkout',
-        'Your stay, one step closer.',
+        'Secure payments',
+        'Get paid with confidence',
+        'Secure checkout. Protected bookings.',
         [
             ['Stay total', 'RM 560'],
             ['Payment', 'FPX / card'],
             ['Booking', '2 nights'],
         ],
-        'Secure FPX or credit card checkout, with protection against duplicate bookings when a payment is retried.',
+        'Accept FPX and credit card payments through a secure checkout, with duplicate-booking protection when a payment is retried.',
     ],
     [
-        'Confirmation & reminders',
-        'You’re booked',
-        'We’ll take it from here.',
+        'Automated communication',
+        'Save your team time',
+        'Confirm every booking. Automatically.',
         [
             ['Confirmation', 'Email sent'],
             ['Before arrival', 'WhatsApp reminder'],
             ['Check-in', 'From 3 pm'],
         ],
-        'Email confirmation, then a WhatsApp reminder before check-in. Bookings land in Estatell automatically.',
+        'Send email confirmations and pre-arrival WhatsApp reminders automatically, while every reservation flows straight into Estatell.',
     ],
     [
         'Hotel dashboard',
-        'Ready for arrival',
-        'Every booking, already in place.',
+        'Ready for every arrival',
+        'One dashboard. Your whole operation.',
         [
             ['Guest', 'Sarah L.'],
             ['Room', '204 · Deluxe'],
@@ -53,20 +53,20 @@ const stepImages = [
     {
         src: '/images/landing/boutique-guest-room.webp',
         alt: 'Boutique guest room with a king bed, warm timber furnishings, and a balcony overlooking tropical greenery.',
-        title: 'Find your escape.',
-        caption: 'The right room. The right stay.',
+        title: 'More bookings. More direct.',
+        caption: 'Your rooms, always ready to sell.',
     },
     {
         src: '/images/landing/booking-payment.webp',
         alt: 'A traveler holding a bank card while booking a hotel stay on a laptop.',
-        title: 'Make it yours.',
-        caption: 'A simple checkout, straight from your website.',
+        title: 'From booking to payment.',
+        caption: 'A seamless checkout for your guests.',
     },
     {
         src: '/images/landing/booking-confirmation.webp',
         alt: 'A traveler checking their phone beside a packed suitcase before departure.',
-        title: 'Arrive reassured.',
-        caption: 'Stay details and reminders, close at hand.',
+        title: 'Every guest, kept informed.',
+        caption: 'Confirmations and reminders, handled for you.',
     },
     {
         src: '/images/landing/booking-dashboard.webp',
@@ -228,7 +228,7 @@ export function BookingJourney() {
                 </div>
                 <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
                     <p className="text-xs text-foreground/70">
-                        Illustrative guest experience{' '}
+                        Illustrative booking journey{' '}
                         <span aria-hidden="true">·</span> Powered by Estatell
                     </p>
                     {!reducedMotion && (

@@ -22,7 +22,7 @@ export function SavingsCalculator() {
             <Container>
                 <div ref={copyRef} className="max-w-3xl">
                     <p className="text-xs font-medium tracking-widest text-chart-1 uppercase">
-                        WAStays booking platform
+                        Direct booking platform
                     </p>
                     <h2
                         id="savings-heading"
