@@ -93,6 +93,12 @@ type Props<TRow extends { key: number | string }> = {
     sections?: App.Data.Reports.ReportSection[] | null;
     /** An action under the empty state, such as a link to the settings. */
     emptyAction?: ReactNode;
+    /** Extra query values every visit keeps, such as the `tab` of a tabbed report page. */
+    query?: Record<string, string>;
+    /** Inside a tabbed report page: no page title or header, which the page draws above its tabs. */
+    embedded?: boolean;
+    /** The name in the Layout Sheet title, such as "Guest list › Arrivals". Defaults to the title. */
+    layoutLabel?: string;
 };
 
 const MAX_SELECTED = 500;
@@ -136,6 +142,9 @@ export function ReportScreen<TRow extends { key: number | string }>({
     directionOptions = [],
     sections = null,
     emptyAction = null,
+    query,
+    embedded = false,
+    layoutLabel,
 }: Props<TRow>) {
     const column = useMemo(() => dataTableColumns<TRow>(), []);
     const [draft, setDraft] = useState<Layout | null>(null);
@@ -355,6 +364,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
                     ...(next.foreignOnly ? { foreign: '1' } : {}),
                     ...(next.direction ? { direction: next.direction } : {}),
                     ...(next.sort ? { sort: next.sort } : {}),
+                    ...query,
                 },
                 { preserveState: true, preserveScroll: true, replace: true },
             );
@@ -371,6 +381,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
             refundsOnly,
             foreignOnly,
             direction,
+            query,
         ],
     );
 
@@ -389,10 +400,18 @@ export function ReportScreen<TRow extends { key: number | string }>({
 
     return (
         <>
-            <Head title={title} />
+            {!embedded && <Head title={title} />}
 
-            <div className="flex flex-1 flex-col gap-4 p-4">
-                <PageHeader title={title} description={description} />
+            <div
+                className={
+                    embedded
+                        ? 'flex flex-1 flex-col gap-4'
+                        : 'flex flex-1 flex-col gap-4 p-4'
+                }
+            >
+                {!embedded && (
+                    <PageHeader title={title} description={description} />
+                )}
 
                 {note && (
                     <p className="-mt-2 text-sm text-muted-foreground">
@@ -650,7 +669,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
                         }
                     }}
                     report={report}
-                    reportLabel={title}
+                    reportLabel={layoutLabel ?? title}
                     saved={layout}
                     draft={draft}
                     onDraftChange={setDraft}

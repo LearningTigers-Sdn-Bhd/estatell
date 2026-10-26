@@ -78,7 +78,8 @@ Guest list                                         [⚙ Layout] [Export ▾]
 - In-house takes one date (`?date=`). The other tabs take a range. From a range tab to In-house, `date` is `from`. From In-house to a range tab, `from` and `to` are the date. With no dates in the URL, each tab keeps its own default.
 - The old routes `reports.arrivals`, `reports.departures` and `reports.in-house` keep their names and redirect to the Guest list with their tab and query. Exports and layouts keep using `{report}`, so they do not change.
 - **Layout.** The Layout button edits the open tab's layout ("Layout · Guest list › Arrivals"). Saved layouts carry over.
-- **Changing tabs.** The page renders `ReportScreen` with `key={tab}`, so the row selection and the Layout draft reset. While the Layout draft has unsaved changes, `ReportScreen` asks first (an `onNavigateAttempt` callback), like closing the Sheet does.
+- **Changing tabs.** The page renders `ReportScreen` with `key={tab}`, so the row selection resets. The Layout draft lives only while the Sheet is open, and the open Sheet covers the tabs, so a tab change cannot lose it. Closing a dirty Sheet already asks first.
+- `ReportScreen` takes `query` (kept on every visit, here `tab`), `embedded` (no page title or header; the page draws them above the tabs) and `layoutLabel` ("Guest list › Arrivals" in the Sheet title).
 
 ## 4. Daily report
 
@@ -138,7 +139,7 @@ A new report, `ReportKey::DailyRevenue`, Landscape, not listed in the sidebar. O
 The Payments report inside the tab, with `group=staff` as the default. It uses the **Payments** layout, filters and exports, so one setting changes both.
 
 - The Payments page logic moves into a shared class that both the Payments page and this tab call.
-- `ReportScreen` gets an `embedded` mode (no page header) and a `query` prop that every visit keeps, so sorting and paging stay on `?tab=cashier`. The Guest list uses the same `query` prop.
+- It renders `ReportScreen` with `embedded`, `query={{ tab: 'cashier' }}` and `layoutLabel`, so sorting and paging stay on `?tab=cashier`.
 
 ### Layout
 
