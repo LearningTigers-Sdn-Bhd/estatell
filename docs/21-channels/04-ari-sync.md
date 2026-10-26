@@ -16,16 +16,16 @@ Timestamps here and on `channel_properties` are `timestamp` (UTC), like most tab
 
 ## Built
 
-| Piece                                                    | Role                                                                                                                                |
-| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `RatesChanged`, `InventoryChanged`, `ReservationChanged` | Events in `app/Events`. Each carries the property, the nights (both included), and optionally the room type and plan.               |
-| `RecordChannelAriChange`                                 | Turns an event into outbox lines for every mapped pair it touches and starts the delayed flush. Registered in `AppServiceProvider`. |
-| `ChannelAriWindow`                                       | Today in the property time zone and the next 499 days. Past and far dates are cut off.                                              |
-| `ChannelAriValues`                                       | Calculates availability and per-pair rate and restrictions at send time.                                                            |
-| `ChannelAriRanges`                                       | Merges overlapping ranges and joins consecutive equal dates.                                                                        |
-| `FlushChannelAri`                                        | Sends one `/restrictions` and one `/availability` call; marks, defers or refuses the lines.                                         |
-| `FlushChannelAriJob`                                     | Unique per property and kind, `WithoutOverlapping`. Puts itself back with the wait on a limit.                                      |
-| `QueueChannelFullSync`, `channels:full-sync`             | The 500-day full sync: first sync, admin **Full refresh**, nightly 03:00 MYT, 5 s apart.                                            |
+| Piece                                                    | Role                                                                                                                                                                                                                                                    |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `RatesChanged`, `InventoryChanged`, `ReservationChanged` | Events in `app/Events`. Each carries the property, the nights (both included), and optionally the room type and plan.                                                                                                                                   |
+| `RecordChannelAriChange`                                 | Turns an event into outbox lines for every mapped pair it touches and starts the delayed flush after the transaction commits (`afterCommit`), so a rolled-back change (the walk-in payment preview) queues nothing. Registered in `AppServiceProvider`. |
+| `ChannelAriWindow`                                       | Today in the property time zone and the next 499 days. Past and far dates are cut off.                                                                                                                                                                  |
+| `ChannelAriValues`                                       | Calculates availability and per-pair rate and restrictions at send time.                                                                                                                                                                                |
+| `ChannelAriRanges`                                       | Merges overlapping ranges and joins consecutive equal dates.                                                                                                                                                                                            |
+| `FlushChannelAri`                                        | Sends one `/restrictions` and one `/availability` call; marks, defers or refuses the lines.                                                                                                                                                             |
+| `FlushChannelAriJob`                                     | Unique per property and kind, `WithoutOverlapping`. Puts itself back with the wait on a limit.                                                                                                                                                          |
+| `QueueChannelFullSync`, `channels:full-sync`             | The 500-day full sync: first sync, admin **Full refresh**, nightly 03:00 MYT, 5 s apart.                                                                                                                                                                |
 
 ### Where the events are dispatched
 

@@ -18,6 +18,8 @@ export type AppVariant = 'header' | 'sidebar';
 export type FlashToast = {
     type: 'success' | 'info' | 'warning' | 'error';
     message: string;
+    /** More lines under the message, one reason on each line. */
+    description?: string;
 };
 
 export type AuthLayoutProps = {

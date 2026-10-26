@@ -29,6 +29,7 @@ class FreeUnitsRequest extends FormRequest
             'departure_date' => ['required_unless:stay_type,day_use', 'nullable', 'date_format:Y-m-d'],
             'start_time' => ['required_if:stay_type,day_use', 'nullable', 'date_format:H:i'],
             'hours' => ['required_if:stay_type,day_use', 'nullable', 'integer', 'between:1,24'],
+            'walk_in' => ['nullable', 'boolean'],
         ];
     }
 
