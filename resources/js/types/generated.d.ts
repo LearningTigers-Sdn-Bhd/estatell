@@ -3186,6 +3186,7 @@ exempt: boolean,
 taxesTotal: string,
 taxesHidden: boolean,
 deposit: string | null,
+billTotal: string,
 };
 export type CheckOutCollectData = {
 paymentMethodId: number,
@@ -3756,6 +3757,24 @@ amount: string,
 paid: string,
 reopens: string[],
 error: string | null,
+};
+export type WalkInPaymentData = {
+roomCharges: string,
+roomChargesHidden: boolean,
+taxes: {
+name: string,
+amount: string,
+exempt: boolean,
+}[],
+taxesTotal: string,
+deposit: {
+amount: string,
+units: number,
+total: string,
+} | null,
+totalWithRoomCharges: string,
+totalWithoutRoomCharges: string,
+errors: Record<string, string>,
 };
 }
 namespace Rooms {

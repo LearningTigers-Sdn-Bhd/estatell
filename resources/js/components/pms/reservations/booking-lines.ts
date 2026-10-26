@@ -71,6 +71,12 @@ export type BookingForm = {
     /** Overnight only: the Boat in and Boat out picks, applied to every line. A day use block takes none. */
     boat_in: BoatChoice;
     boat_out: BoatChoice;
+    /** Walk-in only, with `payment.record`: the Payment section. The server answers every amount; `expected_total` is the total the rail showed. */
+    collect_room_charges?: boolean;
+    collect_deposit?: boolean;
+    payment_method_id?: string;
+    reference?: string;
+    expected_total?: string;
 };
 
 type RoomTypeOption = App.Data.Reservations.RoomTypeOptionData;

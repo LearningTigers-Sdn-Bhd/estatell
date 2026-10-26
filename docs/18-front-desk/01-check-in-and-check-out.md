@@ -491,7 +491,7 @@ With **Room charges and tax** ticked, the tax rows hide, because the full bill a
 │ ☑ Collect now        Total RM 421.60           │
 ```
 
-- **Room charges and tax** starts unticked: a booked guest often paid before arrival or pays at check-out. The walk-in form starts it ticked. It records one Advance for the unit's full bill (see [Walk-in check-in](#walk-in-check-in)). It is hidden when the reservation has a company and Master folio pays.
+- **Room charges and tax** starts unticked: a booked guest often paid before arrival or pays at check-out. The walk-in form starts it ticked. It records one Advance for the unit's full bill (see [Walk-in check-in](#walk-in-check-in)). It is hidden when the reservation has a company and any billing mode but Each unit pays.
 - The tax rows sum the Scheduled tax rows of every tax with **Collect at check-in** for the unit's nights, one row per tax. A foreign-only tax for a guest it does not apply to shows "Exempt" and adds 0. With no flagged tax, the tax rows are hidden.
 - The amount is read-only. A guest who pays only part unticks **Collect now** and uses Record payment on the folio.
 - The deposit box is ticked by default. It shows only when `security_deposit_amount` is above 0.
@@ -521,12 +521,12 @@ It returns `WalkInResult`: the reservation (null when the booking was refused), 
 | false         | The Collect at check-in taxes as one Advance, then the deposit, as the check-in Dialog does today                                |
 
 - The full bill goes to the folio that gets the unit's room charges. A unit whose room charges go to the Master folio pays its share as an Advance on the Master folio. `RecordPayment` allows that; it refuses an Advance only on a Unit folio whose room charges go to the Master (`advance_on_master`).
-- A reservation with a company and Master folio pays collects no room charges (the form hides the box). The deposit still goes to each unit folio.
+- A reservation with a company and any billing mode but Each unit pays collects no room charges (the form hides the box). The deposit still goes to each unit folio.
 - `RecordPayment` does not check the stay stage, so an Advance right after check-in is accepted (checked in the code). Only the payment form limits the purposes by stage (`PaymentPurpose::forStage`).
 - The keys are `{uuid}:{unit}:bill`, `{uuid}:{unit}:taxes` and `{uuid}:{unit}:deposit`, so a repeated submit returns the same payments.
 - The check-in Dialog sends `roomCharges` from its own **Room charges and tax** box (unticked by default; see [Collect now](#collect-now)). A walk-in unit refused for `card_missing` is finished there after the guest signs, so the guest still pays the whole stay at the desk.
 
-**The preview: a trial booking, rolled back.** `WalkInPayment::preview()` (`app/Services/FrontDesk/`) answers `reservations.walk-in-payment` before anything is kept. It opens a transaction, runs `CreateBooking` with the form's data, reads the new reservation through `CheckInCollection` (the full bill, the Collect at check-in taxes and the deposit of each unit, from `ScheduledFolioRows`), then rolls back. The save runs the same code, so the preview and the save can only differ when a rate, tax or deposit changed in between (`amount_changed`).
+**The preview: a trial booking, rolled back.** `CheckInCollectionData` carries `billTotal`, the sum of every Scheduled row of the unit; the check-in Dialog preview gets it too. `WalkInPayment::preview()` (`app/Services/FrontDesk/`) answers `reservations.walk-in-payment` before anything is kept. It opens a transaction, runs `CreateBooking` with the form's data, reads the new reservation through `CheckInCollection` (the full bill, the Collect at check-in taxes and the deposit of each unit, from `ScheduledFolioRows`), then rolls back. The save runs the same code, so the preview and the save can only differ when a rate, tax or deposit changed in between (`amount_changed`).
 
 - Why not price the lines without saving: the night prices are set inside `AddUnit` (rate quote, package spread, price override), and `NightChargeQuote` needs saved nights. A second copy of that pricing could drift from the folio by a cent. The trial booking cannot.
 - What the trial costs: it locks the room type rows (`AssignRoom`) and the reservation `document_sequences` row for the length of the request, about 100 ms. Nothing is kept: the reference number, the activity log and the channel outbox lines roll back with it.

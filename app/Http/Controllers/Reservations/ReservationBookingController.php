@@ -8,6 +8,7 @@ use App\Actions\Reservations\CreateMigratedStay;
 use App\Actions\Reservations\CreateOldStay;
 use App\Actions\Reservations\CreatePastStay;
 use App\Data\Property\CurrencyData;
+use App\Data\Reservations\WalkInPaymentData;
 use App\Enums\BillingMode;
 use App\Enums\BoatDirection;
 use App\Enums\Gender;
@@ -22,6 +23,7 @@ use App\Http\Requests\Reservations\FreeUnitsRequest;
 use App\Http\Requests\Reservations\QuoteBookingLineRequest;
 use App\Http\Requests\Reservations\StoreBookingRequest;
 use App\Http\Requests\Reservations\StorePastStayRequest;
+use App\Http\Requests\Reservations\WalkInPaymentRequest;
 use App\Models\Property;
 use App\Models\RatePlan;
 use App\Models\RoomType;
@@ -29,6 +31,7 @@ use App\Services\Availability\DayUseAvailability;
 use App\Services\Availability\FreeUnits;
 use App\Services\Boats\BoatSeats;
 use App\Services\CityLedger\CompanyOptions;
+use App\Services\FrontDesk\WalkInPayment;
 use App\Services\Guests\CountryOptions;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\NightAudit\FirstBusinessDate;
@@ -215,6 +218,23 @@ class ReservationBookingController extends Controller
     }
 
     /**
+     * What the walk-in would pay, for the Payment section of the rail. The booking is tried and rolled back, so nothing
+     * is saved. A booking that would be refused answers 200 with `errors`, keyed as a save keys them.
+     */
+    public function walkInPayment(WalkInPaymentRequest $request, Property $property, WalkInPayment $walkInPayment, BookingErrorKeys $errorKeys): JsonResponse
+    {
+        $payment = $walkInPayment->preview($request->user(), $property, $request->toBookingData());
+
+        if ($payment instanceof BookingResult) {
+            return response()->json(WalkInPaymentData::refused(
+                $errorKeys->errors($payment, $request->unitsPerLine(), $request->user()->can(PermissionEnum::RatesOverrideRestrictions->value)),
+            ));
+        }
+
+        return response()->json($payment);
+    }
+
+    /**
      * Price one booking line for the booking form. A line that cannot be priced answers 200 with `errors`.
      */
     public function quote(QuoteBookingLineRequest $request, Property $property, BookingQuote $bookingQuote): JsonResponse
@@ -344,6 +364,8 @@ class ReservationBookingController extends Controller
             'currency' => CurrencyData::forProperty($property),
             'canOverrideRestrictions' => $request->user()->can(PermissionEnum::RatesOverrideRestrictions->value),
             'canManageGuests' => $canManageGuests,
+            'canRecordPayment' => $request->user()->can(PermissionEnum::PaymentRecord->value),
+            'paymentOptions' => Inertia::optional(fn () => $request->user()->can(PermissionEnum::PaymentRecord->value) ? $options->payments($property, $request->user()) : null),
             'countries' => $canManageGuests ? app(CountryOptions::class)->options() : [],
             'defaultNationalityCode' => $property->country_code ?? 'MY',
             'genders' => Gender::options(),

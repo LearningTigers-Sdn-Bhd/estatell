@@ -55,6 +55,13 @@ import type {
     BookingLine,
 } from '@/components/pms/reservations/booking-lines';
 import { BookingSummaryRail } from '@/components/pms/reservations/booking-summary-rail';
+import { useWalkInPayment } from '@/components/pms/reservations/use-walk-in-payment';
+import { walkInPaymentPayload } from '@/components/pms/reservations/walk-in-payment';
+import { WalkInPaymentSection } from '@/components/pms/reservations/walk-in-payment-section';
+import {
+    KEEP_OPTIONS,
+    useFormOptions,
+} from '@/components/pms/use-form-options';
 import {
     errorTabs,
     firstErrorTab,
@@ -182,6 +189,10 @@ type Props = {
     currency: App.Data.Property.CurrencyData | null;
     canOverrideRestrictions: boolean;
     canManageGuests: boolean;
+    /** Whether the user may take a payment (`payment.record`): it shows the walk-in Payment section. */
+    canRecordPayment: boolean;
+    /** The payment methods, asked for the first time the walk-in form opens. */
+    paymentOptions?: App.Data.Payments.PaymentFormOptionsData | null;
     /** Whether the property has an active Day use plan: it turns the Stay type switch on. */
     hasDayUse: boolean;
     /** Whether the Boats feature is on: it shows the Boat in and Boat out picks on the Stay row. */
@@ -248,6 +259,8 @@ export default function ReservationCreate({
     currency,
     canOverrideRestrictions,
     canManageGuests,
+    canRecordPayment,
+    paymentOptions,
     hasDayUse,
     hasBoats,
     boatDepartures,
@@ -307,6 +320,11 @@ export default function ReservationCreate({
         lines: [prefilledLine()],
         boat_in: NOT_SET,
         boat_out: NOT_SET,
+        collect_room_charges: true,
+        collect_deposit: true,
+        payment_method_id: '',
+        reference: '',
+        expected_total: '',
     });
     const { data, errors } = form;
     const [quotes, setQuotes] = useState<Record<string, Quote>>({});
@@ -511,6 +529,16 @@ export default function ReservationCreate({
         : lockedNights !== null && data.arrival_date
           ? addDays(data.arrival_date, lockedNights)
           : data.departure_date;
+    const showPayment = isWalkIn && canRecordPayment;
+    useFormOptions(showPayment, paymentOptions !== undefined, 'paymentOptions');
+    const walkInPayment = useWalkInPayment(
+        showPayment
+            ? walkInPaymentPayload(
+                  { ...data, departure_date: departure },
+                  roomTypes,
+              )
+            : null,
+    );
     const emptyPickLabel =
         isPastStay || (isWalkIn && !autoAssignRooms)
             ? 'Select'
@@ -632,6 +660,7 @@ export default function ReservationCreate({
         );
         form.post((isPastStay ? storePast : store).url(), {
             preserveScroll: true,
+            except: KEEP_OPTIONS,
             onError: (submitted) => {
                 const failing = firstErrorTab(errorTabs(submitted));
 
@@ -1909,6 +1938,45 @@ export default function ReservationCreate({
                                         unitChoices[Number(tab.stays_in)]
                                             ?.label ?? null,
                                 }))}
+                                payment={
+                                    showPayment ? (
+                                        <WalkInPaymentSection
+                                            payment={walkInPayment.payment}
+                                            loading={walkInPayment.loading}
+                                            invalid={walkInPayment.invalid}
+                                            options={paymentOptions}
+                                            currency={currency}
+                                            values={{
+                                                collect_room_charges:
+                                                    data.collect_room_charges ??
+                                                    true,
+                                                collect_deposit:
+                                                    data.collect_deposit ??
+                                                    true,
+                                                payment_method_id:
+                                                    data.payment_method_id ??
+                                                    '',
+                                                reference: data.reference ?? '',
+                                                expected_total:
+                                                    data.expected_total ?? '',
+                                            }}
+                                            errors={errors}
+                                            onChange={(patch) =>
+                                                form.setData((current) => ({
+                                                    ...current,
+                                                    ...patch,
+                                                }))
+                                            }
+                                            onDerive={(patch) => {
+                                                form.setData((current) => ({
+                                                    ...current,
+                                                    ...patch,
+                                                }));
+                                                form.setDefaults(patch);
+                                            }}
+                                        />
+                                    ) : undefined
+                                }
                                 discountCount={
                                     data.lines.filter(
                                         (line) => line.discount_id !== '',

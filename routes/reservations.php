@@ -28,6 +28,7 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
         Route::post('quote', [ReservationBookingController::class, 'quote'])->name('quote');
         Route::get('new', [ReservationBookingController::class, 'new'])->name('new');
         Route::get('walk-in', [ReservationBookingController::class, 'walkIn'])->name('walk-in');
+        Route::post('walk-in/payment', [ReservationBookingController::class, 'walkInPayment'])->middleware('can:'.PermissionEnum::PaymentRecord->value)->name('walk-in-payment');
         Route::post('/', [ReservationBookingController::class, 'store'])->name('store');
         Route::middleware('can:'.PermissionEnum::FolioManual->value)->group(function () {
             Route::get('past', [ReservationBookingController::class, 'past'])->name('past');
