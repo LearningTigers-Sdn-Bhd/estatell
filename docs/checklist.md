@@ -43,6 +43,17 @@ Build in this order. The Stay View is two sidebar items under Overview: **Timeli
 
 Needed for go-live.
 
+### 22 Reports
+
+From wastays. Steps 1 to 4 run as two lanes in parallel after the shared commit: lane A is 1 then 4, lane B is 2 then 3. Docs: [Guest list, Daily report and Booking performance](22-reports/02-guest-list-and-daily-report.md).
+
+- [ ] `feat(reports): add the guest list and daily report keys` — the shared pieces: `ReportKey::CheckedOut` and `ReportKey::DailyRevenue` (label, category, orientation, range), the Guest list and Daily report sidebar entries in `ReportsNavigation` with Arrivals, Departures and In-house off the sidebar, and the route stubs. Docs: [Build order](22-reports/02-guest-list-and-daily-report.md#build-order).
+- [ ] `feat(reports): split tax columns and add the tax base` — lane A: the Base column on Tax from the parent charges, "—" for a flat tax, and the `ReportLayoutResolver` rule that puts a new tax column before Adjustments. Needs: the shared keys. Docs: [Tax split](22-reports/02-guest-list-and-daily-report.md#1-tax-split).
+- [ ] `feat(reports): add the checked-out report` — lane B: `CheckedOut` on `UnitReportRows`, units Checked out by departure date, Balance highest first. Needs: the shared keys. Docs: [Checked out](22-reports/02-guest-list-and-daily-report.md#2-checked-out).
+- [ ] `feat(reports): merge guest reports into the guest list` — lane B: the Guest list page with four tabs and counts, the Layout Sheet on the open tab, redirects from the old report URLs. Needs: the checked-out report. Docs: [Guest list](22-reports/02-guest-list-and-daily-report.md#3-guest-list).
+- [ ] `feat(reports): add the daily report` — lane A: Overview cards, `DailyRevenue` with the buckets and one `tax:{code}` column per tax, Cashier activity on the Payments layout. Needs: split tax columns. Docs: [Daily report](22-reports/02-guest-list-and-daily-report.md#4-daily-report).
+- [ ] `feat(reports): add booking performance` — from wastays: bookings, room nights, revenue, ADR and lead time grouped by booking date, source, room type (per unit), rate plan or status. Needs: ingest channel bookings, replace the reservation source with booking sources. Docs: [Booking performance](22-reports/02-guest-list-and-daily-report.md#5-booking-performance).
+
 ### 08 Rates
 
 - [ ] `feat(rates): override the early departure policy per rate plan` — `rate_plans.early_departure_policy` becomes an optional override that follows the property by default. Needs: room revenue policies. Docs: [Rate plans](08-rates/01-rate-plans.md), [Room revenue](06-catalogues/06-room-revenue.md#policies).
@@ -69,7 +80,6 @@ The rest of the channel work. Docs: [Connections and feature gate](21-channels/0
 - [ ] `feat(channels): add the owner channels page and help requests` — `channel_help_requests`, `ChannelHelpReason`, `ChannelOwnerStatus`, Ask owner for help and Mark help resolved, `ChannelHelpRequested`, `channel.view` with a syncing migration, **Settings → Channels**, the OTA lists Channel column and intro, and the rate calendar line. No dashboard changes. Docs: [Owner Channels page](21-channels/08-owner-channels-page.md).
 - [ ] `feat(channels): add dorm strategies` (WIP) — BedAsUnit first, then NativeDorm after the [dorm checks](21-channels/06-staging-verification.md#dorm-checks-wip). Docs: [Dorm strategies](21-channels/03-dorm-strategies.md).
 - [ ] `feat(channels): connect Airbnb` (later) — OAuth, listing mapping, many properties per connection.
-- [ ] `feat(reports): add booking performance` — from wastays: bookings and revenue by source, room type and period. Needs: ingest channel bookings, replace the reservation source with booking sources. Docs: [Core reports](22-reports/01-core-reports.md).
 
 ### 25 Guest requests
 
