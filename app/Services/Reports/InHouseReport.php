@@ -10,6 +10,7 @@ use App\Enums\UnitStatus;
 use App\Models\Property;
 use App\Models\ReservationUnit;
 use App\Services\Reservations\ReservationRoomBox;
+use Illuminate\Database\Eloquent\Builder;
 
 /**
  * The reservation units that stay on one date: arrival on or before the date and departure after it, so the arrival
@@ -27,26 +28,35 @@ class InHouseReport implements HasTotals, Report
     ) {}
 
     /**
+     * The units that stay on the date (`from`), without order or relations. The Guest list counts them with it.
+     *
+     * @return Builder<ReservationUnit>
+     */
+    public function query(Property $property, ReportFilters $filters): Builder
+    {
+        $date = $filters->from;
+
+        return ReservationUnit::query()
+            ->where('property_id', $property->id)
+            ->where('arrival_date', '<=', $date)
+            ->where(fn ($stay) => $stay
+                ->where('departure_date', '>', $date)
+                ->orWhere(fn ($dayUse) => $dayUse
+                    ->where('stay_type', StayType::DayUse->value)
+                    ->where('arrival_date', $date)))
+            ->whereIn('status', [UnitStatus::CheckedIn, UnitStatus::CheckedOut]);
+    }
+
+    /**
      * @param  list<int|string>|null  $rowKeys
      * @return list<InHouseRow>
      */
     public function rows(Property $property, ReportFilters $filters, ?array $rowKeys = null): array
     {
-        $date = $filters->from;
-
         return $this->unitRows->rows(
-            ReservationUnit::query()
-                ->where('property_id', $property->id)
-                ->where('arrival_date', '<=', $date)
-                ->where(fn ($stay) => $stay
-                    ->where('departure_date', '>', $date)
-                    ->orWhere(fn ($dayUse) => $dayUse
-                        ->where('stay_type', StayType::DayUse->value)
-                        ->where('arrival_date', $date)))
-                ->whereIn('status', [UnitStatus::CheckedIn, UnitStatus::CheckedOut])
-                ->orderBy('id'),
+            $this->query($property, $filters)->orderBy('id'),
             $rowKeys,
-            fn (array $unitIds): array => $this->roomBox->assignmentsForUnitsOn($unitIds, $date),
+            fn (array $unitIds): array => $this->roomBox->assignmentsForUnitsOn($unitIds, $filters->from),
             fn (ReservationUnit $unit, ?string $room, string $balance): InHouseRow => InHouseRow::fromModel($unit, $room, $balance),
         );
     }

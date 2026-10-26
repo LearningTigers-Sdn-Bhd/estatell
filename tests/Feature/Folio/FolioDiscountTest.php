@@ -3,7 +3,9 @@
 use App\Actions\Folio\ApplyDiscount;
 use App\Actions\Folio\PostCharge;
 use App\Actions\Folio\PostingResult;
+use App\Actions\Folio\RecalculateLineTax;
 use App\Actions\Folio\RemoveDiscount;
+use App\Actions\Folio\RemoveLineTax;
 use App\Actions\Folio\ReverseLine;
 use App\Actions\Folio\TransferLines;
 use App\Data\Folio\DiscountQuoteData;
@@ -264,6 +266,66 @@ test('the fingerprint is a SHA-256 hash that only changes with the quote', funct
     expect($first)->toMatch('/^[0-9a-f]{64}$/')
         ->and(fdQuote($charge->folio, $discount)->fingerprint)->toBe($first)
         ->and(fdQuote($charge->folio, $discount, '5.00')->fingerprint)->toBe($first);
+});
+
+test('a discount after a tax was removed and recalculated reduces only the live tax line once', function () {
+    $setup = fdSetup();
+    $sst = fdTax($setup['property'], $setup['room'], '8.00');
+    $charge = fdCharge($setup);
+    $folio = $charge->folio;
+    app(RemoveLineTax::class)($setup['actor'], $charge, [$charge->children()->firstOrFail()->id], 'Guest is exempt', 'key-remove');
+    app(RecalculateLineTax::class)($setup['actor'], $charge, 'Fixing a mistake', 'key-recalc');
+    $discount = fdDiscount($setup['property'], ['value' => '10.00']);
+
+    expect(fdBalance($folio))->toBe('108.00');
+
+    $result = fdApply($setup, $folio, $discount);
+
+    [$line, $taxLine] = $result->lines;
+
+    expect($result->isRefused())->toBeFalse()
+        ->and($result->lines)->toHaveCount(2)
+        ->and($line->amount)->toBe('-10.00')
+        ->and($taxLine->amount)->toBe('-0.80')
+        ->and($taxLine->transaction_code_id)->toBe($sst->transaction_code_id)
+        ->and($taxLine->idempotency_key)->toBe($line->idempotency_key.':tax:'.$sst->id)
+        ->and($line->children()->count())->toBe(1)
+        ->and(fdBalance($folio))->toBe('97.20');
+});
+
+test('a discount does not reduce a tax line that was removed', function () {
+    $setup = fdSetup();
+    fdTax($setup['property'], $setup['room'], '8.00');
+    $charge = fdCharge($setup);
+    $folio = $charge->folio;
+    app(RemoveLineTax::class)($setup['actor'], $charge, [$charge->children()->firstOrFail()->id], 'Guest is exempt', 'key-remove');
+
+    $result = fdApply($setup, $folio, fdDiscount($setup['property'], ['value' => '10.00']));
+
+    expect($result->isRefused())->toBeFalse()
+        ->and($result->lines)->toHaveCount(1)
+        ->and($result->line()->amount)->toBe('-10.00')
+        ->and(fdBalance($folio))->toBe('90.00');
+});
+
+test('applying twice after a tax recalculation posts nothing the second time', function () {
+    $setup = fdSetup();
+    fdTax($setup['property'], $setup['room'], '8.00');
+    $charge = fdCharge($setup);
+    $folio = $charge->folio;
+    app(RemoveLineTax::class)($setup['actor'], $charge, [$charge->children()->firstOrFail()->id], 'Guest is exempt', 'key-remove');
+    app(RecalculateLineTax::class)($setup['actor'], $charge, 'Fixing a mistake', 'key-recalc');
+    $discount = fdDiscount($setup['property'], ['value' => '10.00']);
+    $fingerprint = fdQuote($folio, $discount)->fingerprint;
+
+    app(ApplyDiscount::class)($setup['actor'], $folio, $discount, null, $fingerprint);
+    $count = FolioLine::query()->count();
+    $again = app(ApplyDiscount::class)($setup['actor'], $folio, $discount, null, $fingerprint);
+
+    expect($again->refusal)->toBe(PostingResult::REFUSAL_NOTHING_ELIGIBLE)
+        ->and(FolioLine::query()->count())->toBe($count)
+        ->and(fdBalance($folio))->toBe('97.20')
+        ->and(Activity::query()->where('event', 'folio.discount_applied')->count())->toBe(1);
 });
 
 test('a charge takes one discount: a second apply posts nothing', function () {

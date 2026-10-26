@@ -36,6 +36,7 @@ Apply a discount to posted charges with correct tax.
 
 The discount lowers the tax that the charge carries. It does not run `TaxCalculator` again.
 
+- Only **live** tax lines count: a tax line with a reversal (from `RemoveLineTax` or `RecalculateLineTax`) is skipped. So a removed tax is never reduced, and after a recalculation each tax counts once, which keeps the `{discount key}:tax:{tax_id}` key unique.
 - For each **percent** tax line of the charge, the discount posts a negative tax line under the discount line: the tax amount × the share ÷ the net amount, rounded in the property currency. The tax code is the tax line's own code.
 - **Flat taxes** (for example the RM10 per room-night tourism tax) get no line. A discount never reduces a flat tax.
 - Because the proportion comes from the charge's own tax lines, inclusive taxes and foreign-guest taxes follow the charge without extra rules.

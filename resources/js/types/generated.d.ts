@@ -2735,6 +2735,66 @@ note: string | null,
 boat_departure_id: number | null,
 seats: number | null,
 };
+export type CheckedOutRow = {
+key: number,
+reservation: string,
+guest: string,
+phone: string | null,
+departure: string,
+checked_out_at: string,
+nights: number,
+stay_label: string | null,
+unit: string,
+room_type: string,
+room: string | null,
+guests: string,
+adults: number,
+children: number,
+company: string | null,
+balance: string,
+};
+export type DailyChargeRow = {
+key: number,
+date: string,
+charge: string,
+booking: string,
+guest: string,
+base: string,
+discount: string,
+taxes: Record<string, string>,
+total: string,
+bucket: string,
+folio: string,
+room: string,
+code: string,
+status: App.Data.Shared.BadgeData,
+staff: string | null,
+};
+export type DailyOverviewData = {
+bookings: number,
+totalCharges: string,
+adjustments: string,
+netRevenue: string,
+movements: number,
+collected: string,
+refunded: string,
+netAtDesk: string,
+};
+export type DailyRevenueReportRow = {
+key: string,
+group: App.Enums.ReportGroup,
+period: string,
+bookings: number,
+accommodation: string,
+day_use: string,
+fees: string,
+extras: string,
+taxes: Record<string, string>,
+adjustments: string,
+total: string,
+from: string,
+to: string,
+};
 export type DepartureRow = {
 key: number,
 reservation: string,
@@ -2961,6 +3021,8 @@ staff: number | null,
 refundsOnly: boolean,
 foreignOnly: boolean,
 direction: App.Enums.BoatDirection | null,
+bucket: App.Enums.ChargeBucket | null,
+search: string | null,
 };
 export type ReportLayoutColumnData = {
 key: string,
@@ -3001,6 +3063,7 @@ period: string,
 tax: string,
 registration: string | null,
 lines: number,
+base: string | null,
 amount: string,
 };
 }
@@ -3969,6 +4032,8 @@ export type ChannelRemovalState = 'pending' | 'done' | 'blocked';
 export type ChannelSellMode = 'per_room' | 'per_person';
 export type ChannelSupport = 'full' | 'flattened' | 'unsupported';
 export type ChannelSyncState = 'idle' | 'queued' | 'running' | 'done' | 'failed';
+export type ChargeBucket = 'accommodation' | 'day-use' | 'fees' | 'extras' | 'adjustments';
+export type ChargeStatus = 'posted' | 'reversal' | 'moved';
 export type ChargingUnit = 'per_item' | 'per_night' | 'per_stay' | 'per_guest_night' | 'per_guest';
 export type CheckInRoomState = 'assigned' | 'auto' | 'none';
 export type ColumnAlign = 'left' | 'center' | 'right';
@@ -4055,7 +4120,7 @@ export type RegistrationCardStatus = 'draft' | 'signed' | 'void';
 export type ReportCategory = 'front-desk' | 'revenue' | 'finance' | 'kitchen' | 'audit';
 export type ReportDatePreset = 'today' | 'yesterday' | 'tomorrow' | 'next-7-days' | 'this-week' | 'last-week' | 'next-week' | 'this-month' | 'last-month' | 'this-year' | 'last-30-days';
 export type ReportGroup = 'day' | 'month' | 'method' | 'staff';
-export type ReportKey = 'arrivals' | 'departures' | 'in-house' | 'occupancy' | 'revenue' | 'payments' | 'folio-ledger' | 'tax' | 'meal-counts' | 'night-audit-history' | 'outstanding-balance' | 'deposit-liability' | 'non-national-guests' | 'police-report' | 'housekeeping-tasks' | 'boat-manifest';
+export type ReportKey = 'arrivals' | 'departures' | 'in-house' | 'occupancy' | 'revenue' | 'payments' | 'folio-ledger' | 'tax' | 'meal-counts' | 'night-audit-history' | 'outstanding-balance' | 'deposit-liability' | 'non-national-guests' | 'police-report' | 'housekeeping-tasks' | 'boat-manifest' | 'checked-out' | 'daily-revenue' | 'daily-charges';
 export type ReservationRoomBoxState = 'assigned' | 'unassigned' | 'auto_assign' | 'cancelled' | 'no_show';
 export type ReservationStatus = 'confirmed' | 'in_house' | 'completed' | 'cancelled';
 export type RevisionKind = 'new' | 'modified' | 'cancelled';
@@ -4072,6 +4137,7 @@ export type StepState = 'locked' | 'not_started' | 'in_progress' | 'done' | 'nee
 export type SurchargeType = 'none' | 'fixed' | 'percent';
 export type SwatchColor = 'gray' | 'red' | 'orange' | 'amber' | 'green' | 'teal' | 'blue' | 'indigo' | 'violet' | 'pink';
 export type SystemTransactionCode = 'room_revenue' | 'no_show_revenue' | 'cancellation_revenue' | 'late_checkout_revenue' | 'early_departure_revenue' | 'day_use_revenue' | 'food_and_beverage_revenue' | 'laundry_revenue' | 'minibar_revenue' | 'fee_revenue' | 'damage_revenue' | 'sst_tax' | 'tourism_tax' | 'cash_payment' | 'card_payment' | 'bank_transfer_payment' | 'ewallet_payment' | 'ota_collected_payment' | 'direct_bill_payment' | 'security_deposit' | 'refund' | 'adjustment' | 'discount' | 'opening_balance' | 'old_system_payment';
+export type TabbedReport = 'guest-list' | 'daily-report';
 export type TaxRateType = 'percent' | 'flat';
 export type TemporaryPasswordExportFormat = 'message' | 'csv' | 'xlsx' | 'pdf';
 export type TermsPlaceholder = 'property_name' | 'check_in_time' | 'check_out_time' | 'security_deposit' | 'tourism_tax_rate';
