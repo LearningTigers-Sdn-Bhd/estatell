@@ -7,6 +7,7 @@ use App\Enums\SellUnit;
 use App\Enums\StayType;
 use App\Enums\UnitStatus;
 use App\Events\ReservationChanged;
+use App\Events\StayDatesChanged;
 use App\Models\ReservationUnit;
 use App\Models\RoomType;
 use App\Models\UnitNight;
@@ -208,6 +209,8 @@ class ChangeUnitDates
                 ->log('Unit dates changed');
 
             ($this->syncReservationStatus)($locked->reservation);
+
+            StayDatesChanged::dispatch($locked->property_id, $locked->id);
 
             return StayDatesResult::done($locked, $fee, $feeCharged, $previousTotal, $newTotal, $unassigned);
         });

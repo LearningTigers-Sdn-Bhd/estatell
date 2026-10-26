@@ -10,6 +10,7 @@ use App\Actions\Reservations\SyncReservationStatus;
 use App\Data\Folio\NewChargeData;
 use App\Enums\StayType;
 use App\Enums\UnitStatus;
+use App\Events\StayCheckedIn;
 use App\Models\ReservationUnit;
 use App\Models\Tax;
 use App\Models\UnitAddOn;
@@ -163,6 +164,8 @@ class CheckInUnit
                     ->log('Unit checked in');
 
                 ($this->syncReservationStatus)($locked->reservation);
+
+                StayCheckedIn::dispatch($locked->property_id, $locked->id);
 
                 return UnitStayResult::done($locked);
             });

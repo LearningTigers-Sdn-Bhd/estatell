@@ -765,6 +765,48 @@ remaining: number,
 total: number,
 };
 }
+namespace DoorLocks {
+export type DoorLockConnectionData = {
+ttlockUsername: string,
+signedIn: boolean,
+enabled: boolean,
+passcodeMode: string,
+lastTestedAt: string | null,
+lastError: string | null,
+};
+export type DoorLockData = {
+id: number,
+name: string,
+batteryPercent: number | null,
+hasGateway: boolean,
+roomId: number | null,
+roomNumber: string | null,
+syncedAt: string | null,
+};
+export type DoorPasscodeData = {
+id: number,
+lockName: string,
+label: string,
+kindLabel: string,
+status: App.Data.Shared.BadgeData,
+code: string | null,
+startsAt: string,
+endsAt: string,
+error: string | null,
+revokeNote: string | null,
+canRevoke: boolean,
+canRetry: boolean,
+};
+export type LockWithoutPinData = {
+name: string,
+reason: string | null,
+};
+export type UnitDoorPinsData = {
+passcodes: App.Data.DoorLocks.DoorPasscodeData[],
+locksWithoutPin: App.Data.DoorLocks.LockWithoutPinData[],
+sendNewPin: boolean,
+};
+}
 namespace Folio {
 export type DiscountQuoteData = {
 lines: App.Data.Folio.DiscountQuoteLineData[],
@@ -3980,6 +4022,9 @@ export type OwnerSetupMethod = 'email_link' | 'initial_password';
 export type PackageUnit = 'per_guest' | 'per_room';
 export type PageOrientation = 'portrait' | 'landscape';
 export type PartnerStatus = 'invited' | 'active' | 'suspended';
+export type PasscodeKind = 'generated' | 'custom';
+export type PasscodeMode = 'generated' | 'custom';
+export type PasscodeStatus = 'pending' | 'active' | 'failed' | 'revoked' | 'expired';
 export type PaymentMethodType = 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill' | 'old_system';
 export type PaymentPurpose = 'advance' | 'settlement' | 'security_deposit';
 export type PaymentReportStatus = 'pending' | 'completed' | 'failed' | 'voided';
@@ -3989,7 +4034,7 @@ export type PdfFont = 'office' | 'modern' | 'fancy' | 'handwritten';
 export type PdfFontSize = 'small' | 'medium' | 'large';
 export type PerformancePreset = '7d' | '30d' | 'month' | 'last-month' | '12m';
 export type PermissionEnum = 'settings.manage' | 'settings.ota-lists' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'reservations.change-price' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'folio.manual' | 'folio.view-manual-entries' | 'payment.record' | 'payment.refund' | 'payment.refund-other-method' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void' | 'front-desk.view' | 'front-desk.check-in' | 'front-desk.check-out' | 'front-desk.check-in-without-card' | 'front-desk.waive-fees' | 'front-desk.undo-check-in' | 'front-desk.undo-check-out' | 'night-audit.run' | 'night-audit.force' | 'night-audit.receive-report' | 'reports.view' | 'housekeeping.view' | 'housekeeping.update' | 'housekeeping.inspect';
-export type PlatformFeature = 'channel-manager' | 'boats' | 'accounting-integration';
+export type PlatformFeature = 'channel-manager' | 'boats' | 'accounting-integration' | 'door-locks';
 export type PolicyChargeMode = 'free' | 'fixed_amount' | 'percentage';
 export type PolicyRateBasis = 'booked_rate' | 'current_rate';
 export type PolicyScope = 'first_night' | 'whole_stay' | 'unused_nights' | 'one_charge';
