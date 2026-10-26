@@ -39,6 +39,7 @@ export function BookingSummaryRail({
     guests,
     unitsWithoutGuest,
     discountCount,
+    registrationCard,
     payment,
 }: {
     units: number;
@@ -52,6 +53,8 @@ export function BookingSummaryRail({
     unitsWithoutGuest: number;
     /** How many lines have a catalogue discount picked. */
     discountCount: number;
+    /** The walk-in Registration card block, under the total and above Payment. */
+    registrationCard?: React.ReactNode;
     /** The walk-in Payment section, under the total. */
     payment?: React.ReactNode;
 }) {
@@ -94,6 +97,12 @@ export function BookingSummaryRail({
                             : `${discountCount} discounts are applied on the folio.`}{' '}
                         It is not in this total.
                     </p>
+                )}
+                {registrationCard && (
+                    <>
+                        <Separator />
+                        {registrationCard}
+                    </>
                 )}
                 {payment && (
                     <>

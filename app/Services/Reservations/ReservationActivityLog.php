@@ -83,6 +83,11 @@ class ReservationActivityLog
 
         $text = match ($activity->event) {
             'reservation.created' => __('Reservation created with :count units', ['count' => $properties->get('units')]),
+            'reservation.walk_in' => __('Walk-in: :done of :total units checked in, :collected collected', [
+                'done' => $properties->get('checked_in'),
+                'total' => $properties->get('units'),
+                'collected' => $properties->get('collected'),
+            ]),
             'reservation.unit_added' => __('Unit added: :roomType, :arrival to :departure', [
                 'roomType' => $name('room_type_id'),
                 'arrival' => $properties->get('arrival_date'),

@@ -145,8 +145,9 @@ With **Room charges and tax** unticked, the rows of the [Collect now](../18-fron
 | The server total differs from `expected_total`                   | Nothing is saved. `amount_changed` on the Payment section; the rail asks for the payment again |
 | A unit's check-in is refused (card, nationality, credit, add-on) | The booking is saved. That unit stays Confirmed and pays nothing. The other units go on        |
 | A unit's payment is refused (method, reference)                  | That unit's check-in rolls back and it stays Confirmed. The other units go on                  |
+| A missing reference for a method that needs one                  | Nothing is saved. `StoreWalkInRequest` refuses it on `reference` before booking                |
 
-The toast names the result: "Reservation R-1042: 3 of 3 checked in · RM 943.20 collected", or "2 of 3 checked in". Each unit that stayed Confirmed shows its reason on the Units tab, with its own **Check in** to finish it. A unit refused for `card_missing` goes through the [signing flow](../16-registration/04-signing-flow.md) first; its check-in Dialog then offers Room charges and tax, so the guest still pays the whole stay at the desk. The save flow is in [Walk-in check-in](../18-front-desk/01-check-in-and-check-out.md#walk-in-check-in).
+The toast names the result with the currency code: "Reservation R-1042: 3 of 3 checked in · MYR 943.20 collected", or "2 of 3 checked in". When a unit stayed Confirmed the toast is a warning, stays 15 seconds, and lists one line per unit: "Room 106: <reason>" ("Unit 2" when the unit has no room or bed). The reasons are not kept after the toast; staff finish each unit with its own **Check in** on the Units tab. The Check in button is disabled while saving and while the payment loads, so a double click cannot book twice. A unit refused for `card_missing` goes through the [signing flow](../16-registration/04-signing-flow.md) first; its check-in Dialog then offers Room charges and tax, so the guest still pays the whole stay at the desk. The save flow is in [Walk-in check-in](../18-front-desk/01-check-in-and-check-out.md#walk-in-check-in).
 
 ## Sections
 

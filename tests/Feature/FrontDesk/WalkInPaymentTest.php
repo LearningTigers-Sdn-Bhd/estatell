@@ -3,8 +3,8 @@
 require_once __DIR__.'/../Support/BookingSetup.php';
 require_once __DIR__.'/../Support/ChannelStructure.php';
 require_once __DIR__.'/../Support/RecordingQueue.php';
+require_once __DIR__.'/../Support/WalkInSetup.php';
 
-use App\Enums\SystemTransactionCode;
 use App\Jobs\FlushChannelAriJob;
 use App\Models\ChannelAriChange;
 use App\Models\Company;
@@ -12,8 +12,6 @@ use App\Models\DocumentSequence;
 use App\Models\Folio;
 use App\Models\Guest;
 use App\Models\Reservation;
-use App\Models\Tax;
-use App\Models\TransactionCode;
 use App\Models\UnitNight;
 use App\Models\User;
 use App\Services\Folio\ScheduledFolioRows;
@@ -23,45 +21,6 @@ use Spatie\Activitylog\Models\Activity;
 beforeEach(function () {
     $this->travelTo(now()->setDate(2026, 10, 20)->setTime(12, 0));
 });
-
-/**
- * The booking setup with an 8% tax on Room revenue flagged Collect at check-in, a 100.00 security deposit and a booker
- * of the property's country. Two nights at 100.00 give 216.00 for each unit, 16.00 of it tax.
- *
- * @return array<string, mixed>
- */
-function walkInPaymentSetup(array $settings = [], bool $foreignOnly = false): array
-{
-    $setup = bookingSetup();
-    $setup['property']->settings->update(['security_deposit_amount' => '100.00', ...$settings]);
-    $setup['guest']->update(['nationality_code' => 'MY']);
-    $room = TransactionCode::factory()->for($setup['property'])->system(SystemTransactionCode::RoomRevenue)->create();
-    $setup['tax'] = Tax::factory()->for($setup['property'])->create(['name' => 'Tourism tax', 'rate' => '8.00', 'is_inclusive' => false, 'collect_at_check_in' => true, 'foreign_guests_only' => $foreignOnly]);
-    $setup['tax']->applicableTransactionCodes()->attach($room);
-
-    return $setup;
-}
-
-/**
- * @param  array<string, mixed>  $setup
- * @param  array<string, mixed>  $overrides
- * @return array<string, mixed>
- */
-function walkInPaymentBody(array $setup, array $overrides = []): array
-{
-    return [
-        'booking_source_id' => $setup['phone']->id,
-        'arrival_date' => '2026-10-20',
-        'departure_date' => '2026-10-22',
-        'guests' => [['guest_id' => $setup['guest']->id]],
-        'billing_mode' => 'each_pays',
-        'lines' => [
-            ['room_type_id' => $setup['roomType']->id, 'rate_plan_id' => $setup['plan']->id, 'adults' => 2, 'child_ages' => []],
-            ['room_type_id' => $setup['roomType']->id, 'rate_plan_id' => $setup['plan']->id, 'adults' => 2, 'child_ages' => []],
-        ],
-        ...$overrides,
-    ];
-}
 
 function walkInPaymentUrl(array $setup): string
 {

@@ -6,8 +6,8 @@ use App\Actions\Reservations\BookingResult;
 use App\Actions\Reservations\CreateBooking;
 use App\Data\Reservations\NewBookingData;
 use App\Data\Reservations\WalkInPaymentData;
-use App\Enums\BillingMode;
 use App\Models\Property;
+use App\Models\Reservation;
 use App\Models\User;
 use Brick\Math\BigDecimal;
 use Illuminate\Support\Facades\DB;
@@ -40,23 +40,29 @@ class WalkInPayment
                 return $result;
             }
 
-            return $this->payment($result, $data);
+            return $this->forReservation($result->reservation);
         } finally {
             DB::rollBack();
         }
     }
 
-    private function payment(BookingResult $result, NewBookingData $data): WalkInPaymentData
+    /**
+     * What the units of a saved reservation pay, from `CheckInCollection`. The preview reads it inside the trial
+     * booking and `CheckInWalkIn` reads it from the saved one, so the two cannot differ in how they add up.
+     */
+    public function forReservation(Reservation $reservation): WalkInPaymentData
     {
         $roomCharges = BigDecimal::zero();
         $deposit = BigDecimal::zero();
         $depositUnits = 0;
         $depositAmount = null;
+        $hidden = false;
         $taxes = [];
 
-        foreach ($result->reservation->units()->orderBy('id')->get() as $unit) {
+        foreach ($reservation->units()->orderBy('id')->get() as $unit) {
             $collected = $this->collection->for($unit);
             $roomCharges = $roomCharges->plus($collected->billTotal);
+            $hidden = $collected->billHidden;
 
             if ($collected->deposit !== null) {
                 $depositUnits++;
@@ -80,7 +86,6 @@ class WalkInPayment
             'exempt' => $row['exempt'],
         ], $taxes));
         $taxesTotal = array_reduce($taxes, fn (BigDecimal $sum, array $row): BigDecimal => $sum->plus($row['amount']), BigDecimal::zero());
-        $hidden = $data->companyId !== null && $data->billingMode !== BillingMode::EachPays;
 
         return new WalkInPaymentData(
             roomCharges: (string) $roomCharges->toScale(2),
@@ -91,5 +96,21 @@ class WalkInPayment
             totalWithRoomCharges: (string) ($hidden ? $deposit : $roomCharges->plus($deposit))->toScale(2),
             totalWithoutRoomCharges: (string) $taxesTotal->plus($deposit)->toScale(2),
         );
+    }
+
+    /**
+     * The total for the ticked boxes, the same pick `paymentTotal()` makes in the browser: with the deposit ticked and
+     * set, one of the two server totals; without it the full bill or the tax rows. Room charges ticked while the company
+     * is billed counts as unticked. It adds nothing up.
+     */
+    public function total(WalkInPaymentData $payment, bool $collectRoomCharges, bool $collectDeposit): string
+    {
+        $rooms = $collectRoomCharges && ! $payment->roomChargesHidden;
+
+        if ($collectDeposit && $payment->deposit !== null) {
+            return $rooms ? $payment->totalWithRoomCharges : $payment->totalWithoutRoomCharges;
+        }
+
+        return $rooms ? $payment->roomCharges : $payment->taxesTotal;
     }
 }

@@ -10,9 +10,12 @@ type Payload = Record<string, string>;
  * Asks the server what the walk-in would pay. The server books the stay as a trial and rolls it back, so the amounts
  * are the folio's own. The request waits 300 ms after the form last changed, and a slow answer to an older request never
  * replaces a newer one. `invalid` is true when the booking would be refused (the answer has `errors`, or the form did
- * not pass validation). A null payload (the booking is not complete) asks nothing and shows nothing.
+ * not pass validation). A new `refresh` value asks again for the same form. A null payload (the booking is not complete) asks nothing and shows nothing.
  */
-export function useWalkInPayment(payload: Record<string, unknown> | null): {
+export function useWalkInPayment(
+    payload: Record<string, unknown> | null,
+    refresh = 0,
+): {
     payment: Payment | null;
     loading: boolean;
     invalid: boolean;
@@ -26,6 +29,7 @@ export function useWalkInPayment(payload: Record<string, unknown> | null): {
     const http = useHttp<Payload, Payment>('post', walkInPayment.url(), {});
     const { submit, transform } = http;
     const key = payload === null ? '' : JSON.stringify(payload);
+    // `refresh` changes when a save found the total changed: ask again for the same form.
 
     useEffect(() => {
         const request = ++latest.current;
@@ -67,7 +71,7 @@ export function useWalkInPayment(payload: Record<string, unknown> | null): {
         }, 300);
 
         return () => clearTimeout(timeout);
-    }, [key, submit, transform]);
+    }, [key, refresh, submit, transform]);
 
     return { payment, loading, invalid };
 }

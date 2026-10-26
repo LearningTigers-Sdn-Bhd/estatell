@@ -77,6 +77,8 @@ export type BookingForm = {
     payment_method_id?: string;
     reference?: string;
     expected_total?: string;
+    /** Walk-in only, with `front-desk.check-in-without-card`: check every unit in with its registration card unsigned. */
+    without_card?: boolean;
 };
 
 type RoomTypeOption = App.Data.Reservations.RoomTypeOptionData;

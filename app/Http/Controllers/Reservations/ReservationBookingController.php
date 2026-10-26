@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Reservations;
 
+use App\Actions\FrontDesk\CheckInWalkIn;
 use App\Actions\Reservations\BookingResult;
 use App\Actions\Reservations\CreateBooking;
 use App\Actions\Reservations\CreateMigratedStay;
@@ -23,6 +24,7 @@ use App\Http\Requests\Reservations\FreeUnitsRequest;
 use App\Http\Requests\Reservations\QuoteBookingLineRequest;
 use App\Http\Requests\Reservations\StoreBookingRequest;
 use App\Http\Requests\Reservations\StorePastStayRequest;
+use App\Http\Requests\Reservations\StoreWalkInRequest;
 use App\Http\Requests\Reservations\WalkInPaymentRequest;
 use App\Models\Property;
 use App\Models\RatePlan;
@@ -45,6 +47,7 @@ use App\Services\Reservations\BookingQuote;
 use App\Services\Reservations\BookingSourceOptions;
 use App\Services\Reservations\ReservationFormOptions;
 use App\Services\Reservations\ReservationRefusals;
+use App\Services\Reservations\WalkInOutcome;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -218,6 +221,41 @@ class ReservationBookingController extends Controller
     }
 
     /**
+     * Save a walk-in: book the stay, check in every unit and take the payment in one step. A refused booking goes back
+     * to the form as errors and nothing is saved, as `store()` does. A total that is not the one the rail showed goes
+     * back with `amount_changed` and nothing is saved. Otherwise the reservation page opens with a toast that counts the
+     * units checked in; each unit that stayed Confirmed is named with its reason in the toast description.
+     */
+    public function storeWalkIn(StoreWalkInRequest $request, Property $property, CheckInWalkIn $checkInWalkIn, BookingErrorKeys $errorKeys, WalkInOutcome $outcome): RedirectResponse
+    {
+        $result = $checkInWalkIn($request->user(), $property, $request->toBookingData(), $request->paymentChoice(), $request->withoutCard());
+
+        if ($result->booking !== null) {
+            return back(fallback: route('reservations.walk-in', ['property' => $property]))->withErrors(
+                $errorKeys->errors($result->booking, $request->unitsPerLine(), $request->user()->can(PermissionEnum::RatesOverrideRestrictions->value)),
+            );
+        }
+
+        if ($result->amountChanged) {
+            return back(fallback: route('reservations.walk-in', ['property' => $property]))->withErrors([
+                'amount_changed' => __('The amount changed. Check the payment and press Check in again.'),
+            ]);
+        }
+
+        $reasons = $outcome->reasons($result, $request->user()->can(PermissionEnum::FrontDeskCheckInWithoutCard->value));
+
+        $toast = ['type' => $reasons === [] ? 'success' : 'warning', 'message' => $outcome->headline($property, $result)];
+
+        if ($reasons !== []) {
+            $toast['description'] = implode("\n", $reasons);
+        }
+
+        Inertia::flash('toast', $toast);
+
+        return to_route('reservations.show', ['property' => $property, 'reservation' => $result->reservation]);
+    }
+
+    /**
      * What the walk-in would pay, for the Payment section of the rail. The booking is tried and rolled back, so nothing
      * is saved. A booking that would be refused answers 200 with `errors`, keyed as a save keys them.
      */
@@ -365,6 +403,7 @@ class ReservationBookingController extends Controller
             'canOverrideRestrictions' => $request->user()->can(PermissionEnum::RatesOverrideRestrictions->value),
             'canManageGuests' => $canManageGuests,
             'canRecordPayment' => $request->user()->can(PermissionEnum::PaymentRecord->value),
+            'canCheckInWithoutCard' => $walkIn && (bool) $property->settings?->card_required_for_check_in && $request->user()->can(PermissionEnum::FrontDeskCheckInWithoutCard->value),
             'paymentOptions' => Inertia::optional(fn () => $request->user()->can(PermissionEnum::PaymentRecord->value) ? $options->payments($property, $request->user()) : null),
             'countries' => $canManageGuests ? app(CountryOptions::class)->options() : [],
             'defaultNationalityCode' => $property->country_code ?? 'MY',

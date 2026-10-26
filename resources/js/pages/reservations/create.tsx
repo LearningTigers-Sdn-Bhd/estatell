@@ -8,6 +8,7 @@ import {
     Clock,
     Footprints,
     History,
+    LogIn,
     ListPlus,
     LogOut,
     Moon,
@@ -57,6 +58,7 @@ import type {
 import { BookingSummaryRail } from '@/components/pms/reservations/booking-summary-rail';
 import { useWalkInPayment } from '@/components/pms/reservations/use-walk-in-payment';
 import { walkInPaymentPayload } from '@/components/pms/reservations/walk-in-payment';
+import { WalkInCardSection } from '@/components/pms/reservations/walk-in-card-section';
 import { WalkInPaymentSection } from '@/components/pms/reservations/walk-in-payment-section';
 import {
     KEEP_OPTIONS,
@@ -117,6 +119,7 @@ import {
     past,
     store,
     storePast,
+    storeWalkIn,
     walkIn,
 } from '@/routes/reservations';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
@@ -191,6 +194,8 @@ type Props = {
     canManageGuests: boolean;
     /** Whether the user may take a payment (`payment.record`): it shows the walk-in Payment section. */
     canRecordPayment: boolean;
+    /** Walk-in only: whether the property requires a signed card for check-in and the user may check in without one (`front-desk.check-in-without-card`). It shows the Registration card block. */
+    canCheckInWithoutCard: boolean;
     /** The payment methods, asked for the first time the walk-in form opens. */
     paymentOptions?: App.Data.Payments.PaymentFormOptionsData | null;
     /** Whether the property has an active Day use plan: it turns the Stay type switch on. */
@@ -260,6 +265,7 @@ export default function ReservationCreate({
     canOverrideRestrictions,
     canManageGuests,
     canRecordPayment,
+    canCheckInWithoutCard,
     paymentOptions,
     hasDayUse,
     hasBoats,
@@ -320,6 +326,7 @@ export default function ReservationCreate({
         lines: [prefilledLine()],
         boat_in: NOT_SET,
         boat_out: NOT_SET,
+        without_card: false,
         collect_room_charges: true,
         collect_deposit: true,
         payment_method_id: '',
@@ -531,6 +538,7 @@ export default function ReservationCreate({
           : data.departure_date;
     const showPayment = isWalkIn && canRecordPayment;
     useFormOptions(showPayment, paymentOptions !== undefined, 'paymentOptions');
+    const [paymentRefresh, setPaymentRefresh] = useState(0);
     const walkInPayment = useWalkInPayment(
         showPayment
             ? walkInPaymentPayload(
@@ -538,7 +546,13 @@ export default function ReservationCreate({
                   roomTypes,
               )
             : null,
+        paymentRefresh,
     );
+    // The total posted with the form is the one the rail shows, so a save waits for the rail's answer while a box is ticked.
+    const waitingForPayment =
+        showPayment &&
+        walkInPayment.loading &&
+        Boolean(data.collect_room_charges || data.collect_deposit);
     const emptyPickLabel =
         isPastStay || (isWalkIn && !autoAssignRooms)
             ? 'Select'
@@ -658,25 +672,36 @@ export default function ReservationCreate({
                     roomTypes,
                 ) as unknown as BookingForm,
         );
-        form.post((isPastStay ? storePast : store).url(), {
-            preserveScroll: true,
-            except: KEEP_OPTIONS,
-            onError: (submitted) => {
-                const failing = firstErrorTab(errorTabs(submitted));
+        form.post(
+            (isPastStay ? storePast : isWalkIn ? storeWalkIn : store).url(),
+            {
+                preserveScroll: true,
+                except: KEEP_OPTIONS,
+                onError: (submitted) => {
+                    if (submitted.amount_changed) {
+                        // The rates, taxes or deposit changed since the rail asked: ask again.
+                        setPaymentRefresh((count) => count + 1);
+                    }
 
-                if (failing !== null) {
-                    setTab(failing);
-                }
+                    const failing = firstErrorTab(errorTabs(submitted));
 
-                if (announceFormError(submitted)) {
-                    return;
-                }
+                    if (failing !== null) {
+                        setTab(failing);
+                    }
 
-                document
-                    .querySelector('[aria-invalid="true"]')
-                    ?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                    if (announceFormError(submitted)) {
+                        return;
+                    }
+
+                    document
+                        .querySelector('[aria-invalid="true"]')
+                        ?.scrollIntoView({
+                            block: 'center',
+                            behavior: 'smooth',
+                        });
+                },
             },
-        });
+        );
     };
 
     return (
@@ -1938,6 +1963,19 @@ export default function ReservationCreate({
                                         unitChoices[Number(tab.stays_in)]
                                             ?.label ?? null,
                                 }))}
+                                registrationCard={
+                                    isWalkIn && canCheckInWithoutCard ? (
+                                        <WalkInCardSection
+                                            checked={data.without_card ?? false}
+                                            onChange={(checked) =>
+                                                form.setData(
+                                                    'without_card',
+                                                    checked,
+                                                )
+                                            }
+                                        />
+                                    ) : undefined
+                                }
                                 payment={
                                     showPayment ? (
                                         <WalkInPaymentSection
@@ -2007,21 +2045,25 @@ export default function ReservationCreate({
                     </Link>
                     <Button
                         type="submit"
-                        disabled={form.processing}
+                        disabled={form.processing || waitingForPayment}
                         focusableWhenDisabled
                     >
                         {form.processing ? (
                             <Spinner data-icon="inline-start" />
+                        ) : isWalkIn ? (
+                            <LogIn data-icon="inline-start" />
                         ) : (
                             <CalendarPlus data-icon="inline-start" />
                         )}
-                        {isOldStay
-                            ? 'Save old stay'
-                            : isCheckedOut && !isMigratedStay
-                              ? 'Save and open Manual Folio Editor'
-                              : isPastStay
-                                ? 'Save and open folio'
-                                : 'Create booking'}
+                        {isWalkIn
+                            ? 'Check in'
+                            : isOldStay
+                              ? 'Save old stay'
+                              : isCheckedOut && !isMigratedStay
+                                ? 'Save and open Manual Folio Editor'
+                                : isPastStay
+                                  ? 'Save and open folio'
+                                  : 'Create booking'}
                     </Button>
                 </FormActions>
             </form>

@@ -13,7 +13,13 @@ export function useFlashToast(): void {
                 return;
             }
 
-            toast.add({ title: data.message, type: data.type });
+            toast.add({
+                title: data.message,
+                description: data.description,
+                type: data.type,
+                // A list of reasons takes longer to read than a headline.
+                timeout: data.description ? 15000 : undefined,
+            });
         });
     }, []);
 }

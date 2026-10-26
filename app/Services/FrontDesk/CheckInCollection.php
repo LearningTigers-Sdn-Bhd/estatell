@@ -4,6 +4,7 @@ namespace App\Services\FrontDesk;
 
 use App\Data\Folio\FolioRowData;
 use App\Data\Reservations\CheckInCollectionData;
+use App\Enums\BillingMode;
 use App\Enums\FolioType;
 use App\Enums\PaymentPurpose;
 use App\Enums\PaymentStatus;
@@ -55,7 +56,7 @@ class CheckInCollection
             }
         }
 
-        return new CheckInCollectionData($taxes, (string) $total->toScale(2), $hidden, $this->deposit($unit, (string) $property->settings?->security_deposit_amount), $this->billTotal($blocks));
+        return new CheckInCollectionData($taxes, (string) $total->toScale(2), $hidden, $this->deposit($unit, (string) $property->settings?->security_deposit_amount), $this->billTotal($blocks), $reservation->company_id !== null && $reservation->billing_mode !== BillingMode::EachPays);
     }
 
     /**

@@ -14,7 +14,7 @@ export const PAYMENT_FIELDS = [
 ] as const;
 
 /**
- * What the rail posts to `reservations.walk-in-payment`: the whole form, without the payment fields and the notes.
+ * What the rail posts to `reservations.walk-in-payment`: the whole form, without the payment fields, the card box and the notes.
  * It is null while the booking is not complete enough to ask (a line without a room type or plan, no departure, no
  * booker), so the rail does not book a trial for every keystroke.
  */
@@ -37,7 +37,7 @@ export function walkInPaymentPayload(
         ...bookingPayload(data, roomTypes),
     };
 
-    for (const field of [...PAYMENT_FIELDS, 'notes']) {
+    for (const field of [...PAYMENT_FIELDS, 'without_card', 'notes']) {
         delete payload[field];
     }
 

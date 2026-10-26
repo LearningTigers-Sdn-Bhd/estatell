@@ -3187,6 +3187,7 @@ taxesTotal: string,
 taxesHidden: boolean,
 deposit: string | null,
 billTotal: string,
+billHidden: boolean,
 };
 export type CheckOutCollectData = {
 paymentMethodId: number,
@@ -3221,6 +3222,7 @@ deposit: boolean,
 paymentMethodId: number,
 reference: string | null,
 idempotencyKey: string,
+roomCharges: boolean,
 };
 export type DayUseOfferData = {
 hours: number,
@@ -3757,6 +3759,13 @@ amount: string,
 paid: string,
 reopens: string[],
 error: string | null,
+};
+export type WalkInCollectData = {
+roomCharges: boolean,
+deposit: boolean,
+paymentMethodId: number,
+reference: string | null,
+expectedTotal: string,
 };
 export type WalkInPaymentData = {
 roomCharges: string,
