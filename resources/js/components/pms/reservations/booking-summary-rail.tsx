@@ -41,6 +41,7 @@ export function BookingSummaryRail({
     discountCount,
     registrationCard,
     payment,
+    submitAction,
 }: {
     units: number;
     quotes: Quote[];
@@ -57,6 +58,8 @@ export function BookingSummaryRail({
     registrationCard?: React.ReactNode;
     /** The walk-in Payment section, under the total. */
     payment?: React.ReactNode;
+    /** The submit button, under the total, so it stays in view when the footer is out of sight. */
+    submitAction?: React.ReactNode;
 }) {
     const rooms = sumMoney(quotes.map((quote) => quote.lineTotal));
     const addOns = sumMoney(quotes.map((quote) => quote.addOnsTotal));
@@ -98,6 +101,7 @@ export function BookingSummaryRail({
                         It is not in this total.
                     </p>
                 )}
+                {submitAction}
                 {registrationCard && (
                     <>
                         <Separator />
