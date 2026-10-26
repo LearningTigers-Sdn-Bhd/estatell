@@ -249,6 +249,32 @@ test('a walk-in needs a room or bed for every unit', function () {
         ->assertSessionHasErrors('form');
 });
 
+test('a walk-in with no pick is saved when auto-assign is on and needs a pick when it is off', function (bool $autoAssign) {
+    $setup = bookingSetup();
+    $setup['property']->settings->update(['auto_assign_rooms' => $autoAssign]);
+
+    $response = $this->actingAs($setup['user'])
+        ->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, [
+            'booking_source_id' => $setup['walkIn']->id,
+            'arrival_date' => '2026-10-20',
+            'departure_date' => '2026-10-22',
+            'lines' => [bookingFormLine($setup)],
+        ]));
+
+    if ($autoAssign) {
+        $response->assertSessionHasNoErrors();
+        expect(Reservation::query()->count())->toBe(1);
+
+        return;
+    }
+
+    $response->assertSessionHasErrors(['lines.0.room_id' => 'Select a room.']);
+    expect(Reservation::query()->count())->toBe(0);
+})->with([
+    'auto-assign on' => [true],
+    'auto-assign off' => [false],
+]);
+
 test('the booking form checks its shape', function (string $case) {
     $setup = bookingSetup();
     [$overrides, $field] = match ($case) {

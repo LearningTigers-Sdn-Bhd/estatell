@@ -37,20 +37,22 @@ Stay is always visible above the tabs. The tab strip uses the `line` variant of 
 
 ## Entry points
 
-The page header has a description in both modes: "Reserve rooms or beds for a guest who arrives on a later date." for a new booking, and "A guest at the desk now. Every unit needs a room or bed." for a walk-in. The Reservations page has `New ▾` with **New booking** and **Walk-in**. Walk-in opens the same page with the Walk-in [booking source](11-booking-sources.md) and today's business date as arrival. The **Reservation mode** field on the form switches between the two pages without losing what was typed (see [Stay](#sections)). The walk-in check-in itself comes with [Check-in and check-out](../18-front-desk/01-check-in-and-check-out.md).
+The page header has a description in both modes: "Reserve rooms or beds for a guest who arrives on a later date." for a new booking, and "A guest at the desk now. Saving checks them in." for a walk-in. The Reservations page has `New ▾` with **New booking** and **Walk-in**. Walk-in opens the same page with the Walk-in [booking source](11-booking-sources.md) and today's business date as arrival. The **Reservation mode** field on the form switches between the two pages without losing what was typed (see [Stay](#sections)). A walk-in is booked, checked in and paid in one save (see [Walk-in](#walk-in)).
 
-| URL                                         | Name                          | Needs                                    |
-| ------------------------------------------- | ----------------------------- | ---------------------------------------- |
-| `GET /p/{code}/reservations/new`            | `reservations.new`            | `reservations.manage`                    |
-| `GET /p/{code}/reservations/walk-in`        | `reservations.walk-in`        | `reservations.manage`                    |
-| `GET /p/{code}/reservations/past`           | `reservations.past`           | `reservations.manage` and `folio.manual` |
-| `POST /p/{code}/reservations/past`          | `reservations.store-past`     | `reservations.manage` and `folio.manual` |
-| `POST /p/{code}/reservations`               | `reservations.store`          | `reservations.manage`                    |
-| `POST /p/{code}/reservations/quote`         | `reservations.quote`          | `reservations.manage`                    |
-| `GET /p/{code}/reservations/free-units`     | `reservations.free-units`     | `reservations.manage`                    |
-| `GET /p/{code}/reservations/day-use-offers` | `reservations.day-use-offers` | `reservations.manage`                    |
+| URL                                           | Name                           | Needs                                           |
+| --------------------------------------------- | ------------------------------ | ----------------------------------------------- |
+| `GET /p/{code}/reservations/new`              | `reservations.new`             | `reservations.manage`                           |
+| `GET /p/{code}/reservations/walk-in`          | `reservations.walk-in`         | `reservations.manage`                           |
+| `GET /p/{code}/reservations/past`             | `reservations.past`            | `reservations.manage` and `folio.manual`        |
+| `POST /p/{code}/reservations/past`            | `reservations.store-past`      | `reservations.manage` and `folio.manual`        |
+| `POST /p/{code}/reservations`                 | `reservations.store`           | `reservations.manage`                           |
+| `POST /p/{code}/reservations/walk-in`         | `reservations.store-walk-in`   | `reservations.manage` and `front-desk.check-in` |
+| `POST /p/{code}/reservations/walk-in/payment` | `reservations.walk-in-payment` | `reservations.manage` and `payment.record`      |
+| `POST /p/{code}/reservations/quote`           | `reservations.quote`           | `reservations.manage`                           |
+| `GET /p/{code}/reservations/free-units`       | `reservations.free-units`      | `reservations.manage`                           |
+| `GET /p/{code}/reservations/day-use-offers`   | `reservations.day-use-offers`  | `reservations.manage`                           |
 
-`quote` and `free-units` also answer a day use line (`stay_type=day_use`, `start_time`, `hours`), and `day-use-offers` lists the hours a day use plan sells (see [Day use](10-day-use.md#booking-form)). `new` and `walk-in` render the same page (`pages/reservations/create.tsx`). All five sit before `{reservation}` in `routes/reservations.php`, so `new` is never read as a reservation id.
+`quote` and `free-units` also answer a day use line (`stay_type=day_use`, `start_time`, `hours`), and `day-use-offers` lists the hours a day use plan sells (see [Day use](10-day-use.md#booking-form)). `new` and `walk-in` render the same page (`pages/reservations/create.tsx`). All five sit before `{reservation}` in `routes/reservations.php`, so `new` is never read as a reservation id. The two walk-in POST routes sit there too.
 
 ### Back link
 
@@ -74,6 +76,79 @@ The back arrow in the page header and **Cancel** go back to the page that opened
 
 When the property has an active Day use plan, the Stay section starts with a **Stay type** switch. Day use replaces Arrival and Departure with **Date and start** and the lines table with day use lines (see [Day use](10-day-use.md#booking-form)). The booking posts `stay_type`, `arrival_date`, `start_time`, and for each line `hours` and `room_id`. A refusal of the start comes back as `start_time` or `lines.N.start_time` and shows on the Date and start field. Hours and Room errors show on their line cells.
 
+## Walk-in
+
+A walk-in is a guest at the desk now. One save books the stay, checks in every unit and takes the payment. The units end CheckedIn, not Confirmed. A group walk-in is the same flow with more units.
+
+| Area           | New booking                       | Walk-in                                                                  |
+| -------------- | --------------------------------- | ------------------------------------------------------------------------ |
+| Source         | Picked                            | Walk-in, locked                                                          |
+| Arrival        | Business date or later            | Business date and the current time, locked                               |
+| Room / Bed     | Optional                          | Required unless `auto_assign_rooms` is on. Rooms not ready show disabled |
+| Rail           | Summary, tax "from folio"         | Summary, then **Payment** under the total                                |
+| Primary button | Create booking                    | **Check in**                                                             |
+| Posts to       | `reservations.store`              | `reservations.store-walk-in`                                             |
+| After save     | Reservation page, units Confirmed | Reservation page, units CheckedIn, with a result toast                   |
+
+### Payment section
+
+At the bottom of the summary rail, under the total. Shown only with `payment.record`; without it the walk-in checks in and takes no payment. On mobile the rail drops below the form, so the section sits just above the action bar.
+
+```
+│ Total                          RM 540.00 │
+├──────────────────────────────────────────┤
+│ Registration card                        │  only with card_required_for_check_in
+│ ☐ Check in without card                  │  only with front-desk.check-in-without-card
+├──────────────────────────────────────────┤
+│ Payment                                  │
+│ ☑ Room charges and tax         RM 643.20 │  rooms, add-ons, every tax
+│ ☑ Security deposit  RM100 × 3  RM 300.00 │  only when an amount is set
+│ Total                          RM 943.20 │
+│ Method [ Cash ⌄ ]  Reference [ ____ ]    │  reference for Card, Transfer, E-wallet
+└──────────────────────────────────────────┘
+                              [Cancel] [Check in]
+```
+
+**Registration card.** A walk-in guest has not signed a card yet, because the card needs the saved stay. Unticked, a unit without a signed card stays Confirmed (`card_missing`): the guest signs, then staff press **Check in** on the unit, and the [check-in Dialog](../18-front-desk/01-check-in-and-check-out.md#collect-now) takes the payment, room charges included. Ticked, every unit checks in without a card, as the check-in Dialog's override. The box posts `without_card`, and the request drops it for staff without the permission.
+
+With **Room charges and tax** unticked, the rows of the [Collect now](../18-front-desk/01-check-in-and-check-out.md#collect-now) Dialog take its place:
+
+```
+│ ☐ Room charges and tax                   │
+│   Tourism tax   RM10 × 2 × 3    RM 60.00 │  each tax with Collect at check-in
+│   Heritage levy RM2 × 2 × 3     RM 12.00 │
+│ ☑ Security deposit             RM 300.00 │
+│ Total                          RM 360.00 │
+```
+
+| Ticked                | Collected                                                                                                                                     |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Room charges and tax  | The full bill of each unit: nights, add-ons, every tax, less booking discounts. It already holds the Collect at check-in taxes                |
+| Room charges unticked | One row per tax with **Collect at check-in**, as the check-in Dialog. A foreign-only tax shows "Exempt" for a guest of the property's country |
+| Security deposit      | `security_deposit_amount` for each unit. Hidden when the amount is 0                                                                          |
+| Nothing               | No payment. Staff take it on the folio later                                                                                                  |
+
+- Both boxes start ticked: a walk-in guest usually pays up front. The check-in Dialog starts with Room charges and tax unticked.
+- Room charges and tax is hidden when the reservation has a company and any billing mode but Each unit pays (Master folio pays, Master folio pays all): `SyncRoutingRules` sends the room charges to the Master folio, and the company is billed, not the guest. The deposit still shows.
+- In a group whose room charges go to the Master folio and has no company, the unticked rows are empty: `CheckInCollection` hides the Collect at check-in taxes of a unit on the Master folio, as the check-in Dialog does. Room charges and tax still shows and can be collected.
+- In a group with Master folio pays and no company, the room charges of every unit go to the Master folio, and so does their payment (see [Walk-in check-in](../18-front-desk/01-check-in-and-check-out.md#walk-in-check-in)).
+- The amounts are read-only. A guest who pays part unticks the boxes and uses Record payment on the folio.
+- The browser never adds up the payment. The rail posts the whole form to `reservations.walk-in-payment` and shows what it answers. It asks again 300 ms after the lines, add-ons, discounts, billing mode, company or guests change. The server books the stay as a trial and rolls it back, so the amounts are the folio's own (see [Walk-in check-in](../18-front-desk/01-check-in-and-check-out.md#walk-in-check-in)). A booking that would be refused answers with the same errors as a save, and the rail shows the first error in red (for example "Select a room."), then "The payment shows once the booking can be saved.", until it is fixed. The rail asks only once every line has a room type and a rate plan, the stay has a departure, and the booker has a guest or a name; before that it says "Add the rooms and the booker to see the payment."
+- Foreign-only taxes follow the **booker's** nationality for every unit, as the folio does. Changing the booker's nationality changes the payment.
+- The form posts `without_card`, `collect_room_charges`, `collect_deposit`, `payment_method_id`, `reference` and `expected_total` (the total the rail showed). It never posts the parts.
+
+### Refusals on save
+
+| Case                                                             | Result                                                                                         |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| The booking is refused (no room free, price, restriction)        | Nothing is saved. Errors show on the form, as a new booking                                    |
+| The server total differs from `expected_total`                   | Nothing is saved. `amount_changed` on the Payment section; the rail asks for the payment again |
+| A unit's check-in is refused (card, nationality, credit, add-on) | The booking is saved. That unit stays Confirmed and pays nothing. The other units go on        |
+| A unit's payment is refused (method, reference)                  | That unit's check-in rolls back and it stays Confirmed. The other units go on                  |
+| A missing reference for a method that needs one                  | Nothing is saved. `StoreWalkInRequest` refuses it on `reference` before booking                |
+
+The toast names the result with the currency code: "Reservation R-1042: 3 of 3 checked in · MYR 943.20 collected", or "2 of 3 checked in". When a unit stayed Confirmed the toast is a warning, stays 15 seconds, and lists one line per unit: "Room 106: <reason>" ("Unit 2" when the unit has no room or bed). The reasons are not kept after the toast; staff finish each unit with its own **Check in** on the Units tab. The Check in button is disabled while saving and while the payment loads, so a double click cannot book twice. A unit refused for `card_missing` goes through the [signing flow](../16-registration/04-signing-flow.md) first; its check-in Dialog then offers Room charges and tax, so the guest still pays the whole stay at the desk. The save flow is in [Walk-in check-in](../18-front-desk/01-check-in-and-check-out.md#walk-in-check-in).
+
 ## Sections
 
 1. **Stay**: arrival, departure, nights (shown), source, external reference, group name. Arrival and departure apply to every line.
@@ -82,7 +157,7 @@ When the property has an active Day use plan, the Stay section starts with a **S
     - Arrival starts as today's business date on both pages. Staff can pick a later date on a new booking.
     - Walk-in: the arrival date is today and is fixed. The arrival time defaults to now, rounded to the minute, and staff can edit it.
     - Package plans lock the departure date, not the time.
-    - Reservation mode: a select after Departure, on the same row from `lg` (about 12rem wide; below `lg` it wraps to the next line). Options: **New booking** and **Walk-in**, plus **Past stay** and **Migrated stay** for users with `folio.manual` (see [Past and migrated stays](12-past-and-migrated-stays.md#booking-form-modes)). Picking the other mode visits `reservations.walk-in` or `reservations.new` as a partial Inertia visit with `preserveState`, so the same page stays mounted and the dates, lines and guests are kept. The URL and the breadcrumb change, and no unsaved-changes prompt appears. To Walk-in: the source becomes Walk-in and is locked, and the arrival becomes today with the current time and is locked. To New booking: the source goes back to the first offered source and the arrival unlocks. A departure that is then not after the arrival gets the normal error on save. Both pages need `reservations.manage`, and the backend does not change.
+    - Reservation mode: a select after Departure, on the same row from `lg` (about 12rem wide; below `lg` it wraps to the next line). Options: **New booking** and **Walk-in**, plus **Past stay** and **Migrated stay** for users with `folio.manual` (see [Past and migrated stays](12-past-and-migrated-stays.md#booking-form-modes)). Picking the other mode visits `reservations.walk-in` or `reservations.new` as a partial Inertia visit with `preserveState`, so the same page stays mounted and the dates, lines and guests are kept. The URL and the breadcrumb change, and no unsaved-changes prompt appears. To Walk-in: the source becomes Walk-in and is locked, the arrival becomes today with the current time and is locked, and the departure moves with it so the number of nights stays the same (a 2-night booking next week becomes a 2-night walk-in, not a 9-night one). To New booking: the source goes back to the first offered source and the arrival unlocks. A departure that is then not after the arrival gets the normal error on save. Both pages need `reservations.manage`, and the backend does not change.
     - Grid: Source, External reference, Company and Group name sit in 3 columns from `lg`. When Company and Group name both show (4 fields), the row stays at 2 columns.
     - Group name: the third field of the row after External reference, shown when the form has 2 or more units. Leave it empty to show the booker's name. `billing_mode` stays in the rail.
     - Company: a combobox before Group name, shown only to staff with `company.view` and when the property has an Active company. It lists the property's Active companies, with the market after the name when set (for example "Acme (Local)") and "No company" as the empty choice, and fills `company_id`. Plans limited to companies ([Who can use this rate](../08-rates/01-rate-plans.md#who-can-use-this-rate)) show on a line by their access: All companies plans with Front desk on once any company is picked, Only these companies plans when the picked company is listed with Front desk on, Everyone plans always. A plan limited to Local or International also needs the company's market to match ([Market](../08-rates/01-rate-plans.md#market)); a company with no market sees only plans open to every market. Changing the company clears the plan of a line that is now hidden, and the staff pick another. A Suspended or foreign id is refused as `company_not_available` on the `company_id` field.
@@ -115,7 +190,7 @@ When the property has an active Day use plan, the Stay section starts with a **S
 
 With a company picked and the billing mode Each unit pays (2+ units), the rail shows the same `eachPaysHint` under Billing: "Guests pay everything. Nothing is billed to Acme Sdn Bhd. Choose Master folio pays to bill the company."
 
-The rail shows units, room and add-on totals (the add-on total comes from the quote, see [Implementation](#implementation)), the billing mode and the guest list. All amounts come from the server. A catalogue discount is not in the total, because the folio applies it (once per stay for a Fixed discount, when the folio applies it); while any line has one, a note under the total says so. Tax shows "from folio" until [Folios and lines](../13-folio/01-folios-and-lines.md) exists.
+The rail shows units, room and add-on totals (the add-on total comes from the quote, see [Implementation](#implementation)), the billing mode and the guest list. All amounts come from the server. A catalogue discount is not in the total, because the folio applies it (once per stay for a Fixed discount, when the folio applies it); while any line has one, a note under the total says so. Tax shows "from folio" until [Folios and lines](../13-folio/01-folios-and-lines.md) exists. On a walk-in the [Payment section](#payment-section) shows the tax.
 
 ## Room / Bed column
 
@@ -125,9 +200,12 @@ Optional. A picked room or bed fills `room_id` or `bed_id` on every night of the
 | -------------------------------- | ----------------- | ---------- |
 | Booking, `auto_assign_rooms` off | Select later      | No         |
 | Booking, `auto_assign_rooms` on  | Auto-assign       | No         |
-| Walk-in                          | Select room       | Yes        |
+| Walk-in, `auto_assign_rooms` off | Select            | Yes        |
+| Walk-in, `auto_assign_rooms` on  | Auto-assign       | No         |
 
 - The list shows only rooms or beds free on every night of the unit, from `AvailabilityService`. A room picked on another line is disabled.
+- On a walk-in the list also shows a room or bed that is not ready, disabled, with the reason after the number: `106 · In house` (a unit is still CheckedIn there, for example a guest who leaves today and has not checked out) or `108 · Dirty` (the room's `room_statuses.status` is Dirty). A bed takes the reason of its room for Dirty, and its own for In house. `FreeUnits` returns the reason; a new booking does not ask for it, because the room is not needed today.
+- A walk-in with no pick and `auto_assign_rooms` on is assigned by `CheckInUnit`, which calls `AutoAssignRooms` first.
 - Changing the room type or dates reloads the list. A picked room that is no longer free is cleared.
 - `AssignRoom` and `AssignBed` lock the room type row, then check that the room or bed is free on every night. A refusal writes nothing and comes back as an inline error on the line. Two unique indexes on `unit_nights` (room and night, bed and night) enforce it in the database. See [Room and bed assignment](../18-front-desk/02-room-and-bed-assignment.md).
 - Mid-stay moves, `AutoAssignRooms` and later changes are in [Room and bed assignment](../18-front-desk/02-room-and-bed-assignment.md).
@@ -204,14 +282,13 @@ Without `guests.manage`, a row accepts only an existing guest, and **Update gues
 
 ## Comes later
 
-| Feature                                  | Module                                                                    |
-| ---------------------------------------- | ------------------------------------------------------------------------- |
-| Edit notes on the reservation page       | Not planned yet                                                           |
-| Database constraint on room and night    | [Room and bed assignment](../18-front-desk/02-room-and-bed-assignment.md) |
-| Tax in the summary, MasterPays routing   | [Folio](../13-folio/01-folios-and-lines.md)                               |
-| Collect payment, deposit, payment method | [Payments and refunds](../14-payments/01-payments-and-refunds.md)         |
-| Walk-in check-in                         | [Check-in and check-out](../18-front-desk/01-check-in-and-check-out.md)   |
-| Past stay and migrated stay modes        | [Past and migrated stays](12-past-and-migrated-stays.md)                  |
+| Feature                                | Module                                                                    |
+| -------------------------------------- | ------------------------------------------------------------------------- |
+| Edit notes on the reservation page     | Not planned yet                                                           |
+| Database constraint on room and night  | [Room and bed assignment](../18-front-desk/02-room-and-bed-assignment.md) |
+| Tax in the summary, MasterPays routing | [Folio](../13-folio/01-folios-and-lines.md)                               |
+| Collect payment on a new booking       | [Payments and refunds](../14-payments/01-payments-and-refunds.md)         |
+| Past stay and migrated stay modes      | [Past and migrated stays](12-past-and-migrated-stays.md)                  |
 
 ## Implementation
 
@@ -232,7 +309,7 @@ Without `guests.manage`, a row accepts only an existing guest, and **Update gues
 
 - `GET reservations/new`, `GET reservations/walk-in` and `POST reservations` (`reservations.store`) are in `ReservationBookingController`. `new` and `walk-in` share one private render method.
 - The page gets the lists it needs with the page, because they are bounded: room types and rate plans (`ReservationFormOptions::addUnit`), charge items, active RoomOnly discounts, the sources (`BookingSourceOptionData`: `{id, name, type, typeLabel, isActive}`, from `BookingSourceOptions::forBooking`), the billing modes, `autoAssignRooms`, the currency, `canOverrideRestrictions` and `today`, the business date, which is the default arrival. The prop is not named `businessDate`, because the app shell shares a prop of that name for the header indicator.
-- `StoreBookingRequest` checks the shape and builds `NewBookingData`. It expands each line into units in the order `CreateReservation` adds them (a Bed line with N beds is N units), so the unit index of a pick is the running count. On a walk-in every unit needs a room or bed pick. From commit 3 the request has a `guests` array: for each tab `guest_id`, the profile fields, `update_profile` and `stays_in` (the unit index, or empty for a booker who does not stay). The first tab is the booker. `toBookingData()` builds one `NewBookingGuestData` for each tab. `booker_guest_id`, which commit 2 used, is gone.
+- `StoreBookingRequest` checks the shape and builds `NewBookingData`. It expands each line into units in the order `CreateReservation` adds them (a Bed line with N beds is N units), so the unit index of a pick is the running count. On a walk-in every unit needs a room or bed pick, unless `auto_assign_rooms` is on. From commit 3 the request has a `guests` array: for each tab `guest_id`, the profile fields, `update_profile` and `stays_in` (the unit index, or empty for a booker who does not stay). The first tab is the booker. `toBookingData()` builds one `NewBookingGuestData` for each tab. `booker_guest_id`, which commit 2 used, is gone.
 - A refusal comes back as errors keyed by position: `lines.{i}.room_type_id`, `lines.{i}.rate_plan_id`, `lines.{i}.child_ages`, `lines.{i}.room_id`, `lines.{i}.bed_ids.{n}` and so on, plus `arrival_date`, `departure_date`, `guests.{i}.guest_id`, `guests.{i}.full_name`, `guests.{i}.stays_in` and `form`. A guest refusal (`guest_not_found`, `already_attached`, `bed_unit_full`, `unit_not_found`, `guest_name_required`) names the tab through the guest index of the result; `bed_unit_full` and `already_attached` show on "Stays in". The key comes from `ReservationRefusals` (the field) and the line or unit index of the result. `restricted` shows the override reason field of the line for staff with `rates.override-restrictions`, and a `form` error for everyone else.
 - A `restricted` or other line-level refusal never saves anything: `CreateBooking` rolls back.
 

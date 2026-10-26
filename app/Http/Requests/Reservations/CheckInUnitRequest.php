@@ -10,7 +10,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 /**
- * The Check in form. It sends choices only: a nationality, the overrides, and the Collect now choices. Amounts are
+ * The Check in form. It sends choices only: a nationality, the overrides, and the Collect now choices (`room_charges` takes the unit's full bill as one Advance in place of the taxes). Amounts are
  * never sent, the Action works them out. An override or Collect now from a user without its permission is dropped.
  */
 class CheckInUnitRequest extends FormRequest
@@ -34,6 +34,7 @@ class CheckInUnitRequest extends FormRequest
             'credit_override_reason' => ['nullable', 'string', 'max:500'],
             'collect_now' => ['boolean'],
             'collect_taxes' => ['boolean'],
+            'room_charges' => ['boolean'],
             'collect_deposit' => ['boolean'],
             'payment_method_id' => ['nullable', 'required_if:collect_now,true', 'integer'],
             'reference' => ['nullable', 'string', 'max:100'],
@@ -70,6 +71,7 @@ class CheckInUnitRequest extends FormRequest
             paymentMethodId: $this->integer('payment_method_id'),
             reference: filled($this->input('reference')) ? $this->string('reference')->toString() : null,
             idempotencyKey: $this->string('idempotency_key')->toString(),
+            roomCharges: $this->boolean('room_charges'),
         );
     }
 }

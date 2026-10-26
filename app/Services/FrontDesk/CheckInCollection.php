@@ -2,13 +2,13 @@
 
 namespace App\Services\FrontDesk;
 
+use App\Data\Folio\FolioRowData;
 use App\Data\Reservations\CheckInCollectionData;
+use App\Enums\BillingMode;
 use App\Enums\FolioType;
 use App\Enums\PaymentPurpose;
 use App\Enums\PaymentStatus;
 use App\Models\Payment;
-use App\Models\Property;
-use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\Tax;
 use App\Services\Folio\FolioRouter;
@@ -36,9 +36,13 @@ class CheckInCollection
         $hidden = $this->folioRouter->roomChargesGoToMaster($unit);
         $taxes = [];
         $total = BigDecimal::zero();
+        $blocks = array_values(array_filter(
+            $this->scheduledRows->forReservation($property, $reservation, []),
+            fn (array $block): bool => $block['unit'] === $unit->id,
+        ));
 
         if ($flagged->isNotEmpty() && ! $hidden) {
-            $sums = $this->taxSums($unit, $property, $reservation, array_values(array_map(intval(...), $flagged->pluck('id')->all())));
+            $sums = $this->taxSums($blocks, array_values(array_map(intval(...), $flagged->pluck('id')->all())));
 
             foreach ($flagged as $tax) {
                 $amount = $sums[$tax->id] ?? BigDecimal::zero();
@@ -52,24 +56,21 @@ class CheckInCollection
             }
         }
 
-        return new CheckInCollectionData($taxes, (string) $total->toScale(2), $hidden, $this->deposit($unit, (string) $property->settings?->security_deposit_amount));
+        return new CheckInCollectionData($taxes, (string) $total->toScale(2), $hidden, $this->deposit($unit, (string) $property->settings?->security_deposit_amount), $this->billTotal($blocks), $reservation->company_id !== null && $reservation->billing_mode !== BillingMode::EachPays);
     }
 
     /**
      * The sum of the Scheduled tax rows of the unit's nights, by tax id.
      *
+     * @param  list<array{rows: list<FolioRowData>}>  $blocks  The Scheduled blocks of the unit.
      * @param  list<int>  $taxIds
      * @return array<int, BigDecimal>
      */
-    private function taxSums(ReservationUnit $unit, Property $property, Reservation $reservation, array $taxIds): array
+    private function taxSums(array $blocks, array $taxIds): array
     {
         $sums = [];
 
-        foreach ($this->scheduledRows->forReservation($property, $reservation, []) as $block) {
-            if ($block['unit'] !== $unit->id) {
-                continue;
-            }
-
+        foreach ($blocks as $block) {
             foreach ($block['rows'] as $row) {
                 if (preg_match('/^night:\d+:tax:(\d+)$/', $row->key, $matches) !== 1 || ! in_array((int) $matches[1], $taxIds, true)) {
                     continue;
@@ -80,6 +81,25 @@ class CheckInCollection
         }
 
         return $sums;
+    }
+
+    /**
+     * The full bill of the unit: every Scheduled row (nights, inclusions, add-ons, taxes, less discounts). Discount rows
+     * are already negative.
+     *
+     * @param  list<array{rows: list<FolioRowData>}>  $blocks  The Scheduled blocks of the unit.
+     */
+    private function billTotal(array $blocks): string
+    {
+        $total = BigDecimal::zero();
+
+        foreach ($blocks as $block) {
+            foreach ($block['rows'] as $row) {
+                $total = $total->plus($row->amount);
+            }
+        }
+
+        return (string) $total->toScale(2);
     }
 
     /**

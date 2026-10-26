@@ -43,12 +43,23 @@ class FolioRouter
      */
     public function roomChargesGoToMaster(ReservationUnit $unit): bool
     {
+        return $this->roomChargesMasterFolio($unit) !== null;
+    }
+
+    /**
+     * The Master folio that gets a Room revenue charge of the unit, or null when the charge stays on the unit's own
+     * folio (or any other folio). Same rules as `roomChargesGoToMaster()`. Walk-in and check-in record the unit's full
+     * bill on it.
+     */
+    public function roomChargesMasterFolio(ReservationUnit $unit): ?Folio
+    {
         $roomCode = TransactionCode::query()
             ->where('property_id', $unit->property_id)
             ->where('system_key', SystemTransactionCode::RoomRevenue->value)
             ->first();
+        $target = $roomCode === null ? null : $this->targetFor($unit, $roomCode);
 
-        return $roomCode !== null && $this->targetFor($unit, $roomCode)?->type === FolioType::Master;
+        return $target?->type === FolioType::Master ? $target : null;
     }
 
     /**

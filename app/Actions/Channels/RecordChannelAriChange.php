@@ -22,7 +22,8 @@ class RecordChannelAriChange
 
     /**
      * Note a changed date range in the ARI outbox, for every mapped room type or rate plan pair it touches, and
-     * start the delayed flush. A property that is not on a channel manager, or a range outside the next 500 days,
+     * start the delayed flush after the surrounding transaction commits, so a rolled-back change (the walk-in payment
+     * preview) queues nothing. A property that is not on a channel manager, or a range outside the next 500 days,
      * records nothing. A waiting line of the same room type, plan and kind that overlaps or touches the range grows
      * instead of a new line being added.
      */
@@ -51,7 +52,7 @@ class RecordChannelAriChange
         }
 
         if ($channelProperty->status === ChannelPropertyStatus::Synced) {
-            FlushChannelAriJob::dispatch($channelProperty->id)->delay(now()->addSeconds(random_int(10, 30)));
+            FlushChannelAriJob::dispatch($channelProperty->id)->delay(now()->addSeconds(random_int(10, 30)))->afterCommit();
         }
     }
 

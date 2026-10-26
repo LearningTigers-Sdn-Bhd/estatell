@@ -7,6 +7,7 @@ Move a unit through its stay.
 ## Actions
 
 - `CheckInUnit`: requires an assigned room or bed for tonight (with `auto_assign_rooms` on, it first calls `AutoAssignRooms`), enforces the registration card scope, needs a known nationality when an enabled foreign-only tax exists (`nationality_required`), posts undated add-ons, sets `checked_in_at` and `UnitStatus::CheckedIn`.
+- `CheckInWalkIn`: books a walk-in, checks in each unit and takes the payment, from the booking form. See [Walk-in check-in](#walk-in-check-in).
 - `CheckOutUnit`: requires the unit folio balance to be 0 or transferred to the master folio (`balance_not_settled`). A held security deposit is a credit on the folio, so it must be refunded or used against charges first. It sets `checked_out_at`, `UnitStatus::CheckedOut` and marks the room Dirty.
 - `ChangeUnitDates`: changes the arrival and departure of a Confirmed unit, or the departure of a CheckedIn unit. Kept nights keep their prices, plan and rooms. Removed nights are deleted. Added nights are priced for the added stretch only and try to keep the neighbouring night's room or bed.
 - `ProcessEarlyDeparture`: called by `ChangeUnitDates` when the departure moves earlier. For a CheckedIn unit it applies the early departure [room revenue policy](../06-catalogues/06-room-revenue.md#policies) and removes the unused nights.
@@ -462,32 +463,89 @@ An in-house unit can change only the departure date. Extend stay opens this form
 
 ### Collect now
 
-A section of the check-in Dialog, shown only with `payment.record`. The form sends choices only: the two checkboxes, the method and the reference. The server calculates every amount.
+A section of the check-in Dialog, shown only with `payment.record`. The form sends choices only: the three checkboxes, the method and the reference. The server calculates every amount.
 
 ```
-┌ Check in · Deluxe King ──────────────────── ✕ ┐
-│ Lim Wei Jie · 12 → 15 Oct · 3 nights          │
-│ Nationality   [ Singapore ⌄ ]                 │  only when missing
-│                                               │
-│ Collected at check-in                         │
-│   Tourism tax        RM10 × 3     RM 30.00    │
-│   International tax  RM3 × 3      RM  9.00    │
-│   Taxes                           RM 39.00    │
-│                                               │
-│ ☑ Security deposit                RM 100.00   │  only when the property sets an amount
-│                                               │
-│ ☑ Collect now        Total RM 139.00          │
-│ Method [ Cash ⌄ ]   Reference [ ____ ]        │  reference for Card, Transfer, E-wallet
-│                    [Cancel] [Check in]        │
-└───────────────────────────────────────────────┘
+┌ Check in · Deluxe King · 106 ─────────────── ✕ ┐
+│ Lim Wei Jie · 12 → 15 Oct · 3 nights           │
+│ Card  ✗ Not signed   [Open card]               │  only with card_required_for_check_in
+│ ☐ Check in without card                        │  only with front-desk.check-in-without-card
+│ Nationality   [ Singapore ⌄ ]                  │  only when missing
+│                                                │
+│ ☐ Room charges and tax            RM 321.60    │  unticked by default
+│   Tourism tax        RM10 × 3     RM  30.00    │  shown while Room charges is unticked
+│   International tax  RM3 × 3      RM   9.00    │
+│ ☑ Security deposit                RM 100.00    │  only when the property sets an amount
+│                                                │
+│ ☑ Collect now        Total RM 139.00           │
+│ Method [ Cash ⌄ ]   Reference [ ____ ]         │  reference for Card, Transfer, E-wallet
+│                    [Cancel] [Check in]         │
+└────────────────────────────────────────────────┘
 ```
 
+With **Room charges and tax** ticked, the tax rows hide, because the full bill already holds them:
+
+```
+│ ☑ Room charges and tax            RM 321.60    │  nights, add-ons, every tax
+│ ☑ Security deposit                RM 100.00    │
+│ ☑ Collect now        Total RM 421.60           │
+```
+
+- **Room charges and tax** starts unticked: a booked guest often paid before arrival or pays at check-out. The walk-in form starts it ticked. It records one Advance for the unit's full bill (see [Walk-in check-in](#walk-in-check-in)). It is hidden when the reservation has a company and any billing mode but Each unit pays.
 - The tax rows sum the Scheduled tax rows of every tax with **Collect at check-in** for the unit's nights, one row per tax. A foreign-only tax for a guest it does not apply to shows "Exempt" and adds 0. With no flagged tax, the tax rows are hidden.
 - The amount is read-only. A guest who pays only part unticks **Collect now** and uses Record payment on the folio.
 - The deposit box is ticked by default. It shows only when `security_deposit_amount` is above 0.
 - With Collect now ticked, the server runs `CheckInUnit`, then `RecordPayment` for the taxes (Advance), then `RecordPayment` for the deposit (SecurityDeposit), with the same method and reference. It is all or nothing: a payment refusal shows on the method or reference field and saves nothing, not the check-in, the nationality or a payment that already went through. Staff fix the field and press **Check in** again.
-- When the room charges route to a Master folio, the tax rows are hidden. The deposit still posts to the unit folio. So Collect now never records an Advance on a unit whose rooms go to the Master, and never meets the `advance_on_master` refusal ([Payments](../14-payments/01-payments-and-refunds.md#rules)). `CheckInCollection` and `RecordPayment` share `FolioRouter::roomChargesGoToMaster`.
-- The Dialog counts five fields at most: Nationality, the deposit box, Collect now, Method and Reference.
+- When the room charges route to a Master folio, the tax rows are hidden. The deposit still posts to the unit folio. Room charges and tax, when ticked, records the Advance on the Master folio, not the unit folio. So Collect now never records an Advance on a unit whose rooms go to the Master, and never meets the `advance_on_master` refusal ([Payments](../14-payments/01-payments-and-refunds.md#rules)). `CheckInCollection` and `RecordPayment` share `FolioRouter::roomChargesGoToMaster`.
+- The Dialog counts seven fields at most: Without card, Nationality, Room charges, the deposit box, Collect now, Method and Reference.
+- **Any tax can be collected at check-in**, not only Tourism tax. Each enabled tax with **Collect at check-in** gets its own row. `CheckInCollection` sums only the tax rows of the room nights (`night:{n}:tax:{id}`), so a flagged tax on an add-on or a rate plan inclusion is left out (see [Open](#open-walk-in)).
+
+### Walk-in check-in
+
+The booking form in Walk-in mode books, checks in and collects in one save. The form, the Payment section and the toast are in [Booking form: Walk-in](../12-reservations/05-booking-form.md#walk-in).
+
+`CheckInWalkIn` (`app/Actions/FrontDesk/`) runs other Actions only, in one transaction:
+
+1. `CreateBooking`. A refusal rolls everything back and returns the booking errors.
+2. When the form asks for a payment, `WalkInPayment` totals the saved reservation from `ScheduledFolioRows` and the deposit. A total that is not `expected_total` rolls everything back (`amount_changed`).
+3. For each unit, in unit order: `CheckInAndCollect`, with the walk-in's method, reference and `without_card`. Each call runs in its own savepoint, so a refused unit rolls back alone and the others go on. A refused unit stays Confirmed.
+4. `SyncReservationStatus` once at the end.
+
+It returns `WalkInResult`: the reservation (null when the booking was refused), the booking refusal, and one row per unit with its refusal code or null, and the amount collected.
+
+**What each unit pays.** `CheckInCollection` gains the full bill of the unit, and `CollectNowData` gains `roomCharges`:
+
+| `roomCharges` | `CheckInAndCollect` records                                                                                                      |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| true          | One Advance for the unit's full bill (every Scheduled row of the unit: nights, add-ons, taxes, less discounts), then the deposit |
+| false         | The Collect at check-in taxes as one Advance, then the deposit, as the check-in Dialog does today                                |
+
+- The full bill goes to the folio that gets the unit's room charges. A unit whose room charges go to the Master folio pays its share as an Advance on the Master folio. `RecordPayment` allows that; it refuses an Advance only on a Unit folio whose room charges go to the Master (`advance_on_master`).
+- A reservation with a company and any billing mode but Each unit pays collects no room charges (the form hides the box). The deposit still goes to each unit folio.
+- `RecordPayment` does not check the stay stage, so an Advance right after check-in is accepted (checked in the code). Only the payment form limits the purposes by stage (`PaymentPurpose::forStage`).
+- The keys are `{uuid}:{unit}:bill`, `{uuid}:{unit}:taxes` and `{uuid}:{unit}:deposit`. On the check-in Dialog the uuid comes from the form, so a repeated submit returns the same payments. On a walk-in the server makes the uuid, so the keys only keep one save's units apart; the disabled button stops a second save.
+- `CheckInAndCollect` reads the bill **before** `CheckInUnit`, because the check-in posts the undated add-ons and a Scheduled read afterwards would leave them out. The taxes are still read after the check-in.
+- With a company and any billing mode but Each unit pays (`billHidden`), `roomCharges` is ignored: the Collect at check-in taxes are taken instead, as with the box unticked.
+- The check-in Dialog sends `roomCharges` from its own **Room charges and tax** box (unticked by default; see [Collect now](#collect-now)). A walk-in unit refused for `card_missing` is finished there after the guest signs, so the guest still pays the whole stay at the desk.
+
+**The preview: a trial booking, rolled back.** `CheckInCollectionData` carries `billTotal`, the sum of every Scheduled row of the unit; the check-in Dialog preview gets it too. `WalkInPayment::preview()` (`app/Services/FrontDesk/`) answers `reservations.walk-in-payment` before anything is kept. It opens a transaction, runs `CreateBooking` with the form's data, reads the new reservation through `CheckInCollection` (the full bill, the Collect at check-in taxes and the deposit of each unit, from `ScheduledFolioRows`), then rolls back. The save runs the same code, so the preview and the save can only differ when a rate, tax or deposit changed in between (`amount_changed`).
+
+- Why not price the lines without saving: the night prices are set inside `AddUnit` (rate quote, package spread, price override), and `NightChargeQuote` needs saved nights. A second copy of that pricing could drift from the folio by a cent. The trial booking cannot.
+- What the trial costs: it locks the room type rows (`AssignRoom`) and the reservation `document_sequences` row for the length of the request, about 100 ms. Nothing is kept: the reference number, the activity log and the channel outbox lines roll back with it.
+- **Channel sync waits for the commit.** `RecordChannelAriChange` dispatches `FlushChannelAriJob` with `->afterCommit()`, so a rolled-back trial never queues a flush. Real bookings are unchanged: they commit, then the flush is queued (see [ARI sync](../21-channels/04-ari-sync.md)).
+- A refused trial answers with the booking errors (`ReservationRefusals`), the same as a save.
+- **Nationality.** Foreign-only taxes follow the booker's nationality for every unit, as `ScheduledFolioRows` and `PostCharge` do, not each unit's guest. The trial books the guests as the form has them, so the preview follows the same rule.
+- A test books the same input with `CreateBooking` and checks that the preview equals that reservation's Scheduled rows.
+
+**Refusals.** The booking refusals, `amount_changed`, every `CheckInUnit` refusal per unit, and every `RecordPayment` refusal per unit. `ReservationRefusals` maps them as the booking form and the check-in Dialog do.
+
+**Permissions.** `reservations.manage` and `front-desk.check-in` for the save. `payment.record` for the Payment section; without it the request drops the payment fields. `front-desk.check-in-without-card` shows **Check in without card** on the walk-in form, as on the check-in Dialog; it applies to every unit, and the request drops it for staff without the permission. Unticked, a unit without a signed card stays Confirmed and goes through the signing flow.
+
+**Activity.** Each Action logs as it does alone (`reservation.created`, check-in, `payment.recorded`). `CheckInWalkIn` adds one `reservation.walk_in` entry with the counts and the total collected.
+
+#### Open (walk-in)
+
+- **Confirmed gap:** a tax with **Collect at check-in** on an add-on (`addon:{id}:tax:{tax}`) or a rate plan inclusion (`night:{id}:incl:{inclusion}:tax:{tax}`) is not counted by `CheckInCollection`, which matches `night:{n}:tax:{id}` only. The check-in Dialog has the same gap today. With Room charges and tax ticked the full bill holds these taxes, so only the unticked case is short. It is fixed apart from the walk-in.
 
 ### Check out
 

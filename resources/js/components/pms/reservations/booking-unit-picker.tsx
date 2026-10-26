@@ -20,6 +20,7 @@ export function BookingUnitPicker({
     invalid,
     label,
     dayUse = null,
+    walkIn = false,
 }: {
     id: string;
     roomTypeId: string;
@@ -35,6 +36,8 @@ export function BookingUnitPicker({
     label: string;
     /** A day use block: the start time and hours. The rooms listed are free for those hours on the arrival date. */
     dayUse?: { start: string; hours: string } | null;
+    /** A walk-in: the guest takes the room now, and the list also shows rooms or beds that are not ready, disabled. */
+    walkIn?: boolean;
 }) {
     const ready =
         roomTypeId !== '' &&
@@ -43,9 +46,10 @@ export function BookingUnitPicker({
             ? departure > arrival
             : dayUse.start !== '' && dayUse.hours !== '');
     const key =
-        dayUse === null
+        (dayUse === null
             ? `${roomTypeId}|${arrival}|${departure}`
-            : `${roomTypeId}|${arrival}|${dayUse.start}|${dayUse.hours}`;
+            : `${roomTypeId}|${arrival}|${dayUse.start}|${dayUse.hours}`) +
+        (walkIn ? '|walk-in' : '');
     const [loaded, setLoaded] = useState<{
         key: string;
         units: FreeUnit[];
@@ -63,6 +67,7 @@ export function BookingUnitPicker({
                                       room_type_id: roomTypeId,
                                       arrival_date: arrival,
                                       departure_date: departure,
+                                      ...(walkIn ? { walk_in: '1' } : {}),
                                   }
                                 : {
                                       room_type_id: roomTypeId,
@@ -84,7 +89,15 @@ export function BookingUnitPicker({
         } catch {
             setLoaded(null);
         }
-    }, [roomTypeId, arrival, departure, dayUse?.start, dayUse?.hours, key]);
+    }, [
+        roomTypeId,
+        arrival,
+        departure,
+        dayUse?.start,
+        dayUse?.hours,
+        walkIn,
+        key,
+    ]);
 
     useEffect(() => {
         if (ready && value !== '' && loaded?.key !== key) {
@@ -99,11 +112,14 @@ export function BookingUnitPicker({
 
         if (!ready) {
             onChange('');
-        } else if (
-            loaded?.key === key &&
-            !loaded.units.some((unit) => String(unit.id) === value)
-        ) {
-            onChange('');
+        } else if (loaded?.key === key) {
+            const picked = loaded.units.find(
+                (unit) => String(unit.id) === value,
+            );
+
+            if (picked === undefined || picked.reason !== null) {
+                onChange('');
+            }
         }
     }, [ready, loaded, key, value, onChange]);
 
@@ -112,9 +128,13 @@ export function BookingUnitPicker({
         { value: '', label: emptyLabel },
         ...units.map((unit) => ({
             value: String(unit.id),
-            label: unit.label,
+            label:
+                unit.reason === null
+                    ? unit.label
+                    : `${unit.label} · ${unit.reason}`,
             disabled:
-                takenIds.has(String(unit.id)) && String(unit.id) !== value,
+                unit.reason !== null ||
+                (takenIds.has(String(unit.id)) && String(unit.id) !== value),
         })),
     ];
 

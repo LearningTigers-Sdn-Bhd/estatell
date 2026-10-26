@@ -122,7 +122,7 @@ test('free units lists the rooms free on every night and takes an assigned room 
     $this->actingAs($setup['user'])
         ->getJson(previewUrl($setup, 'reservations.free-units', $query))
         ->assertOk()
-        ->assertExactJson(['units' => [['id' => $setup['rooms'][1]->id, 'label' => '102']]]);
+        ->assertExactJson(['units' => [['id' => $setup['rooms'][1]->id, 'label' => '102', 'reason' => null]]]);
 
     $this->getJson(previewUrl($setup, 'reservations.free-units', [...$query, 'arrival_date' => '2026-10-24', 'departure_date' => '2026-10-25']))
         ->assertJsonCount(2, 'units');

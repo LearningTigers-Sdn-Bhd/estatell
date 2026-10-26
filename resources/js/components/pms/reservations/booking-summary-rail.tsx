@@ -39,6 +39,8 @@ export function BookingSummaryRail({
     guests,
     unitsWithoutGuest,
     discountCount,
+    registrationCard,
+    payment,
 }: {
     units: number;
     quotes: Quote[];
@@ -51,6 +53,10 @@ export function BookingSummaryRail({
     unitsWithoutGuest: number;
     /** How many lines have a catalogue discount picked. */
     discountCount: number;
+    /** The walk-in Registration card block, under the total and above Payment. */
+    registrationCard?: React.ReactNode;
+    /** The walk-in Payment section, under the total. */
+    payment?: React.ReactNode;
 }) {
     const rooms = sumMoney(quotes.map((quote) => quote.lineTotal));
     const addOns = sumMoney(quotes.map((quote) => quote.addOnsTotal));
@@ -91,6 +97,18 @@ export function BookingSummaryRail({
                             : `${discountCount} discounts are applied on the folio.`}{' '}
                         It is not in this total.
                     </p>
+                )}
+                {registrationCard && (
+                    <>
+                        <Separator />
+                        {registrationCard}
+                    </>
+                )}
+                {payment && (
+                    <>
+                        <Separator />
+                        {payment}
+                    </>
                 )}
                 {units > 1 && (
                     <>

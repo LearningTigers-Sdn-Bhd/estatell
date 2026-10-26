@@ -124,7 +124,7 @@ class StoreBookingRequest extends FormRequest
             $this->checkGuests($validator);
             $this->checkBookingSource($validator);
 
-            if ($validator->errors()->isNotEmpty() || ! $this->bookingSource()?->type->isWalkIn()) {
+            if ($validator->errors()->isNotEmpty() || ! $this->bookingSource()?->type->isWalkIn() || $this->property()->settings?->auto_assign_rooms) {
                 return;
             }
 
@@ -213,7 +213,7 @@ class StoreBookingRequest extends FormRequest
     /**
      * The booking source of the request, found in the property. Null until the id passed its rule.
      */
-    private function bookingSource(): ?BookingSource
+    protected function bookingSource(): ?BookingSource
     {
         if (! $this->bookingSourceLoaded) {
             $this->bookingSourceLoaded = true;
@@ -253,7 +253,7 @@ class StoreBookingRequest extends FormRequest
         }
     }
 
-    private function property(): Property
+    protected function property(): Property
     {
         /** @var Property $property */
         $property = $this->route('property');
