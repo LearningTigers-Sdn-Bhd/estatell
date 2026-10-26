@@ -128,9 +128,10 @@ A card is **Vacant** when the room or bed has no stay and no block on the date. 
 
 ### Quick changes
 
-- **Mark clean** shows on a dirty card. **Do-not-disturb** shows on a card with a guest in house. A vacant card has no do-not-disturb toggle, because there is no guest to disturb.
+- **Mark clean** shows on a dirty card, on any date. **Do-not-disturb** shows on a card with a guest in house, and only when the date is the housekeeping date, because `SetDoNotDisturb` always sets it for the housekeeping date. A vacant card has no do-not-disturb toggle, because there is no guest to disturb.
 - Both need `housekeeping.update`. Without it the card shows the status and the 🔕 icon only.
-- Both use the housekeeping routes (`housekeeping.rooms.status`, `housekeeping.rooms.dnd`) with an Inertia 3 optimistic update. If the server rejects the change, the card rolls back and a `toast` shows the error.
+- Both use the housekeeping routes (`housekeeping.rooms.status`, `housekeeping.rooms.dnd`) with an Inertia 3 optimistic update. The routes redirect `back()`, so the Room View keeps its date and filters, and the Housekeeping board still returns to itself.
+- A refusal is not an error response: the route flashes an error `toast` and redirects back. The reload sends the real `rooms`, which puts the card back.
 
 ## Peek sheet
 
