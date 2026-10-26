@@ -1,4 +1,5 @@
 import type { CellAction } from './bookable-cell';
+import type { CardControls } from './card-controls';
 import { buildRows } from './group-rows';
 import { RoomCard } from './room-card';
 import type { RoomDay } from './room-day';
@@ -14,18 +15,25 @@ export function RoomsBoard({
     grouping,
     badges,
     actionsFor,
+    controlsFor,
     onOpenStay,
     onBook,
     onBlock,
+    onMarkClean,
+    onToggleDnd,
 }: {
     days: RoomDay[];
     grouping: App.Enums.StayViewGrouping;
     badges: Record<string, Badge>;
     /** The actions a card offers. */
     actionsFor: (day: RoomDay) => CellAction[];
+    /** The quick changes a card shows. */
+    controlsFor: (day: RoomDay) => CardControls;
     onOpenStay: (unitId: number) => void;
     onBook: (room: App.Data.StayView.RoomRowData) => void;
     onBlock: (room: App.Data.StayView.RoomRowData) => void;
+    onMarkClean: (room: App.Data.StayView.RoomRowData) => void;
+    onToggleDnd: (room: App.Data.StayView.RoomRowData) => void;
 }) {
     const ordered = days
         .map((day, index) => ({ day, index }))
@@ -83,9 +91,12 @@ export function RoomsBoard({
                                 day={day}
                                 badges={badges}
                                 actions={actionsFor(day)}
+                                controls={controlsFor(day)}
                                 onOpenStay={onOpenStay}
                                 onBook={onBook}
                                 onBlock={onBlock}
+                                onMarkClean={onMarkClean}
+                                onToggleDnd={onToggleDnd}
                             />
                         ))}
                     </ul>

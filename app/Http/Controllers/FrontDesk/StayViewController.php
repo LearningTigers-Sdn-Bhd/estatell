@@ -16,6 +16,7 @@ use App\Http\Requests\FrontDesk\StayViewTimelineRequest;
 use App\Http\Requests\Rooms\RoomBlockRequest;
 use App\Models\Property;
 use App\Models\Reservation;
+use App\Services\Housekeeping\HousekeepingDate;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Property\PropertyToday;
 use App\Services\StayView\StayFolioPeek;
@@ -62,7 +63,7 @@ class StayViewController extends Controller
      * date holds no night on it, and the card still shows the departure. The cards and the day summary are derived in
      * the browser.
      */
-    public function rooms(StayViewRoomsRequest $request, Property $property, PropertyToday $propertyToday, CurrentBusinessDate $businessDate, StayViewQuery $query): Response
+    public function rooms(StayViewRoomsRequest $request, Property $property, PropertyToday $propertyToday, CurrentBusinessDate $businessDate, HousekeepingDate $housekeepingDate, StayViewQuery $query): Response
     {
         $date = $request->onDate($businessDate->date($property) ?? $propertyToday->date($property));
 
@@ -82,6 +83,8 @@ class StayViewController extends Controller
             'canBlockRooms' => $request->user()->can(PermissionEnum::RoomsBlock->value),
             'blockReasons' => RoomBlockReason::options(),
             'maxBlockNights' => RoomBlockRequest::MAX_NIGHTS,
+            'canUpdateHousekeeping' => $request->user()->can(PermissionEnum::HousekeepingUpdate->value),
+            'housekeepingDate' => $housekeepingDate->for($property)->toDateString(),
         ]);
     }
 

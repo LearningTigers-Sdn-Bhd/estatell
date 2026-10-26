@@ -1,9 +1,10 @@
-import { Ban, BellOff, Diamond, Plus } from 'lucide-react';
+import { Ban, BellOff, Diamond, Plus, SprayCan } from 'lucide-react';
 import { DateText } from '@/components/pms/date-text';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { CellAction } from './bookable-cell';
+import type { CardControls } from './card-controls';
 import type { RoomDay, RoomDayStay } from './room-day';
 import { HOUSEKEEPING } from './room-row';
 
@@ -90,9 +91,12 @@ export function RoomCard({
     day,
     badges,
     actions,
+    controls,
     onOpenStay,
     onBook,
     onBlock,
+    onMarkClean,
+    onToggleDnd,
 }: {
     day: RoomDay;
     badges: Record<string, Badge>;
@@ -101,6 +105,10 @@ export function RoomCard({
     onOpenStay: (unitId: number) => void;
     onBook: (room: App.Data.StayView.RoomRowData) => void;
     onBlock: (room: App.Data.StayView.RoomRowData) => void;
+    /** The quick changes this card shows, from `cardControls()`. */
+    controls: CardControls;
+    onMarkClean: (room: App.Data.StayView.RoomRowData) => void;
+    onToggleDnd: (room: App.Data.StayView.RoomRowData) => void;
 }) {
     const { room } = day;
     const housekeeping = HOUSEKEEPING[room.housekeepingStatus];
@@ -159,6 +167,35 @@ export function RoomCard({
                     onOpenStay={onOpenStay}
                 />
             ))}
+            {(controls.markClean || controls.doNotDisturb) && (
+                <div className="flex flex-wrap gap-1">
+                    {controls.markClean && (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onMarkClean(room)}
+                        >
+                            <SprayCan data-icon="inline-start" />
+                            Mark clean
+                        </Button>
+                    )}
+                    {controls.doNotDisturb && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            aria-pressed={room.doNotDisturb}
+                            onClick={() => onToggleDnd(room)}
+                        >
+                            <BellOff data-icon="inline-start" />
+                            {room.doNotDisturb
+                                ? 'Clear do not disturb'
+                                : 'Do not disturb'}
+                        </Button>
+                    )}
+                </div>
+            )}
             {actions.length > 0 && (
                 <div className="flex flex-wrap gap-1">
                     {actions.includes('booking') && (

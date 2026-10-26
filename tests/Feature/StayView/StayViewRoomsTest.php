@@ -205,3 +205,16 @@ test('the room view carries the booking and block props, each needing its own pe
         ->get(route('front-desk.rooms', $property->code))
         ->assertInertia(fn (Assert $page) => $page->where('canManageReservations', true)->where('canBlockRooms', false));
 });
+
+test('the room view carries canUpdateHousekeeping and the housekeeping date', function () {
+    [$owner, $property] = roomsSetup();
+    $viewer = User::factory()->for($property)->withPermissions(['front-desk.view'])->create();
+    $keeper = User::factory()->for($property)->withPermissions(['front-desk.view', 'housekeeping.update'])->create();
+
+    $this->actingAs($owner)->get(route('front-desk.rooms', $property->code))
+        ->assertInertia(fn (Assert $page) => $page->where('canUpdateHousekeeping', true)->where('housekeepingDate', '2026-10-14'));
+    $this->actingAs($keeper)->get(route('front-desk.rooms', $property->code))
+        ->assertInertia(fn (Assert $page) => $page->where('canUpdateHousekeeping', true));
+    $this->actingAs($viewer)->get(route('front-desk.rooms', $property->code))
+        ->assertInertia(fn (Assert $page) => $page->where('canUpdateHousekeeping', false));
+});

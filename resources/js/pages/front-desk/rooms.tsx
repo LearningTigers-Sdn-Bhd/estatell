@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { DoorOpen } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
@@ -8,6 +8,7 @@ import {
     openBooking,
 } from '@/components/pms/stay-view/cell-actions';
 import type { BlockCell } from '@/components/pms/stay-view/cell-actions';
+import { cardControls } from '@/components/pms/stay-view/card-controls';
 import { filterStays } from '@/components/pms/stay-view/filter-stays';
 import {
     roomDays,
@@ -24,6 +25,7 @@ import {
 } from '@/components/pms/stay-view/stay-view-url';
 import type { DateWindow } from '@/components/pms/stay-view/stay-view-url';
 import { rooms as roomsRoute } from '@/routes/front-desk';
+import { dnd, status } from '@/routes/housekeeping/rooms';
 
 /** The order of the day summary line. */
 const SUMMARY_ORDER: App.Enums.RoomDayState[] = [
@@ -54,6 +56,8 @@ export default function Rooms({
     canBlockRooms,
     blockReasons,
     maxBlockNights,
+    canUpdateHousekeeping,
+    housekeepingDate,
 }: {
     window: App.Data.StayView.StayViewWindowData;
     rooms: App.Data.StayView.RoomRowData[];
@@ -70,6 +74,8 @@ export default function Rooms({
     canBlockRooms: boolean;
     blockReasons: { value: string; label: string }[];
     maxBlockNights: number;
+    canUpdateHousekeeping: boolean;
+    housekeepingDate: string;
 }) {
     const [filters, setFilters] = useState(initialFilters);
     const [peekUnitId, setPeekUnitId] = useState<number | null>(null);
@@ -88,6 +94,48 @@ export default function Rooms({
         window.history.replaceState(window.history.state, '', hrefFor(range));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [filters, date]);
+
+    // The card changes at once. The route redirects back here and flashes a toast, so a refusal comes back as the real
+    // `rooms` (the card returns) and an error toast. Only `rooms` is reloaded.
+    const changeRoom = (
+        room: App.Data.StayView.RoomRowData,
+        change: Partial<App.Data.StayView.RoomRowData>,
+        request: { url: string; data: Record<string, string | boolean> },
+    ) =>
+        router
+            .optimistic<{ rooms: App.Data.StayView.RoomRowData[] }>(
+                (props) => ({
+                    rooms: props.rooms.map((row) =>
+                        row.roomId === room.roomId
+                            ? { ...row, ...change }
+                            : row,
+                    ),
+                }),
+            )
+            .put(request.url, request.data, {
+                preserveScroll: true,
+                only: ['rooms'],
+            });
+
+    const markClean = (room: App.Data.StayView.RoomRowData) =>
+        changeRoom(
+            room,
+            { housekeepingStatus: 'clean' },
+            {
+                url: status.url({ room: room.roomId }),
+                data: { status: 'clean' },
+            },
+        );
+
+    const toggleDnd = (room: App.Data.StayView.RoomRowData) =>
+        changeRoom(
+            room,
+            { doNotDisturb: !room.doNotDisturb },
+            {
+                url: dnd.url({ room: room.roomId }),
+                data: { dnd: !room.doNotDisturb },
+            },
+        );
 
     const visible = filterStays(rooms, stays, filters);
     const days = roomDays(visible.rooms, visible.stays, blocks, date);
@@ -159,6 +207,15 @@ export default function Rooms({
                                       })
                                     : []
                             }
+                            controlsFor={(day) =>
+                                cardControls(day, {
+                                    canUpdateHousekeeping,
+                                    date,
+                                    housekeepingDate,
+                                })
+                            }
+                            onMarkClean={markClean}
+                            onToggleDnd={toggleDnd}
                             onOpenStay={setPeekUnitId}
                             onBook={(room) => openBooking(room, date, 'rooms')}
                             onBlock={(room) => setBlockCell({ room, date })}
