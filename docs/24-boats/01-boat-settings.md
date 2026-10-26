@@ -105,11 +105,11 @@ Dinner      19:00–22:00
 
 Boat in: meals that end after the boat arrives.
 Boat out: meals that start before the boat leaves.
-Edit meal periods →
+Edit meal periods ↗
 ```
 
 - It lists the active meal periods in start time order. With none: "No meal periods yet." and the same link.
-- **Edit meal periods** goes to `settings.meal-periods`. A wrong result is fixed there, not on the boat.
+- **Edit meal periods** opens `settings.meal-periods` in a new tab (a plain `<a target="_blank">` with an external link icon), so the departures stay open. A wrong result is fixed there, not on the boat.
 
 **Data.** The Departures page gets `mealPeriods` (the active periods: name, `startsAt`, `endsAt`) and a `meals` list of period names on each departure. `MealTimeRule` (`app/Services/Meals/`) holds the two checks, `countsOnArrival(arrivalTime, endsAt)` and `countsOnDeparture(departureTime, startsAt)`, and `MealEntitlementResolver` calls it instead of its own compare. `DepartureMeals` (`app/Services/Boats/`) uses `MealTimeRule` with `BoatDirection::propertyTime()` to build each departure's list.
 

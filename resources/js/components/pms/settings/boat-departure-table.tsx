@@ -1,5 +1,4 @@
-import { Link } from '@inertiajs/react';
-import { Ellipsis, Info, Ship } from 'lucide-react';
+import { Ellipsis, ExternalLink, Info, Ship } from 'lucide-react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -78,16 +77,21 @@ function MealsHeader({ mealPeriods }: { mealPeriods: MealPeriod[] }) {
                         Boat in: meals that end after the boat arrives. Boat
                         out: meals that start before the boat leaves.
                     </PopoverDescription>
-                    <Link
-                        href={mealPeriodsRoute()}
+                    {/* A new tab keeps the departures open while staff fix the times. Inertia's Link cannot open one. */}
+                    <a
+                        href={mealPeriodsRoute.url()}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className={buttonVariants({
                             variant: 'link',
                             size: 'sm',
                             className: 'h-auto self-start p-0',
                         })}
                     >
-                        Edit meal periods →
-                    </Link>
+                        Edit meal periods
+                        <ExternalLink data-icon="inline-end" />
+                        <span className="sr-only">(opens in a new tab)</span>
+                    </a>
                 </PopoverContent>
             </Popover>
         </div>
