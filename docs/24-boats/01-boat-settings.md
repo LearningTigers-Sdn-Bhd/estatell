@@ -63,15 +63,15 @@ All need `settings.manage` and the `Boats` feature.
 Settings › Boats
 [ Departures ]  Fares
 
-Boat in                                                   [+ Add departure]
- Available  Leaves  Arrives  Pick-up point       Seats  Fare
- [●  ]      09:00   09:45    Kuala Besut jetty   20     Speedboat · RM35.00  ⋯
- [●  ]      13:00   13:45    Kuala Besut jetty   20     Speedboat · RM35.00  ⋯
- [  ○]      16:00   16:45    Kuala Besut jetty   —      No fare              ⋯   (muted)
+Boat in                                                                                      [+ Add departure]
+ Available  Leaves  Arrives  Pick-up point       Seats  Fare                 Meals ⓘ
+ [●  ]      09:00   09:45    Kuala Besut jetty   20     Speedboat · RM35.00  Breakfast · Lunch · Dinner  ⋯
+ [●  ]      13:00   13:45    Kuala Besut jetty   20     Speedboat · RM35.00  Lunch · Dinner              ⋯
+ [  ○]      16:00   16:45    Kuala Besut jetty   —      No fare              Dinner                      ⋯   (muted)
 
-Boat out                                                  [+ Add departure]
- [●  ]      08:00   08:45    Resort jetty        20     Speedboat · RM35.00  ⋯
- [●  ]      12:00   12:45    Resort jetty        —      Ferry · RM25.00      ⋯
+Boat out                                                                                     [+ Add departure]
+ [●  ]      08:00   08:45    Resort jetty        20     Speedboat · RM35.00  Breakfast                   ⋯
+ [●  ]      12:00   12:45    Resort jetty        —      Ferry · RM25.00      Breakfast                   ⋯
 ```
 
 - Two tables, Boat in then Boat out, each sorted by **Leaves**. There is no manual order, as with meal periods.
@@ -79,6 +79,39 @@ Boat out                                                  [+ Add departure]
 - Seats shows "—" for no limit. Fare shows the fare name and adult price, or "No fare".
 - The **⋯** menu has **Edit** and **Delete**. Delete shows only for a departure that no boat trip has ever used.
 - An empty direction keeps its table header and shows "No boat in departures yet." (or "boat out") in one row. The Add departure button is always in the section header.
+
+### Meals column
+
+Shows which meals a guest on the boat can get on the arrival or departure day. It is read only. It replaces the wastays meal checkboxes: the meal times decide, so there is nothing to tick and nothing to drift (see [Lessons from wastays](#lessons-from-wastays)).
+
+| Direction | Time used    | A meal shows when                           |
+| --------- | ------------ | ------------------------------------------- |
+| Boat in   | `arrives_at` | `arrives_at` is before the meal's `ends_at` |
+| Boat out  | `leaves_at`  | `leaves_at` is after the meal's `starts_at` |
+
+- This is the same rule as the kitchen counts ([Boat trips](02-boat-trips.md#meals)). Both call one method, so the column and the counts never disagree.
+- The cell lists the active meal periods that match, in start time order, as outline `Badge`s with no icon and no tone, so they read as information, not as checkboxes. With no match or no active meal periods, it shows "—".
+- Example with the default times (Breakfast 07:00–10:00, Lunch 12:00–14:30, Dinner 19:00–22:00): a boat in that arrives 12:30 shows Lunch · Dinner. A boat out that leaves 12:00 shows Breakfast only, because lunch starts at 12:00.
+- A guest gets only the meals their rate plan includes. The column shows what the boat time allows, not what a guest has paid for.
+- Charter and own-boat trips are not departures, so they are not listed. They follow the same rule from the unit's time.
+
+**Header popover.** The header reads **Meals** with an info icon button (`aria-label` "Meal times"). It opens a `Popover`, not a `HoverCard`, so it also works on a tap:
+
+```
+Meal times
+Breakfast   07:00–10:00
+Lunch       12:00–14:30
+Dinner      19:00–22:00
+
+Boat in: meals that end after the boat arrives.
+Boat out: meals that start before the boat leaves.
+Edit meal periods ↗
+```
+
+- It lists the active meal periods in start time order. With none: "No meal periods yet." and the same link.
+- **Edit meal periods** opens `settings.meal-periods` in a new tab (a plain `<a target="_blank">` with an external link icon), so the departures stay open. A wrong result is fixed there, not on the boat.
+
+**Data.** The Departures page gets `mealPeriods` (the active periods: name, `startsAt`, `endsAt`) and a `meals` list of period names on each departure. `MealTimeRule` (`app/Services/Meals/`) holds the two checks, `countsOnArrival(arrivalTime, endsAt)` and `countsOnDeparture(departureTime, startsAt)`, and `MealEntitlementResolver` calls it instead of its own compare. `DepartureMeals` (`app/Services/Boats/`) uses `MealTimeRule` with `BoatDirection::propertyTime()` to build each departure's list.
 
 ### Available switch
 
@@ -100,6 +133,7 @@ A Sheet (`FormOverlay`, `md`, 6 fields), opened from a section's Add button or f
 Add departure                                    ×
 Direction      (•) Boat in   ( ) Boat out
 Leaves         [09:00]      Arrives  [09:45]
+               Meals: [Breakfast] [Lunch] [Dinner]
 Pick-up point  [Kuala Besut jetty          ]
 Seats          [20]   Leave empty for no limit
 Fare           [Speedboat · RM35.00       ▾]
@@ -113,6 +147,7 @@ Fare           [Speedboat · RM35.00       ▾]
 - When an edit changes the property-side time (**Arrives** for Boat in, **Leaves** for Boat out) on a departure with upcoming trips, a note shows above the buttons: "Updates the times on 12 upcoming bookings." ("the time on 1 upcoming booking" for one). The other time moves no booking, so it shows no note.
 - The Departures page gets `upcomingBookings` per departure from one grouped query (`BoatTripUsage::upcomingBookingCounts`). The turn-off AlertDialog posts the row's values with `active` false in a `<Form>`. Turning on, or off with no upcoming bookings, stays the optimistic switch.
 - A change of fare or seats applies to new trips only.
+- **Meals preview.** A muted line under the times shows the meals for the current Direction and property-side time as outline badges, like the column, and updates as staff type. It uses the [Meals column](#meals-column) rule in the browser with the page's `mealPeriods` (`departureMeals()` in `resources/js/lib/departure-meals.ts`). It is a preview only: after saving, the column shows the server's list. With no active meal periods: "No meal periods yet." With no match: "Meals: none". With no valid time yet, the line is hidden.
 
 ### Actions
 
@@ -219,6 +254,7 @@ Boats never write `charge_items` directly. Both Actions live in `app/Actions/Boa
 - `add boat fares`: the Fares tab and the `TabLinks`.
 - `add boat trips and set them on units`: the upcoming trip query, moving unit times on Update, the direction lock and the `departure_in_use` refusal on Delete.
 - `show boat trips on the reservation page`: the turn-off AlertDialog with the upcoming booking count and the edit note.
+- `show meals on boat departures`: `MealTimeRule`, `DepartureMeals`, the Meals column with its header popover, and the meals preview in the Sheet.
 
 ## Permissions
 
@@ -227,3 +263,5 @@ Boats never write `charge_items` directly. Both Actions live in `app/Actions/Boa
 ## Lessons from wastays
 
 wastays kept boat times in `hotel_boat_schedules` with `has_breakfast`, `has_lunch`, `has_dinner` and `has_hi_tea` booleans, and meal times in `hotel_boat_settings`. There was no fare, no seat limit and no pick-up point. estatell keeps the departure list, drops the meal booleans (meals follow the times, see [Boat trips](02-boat-trips.md#meals)) and adds fares as charge items.
+
+The booleans were pre-ticked from the meal start times, then kept apart from them. At Sand Bay, the 12:30 boat in needed Lunch ticked by hand, because 12:30 is after lunch starts. Changing a meal time never updated the slots. estatell compares the arrival with the meal's end time, which gives Sand Bay's six slots the same meals with no ticks (with a Hi-Tea period such as 16:00–17:30). The read-only [Meals column](#meals-column) shows the result per departure instead of checkboxes. There is no per-departure exception: a wrong result means the meal period times are wrong.

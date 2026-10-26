@@ -7,6 +7,7 @@ use App\Actions\Boats\DeleteBoatDeparture;
 use App\Actions\Boats\UpdateBoatDeparture;
 use App\Data\Boats\BoatDepartureData;
 use App\Data\Boats\BoatFareData;
+use App\Data\Meals\MealPeriodData;
 use App\Data\Property\CurrencyData;
 use App\Enums\BoatDirection;
 use App\Enums\TransactionCategory;
@@ -14,8 +15,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Boats\BoatDepartureRequest;
 use App\Models\BoatDeparture;
 use App\Models\ChargeItem;
+use App\Models\MealPeriod;
 use App\Models\Property;
 use App\Services\Boats\BoatTripUsage;
+use App\Services\Boats\DepartureMeals;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -33,21 +36,33 @@ class BoatDepartureController extends Controller
     }
 
     /**
-     * Sends every departure in leave-time order, with its fare, and the property's Transport charge items as fare choices.
+     * Sends every departure in leave-time order, with its fare and meals, the active meal periods for the Meals header
+     * and the form preview, and the property's Transport charge items as fare choices.
      */
-    public function index(Property $property, BoatTripUsage $boatTripUsage): Response
+    public function index(Property $property, BoatTripUsage $boatTripUsage, DepartureMeals $departureMeals): Response
     {
         abort_if($property->settings === null, 404);
 
         $upcoming = $boatTripUsage->upcomingBookingCounts($property, $boatTripUsage->businessDate($property));
+        $mealPeriods = $property->mealPeriods()
+            ->active()
+            ->ordered()
+            ->get()
+            ->map(fn (MealPeriod $mealPeriod): MealPeriodData => MealPeriodData::fromModel($mealPeriod))
+            ->all();
 
         return Inertia::render('settings/boats/departures', [
             'departures' => $property->boatDepartures()
                 ->with('chargeItem')
                 ->ordered()
                 ->get()
-                ->map(fn (BoatDeparture $boatDeparture): BoatDepartureData => BoatDepartureData::fromModel($boatDeparture, $upcoming[$boatDeparture->id] ?? 0))
+                ->map(fn (BoatDeparture $boatDeparture): BoatDepartureData => BoatDepartureData::fromModel(
+                    $boatDeparture,
+                    $upcoming[$boatDeparture->id] ?? 0,
+                    $departureMeals->forDeparture($boatDeparture, $mealPeriods),
+                ))
                 ->all(),
+            'mealPeriods' => $mealPeriods,
             'fares' => $property->chargeItems()
                 ->whereHas('transactionCode', fn ($query) => $query->where('category', TransactionCategory::Transport->value))
                 ->orderByDesc('active')
