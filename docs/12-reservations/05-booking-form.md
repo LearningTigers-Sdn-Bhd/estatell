@@ -132,7 +132,8 @@ With **Room charges and tax** unticked, the rows of the [Collect now](../18-fron
 - Room charges and tax is hidden when the reservation has a company and Master folio pays: the company is billed, not the guest. The deposit still shows.
 - In a group with Master folio pays and no company, the room charges of every unit go to the Master folio, and so does their payment (see [Walk-in check-in](../18-front-desk/01-check-in-and-check-out.md#walk-in-check-in)).
 - The amounts are read-only. A guest who pays part unticks the boxes and uses Record payment on the folio.
-- The browser never adds up the payment. The rail asks `reservations.walk-in-payment` (read-only, like `quote`) with the lines, add-ons, discounts, billing mode, company and each guest's nationality, and shows what it answers. It asks again 300 ms after any of them changes.
+- The browser never adds up the payment. The rail posts the whole form to `reservations.walk-in-payment` and shows what it answers. It asks again 300 ms after the lines, add-ons, discounts, billing mode, company or guests change. The server books the stay as a trial and rolls it back, so the amounts are the folio's own (see [Walk-in check-in](../18-front-desk/01-check-in-and-check-out.md#walk-in-check-in)). A booking that would be refused answers with the same errors as a save, and the rail shows "Fix the booking to see the payment" until it is fixed.
+- Foreign-only taxes follow the **booker's** nationality for every unit, as the folio does. Changing the booker's nationality changes the payment.
 - The form posts `without_card`, `collect_room_charges`, `collect_deposit`, `payment_method_id`, `reference` and `expected_total` (the total the rail showed). It never posts the parts.
 
 ### Refusals on save

@@ -498,7 +498,7 @@ With **Room charges and tax** ticked, the tax rows hide, because the full bill a
 - With Collect now ticked, the server runs `CheckInUnit`, then `RecordPayment` for the taxes (Advance), then `RecordPayment` for the deposit (SecurityDeposit), with the same method and reference. It is all or nothing: a payment refusal shows on the method or reference field and saves nothing, not the check-in, the nationality or a payment that already went through. Staff fix the field and press **Check in** again.
 - When the room charges route to a Master folio, the tax rows are hidden. The deposit still posts to the unit folio. Room charges and tax, when ticked, records the Advance on the Master folio, not the unit folio. So Collect now never records an Advance on a unit whose rooms go to the Master, and never meets the `advance_on_master` refusal ([Payments](../14-payments/01-payments-and-refunds.md#rules)). `CheckInCollection` and `RecordPayment` share `FolioRouter::roomChargesGoToMaster`.
 - The Dialog counts seven fields at most: Without card, Nationality, Room charges, the deposit box, Collect now, Method and Reference.
-- **Any tax can be collected at check-in**, not only Tourism tax. Each enabled tax with **Collect at check-in** gets its own row. `CheckInCollection` sums only the tax rows of the room nights (`night:{n}:tax:{id}`). Whether a flagged tax on an add-on or a rate plan inclusion is left out is not checked yet (see [Open](#open-walk-in)).
+- **Any tax can be collected at check-in**, not only Tourism tax. Each enabled tax with **Collect at check-in** gets its own row. `CheckInCollection` sums only the tax rows of the room nights (`night:{n}:tax:{id}`), so a flagged tax on an add-on or a rate plan inclusion is left out (see [Open](#open-walk-in)).
 
 ### Walk-in check-in
 
@@ -526,7 +526,14 @@ It returns `WalkInResult`: the reservation (null when the booking was refused), 
 - The keys are `{uuid}:{unit}:bill`, `{uuid}:{unit}:taxes` and `{uuid}:{unit}:deposit`, so a repeated submit returns the same payments.
 - The check-in Dialog sends `roomCharges` from its own **Room charges and tax** box (unticked by default; see [Collect now](#collect-now)). A walk-in unit refused for `card_missing` is finished there after the guest signs, so the guest still pays the whole stay at the desk.
 
-**The preview.** `WalkInPayment::preview()` (`app/Services/FrontDesk/`) answers `reservations.walk-in-payment` before anything is saved. It prices each line night by night as `NightChargeQuote` does (room, inclusions, booking discount) and the add-ons as `ChargeQuantityResolver` does, and runs each amount through `TaxCalculator::calculate()` with the nationality of the unit's guest, or the booker's. `TaxCalculator` reads only and needs no saved line. `LineTaxes` cannot help: it reads posted lines only. A test books the same input and checks that the preview equals the Scheduled rows the save totals.
+**The preview: a trial booking, rolled back.** `WalkInPayment::preview()` (`app/Services/FrontDesk/`) answers `reservations.walk-in-payment` before anything is kept. It opens a transaction, runs `CreateBooking` with the form's data, reads the new reservation through `CheckInCollection` (the full bill, the Collect at check-in taxes and the deposit of each unit, from `ScheduledFolioRows`), then rolls back. The save runs the same code, so the preview and the save can only differ when a rate, tax or deposit changed in between (`amount_changed`).
+
+- Why not price the lines without saving: the night prices are set inside `AddUnit` (rate quote, package spread, price override), and `NightChargeQuote` needs saved nights. A second copy of that pricing could drift from the folio by a cent. The trial booking cannot.
+- What the trial costs: it locks the room type rows (`AssignRoom`) and the reservation `document_sequences` row for the length of the request, about 100 ms. Nothing is kept: the reference number, the activity log and the channel outbox lines roll back with it.
+- **Channel sync waits for the commit.** `RecordChannelAriChange` dispatches `FlushChannelAriJob` with `->afterCommit()`, so a rolled-back trial never queues a flush. Real bookings are unchanged: they commit, then the flush is queued (see [ARI sync](../21-channels/04-ari-sync.md)).
+- A refused trial answers with the booking errors (`ReservationRefusals`), the same as a save.
+- **Nationality.** Foreign-only taxes follow the booker's nationality for every unit, as `ScheduledFolioRows` and `PostCharge` do, not each unit's guest. The trial books the guests as the form has them, so the preview follows the same rule.
+- A test books the same input with `CreateBooking` and checks that the preview equals that reservation's Scheduled rows.
 
 **Refusals.** The booking refusals, `amount_changed`, every `CheckInUnit` refusal per unit, and every `RecordPayment` refusal per unit. `ReservationRefusals` maps them as the booking form and the check-in Dialog do.
 
@@ -536,7 +543,7 @@ It returns `WalkInResult`: the reservation (null when the booking was refused), 
 
 #### Open (walk-in)
 
-- A tax with **Collect at check-in** on an add-on or an inclusion may not be counted by `CheckInCollection`, which reads `night:{n}:tax:{id}` keys only. To verify how those tax rows are keyed. It affects the check-in Dialog too, so it is fixed apart from the walk-in.
+- **Confirmed gap:** a tax with **Collect at check-in** on an add-on (`addon:{id}:tax:{tax}`) or a rate plan inclusion (`night:{id}:incl:{inclusion}:tax:{tax}`) is not counted by `CheckInCollection`, which matches `night:{n}:tax:{id}` only. The check-in Dialog has the same gap today. With Room charges and tax ticked the full bill holds these taxes, so only the unticked case is short. It is fixed apart from the walk-in.
 
 ### Check out
 
