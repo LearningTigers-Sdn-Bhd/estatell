@@ -102,6 +102,7 @@
         "docs:screenshots": [
             "Composer\\Config::disableProcessTimeout",
             "@php artisan test --testsuite=Browser",
+            "magick tests/Browser/Screenshots/reservations/reservation-page-summary-source.png -crop 690x768+740+246 +repage -bordercolor '#d4d4d4' -border 1 tests/Browser/Screenshots/reservations/reservation-page-summary.png",
             "mkdir -p \"${DOCS_REPO:-../estatell-docs}/public/screenshots\"",
             "rsync -a --exclude='/*.png' tests/Browser/Screenshots/ \"${DOCS_REPO:-../estatell-docs}/public/screenshots/\""
         ],
