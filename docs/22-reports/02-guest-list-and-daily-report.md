@@ -30,7 +30,7 @@ AUDIT        Night audit history · Activity log
 
 ## 1. Tax split
 
-The Tax report has no base today. Every tax line is a child of its charge (`parent_line_id`), so the base is the sum of the parent charges. No schema change.
+The Tax report has no base today. Every tax line is a child of its charge (`parent_line_id`), so the base can be worked out from the parent. No schema change.
 
 ```
 Tax                                          [Day | Month]  [Export ▾]
@@ -44,9 +44,9 @@ Tax                                          [Day | Month]  [Export ▾]
 └────────────┴──────────────┴───────┴────────────┴────────────┘
 ```
 
-- **Base** comes after Lines, visible by default. It is the sum of the parent lines of the tax lines in the row.
-- A reversal of a tax line has the reversal of the charge as its parent, so it reduces the base on the date it was posted. A tax line under a discount line has the negative discount as its parent, so the discount reduces the base.
-- A flat tax (Tourism tax, per room night) shows "—". The total row sums only the percentage taxes. To verify in the plan: how a flat tax is told apart (the tax definition or the transaction code).
+- **Base** comes after Lines, visible by default. For each tax line, the base is its parent line **plus the Adjustment children of that parent**. `PostFolioCharge` posts the charge at its full price and a discount booked with it as an Adjustment child beside the tax, so the parent alone would overstate the base by the discount.
+- A reversal of a tax line has the reversal of the charge as its parent, so it reduces the base on the date it was posted. A tax line under a discount line (`ApplyDiscount`) has the negative discount as its parent, so the discount reduces the base.
+- A **flat tax** is one whose `taxes.rate_type` is `flat` (Tourism tax, per room night). `TaxReport` already finds the tax of each row. A flat tax, or a row whose tax cannot be found, shows "—". The total row sums only the percentage taxes.
 - The **Migrated from old system** table under the main table is not changed.
 - This item also adds the layout rule for tax columns (see [Daily report › Layout](#layout)), with a unit test, so item 4 only adds the columns.
 
@@ -58,7 +58,8 @@ A new report, `ReportKey::CheckedOut`, category Front desk, range, Portrait, 31 
 - Columns: Booking, Guest, Room, Checked out (`checked_out_at`, date and time), Balance. The rest follow the Departures columns and are hidden by default.
 - Default sort: Balance, highest first, so unpaid stays come to the top.
 - It shares `UnitReportRows` with Arrivals, Departures and In-house.
-- To verify in the plan: whether the staff member who checked out is stored. Add a **By** column only if it is.
+- **No By column.** `CheckOutUnit` stores `checked_out_at` only. The staff member is only in the activity log, and an undone and repeated check-out makes that join unreliable.
+- A check-out done late (after the audit) keeps its departure date, so it shows on that date. Filtering on `checked_out_at` instead is a possible follow-up if a hotel asks.
 
 ## 3. Guest list
 
@@ -72,11 +73,12 @@ Guest list                                         [⚙ Layout] [Export ▾]
 ```
 
 - The tab is in the URL (`?tab=arrivals`, `in-house`, `departures`, `checked-out`). A bad or missing value opens Arrivals. Each tab is a link.
-- Each tab shows a count for the chosen dates. In-house counts the one date.
+- Each tab shows a count for the chosen dates. In-house counts the one date. Each of the four reports exposes a `query()` that its `rows()` uses, and the counts are four `COUNT` queries on it. `rows()` is too heavy for a count.
 - The open tab is its own report: its own `ReportKey`, columns, layout, filters, sort, row selection and exports. Only the open tab's rows are sent.
-- In-house takes one date (`?date=`). The other tabs take a range. Changing tabs keeps the dates where they fit.
-- The old pages `reports.arrivals`, `reports.departures` and `reports.in-house` redirect to the Guest list with their tab and query.
-- **Layout.** The Layout button edits the open tab's layout ("Layout · Guest list › Arrivals"). Saved layouts carry over. Changing tabs with unsaved changes asks first, like closing the Sheet does.
+- In-house takes one date (`?date=`). The other tabs take a range. From a range tab to In-house, `date` is `from`. From In-house to a range tab, `from` and `to` are the date. With no dates in the URL, each tab keeps its own default.
+- The old routes `reports.arrivals`, `reports.departures` and `reports.in-house` keep their names and redirect to the Guest list with their tab and query. Exports and layouts keep using `{report}`, so they do not change.
+- **Layout.** The Layout button edits the open tab's layout ("Layout · Guest list › Arrivals"). Saved layouts carry over.
+- **Changing tabs.** The page renders `ReportScreen` with `key={tab}`, so the row selection and the Layout draft reset. While the Layout draft has unsaved changes, `ReportScreen` asks first (an `onNavigateAttempt` callback), like closing the Sheet does.
 
 ## 4. Daily report
 
@@ -95,7 +97,9 @@ Two rows of four cards. No table, no layout, no export.
 | Revenue (accrual)            | Bookings with revenue, Total charges, Adjustments, Net revenue |
 | Cashier activity (cash flow) | Movements, Collected, Refunded, Net at desk                    |
 
-- Revenue reads `DailyRevenueQuery`. Cashier reads the Payments rows with the same totals rule (Completed rows only, refunds subtract).
+- Revenue reads `DailyRevenueQuery`. Total charges is the sum of the charge buckets and the taxes, Adjustments is the Adjustments bucket, and Net revenue is the two together.
+- **Bookings with revenue** comes from a new `DailyRevenueQuery::bookingCountsBetween()`: distinct reservations with a Charge or Adjustment line in the range, over the same line filter (no migrated lines, no Opening balance).
+- Cashier reads the Payments rows with the same totals rule (Completed rows only, refunds subtract). Movements counts the Completed rows.
 
 ### Revenue
 
@@ -111,14 +115,30 @@ A new report, `ReportKey::DailyRevenue`, Landscape, not listed in the sidebar. O
 └────────┴──────┴───────────┴────────┴────────┴────────┴────────┴─────────┴──────────┴───────────┘
 ```
 
-- Buckets come from `TransactionCategory`: Accommodation (Room, without day use), Day use (`DailyRevenueQuery::dayUseRevenue()`), Fees (Fee), Extras (Food and beverage, Laundry, Minibar, Transport, Other), Adjustments (Discount, Adjustment). To verify in the plan against `DailyRevenueQuery`.
-- **One column for each tax**, keyed `tax:{transaction_code}`, from `ReportKey::columnsFor($property)`. A property that has no SST shows no SST column.
+- **Buckets**, by line kind and `TransactionCategory`:
+
+    | Column        | Lines                                                                                        |
+    | ------------- | -------------------------------------------------------------------------------------------- |
+    | Accommodation | Charges of category Room, at full price, including no-show, without day use                  |
+    | Day use       | Charges of the day use system code                                                           |
+    | Fees          | Charges of category Fee                                                                      |
+    | Extras        | Every other charge (Food and beverage, Laundry, Minibar, Transport, Other, and any unmapped) |
+    | Tax columns   | Lines of kind Tax, one column for each tax                                                   |
+    | Adjustments   | Lines of kind Adjustment (discounts and adjustments)                                         |
+    | Total         | The sum of all columns: the net figure                                                       |
+
+- **Bookings** is the `bookingCountsBetween()` count for the date or month. The total row counts distinct reservations over the range, not the sum of the rows.
+- **One column for each tax**, keyed `tax:{taxes.code}` (for example `tax:SST`), from `ReportKey::columnsFor($property)`, for the taxes the property has. A property that has no SST shows no SST column. `taxes.code` is unique per property.
+- `ReportPage` sorts by row properties. For a `tax:` key it falls back to the row's `values()`.
 - It reads `DailyRevenueQuery` live, like Revenue. Migrated lines stay out.
 - Wastays also had By source and Extra charges tables under the main one. They are not in this item.
 
 ### Cashier activity
 
 The Payments report inside the tab, with `group=staff` as the default. It uses the **Payments** layout, filters and exports, so one setting changes both.
+
+- The Payments page logic moves into a shared class that both the Payments page and this tab call.
+- `ReportScreen` gets an `embedded` mode (no page header) and a `query` prop that every visit keeps, so sorting and paging stay on `?tab=cashier`. The Guest list uses the same `query` prop.
 
 ### Layout
 
@@ -171,4 +191,10 @@ Items 1 to 4 run as two lanes in parallel after a shared commit. Item 5 waits fo
 | 4    | A      | `feat(reports): add the daily report`                     |
 | 5    | –      | `feat(reports): add booking performance`                  |
 
-Step 0 holds the pieces both lanes touch: the `CheckedOut` and `DailyRevenue` cases on `ReportKey`, the sidebar entries in `ReportsNavigation` and the route stubs.
+Step 0 holds the pieces both lanes touch:
+
+- The `CheckedOut` and `DailyRevenue` cases on `ReportKey`, both off the sidebar until their lane builds them.
+- **A tab-aware report key.** `ReportFiltersRequest` takes the report key from the route name, so `reports.guest-list` and `reports.daily-report` would fail. Step 0 adds a `TabbedReport` enum (GuestList, DailyReport) whose `tabs()` maps each `?tab` to its `ReportKey` (the first is the default), and `ReportFiltersRequest` uses it for those two routes. Daily report › Overview uses the `DailyRevenue` key for its dates.
+- The Guest list and Daily report sidebar entries in `ReportsNavigation`, first in their group, with Arrivals, Departures and In-house off the sidebar. An entry is also active on the old route of a tab that is not in the sidebar.
+- The two routes. Until its lane replaces it, Guest list redirects to Arrivals and Daily report to Revenue, keeping the query.
+- Stub `CheckedOutReport` and `DailyRevenueReport` classes with no rows, which the lanes fill.
