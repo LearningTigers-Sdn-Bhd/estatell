@@ -11,6 +11,7 @@ use App\Models\DoorLock;
 use App\Models\DoorPasscode;
 use App\Models\Room;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
+use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Support\Facades\Queue;
 
 require_once __DIR__.'/../Support/DoorLockSetup.php';
@@ -165,6 +166,14 @@ it('keeps the PIN when the stay is shortened', function () {
 
 it('does not drop an event that arrives while the sync is running', function () {
     expect(SyncStayPasscodesJob::class)->toImplement(ShouldBeUniqueUntilProcessing::class);
+});
+
+it('never runs two syncs of the same unit together', function () {
+    $middleware = (new SyncStayPasscodesJob(7))->middleware();
+
+    expect($middleware)->toHaveCount(1)
+        ->and($middleware[0])->toBeInstanceOf(WithoutOverlapping::class)
+        ->and($middleware[0]->key)->toBe('7');
 });
 
 it('saves the Delete PIN note when the check-out revokes a PIN on a lock without a gateway', function () {
