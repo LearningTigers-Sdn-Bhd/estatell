@@ -138,6 +138,8 @@ type Props = {
     canEnterMigratedStay: boolean;
     /** Old stay mode (it shares the Past stay form): a stay that began and ended before go-live, kept for history only. */
     isOldStay: boolean;
+    /** Where the back arrow and Cancel go: the page that opened the form, from `back` in the query. */
+    back: App.Data.Reservations.BookingBackData;
     /** New booking only: what an empty Timeline cell passed in the query. Each part is already checked; a bad one is null. */
     prefill: {
         arrival: string | null;
@@ -211,6 +213,7 @@ export default function ReservationCreate({
     isPastStay,
     isMigratedStay,
     isOldStay,
+    back,
     prefill,
     canEnterPastStay,
     canEnterMigratedStay,
@@ -431,7 +434,7 @@ export default function ReservationCreate({
                       ? walkIn
                       : newMethod;
 
-        guard.visitWithout(target.url(), {
+        guard.visitWithout(target.url(undefined, { query: back.query }), {
             preserveState: true,
             preserveScroll: true,
             only: [
@@ -643,7 +646,7 @@ export default function ReservationCreate({
                                       ? 'A guest at the desk now. Every unit needs a room or bed.'
                                       : 'Reserve rooms or beds for a guest who arrives on a later date.'
                         }
-                        back={{ href: index.url(), label: 'Reservations' }}
+                        back={{ href: back.href, label: back.label }}
                     />
 
                     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
@@ -1896,7 +1899,7 @@ export default function ReservationCreate({
 
                 <FormActions fixed>
                     <Link
-                        href={index.url()}
+                        href={back.href}
                         className={buttonVariants({ variant: 'outline' })}
                     >
                         <X data-icon="inline-start" />

@@ -2966,6 +2966,11 @@ export type AddUnitOptionsData = {
 roomTypes: App.Data.Reservations.RoomTypeOptionData[],
 ratePlans: App.Data.Reservations.RatePlanOptionData[],
 };
+export type BookingBackData = {
+href: string,
+label: string,
+query: Record<string, string>,
+};
 export type BookingQuoteData = {
 nights: App.Data.Reservations.BookingQuoteNightData[],
 unitTotal: string | null,
@@ -3879,6 +3884,7 @@ roomTypeIds: number[],
 statuses: string[],
 search: string,
 groupBy: App.Enums.StayViewGrouping,
+show: string[],
 };
 export type StayViewWindowData = {
 from: string,
@@ -4008,6 +4014,8 @@ export type ReservationRoomBoxState = 'assigned' | 'unassigned' | 'auto_assign' 
 export type ReservationStatus = 'confirmed' | 'in_house' | 'completed' | 'cancelled';
 export type RevisionKind = 'new' | 'modified' | 'cancelled';
 export type RoomBlockReason = 'maintenance' | 'owner_use' | 'out_of_order' | 'other';
+export type RoomBlockRefusal = 'unavailable' | 'ended' | 'blocked' | 'has_stay';
+export type RoomDayState = 'arriving' | 'in_house' | 'departing' | 'vacant' | 'blocked';
 export type RoutingRuleSource = 'billing_mode' | 'manual';
 export type SellUnit = 'room' | 'bed';
 export type SpreadsheetFormat = 'csv' | 'xlsx';

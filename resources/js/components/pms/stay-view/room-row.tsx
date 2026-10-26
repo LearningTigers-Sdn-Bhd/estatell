@@ -12,7 +12,7 @@ import type { LaneRow, TimelineRow } from './group-rows';
 
 type Room = App.Data.StayView.RoomRowData;
 
-const HOUSEKEEPING: Record<
+export const HOUSEKEEPING: Record<
     App.Enums.HousekeepingStatus,
     { icon: LucideIcon; label: string; className: string }
 > = {

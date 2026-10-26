@@ -78,41 +78,67 @@ The page is a Grid calendar: no `PageHeader`, the toolbar on top and the grid fi
 - **Bar second line.** Under the guest name a stay bar shows icons with counts, with no "4P" or "2A" text: adults (person icon), children (baby icon, only when there are any) and units of the reservation (layers icon, only for a group of 2 or more). The counts are also in the bar's accessible label.
 - **Booking source badge on the bar.** Each stay bar starts with the source badge in `sm` size, before the group marker and the guest name. The name is in the bar's accessible label ("via Walk-in"), and the badge has no tooltip of its own, since the hover card names it.
 - **Bar hover card.** Hovering a bar for 300ms shows a card from the loaded data, with no request. A stay bar shows the source badge (`BookingSourceBadge`, large, no tooltip), the guest name, "{reference} · {n} unit(s)" (the units the whole reservation holds), "via {booking source}", then Status, Stay (arrival – departure, nights), Room, Guests (adult and child icons with counts) and Payment ("Balance due" or "Nothing due", the flag only; the amount stays in the peek sheet). A block bar shows "Blocked", the reason, the dates and the room. `StayData` carries `unitCount` and `source` (`BookingSourceBadgeData`), read with one extra eager load, so the query count does not grow with the stays.
-- Clicking a stay bar opens **`StayPeekSheet`**. Clicking an empty cell opens the booking form for that room and night; when Block room is built it opens **`CellActions`** with both.
+- Clicking a stay bar opens **`StayPeekSheet`**. Clicking an empty cell opens **`CellActions`**: New booking and Block room (see [Empty cell](07-timeline-editing.md#empty-cell)).
 - **Editing.** Dragging a bar to another room, dragging its edges to change dates, the Unassigned lane and the empty cell click are in [Timeline editing](07-timeline-editing.md).
 
 ## Room View screen
 
 ```
 ┌ Room View ───────────────────────────────────────────────────────────────────────┐
-│ ◀ Fri 12 Jun 2026 ▶ [Today]  Room group ⌄ Room type ⌄ Status ⌄ Show ⌄ Group by ⌄ 🔍 │
-│ Arriving 5 · Departing 3 · In house 7 · Vacant 4 · Blocked 1                      │  day summary
-├ Left wing ───────────────────────────────────────────────────────────────────────┤
-│ ┌────────────────┐ ┌────────────────┐ ┌────────────────┐ ┌────────────────┐     │
-│ │ 201 Deluxe   ● │ │ 202 Deluxe   ◐!│ │ 203 Deluxe   ● │ │ 204 Deluxe   ✕ │     │
-│ │ [In house]     │ │ [Departing]    │ │ [Arriving]     │ │ Maintenance    │     │
-│ │ Ahmad Faris·2A │ │ ◆ ABC · Tan Mei│ │ ◆ ABC · Raj K  │ │ until 14 Jun   │     │
-│ │ out Sun 14     │ │ out today 12:00│ │ in today 14:00 │ │                │     │
-│ │ ▌ RM 120 due   │ │                │ │                │ │                │     │
-│ └────────────────┘ └────────────────┘ └────────────────┘ └────────────────┘     │
-│ ┌────────────────┐ ┌────────────────┐                                            │
-│ │ 205 Deluxe   ● │ │ 206 Deluxe   ● │                                            │
-│ │ Vacant         │ │ [In house] 🔕  │                                            │
-│ │ + New booking  │ │ Lim Wei · 1A   │                                            │
-│ │   Block room   │ │ out Mon 15     │                                            │
-│ └────────────────┘ └────────────────┘                                            │
+│ ◀ Fri 12 Jun 2026 ▶ [Today]  Show ⌄  Filters  Group by [None|Room group|Type]  ⓘ │
+│ (Arriving 5) (Departing 3) (In house 7) (Vacant 4) (Blocked 1)                    │  day summary badges
+├ Left wing  4 ────────────────────────────────────────────────────────────────────┤
+│ ┌────────────────────┐ ┌────────────────────┐ ┌────────────────────┐             │
+│ │ 201       (✓Clean) │ │ 202    !  (◐Dirty) │ │ 203       (✓Clean) │             │
+│ │ Deluxe             │ │ Deluxe             │ │ Deluxe             │             │
+│ │ ╭────────────────╮ │ │ ╭────────────────╮ │ │ ╭────────────────╮ │             │
+│ │ │ In house       │ │ │ │ Departing      │ │ │ │ Vacant         │ │             │
+│ │ │ Ahmad Faris·2A │ │ │ │ ◆ Tan Mei · 1A │ │ │ ╰────────────────╯ │             │
+│ │ │ Out 14 Jun     │ │ │ │ Out 12:00      │ │ ├────────────────────┤             │
+│ │ │ Balance due    │ │ │ ╰────────────────╯ │ │  + New  │  ⦸ Block │             │
+│ │ ╰────────────────╯ │ │ ╭────────────────╮ │ └────────────────────┘             │
+│ ├────────────────────┤ │ │ Arriving       │ │                                     │
+│ │  🔕 Do not disturb │ │ │ Raj K · 2A     │ │                                     │
+│ └────────────────────┘ │ │ In 14:00       │ │                                     │
+│                        │ ╰────────────────╯ │                                     │
+│                        ├────────────────────┤                                     │
+│                        │      ◐ Clean       │                                     │
+│                        └────────────────────┘                                     │
 └──────────────────────────────────────────────────────────────────────────────────┘
- ● clean  ◐ dirty  ✕ out of service  🔕 do not disturb  ▌ balance due  ◆ group  ! priority
 ```
 
-- A card shows the room or bed, the type, the housekeeping status icon and label, the stay state for the date, the guest and pax, the arrival or departure time, the balance-due flag and do-not-disturb.
-- A room with a departure and an arrival on the date shows both lines, Departing first.
+- The day summary is a row of `StatusBadge`s, one for each state with its count, in the tone of the state.
+- A card is a plain `bg-card` box with three parts:
+    - **Header**: the room or bed, the type, `!` for priority, 🔕 for do-not-disturb and the housekeeping chip (icon and label).
+    - **State box**: an inner rounded box tinted with the tone of the state (`RoomDayState::tone()`): Arriving info, In house success, Departing warning, Blocked danger, Vacant muted. It shows the state label in the tone color, then the guest and pax, the arrival or departure time and "Balance due" in warning text. A blocked box shows the reason and the last night.
+    - **Footer**: the actions that apply, side by side with equal width and a border between them. A card with no action has no footer.
+- A room with a departure and an arrival on the date shows two state boxes, Departing first.
+- Cards in one grid row have the same height: the state box grows to fill the card, and is at least 64px high (`min-h-16`).
 - A dirty room that must be ready today shows `!`, from the housekeeping `priority`.
-- A vacant card offers **New booking** and **Block room**.
-- Clicking a card with a stay opens the same `StayPeekSheet`.
-- Mark room clean and do-not-disturb are quick optimistic changes on the card.
-- There is no rate row, no bars and no footer. The day summary line replaces the footer.
+- Clicking a state box with a stay opens the same `StayPeekSheet`.
+- There is no rate row, no bars and no footer under the board. The day summary replaces the board footer.
 - Cards are ordered by the Group by choice, then by room number.
+
+### Vacant card
+
+A card is **Vacant** when the room or bed has no stay and no block on the date. A guest who leaves on the date makes it **Departing**, and a block makes it **Blocked**.
+
+| Case                          | The card shows                                                                                     |
+| ----------------------------- | -------------------------------------------------------------------------------------------------- |
+| Vacant                        | Room, type, housekeeping status icon, "Vacant"                                                     |
+| `reservations.manage`         | **New** in the footer: the booking form with the room or bed, the date and `back=rooms`            |
+| `rooms.block`                 | **Block** in the footer: the Block room Dialog with the room fixed and the date as the first night |
+| Date before the business date | No New and no Block, the same rule as the Timeline cell                                            |
+| Dorm room                     | One card per bed                                                                                   |
+
+- Clicking the card body of a vacant card does nothing. There is no stay to show.
+
+### Quick changes
+
+- The quick changes are footer buttons. **Clean** (mark clean) shows on a dirty card, on any date. **Do-not-disturb** shows on a card with a guest in house, and only when the date is the housekeeping date, because `SetDoNotDisturb` always sets it for the housekeeping date. A vacant card has no do-not-disturb toggle, because there is no guest to disturb.
+- Both need `housekeeping.update`. Without it the card shows the status and the 🔕 icon only.
+- Both use the housekeeping routes (`housekeeping.rooms.status`, `housekeeping.rooms.dnd`) with an Inertia 3 optimistic update. The routes redirect `back()`, so the Room View keeps its date and filters, and the Housekeeping board still returns to itself.
+- A refusal is not an error response: the route flashes an error `toast` and redirects back. The reload sends the real `rooms`, which puts the card back.
 
 ## Peek sheet
 
@@ -139,7 +165,7 @@ The page is a Grid calendar: no `PageHeader`, the toolbar on top and the grid fi
 - One link at the bottom: **Open reservation**, or **Open group booking** for a group (a group is one reservation, so both go to the reservation page). Check in, Check out, Move and Record payment are done there for now, because the project allows one overlay level and their dialogs would sit on top of the Sheet. The link and the Folio section need `reservations.view`; without it the Sheet shows the summary only.
 - The Folio section lists the 15 newest posted lines of the reservation's folios (voided folios left out) and its balance. They come from `GET front-desk/stays/{reservation}/folio` (`front-desk.stays.folio`), which needs `front-desk.view` and `reservations.view`.
 - The "This group" list holds only units loaded for the dates on screen. Click one to show it in the Sheet.
-- New booking from an empty cell goes to the booking form page with the room and date filled in (see [Empty cell](07-timeline-editing.md#empty-cell)). Block room opens a Sheet. It needs the Block room form to be shared with the room blocks page, so it is its own item.
+- New booking from an empty cell goes to the booking form page with the room and date filled in. Block room opens a Dialog with the shared `RoomBlockForm`. See [Empty cell](07-timeline-editing.md#empty-cell).
 
 ## Data loading
 
@@ -160,7 +186,7 @@ The server sends compact, normalized data. The browser derives everything it sho
 
 - Segments come from `unit_nights`. Consecutive nights in the same room or bed form one segment. A room move creates a new segment.
 - Timeline default window: 14 days. Maximum: 30 days.
-- Room View uses the same query with `from = to = date`, and leaves out `rates`.
+- Room View uses the same query with `from = to = date`, and leaves out `rates`. `window`, `blocks` and the rows use the date. `stays` start one night earlier, because a guest who leaves on the date holds no night on it and the card still shows the departure.
 - The balance-due flag comes from one grouped query for all stays in the window, not one query per stay.
 
 ### Done in the browser (no request)

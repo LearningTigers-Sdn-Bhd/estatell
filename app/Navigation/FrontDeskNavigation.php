@@ -21,7 +21,7 @@ class FrontDeskNavigation
     public function groups(Property $property, User $user): array
     {
         return [
-            new NavGroupData(label: __('Overview'), items: array_filter([
+            new NavGroupData(label: __('Overview'), items: array_values(array_filter([
                 new NavItemData(
                     title: __('Dashboard'),
                     href: route('dashboard', ['property' => $property->code], absolute: false),
@@ -34,7 +34,13 @@ class FrontDeskNavigation
                     icon: 'chart-gantt',
                     active: request()->routeIs('front-desk.timeline'),
                 ) : null,
-            ])),
+                $user->can(PermissionEnum::FrontDeskView->value) ? new NavItemData(
+                    title: __('Room View'),
+                    href: route('front-desk.rooms', ['property' => $property->code], absolute: false),
+                    icon: 'door-open',
+                    active: request()->routeIs('front-desk.rooms'),
+                ) : null,
+            ]))),
             new NavGroupData(label: __('Rooms'), items: array_values(array_filter([
                 $user->can(PermissionEnum::RoomsBlock->value) ? new NavItemData(
                     title: __('Room blocks'),

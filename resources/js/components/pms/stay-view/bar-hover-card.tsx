@@ -1,10 +1,11 @@
 import { Link } from '@inertiajs/react';
-import { Baby, Clock, Lock, User } from 'lucide-react';
+import { Clock, Lock } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { BookingSourceBadge } from '@/components/pms/booking-source-badge';
 import { HoverCardContent } from '@/components/ui/hover-card';
 import { cn } from '@/lib/utils';
 import { show } from '@/routes/reservations';
+import { PaxCount } from './pax-count';
 import { dayAfter, dayLabel, nightCount, placeLabel } from './stay-places';
 
 type Room = App.Data.StayView.RoomRowData;
@@ -99,24 +100,7 @@ export function StayHoverCard({
                 {room && <Detail label="Room">{placeLabel(room)}</Detail>}
                 {unassigned && <Detail label="Room">Not assigned</Detail>}
                 <Detail label="Guests">
-                    <span className="flex items-center gap-3 tabular-nums">
-                        <span className="flex items-center gap-1">
-                            <User aria-hidden className="size-4" />
-                            {stay.adults}
-                            <span className="sr-only">
-                                {stay.adults === 1 ? 'adult' : 'adults'}
-                            </span>
-                        </span>
-                        {stay.children > 0 && (
-                            <span className="flex items-center gap-1">
-                                <Baby aria-hidden className="size-4" />
-                                {stay.children}
-                                <span className="sr-only">
-                                    {stay.children === 1 ? 'child' : 'children'}
-                                </span>
-                            </span>
-                        )}
-                    </span>
+                    <PaxCount stay={stay} />
                 </Detail>
                 <Detail label="Payment">
                     <span

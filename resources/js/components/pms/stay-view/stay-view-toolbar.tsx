@@ -8,7 +8,10 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
+import { DatePicker } from '@/components/pms/date-picker';
 import { DateRangePicker } from '@/components/pms/date-range-picker';
+import { MultiCombobox } from '@/components/pms/multi-combobox';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -25,7 +28,10 @@ type Filters = App.Data.StayView.StayViewFiltersData;
 type Option = { value: string; label: string };
 
 /** The props a visit to another window needs, so the page keeps its state and reloads only the window's data. */
-const WINDOW_ONLY = ['window', 'rooms', 'stays', 'blocks', 'rates'];
+const WINDOW_ONLY = {
+    timeline: ['window', 'rooms', 'stays', 'blocks', 'rates'],
+    rooms: ['window', 'rooms', 'stays', 'blocks'],
+};
 
 const GROUPING_ICONS: Record<App.Enums.StayViewGrouping, LucideIcon> = {
     none: List,
@@ -34,9 +40,10 @@ const GROUPING_ICONS: Record<App.Enums.StayViewGrouping, LucideIcon> = {
 };
 
 /**
- * The top of the Timeline View: the step arrows, the date range, Today, Group by and the legend. A change of window
- * asks the server for it and the neighbouring windows are prefetched. Group by changes the loaded data in the browser. The filters are in the corner
- * of the grid.
+ * The top of the Timeline View and the Room View: the step arrows, the date range (one date on the Room View), Today,
+ * Group by and the legend. A change of window asks the server for it and the neighbouring windows are prefetched.
+ * Group by changes the loaded data in the browser. On the Timeline the filters are in the corner of the grid; the Room
+ * View adds the Show filter and the Filters button here.
  */
 export function StayViewToolbar({
     window,
@@ -46,6 +53,9 @@ export function StayViewToolbar({
     groupingOptions,
     hrefFor,
     onScrollToToday,
+    view = 'timeline',
+    showOptions,
+    filtersButton,
 }: {
     window: DateWindow;
     today: string;
@@ -55,6 +65,12 @@ export function StayViewToolbar({
     /** The URL of a window with the current filters. */
     hrefFor: (window: DateWindow) => string;
     onScrollToToday: () => void;
+    /** The Room View shows one date, so its window has the same first and last date. */
+    view?: 'timeline' | 'rooms';
+    /** Room View only: the card states the Show filter offers. */
+    showOptions?: Option[];
+    /** Room View only: the button that opens the filters. */
+    filtersButton?: ReactNode;
 }) {
     const [draft, setDraft] = useState(window);
 
@@ -67,14 +83,18 @@ export function StayViewToolbar({
         router.get(
             hrefFor(target),
             {},
-            { preserveState: true, preserveScroll: true, only: WINDOW_ONLY },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                only: WINDOW_ONLY[view],
+            },
         );
     const link = (target: DateWindow) => ({
         href: hrefFor(target),
         prefetch: true,
         preserveState: true,
         preserveScroll: true,
-        only: WINDOW_ONLY,
+        only: WINDOW_ONLY[view],
     });
 
     return (
@@ -86,20 +106,34 @@ export function StayViewToolbar({
             >
                 <ChevronLeft />
             </Link>
-            <DateRangePicker
-                from={draft.from}
-                to={draft.to}
-                maxDays={MAX_WINDOW_DAYS}
-                className="w-auto"
-                months={2}
-                onChange={(from, to) => {
-                    setDraft({ from, to });
+            {view === 'rooms' ? (
+                <DatePicker
+                    value={draft.from}
+                    className="w-auto"
+                    onChange={(date) => {
+                        setDraft({ from: date, to: date });
 
-                    if (to > from) {
-                        visit({ from, to });
-                    }
-                }}
-            />
+                        if (date !== '') {
+                            visit({ from: date, to: date });
+                        }
+                    }}
+                />
+            ) : (
+                <DateRangePicker
+                    from={draft.from}
+                    to={draft.to}
+                    maxDays={MAX_WINDOW_DAYS}
+                    className="w-auto"
+                    months={2}
+                    onChange={(from, to) => {
+                        setDraft({ from, to });
+
+                        if (to > from) {
+                            visit({ from, to });
+                        }
+                    }}
+                />
+            )}
             <Link
                 {...link(shiftWindow(window, 1))}
                 aria-label="Next dates"
@@ -118,6 +152,31 @@ export function StayViewToolbar({
             >
                 Today
             </Button>
+            {showOptions && (
+                <div className="flex items-center gap-2">
+                    <Label
+                        htmlFor="stay-view-show"
+                        className="text-muted-foreground"
+                    >
+                        Show
+                    </Label>
+                    <div className="w-64">
+                        <MultiCombobox
+                            id="stay-view-show"
+                            name="show"
+                            items={showOptions}
+                            value={filters.show}
+                            onValueChange={(show) =>
+                                onFiltersChange({ ...filters, show })
+                            }
+                            placeholder="e.g. Arriving"
+                            emptyLabel="No matching states."
+                            maxChips={2}
+                        />
+                    </div>
+                </div>
+            )}
+            {filtersButton}
             <div className="flex items-center gap-2">
                 <Label className="text-muted-foreground">Group by</Label>
                 <ToggleGroup

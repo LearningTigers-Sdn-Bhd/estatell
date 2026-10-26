@@ -1,11 +1,11 @@
 import { Form, Head, useForm } from '@inertiajs/react';
 import { Ban, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { DateRangePicker } from '@/components/pms/date-range-picker';
 import { DateText } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { PageHeader } from '@/components/pms/page-header';
+import { RoomBlockForm } from '@/components/pms/room-block-form';
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -18,25 +18,22 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import {
     Field,
     FieldContent,
     FieldDescription,
     FieldError,
-    FieldGroup,
     FieldLabel,
     FieldLegend,
     FieldSet,
 } from '@/components/ui/field';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import {
-    Sheet,
-    SheetClose,
-    SheetContent,
-    SheetDescription,
-    SheetFooter,
-    SheetHeader,
-    SheetTitle,
-} from '@/components/ui/sheet';
 import { Spinner } from '@/components/ui/spinner';
 import {
     Table,
@@ -47,29 +44,13 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
-import {
-    destroy,
-    end,
-    index,
-    store,
-    update,
-} from '@/routes/front-desk/room-blocks';
+import { destroy, end, index } from '@/routes/front-desk/room-blocks';
 
 type Block = App.Data.Rooms.RoomBlockData;
 type Room = App.Data.Rooms.RoomBlockRoomData;
 type Group = App.Data.Rooms.RoomGroupData;
 type Option = { value: string; label: string };
 type Tab = 'current' | 'past';
-
-type FormData = {
-    room_id: string;
-    bed_id: string;
-    reason: App.Enums.RoomBlockReason;
-    starts_on: string;
-    ends_on: string;
-    notes: string;
-};
 
 function nights(block: Block): number {
     const [fromYear, fromMonth, fromDay] = block.startsOn
@@ -88,199 +69,6 @@ function nights(block: Block): number {
 
 function isPast(block: Block, today: string): boolean {
     return block.completedOn !== null || block.endsOn < today;
-}
-
-function BlockForm({
-    block,
-    rooms,
-    reasons,
-    today,
-    maxNights,
-    onDone,
-}: {
-    block: Block | null;
-    rooms: Room[];
-    reasons: Option[];
-    today: string;
-    maxNights: number;
-    onDone: () => void;
-}) {
-    const form = useForm<FormData>({
-        room_id: block ? String(block.roomId) : '',
-        bed_id: block?.bedId ? String(block.bedId) : '',
-        reason: block?.reason ?? 'maintenance',
-        starts_on: block?.startsOn ?? '',
-        ends_on: block?.endsOn ?? '',
-        notes: block?.notes ?? '',
-    });
-    const started = block !== null && block.startsOn <= today;
-    const room = rooms.find((item) => String(item.id) === form.data.room_id);
-    const roomOptions = rooms.map((item) => ({
-        value: String(item.id),
-        label: `${item.number} · ${item.roomTypeName}`,
-    }));
-    const bedOptions = (room?.beds ?? []).map((bed) => ({
-        value: String(bed.id),
-        label: `Bed ${bed.label}`,
-    }));
-
-    const submit = (event: React.FormEvent) => {
-        event.preventDefault();
-
-        const options = { preserveScroll: true, onSuccess: onDone };
-
-        if (block) {
-            form.put(update.url({ roomBlock: block.id }), options);
-        } else {
-            form.post(store.url(), options);
-        }
-    };
-
-    return (
-        <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
-            <FieldGroup className="flex-1 overflow-y-auto px-4">
-                {block ? (
-                    <Field>
-                        <FieldLabel>Room</FieldLabel>
-                        <p className="text-sm">
-                            {block.roomNumber} · {block.roomTypeName}
-                            {block.bedLabel && `, bed ${block.bedLabel}`}
-                        </p>
-                        <FieldDescription>
-                            To block another room or bed, cancel or end this
-                            block and create a new one.
-                        </FieldDescription>
-                    </Field>
-                ) : (
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        <Field data-invalid={!!form.errors.room_id}>
-                            <FieldLabel htmlFor="block-room">Room</FieldLabel>
-                            <EnumSelect
-                                id="block-room"
-                                name="room_id"
-                                options={roomOptions}
-                                value={form.data.room_id}
-                                onValueChange={(value) =>
-                                    form.setData((data) => ({
-                                        ...data,
-                                        room_id: value,
-                                        bed_id: '',
-                                    }))
-                                }
-                                aria-invalid={!!form.errors.room_id}
-                                className="w-full"
-                            />
-                            <FieldError>{form.errors.room_id}</FieldError>
-                        </Field>
-                        {room?.sellsBeds && (
-                            <Field data-invalid={!!form.errors.bed_id}>
-                                <FieldLabel htmlFor="block-bed">Bed</FieldLabel>
-                                <EnumSelect
-                                    id="block-bed"
-                                    name="bed_id"
-                                    options={bedOptions}
-                                    allLabel="Whole room"
-                                    value={form.data.bed_id}
-                                    onValueChange={(value) =>
-                                        form.setData('bed_id', value)
-                                    }
-                                    aria-invalid={!!form.errors.bed_id}
-                                    className="w-full"
-                                />
-                                <FieldError>{form.errors.bed_id}</FieldError>
-                            </Field>
-                        )}
-                    </div>
-                )}
-                <Field data-invalid={!!form.errors.reason}>
-                    <FieldLabel htmlFor="block-reason">Reason</FieldLabel>
-                    <EnumSelect
-                        id="block-reason"
-                        name="reason"
-                        options={reasons}
-                        value={form.data.reason}
-                        onValueChange={(value) =>
-                            form.setData(
-                                'reason',
-                                value as App.Enums.RoomBlockReason,
-                            )
-                        }
-                        aria-invalid={!!form.errors.reason}
-                        className="w-full sm:max-w-60"
-                    />
-                    <FieldError>{form.errors.reason}</FieldError>
-                </Field>
-                <Field
-                    data-invalid={
-                        !!(form.errors.starts_on || form.errors.ends_on)
-                    }
-                >
-                    <FieldLabel htmlFor="block-nights">Nights</FieldLabel>
-                    <DateRangePicker
-                        id="block-nights"
-                        from={form.data.starts_on}
-                        to={form.data.ends_on}
-                        onChange={(startsOn, endsOn) =>
-                            form.setData((data) => ({
-                                ...data,
-                                starts_on: startsOn,
-                                ends_on: endsOn,
-                            }))
-                        }
-                        min={today}
-                        fromLocked={started}
-                        maxDays={maxNights}
-                        unit="night"
-                        placeholder="Pick the first and last night"
-                        aria-invalid={
-                            !!(form.errors.starts_on || form.errors.ends_on)
-                        }
-                    />
-                    <FieldDescription>
-                        {started
-                            ? 'This block has started. You can change its last night.'
-                            : 'Both nights are blocked. Pick one day for a single night.'}
-                    </FieldDescription>
-                    <FieldError>
-                        {form.errors.starts_on ?? form.errors.ends_on}
-                    </FieldError>
-                </Field>
-                <Field data-invalid={!!form.errors.notes}>
-                    <FieldLabel htmlFor="block-notes">Notes</FieldLabel>
-                    <Textarea
-                        id="block-notes"
-                        rows={3}
-                        maxLength={500}
-                        placeholder="e.g. Air conditioner repair"
-                        value={form.data.notes}
-                        onChange={(event) =>
-                            form.setData('notes', event.target.value)
-                        }
-                        aria-invalid={!!form.errors.notes}
-                    />
-                    <FieldDescription>
-                        {form.data.reason === 'other'
-                            ? 'Required when the reason is Other.'
-                            : 'Optional.'}
-                    </FieldDescription>
-                    <FieldError>{form.errors.notes}</FieldError>
-                </Field>
-            </FieldGroup>
-            <SheetFooter>
-                <SheetClose render={<Button type="button" variant="outline" />}>
-                    Cancel
-                </SheetClose>
-                <Button
-                    type="submit"
-                    disabled={form.processing}
-                    focusableWhenDisabled
-                >
-                    {form.processing && <Spinner data-icon="inline-start" />}
-                    {block ? 'Save changes' : 'Block room'}
-                </Button>
-            </SheetFooter>
-        </form>
-    );
 }
 
 function unitName(block: Block): string {
@@ -708,24 +496,24 @@ export default function RoomBlocksIndex({
                 )}
             </div>
 
-            <Sheet
+            <Dialog
                 open={editing !== undefined}
                 onOpenChange={(open) => !open && setEditing(undefined)}
             >
-                <SheetContent className="data-[side=right]:sm:max-w-xl">
-                    <SheetHeader>
-                        <SheetTitle>
+                <DialogContent className="max-w-full max-md:top-auto max-md:bottom-0 max-md:translate-y-0 max-md:rounded-b-none sm:max-w-none md:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>
                             {editing
                                 ? `Edit block on ${unitName(editing)}`
                                 : 'Block room'}
-                        </SheetTitle>
-                        <SheetDescription>
+                        </DialogTitle>
+                        <DialogDescription>
                             A blocked room or bed cannot be sold for these
                             nights.
-                        </SheetDescription>
-                    </SheetHeader>
+                        </DialogDescription>
+                    </DialogHeader>
                     {editing !== undefined && (
-                        <BlockForm
+                        <RoomBlockForm
                             key={editing?.id ?? 'new'}
                             block={editing}
                             rooms={rooms}
@@ -735,8 +523,8 @@ export default function RoomBlocksIndex({
                             onDone={() => setEditing(undefined)}
                         />
                     )}
-                </SheetContent>
-            </Sheet>
+                </DialogContent>
+            </Dialog>
 
             <EndBlockDialog
                 key={ending?.id ?? 'none'}

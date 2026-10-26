@@ -10,6 +10,7 @@ use App\Data\Rooms\RoomBlockData;
 use App\Data\Rooms\RoomBlockRoomData;
 use App\Data\Rooms\RoomGroupData;
 use App\Enums\RoomBlockReason;
+use App\Enums\RoomBlockRefusal;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Rooms\EndRoomBlockRequest;
 use App\Http\Requests\Rooms\RoomBlockRequest;
@@ -73,24 +74,27 @@ class RoomBlockController extends Controller
         $room = $property->rooms()->findOrFail($request->integer('room_id'));
         $bed = $request->validated('bed_id') !== null ? $room->beds()->findOrFail($request->integer('bed_id')) : null;
 
-        $block = $createRoomBlock($request->user(), $room, $bed, $request->toRoomBlockData());
+        $unit = $this->unitName($room, $bed);
+        $result = $createRoomBlock($request->user(), $room, $bed, $request->toRoomBlockData());
 
-        Inertia::flash('toast', $block
-            ? ['type' => 'success', 'message' => __(':unit blocked.', ['unit' => $this->unitName($room, $bed)])]
-            : ['type' => 'error', 'message' => __(':unit is already blocked for some of these nights.', ['unit' => $this->unitName($room, $bed)])]);
+        Inertia::flash('toast', $result instanceof RoomBlockRefusal
+            ? ['type' => 'error', 'message' => $result->message($unit)]
+            : ['type' => 'success', 'message' => __(':unit blocked.', ['unit' => $unit])]);
 
-        return to_route('front-desk.room-blocks.index', $property);
+        return back();
     }
 
     public function update(RoomBlockRequest $request, Property $property, RoomBlock $roomBlock, UpdateRoomBlock $updateRoomBlock): RedirectResponse
     {
         $unit = $this->unitName($roomBlock->room, $roomBlock->bed);
 
-        Inertia::flash('toast', $updateRoomBlock($request->user(), $roomBlock, $request->toRoomBlockData())
-            ? ['type' => 'success', 'message' => __('Block for :unit saved.', ['unit' => $unit])]
-            : ['type' => 'error', 'message' => __('Block for :unit was not saved. It has ended, or another block covers some of these nights.', ['unit' => $unit])]);
+        $refusal = $updateRoomBlock($request->user(), $roomBlock, $request->toRoomBlockData());
 
-        return to_route('front-desk.room-blocks.index', $property);
+        Inertia::flash('toast', $refusal === null
+            ? ['type' => 'success', 'message' => __('Block for :unit saved.', ['unit' => $unit])]
+            : ['type' => 'error', 'message' => $refusal->message($unit)]);
+
+        return back();
     }
 
     public function end(EndRoomBlockRequest $request, Property $property, RoomBlock $roomBlock, EndRoomBlock $endRoomBlock): RedirectResponse
@@ -101,7 +105,7 @@ class RoomBlockController extends Controller
             ? ['type' => 'success', 'message' => __(':unit is back in service.', ['unit' => $unit])]
             : ['type' => 'error', 'message' => __('Block for :unit cannot be ended. Only a block that is running today can end.', ['unit' => $unit])]);
 
-        return to_route('front-desk.room-blocks.index', $property);
+        return back();
     }
 
     public function destroy(Request $request, Property $property, RoomBlock $roomBlock, CancelRoomBlock $cancelRoomBlock): RedirectResponse
@@ -112,7 +116,7 @@ class RoomBlockController extends Controller
             ? ['type' => 'success', 'message' => __('Block for :unit cancelled.', ['unit' => $unit])]
             : ['type' => 'error', 'message' => __('Block for :unit cannot be cancelled because it has started. End it instead.', ['unit' => $unit])]);
 
-        return to_route('front-desk.room-blocks.index', $property);
+        return back();
     }
 
     /**

@@ -43,27 +43,55 @@ export function takenNights(
     return taken;
 }
 
+/** What a click on an empty cell can do: start a booking or block the room or bed for that night. */
+export type CellAction = 'booking' | 'block';
+
 /**
- * Whether an empty cell starts a booking: the user may manage reservations, the night is not before the business
- * date, and no stay, block or out of service period holds that room or bed that night. Display only; the booking
- * form checks availability again when it saves.
+ * Whether an empty cell is free to act on: the night is not before the business date, and no stay, block or out of
+ * service period holds that room or bed that night. Display only; the server checks again when it saves.
  */
 export function isCellBookable({
-    canManageReservations,
     rowKey,
     date,
     businessDate,
     taken,
 }: {
-    canManageReservations: boolean;
     rowKey: string;
     date: string;
     businessDate: string;
     taken: ReadonlySet<string>;
 }): boolean {
-    return (
-        canManageReservations &&
-        date >= businessDate &&
-        !taken.has(nightKey(rowKey, date))
-    );
+    return date >= businessDate && !taken.has(nightKey(rowKey, date));
+}
+
+/**
+ * The actions an empty cell offers, in menu order. A booking needs `reservations.manage`. A block needs `rooms.block`
+ * and a night on or after the property's calendar date (`today`), because room blocks use that date, not the business
+ * date. An empty list means the cell takes no click.
+ */
+export function cellActions({
+    canManageReservations,
+    canBlockRooms,
+    rowKey,
+    date,
+    businessDate,
+    today,
+    taken,
+}: {
+    canManageReservations: boolean;
+    canBlockRooms: boolean;
+    rowKey: string;
+    date: string;
+    businessDate: string;
+    today: string;
+    taken: ReadonlySet<string>;
+}): CellAction[] {
+    if (!isCellBookable({ rowKey, date, businessDate, taken })) {
+        return [];
+    }
+
+    return [
+        ...(canManageReservations ? (['booking'] as const) : []),
+        ...(canBlockRooms && date >= today ? (['block'] as const) : []),
+    ];
 }

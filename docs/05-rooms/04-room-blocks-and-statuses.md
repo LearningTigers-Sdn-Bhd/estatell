@@ -37,6 +37,7 @@ The status enum is `HousekeepingStatus`, not `RoomStatus`, because the `RoomStat
 - A block covers at most 365 nights.
 - A block needs an active room. A bed block needs an active bed of that room. Only rooms of a Bed room type have beds to pick. Without a bed, the whole room is blocked, including all its beds.
 - Overlaps are refused: a whole-room block clashes with any open block in the room. A bed block clashes with a whole-room block and with a block on the same bed. Blocks on two different beds never clash. Back-to-back blocks (one ends on the 14th, the next starts on the 15th) are fine. `RoomBlockConflicts` (a Service) checks this under a lock on the room row.
+- A block cannot cover a night that holds a stay. A whole-room block clashes with a night assigned to the room or to any of its beds. A bed block clashes with a night assigned to that bed or to the whole room. Only units that hold inventory count (not Cancelled or No-show). A day use holds no night, so it does not clash. `RoomAssignedNights::existBetween()` checks this inside the same lock, on create and on edit. Move the stay first, then block the room.
 - Notes are required when the reason is Other.
 - No `room_number` copies. Only `room_id` and `bed_id`.
 
@@ -63,6 +64,7 @@ The status enum is `HousekeepingStatus`, not `RoomStatus`, because the `RoomStat
 ## Actions
 
 - `CreateRoomBlock`, `UpdateRoomBlock`, `EndRoomBlock`, `CancelRoomBlock`. Each logs activity (`room_block.created`, `.updated`, `.ended`, `.cancelled`).
+- `CreateRoomBlock` returns the block or a `RoomBlockRefusal`, and `UpdateRoomBlock` returns null or a `RoomBlockRefusal`: `unavailable` (archived room or bed), `ended`, `blocked` (another open block) or `has_stay`. The controller turns it into an error toast and writes nothing.
 - `ArchiveRoom` and `ArchiveBed` end open current and upcoming blocks.
 - Housekeeping Actions (`UpdateRoomStatus`, `AssignHousekeeper`, `SetRoomPriority`, `SetDoNotDisturb`, `SetRoomRemark`, `SetNeedsMaintenance`, `BulkUpdateRooms`) come with module 19. See [Room status board](../19-housekeeping/01-room-status-board.md#actions).
 
@@ -84,12 +86,13 @@ Room          Reason        Nights                      Notes
 ```
 
 - One load: every current and upcoming block, the latest 50 past blocks, and the active rooms with their active beds. Tabs and filters work in the browser.
-- **Block room** opens a sheet: room, bed (dorm rooms only, default "Whole room"), reason, nights (`DateRangePicker`) and notes.
+- **Block room** and **Edit** open a Dialog: room, bed (dorm rooms only, default "Whole room"), reason (full width), nights (`DateRangePicker`) and notes.
 - **End now** opens a confirm dialog. For a whole-room block it asks "Room is Dirty / Clean" (default Dirty).
 - **Cancel** opens a confirm dialog.
-- Later, the stay view's "Block room" cell action uses the same Actions. The housekeeping board's row menu **Block room** opens this sheet for a user with `rooms.block`.
+- The form is `RoomBlockForm` (`components/pms/room-block-form.tsx`). The Timeline's **Block room** cell action opens the same form in the same Dialog, with the room fixed. See [Empty cell](../18-front-desk/07-timeline-editing.md#empty-cell).
+- Create, edit, end and cancel redirect back, so a block made from the Timeline returns to the Timeline.
+- The housekeeping board's row menu **Block room…** links to this page for a user with `rooms.block`.
 
 ## Later
 
-- Refuse a block over nights that have an assigned stay, once `unit_nights` exist (module 12).
 - A Postgres exclusion constraint can prevent overlapping blocks at the database level.
