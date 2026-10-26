@@ -116,7 +116,7 @@ test('the Timeline View sits in the Overview group and is active on its page', f
                 $item = collect($overview['items'] ?? [])->firstWhere('title', 'Timeline View');
 
                 expect($item['active'] ?? null)->toBeTrue()
-                    ->and(collect($overview['items'])->pluck('title')->all())->toBe(['Dashboard', 'Timeline View']);
+                    ->and(collect($overview['items'])->pluck('title')->all())->toBe(['Dashboard', 'Timeline View', 'Room View']);
 
                 return true;
             }));

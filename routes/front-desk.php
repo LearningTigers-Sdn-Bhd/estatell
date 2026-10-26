@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('front-desk')->name('front-desk.')->group(function () {
     Route::get('stays/{reservation}/folio', [StayViewController::class, 'folio'])->middleware(['can:'.PermissionEnum::FrontDeskView->value, 'can:'.PermissionEnum::ReservationsView->value])->scopeBindings()->name('stays.folio');
     Route::get('timeline', [StayViewController::class, 'timeline'])->middleware('can:'.PermissionEnum::FrontDeskView->value)->name('timeline');
+    Route::get('rooms', [StayViewController::class, 'rooms'])->middleware('can:'.PermissionEnum::FrontDeskView->value)->name('rooms');
 
     Route::prefix('room-blocks')->name('room-blocks.')->middleware('can:'.PermissionEnum::RoomsBlock->value)->scopeBindings()->group(function () {
         Route::get('/', [RoomBlockController::class, 'index'])->name('index');

@@ -3884,6 +3884,7 @@ roomTypeIds: number[],
 statuses: string[],
 search: string,
 groupBy: App.Enums.StayViewGrouping,
+show: string[],
 };
 export type StayViewWindowData = {
 from: string,
@@ -4014,6 +4015,7 @@ export type ReservationStatus = 'confirmed' | 'in_house' | 'completed' | 'cancel
 export type RevisionKind = 'new' | 'modified' | 'cancelled';
 export type RoomBlockReason = 'maintenance' | 'owner_use' | 'out_of_order' | 'other';
 export type RoomBlockRefusal = 'unavailable' | 'ended' | 'blocked' | 'has_stay';
+export type RoomDayState = 'arriving' | 'in_house' | 'departing' | 'vacant' | 'blocked';
 export type RoutingRuleSource = 'billing_mode' | 'manual';
 export type SellUnit = 'room' | 'bed';
 export type SpreadsheetFormat = 'csv' | 'xlsx';

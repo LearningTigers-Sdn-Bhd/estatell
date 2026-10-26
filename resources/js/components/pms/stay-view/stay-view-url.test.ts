@@ -1,5 +1,6 @@
 import { expect, test } from 'vite-plus/test';
 import {
+    dayQuery,
     queryString,
     shiftWindow,
     viewQuery,
@@ -14,6 +15,7 @@ const none: App.Data.StayView.StayViewFiltersData = {
     statuses: [],
     search: '',
     groupBy: 'room_group',
+    show: [],
 };
 
 test('counts both ends of the window', () => {
@@ -62,6 +64,7 @@ test('writes filters, search and grouping to the query', () => {
             statuses: ['dirty'],
             search: ' Ahmad ',
             groupBy: 'none',
+            show: ['arriving', 'vacant'],
         },
     );
 
@@ -71,11 +74,29 @@ test('writes filters, search and grouping to the query', () => {
         'groups[]': ['1', '3'],
         'types[]': ['10'],
         'statuses[]': ['dirty'],
+        'show[]': ['arriving', 'vacant'],
         q: 'Ahmad',
         group_by: 'none',
     });
     expect(queryString(query)).toBe(
-        '?from=2026-10-14&to=2026-10-27&groups%5B%5D=1&groups%5B%5D=3&types%5B%5D=10&statuses%5B%5D=dirty&q=Ahmad&group_by=none',
+        '?from=2026-10-14&to=2026-10-27&groups%5B%5D=1&groups%5B%5D=3&types%5B%5D=10&statuses%5B%5D=dirty&show%5B%5D=arriving&show%5B%5D=vacant&q=Ahmad&group_by=none',
     );
     expect(queryString({})).toBe('');
+});
+
+test('writes one date and the Show choice for the Room View', () => {
+    expect(dayQuery('2026-10-14', none)).toEqual({ date: '2026-10-14' });
+    expect(
+        dayQuery('2026-10-14', {
+            ...none,
+            statuses: ['dirty'],
+            show: ['departing'],
+            groupBy: 'room_type',
+        }),
+    ).toEqual({
+        date: '2026-10-14',
+        'statuses[]': ['dirty'],
+        'show[]': ['departing'],
+        group_by: 'room_type',
+    });
 });

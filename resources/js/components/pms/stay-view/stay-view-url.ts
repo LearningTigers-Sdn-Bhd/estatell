@@ -48,17 +48,11 @@ export function windowContains(window: DateWindow, date: string): boolean {
 }
 
 /**
- * The query string values for a window and its filters. A list with nothing selected, an empty search and the
- * default Group by are left out, so the URL stays short.
+ * The query string values for the filters. A list with nothing selected, an empty search and the default Group by are
+ * left out, so the URL stays short.
  */
-export function viewQuery(
-    window: DateWindow,
-    filters: Filters,
-): Record<string, string | string[]> {
-    const query: Record<string, string | string[]> = {
-        from: window.from,
-        to: window.to,
-    };
+function filterQuery(filters: Filters): Record<string, string | string[]> {
+    const query: Record<string, string | string[]> = {};
 
     if (filters.roomGroupIds.length > 0) {
         query['groups[]'] = filters.roomGroupIds.map(String);
@@ -72,6 +66,10 @@ export function viewQuery(
         query['statuses[]'] = filters.statuses;
     }
 
+    if (filters.show.length > 0) {
+        query['show[]'] = filters.show;
+    }
+
     if (filters.search.trim() !== '') {
         query.q = filters.search.trim();
     }
@@ -81,6 +79,22 @@ export function viewQuery(
     }
 
     return query;
+}
+
+/** The query string values for a window and its filters. */
+export function viewQuery(
+    window: DateWindow,
+    filters: Filters,
+): Record<string, string | string[]> {
+    return { from: window.from, to: window.to, ...filterQuery(filters) };
+}
+
+/** The query string values for the Room View: one date and the filters. */
+export function dayQuery(
+    date: string,
+    filters: Filters,
+): Record<string, string | string[]> {
+    return { date, ...filterQuery(filters) };
 }
 
 /** The query as a `?a=b&c[]=d` string. */

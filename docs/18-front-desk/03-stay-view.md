@@ -178,7 +178,7 @@ The server sends compact, normalized data. The browser derives everything it sho
 
 - Segments come from `unit_nights`. Consecutive nights in the same room or bed form one segment. A room move creates a new segment.
 - Timeline default window: 14 days. Maximum: 30 days.
-- Room View uses the same query with `from = to = date`, and leaves out `rates`.
+- Room View uses the same query with `from = to = date`, and leaves out `rates`. `window`, `blocks` and the rows use the date. `stays` start one night earlier, because a guest who leaves on the date holds no night on it and the card still shows the departure.
 - The balance-due flag comes from one grouped query for all stays in the window, not one query per stay.
 
 ### Done in the browser (no request)

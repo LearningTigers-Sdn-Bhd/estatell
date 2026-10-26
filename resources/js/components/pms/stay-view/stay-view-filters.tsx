@@ -82,30 +82,37 @@ export function clearedFilters(filters: Filters): Filters {
 }
 
 /**
- * A button for the corner of the Timeline grid that opens the filters: search, room group, room type, status and the
- * rate settings. Changes apply as they are made, since the filters only change the loaded data in the browser.
+ * A button that opens the filters: search, room group, room type, status and, on the Timeline, the rate settings.
+ * The Timeline puts it in the corner of the grid; the Room View passes no rate settings and a plain `className`.
+ * Changes apply as they are made, since the filters only change the loaded data in the browser.
  */
 export function StayViewFilters({
     rooms,
     filters,
     onFiltersChange,
     statusOptions,
-    showRates,
+    showRates = false,
     onShowRatesChange,
-    planOptions,
-    ratePlanId,
+    planOptions = [],
+    ratePlanId = '',
     onRatePlanChange,
+    className = 'w-full justify-start bg-grid-header text-grid-header-foreground hover:bg-grid-hover',
+    description = 'Choose which rooms and stays show on the timeline.',
 }: {
     rooms: App.Data.StayView.RoomRowData[];
     filters: Filters;
     onFiltersChange: (filters: Filters) => void;
     statusOptions: Option[];
-    showRates: boolean;
-    onShowRatesChange: (show: boolean) => void;
+    /** The rate settings. Left out, the sheet has none (the Room View has no rate row). */
+    showRates?: boolean;
+    onShowRatesChange?: (show: boolean) => void;
     /** The rate plans the prices can show, and the one chosen. */
-    planOptions: Option[];
-    ratePlanId: string;
-    onRatePlanChange: (ratePlanId: number) => void;
+    planOptions?: Option[];
+    ratePlanId?: string;
+    onRatePlanChange?: (ratePlanId: number) => void;
+    /** The classes of the trigger button. */
+    className?: string;
+    description?: string;
 }) {
     const count = activeFilterCount(filters);
 
@@ -117,7 +124,7 @@ export function StayViewFilters({
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="w-full justify-start bg-grid-header text-grid-header-foreground hover:bg-grid-hover"
+                        className={className}
                     />
                 }
             >
@@ -128,9 +135,7 @@ export function StayViewFilters({
             <SheetContent>
                 <SheetHeader>
                     <SheetTitle>Filters</SheetTitle>
-                    <SheetDescription>
-                        Choose which rooms and stays show on the timeline.
-                    </SheetDescription>
+                    <SheetDescription>{description}</SheetDescription>
                 </SheetHeader>
                 <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-4">
                     <div className="flex flex-col gap-2">
@@ -209,38 +214,43 @@ export function StayViewFilters({
                             emptyLabel="No matching statuses."
                         />
                     </div>
-                    <FieldLabel htmlFor="stay-view-show-rates">
-                        <Field orientation="horizontal">
-                            <Switch
-                                id="stay-view-show-rates"
-                                checked={showRates}
-                                onCheckedChange={onShowRatesChange}
-                            />
-                            <FieldContent>
-                                <FieldTitle>Show rates</FieldTitle>
-                                <FieldDescription>
-                                    Show the nightly price for each room type
-                                    under the dates.
-                                </FieldDescription>
-                            </FieldContent>
-                        </Field>
-                    </FieldLabel>
-                    {showRates && planOptions.length > 0 && (
-                        <div className="flex flex-col gap-2">
-                            <Label htmlFor="stay-view-rate-plan">
-                                Rate plan
-                            </Label>
-                            <EnumSelect
-                                id="stay-view-rate-plan"
-                                className="w-full"
-                                options={planOptions}
-                                value={ratePlanId}
-                                onValueChange={(value) =>
-                                    onRatePlanChange(Number(value))
-                                }
-                            />
-                        </div>
+                    {onShowRatesChange && (
+                        <FieldLabel htmlFor="stay-view-show-rates">
+                            <Field orientation="horizontal">
+                                <Switch
+                                    id="stay-view-show-rates"
+                                    checked={showRates}
+                                    onCheckedChange={onShowRatesChange}
+                                />
+                                <FieldContent>
+                                    <FieldTitle>Show rates</FieldTitle>
+                                    <FieldDescription>
+                                        Show the nightly price for each room
+                                        type under the dates.
+                                    </FieldDescription>
+                                </FieldContent>
+                            </Field>
+                        </FieldLabel>
                     )}
+                    {onShowRatesChange &&
+                        onRatePlanChange &&
+                        showRates &&
+                        planOptions.length > 0 && (
+                            <div className="flex flex-col gap-2">
+                                <Label htmlFor="stay-view-rate-plan">
+                                    Rate plan
+                                </Label>
+                                <EnumSelect
+                                    id="stay-view-rate-plan"
+                                    className="w-full"
+                                    options={planOptions}
+                                    value={ratePlanId}
+                                    onValueChange={(value) =>
+                                        onRatePlanChange(Number(value))
+                                    }
+                                />
+                            </div>
+                        )}
                 </div>
                 <SheetFooter className="border-t bg-muted/50">
                     <SheetClose

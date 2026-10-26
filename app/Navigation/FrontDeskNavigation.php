@@ -34,6 +34,12 @@ class FrontDeskNavigation
                     icon: 'chart-gantt',
                     active: request()->routeIs('front-desk.timeline'),
                 ) : null,
+                $user->can(PermissionEnum::FrontDeskView->value) ? new NavItemData(
+                    title: __('Room View'),
+                    href: route('front-desk.rooms', ['property' => $property->code], absolute: false),
+                    icon: 'door-open',
+                    active: request()->routeIs('front-desk.rooms'),
+                ) : null,
             ])),
             new NavGroupData(label: __('Rooms'), items: array_values(array_filter([
                 $user->can(PermissionEnum::RoomsBlock->value) ? new NavItemData(
