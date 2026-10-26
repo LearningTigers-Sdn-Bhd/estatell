@@ -66,6 +66,7 @@ export function WalkInPaymentSection({
     payment,
     loading,
     invalid,
+    problem = null,
     options,
     currency,
     values,
@@ -76,6 +77,8 @@ export function WalkInPaymentSection({
     payment: Payment | null;
     loading: boolean;
     invalid: boolean;
+    /** What stops the booking, from the server: "Select a room." */
+    problem?: string | null;
     options: Options | null | undefined;
     currency: Currency;
     values: WalkInPaymentValues;
@@ -114,9 +117,14 @@ export function WalkInPaymentSection({
         <div className="flex flex-col gap-2" data-slot="walk-in-payment">
             <span className="text-sm font-medium">Payment</span>
             {invalid ? (
-                <p className="text-sm text-muted-foreground">
-                    Fix the booking to see the payment
-                </p>
+                <div className="flex flex-col gap-0.5 text-sm">
+                    {problem !== null && (
+                        <p className="text-destructive">{problem}</p>
+                    )}
+                    <p className="text-muted-foreground">
+                        The payment shows once the booking can be saved.
+                    </p>
+                </div>
             ) : payment === null ? (
                 loading ? (
                     <div className="flex flex-col gap-2">

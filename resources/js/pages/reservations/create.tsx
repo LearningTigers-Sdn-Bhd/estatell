@@ -1982,6 +1982,7 @@ export default function ReservationCreate({
                                             payment={walkInPayment.payment}
                                             loading={walkInPayment.loading}
                                             invalid={walkInPayment.invalid}
+                                            problem={walkInPayment.problem}
                                             options={paymentOptions}
                                             currency={currency}
                                             values={{
