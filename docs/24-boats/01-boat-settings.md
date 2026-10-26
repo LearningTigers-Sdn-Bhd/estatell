@@ -90,7 +90,7 @@ Shows which meals a guest on the boat can get on the arrival or departure day. I
 | Boat out  | `leaves_at`  | `leaves_at` is after the meal's `starts_at` |
 
 - This is the same rule as the kitchen counts ([Boat trips](02-boat-trips.md#meals)). Both call one method, so the column and the counts never disagree.
-- The cell lists the active meal periods that match, in start time order, joined with " · ". With no match or no active meal periods, it shows "—".
+- The cell lists the active meal periods that match, in start time order, as outline `Badge`s with no icon and no tone, so they read as information, not as checkboxes. With no match or no active meal periods, it shows "—".
 - Example with the default times (Breakfast 07:00–10:00, Lunch 12:00–14:30, Dinner 19:00–22:00): a boat in that arrives 12:30 shows Lunch · Dinner. A boat out that leaves 12:00 shows Breakfast only, because lunch starts at 12:00.
 - A guest gets only the meals their rate plan includes. The column shows what the boat time allows, not what a guest has paid for.
 - Charter and own-boat trips are not departures, so they are not listed. They follow the same rule from the unit's time.

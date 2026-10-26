@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { Ellipsis, Info, Ship } from 'lucide-react';
 import { EmptyState } from '@/components/pms/empty-state';
+import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -207,7 +208,13 @@ export function BoatDepartureTable({
                                         —
                                     </span>
                                 ) : (
-                                    departure.meals.join(' · ')
+                                    <div className="flex flex-wrap gap-1">
+                                        {departure.meals.map((meal) => (
+                                            <Badge key={meal} variant="outline">
+                                                {meal}
+                                            </Badge>
+                                        ))}
+                                    </div>
                                 )}
                             </TableCell>
                             <TableCell>
