@@ -16,6 +16,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { departureMeals } from '@/lib/departure-meals';
 import { store, update } from '@/routes/settings/boats/departures';
 
 type Departure = App.Data.Boats.BoatDepartureData;
@@ -31,6 +32,8 @@ type Props = {
     defaultDirection: string;
     directions: Option[];
     fares: Fare[];
+    /** The active meal periods, for the meals preview under the times. */
+    mealPeriods: App.Data.Meals.MealPeriodData[];
     currency: App.Data.Property.CurrencyData;
 };
 
@@ -84,6 +87,7 @@ function BoatDepartureForm({
     defaultDirection,
     directions,
     fares,
+    mealPeriods,
     currency,
 }: Props) {
     const form = useForm<FormData>(toFormData(departure, defaultDirection));
@@ -99,6 +103,16 @@ function BoatDepartureForm({
         (departure.direction === 'in'
             ? data.arrives_at !== departure.arrivesAt
             : data.leaves_at !== departure.leavesAt);
+
+    // The meals preview follows the property-side time, so it waits until that time is filled in.
+    const propertyTime =
+        data.direction === 'in' ? data.arrives_at : data.leaves_at;
+    const previewMeals = departureMeals(
+        data.direction,
+        data.leaves_at,
+        data.arrives_at,
+        mealPeriods,
+    );
 
     // The current fare stays in the list even when it is unavailable, so an edit keeps it.
     const offeredFares = fares.filter(
@@ -207,6 +221,13 @@ function BoatDepartureForm({
                         />
                         <FieldError>{errors.arrives_at}</FieldError>
                     </Field>
+                    {propertyTime !== '' && (
+                        <FieldDescription className="sm:col-span-2">
+                            {mealPeriods.length === 0
+                                ? 'No meal periods yet.'
+                                : `Meals: ${previewMeals.length === 0 ? 'none' : previewMeals.join(' · ')}`}
+                        </FieldDescription>
+                    )}
                 </div>
                 <Field data-invalid={!!errors.pickup_point}>
                     <FieldLabel htmlFor="boat-departure-pickup">

@@ -76,6 +76,7 @@ chargeItemId: number | null,
 fare: App.Data.Boats.BoatFareData | null,
 active: boolean,
 upcomingBookings: number,
+meals: string[],
 };
 export type BoatDepartureOptionData = {
 id: number,

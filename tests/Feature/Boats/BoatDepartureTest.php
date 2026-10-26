@@ -9,6 +9,7 @@ use App\Features\Boats;
 use App\Models\BoatDeparture;
 use App\Models\BusinessDate;
 use App\Models\ChargeItem;
+use App\Models\MealPeriod;
 use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\Reservation;
@@ -157,6 +158,46 @@ test('the departures are sorted by leave time with their fares, and only Transpo
             ->has('fares', 1)
             ->where('fares.0.name', 'Ferry')
             ->where('directions.0', ['value' => 'in', 'label' => 'Boat in']));
+});
+
+test('each departure lists the meals its property-side time allows, from the active meal periods', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    boatDepartureEnable($property);
+    $property->mealPeriods()->delete();
+    MealPeriod::factory()->for($property)->create(['name' => 'Dinner', 'starts_at' => '19:00', 'ends_at' => '22:00']);
+    MealPeriod::factory()->for($property)->create(['name' => 'Breakfast', 'starts_at' => '07:00', 'ends_at' => '10:00']);
+    MealPeriod::factory()->for($property)->create(['name' => 'Lunch', 'starts_at' => '12:00', 'ends_at' => '14:30']);
+    MealPeriod::factory()->for($property)->create(['name' => 'Hi-Tea', 'starts_at' => '16:00', 'ends_at' => '17:30']);
+    MealPeriod::factory()->for($property)->inactive()->create(['name' => 'Supper', 'starts_at' => '22:00', 'ends_at' => '23:00']);
+    BoatDeparture::factory()->for($property)->create(['leaves_at' => '11:45', 'arrives_at' => '12:30']);
+    BoatDeparture::factory()->for($property)->out()->create(['leaves_at' => '12:00', 'arrives_at' => '12:45']);
+    BoatDeparture::factory()->for($property)->out()->create(['leaves_at' => '14:30', 'arrives_at' => '15:15']);
+    BoatDeparture::factory()->for($property)->create(['leaves_at' => '15:00', 'arrives_at' => '15:30']);
+
+    $this->actingAs($owner)
+        ->get(route('settings.boats.departures.index', $property->code))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('mealPeriods', fn ($mealPeriods) => collect($mealPeriods)->pluck('name')->all() === ['Breakfast', 'Lunch', 'Hi-Tea', 'Dinner'])
+            ->where('departures.0.meals', ['Lunch', 'Hi-Tea', 'Dinner'])
+            ->where('departures.1.meals', ['Breakfast'])
+            ->where('departures.2.meals', ['Breakfast', 'Lunch'])
+            ->where('departures.3.meals', ['Hi-Tea', 'Dinner']));
+});
+
+test('departures list no meals when the property has no active meal periods', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    boatDepartureEnable($property);
+    $property->mealPeriods()->delete();
+    MealPeriod::factory()->for($property)->inactive()->create(['name' => 'Lunch', 'starts_at' => '12:00', 'ends_at' => '14:30']);
+    BoatDeparture::factory()->for($property)->create(['leaves_at' => '11:45', 'arrives_at' => '12:30']);
+
+    $this->actingAs($owner)
+        ->get(route('settings.boats.departures.index', $property->code))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('mealPeriods', 0)
+            ->where('departures.0.meals', []));
 });
 
 test('a second departure in the same direction at the same time is refused', function () {
