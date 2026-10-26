@@ -6,6 +6,7 @@ use App\Data\Reports\ReportFilters;
 use App\Enums\BoatDirection;
 use App\Enums\ReportGroup;
 use App\Enums\ReportKey;
+use App\Enums\TabbedReport;
 use App\Models\Property;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Property\PropertyToday;
@@ -28,7 +29,8 @@ use LogicException;
  * property, and `refunds` (1 for refunds only). Other reports ignore them.
  * A report with a foreign filter (`ReportKey::hasForeignFilter()`, the Police report) also takes `foreign` (1 for foreign
  * guests only). Other reports ignore it.
- * The report is the `{report}` route parameter, or the slug after `reports.` in the route name.
+ * The report is the `{report}` route parameter, or the slug after `reports.` in the route name. On a `TabbedReport`
+ * page it is the report of the `?tab` (the first tab when the value is not a tab).
  */
 class ReportFiltersRequest extends FormRequest
 {
@@ -92,7 +94,16 @@ class ReportFiltersRequest extends FormRequest
             return $report;
         }
 
-        return ReportKey::from(str_replace('reports.', '', (string) $this->route()->getName()));
+        $slug = str_replace('reports.', '', (string) $this->route()->getName());
+        $tabbed = TabbedReport::tryFrom($slug);
+
+        if ($tabbed !== null) {
+            $tab = $this->query('tab');
+
+            return $tabbed->reportKey(is_string($tab) ? $tab : null);
+        }
+
+        return ReportKey::from($slug);
     }
 
     public function property(): Property

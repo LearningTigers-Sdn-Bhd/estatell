@@ -162,12 +162,12 @@ test('hidden columns stay hidden in the totals', function () {
         ->and(end($rows))->toBe(['280', 'Total']);
 });
 
-test('the sidebar lists Occupancy, Revenue, Tax and Non-national guests under the Revenue category', function () {
+test('the sidebar lists Daily report, Occupancy, Revenue, Tax and Non-national guests under the Revenue category', function () {
     [$user, $property] = reportSetup();
 
     $this->actingAs($user)->get(revenueUrl($property))->assertInertia(fn (Assert $page) => $page
         ->where('navigation.contexts.2.groups', fn ($groups) => collect($groups)->firstWhere('label', 'Revenue') !== null
-            && collect(collect($groups)->firstWhere('label', 'Revenue')['items'])->pluck('title')->all() === ['Occupancy', 'Revenue', 'Tax', 'Non-national guests']));
+            && collect(collect($groups)->firstWhere('label', 'Revenue')['items'])->pluck('title')->all() === ['Daily report', 'Occupancy', 'Revenue', 'Tax', 'Non-national guests']));
 });
 
 test('migrated lines and the opening balance code are not revenue', function () {

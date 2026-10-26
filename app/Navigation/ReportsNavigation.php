@@ -7,11 +7,13 @@ use App\Data\Navigation\NavItemData;
 use App\Enums\PermissionEnum;
 use App\Enums\ReportCategory;
 use App\Enums\ReportKey;
+use App\Enums\TabbedReport;
 use App\Models\Property;
 use App\Models\User;
 
 /**
- * Sidebar groups for the Reports context: registered reports and the read-only activity log.
+ * Sidebar groups for the Reports context: the tabbed report pages first in their group, the registered reports listed
+ * by themselves, and the read-only activity log.
  * Without `reports.view` there are no items, so the context is dropped.
  */
 class ReportsNavigation
@@ -29,6 +31,14 @@ class ReportsNavigation
             fn (ReportCategory $category): NavGroupData => new NavGroupData(
                 label: $category->label(),
                 items: [...array_values(array_map(
+                    fn (TabbedReport $page): NavItemData => new NavItemData(
+                        title: $page->label(),
+                        href: route('reports.'.$page->value, ['property' => $property->code], absolute: false),
+                        icon: $page->icon(),
+                        active: request()->routeIs(...$page->activeRouteNames()),
+                    ),
+                    array_filter(TabbedReport::cases(), fn (TabbedReport $page): bool => $page->category() === $category),
+                )), ...array_values(array_map(
                     fn (ReportKey $key): NavItemData => new NavItemData(
                         title: $key->label(),
                         href: route('reports.'.$key->value, ['property' => $property->code], absolute: false),
