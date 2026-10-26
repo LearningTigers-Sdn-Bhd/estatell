@@ -2,6 +2,7 @@
 
 use App\Actions\DoorLocks\SyncStayPasscodes;
 use App\Enums\PermissionEnum;
+use App\Enums\UnitStatus;
 use App\Models\Room;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -35,7 +36,8 @@ it('names the lock when a checked-in room has no PIN yet', function () {
 
     unitPage($owner, $unit)->assertInertia(fn (Assert $page) => $page
         ->where('doorPins.passcodes', [])
-        ->where('doorPins.locksWithoutPin', [$lock->name]));
+        ->where('doorPins.locksWithoutPin.0.name', $lock->name)
+        ->where('doorPins.locksWithoutPin.0.reason', null));
 });
 
 it('shows nothing when no lock is linked to the room', function () {
@@ -80,4 +82,35 @@ it('tells staff to give the guest the newest PIN after an extension', function (
     unitPage($owner, $unit)->assertInertia(fn (Assert $page) => $page
         ->where('doorPins.sendNewPin', true)
         ->has('doorPins.passcodes', 2));
+});
+
+it('says why a checked-in room has no PIN', function () {
+    ['owner' => $owner, 'property' => $property, 'room' => $room, 'connection' => $connection] = doorLockSetup();
+    $unit = doorLockStay($property, $room);
+
+    $this->travelTo(now()->addDays(5));
+    unitPage($owner, $unit)->assertInertia(fn (Assert $page) => $page
+        ->where('doorPins.locksWithoutPin.0.reason', 'The stay has already ended, so a PIN would be out of date.'));
+
+    $this->travelBack();
+    $connection->update(['enabled' => false]);
+    unitPage($owner, $unit)->assertInertia(fn (Assert $page) => $page
+        ->where('doorPins.locksWithoutPin.0.reason', 'Issue PINs automatically is off.'));
+});
+
+it('keeps the Delete PIN note on a revoked PIN only while its window is open', function () {
+    ['owner' => $owner, 'property' => $property, 'room' => $room] = doorLockSetup();
+    $unit = doorLockStay($property, $room);
+    fakeTtlock();
+    app(SyncStayPasscodes::class)($unit);
+    $unit->forceFill(['status' => UnitStatus::CheckedOut, 'checked_out_at' => now()])->save();
+    app(SyncStayPasscodes::class)($unit->refresh());
+
+    unitPage($owner, $unit)->assertInertia(fn (Assert $page) => $page
+        ->where('doorPins.passcodes.0.status.value', 'revoked')
+        ->where('doorPins.passcodes.0.revokeNote', fn ($note) => str_contains($note, '482913')));
+
+    $this->travelTo(now()->addDays(3));
+
+    unitPage($owner, $unit)->assertInertia(fn (Assert $page) => $page->where('doorPins.passcodes.0.revokeNote', null));
 });

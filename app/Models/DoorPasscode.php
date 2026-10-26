@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * A PIN on one lock, for one stay or for a person staff named in the label. `code` is stored encrypted because it opens a door.
+ * A PIN on one lock, for one stay or for a person staff named in the label. `code` is stored encrypted because it opens a door, and so is `revoke_note`, which can hold a Delete PIN.
  *
  * @property int $id
  * @property int $property_id
@@ -28,11 +28,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $error
  * @property int|null $issued_by
  * @property CarbonImmutable|null $revoked_at
+ * @property string|null $revoke_note
  * @property string $idempotency_key
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['door_lock_id', 'reservation_unit_id', 'kind', 'status', 'code', 'ttlock_passcode_id', 'label', 'starts_at', 'ends_at', 'error', 'issued_by', 'revoked_at', 'idempotency_key'])]
+#[Fillable(['door_lock_id', 'reservation_unit_id', 'kind', 'status', 'code', 'ttlock_passcode_id', 'label', 'starts_at', 'ends_at', 'error', 'issued_by', 'revoked_at', 'revoke_note', 'idempotency_key'])]
 class DoorPasscode extends Model
 {
     /** @use HasFactory<DoorPasscodeFactory> */
@@ -47,6 +48,7 @@ class DoorPasscode extends Model
             'kind' => PasscodeKind::class,
             'status' => PasscodeStatus::class,
             'code' => 'encrypted',
+            'revoke_note' => 'encrypted',
             'starts_at' => 'immutable_datetime',
             'ends_at' => 'immutable_datetime',
             'revoked_at' => 'immutable_datetime',

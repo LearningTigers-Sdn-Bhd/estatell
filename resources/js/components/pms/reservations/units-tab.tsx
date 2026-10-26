@@ -153,11 +153,17 @@ function DoorPins({ pins }: { pins: App.Data.DoorLocks.UnitDoorPinsData }) {
                                 {passcode.error}
                             </span>
                         )}
+                        {passcode.revokeNote && (
+                            <span className="text-warning">
+                                {passcode.revokeNote}
+                            </span>
+                        )}
                     </div>
                 ))}
-                {pins.locksWithoutPin.map((name) => (
-                    <span key={name} className="text-muted-foreground">
-                        No PIN yet for {name}
+                {pins.locksWithoutPin.map((lock) => (
+                    <span key={lock.name} className="text-muted-foreground">
+                        No PIN yet for {lock.name}
+                        {lock.reason && ` · ${lock.reason}`}
                     </span>
                 ))}
             </div>

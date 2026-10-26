@@ -793,12 +793,17 @@ code: string | null,
 startsAt: string,
 endsAt: string,
 error: string | null,
+revokeNote: string | null,
 canRevoke: boolean,
 canRetry: boolean,
 };
+export type LockWithoutPinData = {
+name: string,
+reason: string | null,
+};
 export type UnitDoorPinsData = {
 passcodes: App.Data.DoorLocks.DoorPasscodeData[],
-locksWithoutPin: string[],
+locksWithoutPin: App.Data.DoorLocks.LockWithoutPinData[],
 sendNewPin: boolean,
 };
 }

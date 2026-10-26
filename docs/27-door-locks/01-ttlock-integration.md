@@ -130,6 +130,14 @@ Still to check against the real account: the region host (`euapi.ttlock.com` aga
 - `IssueStayPasscodeJob`, `RevokeStayPasscodeJob`: unique by unit, three tries. An expected failure is saved on the row as Failed.
 - Events: `StayCheckedIn`, `StayCheckedOut`, `StayRoomChanged`, `StayDatesChanged`, dispatched after commit by `CheckInUnit`, `CheckOutUnit`, `UndoCheckIn`, `MoveUnit`, `ChangeUnitDates` and `ExtendDepartureTime`. A listener queues the job only when the property has an enabled connection. An error here never changes the stay.
 
+## Revoke note
+
+Without a gateway a revoke cannot delete the PIN from the lock. `RevokeDoorPasscode` saves the warning on the PIN row (`revoke_note`, encrypted, because it can hold a Delete PIN). A manual revoke, and the automatic revoke at check-out, undo check-in or room move, both save it, so staff see it on the PIN row and the reservation page and not only in a toast.
+
+- It shows only while the PIN's window is open (`ends_at` in the future) and the PIN is Revoked.
+- Issuing the PIN again for the same stay clears it.
+- To verify: how long TTLock keeps a Delete PIN valid. The TTLock docs for `keyboardPwd/get` do not say clearly. The note is saved when the PIN is revoked, so a note read long after may hold a Delete PIN that no longer works.
+
 ## Reservation page
 
 The Units tab of a reservation shows a **Door PIN** line on the unit panel (`UnitDoorPins` service, `UnitDoorPinsData`), so front desk can read the PIN out at check-in.
@@ -137,8 +145,8 @@ The Units tab of a reservation shows a **Door PIN** line on the unit panel (`Uni
 - Shown only when the Door locks feature is on and the user has `front-desk.check-in` or `settings.manage`.
 - Shown when the unit has a PIN row, or when it is checked in and a room it sleeps in has a lock. Otherwise the line is hidden.
 - Each PIN shows its code, status badge, lock name and valid window. A failed PIN shows its error.
-- A checked-in unit whose lock has no live PIN shows "No PIN yet for {lock}", for example when the stay window had already ended at check-in.
-- Revoked PINs stay in the list with the Revoked badge.
+- A checked-in unit whose lock has no live PIN shows "No PIN yet for {lock}" with the reason when known: automatic PINs are off, or the stay has already ended so a PIN would be out of date.
+- Revoked PINs stay in the list with the Revoked badge. On a lock without a gateway the row also shows the revoke note (see below) while the PIN's window is open.
 
 ## Permissions and routes
 

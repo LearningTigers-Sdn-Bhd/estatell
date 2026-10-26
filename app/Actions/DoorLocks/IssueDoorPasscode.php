@@ -82,6 +82,8 @@ class IssueDoorPasscode
             'starts_at' => $startsAt,
             'ends_at' => $endsAt,
             'error' => null,
+            'revoked_at' => null,
+            'revoke_note' => null,
             'issued_by' => $actor?->id,
             'idempotency_key' => $idempotencyKey,
         ])->save();

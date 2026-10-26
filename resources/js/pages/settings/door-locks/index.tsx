@@ -468,6 +468,11 @@ export default function DoorLocksIndex({
                                                         {passcode.error}
                                                     </span>
                                                 )}
+                                                {passcode.revokeNote && (
+                                                    <span className="mt-1 block max-w-xs text-xs text-warning">
+                                                        {passcode.revokeNote}
+                                                    </span>
+                                                )}
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex justify-end gap-2">

@@ -5,13 +5,13 @@ namespace App\Jobs;
 use App\Actions\DoorLocks\SyncStayPasscodes;
 use App\Models\ReservationUnit;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldBeUnique;
+use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 
-class SyncStayPasscodesJob implements ShouldBeUnique, ShouldQueue
+class SyncStayPasscodesJob implements ShouldBeUniqueUntilProcessing, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 

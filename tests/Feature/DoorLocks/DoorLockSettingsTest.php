@@ -234,7 +234,9 @@ it('revokes without a gateway with a warning that the lock still accepts the PIN
     $this->actingAs($owner)->post(route('settings.door-locks.passcodes.revoke', [$property, $passcode]))
         ->assertRedirect()->assertInertiaFlash('toast.type', 'warning');
 
-    expect($passcode->refresh()->status)->toBe(PasscodeStatus::Revoked)->and(ttlockCalls('/v3/keyboardPwd/delete'))->toBe(0);
+    expect($passcode->refresh()->status)->toBe(PasscodeStatus::Revoked)
+        ->and($passcode->revoke_note)->toContain('482913')
+        ->and(ttlockCalls('/v3/keyboardPwd/delete'))->toBe(0);
 });
 
 it('answers 404 for another property’s lock and PIN', function () {

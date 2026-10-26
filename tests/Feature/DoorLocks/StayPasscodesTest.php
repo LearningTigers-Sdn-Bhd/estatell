@@ -10,6 +10,7 @@ use App\Jobs\SyncStayPasscodesJob;
 use App\Models\DoorLock;
 use App\Models\DoorPasscode;
 use App\Models\Room;
+use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Support\Facades\Queue;
 
 require_once __DIR__.'/../Support/DoorLockSetup.php';
@@ -160,4 +161,37 @@ it('keeps the PIN when the stay is shortened', function () {
     app(SyncStayPasscodes::class)($unit->refresh());
 
     expect(DoorPasscode::query()->count())->toBe(1);
+});
+
+it('does not drop an event that arrives while the sync is running', function () {
+    expect(SyncStayPasscodesJob::class)->toImplement(ShouldBeUniqueUntilProcessing::class);
+});
+
+it('saves the Delete PIN note when the check-out revokes a PIN on a lock without a gateway', function () {
+    ['property' => $property, 'room' => $room] = doorLockSetup(gateway: false);
+    $unit = doorLockStay($property, $room);
+    fakeTtlock();
+    app(SyncStayPasscodes::class)($unit);
+
+    $unit->forceFill(['status' => UnitStatus::CheckedOut, 'checked_out_at' => now()])->save();
+    app(SyncStayPasscodes::class)($unit->refresh());
+
+    expect(DoorPasscode::query()->sole()->revoke_note)->toContain('482913');
+});
+
+it('clears the revoke note when the same stay gets its PIN again', function () {
+    ['property' => $property, 'room' => $room] = doorLockSetup(gateway: false);
+    $unit = doorLockStay($property, $room);
+    fakeTtlock();
+    app(SyncStayPasscodes::class)($unit);
+    $unit->forceFill(['status' => UnitStatus::CheckedOut, 'checked_out_at' => now()])->save();
+    app(SyncStayPasscodes::class)($unit->refresh());
+    $unit->forceFill(['status' => UnitStatus::CheckedIn, 'checked_out_at' => null])->save();
+
+    app(SyncStayPasscodes::class)($unit->refresh());
+
+    $passcode = DoorPasscode::query()->sole();
+    expect($passcode->status)->toBe(PasscodeStatus::Active)
+        ->and($passcode->revoke_note)->toBeNull()
+        ->and($passcode->revoked_at)->toBeNull();
 });

@@ -43,7 +43,7 @@ class RevokeDoorPasscode
             }
         }
 
-        $passcode->forceFill(['status' => PasscodeStatus::Revoked, 'revoked_at' => now(), 'error' => null])->save();
+        $passcode->forceFill(['status' => PasscodeStatus::Revoked, 'revoked_at' => now(), 'revoke_note' => $warning, 'error' => null])->save();
 
         activity()
             ->performedOn($passcode)

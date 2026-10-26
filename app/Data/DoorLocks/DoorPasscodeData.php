@@ -9,7 +9,7 @@ use App\Models\DoorPasscode;
 use Spatie\LaravelData\Data;
 
 /**
- * A PIN as staff see it. The code is shown because staff read it out to the guest.
+ * A PIN as staff see it. The code is shown because staff read it out to the guest. `revokeNote` is the "still works on the lock" note of a revoked PIN, shown only while the PIN's window is open.
  */
 class DoorPasscodeData extends Data
 {
@@ -23,6 +23,7 @@ class DoorPasscodeData extends Data
         public string $startsAt,
         public string $endsAt,
         public ?string $error,
+        public ?string $revokeNote,
         public bool $canRevoke,
         public bool $canRetry,
     ) {}
@@ -42,6 +43,7 @@ class DoorPasscodeData extends Data
             startsAt: $passcode->starts_at->toIso8601String(),
             endsAt: $passcode->ends_at->toIso8601String(),
             error: $passcode->error,
+            revokeNote: $passcode->status === PasscodeStatus::Revoked && $passcode->ends_at->isFuture() ? $passcode->revoke_note : null,
             canRevoke: $passcode->status->canTransitionTo(PasscodeStatus::Revoked),
             canRetry: $passcode->status === PasscodeStatus::Failed && $passcode->ends_at->isFuture(),
         );
