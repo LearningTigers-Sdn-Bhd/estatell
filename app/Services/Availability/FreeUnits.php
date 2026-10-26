@@ -3,11 +3,13 @@
 namespace App\Services\Availability;
 
 use App\Data\Reservations\FreeUnitData;
+use App\Enums\HousekeepingStatus;
 use App\Enums\SellUnit;
 use App\Enums\UnitStatus;
 use App\Models\Bed;
 use App\Models\PropertySetting;
 use App\Models\Room;
+use App\Models\RoomStatus;
 use App\Models\RoomType;
 use App\Models\UnitDayUse;
 use App\Models\UnitNight;
@@ -26,6 +28,10 @@ use Spatie\Period\Precision;
  * `$arrivalTime` and `$departureTime` (`H:i` or `H:i:s`) are the unit's own times, which decide whether a day use on
  * the arrival or departure date overlaps the stay. Without them the property check-in and check-out times count, as
  * for a new booking or a unit with no times yet. See docs/12-reservations/10-day-use.md.
+ *
+ * `$includeNotReady` is for a walk-in only. It also lists a free room or bed that is not ready, with a `reason`:
+ * "In house" when a checked-in unit still holds it, or "Dirty" when its room is Dirty. See
+ * docs/12-reservations/05-booking-form.md#room--bed-column.
  */
 class FreeUnits
 {
@@ -35,9 +41,10 @@ class FreeUnits
      * Rooms for a Room room type, beds for a Bed room type, in the order of the property's room list.
      *
      * @param  int|null  $exceptUnitId  A reservation unit whose own assignment does not count, so it can keep or change its pick.
+     * @param  bool  $includeNotReady  A walk-in: also list the free rooms or beds that are not ready, with their reason.
      * @return list<FreeUnitData>
      */
-    public function forStay(RoomType $roomType, CarbonInterface $arrival, CarbonInterface $departure, ?int $exceptUnitId = null, ?string $arrivalTime = null, ?string $departureTime = null): array
+    public function forStay(RoomType $roomType, CarbonInterface $arrival, CarbonInterface $departure, ?int $exceptUnitId = null, ?string $arrivalTime = null, ?string $departureTime = null, bool $includeNotReady = false): array
     {
         $stay = $this->stay($arrival, $departure);
 
@@ -47,6 +54,7 @@ class FreeUnits
 
         $unitsByRoom = $this->availability->unitsByRoom($roomType);
         $taken = $this->takenNights($roomType, $unitsByRoom, $stay, $exceptUnitId, $arrivalTime, $departureTime);
+        $notReady = $includeNotReady ? $this->notReadyReasons($roomType, $unitsByRoom, $arrival) : [];
         $isBed = $roomType->sell_unit === SellUnit::Bed;
         $rooms = Room::query()->whereIn('id', array_keys($unitsByRoom))->orderBy('position')->orderBy('id')->get();
         $beds = $isBed ? Bed::query()->whereIn('room_id', array_keys($unitsByRoom))->get()->keyBy('id') : collect();
@@ -54,9 +62,13 @@ class FreeUnits
 
         foreach ($rooms as $room) {
             foreach ($unitsByRoom[$room->id] as $unitId) {
-                if (! isset($taken[$unitId])) {
-                    $free[] = new FreeUnitData($unitId, $isBed ? $room->number.' · '.$beds[$unitId]->label : $room->number);
+                $reason = $notReady[$unitId] ?? null;
+
+                if (isset($taken[$unitId]) || ($reason !== null && ! $includeNotReady)) {
+                    continue;
                 }
+
+                $free[] = new FreeUnitData($unitId, $isBed ? $room->number.' · '.$beds[$unitId]->label : $room->number, $reason);
             }
         }
 
@@ -124,6 +136,49 @@ class FreeUnits
         }
 
         return $free;
+    }
+
+    /**
+     * The reason each room or bed is not ready on the arrival date, by room or bed id: "In house" when a checked-in unit
+     * held it the night before (a unit leaving today counts until it checks out; a unit staying on already takes the
+     * arrival night), otherwise "Dirty" when its room is Dirty. A bed takes Dirty from its room. Two queries, whatever the number of units.
+     *
+     * @param  array<int, list<int>>  $unitsByRoom
+     * @return array<int, string>
+     */
+    private function notReadyReasons(RoomType $roomType, array $unitsByRoom, CarbonInterface $arrival): array
+    {
+        $dirtyRoomIds = RoomStatus::query()
+            ->where('property_id', $roomType->property_id)
+            ->whereIn('room_id', array_keys($unitsByRoom))
+            ->where('status', HousekeepingStatus::Dirty->value)
+            ->pluck('room_id')
+            ->map(fn (mixed $id): int => (int) $id)
+            ->all();
+        $inHouse = UnitNight::query()
+            ->join('reservation_units', 'reservation_units.id', '=', 'unit_nights.reservation_unit_id')
+            ->where('reservation_units.property_id', $roomType->property_id)
+            ->where('reservation_units.room_type_id', $roomType->id)
+            ->where('reservation_units.status', UnitStatus::CheckedIn->value)
+            ->where('unit_nights.date', $arrival->toImmutable()->subDay()->format('Y-m-d'))
+            ->where(fn ($query) => $query->whereNotNull('unit_nights.room_id')->orWhereNotNull('unit_nights.bed_id'))
+            ->distinct()
+            ->get(['unit_nights.room_id', 'unit_nights.bed_id']);
+        $reasons = [];
+
+        foreach ($inHouse as $night) {
+            $reasons[(int) ($night->bed_id ?? $night->room_id)] = __('In house');
+        }
+
+        foreach ($unitsByRoom as $roomId => $unitIds) {
+            if (in_array($roomId, $dirtyRoomIds, true)) {
+                foreach ($unitIds as $unitId) {
+                    $reasons[$unitId] ??= __('Dirty');
+                }
+            }
+        }
+
+        return $reasons;
     }
 
     private function stay(CarbonInterface $arrival, CarbonInterface $departure): ?Period

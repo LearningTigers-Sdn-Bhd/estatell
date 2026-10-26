@@ -65,6 +65,7 @@ export function BookingLineRow({
     onRemove,
     onQuote,
     goLiveDate = null,
+    walkIn = false,
 }: {
     index: number;
     line: BookingLine;
@@ -83,6 +84,8 @@ export function BookingLineRow({
     onQuote: (key: string, quote: Quote | null) => void;
     /** Migrated stay only: nights before this date are never charged, so they show no price and leave the totals. */
     goLiveDate?: string | null;
+    /** A walk-in: the pickers mark rooms that are not ready. */
+    walkIn?: boolean;
 }) {
     const roomType = roomTypeOf(line, options.roomTypes);
     const isBed = roomType?.isBed === true;
@@ -228,6 +231,7 @@ export function BookingLineRow({
                             emptyLabel={emptyPickLabel}
                             takenIds={takenIds}
                             invalid={!!error('room_id')}
+                            walkIn={walkIn}
                         />
                         <FieldError>{error('room_id')}</FieldError>
                     </Field>
@@ -348,6 +352,7 @@ export function BookingLineRow({
                                 emptyLabel={emptyPickLabel}
                                 takenIds={takenIds}
                                 invalid={!!error(`bed_ids.${bed}`)}
+                                walkIn={walkIn}
                             />
                             <FieldError>{error(`bed_ids.${bed}`)}</FieldError>
                         </Field>

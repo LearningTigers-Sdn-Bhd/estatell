@@ -1584,6 +1584,9 @@ export default function ReservationCreate({
                                                                         emptyPickLabel={
                                                                             emptyPickLabel
                                                                         }
+                                                                        walkIn={
+                                                                            isWalkIn
+                                                                        }
                                                                         takenIds={takenBy(
                                                                             position,
                                                                         )}

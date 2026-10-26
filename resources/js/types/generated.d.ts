@@ -3233,6 +3233,7 @@ name: string,
 export type FreeUnitData = {
 id: number,
 label: string,
+reason: string | null,
 };
 export type GroupCheckOutDoneData = {
 checkedOut: number,

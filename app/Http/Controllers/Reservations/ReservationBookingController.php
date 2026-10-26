@@ -270,6 +270,7 @@ class ReservationBookingController extends Controller
             $roomType,
             $request->date('arrival_date', 'Y-m-d'),
             $request->date('departure_date', 'Y-m-d'),
+            includeNotReady: $request->boolean('walk_in'),
         )]);
     }
 
