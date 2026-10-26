@@ -29,7 +29,7 @@ require_once __DIR__.'/../Support/CompanyBillingSetup.php';
 function billingPaths(AccountingProvider $provider): array
 {
     return $provider === AccountingProvider::Qne
-        ? ['customer' => 'api/Customers/Create', 'invoice' => 'api/SalesInvoices/Create', 'note' => 'api/ARCNs/Create', 'receipt' => 'api/ARReceipts/Create']
+        ? ['customer' => 'api/Customers/Create', 'invoice' => 'api/Invoices/Create', 'note' => 'api/ARCNs/Create', 'receipt' => 'api/ARReceipts/Create']
         : ['customer' => '/contacts', 'invoice' => 'sales/invoices', 'note' => 'sales/credit_notes', 'receipt' => 'sales/payments'];
 }
 
@@ -238,7 +238,7 @@ it('fails the invoice with the code named when the clearing account is not mappe
     $document = AccountingDocument::query()->where('ar_invoice_id', $invoice->id)->sole();
     expect($document->status)->toBe(AccountingDocumentStatus::Failed)
         ->and($document->error)->toContain('DIRECT_BILL')
-        ->and(billingCalls('api/SalesInvoices/Create'))->toBe([]);
+        ->and(billingCalls('api/Invoices/Create'))->toBe([]);
 
     mapCode($property, SystemTransactionCode::DirectBillPayment->value, '300-100');
 
@@ -265,7 +265,7 @@ it('fails the invoice and keeps going when the provider refuses it', function ()
         '*/api/AccountCodes/Leaf/Query*' => Http::response(['code' => '0000', 'data' => ['count' => 1, 'value' => [['id' => 'a']]]]),
         '*/api/*/New*' => Http::response(['code' => '0000', 'data' => []]),
         '*/api/Customers/Create*' => Http::response(['code' => '0000', 'data' => ['id' => 701]]),
-        '*/api/SalesInvoices/Create*' => Http::response(['code' => '4000', 'message' => 'Period is closed']),
+        '*/api/Invoices/Create*' => Http::response(['code' => '4000', 'message' => 'Period is closed']),
     ]);
     ['property' => $property, 'company' => $company] = billingSetup();
     $invoice = billingInvoice($property, $company);

@@ -67,7 +67,8 @@ class QneGateway implements AccountingGateway
         foreach ($journal->lines as $position => $line) {
             $details[] = [
                 'pos' => $position + 1,
-                'accountId' => $ids[$line->accountCode],
+                // QNE ignores `accountId` on a journal line (it is read only): the account goes in as an object.
+                'account' => ['id' => $ids[$line->accountCode], 'code' => $line->accountCode],
                 'description' => mb_substr($line->description, 0, 250),
                 'debit' => (float) $line->debit,
                 'credit' => (float) $line->credit,
@@ -101,7 +102,7 @@ class QneGateway implements AccountingGateway
             'zipCode' => mb_substr((string) $customer->postalCode, 0, 20),
             'country' => mb_substr((string) $customer->countryCode, 0, 100),
             'phoneNo1' => mb_substr((string) $customer->phone, 0, 20),
-            'emailList' => $customer->email,
+            'emailList' => filled($customer->email) ? [$customer->email] : [],
         ]);
 
         return (string) ($created['id'] ?? '');
@@ -109,8 +110,8 @@ class QneGateway implements AccountingGateway
 
     public function createInvoice(InvoiceDetails $invoice): DocumentRef
     {
-        $created = $this->post('api/SalesInvoices/Create', [
-            ...$this->get('api/SalesInvoices/New'),
+        $created = $this->post('api/Invoices/Create', [
+            ...$this->get('api/Invoices/New'),
             'documentStatus' => self::APPROVED,
             'customerId' => (int) $invoice->customerId,
             'docDate' => $invoice->date->toDateString().'T00:00:00',
@@ -134,6 +135,8 @@ class QneGateway implements AccountingGateway
             'referenceNo' => mb_substr($note->reference, 0, 50),
             'description' => mb_substr($note->description, 0, 250),
             'isTaxInclusive' => false,
+            // QNE checks the knockoff against the totals sent here, not against the lines, so the totals go in too.
+            ...$this->totals((float) $note->amount),
             'details' => [$this->line($note->accountCode, $note->description, $note->amount)],
             'knockoff' => [$this->knockoff($note->invoice, $note->amount, (int) $note->customerId)],
         ]);
@@ -170,7 +173,7 @@ class QneGateway implements AccountingGateway
     public function voidDocument(AccountingDocumentKind $kind, DocumentRef $document, string $reason): void
     {
         $path = match ($kind) {
-            AccountingDocumentKind::Invoice => 'api/SalesInvoices/Void',
+            AccountingDocumentKind::Invoice => 'api/Invoices/Void',
             AccountingDocumentKind::CreditNote => 'api/ARCNs/Void',
             AccountingDocumentKind::Receipt => 'api/ARReceipts/Void',
         };
@@ -180,6 +183,24 @@ class QneGateway implements AccountingGateway
             'cancelledDate' => now()->toDateString().'T00:00:00',
             'cancelledRemark' => mb_substr($reason, 0, 100),
         ]);
+    }
+
+    /**
+     * The document totals QNE needs when a document is knocked off against another. The currency is QNE's local one, so
+     * the local totals equal the totals.
+     *
+     * @return array<string, float>
+     */
+    private function totals(float $amount): array
+    {
+        return [
+            'subtotalAmount' => $amount,
+            'subtotalAmountLocal' => $amount,
+            'totalAmount' => $amount,
+            'totalAmountLocal' => $amount,
+            'netTotalAmount' => $amount,
+            'netTotalAmountLocal' => $amount,
+        ];
     }
 
     /**
@@ -285,6 +306,11 @@ class QneGateway implements AccountingGateway
 
         if (! is_array($body) || ($body['code'] ?? null) !== '0000') {
             $message = is_array($body) ? (string) ($body['message'] ?? '') : '';
+
+            // A 400 comes as a validation problem (`errors`), not as the usual envelope with a `message`.
+            if ($message === '' && is_array($body) && is_array($body['errors'] ?? null)) {
+                $message = collect($body['errors'])->flatten()->implode(' ');
+            }
 
             throw new AccountingException(__('QNE refused :path (:status). :message', [
                 'path' => $path,

@@ -75,6 +75,8 @@ it('pushes a closed date to QNE once and does not push it twice', function () {
     Http::assertSent(fn (Request $request): bool => str_contains($request->url(), 'api/Journals/Create')
         && $request['documentStatus'] === 0
         && count($request['details']) === 4
+        && filled($request['details'][0]['account']['id'])
+        && filled($request['details'][0]['account']['code'])
         && $request['referenceNo'] === "EST-{$property->code}-2026-10-12");
 });
 
