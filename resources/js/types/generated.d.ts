@@ -2753,6 +2753,23 @@ children: number,
 company: string | null,
 balance: string,
 };
+export type DailyChargeRow = {
+key: number,
+date: string,
+charge: string,
+booking: string,
+guest: string,
+base: string,
+discount: string,
+taxes: Record<string, string>,
+total: string,
+bucket: string,
+folio: string,
+room: string,
+code: string,
+status: App.Data.Shared.BadgeData,
+staff: string | null,
+};
 export type DailyOverviewData = {
 bookings: number,
 totalCharges: string,
@@ -2775,6 +2792,8 @@ extras: string,
 taxes: Record<string, string>,
 adjustments: string,
 total: string,
+from: string,
+to: string,
 };
 export type DepartureRow = {
 key: number,
@@ -3002,6 +3021,8 @@ staff: number | null,
 refundsOnly: boolean,
 foreignOnly: boolean,
 direction: App.Enums.BoatDirection | null,
+bucket: App.Enums.ChargeBucket | null,
+search: string | null,
 };
 export type ReportLayoutColumnData = {
 key: string,
@@ -4011,6 +4032,8 @@ export type ChannelRemovalState = 'pending' | 'done' | 'blocked';
 export type ChannelSellMode = 'per_room' | 'per_person';
 export type ChannelSupport = 'full' | 'flattened' | 'unsupported';
 export type ChannelSyncState = 'idle' | 'queued' | 'running' | 'done' | 'failed';
+export type ChargeBucket = 'accommodation' | 'day-use' | 'fees' | 'extras' | 'adjustments';
+export type ChargeStatus = 'posted' | 'reversal' | 'moved';
 export type ChargingUnit = 'per_item' | 'per_night' | 'per_stay' | 'per_guest_night' | 'per_guest';
 export type CheckInRoomState = 'assigned' | 'auto' | 'none';
 export type ColumnAlign = 'left' | 'center' | 'right';
@@ -4097,7 +4120,7 @@ export type RegistrationCardStatus = 'draft' | 'signed' | 'void';
 export type ReportCategory = 'front-desk' | 'revenue' | 'finance' | 'kitchen' | 'audit';
 export type ReportDatePreset = 'today' | 'yesterday' | 'tomorrow' | 'next-7-days' | 'this-week' | 'last-week' | 'next-week' | 'this-month' | 'last-month' | 'this-year' | 'last-30-days';
 export type ReportGroup = 'day' | 'month' | 'method' | 'staff';
-export type ReportKey = 'arrivals' | 'departures' | 'in-house' | 'occupancy' | 'revenue' | 'payments' | 'folio-ledger' | 'tax' | 'meal-counts' | 'night-audit-history' | 'outstanding-balance' | 'deposit-liability' | 'non-national-guests' | 'police-report' | 'housekeeping-tasks' | 'boat-manifest' | 'checked-out' | 'daily-revenue';
+export type ReportKey = 'arrivals' | 'departures' | 'in-house' | 'occupancy' | 'revenue' | 'payments' | 'folio-ledger' | 'tax' | 'meal-counts' | 'night-audit-history' | 'outstanding-balance' | 'deposit-liability' | 'non-national-guests' | 'police-report' | 'housekeeping-tasks' | 'boat-manifest' | 'checked-out' | 'daily-revenue' | 'daily-charges';
 export type ReservationRoomBoxState = 'assigned' | 'unassigned' | 'auto_assign' | 'cancelled' | 'no_show';
 export type ReservationStatus = 'confirmed' | 'in_house' | 'completed' | 'cancelled';
 export type RevisionKind = 'new' | 'modified' | 'cancelled';

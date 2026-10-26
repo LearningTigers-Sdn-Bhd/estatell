@@ -26,6 +26,7 @@ test('each tab maps to its report and a bad or missing tab opens the first one',
     [TabbedReport::GuestList, 'checked-out', ReportKey::CheckedOut],
     [TabbedReport::GuestList, 'nope', ReportKey::Arrivals],
     [TabbedReport::GuestList, null, ReportKey::Arrivals],
+    [TabbedReport::DailyReport, 'charges', ReportKey::DailyCharges],
     [TabbedReport::DailyReport, 'cashier', ReportKey::Payments],
     [TabbedReport::DailyReport, null, ReportKey::DailyRevenue],
 ]);
@@ -34,13 +35,14 @@ test('the report filters take the report of the tab on a tabbed page', function 
     expect(tabbedReportRequest('reports.guest-list', '?tab=departures')->reportKey())->toBe(ReportKey::Departures)
         ->and(tabbedReportRequest('reports.guest-list')->reportKey())->toBe(ReportKey::Arrivals)
         ->and(tabbedReportRequest('reports.daily-report', '?tab=cashier')->reportKey())->toBe(ReportKey::Payments)
+        ->and(tabbedReportRequest('reports.daily-report', '?tab=charges')->reportKey())->toBe(ReportKey::DailyCharges)
         ->and(tabbedReportRequest('reports.daily-report', '?tab[]=x')->reportKey())->toBe(ReportKey::DailyRevenue)
         ->and(tabbedReportRequest('reports.tax')->reportKey())->toBe(ReportKey::Tax);
 });
 
 test('the sidebar entry is active on the page and on the old pages of its unlisted tabs', function () {
     expect(TabbedReport::GuestList->activeRouteNames())->toBe(['reports.guest-list', 'reports.arrivals', 'reports.in-house', 'reports.departures', 'reports.checked-out'])
-        ->and(TabbedReport::DailyReport->activeRouteNames())->toBe(['reports.daily-report', 'reports.daily-revenue']);
+        ->and(TabbedReport::DailyReport->activeRouteNames())->toBe(['reports.daily-report', 'reports.daily-revenue', 'reports.daily-charges']);
 });
 
 test('the pages need reports.view and the property', function () {

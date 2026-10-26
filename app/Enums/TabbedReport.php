@@ -57,6 +57,7 @@ enum TabbedReport: string
             self::DailyReport => [
                 'overview' => ReportKey::DailyRevenue,
                 'revenue' => ReportKey::DailyRevenue,
+                'charges' => ReportKey::DailyCharges,
                 'cashier' => ReportKey::Payments,
             ],
         };

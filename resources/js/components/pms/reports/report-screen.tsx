@@ -10,6 +10,7 @@ import { DateRangePicker } from '@/components/pms/date-range-picker';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
+import { FilterBar } from '@/components/pms/filter-bar';
 import { PageHeader } from '@/components/pms/page-header';
 import { ReportExportMenu } from '@/components/pms/reports/report-export-menu';
 import { ReportLayoutSheet } from '@/components/pms/reports/report-layout-sheet';
@@ -86,6 +87,12 @@ type Props<TRow extends { key: number | string }> = {
     breakdown?: App.Data.Reports.ReportBreakdown | null;
     /** The quick dates of a range report, from `ReportKey::datePresets()`. Without it the standard list shows. */
     presets?: App.Enums.ReportDatePreset[];
+    /** The Bucket filter of Daily report › Charges (`''` or null for every bucket), with its options. */
+    bucket?: string | null;
+    bucketOptions?: EnumOption[];
+    /** The search text of Daily report › Charges. Passing it (even empty) shows the search box. */
+    search?: string;
+    searchPlaceholder?: string;
     /** The Direction filter of the Boat manifest (`in` or `out`), with its options. */
     direction?: string | null;
     directionOptions?: EnumOption[];
@@ -140,6 +147,10 @@ export function ReportScreen<TRow extends { key: number | string }>({
     presets,
     direction = null,
     directionOptions = [],
+    bucket = null,
+    bucketOptions = [],
+    search,
+    searchPlaceholder = 'e.g. guest name or booking no.',
     sections = null,
     emptyAction = null,
     query,
@@ -162,6 +173,8 @@ export function ReportScreen<TRow extends { key: number | string }>({
             ...(refundsOnly ? { refunds: '1' } : {}),
             ...(foreignOnly ? { foreign: '1' } : {}),
             ...(direction ? { direction } : {}),
+            ...(bucket ? { bucket } : {}),
+            ...(search ? { search } : {}),
         }),
         [
             isOneDate,
@@ -173,6 +186,8 @@ export function ReportScreen<TRow extends { key: number | string }>({
             refundsOnly,
             foreignOnly,
             direction,
+            bucket,
+            search,
         ],
     );
 
@@ -324,6 +339,8 @@ export function ReportScreen<TRow extends { key: number | string }>({
             refundsOnly?: boolean;
             foreignOnly?: boolean;
             direction?: string;
+            bucket?: string;
+            search?: string;
         }) => {
             const next = {
                 from,
@@ -335,6 +352,8 @@ export function ReportScreen<TRow extends { key: number | string }>({
                 refundsOnly: refundsOnly ?? false,
                 foreignOnly: foreignOnly ?? false,
                 direction: direction ?? '',
+                bucket: bucket ?? '',
+                search: search ?? '',
                 ...changes,
             };
 
@@ -346,7 +365,9 @@ export function ReportScreen<TRow extends { key: number | string }>({
                 next.staff !== (staff ?? '') ||
                 next.refundsOnly !== (refundsOnly ?? false) ||
                 next.foreignOnly !== (foreignOnly ?? false) ||
-                next.direction !== (direction ?? '')
+                next.direction !== (direction ?? '') ||
+                next.bucket !== (bucket ?? '') ||
+                next.search !== (search ?? '')
             ) {
                 setSelected(new Set());
             }
@@ -363,6 +384,8 @@ export function ReportScreen<TRow extends { key: number | string }>({
                     ...(next.refundsOnly ? { refunds: '1' } : {}),
                     ...(next.foreignOnly ? { foreign: '1' } : {}),
                     ...(next.direction ? { direction: next.direction } : {}),
+                    ...(next.bucket ? { bucket: next.bucket } : {}),
+                    ...(next.search ? { search: next.search } : {}),
                     ...(next.sort ? { sort: next.sort } : {}),
                     ...query,
                 },
@@ -381,6 +404,8 @@ export function ReportScreen<TRow extends { key: number | string }>({
             refundsOnly,
             foreignOnly,
             direction,
+            bucket,
+            search,
             query,
         ],
     );
@@ -489,6 +514,27 @@ export function ReportScreen<TRow extends { key: number | string }>({
                             aria-label="Staff"
                             className="w-auto"
                         />
+                    )}
+                    {bucketOptions.length > 0 && (
+                        <EnumSelect
+                            options={bucketOptions}
+                            allLabel="All buckets"
+                            value={bucket ?? ''}
+                            onValueChange={(next) => visit({ bucket: next })}
+                            aria-label="Bucket"
+                            className="w-auto"
+                        />
+                    )}
+                    {search !== undefined && (
+                        <div className="min-w-56 flex-1 sm:max-w-sm">
+                            <FilterBar
+                                search={search}
+                                onSearchChange={(next) =>
+                                    visit({ search: next })
+                                }
+                                searchPlaceholder={searchPlaceholder}
+                            />
+                        </div>
                     )}
                     {direction && directionOptions.length > 0 && (
                         <EnumSelect

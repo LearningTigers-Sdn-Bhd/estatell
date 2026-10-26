@@ -115,7 +115,8 @@ test('the page needs reports.view, is scoped to the property and opens Overview 
         ->where('tab', 'overview')
         ->where('tabs.0.value', 'overview')
         ->where('tabs.1.href', "/p/{$own->code}/reports/daily-report?tab=revenue&from=2026-10-10&to=2026-10-10")
-        ->where('tabs.2.label', 'Cashier activity')
+        ->where('tabs.2.label', 'Charges')
+        ->where('tabs.3.label', 'Cashier activity')
         ->has('overview')
         ->missing('rows'));
 });

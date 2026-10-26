@@ -26,6 +26,7 @@ The reports a small property needs daily and monthly, with a shared frame: a dat
 | Housekeeping tasks            | `HousekeepingTasks`  | `room_statuses`, `unit_nights`, `room_blocks`          | One date | Landscape           | –             |
 | Checked out                   | `CheckedOut`         | `reservation_units`                                    | Range    | Portrait            | 31 days       |
 | Daily revenue                 | `DailyRevenue`       | `DailyRevenueQuery` (live)                             | Range    | Landscape           | 366 days      |
+| Daily charges                 | `DailyCharges`       | `folio_lines` through `DailyRevenueQuery`              | Range    | Landscape           | 31 days       |
 | Booking performance (planned) | `BookingPerformance` | reservations by booking date                           | Range    | Portrait            | 366 days      |
 
 - Revenue by transaction code is live for every date, open or closed, from `DailyRevenueQuery` (`app/Services/Reports/`), with grouping by day or month and drill-down to the lines. The night audit copies one closed date of the same query into `daily_revenue`.
@@ -231,7 +232,7 @@ report_layout_columns     id, report_layout_id (FK, cascade), column_key, positi
 
 - One layout per property and report, shared by every user. A printed report looks the same whoever prints it.
 - No row means the code defaults: `defaultOrientation()` and `columns()`.
-- `ReportLayoutResolver` (`app/Services/Reports/`) merges the stored rows with `columns()`. A column added later in code goes at the end with its default visibility. A stored key that is no longer in `columns()` is ignored.
+- `ReportLayoutResolver` (`app/Services/Reports/`) merges the stored rows with `columns()`. A column added later in code goes at the end with its default visibility. A `tax:` column goes before the column `ReportKey::taxColumnAnchor()` names (`adjustments` on Daily revenue, `total` on Daily charges). A stored key that is no longer in `columns()` is ignored.
 - At least one column stays visible.
 - **Alignment.** `ColumnAlign` has Left, Center and Right. The code sets a default for each column (numbers and money align right). A layout may override it with `report_layout_columns.align`. Null means "use the code default". A CHECK constraint allows only null, `left`, `center` or `right`. `ReportLayoutColumnData` carries `align` (the one that applies) and `defaultAlign` (the code default).
 - The report page gets the resolved layout as one `ReportLayoutData` prop (the orientation and the columns in order, each with `visible`), plus `canEditLayout`.

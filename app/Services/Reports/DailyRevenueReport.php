@@ -5,9 +5,8 @@ namespace App\Services\Reports;
 use App\Data\Reports\DailyRevenueReportRow;
 use App\Data\Reports\ReportFilters;
 use App\Data\Reports\ReportTotals;
+use App\Enums\ChargeBucket;
 use App\Enums\ReportGroup;
-use App\Enums\SystemTransactionCode;
-use App\Enums\TransactionCategory;
 use App\Enums\TransactionKind;
 use App\Models\Property;
 use App\Models\Tax;
@@ -21,7 +20,8 @@ use Carbon\CarbonImmutable;
  * (category Fee) or Extras (every other charge); tax lines go in one column for each tax of the property, keyed
  * `tax:{taxes.code}`; discounts and adjustments go in Adjustments. Total is the sum of the columns. Bookings is the
  * number of distinct reservations with a Charge or Adjustment line, and the total row counts distinct reservations over
- * the rows, not the sum. See docs/22-reports/02-guest-list-and-daily-report.md#revenue.
+ * the rows, not the sum. Each row carries its `from` and `to` (a month is cut to the dates asked for) for the
+ * drill-down to Charges. See docs/22-reports/02-guest-list-and-daily-report.md#revenue.
  */
 class DailyRevenueReport implements HasTotals, Report
 {
@@ -55,14 +55,13 @@ class DailyRevenueReport implements HasTotals, Report
                 if ($code !== null) {
                     $bucket['taxes'][$code] = $bucket['taxes'][$code]->plus($amount);
                 }
-            } elseif ($line['kind'] === TransactionKind::Adjustment->value) {
-                $bucket['adjustments'] = $bucket['adjustments']->plus($amount);
-            } elseif ($line['kind'] === TransactionKind::Charge->value) {
-                $column = match (true) {
-                    $line['systemKey'] === SystemTransactionCode::DayUseRevenue->value => 'day_use',
-                    $line['category'] === TransactionCategory::Room->value => 'accommodation',
-                    $line['category'] === TransactionCategory::Fee->value => 'fees',
-                    default => 'extras',
+            } elseif (($chargeBucket = ChargeBucket::forLine(TransactionKind::from($line['kind']), $line['category'], $line['systemKey'])) !== null) {
+                $column = match ($chargeBucket) {
+                    ChargeBucket::Accommodation => 'accommodation',
+                    ChargeBucket::DayUse => 'day_use',
+                    ChargeBucket::Fees => 'fees',
+                    ChargeBucket::Extras => 'extras',
+                    ChargeBucket::Adjustments => 'adjustments',
                 };
                 $bucket[$column] = $bucket[$column]->plus($amount);
             }
@@ -96,6 +95,8 @@ class DailyRevenueReport implements HasTotals, Report
                 taxes: array_map($this->format(...), $bucket['taxes']),
                 adjustments: $this->format($bucket['adjustments']),
                 total: $this->format($total),
+                from: $byMonth ? max($from->toDateString(), CarbonImmutable::parse("{$period}-01")->toDateString()) : $period,
+                to: $byMonth ? min($to->toDateString(), CarbonImmutable::parse("{$period}-01")->endOfMonth()->toDateString()) : $period,
                 reservationIds: $ids,
             );
         }

@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\Reports;
 
 use App\Data\Property\CurrencyData;
+use App\Data\Reports\DailyChargeRow;
 use App\Data\Reports\DailyRevenueReportRow;
+use App\Data\Reports\ReportFilters;
+use App\Enums\ChargeBucket;
 use App\Enums\PageOrientation;
 use App\Enums\PermissionEnum;
 use App\Enums\ReportGroup;
@@ -23,8 +26,8 @@ class DailyReportController extends Controller
 {
     /**
      * The Daily report page: the open tab (`?tab`, Overview when missing or wrong) for the chosen dates. Overview
-     * sends the cards only, Revenue its own report, and Cashier activity the Payments report with the Staff summary as
-     * the default.
+     * sends the cards only, Revenue and Charges their own reports (Charges also its bucket and search filters), and
+     * Cashier activity the Payments report with the Staff summary as the default.
      */
     public function __invoke(ReportFiltersRequest $request, Property $property, ReportPage $reportPage, ReportLayoutResolver $layoutResolver, DailyOverview $overview, PaymentsReportPage $payments): Response
     {
@@ -37,7 +40,7 @@ class DailyReportController extends Controller
 
         $props = [
             'tab' => $tab,
-            'tabs' => $this->tabs($property, $filters->from, $filters->to),
+            'tabs' => $this->tabs($property, $filters),
             'from' => $filters->from,
             'to' => $filters->to,
             'maxRangeDays' => $key->maxRangeDays(),
@@ -75,9 +78,18 @@ class DailyReportController extends Controller
             path: $request->url(),
         );
 
+        $isCharges = $tab === 'charges';
+
         return Inertia::render('reports/daily-report', [
             ...$props,
-            'rows' => DailyRevenueReportRow::collect($rows->withQueryString(), PaginatedDataCollection::class),
+            ...($isCharges ? [
+                'bucket' => $filters->bucket,
+                'bucketOptions' => ChargeBucket::options(),
+                'search' => $filters->search ?? '',
+            ] : []),
+            'rows' => $isCharges
+                ? DailyChargeRow::collect($rows->withQueryString(), PaginatedDataCollection::class)
+                : DailyRevenueReportRow::collect($rows->withQueryString(), PaginatedDataCollection::class),
             'totals' => $key->totals($allRows),
             'sort' => $sort,
             'layout' => $layout,
@@ -89,20 +101,22 @@ class DailyReportController extends Controller
     }
 
     /**
-     * Each tab with its label and link, keeping the dates.
+     * Each tab with its label and link, keeping the dates. The Charges tab takes 31 days at most, so its link keeps
+     * `to` and moves `from` back when the range is longer.
      *
      * @return list<array{value: string, label: string, href: string}>
      */
-    private function tabs(Property $property, string $from, string $to): array
+    private function tabs(Property $property, ReportFilters $filters): array
     {
-        $labels = ['overview' => __('Overview'), 'revenue' => __('Revenue'), 'cashier' => __('Cashier activity')];
+        $labels = ['overview' => __('Overview'), 'revenue' => __('Revenue'), 'charges' => __('Charges'), 'cashier' => __('Cashier activity')];
         $tabs = [];
 
-        foreach (array_keys(TabbedReport::DailyReport->tabs()) as $tab) {
+        foreach (TabbedReport::DailyReport->tabs() as $tab => $key) {
+            $from = $key->maxRangeDays() === null ? $filters->from : $filters->clampedFrom($key->maxRangeDays());
             $tabs[] = [
                 'value' => $tab,
                 'label' => $labels[$tab],
-                'href' => route('reports.daily-report', ['property' => $property->code, 'tab' => $tab, 'from' => $from, 'to' => $to], absolute: false),
+                'href' => route('reports.daily-report', ['property' => $property->code, 'tab' => $tab, 'from' => $from, 'to' => $filters->to], absolute: false),
             ];
         }
 

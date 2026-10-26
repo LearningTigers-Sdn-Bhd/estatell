@@ -16,8 +16,8 @@ use Illuminate\Validation\ValidationException;
 /**
  * Merges the stored layout of a property with the columns in code. With no stored row the code defaults apply. Stored
  * columns keep their order; a column added in code later goes at the end with its default visibility, except a `tax:`
- * column, which goes before the stored `adjustments` column; a stored key that code no longer has is ignored. It
- * reads only. See docs/22-reports/01-core-reports.md.
+ * column, which goes before the stored column `ReportKey::taxColumnAnchor()` names (Adjustments or Total); a stored
+ * key that code no longer has is ignored. It reads only. See docs/22-reports/01-core-reports.md.
  */
 class ReportLayoutResolver
 {
@@ -50,6 +50,7 @@ class ReportLayoutResolver
             $byKey[$column->key] = $column;
         }
 
+        $anchor = $layout->report_key->taxColumnAnchor();
         $columns = [];
 
         foreach ($layout->columns as $stored) {
@@ -64,7 +65,7 @@ class ReportLayoutResolver
             $data = ReportLayoutColumnData::fromColumn($column, $column->defaultVisible);
 
             if (str_starts_with($column->key, 'tax:')) {
-                array_splice($columns, $this->taxColumnPosition($columns), 0, [$data]);
+                array_splice($columns, $this->taxColumnPosition($columns, $anchor), 0, [$data]);
             } else {
                 $columns[] = $data;
             }
@@ -74,15 +75,15 @@ class ReportLayoutResolver
     }
 
     /**
-     * Where a new tax column goes: right before the stored Adjustments column, or at the end when there is none. A
-     * second new tax column then lands after the first, so several keep code order.
+     * Where a new tax column goes: right before the stored anchor column, or at the end when there is none. A second
+     * new tax column then lands after the first, so several keep code order.
      *
      * @param  list<ReportLayoutColumnData>  $columns
      */
-    private function taxColumnPosition(array $columns): int
+    private function taxColumnPosition(array $columns, ?string $anchor): int
     {
         foreach ($columns as $index => $column) {
-            if ($column->key === 'adjustments') {
+            if ($column->key === $anchor) {
                 return $index;
             }
         }

@@ -32,7 +32,7 @@ class DailyRevenueQuery
     {
         $currency = $this->currency($property);
 
-        return $this->lines($property, $from, $to)
+        return $this->ledgerLinesBetween($property, $from, $to)
             ->where('folio_lines.kind', '!=', TransactionKind::Payment->value)
             ->groupBy('folio_lines.posting_date', 'folio_lines.transaction_code_id')
             ->orderBy('folio_lines.posting_date')
@@ -95,7 +95,7 @@ class DailyRevenueQuery
      */
     public function bucketLinesBetween(Property $property, CarbonInterface $from, CarbonInterface $to): array
     {
-        $lines = $this->lines($property, $from, $to)
+        $lines = $this->ledgerLinesBetween($property, $from, $to)
             ->join('transaction_codes', 'transaction_codes.id', '=', 'folio_lines.transaction_code_id')
             ->where('folio_lines.kind', '!=', TransactionKind::Payment->value)
             ->groupBy('folio_lines.posting_date', 'folio_lines.kind', 'folio_lines.transaction_code_id', 'transaction_codes.category', 'transaction_codes.system_key')
@@ -124,7 +124,7 @@ class DailyRevenueQuery
      */
     public function bookingIdsBetween(Property $property, CarbonInterface $from, CarbonInterface $to, bool $byMonth = false): array
     {
-        $pairs = $this->lines($property, $from, $to)
+        $pairs = $this->ledgerLinesBetween($property, $from, $to)
             ->whereIn('folio_lines.kind', [TransactionKind::Charge->value, TransactionKind::Adjustment->value])
             ->distinct()
             ->select('folio_lines.posting_date as date', 'folios.reservation_id')
@@ -176,7 +176,7 @@ class DailyRevenueQuery
             return [];
         }
 
-        $amounts = $this->lines($property, $from, $to)
+        $amounts = $this->ledgerLinesBetween($property, $from, $to)
             ->where('folio_lines.kind', '!=', TransactionKind::Payment->value)
             ->leftJoin('folio_lines as parent_lines', 'parent_lines.id', '=', 'folio_lines.parent_line_id')
             ->where(fn (Builder $lines) => $lines
@@ -198,12 +198,14 @@ class DailyRevenueQuery
     }
 
     /**
-     * The ledger lines of the property posted from one date to another, both included. Lines copied from the old system
-     * and the Opening balance code are left out: those days belong to the old PMS.
+     * The ledger lines of the property posted from one date to another, both included, joined to their folio. Lines
+     * copied from the old system and the Opening balance code are left out: those days belong to the old PMS. This is
+     * the one definition of that filter: every revenue figure, and the Charges tab, read from it. Payments are still
+     * in; the caller filters on the kind.
      *
      * @return Builder<FolioLine>
      */
-    private function lines(Property $property, CarbonInterface $from, CarbonInterface $to): Builder
+    public function ledgerLinesBetween(Property $property, CarbonInterface $from, CarbonInterface $to): Builder
     {
         return FolioLine::query()
             ->join('folios', 'folios.id', '=', 'folio_lines.folio_id')

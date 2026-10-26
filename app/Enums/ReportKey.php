@@ -14,6 +14,7 @@ use App\Models\Tax;
 use App\Services\Reports\ArrivalsReport;
 use App\Services\Reports\BoatManifestReport;
 use App\Services\Reports\CheckedOutReport;
+use App\Services\Reports\DailyChargesReport;
 use App\Services\Reports\DailyRevenueReport;
 use App\Services\Reports\DeparturesReport;
 use App\Services\Reports\DepositLiabilityReport;
@@ -60,6 +61,7 @@ enum ReportKey: string
     case BoatManifest = 'boat-manifest';
     case CheckedOut = 'checked-out';
     case DailyRevenue = 'daily-revenue';
+    case DailyCharges = 'daily-charges';
 
     public function label(): string
     {
@@ -82,6 +84,7 @@ enum ReportKey: string
             self::BoatManifest => __('Boat manifest'),
             self::CheckedOut => __('Checked out'),
             self::DailyRevenue => __('Daily revenue'),
+            self::DailyCharges => __('Daily charges'),
         };
     }
 
@@ -89,7 +92,7 @@ enum ReportKey: string
     {
         return match ($this) {
             self::Arrivals, self::Departures, self::InHouse, self::PoliceReport, self::HousekeepingTasks, self::BoatManifest, self::CheckedOut => ReportCategory::FrontDesk,
-            self::Occupancy, self::Revenue, self::Tax, self::NonNationalGuests, self::DailyRevenue => ReportCategory::Revenue,
+            self::Occupancy, self::Revenue, self::Tax, self::NonNationalGuests, self::DailyRevenue, self::DailyCharges => ReportCategory::Revenue,
             self::Payments, self::FolioLedger, self::OutstandingBalance, self::DepositLiability => ReportCategory::Finance,
             self::MealCounts => ReportCategory::Kitchen,
             self::NightAuditHistory => ReportCategory::Audit,
@@ -100,7 +103,7 @@ enum ReportKey: string
     {
         return match ($this) {
             self::Arrivals, self::Departures, self::InHouse, self::Occupancy, self::Revenue, self::Payments, self::MealCounts, self::BoatManifest, self::CheckedOut => PageOrientation::Portrait,
-            self::FolioLedger, self::Tax, self::NightAuditHistory, self::OutstandingBalance, self::DepositLiability, self::NonNationalGuests, self::PoliceReport, self::HousekeepingTasks, self::DailyRevenue => PageOrientation::Landscape,
+            self::FolioLedger, self::Tax, self::NightAuditHistory, self::OutstandingBalance, self::DepositLiability, self::NonNationalGuests, self::PoliceReport, self::HousekeepingTasks, self::DailyRevenue, self::DailyCharges => PageOrientation::Landscape,
         };
     }
 
@@ -115,7 +118,7 @@ enum ReportKey: string
             self::Arrivals => 'arrival',
             self::Departures => 'departure',
             self::InHouse => 'room',
-            self::Occupancy => 'date',
+            self::Occupancy, self::DailyCharges => 'date',
             self::Revenue, self::Tax, self::DailyRevenue => 'period',
             self::FolioLedger, self::MealCounts => 'date',
             self::NightAuditHistory => '-date',
@@ -134,7 +137,7 @@ enum ReportKey: string
     public function maxRangeDays(): ?int
     {
         return match ($this) {
-            self::Arrivals, self::Departures, self::FolioLedger, self::MealCounts, self::NonNationalGuests, self::PoliceReport, self::CheckedOut => 31,
+            self::Arrivals, self::Departures, self::FolioLedger, self::MealCounts, self::NonNationalGuests, self::PoliceReport, self::CheckedOut, self::DailyCharges => 31,
             self::InHouse, self::OutstandingBalance, self::DepositLiability, self::HousekeepingTasks, self::BoatManifest => null,
             self::Occupancy, self::Revenue, self::Payments, self::Tax, self::NightAuditHistory, self::DailyRevenue => 366,
         };
@@ -199,6 +202,15 @@ enum ReportKey: string
     }
 
     /**
+     * Whether the report takes `?bucket` (a charge bucket) and `?search` (a booking number or guest name). Other
+     * reports ignore them.
+     */
+    public function hasChargeFilters(): bool
+    {
+        return $this === self::DailyCharges;
+    }
+
+    /**
      * Whether the report takes `?foreign` (foreign guests only). Other reports ignore it.
      */
     public function hasForeignFilter(): bool
@@ -257,8 +269,22 @@ enum ReportKey: string
     }
 
     /**
+     * The key of the column the `tax:{code}` columns go before, or null for a report that has no tax columns:
+     * Adjustments on Daily revenue, Total on Daily charges. `columnsFor()` and `ReportLayoutResolver` both use it.
+     */
+    public function taxColumnAnchor(): ?string
+    {
+        return match ($this) {
+            self::DailyRevenue => 'adjustments',
+            self::DailyCharges => 'total',
+            default => null,
+        };
+    }
+
+    /**
      * The columns of the report that are on for the property: `columns()` without the ones whose feature is off. Daily
-     * revenue also gets one `tax:{code}` column for each tax of the property, before Adjustments.
+     * revenue and Daily charges also get one `tax:{code}` column for each tax of the property, before the column
+     * `taxColumnAnchor()` names.
      *
      * @return list<ReportColumn>
      */
@@ -269,14 +295,16 @@ enum ReportKey: string
             fn (ReportColumn $column): bool => $column->feature === null || Feature::for($property)->active($column->feature),
         ));
 
-        if ($this !== self::DailyRevenue) {
+        $anchor = $this->taxColumnAnchor();
+
+        if ($anchor === null) {
             return $columns;
         }
 
         $taxColumns = Tax::query()->where('property_id', $property->id)->orderBy('id')->get(['code', 'name'])
             ->map(fn (Tax $tax): ReportColumn => new ReportColumn("tax:{$tax->code}", $tax->name, ColumnAlign::Right, true))
             ->all();
-        $at = array_search('adjustments', array_column($columns, 'key'), true);
+        $at = array_search($anchor, array_column($columns, 'key'), true);
 
         array_splice($columns, $at === false ? count($columns) : $at, 0, $taxColumns);
 
@@ -327,6 +355,21 @@ enum ReportKey: string
                 new ReportColumn('extras', __('Extras'), ColumnAlign::Right, true),
                 new ReportColumn('adjustments', __('Adjustments'), ColumnAlign::Right, true),
                 new ReportColumn('total', __('Total'), ColumnAlign::Right, true),
+            ],
+            self::DailyCharges => [
+                new ReportColumn('date', __('Date'), ColumnAlign::Left, true),
+                new ReportColumn('charge', __('Charge'), ColumnAlign::Left, true),
+                new ReportColumn('booking', __('Booking'), ColumnAlign::Left, true),
+                new ReportColumn('guest', __('Guest / payer'), ColumnAlign::Left, true),
+                new ReportColumn('base', __('Base'), ColumnAlign::Right, true),
+                new ReportColumn('discount', __('Discount'), ColumnAlign::Right, true),
+                new ReportColumn('total', __('Total'), ColumnAlign::Right, true),
+                new ReportColumn('bucket', __('Bucket'), ColumnAlign::Left, false),
+                new ReportColumn('folio', __('Folio'), ColumnAlign::Left, false),
+                new ReportColumn('room', __('Room'), ColumnAlign::Left, false),
+                new ReportColumn('code', __('Code'), ColumnAlign::Left, false),
+                new ReportColumn('status', __('Status'), ColumnAlign::Left, false),
+                new ReportColumn('staff', __('Staff'), ColumnAlign::Left, false),
             ],
             self::Arrivals => [
                 new ReportColumn('reservation', __('Reservation no.'), ColumnAlign::Left, true),
@@ -557,7 +600,7 @@ enum ReportKey: string
      */
     public function listedInReportsMenu(): bool
     {
-        return ! in_array($this, [self::HousekeepingTasks, self::Arrivals, self::Departures, self::InHouse, self::CheckedOut, self::DailyRevenue], true);
+        return ! in_array($this, [self::HousekeepingTasks, self::Arrivals, self::Departures, self::InHouse, self::CheckedOut, self::DailyRevenue, self::DailyCharges], true);
     }
 
     /**
@@ -584,6 +627,7 @@ enum ReportKey: string
             self::BoatManifest => 'ship',
             self::CheckedOut => 'door-open',
             self::DailyRevenue => 'chart-column',
+            self::DailyCharges => 'receipt',
         };
     }
 
@@ -608,6 +652,7 @@ enum ReportKey: string
             self::BoatManifest => app(BoatManifestReport::class),
             self::CheckedOut => app(CheckedOutReport::class),
             self::DailyRevenue => app(DailyRevenueReport::class),
+            self::DailyCharges => app(DailyChargesReport::class),
         };
     }
 

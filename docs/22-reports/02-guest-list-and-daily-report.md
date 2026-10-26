@@ -163,7 +163,7 @@ The owner of a line:
 
 1. A line with no parent that is not the reversal of a child is its own owner: a charge, a top-level adjustment, or (as a fallback) a parentless tax.
 2. A line with a parent belongs to the parent's owner: inline discounts, taxes, and the reversals of children (`ReverseLine` gives a child's reversal the parent's reversal as its parent).
-3. A Tax or Adjustment reversal with no parent and `reversal_of_id` set (`RemoveLineTax`, `RecalculateLineTax`) belongs to the owner of the line it reverses.
+3. A Tax or Adjustment reversal with no parent and `reversal_of_id` set (`RemoveLineTax`, `RecalculateLineTax`) belongs to the owner of the line it reverses, when that line is a child that is not an owner. The reversal of an owner line (a top-level adjustment, a later discount) is a row of its own.
 4. An Adjustment child that has Tax children of its own is a later discount (`ApplyDiscount`): it is its own owner, bucket Adjustments. "Has Tax children" is the test, because `ApplyDiscount` skips flat taxes.
 
 The chain walk stops after 4 steps, and a line is never dropped. Owners outside the range, and migrated owners of non-migrated children, are loaded by id with no migrated filter.
@@ -182,21 +182,22 @@ The chain walk stops after 4 steps, and a line is never dropped. Owners outside 
 
 - The row key is a line id: the owner's id on the owner's own date, else the lowest line id of the row.
 - **Base** is the owner line amount on its own date, else 0. **Total** is Base + Discount + every tax. A flat tax column shows its amount.
-- **Guest / payer** follows the Folio ledger: the company of a company folio, else the payer guest, else the booker. A line with no reservation shows the folio number.
+- **Guest / payer** follows the Folio ledger: the company of a company folio, else the payer guest, else the booker. Every folio has a reservation.
 - **Bucket** comes from a shared `ChargeBucket` enum (Accommodation, Day use, Fees, Extras, Adjustments) with `forLine(kind, category, systemKey)`. The Revenue tab uses the same enum, so the two tabs cannot drift.
 - **Status** (`ChargeStatus`): **Moved** when `transfer_group_id` is set, else **Reversal** when `reversal_of_id` is set, else **Posted**. Moved is checked first, so a move shows as one Moved pair.
+- A parentless tax owner (a fallback) has no bucket: its Bucket is empty and no bucket filter matches it.
 
 **Columns.** Visible: Date, Charge (the line description), Booking, Guest / payer, Base, Discount, one `tax:{taxes.code}` column for each tax of the property, Total. Hidden: Bucket, Folio, Room, Code, Status, Staff. Tax is charged on the price after the discount, so the taxes come after Discount and before Total. `ReportKey::taxColumnAnchor()` names the column the taxes go before (`adjustments` for Daily revenue, `total` for Charges); `columnsFor()` and `ReportLayoutResolver` both use it, so a new tax column joins a saved layout before that column.
 
 **Filters.**
 
 - `bucket` (`accommodation`, `day-use`, `fees`, `extras`, `adjustments`; none for all): a Select in the toolbar. It filters the rows and the totals.
-- `search`: the booking number or the Guest / payer name, `ILIKE` on the server with `%` and `_` escaped, at most 100 characters, so it covers every page. `bucket` is applied after the owners are found.
+- `search`: the booking number or the Guest / payer name, a case-insensitive substring match on the server after the rows are built (31 days keeps them few), at most 100 characters, so it covers every page and `%` or `_` match literally. `bucket` is also applied after the owners are found.
 - Both are typed on `ReportFilters` (`?ChargeBucket $bucket`, `?string $search`) behind `ReportKey::hasChargeFilters()`, stay in the URL, the exports and the layout preview, and clear the row selection when they change.
 
 **Dates.** The tab takes 31 days at most. A Charges tab link built from a longer Revenue range keeps `to` and moves `from` to 30 days before it (`ReportFilters::clampedFrom()`, used by the tab link and the drill-down).
 
-**Drill-down.** On the Revenue tab, each bucket cell of a row opens Charges for that date (or month, cut to 31 days) and bucket. A tax cell opens Charges for that date with no bucket. Each Revenue row carries its own `from` and `to`, so the browser only builds the link.
+**Drill-down.** On the Revenue tab, each bucket cell of a row opens Charges for that date (or month, cut to the dates asked for and to 31 days) and bucket. A tax cell opens Charges for that date with no bucket. Each Revenue row carries its own `from` and `to`, so the browser only builds the link.
 
 **Totals.** Base, Discount, each tax and Total. With no filter, **Total and each tax column** equal the Revenue tab for the same dates (a test checks this). The Revenue Adjustments column equals the Discount total plus the Base of the Adjustments rows, so it has no column of its own here. With a filter the totals cover only the matching rows.
 

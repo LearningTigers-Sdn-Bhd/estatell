@@ -4,6 +4,7 @@ namespace App\Http\Requests\Reports;
 
 use App\Data\Reports\ReportFilters;
 use App\Enums\BoatDirection;
+use App\Enums\ChargeBucket;
 use App\Enums\ReportGroup;
 use App\Enums\ReportKey;
 use App\Enums\TabbedReport;
@@ -27,6 +28,8 @@ use LogicException;
  * the property. Other reports ignore `code`.
  * A report with payment filters (`ReportKey::hasPaymentFilters()`) also takes `staff`, which must be a user of the
  * property, and `refunds` (1 for refunds only). Other reports ignore them.
+ * A report with charge filters (`ReportKey::hasChargeFilters()`, Daily report › Charges) also takes `bucket` (a
+ * `ChargeBucket`) and `search` (at most 100 characters). Other reports ignore them.
  * A report with a foreign filter (`ReportKey::hasForeignFilter()`, the Police report) also takes `foreign` (1 for foreign
  * guests only). Other reports ignore it.
  * The report is the `{report}` route parameter, or the slug after `reports.` in the route name. On a `TabbedReport`
@@ -59,6 +62,10 @@ class ReportFiltersRequest extends FormRequest
                 'refunds' => ['nullable', 'boolean'],
             ] : []),
             ...($this->reportKey()->hasForeignFilter() ? ['foreign' => ['nullable', 'boolean']] : []),
+            ...($this->reportKey()->hasChargeFilters() ? [
+                'bucket' => ['nullable', Rule::enum(ChargeBucket::class)],
+                'search' => ['nullable', 'string', 'max:100'],
+            ] : []),
             ...($this->reportKey()->hasDirectionFilter() ? ['direction' => ['nullable', Rule::enum(BoatDirection::class)]] : []),
             ...($groups === [] ? [] : ['group' => ['nullable', Rule::in(array_map(fn (ReportGroup $group): string => $group->value, $groups))]]),
         ];
@@ -133,7 +140,7 @@ class ReportFiltersRequest extends FormRequest
             $date = $this->input('date');
             $date = is_string($date) && $date !== '' ? $date : $this->businessDate();
 
-            return new ReportFilters(from: $date, to: $date, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly(), foreignOnly: $this->foreignOnly(), direction: $this->direction());
+            return new ReportFilters(from: $date, to: $date, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly(), foreignOnly: $this->foreignOnly(), direction: $this->direction(), bucket: $this->bucket(), search: $this->search());
         }
 
         $from = $this->input('from');
@@ -143,7 +150,30 @@ class ReportFiltersRequest extends FormRequest
         $default = $this->businessDate();
         $defaultFrom = Date::parse($default)->subDays($this->reportKey()->defaultDays() - 1)->toDateString();
 
-        return new ReportFilters(from: $from ?? $to ?? $defaultFrom, to: $to ?? $from ?? $default, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly(), foreignOnly: $this->foreignOnly(), direction: $this->direction());
+        return new ReportFilters(from: $from ?? $to ?? $defaultFrom, to: $to ?? $from ?? $default, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly(), foreignOnly: $this->foreignOnly(), direction: $this->direction(), bucket: $this->bucket(), search: $this->search());
+    }
+
+    /**
+     * The charge bucket of Daily report › Charges: the `bucket` in the URL, or null for every bucket.
+     */
+    private function bucket(): ?ChargeBucket
+    {
+        return $this->reportKey()->hasChargeFilters() ? ChargeBucket::tryFrom($this->string('bucket')->toString()) : null;
+    }
+
+    /**
+     * The search text of Daily report › Charges: the trimmed `search` in the URL, cut to 100 characters, or null when
+     * it is empty.
+     */
+    private function search(): ?string
+    {
+        if (! $this->reportKey()->hasChargeFilters()) {
+            return null;
+        }
+
+        $search = mb_substr(trim($this->string('search')->toString()), 0, 100);
+
+        return $search === '' ? null : $search;
     }
 
     /**

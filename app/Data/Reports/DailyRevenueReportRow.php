@@ -12,7 +12,8 @@ use Spatie\TypeScriptTransformer\Attributes\Hidden as HiddenFromTypeScript;
  * One row of Daily report › Revenue: one date, or one month. The property names are the column keys of
  * `ReportKey::DailyRevenue`; a tax column `tax:{code}` reads `taxes[code]`. `period` is `Y-m-d` for a day and `Y-m` for
  * a month. `key` is the period. `reservationIds` are the reservations behind `bookings`, kept so the total row can
- * count distinct reservations; they are not sent to the page.
+ * count distinct reservations; they are not sent to the page. `from` and `to` are the first and last date (`Y-m-d`) of
+ * the row inside the dates asked for, so the page can link a cell to Daily report › Charges for exactly those lines.
  */
 class DailyRevenueReportRow extends Data implements ReportRow
 {
@@ -32,6 +33,8 @@ class DailyRevenueReportRow extends Data implements ReportRow
         public array $taxes,
         public string $adjustments,
         public string $total,
+        public string $from,
+        public string $to,
         #[Hidden, HiddenFromTypeScript]
         public array $reservationIds = [],
     ) {}

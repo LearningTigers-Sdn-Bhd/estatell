@@ -2,6 +2,7 @@
 
 use App\Data\Reports\ReportColumn;
 use App\Enums\ColumnAlign;
+use App\Enums\ReportKey;
 use App\Models\ReportLayout;
 use App\Models\ReportLayoutColumn;
 use App\Services\Reports\ReportLayoutResolver;
@@ -9,9 +10,9 @@ use App\Services\Reports\ReportLayoutResolver;
 /**
  * @param  list<string>  $keys
  */
-function storedLayout(array $keys): ReportLayout
+function storedLayout(array $keys, ReportKey $report = ReportKey::DailyRevenue): ReportLayout
 {
-    $layout = ReportLayout::factory()->create();
+    $layout = ReportLayout::factory()->create(['report_key' => $report]);
 
     foreach ($keys as $position => $key) {
         ReportLayoutColumn::factory()->create(['report_layout_id' => $layout->id, 'column_key' => $key, 'position' => $position]);
@@ -55,4 +56,17 @@ test('other new columns still go last and stored tax columns keep their place', 
 
     expect(resolvedKeys($layout, ['period', 'tax:SST', 'tax:TTX', 'adjustments', 'notes']))
         ->toBe(['tax:SST', 'period', 'tax:TTX', 'adjustments', 'notes']);
+});
+
+test('a new tax column goes before the stored total column on Daily charges', function () {
+    $layout = storedLayout(['date', 'base', 'total', 'staff'], ReportKey::DailyCharges);
+
+    expect(resolvedKeys($layout, ['date', 'base', 'tax:SST', 'tax:TTX', 'adjustments', 'total', 'staff']))
+        ->toBe(['date', 'base', 'tax:SST', 'tax:TTX', 'total', 'staff', 'adjustments']);
+});
+
+test('a report without a tax anchor puts a new tax column last', function () {
+    $layout = storedLayout(['period', 'adjustments'], ReportKey::Arrivals);
+
+    expect(resolvedKeys($layout, ['period', 'tax:SST', 'adjustments']))->toBe(['period', 'adjustments', 'tax:SST']);
 });

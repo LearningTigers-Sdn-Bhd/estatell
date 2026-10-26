@@ -1,11 +1,12 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { ChartColumn, LayoutDashboard, Wallet } from 'lucide-react';
+import { ChartColumn, LayoutDashboard, Receipt, Wallet } from 'lucide-react';
 import { useMemo } from 'react';
 import { DateRangePicker } from '@/components/pms/date-range-picker';
 import { DateText } from '@/components/pms/date-text';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { MoneyText } from '@/components/pms/money-text';
 import { PageHeader } from '@/components/pms/page-header';
+import { ReportCellLink } from '@/components/pms/reports/report-cell-link';
 import { ReportPeriod } from '@/components/pms/reports/report-period';
 import { ReportScreen } from '@/components/pms/reports/report-screen';
 import type {
@@ -22,6 +23,7 @@ type Currency = App.Data.Property.CurrencyData | null;
 type Layout = App.Data.Reports.ReportLayoutData;
 type RevenueRow = App.Data.Reports.DailyRevenueReportRow;
 type PaymentRow = App.Data.Reports.PaymentRow;
+type ChargeRow = App.Data.Reports.DailyChargeRow;
 
 type Tab = { value: string; label: string; href: string };
 
@@ -33,7 +35,10 @@ type Props = {
     maxRangeDays: number | null;
     currency: Currency;
     overview?: App.Data.Reports.DailyOverviewData;
-    rows?: Illuminate.LengthAwarePaginator<number, RevenueRow | PaymentRow>;
+    rows?: Illuminate.LengthAwarePaginator<
+        number,
+        RevenueRow | PaymentRow | ChargeRow
+    >;
     totals?: App.Data.Reports.ReportTotals | null;
     breakdown?: App.Data.Reports.ReportBreakdown | null;
     sort?: string;
@@ -45,11 +50,15 @@ type Props = {
     staff?: string;
     staffOptions?: EnumOption[];
     refundsOnly?: boolean;
+    bucket?: App.Enums.ChargeBucket | null;
+    bucketOptions?: EnumOption[];
+    search?: string;
 };
 
 const icons = {
     overview: LayoutDashboard,
     revenue: ChartColumn,
+    charges: Receipt,
     cashier: Wallet,
 } as const;
 
@@ -68,7 +77,18 @@ const paymentTotalCells: ReportTotalCells = {
     amount: (figure, currency) => money(String(figure), currency),
 };
 
-/** The cells of the revenue table. The tax columns have a dynamic key, so they come from the layout. */
+const drillBuckets: Record<string, App.Enums.ChargeBucket> = {
+    accommodation: 'accommodation',
+    day_use: 'day-use',
+    fees: 'fees',
+    extras: 'extras',
+    adjustments: 'adjustments',
+};
+
+/**
+ * The cells of the revenue table. The tax columns have a dynamic key, so they come from the layout. A bucket cell opens
+ * Daily report › Charges for the dates of its row and that bucket; a tax cell opens it for the dates with no bucket.
+ */
 function revenueCells(layout: Layout): {
     cells: ReportCells<RevenueRow>;
     totalCells: ReportTotalCells;
@@ -84,16 +104,79 @@ function revenueCells(layout: Layout): {
         }
 
         const code = column.key.startsWith('tax:') ? column.key.slice(4) : null;
+        const bucket = drillBuckets[column.key];
 
-        cells[column.key] = (row, currency) =>
-            money(
+        cells[column.key] = (row, currency) => {
+            const amount = money(
                 code === null
                     ? (row as unknown as Record<string, string>)[column.key]
                     : (row.taxes[code] ?? '0.00'),
                 currency,
             );
+
+            if (code === null && bucket === undefined) {
+                return amount;
+            }
+
+            return (
+                <ReportCellLink
+                    href={dailyReport(undefined, {
+                        query: {
+                            tab: 'charges',
+                            from: row.from,
+                            to: row.to,
+                            ...(bucket ? { bucket } : {}),
+                        },
+                    })}
+                >
+                    {amount}
+                </ReportCellLink>
+            );
+        };
         totalCells[column.key] = (figure, currency) =>
             money(String(figure), currency);
+    }
+
+    return { cells, totalCells };
+}
+
+/** The cells of the charges table. A tax the row has no amount of shows a dash. */
+function chargeCells(layout: Layout): {
+    cells: ReportCells<ChargeRow>;
+    totalCells: ReportTotalCells;
+} {
+    const cells: ReportCells<ChargeRow> = {
+        date: (row) => <DateText date={row.date} />,
+        charge: (row) => <span className="font-medium">{row.charge}</span>,
+        base: (row, currency) => money(row.base, currency),
+        discount: (row, currency) => money(row.discount, currency),
+        total: (row, currency) => money(row.total, currency),
+        status: (row) => <StatusBadge status={row.status} />,
+    };
+    const totalCells: ReportTotalCells = {};
+
+    for (const column of layout.columns) {
+        if (column.key.startsWith('tax:')) {
+            const code = column.key.slice(4);
+
+            cells[column.key] = (row, currency) => {
+                const amount = row.taxes[code];
+
+                return amount === undefined || Number(amount) === 0 ? (
+                    <span className="text-muted-foreground">—</span>
+                ) : (
+                    money(amount, currency)
+                );
+            };
+        }
+
+        if (
+            column.key.startsWith('tax:') ||
+            ['base', 'discount', 'total'].includes(column.key)
+        ) {
+            totalCells[column.key] = (figure, currency) =>
+                money(String(figure), currency);
+        }
     }
 
     return { cells, totalCells };
@@ -219,6 +302,10 @@ export default function DailyReport({ tab, tabs, ...props }: Props) {
         () => (props.layout ? revenueCells(props.layout) : null),
         [props.layout],
     );
+    const charges = useMemo(
+        () => (props.layout ? chargeCells(props.layout) : null),
+        [props.layout],
+    );
     const label = tabs.find((item) => item.value === tab)?.label ?? 'Overview';
     const screen = {
         title: label,
@@ -232,14 +319,24 @@ export default function DailyReport({ tab, tabs, ...props }: Props) {
                   emptyTitle: 'No payments in these dates',
                   emptyDescription: 'Pick another range to see payments.',
               }
-            : {
-                  report: 'daily-revenue' as const,
-                  description:
-                      'Revenue for each date, live from the folio ledger by posting date, with one column for each tax.',
-                  emptyIcon: ChartColumn,
-                  emptyTitle: 'No revenue in these dates',
-                  emptyDescription: 'Pick another range to see revenue.',
-              }),
+            : tab === 'charges'
+              ? {
+                    report: 'daily-charges' as const,
+                    description:
+                        'Every charge, discount and adjustment for the dates, live from the folio ledger by posting date, with its taxes.',
+                    emptyIcon: Receipt,
+                    emptyTitle: 'No charges in these dates',
+                    emptyDescription:
+                        'Pick another range or clear the filters to see charges.',
+                }
+              : {
+                    report: 'daily-revenue' as const,
+                    description:
+                        'Revenue for each date, live from the folio ledger by posting date, with one column for each tax.',
+                    emptyIcon: ChartColumn,
+                    emptyTitle: 'No revenue in these dates',
+                    emptyDescription: 'Pick another range to see revenue.',
+                }),
     };
 
     return (
@@ -307,6 +404,38 @@ export default function DailyReport({ tab, tabs, ...props }: Props) {
                                 query={{ tab }}
                                 cells={paymentCells}
                                 totalCells={paymentTotalCells}
+                                {...screen}
+                            />
+                        ) : tab === 'charges' ? (
+                            <ReportScreen
+                                key={tab}
+                                {...(props as Required<
+                                    Pick<
+                                        Props,
+                                        | 'layout'
+                                        | 'sort'
+                                        | 'canEditLayout'
+                                        | 'orientationOptions'
+                                    >
+                                >)}
+                                rows={
+                                    props.rows as Illuminate.LengthAwarePaginator<
+                                        number,
+                                        ChargeRow
+                                    >
+                                }
+                                from={props.from}
+                                to={props.to}
+                                maxRangeDays={props.maxRangeDays}
+                                currency={props.currency}
+                                totals={props.totals}
+                                bucket={props.bucket}
+                                bucketOptions={props.bucketOptions}
+                                search={props.search ?? ''}
+                                embedded
+                                query={{ tab }}
+                                cells={charges?.cells}
+                                totalCells={charges?.totalCells}
                                 {...screen}
                             />
                         ) : (
