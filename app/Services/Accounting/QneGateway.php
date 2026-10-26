@@ -155,6 +155,9 @@ class QneGateway implements AccountingGateway
             'docDate' => $receipt->date->toDateString().'T00:00:00',
             'referenceNo' => mb_substr($receipt->reference, 0, 50),
             'description' => mb_substr($receipt->description, 0, 250),
+            // QNE only reads `multiPayments` when the flag is on, and checks the knockoff against the totals sent here.
+            'isMultiPayment' => true,
+            ...$this->totals((float) $receipt->amount),
             'multiPayments' => [[
                 'accountId' => $bank,
                 'description' => mb_substr($receipt->description, 0, 250),
@@ -229,8 +232,17 @@ class QneGateway implements AccountingGateway
             'customerId' => $customerId,
             'docId' => $invoice->id,
             'docType' => $invoice->type ?? 'INV',
+            'docCode' => $this->invoiceCode($invoice->id),
             'paymentAmount' => (float) $amount,
         ];
+    }
+
+    /**
+     * The document number of a sent invoice. QNE needs it on a knockoff (`PayForDocCode`), and estatell keeps only the id.
+     */
+    private function invoiceCode(string $id): string
+    {
+        return (string) ($this->get('api/Invoices/'.$id)['docCode'] ?? '');
     }
 
     private function accountId(string $code): string

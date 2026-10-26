@@ -97,6 +97,7 @@ function fakeBilling(AccountingProvider $provider): void
             '*/api/*/New*' => $envelope(['currencyId' => 1]),
             '*/api/Customers/Create*' => fn () => $envelope(['id' => 700 + ++$next]),
             '*/api/Invoices/Create*' => fn () => $envelope(['id' => 'inv-'.++$next, 'docType' => 'INV']),
+            '*/api/Invoices/inv-*' => $envelope(['docCode' => 'INV-0001']),
             '*/api/ARCNs/Create*' => fn () => $envelope(['id' => 'cn-'.++$next, 'docType' => 'ARCN']),
             '*/api/ARReceipts/Create*' => fn () => $envelope(['id' => 'rc-'.++$next, 'docType' => 'OR']),
             '*/Void*' => $envelope([]),
