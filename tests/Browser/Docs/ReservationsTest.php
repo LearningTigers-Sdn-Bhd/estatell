@@ -20,11 +20,33 @@ test('reservation list', function () {
         ->screenshot(filename: 'reservations/reservation-list');
 });
 
+test('new menu', function () {
+    visit(route('reservations.index', $this->property))
+        ->resize(1440, 900)
+        ->click('New')
+        ->assertSee('Walk-in')
+        ->screenshot(filename: 'reservations/new-menu');
+});
+
 test('new booking form', function () {
     visit(route('reservations.new', $this->property))
         ->resize(1440, 900)
         ->assertNoJavaScriptErrors()
         ->screenshot(filename: 'reservations/new-booking');
+});
+
+test('new booking form with a priced line', function () {
+    visit(route('reservations.new', $this->property))
+        ->resize(1440, 900)
+        ->click('Pick a date')
+        ->click('[role="dialog"] button:text-is("16")')
+        ->click('Select room type')
+        ->click('Garden Room')
+        ->click('Select rate plan')
+        ->click('Bed & Breakfast')
+        ->waitForText('MYR 480.00')
+        ->assertNoJavaScriptErrors()
+        ->screenshot(filename: 'reservations/new-booking-priced');
 });
 
 test('group reservation page', function () {

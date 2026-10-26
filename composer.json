@@ -99,6 +99,12 @@
             "@types:check",
             "@php artisan test --parallel --processes=4 --recreate-databases"
         ],
+        "docs:screenshots": [
+            "Composer\\Config::disableProcessTimeout",
+            "@php artisan test --testsuite=Browser",
+            "mkdir -p \"${DOCS_REPO:-../estatell-docs}/public/screenshots\"",
+            "rsync -a --exclude='/*.png' tests/Browser/Screenshots/ \"${DOCS_REPO:-../estatell-docs}/public/screenshots/\""
+        ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"
