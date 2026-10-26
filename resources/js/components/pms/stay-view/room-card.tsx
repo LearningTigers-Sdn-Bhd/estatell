@@ -1,20 +1,36 @@
 import { Ban, BellOff, Diamond, Plus, SprayCan } from 'lucide-react';
 import { DateText } from '@/components/pms/date-text';
-import { StatusBadge } from '@/components/pms/status-badge';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { CellAction } from './bookable-cell';
 import type { CardControls } from './card-controls';
 import type { RoomDay, RoomDayStay } from './room-day';
+import { PaxCount } from './pax-count';
 import { HOUSEKEEPING } from './room-row';
 
-type Badge = App.Data.Shared.BadgeData;
+type BadgeData = App.Data.Shared.BadgeData;
 
-function paxLabel(stay: App.Data.StayView.StayData): string {
-    return stay.children > 0
-        ? `${stay.adults}A ${stay.children}C`
-        : `${stay.adults}A`;
-}
+/** The tint of a state box and the color of its label, by the tone of the state. */
+const TONE_BOX: Record<App.Enums.Tone, { box: string; label: string }> = {
+    neutral: {
+        box: 'border-transparent bg-muted',
+        label: 'text-muted-foreground',
+    },
+    info: { box: 'border-info/30 bg-info/10', label: 'text-info' },
+    success: { box: 'border-success/30 bg-success/10', label: 'text-success' },
+    warning: {
+        box: 'border-warning/30 bg-warning/10',
+        label: 'text-warning-text',
+    },
+    danger: {
+        box: 'border-destructive/30 bg-destructive/10',
+        label: 'text-destructive',
+    },
+};
+
+const BOX =
+    'flex min-h-16 min-w-0 flex-1 flex-col gap-0.5 rounded-md border px-2.5 py-2 text-left';
 
 /** Departing and Arriving show the time of the day; a guest who stays on shows the departure date. */
 function whenLabel({ stay, state }: RoomDayStay): React.ReactNode {
@@ -33,14 +49,28 @@ function whenLabel({ stay, state }: RoomDayStay): React.ReactNode {
     );
 }
 
-function StayLine({
+/** The label of a state box in the tone of its state. */
+function StateLabel({ status }: { status: BadgeData | undefined }) {
+    return (
+        <span
+            className={cn(
+                'text-xs font-medium',
+                status && TONE_BOX[status.tone].label,
+            )}
+        >
+            {status?.label}
+        </span>
+    );
+}
+
+/** A state box for one stay. It opens the stay in the peek sheet. */
+function StayBox({
     line,
-    stretched,
+    status,
     onOpenStay,
 }: {
     line: RoomDayStay;
-    /** Make the whole card the click target. Used when the card holds one stay. */
-    stretched: boolean;
+    status: BadgeData | undefined;
     onOpenStay: (unitId: number) => void;
 }) {
     const { stay } = line;
@@ -49,12 +79,13 @@ function StayLine({
         <button
             type="button"
             className={cn(
-                'flex w-full min-w-0 flex-col gap-0.5 rounded-sm border-l-4 py-0.5 pl-2 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
-                stay.balanceDue ? 'border-warning' : 'border-transparent',
-                stretched && 'after:absolute after:inset-0 after:rounded-lg',
+                BOX,
+                status && TONE_BOX[status.tone].box,
+                'outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
             )}
             onClick={() => onOpenStay(stay.unitId)}
         >
+            <StateLabel status={status} />
             <span className="flex min-w-0 items-center gap-1.5">
                 {stay.groupName && (
                     <Diamond
@@ -65,14 +96,14 @@ function StayLine({
                 <span className="truncate font-medium">
                     {stay.guestLabel ?? 'No guest named'}
                 </span>
-                <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                    {paxLabel(stay)}
+                <span className="shrink-0 text-xs text-muted-foreground">
+                    <PaxCount stay={stay} size="sm" />
                 </span>
             </span>
-            <span className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
+            <span className="flex min-w-0 flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
                 <span className="tabular-nums">{whenLabel(line)}</span>
                 {stay.balanceDue && (
-                    <span className="font-medium text-warning">
+                    <span className="font-medium text-warning-text">
                         Balance due
                     </span>
                 )}
@@ -82,10 +113,10 @@ function StayLine({
 }
 
 /**
- * One room or bed on the date of the Room View: the room and type, the housekeeping status, what the room does
- * (Departing, In house, Arriving, Blocked or Vacant) and a line for each stay. A card with one stay opens it from
- * anywhere on the card; with two, each line opens its own. A vacant card shows its state and the actions the user may
- * run on it (`actions`, from `cellActions()`); its body takes no click.
+ * One room or bed on the date of the Room View. The header holds the room, the type and the housekeeping chip. Under it
+ * is a state box tinted with the tone of the state: one for each stay (it opens the stay), the block, or Vacant. The
+ * footer holds the actions and quick changes that apply (`actions` from `cellActions()`, `controls` from
+ * `cardControls()`); a card with none has no footer.
  */
 export function RoomCard({
     day,
@@ -99,7 +130,7 @@ export function RoomCard({
     onToggleDnd,
 }: {
     day: RoomDay;
-    badges: Record<string, Badge>;
+    badges: Record<string, BadgeData>;
     /** What a vacant card offers. Empty for other cards, a past date or a user with neither permission. */
     actions: CellAction[];
     onOpenStay: (unitId: number) => void;
@@ -114,70 +145,108 @@ export function RoomCard({
     const housekeeping = HOUSEKEEPING[room.housekeepingStatus];
     const Icon = housekeeping.icon;
     const isBed = room.bedId !== null;
+    const hasFooter =
+        actions.length > 0 || controls.markClean || controls.doNotDisturb;
 
     return (
-        <li className="relative flex flex-col gap-2 rounded-lg border bg-card p-3 text-sm text-card-foreground">
-            <div className="flex min-w-0 items-start gap-2">
-                <span className="flex min-w-0 flex-1 flex-col">
-                    <span className="truncate font-semibold">
-                        {isBed ? `Bed ${room.label}` : room.label}
+        <li className="flex flex-col overflow-hidden rounded-lg border bg-card text-sm text-card-foreground">
+            <div className="flex flex-1 flex-col gap-2 p-3">
+                <div className="flex min-w-0 items-start gap-2">
+                    <span className="flex min-w-0 flex-1 flex-col">
+                        <span className="truncate text-base font-semibold">
+                            {isBed ? `Bed ${room.label}` : room.label}
+                        </span>
+                        <span className="truncate text-xs text-muted-foreground">
+                            {isBed ? room.roomNumber : room.roomTypeName}
+                        </span>
                     </span>
-                    <span className="truncate text-xs text-muted-foreground">
-                        {isBed ? room.roomNumber : room.roomTypeName}
-                    </span>
-                </span>
-                {room.isPriority && (
-                    <span
-                        role="img"
-                        aria-label="Priority"
-                        title="Must be ready today"
-                        className="font-bold text-warning"
-                    >
-                        !
-                    </span>
-                )}
-                {room.doNotDisturb && (
-                    <BellOff
-                        aria-label="Do not disturb"
-                        className="size-4 shrink-0 text-muted-foreground"
-                    />
-                )}
-                <span className="flex shrink-0 items-center gap-1 text-xs">
-                    <Icon
-                        aria-hidden
-                        className={cn('size-4', housekeeping.className)}
-                    />
-                    {housekeeping.label}
-                </span>
-            </div>
-            <div className="flex flex-wrap gap-1">
-                {day.states.map((state) => (
-                    <StatusBadge
-                        key={state}
-                        status={badges[state]}
-                        dot={false}
+                    {room.isPriority && (
+                        <span
+                            role="img"
+                            aria-label="Priority"
+                            title="Must be ready today"
+                            className="font-bold text-warning"
+                        >
+                            !
+                        </span>
+                    )}
+                    {room.doNotDisturb && (
+                        <BellOff
+                            aria-label="Do not disturb"
+                            className="size-4 shrink-0 text-muted-foreground"
+                        />
+                    )}
+                    <Badge variant="outline">
+                        <Icon aria-hidden className={housekeeping.className} />
+                        {housekeeping.label}
+                    </Badge>
+                </div>
+                {day.stays.map((line) => (
+                    <StayBox
+                        key={line.stay.unitId}
+                        line={line}
+                        status={badges[line.state]}
+                        onOpenStay={onOpenStay}
                     />
                 ))}
+                {day.block && (
+                    <div
+                        className={cn(
+                            BOX,
+                            TONE_BOX[badges.blocked?.tone ?? 'danger'].box,
+                        )}
+                    >
+                        <StateLabel status={badges.blocked} />
+                        <span className="font-medium">
+                            {day.block.reasonLabel}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                            Until <DateText date={day.block.lastNight} />
+                        </span>
+                    </div>
+                )}
+                {day.stays.length === 0 && !day.block && (
+                    <div className={cn(BOX, TONE_BOX.neutral.box)}>
+                        <StateLabel status={badges.vacant} />
+                    </div>
+                )}
             </div>
-            {day.stays.map((line) => (
-                <StayLine
-                    key={line.stay.unitId}
-                    line={line}
-                    stretched={day.stays.length === 1}
-                    onOpenStay={onOpenStay}
-                />
-            ))}
-            {(controls.markClean || controls.doNotDisturb) && (
-                <div className="flex flex-wrap gap-1">
+            {hasFooter && (
+                <div className="flex divide-x border-t">
+                    {actions.includes('booking') && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="flex-1 rounded-none"
+                            onClick={() => onBook(room)}
+                        >
+                            <Plus data-icon="inline-start" />
+                            New
+                        </Button>
+                    )}
+                    {actions.includes('block') && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="flex-1 rounded-none"
+                            onClick={() => onBlock(room)}
+                        >
+                            <Ban data-icon="inline-start" />
+                            Block
+                        </Button>
+                    )}
                     {controls.markClean && (
                         <Button
                             type="button"
-                            variant="outline"
+                            variant="ghost"
                             size="sm"
+                            className="flex-1 rounded-none"
                             onClick={() => onMarkClean(room)}
                         >
                             <SprayCan data-icon="inline-start" />
-                            Mark clean
+                            Clean
                         </Button>
                     )}
                     {controls.doNotDisturb && (
@@ -185,6 +254,7 @@ export function RoomCard({
                             type="button"
                             variant="ghost"
                             size="sm"
+                            className="flex-1 rounded-none"
                             aria-pressed={room.doNotDisturb}
                             onClick={() => onToggleDnd(room)}
                         >
@@ -195,42 +265,6 @@ export function RoomCard({
                         </Button>
                     )}
                 </div>
-            )}
-            {actions.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                    {actions.includes('booking') && (
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => onBook(room)}
-                        >
-                            <Plus data-icon="inline-start" />
-                            New booking
-                        </Button>
-                    )}
-                    {actions.includes('block') && (
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => onBlock(room)}
-                        >
-                            <Ban data-icon="inline-start" />
-                            Block room
-                        </Button>
-                    )}
-                </div>
-            )}
-            {day.block && (
-                <p className="flex flex-col text-xs text-muted-foreground">
-                    <span className="font-medium text-foreground">
-                        {day.block.reasonLabel}
-                    </span>
-                    <span>
-                        Until <DateText date={day.block.lastNight} />
-                    </span>
-                </p>
             )}
         </li>
     );

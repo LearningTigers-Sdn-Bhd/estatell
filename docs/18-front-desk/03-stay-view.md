@@ -85,50 +85,57 @@ The page is a Grid calendar: no `PageHeader`, the toolbar on top and the grid fi
 
 ```
 ┌ Room View ───────────────────────────────────────────────────────────────────────┐
-│ ◀ Fri 12 Jun 2026 ▶ [Today]  Room group ⌄ Room type ⌄ Status ⌄ Show ⌄ Group by ⌄ 🔍 │
-│ Arriving 5 · Departing 3 · In house 7 · Vacant 4 · Blocked 1                      │  day summary
-├ Left wing ───────────────────────────────────────────────────────────────────────┤
-│ ┌────────────────┐ ┌────────────────┐ ┌────────────────┐ ┌────────────────┐     │
-│ │ 201 Deluxe   ● │ │ 202 Deluxe   ◐!│ │ 203 Deluxe   ● │ │ 204 Deluxe   ✕ │     │
-│ │ [In house]     │ │ [Departing]    │ │ [Arriving]     │ │ Maintenance    │     │
-│ │ Ahmad Faris·2A │ │ ◆ ABC · Tan Mei│ │ ◆ ABC · Raj K  │ │ until 14 Jun   │     │
-│ │ out Sun 14     │ │ out today 12:00│ │ in today 14:00 │ │                │     │
-│ │ ▌ RM 120 due   │ │                │ │                │ │                │     │
-│ └────────────────┘ └────────────────┘ └────────────────┘ └────────────────┘     │
-│ ┌────────────────┐ ┌────────────────┐                                            │
-│ │ 205 Deluxe   ● │ │ 206 Deluxe   ● │                                            │
-│ │ Vacant         │ │ [In house] 🔕  │                                            │
-│ │ + New booking  │ │ Lim Wei · 1A   │                                            │
-│ │   Block room   │ │ out Mon 15     │                                            │
-│ └────────────────┘ └────────────────┘                                            │
+│ ◀ Fri 12 Jun 2026 ▶ [Today]  Show ⌄  Filters  Group by [None|Room group|Type]  ⓘ │
+│ (Arriving 5) (Departing 3) (In house 7) (Vacant 4) (Blocked 1)                    │  day summary badges
+├ Left wing  4 ────────────────────────────────────────────────────────────────────┤
+│ ┌────────────────────┐ ┌────────────────────┐ ┌────────────────────┐             │
+│ │ 201       (✓Clean) │ │ 202    !  (◐Dirty) │ │ 203       (✓Clean) │             │
+│ │ Deluxe             │ │ Deluxe             │ │ Deluxe             │             │
+│ │ ╭────────────────╮ │ │ ╭────────────────╮ │ │ ╭────────────────╮ │             │
+│ │ │ In house       │ │ │ │ Departing      │ │ │ │ Vacant         │ │             │
+│ │ │ Ahmad Faris·2A │ │ │ │ ◆ Tan Mei · 1A │ │ │ ╰────────────────╯ │             │
+│ │ │ Out 14 Jun     │ │ │ │ Out 12:00      │ │ ├────────────────────┤             │
+│ │ │ Balance due    │ │ │ ╰────────────────╯ │ │  + New  │  ⦸ Block │             │
+│ │ ╰────────────────╯ │ │ ╭────────────────╮ │ └────────────────────┘             │
+│ ├────────────────────┤ │ │ Arriving       │ │                                     │
+│ │  🔕 Do not disturb │ │ │ Raj K · 2A     │ │                                     │
+│ └────────────────────┘ │ │ In 14:00       │ │                                     │
+│                        │ ╰────────────────╯ │                                     │
+│                        ├────────────────────┤                                     │
+│                        │      ◐ Clean       │                                     │
+│                        └────────────────────┘                                     │
 └──────────────────────────────────────────────────────────────────────────────────┘
- ● clean  ◐ dirty  ✕ out of service  🔕 do not disturb  ▌ balance due  ◆ group  ! priority
 ```
 
-- A card shows the room or bed, the type, the housekeeping status icon and label, the stay state for the date, the guest and pax, the arrival or departure time, the balance-due flag and do-not-disturb.
-- A room with a departure and an arrival on the date shows both lines, Departing first.
+- The day summary is a row of `StatusBadge`s, one for each state with its count, in the tone of the state.
+- A card is a plain `bg-card` box with three parts:
+    - **Header**: the room or bed, the type, `!` for priority, 🔕 for do-not-disturb and the housekeeping chip (icon and label).
+    - **State box**: an inner rounded box tinted with the tone of the state (`RoomDayState::tone()`): Arriving info, In house success, Departing warning, Blocked danger, Vacant muted. It shows the state label in the tone color, then the guest and pax, the arrival or departure time and "Balance due" in warning text. A blocked box shows the reason and the last night.
+    - **Footer**: the actions that apply, side by side with equal width and a border between them. A card with no action has no footer.
+- A room with a departure and an arrival on the date shows two state boxes, Departing first.
+- Cards in one grid row have the same height: the state box grows to fill the card, and is at least 64px high (`min-h-16`).
 - A dirty room that must be ready today shows `!`, from the housekeeping `priority`.
-- Clicking a card with a stay opens the same `StayPeekSheet`.
-- There is no rate row, no bars and no footer. The day summary line replaces the footer.
+- Clicking a state box with a stay opens the same `StayPeekSheet`.
+- There is no rate row, no bars and no footer under the board. The day summary replaces the board footer.
 - Cards are ordered by the Group by choice, then by room number.
 
 ### Vacant card
 
 A card is **Vacant** when the room or bed has no stay and no block on the date. A guest who leaves on the date makes it **Departing**, and a block makes it **Blocked**.
 
-| Case                          | The card shows                                                                            |
-| ----------------------------- | ----------------------------------------------------------------------------------------- |
-| Vacant                        | Room, type, housekeeping status icon, "Vacant"                                            |
-| `reservations.manage`         | **New booking**: the booking form with the room or bed, the date and `back=rooms`         |
-| `rooms.block`                 | **Block room**: the Block room Dialog with the room fixed and the date as the first night |
-| Date before the business date | No New booking and no Block room, the same rule as the Timeline cell                      |
-| Dorm room                     | One card per bed                                                                          |
+| Case                          | The card shows                                                                                     |
+| ----------------------------- | -------------------------------------------------------------------------------------------------- |
+| Vacant                        | Room, type, housekeeping status icon, "Vacant"                                                     |
+| `reservations.manage`         | **New** in the footer: the booking form with the room or bed, the date and `back=rooms`            |
+| `rooms.block`                 | **Block** in the footer: the Block room Dialog with the room fixed and the date as the first night |
+| Date before the business date | No New and no Block, the same rule as the Timeline cell                                            |
+| Dorm room                     | One card per bed                                                                                   |
 
 - Clicking the card body of a vacant card does nothing. There is no stay to show.
 
 ### Quick changes
 
-- **Mark clean** shows on a dirty card, on any date. **Do-not-disturb** shows on a card with a guest in house, and only when the date is the housekeeping date, because `SetDoNotDisturb` always sets it for the housekeeping date. A vacant card has no do-not-disturb toggle, because there is no guest to disturb.
+- The quick changes are footer buttons. **Clean** (mark clean) shows on a dirty card, on any date. **Do-not-disturb** shows on a card with a guest in house, and only when the date is the housekeeping date, because `SetDoNotDisturb` always sets it for the housekeeping date. A vacant card has no do-not-disturb toggle, because there is no guest to disturb.
 - Both need `housekeeping.update`. Without it the card shows the status and the 🔕 icon only.
 - Both use the housekeeping routes (`housekeeping.rooms.status`, `housekeeping.rooms.dnd`) with an Inertia 3 optimistic update. The routes redirect `back()`, so the Room View keeps its date and filters, and the Housekeeping board still returns to itself.
 - A refusal is not an error response: the route flashes an error `toast` and redirects back. The reload sends the real `rooms`, which puts the card back.

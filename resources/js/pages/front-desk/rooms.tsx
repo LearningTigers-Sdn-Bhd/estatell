@@ -24,6 +24,7 @@ import {
     queryString,
 } from '@/components/pms/stay-view/stay-view-url';
 import type { DateWindow } from '@/components/pms/stay-view/stay-view-url';
+import { StatusBadge } from '@/components/pms/status-badge';
 import { rooms as roomsRoute } from '@/routes/front-desk';
 import { dnd, status } from '@/routes/housekeeping/rooms';
 
@@ -143,7 +144,7 @@ export default function Rooms({
     const cards = showStates(days, filters.show);
 
     return (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-1 flex-col gap-4 p-4">
             <Head title="Room View" />
             {rooms.length === 0 ? (
                 <EmptyState
@@ -174,14 +175,19 @@ export default function Rooms({
                             />
                         }
                     />
-                    <p className="flex flex-wrap gap-x-2 text-sm text-muted-foreground tabular-nums">
-                        {SUMMARY_ORDER.map((state, index) => (
-                            <span key={state}>
-                                {index > 0 && <span aria-hidden>· </span>}
-                                {badges[state]?.label} {summary[state]}
-                            </span>
-                        ))}
-                    </p>
+                    <div className="flex flex-wrap gap-1.5 tabular-nums">
+                        {SUMMARY_ORDER.filter((state) => badges[state]).map(
+                            (state) => (
+                                <StatusBadge
+                                    key={state}
+                                    status={{
+                                        ...badges[state],
+                                        label: `${badges[state].label} ${summary[state]}`,
+                                    }}
+                                />
+                            ),
+                        )}
+                    </div>
                     {cards.length === 0 ? (
                         <EmptyState
                             icon={DoorOpen}
