@@ -121,6 +121,17 @@ const LONGEST_STAY_DAYS = 365;
 /** The longest note the server takes. */
 const NOTES_LIMIT = 2000;
 
+/** The departure that keeps the nights of a stay when its arrival moves. A stay with no nights (day use, or a missing date) keeps its departure. */
+function departureKeepingNights(
+    arrival: string,
+    departure: string,
+    newArrival: string,
+): string {
+    const nights = nightsBetween(arrival, departure);
+
+    return nights >= 1 ? addDays(newArrival, nights) : departure;
+}
+
 /** Charging units that bill every night. A day use has no nights, so the server refuses them. */
 const NIGHTLY_UNITS = ['per_night', 'per_guest_night'];
 
@@ -386,7 +397,15 @@ export default function ReservationCreate({
                 : isPastStay
                   ? checkInTime
                   : current.arrival_time,
-            departure_date: isPastStay ? '' : current.departure_date,
+            departure_date: isPastStay
+                ? ''
+                : isWalkIn
+                  ? departureKeepingNights(
+                        current.arrival_date,
+                        current.departure_date,
+                        today,
+                    )
+                  : current.departure_date,
             start_time:
                 current.stay_type === 'day_use' && !isPastStay
                     ? defaultStart(isWalkIn)
@@ -493,7 +512,7 @@ export default function ReservationCreate({
           ? addDays(data.arrival_date, lockedNights)
           : data.departure_date;
     const emptyPickLabel =
-        isWalkIn || isPastStay
+        isPastStay || (isWalkIn && !autoAssignRooms)
             ? 'Select'
             : autoAssignRooms
               ? 'Auto-assign'

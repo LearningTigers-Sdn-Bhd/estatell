@@ -124,7 +124,7 @@ class StoreBookingRequest extends FormRequest
             $this->checkGuests($validator);
             $this->checkBookingSource($validator);
 
-            if ($validator->errors()->isNotEmpty() || ! $this->bookingSource()?->type->isWalkIn()) {
+            if ($validator->errors()->isNotEmpty() || ! $this->bookingSource()?->type->isWalkIn() || $this->property()->settings?->auto_assign_rooms) {
                 return;
             }
 
