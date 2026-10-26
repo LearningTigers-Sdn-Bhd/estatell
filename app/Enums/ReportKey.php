@@ -10,6 +10,7 @@ use App\Data\Reports\ReportSection;
 use App\Data\Reports\ReportTotals;
 use App\Features\Boats;
 use App\Models\Property;
+use App\Models\Tax;
 use App\Services\Reports\ArrivalsReport;
 use App\Services\Reports\BoatManifestReport;
 use App\Services\Reports\CheckedOutReport;
@@ -256,16 +257,30 @@ enum ReportKey: string
     }
 
     /**
-     * The columns of the report that are on for the property: `columns()` without the ones whose feature is off.
+     * The columns of the report that are on for the property: `columns()` without the ones whose feature is off. Daily
+     * revenue also gets one `tax:{code}` column for each tax of the property, before Adjustments.
      *
      * @return list<ReportColumn>
      */
     public function columnsFor(Property $property): array
     {
-        return array_values(array_filter(
+        $columns = array_values(array_filter(
             $this->columns(),
             fn (ReportColumn $column): bool => $column->feature === null || Feature::for($property)->active($column->feature),
         ));
+
+        if ($this !== self::DailyRevenue) {
+            return $columns;
+        }
+
+        $taxColumns = Tax::query()->where('property_id', $property->id)->orderBy('id')->get(['code', 'name'])
+            ->map(fn (Tax $tax): ReportColumn => new ReportColumn("tax:{$tax->code}", $tax->name, ColumnAlign::Right, true))
+            ->all();
+        $at = array_search('adjustments', array_column($columns, 'key'), true);
+
+        array_splice($columns, $at === false ? count($columns) : $at, 0, $taxColumns);
+
+        return $columns;
     }
 
     /**

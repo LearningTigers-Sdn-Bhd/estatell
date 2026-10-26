@@ -2753,6 +2753,29 @@ children: number,
 company: string | null,
 balance: string,
 };
+export type DailyOverviewData = {
+bookings: number,
+totalCharges: string,
+adjustments: string,
+netRevenue: string,
+movements: number,
+collected: string,
+refunded: string,
+netAtDesk: string,
+};
+export type DailyRevenueReportRow = {
+key: string,
+group: App.Enums.ReportGroup,
+period: string,
+bookings: number,
+accommodation: string,
+day_use: string,
+fees: string,
+extras: string,
+taxes: Record<string, string>,
+adjustments: string,
+total: string,
+};
 export type DepartureRow = {
 key: number,
 reservation: string,

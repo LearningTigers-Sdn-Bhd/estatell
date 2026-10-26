@@ -16,8 +16,8 @@ use Illuminate\Validation\ValidationException;
 /**
  * Merges the stored layout of a property with the columns in code. With no stored row the code defaults apply. Stored
  * columns keep their order; a column added in code later goes at the end with its default visibility, except a `tax:`
- * column, which goes before the stored `adjustments` column; a stored key that code no longer has is ignored. It reads only.
- * See docs/22-reports/01-core-reports.md.
+ * column, which goes before the stored `adjustments` column; a stored key that code no longer has is ignored. It
+ * reads only. See docs/22-reports/01-core-reports.md.
  */
 class ReportLayoutResolver
 {

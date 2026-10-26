@@ -88,6 +88,78 @@ class DailyRevenueQuery
     }
 
     /**
+     * The lines of the range summed for each date, line kind, transaction code and its category, without payments:
+     * the input of the Daily report buckets. `systemKey` is the system key of the code, or null.
+     *
+     * @return list<array{date: string, kind: string, category: string, systemKey: string|null, transactionCodeId: int, amount: string}>
+     */
+    public function bucketLinesBetween(Property $property, CarbonInterface $from, CarbonInterface $to): array
+    {
+        $lines = $this->lines($property, $from, $to)
+            ->join('transaction_codes', 'transaction_codes.id', '=', 'folio_lines.transaction_code_id')
+            ->where('folio_lines.kind', '!=', TransactionKind::Payment->value)
+            ->groupBy('folio_lines.posting_date', 'folio_lines.kind', 'folio_lines.transaction_code_id', 'transaction_codes.category', 'transaction_codes.system_key')
+            ->orderBy('folio_lines.posting_date')
+            ->selectRaw('folio_lines.posting_date as date, folio_lines.kind as kind, folio_lines.transaction_code_id, transaction_codes.category as category, transaction_codes.system_key as system_key, SUM(folio_lines.amount) as amount')
+            ->get()
+            ->map(fn (FolioLine $row): array => [
+                'date' => CarbonImmutable::parse((string) $row->getAttribute('date'))->toDateString(),
+                'kind' => $row->kind->value,
+                'category' => (string) $row->getAttribute('category'),
+                'systemKey' => $row->getAttribute('system_key') === null ? null : (string) $row->getAttribute('system_key'),
+                'transactionCodeId' => (int) $row->getAttribute('transaction_code_id'),
+                'amount' => (string) $row->getAttribute('amount'),
+            ])
+            ->all();
+
+        return array_values($lines);
+    }
+
+    /**
+     * The reservations that have a Charge or Adjustment line in the range, over the same line filter as the revenue
+     * (no migrated lines, no Opening balance), keyed by `Y-m-d` or, with `$byMonth`, by `Y-m`. A reservation is once in
+     * each key.
+     *
+     * @return array<string, list<int>>
+     */
+    public function bookingIdsBetween(Property $property, CarbonInterface $from, CarbonInterface $to, bool $byMonth = false): array
+    {
+        $pairs = $this->lines($property, $from, $to)
+            ->whereIn('folio_lines.kind', [TransactionKind::Charge->value, TransactionKind::Adjustment->value])
+            ->distinct()
+            ->select('folio_lines.posting_date as date', 'folios.reservation_id')
+            ->get();
+
+        $ids = [];
+
+        foreach ($pairs as $pair) {
+            $date = CarbonImmutable::parse((string) $pair->getAttribute('date'));
+            $ids[$date->format($byMonth ? 'Y-m' : 'Y-m-d')][(int) $pair->getAttribute('reservation_id')] = true;
+        }
+
+        return array_map(fn (array $set): array => array_keys($set), $ids);
+    }
+
+    /**
+     * The number of distinct reservations with a Charge or Adjustment line for each date, or each month with
+     * `$byMonth`. Keyed like `bookingIdsBetween()`.
+     *
+     * @return array<string, int>
+     */
+    public function bookingCountsBetween(Property $property, CarbonInterface $from, CarbonInterface $to, bool $byMonth = false): array
+    {
+        return array_map('count', $this->bookingIdsBetween($property, $from, $to, $byMonth));
+    }
+
+    /**
+     * The number of distinct reservations with a Charge or Adjustment line anywhere in the range.
+     */
+    public function bookingCountBetween(Property $property, CarbonInterface $from, CarbonInterface $to): int
+    {
+        return count(array_unique(array_merge([], ...array_values($this->bookingIdsBetween($property, $from, $to)))));
+    }
+
+    /**
      * The net revenue of one system code and the discount lines under its charges, for each date that has any.
      *
      * @return array<string, Money>

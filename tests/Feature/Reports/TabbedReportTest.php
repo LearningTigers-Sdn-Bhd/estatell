@@ -43,13 +43,6 @@ test('the sidebar entry is active on the page and on the old pages of its unlist
         ->and(TabbedReport::DailyReport->activeRouteNames())->toBe(['reports.daily-report', 'reports.daily-revenue']);
 });
 
-test('until its tabs are built, the daily report opens its first report with the query', function () {
-    [$manager, $property] = reportSetup();
-
-    $this->actingAs($manager)->get("/p/{$property->code}/reports/daily-report?group=month")
-        ->assertRedirect("/p/{$property->code}/reports/revenue?group=month");
-});
-
 test('the pages need reports.view and the property', function () {
     [$front, $frontProperty] = reportSetup(DefaultRoleEnum::FrontDesk);
     [$manager] = reportSetup();

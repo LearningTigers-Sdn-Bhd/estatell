@@ -132,6 +132,7 @@ A new report, `ReportKey::DailyRevenue`, Landscape, not listed in the sidebar. O
 - **One column for each tax**, keyed `tax:{taxes.code}` (for example `tax:SST`), from `ReportKey::columnsFor($property)`, for the taxes the property has. A property that has no SST shows no SST column. `taxes.code` is unique per property.
 - `ReportPage` sorts by row properties. For a `tax:` key it falls back to the row's `values()`.
 - It reads `DailyRevenueQuery` live, like Revenue. Migrated lines stay out.
+- A tax line whose transaction code has no tax (only possible after a tax is deleted during onboarding) is left out of every column and the total.
 - Wastays also had By source and Extra charges tables under the main one. They are not in this item.
 
 ### Cashier activity
