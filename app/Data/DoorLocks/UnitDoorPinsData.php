@@ -5,7 +5,7 @@ namespace App\Data\DoorLocks;
 use Spatie\LaravelData\Data;
 
 /**
- * The door PINs of one stay unit, for the reservation page. `locksWithoutPin` names locks on the unit's rooms that have no live PIN yet.
+ * The door PINs of one stay unit, for the reservation page. `locksWithoutPin` names locks on the unit's rooms that have no live PIN yet. `sendNewPin` is true when a longer stay replaced a PIN, so staff must give the guest the newest one.
  */
 class UnitDoorPinsData extends Data
 {
@@ -16,5 +16,6 @@ class UnitDoorPinsData extends Data
     public function __construct(
         public array $passcodes,
         public array $locksWithoutPin,
+        public bool $sendNewPin,
     ) {}
 }

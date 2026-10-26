@@ -90,6 +90,16 @@ door_passcodes          id, property_id, door_lock_id, reservation_unit_id (null
 - End: `departure_date` at `departure_time` of the unit, in the property time zone.
 - A generated period PIN is accurate to the hour: the start is rounded down and the end is rounded up to the hour. A custom PIN keeps its minutes.
 
+### Extending a stay
+
+A generated PIN cannot be edited without a gateway, so a longer stay gets a **new PIN** for the new window.
+
+- `ChangeUnitDates` and `ExtendDepartureTime` dispatch `StayDatesChanged`. The sync checks whether a live PIN of the unit already lasts to the new end. If not, it issues a PIN under the key `stay:{unit}:{lock}:{end timestamp}`. Running it again changes nothing.
+- The old PIN is left to run out. It is not revoked, because a Delete PIN typed on the keypad would also remove the new PIN.
+- A shorter stay keeps its PIN. Check-out still revokes every PIN of the unit.
+- The reservation page shows the newest PIN first and "The stay was extended. Give the guest the newest PIN." while two live PINs share a lock. Staff must pass the new PIN to the guest before the old one ends.
+- Still to do for a lock with a gateway: edit the PIN period on the lock so the guest keeps the same PIN. Not verified against the TTLock docs, so it is not built.
+
 ## TTLock API
 
 Source: [TTLock Open Platform](https://euopen.ttlock.com/document/doc?urlName=cloud%2Fintroduction.html) Cloud API V3, read from the official doc pages on 2026-10-24 (`/documentPages/htmlPages/cloud/...`). The doc pages show `https://api.sciener.com` (the China site). Overseas accounts use `https://euapi.ttlock.com`: `services.ttlock.base_url` (`TTLOCK_BASE_URL`), default `https://euapi.ttlock.com`. Both answered with the same `invalid client_id` for a dummy id. Every call is a form POST with `clientId`, `accessToken` and `date` (now, in milliseconds; TTLock rejects a `date` more than 5 minutes off with `80000`). Every failure has `errcode`, `errmsg` and `description`.
@@ -118,7 +128,7 @@ Still to check against the real account: the region host (`euapi.ttlock.com` aga
 - `RevokeDoorPasscode`: deletes through the gateway. Without one it marks the PIN revoked and returns a warning with a Delete PIN to type on the keypad.
 - `UnlockDoor`, `AdjustLockClock`: remote unlock and clock fix, gateway only.
 - `IssueStayPasscodeJob`, `RevokeStayPasscodeJob`: unique by unit, three tries. An expected failure is saved on the row as Failed.
-- Events: `StayCheckedIn`, `StayCheckedOut`, `StayRoomChanged`, dispatched after commit by `CheckInUnit`, `CheckOutUnit`, `UndoCheckIn` and `MoveUnit`. A listener queues the job only when the property has an enabled connection. An error here never changes the stay.
+- Events: `StayCheckedIn`, `StayCheckedOut`, `StayRoomChanged`, `StayDatesChanged`, dispatched after commit by `CheckInUnit`, `CheckOutUnit`, `UndoCheckIn`, `MoveUnit`, `ChangeUnitDates` and `ExtendDepartureTime`. A listener queues the job only when the property has an enabled connection. An error here never changes the stay.
 
 ## Reservation page
 

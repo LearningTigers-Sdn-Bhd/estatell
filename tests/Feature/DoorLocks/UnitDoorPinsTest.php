@@ -65,3 +65,19 @@ it('lets front desk staff see the PIN but not staff without check-in rights', fu
     unitPage($frontDesk, $unit)->assertInertia(fn (Assert $page) => $page->where('doorPins.passcodes.0.code', '482913'));
     unitPage($viewer, $unit)->assertInertia(fn (Assert $page) => $page->where('doorPins', null));
 });
+
+it('tells staff to give the guest the newest PIN after an extension', function () {
+    ['owner' => $owner, 'property' => $property, 'room' => $room] = doorLockSetup();
+    $unit = doorLockStay($property, $room);
+    fakeTtlock();
+    app(SyncStayPasscodes::class)($unit);
+
+    unitPage($owner, $unit)->assertInertia(fn (Assert $page) => $page->where('doorPins.sendNewPin', false));
+
+    $unit->update(['departure_date' => '2026-10-18']);
+    app(SyncStayPasscodes::class)($unit->refresh());
+
+    unitPage($owner, $unit)->assertInertia(fn (Assert $page) => $page
+        ->where('doorPins.sendNewPin', true)
+        ->has('doorPins.passcodes', 2));
+});

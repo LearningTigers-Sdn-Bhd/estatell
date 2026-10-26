@@ -799,6 +799,7 @@ canRetry: boolean,
 export type UnitDoorPinsData = {
 passcodes: App.Data.DoorLocks.DoorPasscodeData[],
 locksWithoutPin: string[],
+sendNewPin: boolean,
 };
 }
 namespace Folio {

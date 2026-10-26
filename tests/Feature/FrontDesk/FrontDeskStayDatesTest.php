@@ -12,6 +12,7 @@ use App\Enums\PricingBasis;
 use App\Enums\SystemTransactionCode;
 use App\Enums\UnitStatus;
 use App\Events\ReservationChanged;
+use App\Events\StayDatesChanged;
 use App\Models\BusinessDate;
 use App\Models\ChargeItem;
 use App\Models\FolioLine;
@@ -478,4 +479,15 @@ test('changing the dates tells the channels about the old and the new nights', f
     Event::assertDispatched(ReservationChanged::class, fn (ReservationChanged $event): bool => $event->roomTypeId === $setup['roomType']->id
         && $event->dateFrom === today()->addDay()->toDateString()
         && $event->dateTo === today()->addDays(5)->toDateString());
+});
+
+test('extending the stay or the departure time tells the door locks', function () {
+    Event::fake([StayDatesChanged::class]);
+    $stay = datesSetup(['status' => UnitStatus::CheckedIn, 'checked_in_at' => now()->subDay(), 'arrival_date' => today()->subDay()->toDateString(), 'departure_date' => today()->addDay()->toDateString()]);
+
+    app(ExtendStay::class)($stay['actor'], $stay['unit'], today()->addDays(3));
+    Event::assertDispatchedTimes(StayDatesChanged::class, 1);
+
+    expect(lateCheckout(lateCheckoutSetup())->isRefused())->toBeFalse();
+    Event::assertDispatchedTimes(StayDatesChanged::class, 2);
 });

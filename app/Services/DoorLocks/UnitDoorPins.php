@@ -21,7 +21,7 @@ class UnitDoorPins
         $passcodes = DoorPasscode::query()
             ->where('reservation_unit_id', $unit->id)
             ->with('doorLock')
-            ->orderBy('id')
+            ->orderByDesc('id')
             ->get();
 
         $locksWithoutPin = [];
@@ -43,9 +43,16 @@ class UnitDoorPins
             return null;
         }
 
+        $sendNewPin = $passcodes
+            ->whereIn('status', [PasscodeStatus::Pending, PasscodeStatus::Active])
+            ->filter(fn (DoorPasscode $passcode): bool => $passcode->ends_at->isFuture())
+            ->countBy('door_lock_id')
+            ->contains(fn (int $count): bool => $count > 1);
+
         return new UnitDoorPinsData(
             passcodes: array_values($passcodes->map(DoorPasscodeData::fromModel(...))->all()),
             locksWithoutPin: $locksWithoutPin,
+            sendNewPin: $sendNewPin,
         );
     }
 }

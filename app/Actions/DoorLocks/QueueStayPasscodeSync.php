@@ -4,6 +4,7 @@ namespace App\Actions\DoorLocks;
 
 use App\Events\StayCheckedIn;
 use App\Events\StayCheckedOut;
+use App\Events\StayDatesChanged;
 use App\Events\StayRoomChanged;
 use App\Features\DoorLocks;
 use App\Jobs\SyncStayPasscodesJob;
@@ -15,7 +16,7 @@ use Laravel\Pennant\Feature;
  */
 class QueueStayPasscodeSync
 {
-    public function __invoke(StayCheckedIn|StayCheckedOut|StayRoomChanged $event): void
+    public function __invoke(StayCheckedIn|StayCheckedOut|StayRoomChanged|StayDatesChanged $event): void
     {
         $property = Property::query()->with('doorLockConnection')->find($event->propertyId);
 

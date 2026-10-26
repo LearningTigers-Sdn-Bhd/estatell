@@ -15,7 +15,7 @@ use Illuminate\Support\Collection;
 /**
  * Make a unit's PINs match its stay. A checked-in unit gets one PIN on the lock of each room it sleeps in; any PIN of the unit on
  * another lock, and every PIN of a unit that is no longer checked in, is revoked. Safe to repeat: an issued PIN is kept (idempotency key
- * `stay:{unit}:{lock}`). Does nothing without an enabled connection. A custom mode falls back to a generated PIN on a lock without a gateway.
+ * `stay:{unit}:{lock}`). When the departure moves later, a PIN that ends at the new departure is issued under `stay:{unit}:{lock}:{end}` and the old one is left to run out. Does nothing without an enabled connection. A custom mode falls back to a generated PIN on a lock without a gateway.
  */
 class SyncStayPasscodes
 {
@@ -44,7 +44,19 @@ class SyncStayPasscodes
             $kind = $connection->passcode_mode === PasscodeMode::Custom && $lock->has_gateway ? PasscodeKind::Custom : PasscodeKind::Generated;
             [$startsAt, $endsAt] = $this->passcodeWindow->forUnit($unit, $kind, $timeZone);
 
-            ($this->issueDoorPasscode)($lock, $kind, $label, $startsAt, $endsAt, "stay:{$unit->id}:{$lock->id}", unit: $unit);
+            $key = "stay:{$unit->id}:{$lock->id}";
+            $live = DoorPasscode::query()->where('reservation_unit_id', $unit->id)->where('door_lock_id', $lock->id)->whereIn('status', [PasscodeStatus::Pending, PasscodeStatus::Active]);
+
+            if ($live->clone()->where('ends_at', '>=', $endsAt)->exists()) {
+                continue;
+            }
+
+            // A longer stay needs a new PIN: a generated PIN cannot be edited without a gateway. The old one is left to run out.
+            if ($live->clone()->where('idempotency_key', $key)->exists()) {
+                $key .= ':'.$endsAt->getTimestamp();
+            }
+
+            ($this->issueDoorPasscode)($lock, $kind, $label, $startsAt, $endsAt, $key, unit: $unit);
         }
 
         DoorPasscode::query()

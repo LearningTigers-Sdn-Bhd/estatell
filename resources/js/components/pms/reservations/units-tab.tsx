@@ -108,6 +108,11 @@ function DoorPins({ pins }: { pins: App.Data.DoorLocks.UnitDoorPinsData }) {
     return (
         <Detail icon={KeyRound} label="Door PIN">
             <div className="flex flex-col gap-1">
+                {pins.sendNewPin && (
+                    <span className="text-warning">
+                        The stay was extended. Give the guest the newest PIN.
+                    </span>
+                )}
                 {pins.passcodes.map((passcode) => (
                     <div
                         key={passcode.id}

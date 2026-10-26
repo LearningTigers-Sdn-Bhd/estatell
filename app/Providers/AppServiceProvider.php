@@ -15,6 +15,7 @@ use App\Events\RatesChanged;
 use App\Events\ReservationChanged;
 use App\Events\StayCheckedIn;
 use App\Events\StayCheckedOut;
+use App\Events\StayDatesChanged;
 use App\Events\StayRoomChanged;
 use App\Models\Property;
 use App\Models\RatePlan;
@@ -86,7 +87,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Event::listen([RatesChanged::class, InventoryChanged::class, ReservationChanged::class], fn (RatesChanged|InventoryChanged|ReservationChanged $event) => app(RecordChannelAriChange::class)($event));
         Event::listen(ChannelStructureChanged::class, fn (ChannelStructureChanged $event) => app(ScheduleChannelStructureSync::class)($event));
-        Event::listen([StayCheckedIn::class, StayCheckedOut::class, StayRoomChanged::class], fn (StayCheckedIn|StayCheckedOut|StayRoomChanged $event) => app(QueueStayPasscodeSync::class)($event));
+        Event::listen([StayCheckedIn::class, StayCheckedOut::class, StayRoomChanged::class, StayDatesChanged::class], fn (StayCheckedIn|StayCheckedOut|StayRoomChanged|StayDatesChanged $event) => app(QueueStayPasscodeSync::class)($event));
 
         RatePlan::saved(function (RatePlan $ratePlan): void {
             $restored = $ratePlan->wasChanged('archived_at') && $ratePlan->archived_at === null;
