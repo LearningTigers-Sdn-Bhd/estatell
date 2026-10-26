@@ -44,7 +44,7 @@ function stayingUnit(Property $property, string $arrival, string $departure, arr
 
 function inHouseUrl(Property $property, string $query = ''): string
 {
-    return "/p/{$property->code}/reports/in-house".$query;
+    return "/p/{$property->code}/reports/guest-list?tab=in-house".($query === '' ? '' : '&'.ltrim($query, '?'));
 }
 
 test('the page needs reports.view and is scoped to the property', function () {
@@ -57,7 +57,7 @@ test('the page needs reports.view and is scoped to the property', function () {
     $this->actingAs($front)->get(inHouseUrl($frontProperty))->assertForbidden();
     $this->actingAs($manager)->get(inHouseUrl($other))->assertNotFound();
     $this->actingAs($manager)->get(inHouseUrl($own))->assertInertia(fn (Assert $page) => $page
-        ->component('reports/in-house')
+        ->component('reports/guest-list')
         ->has('rows.data', 1)
         ->where('rows.data.0.key', $mine->id));
 });

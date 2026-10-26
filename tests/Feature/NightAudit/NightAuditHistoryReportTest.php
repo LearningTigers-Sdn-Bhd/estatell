@@ -65,7 +65,7 @@ test('the page needs reports.view, is scoped to the property and opens on the la
 test('a report that sets no default range still opens on today', function () {
     [$user, $property] = reportSetup();
 
-    $this->actingAs($user)->get("/p/{$property->code}/reports/arrivals")->assertInertia(fn (Assert $page) => $page
+    $this->actingAs($user)->get("/p/{$property->code}/reports/guest-list?tab=arrivals")->assertInertia(fn (Assert $page) => $page
         ->where('from', '2026-10-10')
         ->where('to', '2026-10-10'));
 });

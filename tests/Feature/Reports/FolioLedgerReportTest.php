@@ -139,7 +139,7 @@ test('the code must be a code of this property', function () {
 test('other reports ignore the code', function () {
     [$user, $property] = reportSetup();
 
-    $this->actingAs($user)->get("/p/{$property->code}/reports/in-house?code=NOPE")->assertOk();
+    $this->actingAs($user)->get("/p/{$property->code}/reports/guest-list?tab=in-house&code=NOPE")->assertOk();
     $this->actingAs($user)->get("/p/{$property->code}/reports/revenue?code=NOPE")->assertOk();
 });
 

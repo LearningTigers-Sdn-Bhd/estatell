@@ -43,7 +43,7 @@ function arrivingUnit(Property $property, string $arrival = '2026-10-10', array 
 
 function arrivalsUrl(Property $property, string $query = ''): string
 {
-    return "/p/{$property->code}/reports/arrivals".$query;
+    return "/p/{$property->code}/reports/guest-list?tab=arrivals".($query === '' ? '' : '&'.ltrim($query, '?'));
 }
 
 test('a user without reports.view gets 403 and another property returns 404', function () {
@@ -64,7 +64,7 @@ test('the page opens on the business date and lists the units that arrive', func
     arrivingUnit($property, '2026-10-11');
 
     $this->actingAs($user)->get(arrivalsUrl($property))->assertInertia(fn (Assert $page) => $page
-        ->component('reports/arrivals')
+        ->component('reports/guest-list')
         ->where('from', '2026-10-10')
         ->where('to', '2026-10-10')
         ->where('businessDate.date', '2026-10-10')
@@ -256,20 +256,19 @@ test('the Reports navigation groups the reports by category and needs reports.vi
             'key' => 'reports',
             'label' => 'Reports',
             'icon' => 'chart-column',
-            'href' => "/p/{$property->code}/reports/arrivals",
+            'href' => "/p/{$property->code}/reports/guest-list",
             'groups' => [
                 [
                     'label' => 'Front desk',
                     'items' => [
-                        ['title' => 'Arrivals', 'href' => "/p/{$property->code}/reports/arrivals", 'icon' => 'calendar-check', 'external' => false, 'active' => true, 'action' => null, 'badge' => null],
-                        ['title' => 'Departures', 'href' => "/p/{$property->code}/reports/departures", 'icon' => 'door-open', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
-                        ['title' => 'In-house', 'href' => "/p/{$property->code}/reports/in-house", 'icon' => 'users', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
+                        ['title' => 'Guest list', 'href' => "/p/{$property->code}/reports/guest-list", 'icon' => 'users', 'external' => false, 'active' => true, 'action' => null, 'badge' => null],
                         ['title' => 'Police report', 'href' => "/p/{$property->code}/reports/police-report", 'icon' => 'id-card', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
                     ],
                 ],
                 [
                     'label' => 'Revenue',
                     'items' => [
+                        ['title' => 'Daily report', 'href' => "/p/{$property->code}/reports/daily-report", 'icon' => 'calculator', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
                         ['title' => 'Occupancy', 'href' => "/p/{$property->code}/reports/occupancy", 'icon' => 'percent', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
                         ['title' => 'Revenue', 'href' => "/p/{$property->code}/reports/revenue", 'icon' => 'chart-column', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
                         ['title' => 'Tax', 'href' => "/p/{$property->code}/reports/tax", 'icon' => 'landmark', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],

@@ -15,8 +15,9 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Merges the stored layout of a property with the columns in code. With no stored row the code defaults apply. Stored
- * columns keep their order; a column added in code later goes at the end with its default visibility; a stored key
- * that code no longer has is ignored. It reads only. See docs/22-reports/01-core-reports.md.
+ * columns keep their order; a column added in code later goes at the end with its default visibility, except a `tax:`
+ * column, which goes before the stored column `ReportKey::taxColumnAnchor()` names (Adjustments or Total); a stored
+ * key that code no longer has is ignored. It reads only. See docs/22-reports/01-core-reports.md.
  */
 class ReportLayoutResolver
 {
@@ -32,13 +33,24 @@ class ReportLayoutResolver
             return $this->defaults($property, $report);
         }
 
+        return $this->merge($layout, $report->columnsFor($property));
+    }
+
+    /**
+     * Applies a stored layout to the columns the code has for the report.
+     *
+     * @param  list<ReportColumn>  $codeColumns
+     */
+    public function merge(ReportLayout $layout, array $codeColumns): ReportLayoutData
+    {
         /** @var array<string, ReportColumn> $byKey */
         $byKey = [];
 
-        foreach ($report->columnsFor($property) as $column) {
+        foreach ($codeColumns as $column) {
             $byKey[$column->key] = $column;
         }
 
+        $anchor = $layout->report_key->taxColumnAnchor();
         $columns = [];
 
         foreach ($layout->columns as $stored) {
@@ -50,10 +62,33 @@ class ReportLayoutResolver
         }
 
         foreach ($byKey as $column) {
-            $columns[] = ReportLayoutColumnData::fromColumn($column, $column->defaultVisible);
+            $data = ReportLayoutColumnData::fromColumn($column, $column->defaultVisible);
+
+            if (str_starts_with($column->key, 'tax:')) {
+                array_splice($columns, $this->taxColumnPosition($columns, $anchor), 0, [$data]);
+            } else {
+                $columns[] = $data;
+            }
         }
 
         return new ReportLayoutData($layout->orientation, $columns);
+    }
+
+    /**
+     * Where a new tax column goes: right before the stored anchor column, or at the end when there is none. A second
+     * new tax column then lands after the first, so several keep code order.
+     *
+     * @param  list<ReportLayoutColumnData>  $columns
+     */
+    private function taxColumnPosition(array $columns, ?string $anchor): int
+    {
+        foreach ($columns as $index => $column) {
+            if ($column->key === $anchor) {
+                return $index;
+            }
+        }
+
+        return count($columns);
     }
 
     /**

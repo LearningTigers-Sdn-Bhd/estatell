@@ -31,12 +31,21 @@ type Props = {
 const cells: ReportCells<Row> = {
     period: (row) => <ReportPeriod period={row.period} group={row.group} />,
     tax: (row) => <span className="font-medium">{row.tax}</span>,
+    base: (row, currency) =>
+        row.base === null ? (
+            <span className="text-muted-foreground">—</span>
+        ) : (
+            <MoneyText amount={row.base} currency={currency} />
+        ),
     amount: (row, currency) => (
         <MoneyText amount={row.amount} currency={currency} />
     ),
 };
 
 const totalCells: ReportTotalCells = {
+    base: (figure, currency) => (
+        <MoneyText amount={String(figure)} currency={currency} />
+    ),
     amount: (figure, currency) => (
         <MoneyText amount={String(figure)} currency={currency} />
     ),
