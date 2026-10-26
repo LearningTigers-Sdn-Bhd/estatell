@@ -78,6 +78,10 @@ class StayViewController extends Controller
             'stateBadges' => array_map(BadgeData::fromRoomDayState(...), RoomDayState::cases()),
             'currency' => CurrencyData::forProperty($property),
             'canViewReservations' => $request->user()->can(PermissionEnum::ReservationsView->value),
+            'canManageReservations' => $request->user()->can(PermissionEnum::ReservationsManage->value),
+            'canBlockRooms' => $request->user()->can(PermissionEnum::RoomsBlock->value),
+            'blockReasons' => RoomBlockReason::options(),
+            'maxBlockNights' => RoomBlockRequest::MAX_NIGHTS,
         ]);
     }
 

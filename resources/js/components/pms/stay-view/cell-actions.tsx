@@ -34,7 +34,15 @@ function cellName(room: Room): string {
     return room.bedId === null ? `Room ${room.roomNumber}` : placeLabel(room);
 }
 
-function openBooking(room: Room, date: string) {
+/**
+ * Opens the booking form for a room or bed on a night. `back` names the view that opens it, and the view's own query
+ * string goes along so the form can link back to it.
+ */
+export function openBooking(
+    room: Room,
+    date: string,
+    back: 'timeline' | 'rooms' = 'timeline',
+) {
     router.visit(
         newMethod.url(undefined, {
             query: {
@@ -42,8 +50,8 @@ function openBooking(room: Room, date: string) {
                 ...(room.bedId === null
                     ? { room: room.roomId }
                     : { bed: room.bedId }),
-                // The Timeline keeps its window and filters in the address, so the form can link back to this view.
-                back: 'timeline',
+                // The view keeps its date or window and filters in the address, so the form can link back to it.
+                back,
                 back_query: globalThis.location.search.replace(/^\?/, ''),
             },
         }),

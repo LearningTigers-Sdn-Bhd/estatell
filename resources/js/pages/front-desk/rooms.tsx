@@ -2,6 +2,12 @@ import { Head } from '@inertiajs/react';
 import { DoorOpen } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
+import { cellActions } from '@/components/pms/stay-view/bookable-cell';
+import {
+    BlockRoomDialog,
+    openBooking,
+} from '@/components/pms/stay-view/cell-actions';
+import type { BlockCell } from '@/components/pms/stay-view/cell-actions';
 import { filterStays } from '@/components/pms/stay-view/filter-stays';
 import {
     roomDays,
@@ -44,6 +50,10 @@ export default function Rooms({
     stateBadges,
     currency,
     canViewReservations,
+    canManageReservations,
+    canBlockRooms,
+    blockReasons,
+    maxBlockNights,
 }: {
     window: App.Data.StayView.StayViewWindowData;
     rooms: App.Data.StayView.RoomRowData[];
@@ -56,9 +66,14 @@ export default function Rooms({
     stateBadges: App.Data.Shared.BadgeData[];
     currency: App.Data.Property.CurrencyData | null;
     canViewReservations: boolean;
+    canManageReservations: boolean;
+    canBlockRooms: boolean;
+    blockReasons: { value: string; label: string }[];
+    maxBlockNights: number;
 }) {
     const [filters, setFilters] = useState(initialFilters);
     const [peekUnitId, setPeekUnitId] = useState<number | null>(null);
+    const [blockCell, setBlockCell] = useState<BlockCell | null>(null);
     const date = stayWindow.from;
     const range: DateWindow = { from: date, to: date };
     const badges = Object.fromEntries(
@@ -130,7 +145,23 @@ export default function Rooms({
                             days={cards}
                             grouping={filters.groupBy}
                             badges={badges}
+                            actionsFor={(day) =>
+                                day.states.length === 1 &&
+                                day.states[0] === 'vacant'
+                                    ? cellActions({
+                                          canManageReservations,
+                                          canBlockRooms,
+                                          rowKey: day.room.key,
+                                          date,
+                                          businessDate: stayWindow.businessDate,
+                                          today: stayWindow.today,
+                                          taken: new Set(),
+                                      })
+                                    : []
+                            }
                             onOpenStay={setPeekUnitId}
+                            onBook={(room) => openBooking(room, date, 'rooms')}
+                            onBlock={(room) => setBlockCell({ room, date })}
                         />
                     )}
                     <StayPeekSheet
@@ -144,6 +175,14 @@ export default function Rooms({
                         canViewReservations={canViewReservations}
                         onSelect={setPeekUnitId}
                         onClose={() => setPeekUnitId(null)}
+                    />
+                    <BlockRoomDialog
+                        cell={blockCell}
+                        rooms={rooms}
+                        reasons={blockReasons}
+                        today={stayWindow.today}
+                        maxNights={maxBlockNights}
+                        onClose={() => setBlockCell(null)}
                     />
                 </>
             )}

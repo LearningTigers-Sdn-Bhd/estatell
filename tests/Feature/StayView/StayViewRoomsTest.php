@@ -182,3 +182,26 @@ test('the page runs the same number of queries however many stays it shows', fun
     expect($countQueries())->toBe($before)
         ->and(ReservationUnit::query()->count())->toBe(7);
 });
+
+test('the room view carries the booking and block props, each needing its own permission', function () {
+    [$owner, $property] = roomsSetup();
+    $viewer = User::factory()->for($property)->withPermissions(['front-desk.view'])->create();
+    $booker = User::factory()->for($property)->withPermissions(['front-desk.view', 'reservations.manage'])->create();
+
+    $this->actingAs($owner)
+        ->get(route('front-desk.rooms', $property->code))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('canManageReservations', true)
+            ->where('canBlockRooms', true)
+            ->has('blockReasons', 4)
+            ->where('blockReasons.0.value', 'maintenance')
+            ->where('maxBlockNights', 365));
+
+    $this->actingAs($viewer)
+        ->get(route('front-desk.rooms', $property->code))
+        ->assertInertia(fn (Assert $page) => $page->where('canManageReservations', false)->where('canBlockRooms', false));
+
+    $this->actingAs($booker)
+        ->get(route('front-desk.rooms', $property->code))
+        ->assertInertia(fn (Assert $page) => $page->where('canManageReservations', true)->where('canBlockRooms', false));
+});

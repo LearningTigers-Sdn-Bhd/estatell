@@ -1,7 +1,9 @@
-import { BellOff, Diamond } from 'lucide-react';
+import { Ban, BellOff, Diamond, Plus } from 'lucide-react';
 import { DateText } from '@/components/pms/date-text';
 import { StatusBadge } from '@/components/pms/status-badge';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import type { CellAction } from './bookable-cell';
 import type { RoomDay, RoomDayStay } from './room-day';
 import { HOUSEKEEPING } from './room-row';
 
@@ -81,16 +83,24 @@ function StayLine({
 /**
  * One room or bed on the date of the Room View: the room and type, the housekeeping status, what the room does
  * (Departing, In house, Arriving, Blocked or Vacant) and a line for each stay. A card with one stay opens it from
- * anywhere on the card; with two, each line opens its own. A vacant card shows its state only. Read only.
+ * anywhere on the card; with two, each line opens its own. A vacant card shows its state and the actions the user may
+ * run on it (`actions`, from `cellActions()`); its body takes no click.
  */
 export function RoomCard({
     day,
     badges,
+    actions,
     onOpenStay,
+    onBook,
+    onBlock,
 }: {
     day: RoomDay;
     badges: Record<string, Badge>;
+    /** What a vacant card offers. Empty for other cards, a past date or a user with neither permission. */
+    actions: CellAction[];
     onOpenStay: (unitId: number) => void;
+    onBook: (room: App.Data.StayView.RoomRowData) => void;
+    onBlock: (room: App.Data.StayView.RoomRowData) => void;
 }) {
     const { room } = day;
     const housekeeping = HOUSEKEEPING[room.housekeepingStatus];
@@ -149,6 +159,32 @@ export function RoomCard({
                     onOpenStay={onOpenStay}
                 />
             ))}
+            {actions.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                    {actions.includes('booking') && (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onBook(room)}
+                        >
+                            <Plus data-icon="inline-start" />
+                            New booking
+                        </Button>
+                    )}
+                    {actions.includes('block') && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onBlock(room)}
+                        >
+                            <Ban data-icon="inline-start" />
+                            Block room
+                        </Button>
+                    )}
+                </div>
+            )}
             {day.block && (
                 <p className="flex flex-col text-xs text-muted-foreground">
                     <span className="font-medium text-foreground">

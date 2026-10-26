@@ -24,6 +24,22 @@ test('a form opened from the Timeline goes back to the same window and filters',
             ->where('back.query', ['back' => 'timeline', 'back_query' => 'from=2026-10-12&to=2026-10-25&q=Tan&group_by=room_type&groups%5B0%5D=3']));
 });
 
+test('a form opened from the Room View goes back to the same date and filters', function () {
+    $setup = bookingSetup();
+    $code = $setup['property']->code;
+
+    $this->actingAs($setup['user'])
+        ->get(route('reservations.new', [
+            'property' => $code,
+            'back' => 'rooms',
+            'back_query' => 'date=2026-10-12&groups%5B%5D=3&show%5B%5D=vacant&q=Tan&group_by=room_type&from=2026-10-01&evil=https%3A%2F%2Fexample.com',
+        ]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('back.href', route('front-desk.rooms', ['property' => $code, 'date' => '2026-10-12', 'q' => 'Tan', 'group_by' => 'room_type', 'groups' => ['3'], 'show' => ['vacant']]))
+            ->where('back.label', 'Room View')
+            ->where('back.query', ['back' => 'rooms', 'back_query' => 'date=2026-10-12&q=Tan&group_by=room_type&groups%5B0%5D=3&show%5B0%5D=vacant']));
+});
+
 test('every booking type goes back to the Dashboard when it opened from there', function (string $route) {
     $setup = bookingSetup();
     $code = $setup['property']->code;
