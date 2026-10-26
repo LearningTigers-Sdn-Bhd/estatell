@@ -3,6 +3,7 @@
 require_once __DIR__.'/../Support/ReportSetup.php';
 
 use App\Enums\DefaultRoleEnum;
+use App\Enums\TaxRateType;
 use App\Enums\TransactionKind;
 use App\Models\Folio;
 use App\Models\FolioLine;
@@ -69,7 +70,7 @@ test('the page needs reports.view and is scoped to the property', function () {
         ->where('group', 'day')
         ->where('sort', 'period')
         ->has('groupOptions', 2)
-        ->has('layout.columns', 5)
+        ->has('layout.columns', 6)
         ->where('rows.meta.total', 3));
 });
 
@@ -129,8 +130,8 @@ test('the PDF and CSV keep the group and total only the selected rows', function
     $rows = array_map('str_getcsv', array_values(array_filter(explode("\n", ltrim($response->streamedContent(), "\xEF\xBB\xBF")))));
 
     expect($rows)->toHaveCount(4)
-        ->and($rows[0])->toBe(['Date / month', 'Tax', 'Lines', 'Tax amount'])
-        ->and(end($rows))->toBe(['Total', '', '4', '24']);
+        ->and($rows[0])->toBe(['Date / month', 'Tax', 'Lines', 'Base', 'Tax amount'])
+        ->and(end($rows))->toBe(['Total', '', '4', '0', '24']);
 });
 
 test('tax on migrated lines is a separate group outside the rows and the total', function () {
@@ -150,4 +151,125 @@ test('tax on migrated lines is a separate group outside the rows and the total',
 
     $this->actingAs($user)->get(taxUrl($property, '?from=2026-10-09&to=2026-10-10'))->assertInertia(fn (Assert $page) => $page
         ->where('breakdown.rows', []));
+});
+
+/**
+ * A charge on a folio with a tax line under it and, when given, a discount booked with the charge (an Adjustment child
+ * beside the tax, as PostFolioCharge posts it).
+ *
+ * @return array{charge: FolioLine, tax: FolioLine}
+ */
+function chargeWithTax(Tax $tax, string $charge, string $taxAmount, string $date, ?string $discount = null, ?FolioLine $parent = null): array
+{
+    $folio = Folio::factory()->create(['property_id' => $tax->property_id]);
+    $base = ['folio_id' => $folio->id, 'posting_date' => $date];
+    $chargeLine = $parent ?? FolioLine::factory()->create([...$base, 'kind' => TransactionKind::Charge, 'amount' => $charge, 'unit_amount' => $charge]);
+
+    if ($discount !== null) {
+        FolioLine::factory()->create([...$base, 'kind' => TransactionKind::Adjustment, 'amount' => $discount, 'unit_amount' => $discount, 'parent_line_id' => $chargeLine->id]);
+    }
+
+    $taxLine = FolioLine::factory()->create([...$base, 'transaction_code_id' => $tax->transaction_code_id, 'kind' => TransactionKind::Tax, 'amount' => $taxAmount, 'unit_amount' => $taxAmount, 'parent_line_id' => $chargeLine->id]);
+
+    return ['charge' => $chargeLine, 'tax' => $taxLine];
+}
+
+test('the base of a percentage tax is its charge, less an inline discount', function () {
+    [$user, $property] = reportSetup();
+    $sst = Tax::factory()->create(['property_id' => $property->id, 'name' => 'SST']);
+    chargeWithTax($sst, '100.00', '8.00', '2026-10-09');
+    chargeWithTax($sst, '200.00', '12.80', '2026-10-09', discount: '-40.00');
+
+    $this->actingAs($user)->get(taxUrl($property, '?from=2026-10-09&to=2026-10-09'))->assertInertia(fn (Assert $page) => $page
+        ->has('layout.columns.4', fn (Assert $column) => $column->where('key', 'base')->where('visible', true)->etc())
+        ->where('rows.data.0.base', '260.00')
+        ->where('rows.data.0.amount', '20.80')
+        ->where('totals.figures.base', '260.00'));
+});
+
+test('a tax under a discount line takes the discount as its base', function () {
+    [$user, $property] = reportSetup();
+    $sst = Tax::factory()->create(['property_id' => $property->id, 'name' => 'SST']);
+    $discountLine = FolioLine::factory()->create([
+        'folio_id' => Folio::factory()->create(['property_id' => $property->id])->id,
+        'kind' => TransactionKind::Adjustment, 'amount' => '-50.00', 'unit_amount' => '-50.00', 'posting_date' => '2026-10-09',
+    ]);
+    chargeWithTax($sst, '0', '-4.00', '2026-10-09', parent: $discountLine);
+
+    $this->actingAs($user)->get(taxUrl($property, '?from=2026-10-09&to=2026-10-09'))->assertInertia(fn (Assert $page) => $page
+        ->where('rows.data.0.base', '-50.00')
+        ->where('rows.data.0.amount', '-4.00'));
+});
+
+test('a flat tax shows no base and stays out of the base total', function () {
+    [$user, $property] = reportSetup();
+    $sst = Tax::factory()->create(['property_id' => $property->id, 'name' => 'SST']);
+    $tourism = Tax::factory()->create(['property_id' => $property->id, 'name' => 'Tourism tax', 'rate_type' => TaxRateType::Flat, 'rate' => '10.00']);
+    chargeWithTax($sst, '100.00', '8.00', '2026-10-09');
+    chargeWithTax($tourism, '100.00', '10.00', '2026-10-09');
+
+    $this->actingAs($user)->get(taxUrl($property, '?from=2026-10-09&to=2026-10-09&sort=tax'))->assertInertia(fn (Assert $page) => $page
+        ->where('rows.data', fn ($rows) => collect($rows)->map(fn ($row) => [$row['tax'], $row['base']])->all() === [['SST', '100.00'], ['Tourism tax', null]])
+        ->where('totals.figures.base', '100.00')
+        ->where('totals.figures.amount', '18.00'));
+});
+
+test('a reversal reduces the base on the date it was posted', function () {
+    [$user, $property] = reportSetup();
+    $sst = Tax::factory()->create(['property_id' => $property->id, 'name' => 'SST']);
+    chargeWithTax($sst, '100.00', '8.00', '2026-10-08');
+    $reversedCharge = FolioLine::factory()->create([
+        'folio_id' => Folio::factory()->create(['property_id' => $property->id])->id,
+        'kind' => TransactionKind::Charge, 'amount' => '-100.00', 'unit_amount' => '-100.00', 'posting_date' => '2026-10-10',
+    ]);
+    chargeWithTax($sst, '0', '-8.00', '2026-10-10', parent: $reversedCharge);
+
+    $this->actingAs($user)->get(taxUrl($property, '?from=2026-10-08&to=2026-10-10'))->assertInertia(fn (Assert $page) => $page
+        ->where('rows.data', fn ($rows) => collect($rows)->map(fn ($row) => [$row['period'], $row['base'], $row['amount']])->all() === [
+            ['2026-10-08', '100.00', '8.00'],
+            ['2026-10-10', '-100.00', '-8.00'],
+        ])
+        ->where('totals.figures.base', '0.00'));
+});
+
+test('a month adds up the bases of its days', function () {
+    [$user, $property] = reportSetup();
+    $sst = Tax::factory()->create(['property_id' => $property->id, 'name' => 'SST']);
+    chargeWithTax($sst, '100.00', '8.00', '2026-10-02');
+    chargeWithTax($sst, '50.00', '4.00', '2026-10-03', discount: '-10.00');
+    chargeWithTax($sst, '70.00', '5.60', '2026-09-30');
+
+    $this->actingAs($user)->get(taxUrl($property, '?from=2026-09-01&to=2026-10-31&group=month'))->assertInertia(fn (Assert $page) => $page
+        ->where('rows.data', fn ($rows) => collect($rows)->map(fn ($row) => [$row['period'], $row['base']])->all() === [['2026-09', '70.00'], ['2026-10', '140.00']])
+        ->where('totals.figures.base', '210.00'));
+});
+
+test('the CSV has the Base column, blank for a flat tax, and the total of the bases', function () {
+    [$user, $property] = reportSetup();
+    $sst = Tax::factory()->create(['property_id' => $property->id, 'name' => 'SST']);
+    $tourism = Tax::factory()->create(['property_id' => $property->id, 'name' => 'Tourism tax', 'rate_type' => TaxRateType::Flat]);
+    chargeWithTax($sst, '100.00', '8.00', '2026-10-09');
+    chargeWithTax($tourism, '100.00', '10.00', '2026-10-09');
+
+    $response = $this->actingAs($user)->post("/p/{$property->code}/reports/tax/spreadsheet", ['from' => '2026-10-09', 'to' => '2026-10-09', 'format' => 'csv']);
+    $rows = array_map('str_getcsv', array_values(array_filter(explode("\n", ltrim($response->streamedContent(), "\xEF\xBB\xBF")))));
+
+    expect($rows[0])->toBe(['Date / month', 'Tax', 'Lines', 'Base', 'Tax amount'])
+        ->and(collect($rows)->slice(1, 2)->pluck(3)->sort()->values()->all())->toBe(['', '100'])
+        ->and(end($rows))->toBe(['Total', '', '2', '100', '18']);
+});
+
+test('a discount applied later with its own tax line counts once in the base', function () {
+    [$user, $property] = reportSetup();
+    $sst = Tax::factory()->create(['property_id' => $property->id, 'name' => 'SST']);
+    ['charge' => $charge] = chargeWithTax($sst, '100.00', '8.00', '2026-10-09');
+    $discount = FolioLine::factory()->create([
+        'folio_id' => $charge->folio_id, 'kind' => TransactionKind::Adjustment, 'amount' => '-10.00', 'unit_amount' => '-10.00',
+        'posting_date' => '2026-10-09', 'parent_line_id' => $charge->id,
+    ]);
+    chargeWithTax($sst, '0', '-0.80', '2026-10-09', parent: $discount);
+
+    $this->actingAs($user)->get(taxUrl($property, '?from=2026-10-09&to=2026-10-09'))->assertInertia(fn (Assert $page) => $page
+        ->where('totals.figures.base', '90.00')
+        ->where('totals.figures.amount', '7.20'));
 });

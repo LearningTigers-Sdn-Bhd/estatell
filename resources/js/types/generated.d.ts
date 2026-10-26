@@ -3001,6 +3001,7 @@ period: string,
 tax: string,
 registration: string | null,
 lines: number,
+base: string | null,
 amount: string,
 };
 }

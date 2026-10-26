@@ -414,6 +414,7 @@ enum ReportKey: string
                 new ReportColumn('tax', __('Tax'), ColumnAlign::Left, true),
                 new ReportColumn('registration', __('Registration no.'), ColumnAlign::Left, false),
                 new ReportColumn('lines', __('Lines'), ColumnAlign::Right, true),
+                new ReportColumn('base', __('Base'), ColumnAlign::Right, true),
                 new ReportColumn('amount', __('Tax amount'), ColumnAlign::Right, true),
             ],
             self::MealCounts => [
