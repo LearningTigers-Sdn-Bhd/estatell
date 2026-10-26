@@ -2,7 +2,6 @@
 
 use App\Http\Middleware\BlockDuringImpersonation;
 use App\Http\Middleware\BlockOnDemo;
-use App\Http\Middleware\EndExpiredImpersonationSession;
 use App\Http\Middleware\EnsureAccountingIsActive;
 use App\Http\Middleware\EnsureBoatsIsActive;
 use App\Http\Middleware\EnsureChannelManagerIsActive;
@@ -76,7 +75,6 @@ return Application::configure(basePath: dirname(__DIR__))
             EnsurePasswordChanged::class,
             HandleAppearance::class,
             HandleInertiaRequests::class,
-            EndExpiredImpersonationSession::class,
             BlockDuringImpersonation::class,
             BlockOnDemo::class,
             AddLinkHeadersForPreloadedAssets::class,

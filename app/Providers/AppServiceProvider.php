@@ -6,6 +6,7 @@ use App\Actions\Channels\RecordChannelAriChange;
 use App\Actions\Channels\ScheduleChannelStructureSync;
 use App\Actions\DoorLocks\QueueStayPasscodeSync;
 use App\Actions\Notifications\RecordMailEvent;
+use App\Actions\Platform\NotifySupportMoneyCorrection;
 use App\Actions\Platform\RecordImpersonationEnd;
 use App\Enums\MailStatus;
 use App\Enums\PartnerStatus;
@@ -226,6 +227,8 @@ class AppServiceProvider extends ServiceProvider
             $activity->causer()->associate($impersonation->supportUser());
             $activity->properties = $activity->properties->put('impersonated_user_id', Auth::id());
         });
+
+        ActivityModel::created(fn (ActivityModel $activity) => app(NotifySupportMoneyCorrection::class)($activity));
 
         Event::listen(Logout::class, function (): void {
             if (app(Impersonation::class)->isActive()) {

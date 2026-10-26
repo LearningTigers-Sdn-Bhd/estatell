@@ -19,6 +19,7 @@ export default function AppSidebarLayout({
                 data-staff-shell
                 className="flex h-svh w-full flex-col overflow-hidden overscroll-none"
             >
+                <ImpersonationBanner />
                 <DemoBanner />
                 <AppNavbar surface="sidebar" />
                 <StaffWorkspaceHeader breadcrumbs={breadcrumbs} />
@@ -33,7 +34,6 @@ export default function AppSidebarLayout({
                                 : 'overflow-x-clip overflow-y-auto',
                         )}
                     >
-                        <ImpersonationBanner />
                         {children}
                     </AppContent>
                 </div>

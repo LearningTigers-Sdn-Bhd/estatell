@@ -1933,7 +1933,7 @@ userName: string,
 userRole: string | null,
 propertyName: string,
 propertyCode: string,
-minutesLeft: number,
+minutes: number,
 stopUrl: string,
 canCorrectMoney: boolean,
 };

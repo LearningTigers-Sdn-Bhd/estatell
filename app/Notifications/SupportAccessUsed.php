@@ -3,62 +3,22 @@
 namespace App\Notifications;
 
 use App\Enums\NotificationType;
-use App\Models\User;
-use Carbon\CarbonImmutable;
-use Illuminate\Notifications\Messages\MailMessage;
 
 /**
- * Tells a property's owner that platform support viewed the property as its staff. Sent when the session ends, so
- * the duration is known. The data is copied in, because the session is gone by the time the message is built.
+ * Tells a property's owner, in the app only, that platform support made a money correction (a refund, void, credit
+ * note or allocation reversal) while viewing the property as its staff. Sent once for each correction, right after it
+ * is logged.
  */
 class SupportAccessUsed extends PropertyNotification
 {
     public function __construct(
         public string $supportUserName,
         public ?string $partnerName,
-        public string $reason,
-        public ?string $note,
-        public CarbonImmutable $startedAt,
-        public int $minutes,
-        /** @var list<array{label: string, amount: ?string, reference: ?string}> */
-        public array $moneyCorrections = [],
+        public string $label,
+        public ?string $amount,
+        public ?string $reference,
     ) {
         parent::__construct(NotificationType::SupportAccessUsed);
-    }
-
-    /**
-     * @param  User  $notifiable
-     */
-    public function toMail(object $notifiable): MailMessage
-    {
-        $mail = (new MailMessage)
-            ->markdown('notifications::email', [
-                'mailTitle' => __('Support session ended at :property', ['property' => $notifiable->property->name]),
-                'propertyName' => $notifiable->property->name,
-                'supportWho' => $this->who(),
-                'mailDetails' => [__('Started') => $this->startedAt->toDayDateTimeString(), __('Duration') => __(':minutes min.', ['minutes' => $this->minutes]), __('Reason') => $this->reason],
-                'supportNote' => $this->note,
-                'supportCorrections' => array_map($this->moneyLine(...), $this->moneyCorrections),
-            ])
-            ->subject(__('Support session ended at :property', ['property' => $notifiable->property->name]))
-            ->line($this->who())
-            ->line(__('Started :time.', ['time' => $this->startedAt->toDayDateTimeString()]))
-            ->line(__('Reason: :reason.', ['reason' => $this->reason]))
-            ->line(__('Duration: :minutes min.', ['minutes' => $this->minutes]));
-
-        if ($this->note !== null) {
-            $mail->line(__('Note: :note', ['note' => $this->note]));
-        }
-
-        if ($this->moneyCorrections !== []) {
-            $mail->line(__('Money corrections:'));
-
-            foreach ($this->moneyCorrections as $correction) {
-                $mail->line('- '.$this->moneyLine($correction));
-            }
-        }
-
-        return $mail->line(__('You can switch support access off in your property settings.'));
     }
 
     /**
@@ -68,45 +28,30 @@ class SupportAccessUsed extends PropertyNotification
     {
         return [
             'type' => $this->type->value,
-            'title' => $this->title(),
-            'body' => $this->who(),
+            'title' => __('Support made a money correction'),
+            'body' => $this->body(),
             'support_user_name' => $this->supportUserName,
             'partner_name' => $this->partnerName,
-            'reason' => $this->reason,
-            'note' => $this->note,
-            'started_at' => $this->startedAt->toIso8601String(),
-            'minutes' => $this->minutes,
-            ...($this->moneyCorrections === [] ? [] : ['money_corrections' => $this->moneyCorrections]),
+            'label' => $this->label,
+            'amount' => $this->amount,
+            'reference' => $this->reference,
         ];
     }
 
-    /**
-     * @param  array{label: string, amount: ?string, reference: ?string}  $correction
-     */
-    private function moneyLine(array $correction): string
+    private function body(): string
     {
-        $line = $correction['label'];
+        $correction = $this->label;
 
-        if ($correction['amount'] !== null) {
-            $line .= ' '.$correction['amount'];
+        if ($this->amount !== null) {
+            $correction .= ' '.$this->amount;
         }
 
-        if ($correction['reference'] !== null) {
-            $line .= ' ('.__('reference :reference', ['reference' => $correction['reference']]).')';
+        if ($this->reference !== null) {
+            $correction .= ' ('.__('reference :reference', ['reference' => $this->reference]).')';
         }
 
-        return $line;
-    }
-
-    private function title(): string
-    {
-        return __('Support viewed your property');
-    }
-
-    private function who(): string
-    {
         return $this->partnerName === null
-            ? __(':name from estatell support viewed your property as a member of your staff.', ['name' => $this->supportUserName])
-            : __(':name from :partner viewed your property as a member of your staff.', ['name' => $this->supportUserName, 'partner' => $this->partnerName]);
+            ? __(':name from estatell support made a money correction: :correction.', ['name' => $this->supportUserName, 'correction' => $correction])
+            : __(':name from :partner made a money correction: :correction.', ['name' => $this->supportUserName, 'partner' => $this->partnerName, 'correction' => $correction]);
     }
 }

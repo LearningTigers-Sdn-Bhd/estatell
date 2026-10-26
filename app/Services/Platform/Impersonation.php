@@ -25,8 +25,6 @@ class Impersonation
 {
     public const string SESSION_KEY = 'impersonation';
 
-    public const int LIMIT_MINUTES = 30;
-
     /**
      * Route names denied during support access, for any method. Fortify's two-factor and password-confirm routes are
      * listed by name because the vendor registers them. `two-factor.login` stays open, because it is the sign-in step.
@@ -106,37 +104,13 @@ class Impersonation
     }
 
     /**
-     * Minutes left of the 30-minute limit, for display.
-     */
-    public function remainingMinutes(): int
-    {
-        $startedAt = $this->startedAt();
-
-        if ($startedAt === null) {
-            return 0;
-        }
-
-        return max(0, (int) ceil(($startedAt->addMinutes(self::LIMIT_MINUTES)->getTimestamp() - now()->getTimestamp()) / 60));
-    }
-
-    /**
-     * Whole minutes since the session started. A session never lasts longer than the limit, so this stops there.
+     * Whole minutes since the session started.
      */
     public function elapsedMinutes(): int
     {
         $startedAt = $this->startedAt();
 
-        return $startedAt === null ? 0 : min(self::LIMIT_MINUTES, max(0, (int) floor((now()->getTimestamp() - $startedAt->getTimestamp()) / 60)));
-    }
-
-    /**
-     * Whether the signed-in staff user's session has run past the 30-minute limit.
-     */
-    public function hasExpired(): bool
-    {
-        $startedAt = $this->startedAt();
-
-        return $this->isActive() && $startedAt !== null && now()->getTimestamp() >= $startedAt->addMinutes(self::LIMIT_MINUTES)->getTimestamp();
+        return $startedAt === null ? 0 : max(0, (int) floor((now()->getTimestamp() - $startedAt->getTimestamp()) / 60));
     }
 
     /**

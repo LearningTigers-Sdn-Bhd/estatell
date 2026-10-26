@@ -23,7 +23,7 @@ Define every notification once, with its channels, defaults and recipients.
 | RegistrationCardLink        | On   | No            | No (guest) | The guest                                |
 | OnboardingReminder          | On   | On            | Both       | Owner                                    |
 | DormStrategyChanged         | On   | On            | Both       | Owner                                    |
-| SupportAccessUsed           | On   | On, mandatory | Mail only  | Owner                                    |
+| SupportAccessUsed           | No   | On, mandatory | No         | Owner                                    |
 | PortalBookingCreated        | On   | On            | Both       | Reservation staff (module 12 permission) |
 | PortalBookingCancelled      | On   | On            | Both       | Reservation staff (module 12 permission) |
 | PortalCancellationRequested | On   | On, mandatory | Mail only  | Reservation staff (module 12 permission) |
@@ -42,7 +42,7 @@ Define every notification once, with its channels, defaults and recipients.
 
 `ChannelBookingReceived` and `ChannelBookingCancelled` are built (`ChannelReservationNotification`, sent by `NotifyChannelReservationStaff` after the channel booking is saved). The recipients are the active staff of the property with `reservations.manage`; each message names the channel and the reference and links to the reservation. The matrix check constraints list the two types. `ChannelRemovalBlocked` is sent to the staff member who archived a room type or rate plan (or unlinked room types) when an OTA still used it at the channel manager, so it was not done; the estatell team has the same news as an alert. The matrix check constraints list it. `ChannelHelpRequested` is planned with the [Channels](../21-channels/) module and is sent when an admin asks the owner for help with a channel.
 
-`SupportAccessUsed` is sent when a support session ends (Stop, the 30-minute expiry, a switch to another property, or logout), because it names the duration. The recipient is the property's first active Owner. The data is copied into the notification, because the session is gone when the message is built. It lists the money corrections made in the session (refunds, voids, credit notes, allocation reversals), read from the activity log by the session's support user and time window; the list is left out when there are none.
+`SupportAccessUsed` (label "Money correction by support") is in-app only. It is sent once for each money correction (refund, void, credit note, allocation reversal) that support makes while viewing a property as its staff, right when the activity log entry is created (`NotifySupportMoneyCorrection`). The recipient is the property's first active Owner. It names the support user, the partner, the action, the amount and the reference. Starting and ending a session send nothing. The enum value stays `support_access_used`, so the check constraints are unchanged.
 
 ## Base class
 
