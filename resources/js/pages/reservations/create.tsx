@@ -61,7 +61,7 @@ import {
     tabClass,
 } from '@/components/pms/reservations/booking-tabs';
 import type { BookingTab } from '@/components/pms/reservations/booking-tabs';
-import { FormError } from '@/components/pms/form-error';
+import { announceFormError, FormError } from '@/components/pms/form-error';
 import { StayDateTime } from '@/components/pms/reservations/stay-date-time';
 import { BookingBoatSelect } from '@/components/pms/reservations/booking-boat-select';
 import {
@@ -615,6 +615,10 @@ export default function ReservationCreate({
 
                 if (failing !== null) {
                     setTab(failing);
+                }
+
+                if (announceFormError(submitted)) {
+                    return;
                 }
 
                 document
