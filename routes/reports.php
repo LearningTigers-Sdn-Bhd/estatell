@@ -4,6 +4,7 @@ use App\Enums\PermissionEnum;
 use App\Http\Controllers\Reports\ActivityLogController;
 use App\Http\Controllers\Reports\ArrivalsReportController;
 use App\Http\Controllers\Reports\BoatManifestReportController;
+use App\Http\Controllers\Reports\CheckedOutReportController;
 use App\Http\Controllers\Reports\DailyReportController;
 use App\Http\Controllers\Reports\DeparturesReportController;
 use App\Http\Controllers\Reports\DepositLiabilityReportController;
@@ -31,6 +32,7 @@ Route::prefix('reports')->name('reports.')->middleware(['can:'.PermissionEnum::R
     Route::get('daily-report', DailyReportController::class)->name('daily-report');
     Route::get('arrivals', ArrivalsReportController::class)->name('arrivals');
     Route::get('departures', DeparturesReportController::class)->name('departures');
+    Route::get('checked-out', CheckedOutReportController::class)->name('checked-out');
     Route::get('in-house', InHouseReportController::class)->name('in-house');
     Route::get('occupancy', OccupancyReportController::class)->name('occupancy');
     Route::get('revenue', RevenueReportController::class)->name('revenue');

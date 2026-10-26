@@ -24,7 +24,7 @@ The reports a small property needs daily and monthly, with a shared frame: a dat
 | Police report                 | `PoliceReport`       | every guest of a unit that stayed (`unit_guests`)      | Range    | Landscape           | 31 days       |
 | Boat manifest                 | `BoatManifest`       | `unit_boat_trips` (only with the Boats feature)        | One date | Portrait            | –             |
 | Housekeeping tasks            | `HousekeepingTasks`  | `room_statuses`, `unit_nights`, `room_blocks`          | One date | Landscape           | –             |
-| Checked out (planned)         | `CheckedOut`         | `reservation_units`                                    | Range    | Portrait            | 31 days       |
+| Checked out                   | `CheckedOut`         | `reservation_units`                                    | Range    | Portrait            | 31 days       |
 | Daily revenue (planned)       | `DailyRevenue`       | `DailyRevenueQuery` (live)                             | Range    | Landscape           | 366 days      |
 | Booking performance (planned) | `BookingPerformance` | reservations by booking date                           | Range    | Portrait            | 366 days      |
 
