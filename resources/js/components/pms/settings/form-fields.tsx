@@ -128,6 +128,7 @@ export function SettingsSwitch({
             <Switch
                 id={name}
                 name={name}
+                value="1"
                 defaultChecked={checked}
                 disabled={disabled}
                 aria-invalid={!!error}

@@ -2,7 +2,10 @@ import { Link, router } from '@inertiajs/react';
 import {
     BedDouble,
     CalendarDays,
+    Check,
+    Copy,
     Info,
+    KeyRound,
     Ship,
     Tag,
     User,
@@ -30,6 +33,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { useClipboard } from '@/hooks/use-clipboard';
 import { cn } from '@/lib/utils';
 import { show as showGuest } from '@/routes/guests';
 import { show } from '@/routes/reservations';
@@ -85,6 +89,85 @@ function Detail({
             </span>
             <span className="flex items-center gap-1">{children}</span>
         </div>
+    );
+}
+
+const PIN_TIME: Intl.DateTimeFormatOptions = {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+};
+
+/**
+ * The door PINs of the stay, so staff can read one out at check-in. Shown only when a lock is linked to the unit's room.
+ */
+function DoorPins({ pins }: { pins: App.Data.DoorLocks.UnitDoorPinsData }) {
+    const [copiedText, copy] = useClipboard();
+
+    return (
+        <Detail icon={KeyRound} label="Door PIN">
+            <div className="flex flex-col gap-1">
+                {pins.sendNewPin && (
+                    <span className="text-warning">
+                        The stay was extended. Give the guest the newest PIN.
+                    </span>
+                )}
+                {pins.passcodes.map((passcode) => (
+                    <div
+                        key={passcode.id}
+                        className="flex flex-wrap items-center gap-x-3 gap-y-1"
+                    >
+                        <span className="font-mono text-base font-medium tracking-wider tabular-nums">
+                            {passcode.code ?? '—'}
+                        </span>
+                        {passcode.code !== null && (
+                            <Button
+                                variant="outline"
+                                size="icon-sm"
+                                aria-label="Copy PIN"
+                                onClick={() => copy(passcode.code!)}
+                            >
+                                {copiedText === passcode.code ? (
+                                    <Check />
+                                ) : (
+                                    <Copy />
+                                )}
+                            </Button>
+                        )}
+                        <StatusBadge status={passcode.status} />
+                        <span className="text-muted-foreground">
+                            {passcode.lockName} ·{' '}
+                            {new Date(passcode.startsAt).toLocaleString(
+                                'en-GB',
+                                PIN_TIME,
+                            )}{' '}
+                            →{' '}
+                            {new Date(passcode.endsAt).toLocaleString(
+                                'en-GB',
+                                PIN_TIME,
+                            )}
+                        </span>
+                        {passcode.error && (
+                            <span className="text-destructive">
+                                {passcode.error}
+                            </span>
+                        )}
+                        {passcode.revokeNote && (
+                            <span className="text-warning">
+                                {passcode.revokeNote}
+                            </span>
+                        )}
+                    </div>
+                ))}
+                {pins.locksWithoutPin.map((lock) => (
+                    <span key={lock.name} className="text-muted-foreground">
+                        No PIN yet for {lock.name}
+                        {lock.reason && ` · ${lock.reason}`}
+                    </span>
+                ))}
+            </div>
+        </Detail>
     );
 }
 
@@ -165,6 +248,7 @@ export function UnitsList({
 export function UnitsTab({
     reservationId,
     unit,
+    doorPins,
     autoAssignRooms,
     canWaiveFees,
     canOverrideRestrictions,
@@ -175,6 +259,7 @@ export function UnitsTab({
 }: {
     reservationId: number;
     unit: Unit | null;
+    doorPins: App.Data.DoorLocks.UnitDoorPinsData | null;
     autoAssignRooms: boolean;
     canWaiveFees: boolean;
     canOverrideRestrictions: boolean;
@@ -301,6 +386,7 @@ export function UnitsTab({
                         {guestsText(unit)}
                     </Detail>
                 </div>
+                {doorPins !== null && <DoorPins pins={doorPins} />}
                 <Detail icon={User} label="Primary">
                     {unit.primaryGuest === null ? (
                         <span className="text-muted-foreground">

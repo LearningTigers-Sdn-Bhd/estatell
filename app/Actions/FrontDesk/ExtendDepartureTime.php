@@ -5,6 +5,7 @@ namespace App\Actions\FrontDesk;
 use App\Actions\Reservations\SyncReservationStatus;
 use App\Enums\SystemTransactionCode;
 use App\Enums\UnitStatus;
+use App\Events\StayDatesChanged;
 use App\Models\ReservationUnit;
 use App\Models\RoomRevenuePolicy;
 use App\Models\User;
@@ -120,6 +121,8 @@ class ExtendDepartureTime
                 ->log('Late check-out');
 
             ($this->syncReservationStatus)($locked->reservation);
+
+            StayDatesChanged::dispatch($locked->property_id, $locked->id);
 
             return UnitStayResult::done($locked);
         });

@@ -1,0 +1,206 @@
+<?php
+
+use App\Actions\DoorLocks\SyncStayPasscodes;
+use App\Enums\PasscodeStatus;
+use App\Enums\UnitStatus;
+use App\Events\StayCheckedIn;
+use App\Events\StayCheckedOut;
+use App\Events\StayDatesChanged;
+use App\Jobs\SyncStayPasscodesJob;
+use App\Models\DoorLock;
+use App\Models\DoorPasscode;
+use App\Models\Room;
+use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
+use Illuminate\Queue\Middleware\WithoutOverlapping;
+use Illuminate\Support\Facades\Queue;
+
+require_once __DIR__.'/../Support/DoorLockSetup.php';
+
+it('issues one PIN for a checked-in stay, however many times it runs', function () {
+    ['property' => $property, 'room' => $room] = doorLockSetup();
+    $unit = doorLockStay($property, $room);
+    fakeTtlock();
+
+    app(SyncStayPasscodes::class)($unit);
+    app(SyncStayPasscodes::class)($unit);
+
+    $passcode = DoorPasscode::query()->sole();
+    expect($passcode->status)->toBe(PasscodeStatus::Active)
+        ->and($passcode->reservation_unit_id)->toBe($unit->id)
+        ->and($passcode->idempotency_key)->toBe("stay:{$unit->id}:{$passcode->door_lock_id}")
+        ->and(ttlockCalls('/v3/keyboardPwd/get'))->toBe(1);
+});
+
+it('ends the PIN at the unit departure, rounded up to the hour', function () {
+    ['property' => $property, 'room' => $room] = doorLockSetup();
+    $unit = doorLockStay($property, $room);
+    $unit->update(['departure_time' => '11:30:00']);
+    fakeTtlock();
+
+    app(SyncStayPasscodes::class)($unit->refresh());
+
+    // 2026-10-16 11:30 Kuala Lumpur is 03:30 UTC, rounded up to 04:00 UTC.
+    expect(DoorPasscode::query()->sole()->ends_at->toIso8601String())->toBe('2026-10-16T04:00:00+00:00');
+});
+
+it('uses a generated PIN on a lock without a gateway even in custom mode', function () {
+    ['property' => $property, 'room' => $room, 'connection' => $connection] = doorLockSetup(gateway: false);
+    $connection->update(['passcode_mode' => 'custom']);
+    $unit = doorLockStay($property, $room);
+    fakeTtlock();
+
+    app(SyncStayPasscodes::class)($unit);
+
+    expect(ttlockCalls('/v3/keyboardPwd/get'))->toBe(1)->and(ttlockCalls('/v3/keyboardPwd/add'))->toBe(0);
+});
+
+it('sends a custom PIN on a lock with a gateway in custom mode', function () {
+    ['property' => $property, 'room' => $room, 'connection' => $connection] = doorLockSetup(gateway: true);
+    $connection->update(['passcode_mode' => 'custom']);
+    $unit = doorLockStay($property, $room);
+    fakeTtlock();
+
+    app(SyncStayPasscodes::class)($unit);
+
+    expect(ttlockCalls('/v3/keyboardPwd/add'))->toBe(1);
+});
+
+it('skips a room with no lock and a switched-off connection', function () {
+    ['property' => $property, 'room' => $room, 'lock' => $lock, 'connection' => $connection] = doorLockSetup();
+    $unit = doorLockStay($property, $room);
+    fakeTtlock();
+
+    $lock->update(['room_id' => null]);
+    app(SyncStayPasscodes::class)($unit);
+    expect(DoorPasscode::query()->count())->toBe(0);
+
+    $lock->update(['room_id' => $room->id]);
+    $connection->update(['enabled' => false]);
+    app(SyncStayPasscodes::class)($unit->refresh());
+    expect(DoorPasscode::query()->count())->toBe(0)->and(ttlockCalls('/v3/keyboardPwd/get'))->toBe(0);
+});
+
+it('revokes the PIN when the stay is no longer checked in', function () {
+    ['property' => $property, 'room' => $room] = doorLockSetup();
+    $unit = doorLockStay($property, $room);
+    fakeTtlock();
+
+    app(SyncStayPasscodes::class)($unit);
+    $unit->forceFill(['status' => UnitStatus::CheckedOut, 'checked_out_at' => now()])->save();
+    app(SyncStayPasscodes::class)($unit->refresh());
+
+    expect(DoorPasscode::query()->sole()->status)->toBe(PasscodeStatus::Revoked);
+});
+
+it('moves the PIN to the new room’s lock', function () {
+    ['property' => $property, 'room' => $room] = doorLockSetup();
+    $other = Room::factory()->create(['property_id' => $property->id, 'number' => '102']);
+    $newLock = DoorLock::factory()->for($property)->create(['room_id' => $other->id]);
+    $unit = doorLockStay($property, $room);
+    fakeTtlock();
+
+    app(SyncStayPasscodes::class)($unit);
+    $unit->nights()->update(['room_id' => $other->id]);
+    app(SyncStayPasscodes::class)($unit->refresh());
+
+    expect(DoorPasscode::query()->where('door_lock_id', $newLock->id)->sole()->status)->toBe(PasscodeStatus::Active)
+        ->and(DoorPasscode::query()->where('status', PasscodeStatus::Revoked)->count())->toBe(1);
+});
+
+it('queues a sync from the stay events only when the feature and the connection are on', function () {
+    ['property' => $property, 'room' => $room, 'connection' => $connection] = doorLockSetup();
+    $unit = doorLockStay($property, $room);
+    Queue::fake();
+
+    StayDatesChanged::dispatch($property->id, $unit->id);
+    StayCheckedIn::dispatch($property->id, $unit->id);
+    StayCheckedOut::dispatch($property->id, $unit->id);
+    Queue::assertPushed(SyncStayPasscodesJob::class, 1); // unique by unit: the second event joins the first
+
+    $connection->update(['enabled' => false]);
+    StayCheckedIn::dispatch($property->id, $unit->id + 1);
+    Queue::assertPushed(SyncStayPasscodesJob::class, 1);
+});
+
+it('keeps a failed TTLock call off the stay: the PIN is saved as Failed', function () {
+    ['property' => $property, 'room' => $room] = doorLockSetup();
+    $unit = doorLockStay($property, $room);
+    Http::fake(['*/v3/keyboardPwd/get' => Http::response(['errcode' => -2012, 'errmsg' => 'lock offline'])]);
+
+    app(SyncStayPasscodes::class)($unit);
+
+    expect(DoorPasscode::query()->sole()->status)->toBe(PasscodeStatus::Failed);
+});
+
+it('issues a new PIN when the stay is extended and leaves the old one to run out', function () {
+    ['property' => $property, 'room' => $room] = doorLockSetup();
+    $unit = doorLockStay($property, $room);
+    fakeTtlock();
+    app(SyncStayPasscodes::class)($unit);
+    $unit->update(['departure_date' => '2026-10-18']);
+
+    app(SyncStayPasscodes::class)($unit->refresh());
+    app(SyncStayPasscodes::class)($unit->refresh());
+
+    $passcodes = DoorPasscode::query()->orderBy('id')->get();
+    expect($passcodes)->toHaveCount(2)
+        ->and($passcodes->pluck('status')->all())->toBe([PasscodeStatus::Active, PasscodeStatus::Active])
+        ->and($passcodes[0]->idempotency_key)->toBe("stay:{$unit->id}:{$passcodes[0]->door_lock_id}")
+        ->and($passcodes[1]->idempotency_key)->toBe("stay:{$unit->id}:{$passcodes[0]->door_lock_id}:".$passcodes[1]->ends_at->getTimestamp())
+        ->and($passcodes[1]->ends_at->gt($passcodes[0]->ends_at))->toBeTrue()
+        ->and(ttlockCalls('/v3/keyboardPwd/get'))->toBe(2)
+        ->and(ttlockCalls('/v3/keyboardPwd/delete'))->toBe(0);
+});
+
+it('keeps the PIN when the stay is shortened', function () {
+    ['property' => $property, 'room' => $room] = doorLockSetup();
+    $unit = doorLockStay($property, $room);
+    fakeTtlock();
+    app(SyncStayPasscodes::class)($unit);
+    $unit->update(['departure_date' => '2026-10-15']);
+
+    app(SyncStayPasscodes::class)($unit->refresh());
+
+    expect(DoorPasscode::query()->count())->toBe(1);
+});
+
+it('does not drop an event that arrives while the sync is running', function () {
+    expect(SyncStayPasscodesJob::class)->toImplement(ShouldBeUniqueUntilProcessing::class);
+});
+
+it('never runs two syncs of the same unit together', function () {
+    $middleware = (new SyncStayPasscodesJob(7))->middleware();
+
+    expect($middleware)->toHaveCount(1)
+        ->and($middleware[0])->toBeInstanceOf(WithoutOverlapping::class)
+        ->and($middleware[0]->key)->toBe('7');
+});
+
+it('saves the Delete PIN note when the check-out revokes a PIN on a lock without a gateway', function () {
+    ['property' => $property, 'room' => $room] = doorLockSetup(gateway: false);
+    $unit = doorLockStay($property, $room);
+    fakeTtlock();
+    app(SyncStayPasscodes::class)($unit);
+
+    $unit->forceFill(['status' => UnitStatus::CheckedOut, 'checked_out_at' => now()])->save();
+    app(SyncStayPasscodes::class)($unit->refresh());
+
+    expect(DoorPasscode::query()->sole()->revoke_note)->toContain('482913');
+});
+
+it('clears the revoke note when the same stay gets its PIN again', function () {
+    ['property' => $property, 'room' => $room] = doorLockSetup(gateway: false);
+    $unit = doorLockStay($property, $room);
+    fakeTtlock();
+    app(SyncStayPasscodes::class)($unit);
+    $unit->forceFill(['status' => UnitStatus::CheckedOut, 'checked_out_at' => now()])->save();
+    app(SyncStayPasscodes::class)($unit->refresh());
+    $unit->forceFill(['status' => UnitStatus::CheckedIn, 'checked_out_at' => null])->save();
+
+    app(SyncStayPasscodes::class)($unit->refresh());
+
+    $passcode = DoorPasscode::query()->sole();
+    expect($passcode->status)->toBe(PasscodeStatus::Active)
+        ->and($passcode->revoke_note)->toBeNull()
+        ->and($passcode->revoked_at)->toBeNull();
+});

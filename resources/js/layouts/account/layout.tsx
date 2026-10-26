@@ -15,6 +15,7 @@ export default function AccountLayout({
     return (
         <AppShell variant="sidebar">
             <div className="flex h-svh w-full flex-col overflow-hidden">
+                <ImpersonationBanner />
                 <DemoBanner />
                 <AppNavbar identity="app" />
                 <div className="flex min-h-0 flex-1">
@@ -23,7 +24,6 @@ export default function AccountLayout({
                         variant="sidebar"
                         className="min-h-0 min-w-0 overflow-x-clip overflow-y-auto"
                     >
-                        <ImpersonationBanner />
                         <AppSidebarHeader
                             breadcrumbs={breadcrumbs}
                             showTrigger={false}

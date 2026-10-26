@@ -4,9 +4,10 @@ import type { ReactNode, Ref } from 'react';
 import { buildDateColumns } from '@/components/pms/grid/date-columns';
 import { DateGrid } from '@/components/pms/grid/date-grid';
 import type { DateGridHandle } from '@/components/pms/grid/date-grid';
-import { isCellBookable, takenNights } from './bookable-cell';
+import { cellActions, takenNights } from './bookable-cell';
 import { BlockBar } from './block-bar';
 import { EmptyCell } from './cell-actions';
+import type { BlockCell } from './cell-actions';
 import { DayUseBar } from './day-use-bar';
 import { rowOnNight, rowTakesDrop } from './drop-target';
 import { filterStays } from './filter-stays';
@@ -73,7 +74,9 @@ export function StayViewTimeline({
     canManageReservations,
     canOverrideRestrictions,
     canWaiveFees,
+    canBlockRooms,
     onOpenStay,
+    onBlockRoom,
     corner,
 }: {
     gridRef: Ref<DateGridHandle>;
@@ -92,7 +95,9 @@ export function StayViewTimeline({
     canManageReservations: boolean;
     canOverrideRestrictions: boolean;
     canWaiveFees: boolean;
+    canBlockRooms: boolean;
     onOpenStay: (unitId: number) => void;
+    onBlockRoom: (cell: BlockCell) => void;
     /** The control in the top-left corner of the date header. */
     corner?: ReactNode;
 }) {
@@ -368,16 +373,21 @@ export function StayViewTimeline({
                             aria-hidden
                             className="pointer-events-none absolute inset-0 bg-muted/50"
                         />
-                    ) : row.kind === 'row' &&
-                      row.room !== null &&
-                      isCellBookable({
-                          canManageReservations,
-                          rowKey: row.key,
-                          date: column.date,
-                          businessDate: window.businessDate,
-                          taken,
-                      }) ? (
-                        <EmptyCell room={row.room} date={column.date} />
+                    ) : row.kind === 'row' && row.room !== null ? (
+                        <EmptyCell
+                            room={row.room}
+                            date={column.date}
+                            actions={cellActions({
+                                canManageReservations,
+                                canBlockRooms,
+                                rowKey: row.key,
+                                date: column.date,
+                                businessDate: window.businessDate,
+                                today: window.today,
+                                taken,
+                            })}
+                            onBlock={onBlockRoom}
+                        />
                     ) : null
                 }
                 renderRowOverlay={(row, { labelWidth, columnWidth }) =>

@@ -115,8 +115,8 @@ Shown only when something is wrong, with **Open audit** (the Run Night Audit she
 
 | Button               | Does                                                                                                             | Shown with            |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------- | --------------------- |
-| **+ New booking**    | Opens `reservations.new`                                                                                         | `reservations.manage` |
-| **Walk-in**          | Opens `reservations.walk-in`                                                                                     | `reservations.manage` |
+| **+ New booking**    | Opens `reservations.new?back=dashboard`, so back and Cancel return here                                          | `reservations.manage` |
+| **Walk-in**          | Opens `reservations.walk-in?back=dashboard`                                                                      | `reservations.manage` |
 | **Find reservation** | Opens the reservations list with the search box focused. It becomes the command palette when that item is built. | `reservations.view`   |
 
 A user with none of them sees no button row. **Run night audit** is not in this row: it sits in the page header on both tabs.

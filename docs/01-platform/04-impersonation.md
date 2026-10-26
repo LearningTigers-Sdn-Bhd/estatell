@@ -16,7 +16,7 @@ Two roles can view as:
 ## Principles
 
 - **Easy for the support user**: 2 clicks and Enter, or paste any staff URL and press Enter.
-- **Never silent**: every session is consented, reasoned, time-limited, logged and notified to the owner.
+- **Never silent**: every session is consented, reasoned and logged. The owner is told, in the app, about every money correction support makes.
 - **One flow**: every entry point leads to the same view-as page and the same POST.
 
 ## Entry points
@@ -74,11 +74,15 @@ While impersonating, every page shows a banner that cannot be dismissed:
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│ ⚠ Viewing as Aisha (Owner) · Pulau Inn (ES1142) · 28 min left [ Stop ]│
-└──────────────────────────────────────────────────────────────────────┘
+│ ⚠ Viewing as Aisha (Owner) · Pulau Inn (ES1142) · 12 min      [ Stop ]│  ← full width, top
+├──────────────────────────────────────────────────────────────────────┤
+│ Navbar                                                                │
+│ Breadcrumbs                                                           │
+├──────────┬───────────────────────────────────────────────────────────┤
+│ Sidebar  │ Page                                                      │
 ```
 
-**Stop** ends the session and returns to the admin or partner property page, with a toast "Support session ended (6 min)". The banner sticks to the top of the staff content area. Minutes left refresh on each page load.
+**Stop** ends the session and returns to the admin or partner property page, with a toast "Support session ended (6 min)". The banner is the first row of the window, above the navbar and the breadcrumbs, on staff, account and onboarding pages. The minutes used refresh on each page load.
 
 ## Cases
 
@@ -92,23 +96,23 @@ While impersonating, every page shows a banner that cannot be dismissed:
 | No confirmed 2FA while `SUPPORT_REQUIRE_2FA` is on | "Set up two-factor to view properties as their owner". Start button disabled                                                                                                                                                                                             |
 | Code does not exist                                | `404`. On the view-as page an admin is sent to the properties list with a toast "Property ES1142 not found." Partners and staff still get the plain `404`.                                                                                                               |
 | Non-GET request without a staff session            | `403`. Writes are never replayed after confirming.                                                                                                                                                                                                                       |
-| Link opened after the 30-minute session ended      | View-as page again. New session, new log entry.                                                                                                                                                                                                                          |
+| Link opened after the session ended                | View-as page again. New session, new log entry.                                                                                                                                                                                                                          |
 | Unknown `reason` in the link                       | First chip is used                                                                                                                                                                                                                                                       |
 | Link opened by someone who may not view it         | `404`, so other partners cannot tell the code exists                                                                                                                                                                                                                     |
 
 ## Guardrails
 
-| Guardrail         | Rule                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Consent           | `property_settings.allow_support_access`, default true. The owner can switch it off in Settings. Until the roles module exists, any staff member of the property can.                                                                                                                                                                                                                                                                                                        |
-| Reason            | Required (chip). Stored in the log.                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| Time limit        | 30 minutes, then the session ends automatically and returns to the admin or partner page.                                                                                                                                                                                                                                                                                                                                                                                    |
-| Permission        | `PropertyPolicy::viewAs`: admins for any property, partner users for their partner's properties while the partner is Active. 2FA only when `SUPPORT_REQUIRE_2FA` is on (`support.2fa`).                                                                                                                                                                                                                                                                                      |
-| Scope             | Only staff users of one property. Never an admin or a partner user. One property per session.                                                                                                                                                                                                                                                                                                                                                                                |
-| Blocked actions   | See below. Hidden in the UI and denied on the server.                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| Money corrections | `property_settings.allow_support_money_corrections`, default true. Refunds, voids and credit notes follow the owner's switch. See [Money corrections](#money-corrections).                                                                                                                                                                                                                                                                                                   |
-| Audit             | Every write records the support user as the real causer and the impersonated user.                                                                                                                                                                                                                                                                                                                                                                                           |
-| Notification      | Owner receives `SupportAccessUsed` when the session ends (so the duration is known): who (and the partner name for a partner), when, reason, note, duration. It also lists the money corrections made in the session (refunds, voids, credit notes, allocation reversals, with amount and reference), read from the activity log. Without any, the list is left out. If nobody makes another request, the session stays open until the next one, so the notice waits for it. |
+| Guardrail         | Rule                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Consent           | `property_settings.allow_support_access`, default true. The owner can switch it off in Settings. Until the roles module exists, any staff member of the property can.                                                                                                                                                                                                                                                   |
+| Reason            | Required (chip). Stored in the log.                                                                                                                                                                                                                                                                                                                                                                                     |
+| Time limit        | None. A session ends on Stop, on a switch to another property, or on logout. A session left open in a closed tab ends with the Laravel session, and then no `impersonation.ended` entry is logged.                                                                                                                                                                                                                      |
+| Permission        | `PropertyPolicy::viewAs`: admins for any property, partner users for their partner's properties while the partner is Active. 2FA only when `SUPPORT_REQUIRE_2FA` is on (`support.2fa`).                                                                                                                                                                                                                                 |
+| Scope             | Only staff users of one property. Never an admin or a partner user. One property per session.                                                                                                                                                                                                                                                                                                                           |
+| Blocked actions   | See below. Hidden in the UI and denied on the server.                                                                                                                                                                                                                                                                                                                                                                   |
+| Money corrections | `property_settings.allow_support_money_corrections`, default true. Refunds, voids and credit notes follow the owner's switch. See [Money corrections](#money-corrections).                                                                                                                                                                                                                                              |
+| Audit             | Every write records the support user as the real causer and the impersonated user.                                                                                                                                                                                                                                                                                                                                      |
+| Notification      | In-app only, never email. The owner receives `SupportAccessUsed` once for each money correction support makes (refund, void, credit note, allocation reversal), right when it is logged: who (and the partner name for a partner), the action, the amount and the reference. Starting and ending a session sends nothing. Both are in the activity log. There is no bell yet to read in-app notices; see the checklist. |
 
 ### Blocked during impersonation
 
@@ -149,7 +153,7 @@ Support access
 
 | Switch | During a session                                                                                                                                                                          |
 | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| On     | The actions run. The activity log records the support user as causer, and the owner's notice lists them.                                                                                  |
+| On     | The actions run. The activity log records the support user as causer, and the owner gets an in-app notice for each one.                                                                   |
 | Off    | The routes are denied with the toast "The owner has not allowed refunds and voids during support access". The check-out requests refuse a refund the same way. The UI hides the controls. |
 
 The list lives in `Impersonation::isMoneyCorrectionRoute()`, next to `isBlockedRoute()`, and the same middleware checks it. At check-out, the refusal is an error on the refund field rather than the toast, so the form says why. The check-out previews leave out the refund, so the forms never offer one, and the folio row's refund action is hidden. A group move of a folio that holds a deposit needs a refund too, so it is refused the same way. Folio line reversals (`reservations.folios.lines.reverse`) are not money corrections. They stay allowed, because fixing charges is setup work.
@@ -209,11 +213,11 @@ Then set, from the resolved property:
 
 ## Services and Actions
 
-- `Impersonation` service (an injected instance, not static): reads the session and answers `isActive()` (the signed-in user must be the session's user), `forProperty()`, `supportUser()`, `remainingMinutes()`, `elapsedMinutes()`, `returnUrl()`, `accepts()` (the `to` rules) and `destination()` (`to` or the start page).
+- `Impersonation` service (an injected instance, not static): reads the session and answers `isActive()` (the signed-in user must be the session's user), `forProperty()`, `supportUser()`, `elapsedMinutes()`, `returnUrl()`, `accepts()` (the `to` rules) and `destination()` (`to` or the start page).
 - `StartImpersonation`: checks `viewAs`, consent and that the target is active staff of the property (2FA is the route middleware), stores the session, calls `Auth::login($staff)` on the web guard, logs `impersonation.started`, returns the path to open. An open session is stopped first, which is how switching works. It returns null when refused. The return URL is the admin property page for an admin and the partner property page for a partner.
-- `StopImpersonation`: calls `Auth::login($supportUser)` with the stored support user id, forgets the session key, calls `RecordImpersonationEnd` (logs `impersonation.ended` with the duration and notifies the owner), redirects to the stored return URL.
-- `RecordImpersonationEnd`: logs `impersonation.ended` and sends `SupportAccessUsed`. It does not end the session, so Stop and the logout listener share it.
-- `EndExpiredImpersonation`: runs StopImpersonation when the 30 minutes have passed. The `EndExpiredImpersonationSession` web middleware calls it on every request, so `/account` pages expire too, and redirects to the return URL with the toast. The duration is capped at 30.
+- `StopImpersonation`: calls `Auth::login($supportUser)` with the stored support user id, forgets the session key, calls `RecordImpersonationEnd` (logs `impersonation.ended` with the duration), redirects to the stored return URL.
+- `RecordImpersonationEnd`: logs `impersonation.ended`. It does not end the session, so Stop and the logout listener share it.
+- `NotifySupportMoneyCorrection`: an `Activity::created` listener in `AppServiceProvider` calls it for every new log entry. When the entry is a money event that carries `impersonated_user_id`, it sends `SupportAccessUsed` to the property's first active Owner. `SupportMoneyCorrections::fromActivity()` reads the label, amount and reference from the entry.
 
 ## Routes
 
@@ -228,13 +232,13 @@ Then set, from the resolved property:
 - `property_settings.allow_support_access` (bool, default true).
 - `property_settings.allow_support_money_corrections` (bool, default true).
 - No new table. Sessions are recorded in the activity log with events `impersonation.started` and `impersonation.ended` (support user, partner, user, property, reason, note, duration).
-- Notification type `SupportAccessUsed` (see [Notification types](../04-notifications/01-notification-types.md)).
+- Notification type `SupportAccessUsed`, in-app only (see [Notification types](../04-notifications/01-notification-types.md)).
 - No permission rows. `PropertyPolicy::viewAs` and the `support.2fa` middleware decide who can start.
 
 ## UI
 
 - View-as page: a small full-screen page with the form above, in the admin layout for admins and the partner layout for partners. It is a page (not a Dialog) because it must work from a pasted URL.
-- Banner: shared Inertia prop `impersonation` (`ImpersonationData`: support user name, partner name or null, user name and role, property name and code, minutes left, stop URL, `canCorrectMoney`). A partner session reads "… · Pulau Inn (AS1101) · via Andaman Stays · 28 min left". Uses the `warning` status token.
+- Banner: shared Inertia prop `impersonation` (`ImpersonationData`: support user name, partner name or null, user name and role, property name and code, minutes used, stop URL, `canCorrectMoney`). A partner session reads "… · Pulau Inn (AS1101) · via Andaman Stays · 28 min left". Uses the `warning` status token. `minutes` is the time used.
 - Blocked actions are hidden using the same prop, read through `useIsImpersonating()` (`resources/js/hooks/use-is-impersonating.ts`). Money corrections are hidden only when the prop's `canCorrectMoney` is false (from `allow_support_money_corrections`), read through the same hook. Where a whole page is a write form (bulk add staff, notification preferences, the support tab), the page shows one line, "Not available during support access", instead of the form.
 
 ## Build choice
@@ -247,10 +251,10 @@ Custom, about four small classes. `lab404/laravel-impersonate` (v1.7.8 supports 
 | Controllers      | `app/Http/Controllers/Platform/ViewAsController.php` (show, store), `ImpersonationController.php` (stop)    |
 | View-as page     | `ViewAsStaff` lists the staff, `ImpersonationReason` holds the chips, `StartImpersonationRequest` validates |
 | `Impersonation`  | `app/Services/Platform/Impersonation.php`                                                                   |
-| Actions          | `app/Actions/Platform/StartImpersonation.php`, `StopImpersonation.php`, `EndExpiredImpersonation.php`       |
+| Actions          | `app/Actions/Platform/StartImpersonation.php`, `StopImpersonation.php`, `NotifySupportMoneyCorrection.php`  |
 | Blocking         | `app/Http/Middleware/BlockDuringImpersonation.php`                                                          |
 
-Built in four commits: view as (start, stop, banner, entry points), then logging and limits (audit causer, log events, `SupportAccessUsed`, 30-minute expiry, switching properties), then blocking, then the owner's money corrections switch.
+Built in four commits: view as (start, stop, banner, entry points), then logging and limits (audit causer, log events, `SupportAccessUsed`, 30-minute expiry, switching properties), then blocking, then the owner's money corrections switch. Later the 30-minute limit was removed, the end-of-session email became an in-app notice for each money correction, and the banner moved to the top of the window.
 
 ## Tests
 
@@ -264,7 +268,7 @@ Built in four commits: view as (start, stop, banner, entry points), then logging
 - A non-GET request from a support user without a session returns 403.
 - An external `to` URL is ignored.
 - Writes during impersonation record the support user as causer.
-- The session ends after 30 minutes.
-- With the money switch on, a refund during a session runs and is listed in the owner's notice.
+- A session has no time limit, and ending it sends no notice.
+- With the money switch on, a refund during a session runs and sends the owner one in-app notice, and no email. A refund outside a session sends nothing.
 - With the money switch off, a refund route and a check-out with a refund are refused; a check-out without a refund still works.
 - The money switch cannot be changed during a session.

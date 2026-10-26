@@ -2,10 +2,10 @@
 
 use App\Http\Middleware\BlockDuringImpersonation;
 use App\Http\Middleware\BlockOnDemo;
-use App\Http\Middleware\EndExpiredImpersonationSession;
 use App\Http\Middleware\EnsureAccountingIsActive;
 use App\Http\Middleware\EnsureBoatsIsActive;
 use App\Http\Middleware\EnsureChannelManagerIsActive;
+use App\Http\Middleware\EnsureDoorLocksAreActive;
 use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\EnsureOnboarding;
 use App\Http\Middleware\EnsurePasswordChanged;
@@ -49,6 +49,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'support.2fa' => RequireSupportTwoFactor::class,
             'boats' => EnsureBoatsIsActive::class,
             'accounting' => EnsureAccountingIsActive::class,
+            'door-locks' => EnsureDoorLocksAreActive::class,
             'channels' => EnsureChannelManagerIsActive::class,
             'live' => EnsurePropertyIsLive::class,
             'onboarding.activity' => TrackOnboardingActivity::class,
@@ -65,6 +66,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToPriorityList(EnsureOnboarding::class, TrackOnboardingActivity::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureBoatsIsActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureAccountingIsActive::class);
+        $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureDoorLocksAreActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureChannelManagerIsActive::class);
 
         $middleware->web(append: [
@@ -73,7 +75,6 @@ return Application::configure(basePath: dirname(__DIR__))
             EnsurePasswordChanged::class,
             HandleAppearance::class,
             HandleInertiaRequests::class,
-            EndExpiredImpersonationSession::class,
             BlockDuringImpersonation::class,
             BlockOnDemo::class,
             AddLinkHeadersForPreloadedAssets::class,

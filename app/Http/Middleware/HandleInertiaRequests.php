@@ -121,7 +121,7 @@ class HandleInertiaRequests extends Middleware
             userRole: $user->getRoleNames()->first(),
             propertyName: $user->property->name,
             propertyCode: $user->property->code,
-            minutesLeft: $impersonation->remainingMinutes(),
+            minutes: $impersonation->elapsedMinutes(),
             stopUrl: route('impersonation.stop', absolute: false),
             canCorrectMoney: $impersonation->canCorrectMoney(),
         );

@@ -36,6 +36,7 @@ use App\Services\Property\MigrationWindow;
 use App\Services\Property\PropertyToday;
 use App\Services\Rates\DayUseOffers;
 use App\Services\Reservations\BookingErrorKeys;
+use App\Services\Reservations\BookingFormBack;
 use App\Services\Reservations\BookingPrefill;
 use App\Services\Reservations\BookingQuote;
 use App\Services\Reservations\BookingSourceOptions;
@@ -317,6 +318,7 @@ class ReservationBookingController extends Controller
             'isPastStay' => $pastStay,
             'isMigratedStay' => $migratedStay,
             'isOldStay' => $oldStay,
+            'back' => app(BookingFormBack::class)->fromQuery($property, $request->query()),
             'prefill' => $readsPrefill ? app(BookingPrefill::class)->fromQuery($property, $request->query(), $todayDate) : null,
             'canEnterMigratedStay' => $request->user()->can(PermissionEnum::FolioManual->value) && app(MigrationWindow::class)->isOpen($property),
             'canEnterOldStay' => $request->user()->can(PermissionEnum::FolioManual->value) && app(MigrationWindow::class)->isOpen($property),

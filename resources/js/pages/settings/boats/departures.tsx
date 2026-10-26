@@ -48,11 +48,13 @@ function formValues(departure: Departure) {
 
 export default function BoatDeparturesPage({
     departures,
+    mealPeriods,
     fares,
     directions,
     currency,
 }: {
     departures: Departure[];
+    mealPeriods: App.Data.Meals.MealPeriodData[];
     fares: Fare[];
     directions: Option[];
     currency: App.Data.Property.CurrencyData;
@@ -165,6 +167,7 @@ export default function BoatDeparturesPage({
 
                                     <BoatDepartureTable
                                         departures={rows}
+                                        mealPeriods={mealPeriods}
                                         emptyTitle={`No ${direction.label.toLowerCase()} departures yet.`}
                                         money={money}
                                         togglingIds={togglingIds}
@@ -188,6 +191,7 @@ export default function BoatDeparturesPage({
                 defaultDirection={sheet.direction}
                 directions={directions}
                 fares={fares}
+                mealPeriods={mealPeriods}
                 currency={currency}
             />
 

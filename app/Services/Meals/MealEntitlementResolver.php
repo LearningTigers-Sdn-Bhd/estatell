@@ -37,11 +37,11 @@ class MealEntitlementResolver
             for ($date = $inclusion->startsOn->firstDate($arrival); $date->lte($last); $date = $date->addDay()) {
                 $day = $date->toDateString();
 
-                if ($arrivalTime !== null && $day === $arrivalDay && substr($arrivalTime, 0, 5) >= substr($inclusion->mealPeriodEndsAt, 0, 5)) {
+                if ($arrivalTime !== null && $day === $arrivalDay && ! MealTimeRule::countsOnArrival($arrivalTime, $inclusion->mealPeriodEndsAt)) {
                     continue;
                 }
 
-                if ($departureTime !== null && $day === $departureDay && substr($departureTime, 0, 5) <= substr($inclusion->mealPeriodStartsAt, 0, 5)) {
+                if ($departureTime !== null && $day === $departureDay && ! MealTimeRule::countsOnDeparture($departureTime, $inclusion->mealPeriodStartsAt)) {
                     continue;
                 }
 
