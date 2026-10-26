@@ -315,6 +315,7 @@ export function BookingGuestsSection({
     units,
     canManageGuests,
     countries,
+    defaultNationalityCode,
     genders,
     locales,
     errors,
@@ -324,6 +325,7 @@ export function BookingGuestsSection({
     units: UnitOption[];
     canManageGuests: boolean;
     countries: EnumOption[];
+    defaultNationalityCode: string;
     genders: EnumOption[];
     locales: EnumOption[];
     errors: Errors;
@@ -376,7 +378,12 @@ export function BookingGuestsSection({
                     type="button"
                     variant="outline"
                     disabled={guests.length >= 20}
-                    onClick={() => onChange([...guests, emptyGuest()])}
+                    onClick={() =>
+                        onChange([
+                            ...guests,
+                            emptyGuest('', defaultNationalityCode),
+                        ])
+                    }
                 >
                     <Plus data-icon="inline-start" />
                     Add guest

@@ -178,6 +178,8 @@ type Props = {
     /** The available boat departures, both directions. Each pick filters them by direction. */
     boatDepartures: App.Data.Boats.BoatDepartureOptionData[];
     countries: EnumOption[];
+    /** The property's country code: the nationality a new guest starts with. */
+    defaultNationalityCode: string;
     genders: EnumOption[];
     locales: EnumOption[];
 };
@@ -239,6 +241,7 @@ export default function ReservationCreate({
     hasBoats,
     boatDepartures,
     countries,
+    defaultNationalityCode,
     genders,
     locales,
 }: Props) {
@@ -289,7 +292,7 @@ export default function ReservationCreate({
         credit_override_reason: '',
         billing_mode: billingModes[0]?.value ?? 'master_pays',
         notes: '',
-        guests: [emptyGuest()],
+        guests: [emptyGuest('', defaultNationalityCode)],
         lines: [prefilledLine()],
         boat_in: NOT_SET,
         boat_out: NOT_SET,
@@ -1744,6 +1747,9 @@ export default function ReservationCreate({
                                             units={unitChoices}
                                             canManageGuests={canManageGuests}
                                             countries={countries}
+                                            defaultNationalityCode={
+                                                defaultNationalityCode
+                                            }
                                             genders={genders}
                                             locales={locales}
                                             errors={errors}

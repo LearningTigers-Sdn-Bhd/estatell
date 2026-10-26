@@ -24,11 +24,13 @@ export type BookingGuest = GuestDetails & {
 
 let guestCount = 0;
 
-export function emptyGuest(staysIn = ''): BookingGuest {
+/** A new guest tab. The nationality starts as the property's country, so staff only change it for a foreign guest. */
+export function emptyGuest(staysIn = '', nationalityCode = ''): BookingGuest {
     guestCount += 1;
 
     return {
         ...EMPTY_GUEST_DETAILS,
+        nationality_code: nationalityCode,
         key: `guest-${guestCount}`,
         guest: null,
         full_name: '',
