@@ -11,23 +11,41 @@ export function useUnitPreview<T>(
     active: boolean,
     body: Record<string, string | number[]> = {},
     delay = 0,
-): { preview: T | null; reload: () => void } {
+): { preview: T | null; loading: boolean; error: boolean; reload: () => void } {
     const http = useHttp<Record<string, string | number[]>, T>('post', url, {});
     const [preview, setPreview] = useState<T | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(false);
     const [attempt, setAttempt] = useState(0);
     const key = JSON.stringify(body);
 
     useEffect(() => {
         if (!active) {
+            setLoading(false);
+            setError(false);
             return;
         }
 
         let current = true;
+        setLoading(true);
+        setError(false);
+
         const timer = window.setTimeout(() => {
             http.transform(() => JSON.parse(key));
             http.submit()
-                .then((answer) => current && setPreview(answer))
-                .catch(() => current && setPreview(null));
+                .then((answer) => {
+                    if (current) {
+                        setPreview(answer);
+                        setLoading(false);
+                    }
+                })
+                .catch(() => {
+                    if (current) {
+                        setPreview(null);
+                        setError(true);
+                        setLoading(false);
+                    }
+                });
         }, delay);
 
         return () => {
@@ -38,5 +56,10 @@ export function useUnitPreview<T>(
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [active, url, key, attempt, delay]);
 
-    return { preview, reload: () => setAttempt((count) => count + 1) };
+    return {
+        preview,
+        loading,
+        error,
+        reload: () => setAttempt((count) => count + 1),
+    };
 }

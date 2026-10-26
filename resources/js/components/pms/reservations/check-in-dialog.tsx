@@ -1,4 +1,5 @@
 import { useForm } from '@inertiajs/react';
+import { AlertCircleIcon } from 'lucide-react';
 import { useState } from 'react';
 import { CountrySelect } from '@/components/pms/country-select';
 import { DateText } from '@/components/pms/date-text';
@@ -16,6 +17,7 @@ import {
     useFormOptions,
 } from '@/components/pms/use-form-options';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -84,7 +86,10 @@ function CheckInForm({
     useFormOptions(open, paymentOptions !== undefined, 'paymentOptions');
 
     const key = { reservation: reservationId, unit: unit.id };
-    const { preview } = useUnitPreview<Preview>(checkInPreview.url(key), open);
+    const { preview, loading, error, reload } = useUnitPreview<Preview>(
+        checkInPreview.url(key),
+        open,
+    );
     const [idempotencyKey] = useState(() => crypto.randomUUID());
     const methods = (paymentOptions?.methods ?? []).filter(
         (one) => !one.isOldSystem,
@@ -161,13 +166,34 @@ function CheckInForm({
             submitLabel="Check in"
             processing={form.processing}
             submitDisabled={
+                loading ||
+                error ||
                 preview === null ||
                 preview.error !== null ||
                 preview.roomState === 'none' ||
                 (data.collect_now && collecting && paymentOptions === undefined)
             }
-            loading={preview === null}
+            loading={loading}
         >
+            {error && (
+                <Alert variant="destructive">
+                    <AlertCircleIcon />
+                    <AlertDescription className="flex items-center justify-between gap-4">
+                        <span>
+                            Failed to load check-in details. Please check your
+                            network connection.
+                        </span>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={reload}
+                        >
+                            Retry
+                        </Button>
+                    </AlertDescription>
+                </Alert>
+            )}
             {preview !== null && (
                 <>
                     <AuditPendingStrip pending={preview.auditPending} />

@@ -1,9 +1,11 @@
 import { useForm } from '@inertiajs/react';
+import { AlertCircleIcon } from 'lucide-react';
 import { useState } from 'react';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { useUnitPreview } from '@/components/pms/reservations/use-unit-preview';
 import { KEEP_OPTIONS } from '@/components/pms/use-form-options';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -25,7 +27,7 @@ type Props = {
 
 function CheckInAllForm({ open, onOpenChange, reservation }: Props) {
     const key = { reservation: reservation.id };
-    const { preview, reload } = useUnitPreview<Preview>(
+    const { preview, loading, error, reload } = useUnitPreview<Preview>(
         checkInAllPreview.url(key),
         open,
     );
@@ -83,8 +85,8 @@ function CheckInAllForm({ open, onOpenChange, reservation }: Props) {
                       : `Check in ${selected.length} units`
             }
             processing={form.processing}
-            submitDisabled={selected.length === 0}
-            loading={preview === null}
+            submitDisabled={loading || error || selected.length === 0}
+            loading={loading}
             footer={
                 nothingToCheckIn ? (
                     <Button
@@ -97,6 +99,25 @@ function CheckInAllForm({ open, onOpenChange, reservation }: Props) {
                 ) : undefined
             }
         >
+            {error && (
+                <Alert variant="destructive">
+                    <AlertCircleIcon />
+                    <AlertDescription className="flex items-center justify-between gap-4">
+                        <span>
+                            Failed to load check-in details. Please check your
+                            network connection.
+                        </span>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={reload}
+                        >
+                            Retry
+                        </Button>
+                    </AlertDescription>
+                </Alert>
+            )}
             {preview !== null && (
                 <>
                     {preview.error !== null && (

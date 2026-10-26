@@ -371,3 +371,33 @@ test('the move preview of a day use lists the rooms free for its hours and not a
 
     expect($busy['units'])->toBe([]);
 });
+
+test('the check-in preview of a day use unit shows the assigned room and enables check-in', function () {
+    $setup = dayUseDesk();
+    $url = route('reservations.units.check-in-preview', [
+        'property' => $setup['property']->code,
+        'reservation' => $setup['reservation']->id,
+        'unit' => $setup['unit']->id,
+    ]);
+
+    $preview = $this->actingAs($setup['actor'])->postJson($url)->assertOk()->json();
+
+    expect($preview['room'])->toBe($setup['rooms'][0]->number)
+        ->and($preview['roomState'])->toBe('assigned')
+        ->and($preview['error'])->toBeNull();
+});
+
+test('the check-in all preview shows a day use unit ready on its arrival date with the assigned room', function () {
+    $setup = dayUseDesk();
+    $url = route('reservations.check-in-all-preview', [
+        'property' => $setup['property']->code,
+        'reservation' => $setup['reservation']->id,
+    ]);
+
+    $preview = $this->actingAs($setup['actor'])->postJson($url)->assertOk()->json();
+
+    expect($preview['rows'])->toHaveCount(1)
+        ->and($preview['rows'][0]['room'])->toBe($setup['rooms'][0]->number)
+        ->and($preview['rows'][0]['ready'])->toBeTrue()
+        ->and($preview['rows'][0]['note'])->toBeNull();
+});
