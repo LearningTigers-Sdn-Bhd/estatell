@@ -704,6 +704,33 @@ export default function ReservationCreate({
         );
     };
 
+    const submitLabel = isWalkIn
+        ? 'Check in'
+        : isOldStay
+          ? 'Save old stay'
+          : isCheckedOut && !isMigratedStay
+            ? 'Save and open Manual Folio Editor'
+            : isPastStay
+              ? 'Save and open folio'
+              : 'Create booking';
+    const submitButton = (className?: string) => (
+        <Button
+            type="submit"
+            className={className}
+            disabled={form.processing || waitingForPayment}
+            focusableWhenDisabled
+        >
+            {form.processing ? (
+                <Spinner data-icon="inline-start" />
+            ) : isWalkIn ? (
+                <LogIn data-icon="inline-start" />
+            ) : (
+                <CalendarPlus data-icon="inline-start" />
+            )}
+            {submitLabel}
+        </Button>
+    );
+
     return (
         <>
             <Head title={pageTitle} />
@@ -1963,6 +1990,7 @@ export default function ReservationCreate({
                                         unitChoices[Number(tab.stays_in)]
                                             ?.label ?? null,
                                 }))}
+                                submitAction={submitButton('h-10 w-full')}
                                 registrationCard={
                                     isWalkIn && canCheckInWithoutCard ? (
                                         <WalkInCardSection
@@ -2044,28 +2072,7 @@ export default function ReservationCreate({
                         <X data-icon="inline-start" />
                         Cancel
                     </Link>
-                    <Button
-                        type="submit"
-                        disabled={form.processing || waitingForPayment}
-                        focusableWhenDisabled
-                    >
-                        {form.processing ? (
-                            <Spinner data-icon="inline-start" />
-                        ) : isWalkIn ? (
-                            <LogIn data-icon="inline-start" />
-                        ) : (
-                            <CalendarPlus data-icon="inline-start" />
-                        )}
-                        {isWalkIn
-                            ? 'Check in'
-                            : isOldStay
-                              ? 'Save old stay'
-                              : isCheckedOut && !isMigratedStay
-                                ? 'Save and open Manual Folio Editor'
-                                : isPastStay
-                                  ? 'Save and open folio'
-                                  : 'Create booking'}
-                    </Button>
+                    {submitButton()}
                 </FormActions>
             </form>
 
