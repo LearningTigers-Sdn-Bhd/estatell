@@ -9,7 +9,7 @@ Four reports from wastays that hotels use daily and that estatell does not have 
 | 1   | Tax split           | A Base column on the Tax report, and the layout rule for tax columns. Daily report › Revenue (item 4) gets one column for each tax | Nothing                 |
 | 2   | Checked out         | A new report: the units that checked out in the range, with their balance                                                          | Nothing                 |
 | 3   | Guest list          | One page with the tabs Arrivals, In-house, Departures and Checked out                                                              | Item 2                  |
-| 4   | Daily report        | One page with the tabs Overview, Revenue and Cashier activity                                                                      | Item 1                  |
+| 4   | Daily report        | One page with the tabs Overview, Revenue, Charges and Cashier activity                                                             | Item 1                  |
 | 5   | Booking performance | Bookings and revenue grouped by booking date, source, room type, rate plan or status                                               | Ingest channel bookings |
 
 The shared frame (date range, quick dates, column layout, row selection, export) is in [Core reports](01-core-reports.md). These items reuse it.
@@ -83,10 +83,10 @@ Guest list                                         [⚙ Layout] [Export ▾]
 
 ## 4. Daily report
 
-One page at `GET /p/{code}/reports/daily-report`, with three tabs (`?tab=overview`, `revenue`, `cashier`). A bad or missing value opens Overview. The page takes a range, 366 days, with the standard quick dates.
+One page at `GET /p/{code}/reports/daily-report`, with four tabs (`?tab=overview`, `revenue`, `charges`, `cashier`). A bad or missing value opens Overview. The page takes a range, 366 days, with the standard quick dates.
 
 ```
-[ Overview ] [ Revenue ] [ Cashier activity ]
+[ Overview ] [ Revenue ] [ Charges ] [ Cashier activity ]
 ```
 
 ### Overview
@@ -135,6 +135,59 @@ A new report, `ReportKey::DailyRevenue`, Landscape, not listed in the sidebar. O
 - A tax line whose transaction code has no tax (only possible after a tax is deleted during onboarding) is left out of every column and the total.
 - Wastays also had By source and Extra charges tables under the main one. They are not in this item.
 
+### Charges
+
+The charge register: Revenue at guest level. One row for each charge, discount or adjustment, with its taxes as columns. For the same dates its totals equal the Revenue tab totals. It is built after the other tabs (step 6).
+
+```
+[ Overview ] [ Revenue ] [ Charges ] [ Cashier activity ]
+                          ━━━━━━━━━
+[📅 25 Oct 2026 – 25 Oct 2026 ▾]  [Bucket: All ▾]  [🔍 e.g. guest name or booking no.]
+
+┌────────┬─────────────┬─────────┬───────────────┬─────────┬──────────┬────────┬─────────┬─────────┐
+│ Date   │ Charge      │ Booking │ Guest / payer │ Base    │ Discount │ SST 8% │ Tourism │ Total   │
+├────────┼─────────────┼─────────┼───────────────┼─────────┼──────────┼────────┼─────────┼─────────┤
+│ 25 Oct │ Room charge │ R-10234 │ Ahmad Faizal  │  180.00 │  −20.00  │  12.80 │  10.00  │  182.80 │
+│ 25 Oct │ Discount    │ R-10198 │ Lim Wei Jie   │  −10.00 │    0.00  │  −0.80 │    —    │  −10.80 │
+│ 25 Oct │ Room charge │ R-10201 │ Nurul Huda    │ −150.00 │    0.00  │ −12.00 │    —    │ −162.00 │
+├────────┼─────────────┼─────────┼───────────────┼─────────┼──────────┼────────┼─────────┼─────────┤
+│ Total  │             │         │               │   20.00 │  −20.00  │   0.00 │  10.00  │   10.00 │
+└────────┴─────────────┴─────────┴───────────────┴─────────┴──────────┴────────┴─────────┴─────────┘
+```
+
+A new report, `ReportKey::DailyCharges`, Landscape, category Revenue, not in the sidebar, 31 days, default sort `date`. `TabbedReport::DailyReport` gets the `charges` tab after `revenue`.
+
+**Rows.** Every line counts on its own posting date, as on the Revenue tab, so the totals match even when a discount is posted on a later day than its charge.
+
+| Line                                      | Row                                                                                                                                  |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| A charge                                  | One row. Its inline discount (an Adjustment child with no Tax children) goes in Discount, and its Tax children go in the tax columns |
+| A discount posted later (`ApplyDiscount`) | Its own row on its own date, bucket Adjustments, with its own negative taxes                                                         |
+| A top-level adjustment                    | Its own row, bucket Adjustments                                                                                                      |
+| A reversal                                | Its own row, negative, on the date it was posted, status **Reversal**                                                                |
+| A moved charge (`TransferLines`)          | The reversal on the old folio and the copy on the new one each show, status **Moved**; they net to 0                                 |
+| A Tax line                                | Never a row; a column of its parent                                                                                                  |
+| Payments, migrated lines, Opening balance | Left out, as on the Revenue tab                                                                                                      |
+
+- The row key is the line id of the row's line.
+- **Base** is the line amount. **Total** is Base + Discount + every tax. A flat tax shows "—" in Base only when the row has no percentage tax; the tax column shows the amount.
+- **Guest / payer** follows the Folio ledger: the company of a company folio, else the payer guest, else the booker. A line with no reservation shows the folio number.
+- **Bucket** uses the Revenue tab mapping (Accommodation, Day use, Fees, Extras, Adjustments).
+- **Status**: Posted, Reversal (`reversal_of_id` set) or Moved (`transfer_group_id` set). Reversed and moved rows are shown, so the tab agrees with the Folio ledger.
+
+**Columns.** Visible: Date, Charge (the line description), Booking, Guest / payer, Base, Discount, one `tax:{taxes.code}` column for each tax of the property, Total. Hidden: Bucket, Folio, Room, Code, Status, Staff. The tax columns go before Discount through `ReportKey::columnsFor()`, and `ReportLayoutResolver` places a new `tax:` column before the stored `discount` column, as it does before `adjustments`.
+
+**Filters.**
+
+- `bucket` (`accommodation`, `day-use`, `fees`, `extras`, `adjustments`; none for all): a Select in the toolbar. It filters the rows and the totals.
+- `search`: guest name or booking number, on the server, so it covers every page. Both stay in the URL and the exports and clear the row selection when they change.
+
+**Dates.** The tab takes 31 days at most. A Charges tab link built from a longer Revenue range keeps `to` and moves `from` to 30 days before it.
+
+**Drill-down.** On the Revenue tab, each bucket cell of a row opens Charges for that date (or month, cut to 31 days) and bucket. A tax cell opens Charges for that date with no bucket.
+
+**Totals.** Base, Discount, each tax and Total. With no filter, they equal the Revenue tab totals for the same dates (a test checks this).
+
 ### Cashier activity
 
 The Payments report inside the tab, with `group=staff` as the default. It uses the **Payments** layout, filters and exports, so one setting changes both.
@@ -177,6 +230,7 @@ All use the existing layouts: one per property and report, edited in the Layout 
 | Guest list › Checked out                    | `CheckedOut`                        |
 | Daily report › Overview                     | None                                |
 | Daily report › Revenue                      | `DailyRevenue`                      |
+| Daily report › Charges                      | `DailyCharges`                      |
 | Daily report › Cashier activity             | `Payments`                          |
 | Booking performance                         | `BookingPerformance`                |
 
@@ -192,6 +246,7 @@ Items 1 to 4 run as two lanes in parallel after a shared commit. Item 5 waits fo
 | 3    | B      | `feat(reports): merge guest reports into the guest list`  |
 | 4    | A      | `feat(reports): add the daily report`                     |
 | 5    | –      | `feat(reports): add booking performance`                  |
+| 6    | A      | `feat(reports): add the charge register`                  |
 
 Step 0 holds the pieces both lanes touch:
 
