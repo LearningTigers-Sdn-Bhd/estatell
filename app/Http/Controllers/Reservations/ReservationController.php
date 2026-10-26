@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Reservations;
 
 use App\Data\CityLedger\ArInvoiceData;
+use App\Data\DoorLocks\UnitDoorPinsData;
 use App\Data\Folio\RoutingRulesData;
 use App\Data\Property\CurrencyData;
 use App\Data\Reservations\ReservationActivityData;
@@ -22,6 +23,7 @@ use App\Enums\ReservationStatus;
 use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
 use App\Features\Boats;
+use App\Features\DoorLocks;
 use App\Http\Controllers\Controller;
 use App\Models\ArInvoice;
 use App\Models\FolioLine;
@@ -35,6 +37,7 @@ use App\Services\Boats\BoatTripAccess;
 use App\Services\Boats\ReservationBoatSummary;
 use App\Services\CityLedger\ArInvoiceDetail;
 use App\Services\CityLedger\CompanyOptions;
+use App\Services\DoorLocks\UnitDoorPins;
 use App\Services\Folio\AddOnBilling;
 use App\Services\Folio\FolioStatement;
 use App\Services\Folio\FolioVoucher;
@@ -125,9 +128,23 @@ class ReservationController extends Controller
 
             return [
                 'unit' => $data,
+                'doorPins' => $this->doorPins($request->user(), $property, $selected),
                 'singleUnit' => $single === null ? null : ($single->id === $selected->id ? $data : $this->unitData($request->user(), $property, $reservation, $single, $activityLog, $actionMenu)),
             ];
         });
+    }
+
+    /**
+     * The door PINs of the unit, for staff who check guests in or manage settings. Null when the Door locks feature is off.
+     */
+    private function doorPins(User $user, Property $property, ReservationUnit $unit): ?UnitDoorPinsData
+    {
+        if (! Feature::for($property)->active(DoorLocks::class)
+            || ! ($user->can(PermissionEnum::FrontDeskCheckIn->value) || $user->can(PermissionEnum::SettingsManage->value))) {
+            return null;
+        }
+
+        return app(UnitDoorPins::class)->forUnit($unit);
     }
 
     /**

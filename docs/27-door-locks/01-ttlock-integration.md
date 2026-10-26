@@ -120,6 +120,16 @@ Still to check against the real account: the region host (`euapi.ttlock.com` aga
 - `IssueStayPasscodeJob`, `RevokeStayPasscodeJob`: unique by unit, three tries. An expected failure is saved on the row as Failed.
 - Events: `StayCheckedIn`, `StayCheckedOut`, `StayRoomChanged`, dispatched after commit by `CheckInUnit`, `CheckOutUnit`, `UndoCheckIn` and `MoveUnit`. A listener queues the job only when the property has an enabled connection. An error here never changes the stay.
 
+## Reservation page
+
+The Units tab of a reservation shows a **Door PIN** line on the unit panel (`UnitDoorPins` service, `UnitDoorPinsData`), so front desk can read the PIN out at check-in.
+
+- Shown only when the Door locks feature is on and the user has `front-desk.check-in` or `settings.manage`.
+- Shown when the unit has a PIN row, or when it is checked in and a room it sleeps in has a lock. Otherwise the line is hidden.
+- Each PIN shows its code, status badge, lock name and valid window. A failed PIN shows its error.
+- A checked-in unit whose lock has no live PIN shows "No PIN yet for {lock}", for example when the stay window had already ended at check-in.
+- Revoked PINs stay in the list with the Revoked badge.
+
 ## Permissions and routes
 
 `settings.manage` behind the feature gate. Routes are under `/p/{code}/settings/door-locks`: `edit`, `locks`, `passcodes`, `update`, `sync`, `test`, `locks/{doorLock}/link`, `passcodes` (store), `passcodes/{doorPasscode}/revoke`, `passcodes/{doorPasscode}/retry`, `locks/{doorLock}/unlock`, `locks/{doorLock}/clock`.
