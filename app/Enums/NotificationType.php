@@ -29,7 +29,7 @@ enum NotificationType: string
             self::RegistrationCardLink => __('Registration card link'),
             self::OnboardingReminder => __('Onboarding reminder'),
             self::DormStrategyChanged => __('Dorm strategy changed'),
-            self::SupportAccessUsed => __('Support access used'),
+            self::SupportAccessUsed => __('Money correction by support'),
             self::GoLiveApproved => __('Go-live approved'),
             self::GoLiveRejected => __('Go-live sent back'),
             self::PortalBookingCreated => __('Company portal booking'),
@@ -48,6 +48,7 @@ enum NotificationType: string
     {
         return match ($this) {
             self::RegistrationCardLink => [NotificationChannel::Mail],
+            self::SupportAccessUsed => [NotificationChannel::Database],
             default => [NotificationChannel::Mail, NotificationChannel::Database],
         };
     }

@@ -22,7 +22,7 @@ export function ImpersonationBanner() {
     return (
         <div
             role="status"
-            className="sticky top-0 z-30 flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-warning/40 bg-warning/10 px-4 py-2 text-sm backdrop-blur"
+            className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-warning/40 bg-warning/10 px-4 py-2 text-sm"
         >
             <TriangleAlert className="size-4 shrink-0 text-warning" />
             <p className="min-w-0 flex-1 font-medium">
@@ -30,12 +30,13 @@ export function ImpersonationBanner() {
                 {impersonation.propertyCode})
                 {impersonation.partnerName &&
                     ` · via ${impersonation.partnerName}`}{' '}
-                · {impersonation.minutesLeft} min left
+                · {impersonation.minutes} min
             </p>
             <Form {...stop.form()}>
                 {({ processing }) => (
                     <Button
                         type="submit"
+                        variant="destructive"
                         size="sm"
                         disabled={processing}
                         focusableWhenDisabled

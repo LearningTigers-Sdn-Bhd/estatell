@@ -11,7 +11,7 @@ class StopImpersonation
     public function __construct(private Impersonation $impersonation, private RecordImpersonationEnd $recordEnd) {}
 
     /**
-     * Log the end of the session, tell the owner, sign the support user back in and return the path they started from.
+     * Log the end of the session, sign the support user back in and return the path they started from.
      * Returns null when there is no session.
      */
     public function __invoke(): ?string

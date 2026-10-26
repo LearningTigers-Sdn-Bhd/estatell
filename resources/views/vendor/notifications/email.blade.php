@@ -9,10 +9,7 @@
 {{ $greeting }}
 
 @endif
-@if (isset($supportWho))
-{{ $supportWho }}
-
-@elseif (isset($auditSummary))
+@if (isset($auditSummary))
 @if ($auditFailed)
 <x-mail::panel tone="error">
 @foreach (array_slice($introLines, 0, 2) as $line)
@@ -102,23 +99,6 @@
 
 @endforeach
 </x-mail::panel>
-@endisset
-
-@isset($supportWho)
-@if (! empty($supportNote))
-<h3>{{ __('Note') }}</h3>
-{{ $supportNote }}
-
-@endif
-@if ($supportCorrections !== [])
-<h3>{{ __('Money corrections:') }}</h3>
-@foreach ($supportCorrections as $correction)
-- {{ $correction }}
-@endforeach
-
-@endif
-{{ __('You can switch support access off in your property settings.') }}
-
 @endisset
 
 @isset($actionText)

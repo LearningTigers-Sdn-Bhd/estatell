@@ -2,62 +2,31 @@
 
 namespace App\Actions\Platform;
 
-use App\Enums\ImpersonationReason;
 use App\Models\Property;
-use App\Notifications\SupportAccessUsed;
 use App\Services\Platform\Impersonation;
-use App\Services\Platform\SupportMoneyCorrections;
-use App\Services\Staff\PropertyOwners;
 
 class RecordImpersonationEnd
 {
-    public function __construct(private Impersonation $impersonation, private PropertyOwners $owners, private SupportMoneyCorrections $moneyCorrections) {}
+    public function __construct(private Impersonation $impersonation) {}
 
     /**
-     * Log `impersonation.ended` with the duration and tell the property's owner, while the session is still open.
-     * It changes nothing else: ending the session is up to the caller. Does nothing when no session is open.
+     * Log `impersonation.ended` with the duration, while the session is still open. It changes nothing else: ending
+     * the session is up to the caller. Does nothing when no session is open.
      */
     public function __invoke(): void
     {
         $details = $this->impersonation->logProperties();
-        $startedAt = $this->impersonation->startedAt();
         $property = Property::query()->find($details['property_id'] ?? null);
 
-        if ($details === [] || $startedAt === null || $property === null) {
+        if ($details === [] || $this->impersonation->startedAt() === null || $property === null) {
             return;
         }
-
-        $minutes = $this->impersonation->elapsedMinutes();
 
         activity()
             ->performedOn($property)
             ->causedBy($this->impersonation->supportUser())
             ->event('impersonation.ended')
-            ->withProperties([...$details, 'duration_minutes' => $minutes])
+            ->withProperties([...$details, 'duration_minutes' => $this->impersonation->elapsedMinutes()])
             ->log('Support session ended');
-
-        $owner = $this->owners->firstFor($property);
-
-        if ($owner === null || $owner->deactivated_at !== null) {
-            return;
-        }
-
-        $supportUser = $this->impersonation->supportUser();
-        $moneyCorrections = $supportUser === null ? [] : $this->moneyCorrections->forSession(
-            $property,
-            $supportUser,
-            (int) $details['impersonated_user_id'],
-            $startedAt,
-        );
-
-        $owner->notify(new SupportAccessUsed(
-            supportUserName: (string) $details['support_user_name'],
-            partnerName: $details['partner_name'] === null ? null : (string) $details['partner_name'],
-            reason: ImpersonationReason::from((string) $details['reason'])->label(),
-            note: $details['note'] === null ? null : (string) $details['note'],
-            startedAt: $startedAt,
-            minutes: $minutes,
-            moneyCorrections: $moneyCorrections,
-        ));
     }
 }
