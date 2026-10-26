@@ -68,6 +68,7 @@ it('sends the company once as a customer and the invoice to the clearing account
     $call = billingCalls($paths['invoice'])[0];
 
     if ($provider === AccountingProvider::Qne) {
+        expect(billingCalls($paths['customer'])[0]['emailList'])->toBeArray();
         expect($call['details'])->toHaveCount(1)
             ->and($call['details'][0]['amount'])->toBe(500.0)
             ->and($call['details'][0])->not->toHaveKey('taxCodeId')
@@ -143,6 +144,8 @@ it('sends a credit note after its invoice and applies it to that invoice', funct
 
     if ($provider === AccountingProvider::Qne) {
         expect($call['details'][0]['amount'])->toBe(120.0)
+            ->and($call['netTotalAmount'])->toBe(120.0)
+            ->and($call['knockoff'][0]['docCode'])->toBe('INV-0001')
             ->and($call['knockoff'][0]['docId'])->toBe($invoiceDocument->external_id)
             ->and($call['knockoff'][0]['docType'])->toBe('INV')
             ->and($call['knockoff'][0]['paymentAmount'])->toBe(120.0);
@@ -171,7 +174,10 @@ it('sends a receipt for the allocated amount, banked to the method account', fun
     expect($receipt->status)->toBe(AccountingDocumentStatus::Pushed)->and($receipt->kind)->toBe(AccountingDocumentKind::Receipt);
 
     if ($provider === AccountingProvider::Qne) {
-        expect($call['multiPayments'][0]['amount'])->toBe(300.0)
+        expect($call['isMultiPayment'])->toBeTrue()
+            ->and($call['netTotalAmount'])->toBe(300.0)
+            ->and($call['knockoff'][0]['docCode'])->toBe('INV-0001')
+            ->and($call['multiPayments'][0]['amount'])->toBe(300.0)
             ->and($call['multiPayments'][0]['referenceNo'])->toBe($payment->receipt_number)
             ->and($call['knockoff'][0]['docId'])->toBe($invoiceDocument->external_id)
             ->and($call['knockoff'][0]['paymentAmount'])->toBe(300.0);

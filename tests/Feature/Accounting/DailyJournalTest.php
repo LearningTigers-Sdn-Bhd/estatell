@@ -14,6 +14,7 @@ use App\Models\PropertySetting;
 use App\Models\TransactionCode;
 use App\Services\Accounting\AccountingException;
 use App\Services\Accounting\BuildDailyJournal;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
@@ -111,6 +112,19 @@ it('fails the sync when an account is missing in QNE and sends no journal', func
     expect($sync->status)->toBe(AccountingSyncStatus::Failed)
         ->and($sync->error)->toContain('do not exist in the accounting software')
         ->and(journalPosts())->toBe(0);
+});
+
+it('fails the sync, and does not throw, when QNE drops the connection after sign-in', function () {
+    Http::fake([
+        '*/api/Auth/Connect*' => Http::response(['code' => '0000', 'data' => ['token' => 'jwt']]),
+        '*/api/AccountCodes/Leaf/Query*' => fn () => throw new ConnectionException('timed out'),
+    ]);
+    ['property' => $property, 'date' => $date] = accountingSetup();
+
+    $sync = app(PushDailyJournal::class)($property, $date);
+
+    expect($sync->status)->toBe(AccountingSyncStatus::Failed)
+        ->and($sync->error)->toContain('QNE could not be reached');
 });
 
 it('marks a date with no money lines as skipped', function () {

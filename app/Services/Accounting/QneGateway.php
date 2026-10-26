@@ -3,6 +3,7 @@
 namespace App\Services\Accounting;
 
 use App\Enums\AccountingDocumentKind;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
@@ -262,7 +263,11 @@ class QneGateway implements AccountingGateway
      */
     private function get(string $path, array $query = []): array
     {
-        return $this->data($this->client()->get($path, $query), $path);
+        try {
+            return $this->data($this->client()->get($path, $query), $path);
+        } catch (ConnectionException $exception) {
+            throw new AccountingException(__('QNE could not be reached.'), previous: $exception);
+        }
     }
 
     /**
@@ -271,7 +276,11 @@ class QneGateway implements AccountingGateway
      */
     private function post(string $path, array $payload): array
     {
-        return $this->data($this->client()->post($path, $payload), $path);
+        try {
+            return $this->data($this->client()->post($path, $payload), $path);
+        } catch (ConnectionException $exception) {
+            throw new AccountingException(__('QNE could not be reached.'), previous: $exception);
+        }
     }
 
     private function client(): PendingRequest
