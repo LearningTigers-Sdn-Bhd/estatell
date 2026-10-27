@@ -93,6 +93,41 @@ A unit's own folio can hold another room's charges: a Manual rule such as "Room 
 - **New departure** is the stay day: the business date, or the property's calendar date while the night audit is pending. The form never sends it, except the **Guest actually left yesterday** choice (see [Night audit pending](#night-audit-pending)).
 - **Same-day stay.** A unit that arrived on the business date has no night to keep, so `departure_date > arrival_date` cannot hold. It is refused with `arrived_today`. `EarlyCheckOutRule` (`app/Services/FrontDesk/`) holds this rule and the unit menu, the group check-out page, the preview and the Action all ask it, so none of them offers what another refuses. The Dialog's preview carries the message and the group page shows it as the row note, without **Check out early…**. The guest checks out on the departure date, with [Check out as day use](#check-out-as-day-use) (proposed), or after Undo check-in once it is built (see [Cancel, void and undo](#cancel-void-and-undo)).
 - **Departure today or later.** `not_early` is refused. Normal check-out runs through `CheckOutAndRefund`.
+- **Fee:** read by `PolicyChargeCalculator` with the new departure, and posted with the key `early_departure:{unit}:{n}`. **Do not charge** needs a reason and `front-desk.waive-fees`. `$expectedFee` from the form guards against a policy change (`fee_changed`).
+- **Balance:** the fee joins the unit folio, so the balance to settle includes it. Posted add-ons on removed nights stay and can leave a balance. The form shows the balance before submit, and settles it as the check-out Dialog does: Collect balance when the guest owes, a refund when the folio holds a credit ([Refund the credit](#refund-the-credit)).
+- **Money for the unused nights.** The night audit posts one night at a time, so the unused nights were never charged: they are Scheduled and are deleted. A payment line never changes, so money paid for them stays on the folio as a **credit**. The fee is the only part of that credit the hotel keeps. The rest goes back to the guest at check-out. See [Early departure examples](#early-departure-examples).
+- **Night audit pending:** the new departure is the calendar date and the night of the business date is posted first. See [Night audit pending](#night-audit-pending). Only an Overdue audit still refuses (`night_audit_pending`).
+
+#### Early departure examples
+
+3 nights at MYR 100.00, booked 19 to 22 Oct. The guest paid MYR 300.00 as an Advance and a MYR 100.00 deposit, and leaves on 20 Oct after 1 night. Taxes are left out.
+
+| Policy                    | Night posted | Fee    | Paid   | Balance | At check-out                                  |
+| ------------------------- | ------------ | ------ | ------ | ------- | --------------------------------------------- |
+| Free                      | 100.00       | 0.00   | 400.00 | −300.00 | Refund 300.00: deposit 100.00, Advance 200.00 |
+| Fixed amount 50.00        | 100.00       | 50.00  | 400.00 | −250.00 | Refund 250.00: deposit 100.00, Advance 150.00 |
+| 100% of unused nights     | 100.00       | 200.00 | 400.00 | −100.00 | Refund 100.00: the deposit                    |
+| Free, nothing paid before | 100.00       | 0.00   | 100.00 | 0.00    | Use the deposit toward the bill, or refund it |
+| Free, no deposit, unpaid  | 100.00       | 0.00   | 0.00   | 100.00  | Collect 100.00                                |
+| **Do not charge**         | 100.00       | 0.00   | 400.00 | −300.00 | Refund 300.00, as Free                        |
+
+Built: the Advance is refunded with the deposit, so the first two rows check out in one step. [Refund the credit](#refund-the-credit) describes how.
+
+| Edge case                                                | What happens                                                                                                         |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| The night audit has not run                              | The night of the business date is posted, then the guest checks out. See [Night audit pending](#night-audit-pending) |
+| Arrived today, leaves today                              | Refused (`arrived_today`). Undo check-in, then cancel. A later topic                                                 |
+| The card surcharge of the prepayment                     | Not refunded: it is a charge. Staff reverse it by hand when it must go too                                           |
+| A posted add-on for a removed day (a transfer, a tour)   | Stays. Staff reverse it when the guest did not use it                                                                |
+| An unposted nightly add-on (breakfast) on removed nights | Deleted with the nights                                                                                              |
+| Room charges go to the Master folio                      | The unit folio holds no prepayment. A credit on the Master settles when the group settles                            |
+| An OTA collected the money                               | Not built. The OTA refunds the guest, not the desk ([Booking ingestion](../21-channels/05-booking-ingestion.md))     |
+| Keep part of the deposit for damages                     | The Dialog posts the charge ([Keep the deposit for damages](#keep-the-deposit-for-damages))                          |
+| A charge is posted while the Dialog is open              | The refund no longer settles the folio: `balance_not_settled`, nothing is written                                    |
+| Undo check-out after an early check-out                  | Payments and refunds stay. The nights and the fee do not come back: extend the stay, reverse the fee                 |
+
+- **Permissions:** `front-desk.check-out` and `reservations.manage`, both checked by the route. The refund needs `payment.refund`, as in the check-out Dialog.
+- Logged on the reservation: `reservation.unit_dates_changed` and `reservation.unit_checked_out`, each as today.
 
 ### Check out as day use
 
@@ -100,16 +135,16 @@ A unit's own folio can hold another room's charges: a Manual rule such as "Room 
 
 `CheckOutAsDayUse` (Action) ends an overnight unit as a day use block, in one transaction. A refusal of any step rolls everything back.
 
-| Check, in order                                                              | Refusal                                      |
-| ---------------------------------------------------------------------------- | -------------------------------------------- |
-| The unit is CheckedIn (the unit row is locked first)                         | `invalid_status`                             |
-| The unit is overnight, arrived on the business date and departs later        | `not_same_day` (a day use unit is `day_use_unit`) |
-| No night of the unit is posted yet (the audit has not run for it)            | `night_already_posted`                       |
-| Start and end are on the business date, end after start; hours are 1 to 24   | `start_time_invalid`, `hours_invalid`        |
-| With a Day use plan: the plan sells those hours for the room type            | `hours_not_sold`, `no_hour_price`            |
-| Without a price from a plan: an amount (0 or more) and a reason              | `amount_required`, `reason_required`         |
-| The user may enter an amount (`front-desk.waive-fees`) when it is not the plan price | `forbidden`                          |
-| The checks of `CheckOutAndRefund`                                            | `refund_exceeds_payment`, `balance_not_settled` |
+| Check, in order                                                                      | Refusal                                           |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------- |
+| The unit is CheckedIn (the unit row is locked first)                                 | `invalid_status`                                  |
+| The unit is overnight, arrived on the business date and departs later                | `not_same_day` (a day use unit is `day_use_unit`) |
+| No night of the unit is posted yet (the audit has not run for it)                    | `night_already_posted`                            |
+| Start and end are on the business date, end after start; hours are 1 to 24           | `start_time_invalid`, `hours_invalid`             |
+| With a Day use plan: the plan sells those hours for the room type                    | `hours_not_sold`, `no_hour_price`                 |
+| Without a price from a plan: an amount (0 or more) and a reason                      | `amount_required`, `reason_required`              |
+| The user may enter an amount (`front-desk.waive-fees`) when it is not the plan price | `forbidden`                                       |
+| The checks of `CheckOutAndRefund`                                                    | `refund_exceeds_payment`, `balance_not_settled`   |
 
 - **Start** defaults to the unit's `arrival_time` (the real check-in time), **End** to now in the property time zone. Both are editable. **Hours** = (End − Start) rounded up to whole hours, at most 24. End is stored as Start + Hours.
 - **Rate.** With an active Day use plan for the room type, the price is the `rate_hour_prices` row for those hours (`quoteDayUse`), and staff may change it with the permission above. With no plan or no hour price, staff enter the amount and a reason. Zero is allowed. The plan's minimum and maximum hours and its Sold between window do not apply: this closes a stay, it does not sell one.
@@ -150,47 +185,12 @@ With no Day use plan, the Plan and Rate rows become **Amount** (MYR, 0 allowed) 
 
 **Open points.**
 
-| Point                                                       | Leaning                                                                                              |
-| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Taxes of DAY_USE when the property has no Day use plan      | None until set. Show the Day use tab on Room revenue always, or keep the note in the form. To decide |
-| Night already posted (audit ran or is pending)              | Refuse at first (`night_already_posted`); the early-departure rules apply                            |
-| Amount rule: day use has no price override today            | Allowed only on this path, behind `front-desk.waive-fees`                                            |
-| Needs a Day use plan                                        | No: the manual amount covers it                                                                      |
-- **Fee:** read by `PolicyChargeCalculator` with the new departure, and posted with the key `early_departure:{unit}:{n}`. **Do not charge** needs a reason and `front-desk.waive-fees`. `$expectedFee` from the form guards against a policy change (`fee_changed`).
-- **Balance:** the fee joins the unit folio, so the balance to settle includes it. Posted add-ons on removed nights stay and can leave a balance. The form shows the balance before submit, and settles it as the check-out Dialog does: Collect balance when the guest owes, a refund when the folio holds a credit ([Refund the credit](#refund-the-credit)).
-- **Money for the unused nights.** The night audit posts one night at a time, so the unused nights were never charged: they are Scheduled and are deleted. A payment line never changes, so money paid for them stays on the folio as a **credit**. The fee is the only part of that credit the hotel keeps. The rest goes back to the guest at check-out. See [Early departure examples](#early-departure-examples).
-- **Night audit pending:** the new departure is the calendar date and the night of the business date is posted first. See [Night audit pending](#night-audit-pending). Only an Overdue audit still refuses (`night_audit_pending`).
-
-#### Early departure examples
-
-3 nights at MYR 100.00, booked 19 to 22 Oct. The guest paid MYR 300.00 as an Advance and a MYR 100.00 deposit, and leaves on 20 Oct after 1 night. Taxes are left out.
-
-| Policy                    | Night posted | Fee    | Paid   | Balance | At check-out                                  |
-| ------------------------- | ------------ | ------ | ------ | ------- | --------------------------------------------- |
-| Free                      | 100.00       | 0.00   | 400.00 | −300.00 | Refund 300.00: deposit 100.00, Advance 200.00 |
-| Fixed amount 50.00        | 100.00       | 50.00  | 400.00 | −250.00 | Refund 250.00: deposit 100.00, Advance 150.00 |
-| 100% of unused nights     | 100.00       | 200.00 | 400.00 | −100.00 | Refund 100.00: the deposit                    |
-| Free, nothing paid before | 100.00       | 0.00   | 100.00 | 0.00    | Use the deposit toward the bill, or refund it |
-| Free, no deposit, unpaid  | 100.00       | 0.00   | 0.00   | 100.00  | Collect 100.00                                |
-| **Do not charge**         | 100.00       | 0.00   | 400.00 | −300.00 | Refund 300.00, as Free                        |
-
-Built: the Advance is refunded with the deposit, so the first two rows check out in one step. [Refund the credit](#refund-the-credit) describes how.
-
-| Edge case                                                | What happens                                                                                                         |
-| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| The night audit has not run                              | The night of the business date is posted, then the guest checks out. See [Night audit pending](#night-audit-pending) |
-| Arrived today, leaves today                              | Refused (`arrived_today`). Undo check-in, then cancel. A later topic                                                 |
-| The card surcharge of the prepayment                     | Not refunded: it is a charge. Staff reverse it by hand when it must go too                                           |
-| A posted add-on for a removed day (a transfer, a tour)   | Stays. Staff reverse it when the guest did not use it                                                                |
-| An unposted nightly add-on (breakfast) on removed nights | Deleted with the nights                                                                                              |
-| Room charges go to the Master folio                      | The unit folio holds no prepayment. A credit on the Master settles when the group settles                            |
-| An OTA collected the money                               | Not built. The OTA refunds the guest, not the desk ([Booking ingestion](../21-channels/05-booking-ingestion.md))     |
-| Keep part of the deposit for damages                     | The Dialog posts the charge ([Keep the deposit for damages](#keep-the-deposit-for-damages))                          |
-| A charge is posted while the Dialog is open              | The refund no longer settles the folio: `balance_not_settled`, nothing is written                                    |
-| Undo check-out after an early check-out                  | Payments and refunds stay. The nights and the fee do not come back: extend the stay, reverse the fee                 |
-
-- **Permissions:** `front-desk.check-out` and `reservations.manage`, both checked by the route. The refund needs `payment.refund`, as in the check-out Dialog.
-- Logged on the reservation: `reservation.unit_dates_changed` and `reservation.unit_checked_out`, each as today.
+| Point                                                  | Leaning                                                                                              |
+| ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| Taxes of DAY_USE when the property has no Day use plan | None until set. Show the Day use tab on Room revenue always, or keep the note in the form. To decide |
+| Night already posted (audit ran or is pending)         | Refuse at first (`night_already_posted`); the early-departure rules apply                            |
+| Amount rule: day use has no price override today       | Allowed only on this path, behind `front-desk.waive-fees`                                            |
+| Needs a Day use plan                                   | No: the manual amount covers it                                                                      |
 
 ### Night audit pending
 
