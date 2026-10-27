@@ -425,7 +425,7 @@ function AddUnitForm({
                         </Field>
                         <Field data-invalid={!!errors.override_reason}>
                             <FieldLabel htmlFor="unit-override_reason">
-                                Reason
+                                Reason (optional)
                             </FieldLabel>
                             <Input
                                 id="unit-override_reason"
@@ -437,7 +437,7 @@ function AddUnitForm({
                                     )
                                 }
                                 maxLength={500}
-                                placeholder="Corporate rate"
+                                placeholder="e.g. Corporate rate"
                                 aria-invalid={!!errors.override_reason}
                             />
                             <FieldError>{errors.override_reason}</FieldError>

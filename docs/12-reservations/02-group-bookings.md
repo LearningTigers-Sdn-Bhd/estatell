@@ -48,7 +48,7 @@ Both Actions return a `ReservationResult` and never throw for an expected refusa
 | `unitsWithPostedRoomLines` | Unit ids whose posted room lines stay on their own folio because `SyncRoutingRules` now routes Room to the Master folio (`AddUnit` and `UpdateReservationCompany`, only when the sync created a rule) |
 | `unitAdvances`             | Advance money left on those units' own folios, by unit id. The controller shows both lists in a warning toast ([Routing](../13-folio/03-routing.md#billing-mode-rules))                               |
 
-Refusal codes: `units_required`, `booker_not_found`, `room_type_not_found`, `rate_plan_not_linked`, `invalid_stay`, `arrival_in_past`, `adults_required`, `child_age_invalid`, `discount_not_allowed`, `restricted`, `restriction_override_not_allowed`, `not_available`, `override_reason_required`, `override_invalid`, `reservation_closed`, `company_not_available`, `rate_plan_not_linked_to_company`, plus the `RateQuote` and [add-on](04-add-ons.md#addunitaddon) refusal codes passed through as they are.
+Refusal codes: `units_required`, `booker_not_found`, `room_type_not_found`, `rate_plan_not_linked`, `invalid_stay`, `arrival_in_past`, `adults_required`, `child_age_invalid`, `discount_not_allowed`, `restricted`, `restriction_override_not_allowed`, `not_available`, `override_invalid`, `reservation_closed`, `company_not_available`, `rate_plan_not_linked_to_company`, plus the `RateQuote` and [add-on](04-add-ons.md#addunitaddon) refusal codes passed through as they are.
 
 ### `CreateReservation`
 
@@ -84,7 +84,7 @@ Callers loop for bed lines: `CreateReservation`, and Add unit on the reservation
 | `discount_id`, when given, is an active RoomOnly discount of the property                                                                                                        | `discount_not_allowed`                                                                                                                                                                                                   |
 | `RestrictionCheck::violations()` is empty. Ingestion skips this check: the OTA already checked its own copy (see [daily rates](../08-rates/02-daily-rates-and-restrictions.md)). | `restricted`. With a `restriction_override_reason`: allowed when the actor has `rates.override-restrictions` (logged), otherwise `restriction_override_not_allowed`. A reason given when nothing is violated is ignored. |
 | `AvailabilityService::availableForStay()` is at least 1                                                                                                                          | `not_available`. Ingestion may overbook (see [availability](../10-availability/01-availability-service.md)).                                                                                                             |
-| An `override_total` comes with an `override_reason`, and is 0 or more with at most two decimals (0 is a complimentary stay). No permission is needed.                            | `override_reason_required`, `override_invalid`                                                                                                                                                                           |
+| An `override_total` is 0 or more with at most two decimals (0 is a complimentary stay). The `override_reason` is optional. No permission is needed.                              | `override_invalid`                                                                                                                                                                                                       |
 | `RateQuoteService::quote()` (with `beds` = 1) is not refused                                                                                                                     | The quote's refusal code                                                                                                                                                                                                 |
 
 It then writes:
@@ -92,7 +92,7 @@ It then writes:
 - The unit, with `property_id` from the reservation, `children` = number of ages (so ages are always given for every child), and `discount_id`.
 - One `unit_nights` row per night: `rate_plan_id` and the quoted `base_amount`, `extra_amount`, `supplement_amount` and `discount_amount` (the rate plan's stay discount from the quote).
 - One `reservation_unit_children` row per age.
-- An activity log entry. It holds the restriction override reason and the price override reason when they are used.
+- An activity log entry. It holds the restriction override reason, and the price override total with its reason (null when none was given), when they are used.
 
 Then it calls `SyncReservationStatus`.
 

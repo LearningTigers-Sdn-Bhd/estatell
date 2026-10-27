@@ -251,6 +251,7 @@ test('the price override reason and who set it come from the log of the unit tha
     [$user, $property] = pageOwner();
     $reservation = pageReservation($property);
     $overridden = pageUnit($reservation);
+    $noReason = pageUnit($reservation);
     $plain = pageUnit($reservation);
     $actor = User::factory()->create(['name' => 'Aina']);
     activity()->performedOn($reservation)->causedBy($actor)->event('reservation.unit_added')->withProperties([
@@ -258,12 +259,19 @@ test('the price override reason and who set it come from the log of the unit tha
         'override_total' => '240.00',
         'override_reason' => 'Corporate rate',
     ])->log('Unit added to reservation');
+    activity()->performedOn($reservation)->causedBy($actor)->event('reservation.unit_added')->withProperties([
+        'reservation_unit_id' => $noReason->id,
+        'override_total' => '200.00',
+        'override_reason' => null,
+    ])->log('Unit added to reservation');
     activity()->performedOn($reservation)->causedBy($actor)->event('reservation.unit_added')->withProperties(['reservation_unit_id' => $plain->id])->log('Unit added to reservation');
 
     $this->actingAs($user)->get(pageUrl($property, $reservation, 'reservations.show', ['unit' => $overridden->id]))
-        ->assertInertia(fn (Assert $page) => $page->where('unit.priceOverrideReason', 'Corporate rate')->where('unit.priceOverrideBy', 'Aina'));
+        ->assertInertia(fn (Assert $page) => $page->where('unit.hasPriceOverride', true)->where('unit.priceOverrideReason', 'Corporate rate')->where('unit.priceOverrideBy', 'Aina'));
+    $this->get(pageUrl($property, $reservation, 'reservations.show', ['unit' => $noReason->id]))
+        ->assertInertia(fn (Assert $page) => $page->where('unit.hasPriceOverride', true)->where('unit.priceOverrideReason', null)->where('unit.priceOverrideBy', 'Aina'));
     $this->get(pageUrl($property, $reservation, 'reservations.show', ['unit' => $plain->id]))
-        ->assertInertia(fn (Assert $page) => $page->where('unit.priceOverrideReason', null)->where('unit.priceOverrideBy', null));
+        ->assertInertia(fn (Assert $page) => $page->where('unit.hasPriceOverride', false)->where('unit.priceOverrideReason', null)->where('unit.priceOverrideBy', null));
 });
 
 test('the guest rows show the booker, unit guests with roles, and units without a guest', function () {

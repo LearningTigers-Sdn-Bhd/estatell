@@ -513,7 +513,7 @@ export function UnitsTab({
                     </Table>
                 </div>
             )}
-            {unit.priceOverrideReason !== null && (
+            {unit.hasPriceOverride && (
                 <p className="flex items-start gap-2 text-sm text-muted-foreground">
                     <Info aria-hidden className="mt-0.5 size-4 shrink-0" />
                     <span>
@@ -521,7 +521,9 @@ export function UnitsTab({
                         {unit.priceOverrideBy
                             ? ` by ${unit.priceOverrideBy}`
                             : ''}
-                        : “{unit.priceOverrideReason}”
+                        {unit.priceOverrideReason !== null
+                            ? `: “${unit.priceOverrideReason}”`
+                            : ''}
                     </span>
                 </p>
             )}
