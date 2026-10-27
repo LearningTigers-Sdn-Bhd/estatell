@@ -519,7 +519,7 @@ test('the room box has a warning state for rooms and beds not assigned', functio
     expect([$room->id, $bed->id, $group->id])->not->toBeEmpty();
 });
 
-test('the room box says the room is assigned automatically when the property assigns rooms', function () {
+test('the room box says check-in assigns the room when the property assigns rooms and none was free', function () {
     [$user, $property] = listOwner();
     $property->settings->forceFill(['auto_assign_rooms' => true])->save();
     listReservation($property);
@@ -527,7 +527,7 @@ test('the room box says the room is assigned automatically when the property ass
     $this->actingAs($user)->get(listUrl($property))->assertInertia(fn (Assert $page) => $page
         ->where('reservations.data.0.roomBox.state', 'auto_assign')
         ->where('reservations.data.0.roomBox.tone', 'neutral')
-        ->where('reservations.data.0.roomBox.tooltip', 'Room assigned automatically'));
+        ->where('reservations.data.0.roomBox.tooltip', 'No free room when booked. Check-in assigns one.'));
 });
 
 test('the room box shows cancelled and no-show', function () {

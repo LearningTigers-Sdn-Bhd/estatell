@@ -144,6 +144,21 @@ test('adding a unit that sends room charges to the master warns about an advance
     expect($setup['reservation']->units()->count())->toBe(2);
 });
 
+test('with auto-assign on the added unit gets a room for the whole stay', function () {
+    $setup = actionsSetup();
+    $setup['property']->settings->forceFill(['auto_assign_rooms' => true])->save();
+
+    $this->actingAs($setup['user'])
+        ->post(actionsRoute($setup, 'reservations.units.store'), actionsUnitPayload($setup))
+        ->assertSessionHasNoErrors();
+
+    $rooms = $setup['reservation']->units()->latest('id')->first()->nights()->pluck('room_id');
+
+    expect($rooms)->toHaveCount(2)
+        ->and($rooms->unique())->toHaveCount(1)
+        ->and($rooms->first())->not->toBeNull();
+});
+
 test('a unit is added with a toast and a log', function () {
     $setup = actionsSetup();
 

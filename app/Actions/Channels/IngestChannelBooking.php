@@ -2,6 +2,7 @@
 
 namespace App\Actions\Channels;
 
+use App\Actions\FrontDesk\AutoAssignBookedUnit;
 use App\Actions\FrontDesk\CancelUnits;
 use App\Actions\FrontDesk\ChangeUnitDates;
 use App\Actions\Guests\CreateGuest;
@@ -51,6 +52,7 @@ class IngestChannelBooking
         private CancelUnits $cancelUnits,
         private NotifyChannelReservationStaff $notifyStaff,
         private ChannelDriverManager $drivers,
+        private AutoAssignBookedUnit $autoAssignBookedUnit,
     ) {}
 
     /**
@@ -168,13 +170,19 @@ class IngestChannelBooking
             throw new ChannelRevisionRefused(__('estatell refused the booking (:code).', ['code' => $result->refusal]));
         }
 
+        foreach ($result->reservation->units()->orderBy('id')->get() as $unit) {
+            ($this->autoAssignBookedUnit)($actor, $unit);
+        }
+
         return $result->reservation;
     }
 
     /**
      * Match the units of the reservation to the rooms of the revision in order. A unit with another room type or rate
      * plan is cancelled and replaced, one with other dates keeps its room and changes dates, a room with no unit is
-     * added, and a unit with no room is cancelled. Nothing is charged for the changes: the channel decides. A kept
+     * added, and a unit with no room is cancelled. Nothing is charged for the changes: the channel decides. With `auto_assign_rooms` on, an added or
+     * replaced unit, and a Confirmed unit whose date change left a night without a room, gets one from
+     * `AutoAssignBookedUnit`. A kept
      * unit is then priced as the channel says: each night that differs from the revision's day amount (or from the
      * room amount spread over the nights, when the revision has no days) gets that price through `ChangeNightPrice`,
      * so the reservation total matches the OTA. A night that estatell cannot reprice is left as it is: the booking is
@@ -211,6 +219,10 @@ class IngestChannelBooking
 
                 if ($result->isRefused()) {
                     throw new ChannelRevisionRefused(__('estatell refused the date change (:code).', ['code' => $result->refusal]));
+                }
+
+                if ($result->unassignedNights > 0) {
+                    ($this->autoAssignBookedUnit)($actor, $unit->refresh());
                 }
             }
 
@@ -289,6 +301,10 @@ class IngestChannelBooking
 
         if ($result->isRefused()) {
             throw new ChannelRevisionRefused(__('estatell refused room :number (:code).', ['number' => $index + 1, 'code' => $result->refusal]));
+        }
+
+        if ($result->unit !== null) {
+            ($this->autoAssignBookedUnit)($actor, $result->unit->refresh());
         }
     }
 

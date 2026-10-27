@@ -3,6 +3,7 @@
 namespace App\Actions\Reservations;
 
 use App\Models\Reservation;
+use App\Models\ReservationUnit;
 use Carbon\CarbonInterface;
 
 /**
@@ -10,7 +11,7 @@ use Carbon\CarbonInterface;
  * caused it. The `RateQuote` refusal codes are passed through as they are. `unitsWithPostedRoomLines` lists the units
  * whose posted room lines stay on their own folio because a billing mode routing rule now sends room charges to the
  * Master folio (see `SyncRoutingRules`), and `unitAdvances` the Advance money left on those units' own folios (amount
- * by unit id). Only `AddUnit` and `UpdateReservationCompany` fill them.
+ * by unit id). Only `AddUnit` and `UpdateReservationCompany` fill them. `unit` is the unit `AddUnit` added.
  */
 class ReservationResult
 {
@@ -85,15 +86,16 @@ class ReservationResult
         public readonly array $unitAdvances = [],
         /** The direction (`in` or `out`) of a boat trip that refused the unit, so the form shows it on the Stay row. */
         public readonly ?string $boatDirection = null,
+        public readonly ?ReservationUnit $unit = null,
     ) {}
 
     /**
      * @param  list<int>  $unitsWithPostedRoomLines
      * @param  array<int, string>  $unitAdvances
      */
-    public static function created(Reservation $reservation, array $unitsWithPostedRoomLines = [], array $unitAdvances = []): self
+    public static function created(Reservation $reservation, array $unitsWithPostedRoomLines = [], array $unitAdvances = [], ?ReservationUnit $unit = null): self
     {
-        return new self($reservation, null, null, null, $unitsWithPostedRoomLines, null, $unitAdvances);
+        return new self($reservation, null, null, null, $unitsWithPostedRoomLines, null, $unitAdvances, unit: $unit);
     }
 
     public static function refused(string $refusal, ?int $lineIndex = null, ?CarbonInterface $date = null, ?string $detail = null, ?string $boatDirection = null): self

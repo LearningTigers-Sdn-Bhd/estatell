@@ -8,6 +8,7 @@ use App\Enums\UnitStatus;
 use App\Models\ChannelBookingRevision;
 use App\Models\Guest;
 use App\Models\Reservation;
+use App\Models\ReservationUnit;
 use App\Models\TransactionCode;
 use App\Notifications\ChannelBookingCancelled;
 use App\Notifications\ChannelBookingReceived;
@@ -306,4 +307,38 @@ test('a revision with an unknown status is not stored', function () {
 
     expect(app(StoreChannelRevision::class)($setup['channelProperty'], channelRevisionPayload(['status' => 'odd'])))->toBeNull()
         ->and(ChannelBookingRevision::query()->count())->toBe(0);
+});
+
+test('with auto-assign on each unit of a new OTA booking gets its own room', function () {
+    $setup = channelBookingSetup();
+    $setup['property']->settings->forceFill(['auto_assign_rooms' => true])->save();
+    fakeChannexAck();
+
+    ingest($setup, ['rooms' => [channelRevisionRoom(), channelRevisionRoom()]]);
+
+    $rooms = Reservation::query()->sole()->units()->orderBy('id')->get()
+        ->map(fn ($unit) => $unit->nights()->pluck('room_id')->unique()->values()->all());
+
+    expect($rooms->flatten()->sort()->values()->all())->toBe(collect($setup['rooms'])->pluck('id')->sort()->values()->all());
+});
+
+test('a modified revision whose longer stay loses the room moves the unit to a room free for the whole stay', function () {
+    $setup = channelBookingSetup();
+    $setup['property']->settings->forceFill(['auto_assign_rooms' => true])->save();
+    fakeChannexAck();
+    ingest($setup);
+    $unit = Reservation::query()->sole()->units()->sole();
+    $first = $unit->nights()->value('room_id');
+    $other = collect($setup['rooms'])->firstWhere(fn ($room) => $room->id !== $first);
+    $taker = ReservationUnit::factory()->withNights()->create(['property_id' => $setup['property']->id, 'room_type_id' => $setup['roomType']->id, 'rate_plan_id' => $setup['plan']->id, 'arrival_date' => '2026-10-22', 'departure_date' => '2026-10-23']);
+    $taker->nights()->update(['room_id' => $first]);
+
+    [, $result] = ingest($setup, [
+        'status' => 'modified',
+        'departure_date' => '2026-10-23',
+        'rooms' => [channelRevisionRoom(['checkout_date' => '2026-10-23', 'amount' => '300.00'])],
+    ]);
+
+    expect($result->ok)->toBeTrue()
+        ->and($unit->nights()->orderBy('date')->pluck('room_id')->all())->toBe([$other->id, $other->id, $other->id]);
 });
