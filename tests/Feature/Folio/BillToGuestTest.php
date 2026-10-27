@@ -29,7 +29,7 @@ function btgSetup(): array
     PropertySetting::factory()->for($property)->create();
     BusinessDate::factory()->create(['property_id' => $property->id]);
     $reservation = Reservation::factory()->create(['property_id' => $property->id]);
-    $unit = ReservationUnit::factory()->checkedIn()->create(['reservation_id' => $reservation->id]);
+    $unit = ReservationUnit::factory()->checkedIn()->create(['reservation_id' => $reservation->id, 'adults' => 2]);
     $primary = Guest::factory()->create(['property_id' => $property->id]);
     $other = Guest::factory()->create(['property_id' => $property->id]);
     app(AttachGuest::class)($user, $unit, $primary);
