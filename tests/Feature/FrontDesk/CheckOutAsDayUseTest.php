@@ -406,7 +406,7 @@ test('unposted add-ons of the dropped nights are previewed and removed, and the 
     $result = app(CheckOutAsDayUse::class)($s['user'], $s['unit'], collect: dayUseCheckoutCollect($s, '120.00'));
 
     expect($result->refusal)->toBeNull()
-        ->and(UnitAddOn::query()->whereKey(collect($dropped)->modelKeys())->exists())->toBeFalse()
+        ->and(UnitAddOn::query()->whereKey(array_map(fn (UnitAddOn $addOn): int => $addOn->id, $dropped))->exists())->toBeFalse()
         ->and($kept->fresh())->not->toBeNull();
     Event::assertDispatchedTimes(ReservationChanged::class, 1);
     Event::assertDispatched(ReservationChanged::class, fn (ReservationChanged $event): bool => $event->propertyId === $s['property']->id
