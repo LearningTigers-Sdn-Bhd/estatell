@@ -51,8 +51,13 @@ export function checkOutFigures({
     const paid = Number(preview?.paid ?? 0);
     const owing = Math.max(balance, 0);
     const canCollect = preview?.canCollect === true;
+    // A payment that only pays the bill holds money too, so there is something to give back only with a deposit held or
+    // a folio in credit.
     const canRefund =
-        preview?.canRefund === true && refundable > 0 && canCorrectMoney;
+        preview?.canRefund === true &&
+        refundable > 0 &&
+        canCorrectMoney &&
+        (held > 0 || balance < -0.005);
     // A folio in credit can only refund the deposit, so the choice is offered only while the guest owes money. With a
     // damage charge the deposit always goes to the damage and the bill first.
     const deposit = (
