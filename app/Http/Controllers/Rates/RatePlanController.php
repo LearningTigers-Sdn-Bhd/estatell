@@ -55,6 +55,7 @@ use App\Http\Requests\Rates\ArchiveRatePlanRequest;
 use App\Http\Requests\Rates\CreateDerivedRatePlanRequest;
 use App\Http\Requests\Rates\CreateRatePlanRequest;
 use App\Http\Requests\Rates\PackagePricingRequest;
+use App\Http\Requests\Rates\RateCalendarRequest;
 use App\Http\Requests\Rates\RatePlanChildPricesRequest;
 use App\Http\Requests\Rates\RatePlanDerivationRequest;
 use App\Http\Requests\Rates\RatePlanDiscountsPreviewRequest;
@@ -74,8 +75,10 @@ use App\Models\RatePlanInclusion;
 use App\Models\RatePlanStayDiscount;
 use App\Models\RoomType;
 use App\Services\CityLedger\CompanyOptions;
+use App\Services\Property\PropertyToday;
 use App\Services\Rates\DerivedRatePlans;
 use App\Services\Rates\DerivedRatePreview;
+use App\Services\Rates\RateCalendarService;
 use App\Services\Rates\RatesEndingCheck;
 use App\Services\Rates\StayDiscountPreview;
 use Illuminate\Database\Eloquent\Collection;
@@ -300,6 +303,24 @@ class RatePlanController extends Controller
             $request->ignoredRuleCount(),
             $stayDiscountPreview->preview($ratePlan, $rules, $request->arrival(), $nights, $request->adults(), $request->childrenByAgeGroup()),
         ));
+    }
+
+    /**
+     * The Saved prices tab: the rate calendar for this plan alone, read only. Room types are filtered in the browser.
+     */
+    public function showSavedPrices(RateCalendarRequest $request, Property $property, RatePlan $ratePlan, PropertyToday $propertyToday, RateCalendarService $rateCalendarService, RatesEndingCheck $ratesEndingCheck): Response
+    {
+        $today = $propertyToday->date($property);
+        [$from, $to] = $request->range($today);
+        $pricedUntil = $ratesEndingCheck->pricedUntil($ratePlan);
+
+        return Inertia::render('settings/rate-plans/saved-prices', [
+            'ratePlan' => RatePlanData::fromModel($ratePlan->load('roomTypes')),
+            'saved' => $rateCalendarService->forPlan($property, $ratePlan, $from, $to, $property->settings->currency->getCurrencyCode()),
+            'pricedUntil' => $pricedUntil,
+            'weekendDays' => $property->settings->weekend_nights->isoWeekdays(),
+            'today' => $today->toDateString(),
+        ]);
     }
 
     /**

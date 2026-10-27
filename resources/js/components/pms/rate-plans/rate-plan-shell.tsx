@@ -1,6 +1,7 @@
 import {
     Baby,
     Bed,
+    CalendarDays,
     CircleDollarSign,
     Building2,
     FileText,
@@ -19,6 +20,7 @@ import { edit as editInclusions } from '@/routes/settings/rate-plans/inclusions'
 import { edit as editCompanies } from '@/routes/settings/rate-plans/companies';
 import { edit as editPricing } from '@/routes/settings/rate-plans/pricing';
 import { edit as editRoomTypes } from '@/routes/settings/rate-plans/room-types';
+import { show as showSavedPrices } from '@/routes/settings/rate-plans/saved-prices';
 
 type RatePlan = App.Data.Rates.RatePlanData;
 
@@ -26,6 +28,7 @@ export type RatePlanTab =
     | 'details'
     | 'room-types'
     | 'pricing'
+    | 'saved-prices'
     | 'children'
     | 'inclusions'
     | 'discounts'
@@ -67,9 +70,15 @@ export function RatePlanShell({
         },
         {
             value: 'pricing',
-            label: 'Pricing',
+            label: 'Pricing rules',
             icon: CircleDollarSign,
             href: editPricing.url({ ratePlan: ratePlan.id }),
+        },
+        {
+            value: 'saved-prices',
+            label: 'Saved prices',
+            icon: CalendarDays,
+            href: showSavedPrices.url({ ratePlan: ratePlan.id }),
         },
         ...(ratePlan.usesChildPrices
             ? [

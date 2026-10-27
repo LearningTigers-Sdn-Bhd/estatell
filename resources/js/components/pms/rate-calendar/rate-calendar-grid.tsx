@@ -58,7 +58,7 @@ export function cellTitle(
     return parts.filter(Boolean).join(', ');
 }
 
-function RateCell({
+export function RateCell({
     cell,
     derived,
     stayNights,
