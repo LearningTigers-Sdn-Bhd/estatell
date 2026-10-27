@@ -169,9 +169,9 @@ class CheckOutAsDayUseQuote
             return $data;
         }
 
-        $data->droppedAddOns = $this->unpostedAddOnsAfter->query($unit, $unit->arrival_date)->with('chargeItem')->orderBy('service_date')->orderBy('id')->get()
+        $data->droppedAddOns = array_values($this->unpostedAddOnsAfter->query($unit, $unit->arrival_date)->with('chargeItem')->orderBy('service_date')->orderBy('id')->get()
             ->map(fn (UnitAddOn $addOn): string => __(':item × :quantity · :date', ['item' => $addOn->chargeItem->name, 'quantity' => $addOn->quantity, 'date' => $addOn->service_date->format('j M')]))
-            ->all();
+            ->all());
         $proposed = clone $unit;
         $proposed->stay_type = StayType::DayUse;
         $proposed->departure_date = $unit->arrival_date;
