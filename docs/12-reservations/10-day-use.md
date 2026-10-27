@@ -95,7 +95,7 @@ This replaces the original refusal of day-use overrides in commits 2a and 2b bel
 
 ## Entered price
 
-**Decided 2026-10-28. The backend is built; the booking form is not.** Staff can sell day use without a Day use plan, or outside what a plan sells, and type the amount.
+**Decided 2026-10-28. Built, on the booking form and in the Add unit Sheet.** Staff can sell day use without a Day use plan, or outside what a plan sells, and type the amount.
 
 ```
 Plan  [ No plan · enter price ▾ ]
@@ -119,6 +119,7 @@ Plan  [ No plan · enter price ▾ ]
 | ✎ override with an optional reason           | The amount is already entered. An optional reason         |
 
 - **The unit's plan.** `reservation_units.rate_plan_id` is required, so the unit is stored on the room type's first active **per-night plan** the front desk can sell: pricing basis Per room or Per guest, by `position`. It is an existing plan, for example Standard. Its price, inclusions, policies and restrictions are not used. Check out as day use already keeps the unit on its per-night plan the same way.
+- **`enteredPlanId`.** The server sends the per-night plan on each room type option (`RoomTypeOptionData`): the first Per room or Per guest plan open to everyone, by `position`. The line stores that id; the Plan select shows it as **No plan · enter price**. The booking quote (`BookingQuote::dayUseLine`) treats a per-night plan as an entered price: the typed amount is the total (0.00 until typed), with no plan window or restriction.
 - **No per-night plan.** A room type with no such plan (only Package, company-only or Day use plans) does not offer **No plan · enter price**. The option is disabled with "Add a per-night plan for this room type to enter a price."
 - **Storage.** `unit_day_uses.amount` and `override_amount` both hold the entered amount, as for an override. Reinstate keeps it and never quotes again.
 - **Charging.** `DayUseChargeQuote` already skips the inclusions of a plan that is not Day use, so the block posts as one DAY_USE line with its taxes.

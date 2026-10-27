@@ -121,6 +121,39 @@ test('a day use quote uses an override but still refuses unsold hours', function
         ->assertJsonPath('unitTotal', null)->assertJsonPath('errors.hours', 'This plan does not sell that number of hours.');
 });
 
+test('a day use quote on a per-night plan is an entered price outside any plan window', function () {
+    $setup = dayUseHttpSetup();
+    $body = ['room_type_id' => $setup['roomType']->id, 'rate_plan_id' => $setup['basic']->id, 'stay_type' => 'day_use', 'arrival_date' => $setup['date']->toDateString(), 'start_time' => '02:00', 'hours' => 10, 'adults' => 2, 'override_total' => '150.00'];
+
+    $this->actingAs($setup['user'])->postJson(route('reservations.quote', $setup['property']->code), $body)
+        ->assertOk()
+        ->assertJsonPath('unitTotal', '150.00')
+        ->assertJsonPath('lineTotal', '150.00')
+        ->assertJsonPath('available', 2)
+        ->assertJsonPath('violations', [])
+        ->assertJsonPath('errors', []);
+
+    unset($body['override_total']);
+
+    $this->postJson(route('reservations.quote', $setup['property']->code), $body)
+        ->assertOk()->assertJsonPath('unitTotal', '0.00');
+
+    $this->postJson(route('reservations.quote', $setup['property']->code), [...$body, 'hours' => 23, 'start_time' => '10:00'])
+        ->assertOk()->assertJsonPath('unitTotal', null)->assertJsonPath('errors.start_time', fn ($message) => is_string($message));
+});
+
+test('the room type options send the first per-night plan as enteredPlanId', function () {
+    $setup = dayUseHttpSetup();
+
+    $this->actingAs($setup['user'])->get(route('reservations.new', $setup['property']->code))
+        ->assertInertia(fn (Assert $page) => $page->where('addUnitOptions.roomTypes.0.enteredPlanId', $setup['basic']->id));
+
+    $setup['basic']->forceFill(['archived_at' => now()])->save();
+
+    $this->get(route('reservations.new', $setup['property']->code))
+        ->assertInertia(fn (Assert $page) => $page->where('addUnitOptions.roomTypes.0.enteredPlanId', null));
+});
+
 test('store creates a day use reservation with the guest attached and no room pick', function () {
     $setup = dayUseHttpSetup();
 
@@ -135,6 +168,23 @@ test('store creates a day use reservation with the guest attached and no room pi
         ->and($unit->dayUse->amount)->toBe('100.00')
         ->and($unit->departure_date->toDateString())->toBe($setup['date']->toDateString())
         ->and($unit->guests()->count())->toBe(1);
+});
+
+test('store books a day use with an entered price and keys a missing amount to the line', function () {
+    $setup = dayUseHttpSetup();
+    $line = fn (array $change = []) => [['room_type_id' => $setup['roomType']->id, 'rate_plan_id' => $setup['basic']->id, 'adults' => 2, 'hours' => 10, 'room_id' => $setup['rooms'][0]->id, ...$change]];
+
+    $this->actingAs($setup['user'])->post(route('reservations.store', $setup['property']->code), dayUseBody($setup, ['start_time' => '02:00', 'lines' => $line()]))
+        ->assertSessionHasErrors('lines.0.override_total');
+
+    expect(Reservation::query()->count())->toBe(0);
+
+    $this->post(route('reservations.store', $setup['property']->code), dayUseBody($setup, ['start_time' => '02:00', 'lines' => $line(['override_total' => '150.00', 'override_reason' => 'Walk-in'])]))
+        ->assertSessionHasNoErrors();
+
+    $dayUse = Reservation::query()->sole()->units()->sole()->dayUse;
+
+    expect($dayUse->amount)->toBe('150.00')->and($dayUse->hours)->toBe(10);
 });
 
 test('a refusal comes back keyed to the line', function (string $case) {

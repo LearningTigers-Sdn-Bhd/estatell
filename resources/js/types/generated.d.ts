@@ -3647,6 +3647,7 @@ name: string,
 isBed: boolean,
 maxAdults: number,
 maxChildren: number,
+enteredPlanId: number | null,
 };
 export type UnitActionData = {
 key: App.Enums.UnitAction,

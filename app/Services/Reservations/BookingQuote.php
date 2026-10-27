@@ -118,7 +118,8 @@ class BookingQuote
 
     /**
      * Price one day use line: the hour price of the date, the stop sell warning and how many rooms are free for the hours.
-     * `nights` is empty and `lineTotal` equals `unitTotal`. An override changes the price, not the hours sold.
+     * `nights` is empty and `lineTotal` equals `unitTotal`. An override changes the price, not the hours sold. A per-night plan is an
+     * entered price: the override is the price (0.00 until typed), no plan window or restriction applies.
      *
      * @param  list<int>  $childAges
      * @param  list<NewAddOnData>  $addOns
@@ -136,21 +137,34 @@ class BookingQuote
             return BookingQuoteData::refused($this->refusals->errors(ReservationResult::REFUSAL_RATE_PLAN_NOT_LINKED));
         }
 
-        if ($ratePlan->pricing_basis !== PricingBasis::DayUse) {
+        $enteredPrice = $ratePlan->pricing_basis !== PricingBasis::DayUse;
+
+        if ($enteredPrice && (! in_array($ratePlan->pricing_basis, [PricingBasis::PerRoom, PricingBasis::PerGuest], true) || $ratePlan->archived_at !== null)) {
             return BookingQuoteData::refused($this->refusals->errors(RateQuote::REFUSAL_PLAN_NOT_DAY_USE));
         }
 
-        $blockRefusal = $this->dayUseOffers->refusal($ratePlan, $startTime, $hours);
+        $blockRefusal = $enteredPrice
+            ? $this->dayUseOffers->enteredRefusal($startTime, $hours)
+            : $this->dayUseOffers->refusal($ratePlan, $startTime, $hours);
 
         if ($blockRefusal !== null) {
             return BookingQuoteData::refused($this->refusals->errors($blockRefusal));
         }
 
         $date = $date->startOfDay();
-        $quote = $this->rateQuoteService->quoteDayUse($roomType, $ratePlan, $date, $hours, ignoreStopSell: true);
+        $quotedAmount = null;
 
-        if ($quote->isRefused()) {
-            return BookingQuoteData::refused($this->refusals->errors((string) $quote->refusal, $quote->refusalDate));
+        if ($enteredPrice) {
+            $currency = $property->settings->currency->getCurrencyCode();
+        } else {
+            $quote = $this->rateQuoteService->quoteDayUse($roomType, $ratePlan, $date, $hours, ignoreStopSell: true);
+
+            if ($quote->isRefused()) {
+                return BookingQuoteData::refused($this->refusals->errors((string) $quote->refusal, $quote->refusalDate));
+            }
+
+            $quotedAmount = $quote->amount;
+            $currency = $quote->amount->getCurrency();
         }
 
         $startsAt = DayUseOffers::time(DayUseOffers::minutes($startTime));
@@ -160,16 +174,17 @@ class BookingQuote
             return BookingQuoteData::refused($this->refusals->errors(ReservationResult::REFUSAL_OVERRIDE_INVALID));
         }
 
-        $total = (string) ($overrideTotal === null ? $quote->amount : Money::of($overrideTotal, $quote->amount->getCurrency()))->getAmount();
+        $price = $overrideTotal === null ? $quotedAmount : Money::of($overrideTotal, $currency);
+        $total = (string) ($price ?? Money::zero($currency))->getAmount();
 
         return new BookingQuoteData(
             nights: [],
             unitTotal: $total,
             lineTotal: $total,
-            addOnsTotal: (string) $this->addOnsTotal($property, $addOns, $date, $date, $adults, $childAges, $quote->amount->getCurrency())->getAmount(),
+            addOnsTotal: (string) $this->addOnsTotal($property, $addOns, $date, $date, $adults, $childAges, $currency)->getAmount(),
             isOverridden: $overrideTotal !== null,
             beds: 1,
-            violations: $this->restrictionCheck->dayUseViolations($ratePlan->id, $roomType->id, $date),
+            violations: $enteredPrice ? [] : $this->restrictionCheck->dayUseViolations($ratePlan->id, $roomType->id, $date),
             available: count($this->dayUseAvailability->freeRooms($roomType, $date, $startsAt, $endsAt)),
             errors: [],
         );

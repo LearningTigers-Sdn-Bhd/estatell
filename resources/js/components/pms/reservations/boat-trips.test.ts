@@ -173,7 +173,14 @@ describe('the booking payload', () => {
         boat_out: NOT_SET,
     };
     const roomTypes = [
-        { id: 1, name: 'Deluxe', isBed: false, maxAdults: 2, maxChildren: 2 },
+        {
+            id: 1,
+            name: 'Deluxe',
+            isBed: false,
+            maxAdults: 2,
+            maxChildren: 2,
+            enteredPlanId: null,
+        },
     ];
 
     test('an overnight booking sends each trip with its own time', () => {

@@ -42,8 +42,16 @@ const room = {
     isBed: false,
     maxAdults: 2,
     maxChildren: 2,
+    enteredPlanId: null,
 };
-const dorm = { id: 2, name: 'Dorm', isBed: true, maxAdults: 1, maxChildren: 0 };
+const dorm = {
+    id: 2,
+    name: 'Dorm',
+    isBed: true,
+    maxAdults: 1,
+    maxChildren: 0,
+    enteredPlanId: null,
+};
 
 test('picking a guest links the tab and fills every field, and nothing is left from before', () => {
     const typed = {
