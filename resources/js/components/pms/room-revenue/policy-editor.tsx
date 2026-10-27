@@ -64,7 +64,6 @@ export type PolicyEditorProps = {
     locales: EnumOption[];
     taxes: App.Data.Catalogues.ChargeItemTaxData[];
     roomTaxIds: number[];
-    hasDayUse: boolean;
 };
 
 type PolicyForm = {
@@ -348,7 +347,6 @@ export function PolicyEditor({
     locales,
     taxes,
     roomTaxIds,
-    hasDayUse,
 }: PolicyEditorProps) {
     const http = useHttp<PolicyForm, Preview>(formFrom(policy));
     const guard = useUnsavedChanges(http.isDirty);
@@ -449,7 +447,7 @@ export function PolicyEditor({
                         description="How room nights and stay changes are taxed and charged."
                     />
 
-                    <RoomRevenueTabs activeTab={tab} hasDayUse={hasDayUse}>
+                    <RoomRevenueTabs activeTab={tab}>
                         <div className="grid min-w-0 grid-cols-1 items-start gap-8 lg:grid-cols-3 lg:gap-x-10">
                             <Section
                                 className="lg:col-span-2"

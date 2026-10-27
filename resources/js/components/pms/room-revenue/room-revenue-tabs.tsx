@@ -30,16 +30,13 @@ const policyTabs: { value: RoomRevenueTab; label: string; icon: LucideIcon }[] =
     ];
 
 /**
- * The Room revenue tabs: five, and a sixth Day use tab when the property has a Day use plan. Each is a link to its own URL, so the server sends only the open tab's data.
+ * The six Room revenue tabs are always available. Each is a link to its own URL, so the server sends only the open tab's data.
  */
 export function RoomRevenueTabs({
     activeTab,
-    hasDayUse,
     children,
 }: {
     activeTab: RoomRevenueTab;
-    /** Whether the property has a Day use plan, which adds the Day use tab. */
-    hasDayUse: boolean;
     children: ReactNode;
 }) {
     return (
@@ -59,16 +56,12 @@ export function RoomRevenueTabs({
                     ...tab,
                     href: show({ tab: tab.value }),
                 })),
-                ...(hasDayUse
-                    ? [
-                          {
-                              value: 'day-use',
-                              label: 'Day use',
-                              icon: Hourglass,
-                              href: showDayUse(),
-                          },
-                      ]
-                    : []),
+                {
+                    value: 'day-use',
+                    label: 'Day use',
+                    icon: Hourglass,
+                    href: showDayUse(),
+                },
             ]}
         >
             {children}

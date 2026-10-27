@@ -93,7 +93,10 @@ export function ReservationActions({
     };
     // A single-unit reservation gets the unit's own Check in and Check out here, whenever its menu offers them.
     const singleUnitItems = (singleUnit?.actions ?? []).filter(
-        (item) => item.key === 'check-in' || item.key === 'check-out',
+        (item) =>
+            item.key === 'check-in' ||
+            item.key === 'check-out' ||
+            item.key === 'check-out-as-day-use',
     );
     const canCheckInAll =
         canManage &&
@@ -122,10 +125,18 @@ export function ReservationActions({
                     {singleUnitItems.map((item) => (
                         <DropdownMenuItem
                             key={item.key}
+                            disabled={item.disabled}
                             onClick={() => chooseUnitAction(item.key)}
                         >
                             {item.key === 'check-in' ? <LogIn /> : <LogOut />}
-                            {item.label}
+                            <span className="flex flex-col gap-1">
+                                <span>{item.label}</span>
+                                {item.note && (
+                                    <span className="max-w-64 text-xs whitespace-normal text-muted-foreground">
+                                        {item.note}
+                                    </span>
+                                )}
+                            </span>
                         </DropdownMenuItem>
                     ))}
                     {canManage && (

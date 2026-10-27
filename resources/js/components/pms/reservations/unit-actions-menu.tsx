@@ -14,6 +14,7 @@ import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { CheckInDialog } from '@/components/pms/reservations/check-in-dialog';
 import { CheckOutDialog } from '@/components/pms/reservations/check-out-dialog';
+import { DayUseCheckOutDialog } from '@/components/pms/reservations/day-use-check-out-dialog';
 import { ChangeDatesDialog } from '@/components/pms/reservations/change-dates-dialog';
 import { MoveRoomDialog } from '@/components/pms/reservations/move-room-dialog';
 import { LateCheckOutDialog } from '@/components/pms/reservations/late-check-out-dialog';
@@ -33,6 +34,7 @@ type Unit = App.Data.Reservations.ReservationUnitData;
 const ICONS: Record<App.Enums.UnitAction, LucideIcon> = {
     'check-in': LogIn,
     'check-out': LogOut,
+    'check-out-as-day-use': LogOut,
     'late-check-out': Clock,
     cancel: XCircle,
     'no-show': UserX,
@@ -97,6 +99,11 @@ export function UnitActionDialogs({
                 open={action === 'check-out'}
                 paymentOptions={paymentOptions}
                 canWaiveFees={canWaiveFees}
+            />
+            <DayUseCheckOutDialog
+                {...common}
+                open={action === 'check-out-as-day-use'}
+                paymentOptions={paymentOptions}
             />
             <LateCheckOutDialog
                 {...common}
@@ -163,10 +170,18 @@ export function UnitActionsMenu(props: DialogProps) {
                         return (
                             <DropdownMenuItem
                                 key={item.key}
+                                disabled={item.disabled}
                                 onClick={() => choose(item.key)}
                             >
                                 <Icon />
-                                {item.label}
+                                <span className="flex flex-col gap-1">
+                                    <span>{item.label}</span>
+                                    {item.note && (
+                                        <span className="max-w-64 text-xs whitespace-normal text-muted-foreground">
+                                            {item.note}
+                                        </span>
+                                    )}
+                                </span>
                             </DropdownMenuItem>
                         );
                     })}

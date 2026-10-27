@@ -59,8 +59,6 @@ class ReservationResult
 
     public const REFUSAL_MASTER_HAS_AR_INVOICE = 'master_has_ar_invoice';
 
-    public const REFUSAL_OVERRIDE_NOT_ALLOWED = 'override_not_allowed';
-
     public const REFUSAL_STAY_TYPE_MISMATCH = 'stay_type_mismatch';
 
     public const REFUSAL_STAY_TYPES_MIXED = 'stay_types_mixed';

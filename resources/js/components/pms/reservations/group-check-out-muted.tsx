@@ -61,17 +61,20 @@ export function GroupCheckOutMutedList({
                                     {row.note}
                                 </TableCell>
                                 <TableCell className="text-right">
-                                    {row.unit !== null && (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => onCheckOutEarly(row)}
-                                        >
-                                            <LogOut data-icon="inline-start" />
-                                            Check out early…
-                                        </Button>
-                                    )}
+                                    {row.unit !== null &&
+                                        row.checkOutAction !== null && (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() =>
+                                                    onCheckOutEarly(row)
+                                                }
+                                            >
+                                                <LogOut data-icon="inline-start" />
+                                                {row.checkOutAction.label}
+                                            </Button>
+                                        )}
                                     {row.canMoveCharges &&
                                         row.incoming.length > 0 && (
                                             <Link

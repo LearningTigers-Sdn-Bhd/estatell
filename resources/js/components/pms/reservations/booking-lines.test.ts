@@ -200,7 +200,7 @@ test('a day use booking posts the date as departure and no overnight fields', ()
         beds: '1',
         bed_ids: [],
         discount_id: '',
-        override_total: '',
+        override_total: '50.00',
     });
 });
 

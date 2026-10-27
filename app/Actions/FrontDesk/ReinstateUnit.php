@@ -45,7 +45,7 @@ class ReinstateUnit
      * A day use unit (`reinstateDayUse()`) may come back until its date (`stay_ended` only after it). It locks its room
      * row, checks the room again for the same hours with `DayUseAvailability::isFree` (`not_available` when another
      * block or guest has taken it), prices the block again with `RateQuoteService::quoteDayUse()` for the same plan,
-     * date and hours, stores the new `unit_day_uses.amount` and clears `released_at`; the room stays. Permissions
+     * date and hours, unless it has an override (kept without quoting again). It stores the amount and clears `released_at`; the room stays. Permissions
      * are checked by the route.
      * See docs/18-front-desk/01-check-in-and-check-out.md.
      */
@@ -165,14 +165,20 @@ class ReinstateUnit
             return UnitStayResult::refused(UnitStayResult::REFUSAL_NOT_AVAILABLE);
         }
 
-        $quote = $this->rateQuoteService->quoteDayUse($roomType, $locked->ratePlan()->firstOrFail(), $dayUse->date, $dayUse->hours);
+        $amount = $dayUse->override_amount;
 
-        if ($quote->isRefused()) {
-            return UnitStayResult::refused((string) $quote->refusal);
+        if ($amount === null) {
+            $quote = $this->rateQuoteService->quoteDayUse($roomType, $locked->ratePlan()->firstOrFail(), $dayUse->date, $dayUse->hours);
+
+            if ($quote->isRefused()) {
+                return UnitStayResult::refused((string) $quote->refusal);
+            }
+
+            $amount = (string) $quote->amount->getAmount();
         }
 
         $previousTotal = $dayUse->amount;
-        $dayUse->forceFill(['amount' => (string) $quote->amount->getAmount(), 'released_at' => null])->save();
+        $dayUse->forceFill(['amount' => $amount, 'released_at' => null])->save();
 
         $previousStatus = $locked->status;
         $locked->status = UnitStatus::Confirmed;

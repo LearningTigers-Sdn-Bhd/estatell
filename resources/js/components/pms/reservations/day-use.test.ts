@@ -105,7 +105,7 @@ describe('a day use line', () => {
     test('sends the day use keys', () => {
         expect(
             dayUseQuotePayload(
-                { ...line, child_ages: ['4'] },
+                { ...line, child_ages: ['4'], override_total: '80.00' },
                 '2026-10-12',
                 '10:00',
             ),
@@ -115,6 +115,17 @@ describe('a day use line', () => {
             start_time: '10:00',
             hours: '4',
             child_ages: [4],
+            override_total: '80.00',
         });
+    });
+
+    test('leaves an invalid override out of the quote', () => {
+        expect(
+            dayUseQuotePayload(
+                { ...line, override_total: '-1' },
+                '2026-10-12',
+                '10:00',
+            ).override_total,
+        ).toBe('');
     });
 });

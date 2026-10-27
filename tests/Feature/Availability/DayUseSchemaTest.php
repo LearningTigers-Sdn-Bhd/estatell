@@ -38,6 +38,9 @@ test('unit_day_uses checks: ends after starts, hours match the times and run fro
     expectDatabaseRefuses($insert(['hours' => 3]), 'unit_day_uses_hours_match_check');
     expectDatabaseRefuses($insert(['hours' => 0, 'ends_at' => '10:00']), 'unit_day_uses_');
     expectDatabaseRefuses($insert(['amount' => '-1.00']), 'unit_day_uses_amount_check');
+    expectDatabaseRefuses($insert(['override_amount' => '-1.00']), 'unit_day_uses_override_amount_check');
+    expectDatabaseRefuses($insert(['override_amount' => '80.00']), 'unit_day_uses_override_amount_check');
+    expect($insert(['override_amount' => '0.00', 'amount' => '0.00'])())->toBeTrue();
     expect($insert(['starts_at' => '09:30', 'ends_at' => '14:30', 'hours' => 5])())->toBeTrue();
 });
 

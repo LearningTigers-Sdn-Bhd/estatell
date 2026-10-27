@@ -12,6 +12,7 @@ import {
     AuditPendingStrip,
 } from '@/components/pms/reservations/audit-pending';
 import { CheckOutDialog } from '@/components/pms/reservations/check-out-dialog';
+import { DayUseCheckOutDialog } from '@/components/pms/reservations/day-use-check-out-dialog';
 import { GroupCheckOutDone } from '@/components/pms/reservations/group-check-out-done';
 import { GroupCheckOutFolios } from '@/components/pms/reservations/group-check-out-folios';
 import { GroupCheckOutMutedList } from '@/components/pms/reservations/group-check-out-muted';
@@ -74,6 +75,7 @@ export default function CheckOut({
     const [early, setEarly] = useState<{
         unit: App.Data.Reservations.ReservationUnitData;
         open: boolean;
+        action: App.Enums.UnitAction;
     } | null>(null);
 
     // Rows come back from the server after a refusal or a reload; a new room gets its prefilled state.
@@ -347,7 +349,13 @@ export default function CheckOut({
         errors,
     };
     const checkOutEarly = (row: Row) =>
-        row.unit !== null && setEarly({ unit: row.unit, open: true });
+        row.unit !== null &&
+        row.checkOutAction !== null &&
+        setEarly({
+            unit: row.unit,
+            open: true,
+            action: row.checkOutAction.key,
+        });
     const nothing = (names: string[], what: string) =>
         names.length === 0
             ? null
@@ -653,7 +661,21 @@ export default function CheckOut({
                 </div>
             </form>
 
-            {early !== null && (
+            {early !== null && early.action === 'check-out-as-day-use' && (
+                <DayUseCheckOutDialog
+                    open={early.open}
+                    onOpenChange={(open) =>
+                        setEarly((current) =>
+                            current === null ? null : { ...current, open },
+                        )
+                    }
+                    reservationId={page.reservationId}
+                    unit={early.unit}
+                    paymentOptions={paymentOptions}
+                    currency={currency}
+                />
+            )}
+            {early !== null && early.action === 'check-out' && (
                 <CheckOutDialog
                     open={early.open}
                     onOpenChange={(open) =>

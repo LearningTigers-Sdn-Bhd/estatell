@@ -21,6 +21,7 @@ use App\Services\Rates\DayUseOffers;
 use App\Services\Rates\RateQuote;
 use App\Services\Rates\RateQuoteService;
 use App\Services\Rates\RestrictionCheck;
+use Brick\Money\Money;
 use Closure;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -47,7 +48,7 @@ class AddDayUseUnit
      * `arrival_time` and `departure_time` equal the start and the end of the block.
      *
      * The room is required and is locked, then checked again with `DayUseAvailability`. The exclusion constraint on
-     * `unit_day_uses` is the last guard. A price override and a catalogue discount are refused. A Stop sell date is
+     * `unit_day_uses` is the last guard. A price override has an optional logged reason; a catalogue discount is refused. A Stop sell date is
      * refused unless the caller may book past restrictions (`$mayOverride`) and gave a reason.
      * See docs/12-reservations/10-day-use.md.
      *
@@ -96,8 +97,8 @@ class AddDayUseUnit
             return $refuse(ReservationResult::REFUSAL_DISCOUNT_NOT_ALLOWED);
         }
 
-        if ($data->overrideTotal !== null) {
-            return $refuse(ReservationResult::REFUSAL_OVERRIDE_NOT_ALLOWED);
+        if ($data->overrideTotal !== null && preg_match('/^\d+(\.\d{1,2})?$/', $data->overrideTotal) !== 1) {
+            return $refuse(ReservationResult::REFUSAL_OVERRIDE_INVALID);
         }
 
         if ($data->startTime === null || $data->hours === null) {
@@ -155,6 +156,8 @@ class AddDayUseUnit
             return $refuse((string) $quote->refusal, $quote->refusalDate);
         }
 
+        $overrideTotal = $data->overrideTotal === null ? null : Money::of($data->overrideTotal, $quote->amount->getCurrency());
+
         $unit = $reservation->units()->make([
             'room_type_id' => $roomType->id,
             'rate_plan_id' => $ratePlan->id,
@@ -175,7 +178,8 @@ class AddDayUseUnit
                 'starts_at' => $startsAt,
                 'ends_at' => $endsAt,
                 'hours' => $data->hours,
-                'amount' => (string) $quote->amount->getAmount(),
+                'amount' => (string) ($overrideTotal ?? $quote->amount)->getAmount(),
+                'override_amount' => $overrideTotal === null ? null : (string) $overrideTotal->getAmount(),
             ]));
         } catch (QueryException $exception) {
             if ($exception->getCode() === '23P01') {
@@ -197,7 +201,7 @@ class AddDayUseUnit
 
         ($this->logDeclinedAutoAddOns)($actor, $reservation, $unit, $data->declinedAutoAddOns);
 
-        $this->log($actor, $reservation, $unit, $room, $data->hours, $startsAt, $endsAt, $restrictionOverride);
+        $this->log($actor, $reservation, $unit, $room, $data->hours, $startsAt, $endsAt, $restrictionOverride, $overrideTotal, $data->overrideReason);
 
         ($this->syncReservationStatus)($reservation);
 
@@ -209,7 +213,7 @@ class AddDayUseUnit
     /**
      * @param  array{reason: string, violations: list<string>}|null  $restrictionOverride
      */
-    private function log(User $actor, Reservation $reservation, ReservationUnit $unit, Room $room, int $hours, string $startsAt, string $endsAt, ?array $restrictionOverride): void
+    private function log(User $actor, Reservation $reservation, ReservationUnit $unit, Room $room, int $hours, string $startsAt, string $endsAt, ?array $restrictionOverride, ?Money $overrideTotal, ?string $overrideReason): void
     {
         $properties = [
             'property_id' => $reservation->property_id,
@@ -224,6 +228,11 @@ class AddDayUseUnit
             'starts_at' => substr($startsAt, 0, 5),
             'ends_at' => substr($endsAt, 0, 5),
         ];
+
+        if ($overrideTotal !== null) {
+            $properties['override_total'] = (string) $overrideTotal->getAmount();
+            $properties['override_reason'] = trim((string) $overrideReason) === '' ? null : trim((string) $overrideReason);
+        }
 
         if ($restrictionOverride !== null) {
             $properties['restriction_override_reason'] = $restrictionOverride['reason'];

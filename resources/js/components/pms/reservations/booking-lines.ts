@@ -446,8 +446,6 @@ export function bookingPayload(data: BookingForm, roomTypes: RoomTypeOption[]) {
                     beds: '1',
                     bed_ids: [],
                     discount_id: '',
-                    override_total: '',
-                    override_reason: '',
                     add_ons: sendableAddOns(line.add_ons),
                 };
             }),
