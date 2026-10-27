@@ -253,6 +253,7 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::put('{ratePlan}/pricing/derivation', [RatePlanController::class, 'updateDerivation'])->name('pricing.derivation.update');
         Route::post('{ratePlan}/pricing/derivation/preview', [RatePlanController::class, 'previewDerivation'])->name('pricing.derivation.preview');
         Route::post('{ratePlan}/pricing/extend', [RatePlanController::class, 'extendPricing'])->name('pricing.extend');
+        Route::get('{ratePlan}/saved-prices', [RatePlanController::class, 'showSavedPrices'])->name('saved-prices.show');
         Route::post('{ratePlan}/derived', [RatePlanController::class, 'storeDerived'])->name('derived.store');
         Route::post('{ratePlan}/derived/preview', [RatePlanController::class, 'previewDerived'])->name('derived.preview');
         Route::post('{ratePlan}/archive', [RatePlanController::class, 'archive'])->name('archive');

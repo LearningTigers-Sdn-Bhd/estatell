@@ -8,6 +8,7 @@ use App\Data\Rates\RateCalendarData;
 use App\Data\Rates\RateCalendarEndingData;
 use App\Data\Rates\RateCalendarPlanData;
 use App\Data\Rates\RateCalendarRoomTypeData;
+use App\Data\Rates\RatePlanSavedPricesData;
 use App\Enums\PricingBasis;
 use App\Enums\Weekday;
 use App\Models\PackagePrice;
@@ -56,6 +57,28 @@ class RateCalendarService
     }
 
     /**
+     * The saved prices of one plan, even an archived one: a group for each active room type it sells, holding only
+     * that plan. A derived plan reads its parent's rates, so they are loaded too.
+     */
+    public function forPlan(Property $property, RatePlan $ratePlan, CarbonInterface $from, CarbonInterface $to, string $currency): RatePlanSavedPricesData
+    {
+        $start = $from->startOfDay();
+        $end = $to->startOfDay();
+
+        [$roomTypes, , $rows] = $this->planRows($property, $start, $end, $currency, $ratePlan);
+
+        return new RatePlanSavedPricesData(
+            from: $start->toDateString(),
+            to: $end->toDateString(),
+            dates: $this->datesOf($start, $end),
+            roomTypes: array_values($roomTypes
+                ->filter(fn (RoomType $roomType): bool => ($rows[$roomType->id] ?? []) !== [])
+                ->map(fn (RoomType $roomType): RateCalendarRoomTypeData => RateCalendarRoomTypeData::fromModel($roomType, $rows[$roomType->id], []))
+                ->all()),
+        );
+    }
+
+    /**
      * The plans that sell each active room type with their cells, without availability or ending notices. A room
      * type no plan sells is left out. The Stay View reads its rate row from this.
      *
@@ -74,13 +97,19 @@ class RateCalendarService
     /**
      * @return array{0: Collection<int, RoomType>, 1: Collection<int, RatePlan>, 2: array<int, list<RateCalendarPlanData>>}
      */
-    private function planRows(Property $property, CarbonInterface $start, CarbonInterface $end, string $currency): array
+    private function planRows(Property $property, CarbonInterface $start, CarbonInterface $end, string $currency, ?RatePlan $only = null): array
     {
         $roomTypes = $property->roomTypes()->active()->ordered()->get();
-        $plans = $property->ratePlans()->active()->ordered()->with(['roomTypes', 'parent', 'arrivalWeekdays', 'inclusions.chargeItem'])->get();
+        $plans = $only === null
+            ? $property->ratePlans()->active()->ordered()->with(['roomTypes', 'parent', 'arrivalWeekdays', 'inclusions.chargeItem'])->get()
+            : new Collection([$only->loadMissing(['roomTypes', 'parent', 'arrivalWeekdays', 'inclusions.chargeItem'])]);
+        $rateSourceIds = $only === null ? $plans->modelKeys() : array_values(array_filter([$only->id, $only->parent_rate_plan_id]));
+        $packageSourceIds = $only === null
+            ? $plans->where('pricing_basis', PricingBasis::Package)->modelKeys()
+            : ($only->pricing_basis === PricingBasis::Package ? $rateSourceIds : []);
 
         $rates = Rate::query()
-            ->whereIn('rate_plan_id', $plans->modelKeys())
+            ->whereIn('rate_plan_id', $rateSourceIds)
             ->whereIn('room_type_id', $roomTypes->modelKeys())
             ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
             ->with('occupancyPrices', 'hourPrices')
@@ -89,7 +118,7 @@ class RateCalendarService
             ->groupBy(fn (Rate $rate): string => $rate->rate_plan_id.'-'.$rate->room_type_id);
 
         $packagePrices = PackagePrice::query()
-            ->whereIn('rate_plan_id', $plans->where('pricing_basis', PricingBasis::Package)->modelKeys())
+            ->whereIn('rate_plan_id', $packageSourceIds)
             ->whereIn('room_type_id', $roomTypes->modelKeys())
             ->whereDate('arrival_from', '<=', $end->toDateString())
             ->whereDate('arrival_to', '>=', $start->toDateString())
