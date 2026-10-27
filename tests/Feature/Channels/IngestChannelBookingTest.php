@@ -60,15 +60,78 @@ test('one booking with two rooms is one reservation with two units', function ()
     expect($reservation->units_count)->toBe(2);
 });
 
-test('an existing guest with the same email is the booker', function () {
+test('an existing guest with the same name and email is the booker', function () {
     $setup = channelBookingSetup();
     fakeChannexAck();
-    $guest = Guest::factory()->create(['property_id' => $setup['property']->id, 'full_name' => 'A. Rahman', 'email' => 'aina@example.com']);
+    $guest = Guest::factory()->create(['property_id' => $setup['property']->id, 'full_name' => 'Aina Rahman', 'email' => 'aina@example.com']);
 
     ingest($setup);
 
-    expect(Reservation::query()->sole()->booker_guest_id)->toBe($guest->id)
-        ->and(Guest::query()->where('property_id', $setup['property']->id)->where('full_name', 'Aina Rahman')->exists())->toBeFalse();
+    expect(Reservation::query()->sole()->booker_guest_id)->toBe($guest->id);
+});
+
+test('an existing guest with the same email but a different name is not the booker', function () {
+    $setup = channelBookingSetup();
+    fakeChannexAck();
+    $guest = Guest::factory()->create(['property_id' => $setup['property']->id, 'full_name' => 'Farid Rahman', 'email' => 'aina@example.com']);
+
+    ingest($setup);
+
+    expect(Reservation::query()->sole()->booker_guest_id)->not->toBe($guest->id)
+        ->and(Guest::query()->where('property_id', $setup['property']->id)->where('full_name', 'Aina Rahman')->exists())->toBeTrue();
+});
+
+test('OTA support emails and call center phone numbers are not stored on the guest profile', function () {
+    $setup = channelBookingSetup();
+    fakeChannexAck();
+
+    ingest($setup, [
+        'customer' => [
+            'name' => 'Elvis',
+            'surname' => 'Jayvier',
+            'mail' => 'lodgingsupport@trip.com',
+            'phone' => '+601546000327',
+            'country' => 'MY',
+        ],
+    ]);
+
+    $guest = Guest::query()->where('property_id', $setup['property']->id)->where('full_name', 'Elvis Jayvier')->sole();
+    expect($guest->email)->toBeNull()
+        ->and($guest->phone)->toBeNull();
+});
+
+test('different guests sharing an OTA support email create separate profiles', function () {
+    $setup = channelBookingSetup();
+    fakeChannexAck();
+
+    ingest($setup, [
+        'booking_id' => 'booking-1',
+        'unique_id' => 'CTP-1',
+        'customer' => [
+            'name' => 'Elvis',
+            'surname' => 'Jayvier',
+            'mail' => 'lodgingsupport@trip.com',
+            'phone' => '+601546000327',
+            'country' => 'MY',
+        ],
+    ]);
+
+    ingest($setup, [
+        'booking_id' => 'booking-2',
+        'unique_id' => 'CTP-2',
+        'customer' => [
+            'name' => 'Asraf',
+            'surname' => 'Amilnulla',
+            'mail' => 'lodgingsupport@trip.com',
+            'phone' => '+601546000327',
+            'country' => 'MY',
+        ],
+    ]);
+
+    $elvis = Guest::query()->where('property_id', $setup['property']->id)->where('full_name', 'Elvis Jayvier')->sole();
+    $asraf = Guest::query()->where('property_id', $setup['property']->id)->where('full_name', 'Asraf Amilnulla')->sole();
+
+    expect($elvis->id)->not->toBe($asraf->id);
 });
 
 test('a stay with no rates and no room left is still accepted at the OTA price', function () {
