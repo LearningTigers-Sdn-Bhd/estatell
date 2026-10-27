@@ -2,6 +2,7 @@
 
 namespace App\Services\Reservations;
 
+use App\Actions\FrontDesk\UnitStayResult;
 use App\Data\Reservations\UnitActionData;
 use App\Enums\PermissionEnum;
 use App\Enums\StayType;
@@ -14,6 +15,7 @@ use App\Services\FrontDesk\StayDay;
 use App\Services\FrontDesk\UndoCheckInRule;
 use App\Services\FrontDesk\UndoCheckOutRule;
 use App\Services\NightAudit\CurrentBusinessDate;
+use App\Services\Property\PropertyToday;
 use Carbon\CarbonImmutable;
 
 /**
@@ -27,6 +29,7 @@ class UnitActionMenu
         private UndoCheckInRule $undoCheckInRule,
         private UndoCheckOutRule $undoCheckOutRule,
         private StayDay $stayDay,
+        private PropertyToday $propertyToday,
     ) {}
 
     /**
@@ -40,9 +43,38 @@ class UnitActionMenu
             ->filter(fn (UnitAction $action): bool => $action->isOpenFor($unit->status)
                 && $user->can($action->permission()->value)
                 && $this->isTimely($action, $unit, $current, $user))
-            ->map(fn (UnitAction $action): UnitActionData => UnitActionData::fromAction($action))
+            ->map(fn (UnitAction $action): UnitActionData => $this->item($action, $unit, $current))
             ->values()
             ->all());
+    }
+
+    private function item(UnitAction $action, ReservationUnit $unit, ?BusinessDate $current): UnitActionData
+    {
+        $item = UnitActionData::fromAction($action);
+
+        if ($current === null || $unit->stay_type === StayType::DayUse) {
+            return $item;
+        }
+
+        $businessDate = $current->date->toDateString();
+
+        if ($action === UnitAction::CheckOutAsDayUse && $this->propertyToday->date($unit->property)->toDateString() !== $businessDate) {
+            $item->disabled = true;
+            $item->note = __('The guest stayed past midnight, so this is a night.');
+        }
+
+        if ($action === UnitAction::CheckOut) {
+            $refusal = $this->earlyCheckOutRule->refusal($unit, $businessDate);
+
+            if ($refusal === UnitStayResult::REFUSAL_ARRIVED_TODAY) {
+                $item->disabled = true;
+                $item->note = __('Arrived today, so there is no night to remove.');
+            } elseif ($refusal === null) {
+                $item->label = __('Check out early…');
+            }
+        }
+
+        return $item;
     }
 
     /**
@@ -77,7 +109,10 @@ class UnitActionMenu
 
         return match ($action) {
             UnitAction::CheckIn => $this->checkInDay($unit, $current) >= $arrival && $this->checkInDay($unit, $current) < $departure,
-            UnitAction::CheckOut => $stayDay >= $departure || $this->isEarlyCheckOut($unit, $businessDate, $user),
+            UnitAction::CheckOut => $stayDay >= $departure || $this->isEarlyCheckOut($unit, $businessDate, $user)
+                || $this->earlyCheckOutRule->refusal($unit, $businessDate) === UnitStayResult::REFUSAL_ARRIVED_TODAY,
+            UnitAction::CheckOutAsDayUse => $arrival === $businessDate && $departure > $businessDate
+                && $user->can(PermissionEnum::ReservationsManage->value),
             UnitAction::LateCheckOut => $stayDay === $departure,
             UnitAction::Reinstate, UnitAction::MoveRoom => $businessDate < $departure,
             default => true,
@@ -100,7 +135,7 @@ class UnitActionMenu
             UnitAction::CheckOut, UnitAction::NoShow => $businessDate >= $date,
             UnitAction::Reinstate, UnitAction::MoveRoom => $businessDate <= $date,
             UnitAction::Cancel => true,
-            UnitAction::LateCheckOut, UnitAction::ChangeDates, UnitAction::UndoCheckIn, UnitAction::UndoCheckOut => false,
+            UnitAction::LateCheckOut, UnitAction::CheckOutAsDayUse, UnitAction::ChangeDates, UnitAction::UndoCheckIn, UnitAction::UndoCheckOut => false,
         };
     }
 

@@ -119,7 +119,7 @@ test('the unit menu lists only what the status and the permissions allow', funct
             ->where('canWaiveFees', $role === DefaultRoleEnum::Owner));
 })->with([
     'confirmed' => [[], DefaultRoleEnum::Owner, ['check-in', 'change-dates', 'cancel', 'no-show', 'move-room']],
-    'checked in' => [['status' => UnitStatus::CheckedIn, 'checked_in_at' => now()], DefaultRoleEnum::Owner, ['change-dates', 'move-room', 'undo-check-in']],
+    'checked in' => [['status' => UnitStatus::CheckedIn, 'checked_in_at' => now()], DefaultRoleEnum::Owner, ['check-out', 'check-out-as-day-use', 'change-dates', 'move-room', 'undo-check-in']],
     'cancelled' => [['status' => UnitStatus::Cancelled], DefaultRoleEnum::Owner, ['reinstate']],
     'no-show' => [['status' => UnitStatus::NoShow], DefaultRoleEnum::FrontDesk, ['reinstate']],
     'checked out' => [['status' => UnitStatus::CheckedOut, 'checked_in_at' => now()->subDay(), 'checked_out_at' => now()], DefaultRoleEnum::Owner, ['undo-check-out']],
@@ -1368,7 +1368,12 @@ test('a unit that arrived today has no early check-out in the menu, the preview 
 
     $this->actingAs($setup['user'])
         ->get(route('reservations.show', ['property' => $setup['property']->code, 'reservation' => $setup['reservation']->id]))
-        ->assertInertia(fn (Assert $page) => $page->where('unit.actions', fn ($actions) => ! collect($actions)->pluck('key')->contains('check-out')));
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('unit.actions.0.key', 'check-out')
+            ->where('unit.actions.0.disabled', true)
+            ->where('unit.actions.0.note', 'Arrived today, so there is no night to remove.')
+            ->where('unit.actions.1.key', 'check-out-as-day-use')
+            ->where('unit.actions.1.disabled', false));
 
     $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-out-preview'))
         ->assertOk()

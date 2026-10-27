@@ -627,7 +627,7 @@ test('the page still opens right after a save that checked the last room out', f
         ->assertInertia(fn (Assert $page) => $page->component('reservations/check-out'));
 });
 
-test('a room that arrived today departs later without a Check out early button', function () {
+test('a room that arrived today offers day use instead of early check-out', function () {
     $s = gcSetup(1);
     $today = ReservationUnit::factory()->for($s['reservation'])->checkedIn()->create(['room_type_id' => $s['units'][0]->room_type_id, 'arrival_date' => '2026-10-10', 'departure_date' => '2026-10-15']);
     app(CreateFolio::class)($s['reservation'], $today);
@@ -637,9 +637,12 @@ test('a room that arrived today departs later without a Check out early button',
     $rows = collect($this->actingAs($s['user'])->postJson(gcUrl($s, 'preview'))->assertOk()->json('rows'))->keyBy('unitId');
 
     expect($rows[$today->id]['group'])->toBe('later')
-        ->and($rows[$today->id]['unit'])->toBeNull()
-        ->and($rows[$today->id]['note'])->toBe('Departs 15 Oct. Arrived today, so there is no night to remove. If it checked in by mistake, use Undo check-in.')
+        ->and($rows[$today->id]['unit']['id'])->toBe($today->id)
+        ->and($rows[$today->id]['note'])->toBe('Arrived today.')
+        ->and($rows[$today->id]['selectable'])->toBeFalse()
+        ->and($rows[$today->id]['checkOutAction'])->toMatchArray(['key' => 'check-out-as-day-use', 'label' => 'Check out as day use…', 'disabled' => false])
         ->and($rows[$yesterday->id]['unit']['id'])->toBe($yesterday->id)
+        ->and($rows[$yesterday->id]['checkOutAction']['key'])->toBe('check-out')
         ->and($rows[$yesterday->id]['note'])->toBe('Departs 15 Oct');
 });
 

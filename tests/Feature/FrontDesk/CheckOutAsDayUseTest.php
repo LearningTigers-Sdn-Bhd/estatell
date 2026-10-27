@@ -27,6 +27,7 @@ use App\Services\FrontDesk\CheckOutAsDayUseQuote;
 use App\Services\NightAudit\StatisticsCalculator;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
+use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
 
 /** @return array<string, mixed> */
@@ -194,6 +195,8 @@ test('the preview writes nothing and matches the posted checkout and day use sta
     $url = route('reservations.units.check-out-as-day-use.preview', ['property' => $s['property'], 'reservation' => $s['reservation'], 'unit' => $s['unit']]);
     $this->actingAs($s['user'])->postJson($url)->assertOk()
         ->assertJsonPath('hours', 5)->assertJsonPath('start', '14:05:00')->assertJsonPath('blockEnd', '19:05:00')
+        ->assertJsonPath('checkedInTime', '14:05')->assertJsonPath('ratePlanName', $s['plan']->name)
+        ->assertJsonPath('noTaxes', true)->assertJsonPath('errors', [])
         ->assertJsonPath('settlement.balance', '120.00')->assertJsonPath('settlement.owing', '120.00');
     expect([FolioLine::count(), Payment::count(), Activity::count()])->toBe($before)
         ->and($s['unit']->dayUse()->exists())->toBeFalse()
@@ -201,7 +204,8 @@ test('the preview writes nothing and matches the posted checkout and day use sta
     $method = PaymentMethod::factory()->create(['property_id' => $s['property']->id, 'requires_reference' => false]);
     $this->post(route('reservations.units.check-out-as-day-use', ['property' => $s['property'], 'reservation' => $s['reservation'], 'unit' => $s['unit']]), [
         'collect_amount' => '120.00', 'payment_method_id' => $method->id, 'idempotency_key' => (string) Str::uuid(),
-    ])->assertRedirect()->assertSessionHasNoErrors();
+    ])->assertRedirect()->assertSessionHasNoErrors()
+        ->assertSessionHas('inertia.flash_data.toast.message', 'Unit checked out as day use.');
     expect($s['unit']->fresh()->status)->toBe(UnitStatus::CheckedOut);
     $figures = app(StatisticsCalculator::class)->forDate($s['property'], $s['date']);
     expect($figures->dayUseSold)->toBe(1)->and((string) $figures->dayUseRevenue->getAmount())->toBe('120.00')
@@ -248,6 +252,7 @@ test('a plan inclusion and DAY_USE tax match preview, and the existing payment f
     $original = $payment->folioLine->getAttributes();
     $preview = app(CheckOutAsDayUseQuote::class)->preview($s['unit'], $s['user']);
     expect($preview->refusal)->toBeNull()
+        ->and($preview->noTaxes)->toBeFalse()
         ->and($preview->settlement->refundDefault)->toBe('71.60')
         ->and($preview->folioLines[0]->amount)->toBe('-200.00')
         ->and($preview->folioLines[array_key_last($preview->folioLines)]->description)->toBe('Refund to guest');
@@ -272,3 +277,100 @@ test('both routes require manage and checkout permissions and isolate properties
     $this->actingAs($outsider)->postJson($url)->assertNotFound();
     $this->actingAs($s['user'])->postJson($url, ['amount' => '-1', 'start' => '25:00'])->assertUnprocessable()->assertJsonValidationErrors(['amount', 'start']);
 })->with(['', '.preview']);
+
+test('the preview sends inline errors and manual price fields without a plan', function () {
+    $s = overnightDayUseCheckout();
+    $s['plan']->update(['archived_at' => now()]);
+    $url = route('reservations.units.check-out-as-day-use.preview', ['property' => $s['property'], 'reservation' => $s['reservation'], 'unit' => $s['unit']]);
+
+    $this->actingAs($s['user'])->postJson($url)
+        ->assertOk()
+        ->assertJsonPath('ratePlanId', null)
+        ->assertJsonPath('planPrice', null)
+        ->assertJsonPath('noTaxes', true)
+        ->assertJsonPath('errors.amount', 'Enter an amount of 0 or more for this day use.');
+    $this->postJson($url, ['amount' => '0.00'])
+        ->assertJsonPath('errors.reason', 'Enter a reason for the day use amount.');
+    $this->postJson($url, ['amount' => '0.00', 'reason' => 'No charge'])
+        ->assertJsonPath('refusal', null)
+        ->assertJsonPath('amount', '0.00')
+        ->assertJsonPath('settlement.balance', '0.00');
+});
+
+test('invalid time previews keep the editable defaults and explain the field refusal', function () {
+    $s = overnightDayUseCheckout();
+
+    $this->actingAs($s['user'])->postJson(route('reservations.units.check-out-as-day-use.preview', ['property' => $s['property'], 'reservation' => $s['reservation'], 'unit' => $s['unit']]), ['end' => '14:00'])
+        ->assertJsonPath('start', '14:05:00')
+        ->assertJsonPath('end', '14:00:00')
+        ->assertJsonPath('errors.end', 'Choose an end time after the start on the business date.');
+});
+
+test('the group page sends no dialog action without permission to change the stay', function () {
+    $s = overnightDayUseCheckout();
+    $staff = User::factory()->for($s['property'])->withPermissions([PermissionEnum::ReservationsView, PermissionEnum::FrontDeskCheckOut])->create();
+
+    $this->actingAs($staff)->get(route('reservations.check-out', ['property' => $s['property'], 'reservation' => $s['reservation']]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('checkOut.preview.rows.0.checkOutAction', null)
+            ->where('checkOut.preview.rows.0.unit', null)
+            ->where('checkOut.preview.rows.0.note', 'Arrived today.'));
+});
+
+test('the day use menu item disappears when the business date moves on', function () {
+    $s = overnightDayUseCheckout();
+    $this->travelTo(now()->addDay());
+    BusinessDate::query()->where('property_id', $s['property']->id)->update(['date' => $s['date']->addDay()->toDateString()]);
+
+    $this->actingAs($s['user'])->get(route('reservations.show', ['property' => $s['property'], 'reservation' => $s['reservation']]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('unit.actions.0.key', 'check-out')
+            ->where('unit.actions.0.label', 'Check out early…')
+            ->where('unit.actions.0.disabled', false)
+            ->where('unit.actions', fn ($actions) => ! collect($actions)->pluck('key')->contains('check-out-as-day-use')));
+});
+
+test('same-day menu props follow the property midnight and keep normal check-out visible', function (string $localTime, bool $pastMidnight, string $label, bool $disabled) {
+    $s = overnightDayUseCheckout();
+    $this->travelTo(CarbonImmutable::parse($s['date']->toDateString().' '.$localTime, 'Asia/Kuala_Lumpur'));
+
+    $this->actingAs($s['user'])->get(route('reservations.show', ['property' => $s['property'], 'reservation' => $s['reservation']]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('unit.actions.0.key', 'check-out')
+            ->where('unit.actions.0.label', $label)
+            ->where('unit.actions.0.disabled', $disabled)
+            ->where('unit.actions.1.key', 'check-out-as-day-use')
+            ->where('unit.actions.1.disabled', $pastMidnight)
+            ->where('unit.actions.1.note', $pastMidnight ? 'The guest stayed past midnight, so this is a night.' : null)
+            ->where('singleUnit.actions', fn ($actions) => collect($actions)->contains(fn ($item) => $item['key'] === 'check-out-as-day-use' && $item['disabled'] === $pastMidnight)));
+})->with([
+    'before midnight' => ['23:59:59', false, 'Check out', true],
+    'at midnight' => ['24:00:00', true, 'Check out early…', false],
+]);
+
+test('the menu needs both permissions to offer day use', function (array $permissions) {
+    $s = overnightDayUseCheckout();
+    $staff = User::factory()->for($s['property'])->withPermissions([PermissionEnum::ReservationsView, ...$permissions])->create();
+
+    $this->actingAs($staff)->get(route('reservations.show', ['property' => $s['property'], 'reservation' => $s['reservation']]))
+        ->assertInertia(fn (Assert $page) => $page->where('unit.actions', fn ($actions) => ! collect($actions)->pluck('key')->contains('check-out-as-day-use')));
+})->with([
+    'check-out only' => [[PermissionEnum::FrontDeskCheckOut]],
+    'manage only' => [[PermissionEnum::ReservationsManage]],
+]);
+
+test('group page props open the day use dialog before midnight and early check-out after it', function (string $localTime, string $action, string $note) {
+    $s = overnightDayUseCheckout();
+    $this->travelTo(CarbonImmutable::parse($s['date']->toDateString().' '.$localTime, 'Asia/Kuala_Lumpur'));
+
+    $this->actingAs($s['user'])->get(route('reservations.check-out', ['property' => $s['property'], 'reservation' => $s['reservation']]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('checkOut.preview.rows.0.unit.id', $s['unit']->id)
+            ->where('checkOut.preview.rows.0.checkOutAction.key', $action)
+            ->where('checkOut.preview.rows.0.checkOutAction.disabled', false)
+            ->where('checkOut.preview.rows.0.selectable', false)
+            ->where('checkOut.preview.rows.0.note', $note));
+})->with([
+    'same day' => ['23:59:59', 'check-out-as-day-use', 'Arrived today.'],
+    'past midnight' => ['24:00:00', 'check-out', 'Departs 15 Nov'],
+]);

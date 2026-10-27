@@ -27,6 +27,7 @@ use App\Services\Platform\Impersonation;
 use App\Services\Property\PropertyToday;
 use App\Services\Rates\RateQuote;
 use App\Services\Rates\RateQuoteService;
+use App\Services\Reservations\ReservationRefusals;
 use App\Services\Reservations\UnitNationality;
 use Brick\Money\Money;
 use Carbon\CarbonImmutable;
@@ -45,6 +46,7 @@ class CheckOutAsDayUseQuote
         private FolioPostability $folioPostability,
         private CheckOutSettlement $checkOutSettlement,
         private Impersonation $impersonation,
+        private ReservationRefusals $refusals,
     ) {}
 
     public function quote(ReservationUnit $unit, ?string $start = null, ?string $end = null, ?string $amount = null, ?string $reason = null): CheckOutAsDayUseData
@@ -80,8 +82,11 @@ class CheckOutAsDayUseQuote
 
         $zone = $property->settings->time_zone ?? config('app.timezone');
         $checkedIn = $unit->checked_in_at?->setTimezone($zone);
+        $data->checkedInTime = $checkedIn?->format('H:i');
         $startAt = $start === null ? $checkedIn : $this->time($data->date, $start, $zone);
         $endAt = $end === null ? now($zone) : $this->time($data->date, $end, $zone);
+        $data->start = $startAt?->format('H:i:s');
+        $data->end = $endAt?->format('H:i:s');
 
         if ($startAt === null || $startAt->toDateString() !== $data->date || $startAt->format('H:i:s') >= '23:00:00') {
             $data->refusal = UnitStayResult::REFUSAL_START_TIME_INVALID;
@@ -103,8 +108,6 @@ class CheckOutAsDayUseQuote
             $hours = (int) ceil($startAt->diffInSeconds($midnight) / 3600) - 1;
         }
 
-        $data->start = $startAt->format('H:i:s');
-        $data->end = $endAt->format('H:i:s');
         $data->blockEnd = $startAt->addHours($hours)->format('H:i:s');
         $data->hours = $hours;
         $plan = RatePlan::query()->where('property_id', $unit->property_id)->active()
@@ -112,6 +115,7 @@ class CheckOutAsDayUseQuote
             ->whereHas('roomTypes', fn ($types) => $types->whereKey($unit->room_type_id))
             ->orderBy('position')->orderBy('id')->first();
         $data->ratePlanId = $plan?->id;
+        $data->ratePlanName = $plan?->name;
 
         if ($plan !== null) {
             $quote = $this->rateQuoteService->quoteDayUse($unit->roomType, $plan, $businessDate, $hours, ignoreStopSell: true);
@@ -151,8 +155,12 @@ class CheckOutAsDayUseQuote
     public function preview(ReservationUnit $unit, User $user, ?string $start = null, ?string $end = null, ?string $amount = null, ?string $reason = null): CheckOutAsDayUseData
     {
         $data = $this->quote($unit, $start, $end, $amount, $reason);
+        $code = $data->hours === null ? null : TransactionCode::query()->where('property_id', $unit->property_id)->where('system_key', SystemTransactionCode::DayUseRevenue)->first();
+        $data->noTaxes = $code !== null && ! $code->applicableTaxes()->exists();
 
         if ($data->refusal !== null) {
+            $data->errors = $this->refusals->unitErrors($data->refusal);
+
             return $data;
         }
 
@@ -163,10 +171,10 @@ class CheckOutAsDayUseQuote
         $proposed->setRelation('ratePlan', $plan->loadMissing('inclusions.chargeItem.transactionCode'));
         $block = new UnitDayUse(['date' => $data->date, 'starts_at' => $data->start, 'ends_at' => $data->blockEnd, 'hours' => $data->hours, 'amount' => $data->amount]);
         $property = $unit->property;
-        $code = TransactionCode::query()->where('property_id', $unit->property_id)->where('system_key', SystemTransactionCode::DayUseRevenue)->first();
 
         if ($code === null) {
             $data->refusal = 'charge_not_found';
+            $data->errors = $this->refusals->unitErrors($data->refusal);
 
             return $data;
         }
@@ -175,6 +183,8 @@ class CheckOutAsDayUseQuote
         $data->refusal = $quote->refusal ?? $quote->taxRefusal();
 
         if ($data->refusal !== null) {
+            $data->errors = $this->refusals->unitErrors($data->refusal);
+
             return $data;
         }
 
@@ -186,6 +196,7 @@ class CheckOutAsDayUseQuote
 
             if ($target !== null && $target->status !== FolioStatus::Open) {
                 $data->refusal = $this->folioPostability->refusalFor($target);
+                $data->errors = $this->refusals->unitErrors($data->refusal);
 
                 return $data;
             }

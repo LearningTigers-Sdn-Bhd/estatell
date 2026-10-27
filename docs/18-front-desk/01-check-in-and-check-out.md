@@ -91,7 +91,7 @@ A unit's own folio can hold another room's charges: a Manual rule such as "Room 
 
 - **One transaction.** The fee, the deleted nights, the payment, the refund and the check-out commit together. A refusal at any step writes nothing.
 - **New departure** is the stay day: the business date, or the property's calendar date while the night audit is pending. The form never sends it, except the **Guest actually left yesterday** choice (see [Night audit pending](#night-audit-pending)).
-- **Same-day stay.** A unit that arrived on the business date has no night to keep, so `departure_date > arrival_date` cannot hold. It is refused with `arrived_today`. `EarlyCheckOutRule` (`app/Services/FrontDesk/`) holds this rule and the unit menu, the group check-out page, the preview and the Action all ask it, so none of them offers what another refuses. The Dialog's preview carries the message and the group page shows it as the row note, without **Check out early…**. The guest checks out on the departure date, with [Check out as day use](#check-out-as-day-use) before midnight (backend built; UI pending), or after Undo check-in once it is built (see [Cancel, void and undo](#cancel-void-and-undo)).
+- **Same-day stay.** A unit that arrived on the business date has no night to keep, so `departure_date > arrival_date` cannot hold. Early check-out refuses it with `arrived_today`. `EarlyCheckOutRule` (`app/Services/FrontDesk/`) holds this rule. The unit menu, group check-out page, preview and Action all ask it. Before midnight, the menu and group page offer [Check out as day use](#check-out-as-day-use) instead. Plain **Check out** stays disabled with its note. Staff can also undo a mistaken check-in (see [Cancel, void and undo](#cancel-void-and-undo)).
 - **Departure today or later.** `not_early` is refused. Normal check-out runs through `CheckOutAndRefund`.
 - **Fee:** read by `PolicyChargeCalculator` with the new departure, and posted with the key `early_departure:{unit}:{n}`. **Do not charge** needs a reason and `front-desk.waive-fees`. `$expectedFee` from the form guards against a policy change (`fee_changed`).
 - **Balance:** the fee joins the unit folio, so the balance to settle includes it. Posted add-ons on removed nights stay and can leave a balance. The form shows the balance before submit, and settles it as the check-out Dialog does: Collect balance when the guest owes, a refund when the folio holds a credit ([Refund the credit](#refund-the-credit)).
@@ -116,7 +116,7 @@ Built: the Advance is refunded with the deposit, so the first two rows check out
 | Edge case                                                | What happens                                                                                                         |
 | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
 | The night audit has not run                              | The night of the business date is posted, then the guest checks out. See [Night audit pending](#night-audit-pending) |
-| Arrived today, leaves today                              | Refused (`arrived_today`). Undo check-in, then cancel. A later topic                                                 |
+| Arrived today, leaves today                              | Early check-out refuses (`arrived_today`). Use **Check out as day use** before midnight, or undo a mistaken check-in |
 | The card surcharge of the prepayment                     | Not refunded: it is a charge. Staff reverse it by hand when it must go too                                           |
 | A posted add-on for a removed day (a transfer, a tour)   | Stays. Staff reverse it when the guest did not use it                                                                |
 | An unposted nightly add-on (breakfast) on removed nights | Deleted with the nights                                                                                              |
@@ -131,7 +131,7 @@ Built: the Advance is refunded with the deposit, so the first two rows check out
 
 ### Check out as day use
 
-**Backend built.** Settles the same-day stay above: a guest who arrived on the business date and leaves the same day, before midnight. It works with or without a Day use plan. The menu and Dialog are not built.
+**Built.** A guest who arrived on the business date can leave the same day, before midnight. It works with or without a Day use plan. The unit menu, single-unit reservation header and group check-out page open the same Dialog.
 
 `CheckOutAsDayUse` (Action) ends an overnight unit as a day use block, in one transaction. A refusal of any step rolls everything back.
 
@@ -167,6 +167,7 @@ Built: the Advance is refunded with the deposit, so the first two rows check out
 - **Routes.** `reservations.units.check-out-as-day-use` and its `.preview`, in the `reservations.manage` group with `front-desk.check-out` inside it.
 - **Backend request.** Both routes use POST. Optional `start` and `end` accept property-local `H:i` or `H:i:s` times. Omitted values use the real check-in and now. `amount` and `reason` set the override. Settlement uses the existing check-out fields (`refund_amount`, `collect_amount`, `payment_method_id`, `reference`, `idempotency_key`).
 - **Backend preview.** The response includes `refusal`, `date`, `start`, `end`, `blockEnd`, `hours`, `ratePlanId`, `planPrice`, `amount`, `overrideAmount` and `midnightLimited`. The quoted `lines` show the new charges and taxes. `settlement` holds the balance and refund figures. `folioLines` lists the unit folios' existing lines, the block lines routed there and the default refund. The preview creates no rows or activity logs.
+- **Dialog props.** The preview also sends `checkedInTime`, `ratePlanName`, `noTaxes` and field-keyed `errors` through `ReservationRefusals`. Requests wait 300 ms after a change. An older response cannot replace newer choices or enable their save. Refunds use the original payment methods, as in the check-out Dialog. Collect balance loads the payment methods when needed. Success closes the Dialog with **Unit checked out as day use.** The group page refreshes its preview and keeps the other row choices.
 - **Taxes.** The block is taxed with the DAY_USE taxes. When DAY_USE has none, the Dialog shows "DAY_USE has no taxes set. Set them under Room revenue." The [Day use tab](../06-catalogues/06-room-revenue.md#day-use-tab) is always shown, so a property without a Day use plan can set them.
 
 ```

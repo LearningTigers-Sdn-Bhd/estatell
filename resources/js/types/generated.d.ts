@@ -3210,6 +3210,10 @@ midnightLimited: boolean,
 settlement: App.Data.Reservations.UnitCheckOutPreviewData | null,
 lines: App.Data.Reservations.UnitPendingLineData[],
 folioLines: App.Data.Reservations.UnitPendingLineData[],
+ratePlanName: string | null,
+checkedInTime: string | null,
+noTaxes: boolean,
+errors: Record<string, string>,
 };
 export type CheckOutCollectData = {
 paymentMethodId: number,
@@ -3343,6 +3347,7 @@ canMoveCharges: boolean,
 unit: App.Data.Reservations.ReservationUnitData | null,
 pendingLines: App.Data.Reservations.UnitPendingLineData[],
 pendingTotal: string,
+checkOutAction: App.Data.Reservations.UnitActionData | null,
 };
 export type GroupCheckOutSummaryData = {
 collect: string,
@@ -3645,6 +3650,8 @@ maxChildren: number,
 export type UnitActionData = {
 key: App.Enums.UnitAction,
 label: string,
+disabled: boolean,
+note: string | null,
 };
 export type UnitAuditPendingData = {
 businessDate: string,
@@ -4198,7 +4205,7 @@ export type TermsPreset = 'standard_hotel' | 'hostel' | 'resort' | 'serviced_apa
 export type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
 export type TransactionCategory = 'room' | 'food_and_beverage' | 'laundry' | 'minibar' | 'transport' | 'fee' | 'tax' | 'discount' | 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill' | 'deposit' | 'refund' | 'adjustment' | 'opening_balance' | 'old_system' | 'other';
 export type TransactionKind = 'charge' | 'payment' | 'adjustment' | 'tax';
-export type UnitAction = 'check-in' | 'check-out' | 'late-check-out' | 'change-dates' | 'cancel' | 'no-show' | 'reinstate' | 'move-room' | 'undo-check-in' | 'undo-check-out';
+export type UnitAction = 'check-in' | 'check-out' | 'check-out-as-day-use' | 'late-check-out' | 'change-dates' | 'cancel' | 'no-show' | 'reinstate' | 'move-room' | 'undo-check-in' | 'undo-check-out';
 export type UnitStatus = 'confirmed' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show';
 export type WastaysEventType = 'create' | 'check_in' | 'charge' | 'adjustment' | 'repair' | 'payment' | 'deposit' | 'refund' | 'reversal' | 'folio_movement' | 'stay_change' | 'early_departure' | 'check_out';
 export type Weekday = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
