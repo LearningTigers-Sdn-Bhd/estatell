@@ -8,6 +8,7 @@ use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Database\Seeders\BookingScenariosSeeder;
 use Database\Seeders\DemoSeeder;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
@@ -36,7 +37,7 @@ abstract class BrowserTestCase extends TestCase
      *
      * @var class-string
      */
-    protected $seeder = DemoSeeder::class;
+    protected $seeder = DocsSeeder::class;
 
     protected Property $property;
 
@@ -59,6 +60,17 @@ abstract class BrowserTestCase extends TestCase
     {
         $this->property = Property::query()->where('name', $propertyName)->firstOrFail();
         $this->actingAs(User::query()->where('email', DemoSeeder::loginEmail($slug, DefaultRoleEnum::Owner))->firstOrFail());
+
+        return $this->property;
+    }
+
+    /**
+     * Sign in as the Owner of the booking scenarios property, for the stays the demo properties do not have.
+     */
+    protected function signInAsScenariosOwner(): Property
+    {
+        $this->property = Property::query()->where('name', BookingScenariosSeeder::NAME)->firstOrFail();
+        $this->actingAs(User::query()->where('email', 'owner@kinabalu-hostel.test')->firstOrFail());
 
         return $this->property;
     }
@@ -122,6 +134,17 @@ abstract class BrowserTestCase extends TestCase
             ->whereNull('company_id')
             ->whereHas('units', fn ($units) => $units->where('status', UnitStatus::Confirmed)->whereDate('arrival_date', now()->toDateString()))
             ->has('units', '=', 1)
+            ->firstOrFail();
+    }
+
+    /**
+     * A booking scenarios reservation by its code, for example `S11`. Each one's notes start with the code.
+     */
+    protected function scenario(string $code): Reservation
+    {
+        return Reservation::query()
+            ->where('property_id', $this->property->id)
+            ->where('notes', 'like', "[{$code}]%")
             ->firstOrFail();
     }
 
