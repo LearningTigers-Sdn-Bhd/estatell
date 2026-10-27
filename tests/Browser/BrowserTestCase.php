@@ -3,6 +3,7 @@
 namespace Tests\Browser;
 
 use App\Enums\DefaultRoleEnum;
+use App\Enums\UnitStatus;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\User;
@@ -108,6 +109,19 @@ abstract class BrowserTestCase extends TestCase
             ->where('property_id', $this->property->id)
             ->withCount('units')
             ->orderByDesc('units_count')
+            ->firstOrFail();
+    }
+
+    /**
+     * The single-unit reservation that arrives today with no company, used for the check-in docs.
+     */
+    protected function singleArrivalToday(): Reservation
+    {
+        return Reservation::query()
+            ->where('property_id', $this->property->id)
+            ->whereNull('company_id')
+            ->whereHas('units', fn ($units) => $units->where('status', UnitStatus::Confirmed)->whereDate('arrival_date', now()->toDateString()))
+            ->has('units', '=', 1)
             ->firstOrFail();
     }
 
