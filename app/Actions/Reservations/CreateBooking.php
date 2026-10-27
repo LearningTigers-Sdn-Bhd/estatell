@@ -2,6 +2,7 @@
 
 namespace App\Actions\Reservations;
 
+use App\Actions\FrontDesk\AutoAssignBookedUnit;
 use App\Actions\Guests\CreateGuest;
 use App\Actions\Guests\UpdateGuest;
 use App\Data\Reservations\NewBookingData;
@@ -26,24 +27,28 @@ class CreateBooking
         private AttachGuest $attachGuest,
         private AssignRoom $assignRoom,
         private AssignBed $assignBed,
+        private AutoAssignBookedUnit $autoAssignBookedUnit,
     ) {}
 
     /**
      * Save what the booking form collected, in one transaction, by running the other Actions in this order: the guest
      * tabs (`CreateGuest` or `UpdateGuest`), `CreateReservation` with its lines, `AttachGuest` for each guest who stays,
-     * then `AssignRoom` or `AssignBed` for each pick. It holds no rules of its own. When any step is refused,
-     * everything rolls back, including new guests and the reference number, and the result names the step.
-     * `$fromChannel` and `$allowPastArrival` (only `CreatePastStay` passes it) are passed to `CreateReservation`. Permissions for creating guests are checked by the caller.
+     * then `AssignRoom` or `AssignBed` for each pick, then `AutoAssignBookedUnit` for each unit left without a room or
+     * bed. It holds no rules of its own. When any step is refused, everything rolls back, including new guests and the
+     * reference number, and the result names the step; auto-assign finding nothing free is not a refusal.
+     * `$fromChannel` and `$allowPastArrival` (past and migrated stays) are passed to `CreateReservation`. A past stay is
+     * not auto-assigned, and neither is a booking with `$autoAssignRooms` off (the wastays replay, which sets its own
+     * rooms). Permissions for creating guests are checked by the caller.
      * See docs/12-reservations/05-booking-form.md.
      */
-    public function __invoke(User $actor, Property $property, NewBookingData $data, bool $fromChannel = false, bool $allowPastArrival = false): BookingResult
+    public function __invoke(User $actor, Property $property, NewBookingData $data, bool $fromChannel = false, bool $allowPastArrival = false, bool $autoAssignRooms = true): BookingResult
     {
         if ($data->guests === []) {
             return BookingResult::refused(BookingResult::REFUSAL_BOOKER_REQUIRED);
         }
 
         try {
-            return DB::transaction(function () use ($actor, $property, $data, $fromChannel, $allowPastArrival): BookingResult {
+            return DB::transaction(function () use ($actor, $property, $data, $fromChannel, $allowPastArrival, $autoAssignRooms): BookingResult {
                 $guestIds = [];
 
                 foreach ($data->guests as $index => $tab) {
@@ -71,6 +76,12 @@ class CreateBooking
 
                 $this->attachGuests($actor, $data, $guestIds, $units);
                 $this->assignPicks($actor, $property, $data, $units);
+
+                if ($autoAssignRooms && ! $allowPastArrival) {
+                    foreach ($units as $unit) {
+                        ($this->autoAssignBookedUnit)($actor, $unit);
+                    }
+                }
 
                 return BookingResult::created($reservation);
             });

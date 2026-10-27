@@ -52,37 +52,37 @@ export function draftHasContent(draft: BookingGuest): boolean {
     );
 }
 
-/** Bed units that already hold a saved guest or another draft, so a second guest cannot be picked for them. */
-export function takenBedUnits(
+/**
+ * Units that are full with their saved guests and the other drafts (a bed holds one, a room its adults and children),
+ * so another guest cannot be picked for them.
+ */
+export function fullUnitIds(
     rows: Row[],
     drafts: BookingGuest[],
     units: Unit[],
     exceptKey: string,
 ): Set<number> {
-    const beds = new Set(
-        units.filter((unit) => unit.isBed).map((unit) => unit.id),
-    );
-    const taken = new Set<number>();
+    const counts = new Map<number, number>();
+    const add = (unitId: number) =>
+        counts.set(unitId, (counts.get(unitId) ?? 0) + 1);
 
     rows.forEach((row) => {
-        if (row.name !== null && row.unitId !== null && beds.has(row.unitId)) {
-            taken.add(row.unitId);
+        if (row.name !== null && row.unitId !== null) {
+            add(row.unitId);
         }
     });
 
     drafts.forEach((draft) => {
-        const unitId = Number(draft.stays_in);
-
-        if (
-            draft.key !== exceptKey &&
-            draft.stays_in !== '' &&
-            beds.has(unitId)
-        ) {
-            taken.add(unitId);
+        if (draft.key !== exceptKey && draft.stays_in !== '') {
+            add(Number(draft.stays_in));
         }
     });
 
-    return taken;
+    return new Set(
+        units
+            .filter((unit) => (counts.get(unit.id) ?? 0) >= unit.capacity)
+            .map((unit) => unit.id),
+    );
 }
 
 /** Open units with no saved guest and no draft that picks them, for the footer count. */

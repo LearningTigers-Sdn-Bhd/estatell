@@ -292,7 +292,7 @@ class AddUnit
 
         $routing = ($this->syncRoutingRules)($reservation);
 
-        return ReservationResult::created($reservation, $routing->unitsWithPostedRoomLines, $routing->unitAdvances);
+        return ReservationResult::created($reservation, $routing->unitsWithPostedRoomLines, $routing->unitAdvances, $unit);
     }
 
     private function isRoomOnlyDiscountOf(Reservation $reservation, int $discountId): bool

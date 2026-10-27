@@ -345,7 +345,7 @@ export default function PropertySettings({
                                     <SettingsSwitch
                                         name="auto_assign_rooms"
                                         label="Assign rooms automatically"
-                                        description="On: the system assigns a free, clean room to each arrival. Off: staff assign rooms by hand."
+                                        description="On: new bookings and OTA bookings get a free room. Check-in fills any still missing. Off: staff assign rooms by hand."
                                         checked={settings.autoAssignRooms}
                                         error={errors.auto_assign_rooms}
                                     />

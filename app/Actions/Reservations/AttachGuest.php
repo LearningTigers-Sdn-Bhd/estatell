@@ -9,17 +9,19 @@ use App\Models\ReservationUnit;
 use App\Models\Tax;
 use App\Models\User;
 use App\Services\Guests\CountryOptions;
+use App\Services\Reservations\UnitCapacity;
 use App\Services\Reservations\UnitNationality;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 
 class AttachGuest
 {
-    public function __construct(private CountryOptions $countries) {}
+    public function __construct(private CountryOptions $countries, private UnitCapacity $capacity) {}
 
     /**
      * Add a guest as an occupant of a unit. The unit row is locked first, so two staff cannot fill a bed together.
-     * The first guest of the unit becomes primary. A blacklisted guest is allowed. Every check runs before the first
+     * The first guest of the unit becomes primary. A bed unit holds one guest (`bed_unit_full`) and a room unit its
+     * adults and children (`unit_full`, see `UnitCapacity`). A blacklisted guest is allowed. Every check runs before the first
      * write, so a refusal writes and logs nothing. The log holds ids only. A CheckedOut unit takes a guest too (Cancelled
      * and NoShow do not); nothing is posted. A new primary guest on a CheckedOut unit whose foreign status differs from
      * the booker's, while the property has an enabled foreign-only tax, returns a tax warning.
@@ -49,10 +51,11 @@ class AttachGuest
                 return AttachGuestResult::refused(AttachGuestResult::REFUSAL_ALREADY_ATTACHED);
             }
 
-            $hasGuest = $locked->guests()->exists();
+            $guestCount = $locked->guests()->count();
+            $hasGuest = $guestCount > 0;
 
-            if ($hasGuest && $locked->roomType->sell_unit === SellUnit::Bed) {
-                return AttachGuestResult::refused(AttachGuestResult::REFUSAL_BED_UNIT_FULL);
+            if ($guestCount >= $this->capacity->of($locked)) {
+                return AttachGuestResult::refused($locked->roomType->sell_unit === SellUnit::Bed ? AttachGuestResult::REFUSAL_BED_UNIT_FULL : AttachGuestResult::REFUSAL_UNIT_FULL);
             }
 
             $unitGuest = $locked->guests()->make(['guest_id' => $guest->id, 'is_primary' => ! $hasGuest]);

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Reservations;
 
+use App\Actions\FrontDesk\AutoAssignBookedUnit;
 use App\Actions\Guests\UpdateGuest;
 use App\Actions\Reservations\AddGuestToUnit;
 use App\Actions\Reservations\AddUnit;
@@ -34,7 +35,7 @@ class ReservationUnitController extends Controller
     /**
      * Add one unit. A refusal goes back to the Sheet as an error on the matching field. A second unit that starts sending room charges to the Master folio saves with a warning toast when a unit's own folio keeps room lines or an advance.
      */
-    public function store(AddUnitRequest $request, Property $property, Reservation $reservation, AddUnit $addUnit, ReservationRefusals $refusals, RoutingChangeNotice $notice, AutoAddOns $autoAddOns, CopyableBoatTrips $copyableBoatTrips): RedirectResponse
+    public function store(AddUnitRequest $request, Property $property, Reservation $reservation, AddUnit $addUnit, ReservationRefusals $refusals, RoutingChangeNotice $notice, AutoAddOns $autoAddOns, CopyableBoatTrips $copyableBoatTrips, AutoAssignBookedUnit $autoAssignBookedUnit): RedirectResponse
     {
         $data = $request->toUnitData();
         $autoItems = $autoAddOns->items($property, $data->stayType);
@@ -48,6 +49,10 @@ class ReservationUnitController extends Controller
             return back(fallback: $this->page($property, $reservation))->withErrors(
                 $refusals->errors((string) $result->refusal, $result->date, $request->user()->can(PermissionEnum::RatesOverrideRestrictions->value)),
             );
+        }
+
+        if ($result->unit !== null) {
+            $autoAssignBookedUnit($request->user(), $result->unit->refresh());
         }
 
         $message = $autoItems === []

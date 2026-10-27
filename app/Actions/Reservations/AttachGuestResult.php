@@ -17,6 +17,8 @@ class AttachGuestResult
 
     public const REFUSAL_BED_UNIT_FULL = 'bed_unit_full';
 
+    public const REFUSAL_UNIT_FULL = 'unit_full';
+
     public const REFUSAL_HAS_REGISTRATION_CARD = 'has_registration_card';
 
     private function __construct(

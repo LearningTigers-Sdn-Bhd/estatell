@@ -171,7 +171,23 @@ export function unitsInLine(
     return Number.isFinite(beds) && beds > 0 ? beds : 1;
 }
 
-export type UnitOption = { value: string; label: string; isBed: boolean };
+export type UnitOption = {
+    value: string;
+    label: string;
+    isBed: boolean;
+    /** How many guests the unit holds: one for a bed, the line's adults and children for a room. */
+    capacity: number;
+};
+
+/** A room line holds its adults and children, at least one guest. `UnitCapacity` on the server agrees. */
+function roomCapacity(line: BookingLine): number {
+    const adults = Number.parseInt(line.adults, 10);
+
+    return Math.max(
+        1,
+        (Number.isFinite(adults) ? adults : 0) + line.child_ages.length,
+    );
+}
 
 /**
  * Every unit on the form in the order the lines add them: "Deluxe King #1", "Dorm 6-Bed · Bed 2". The value is the
@@ -201,6 +217,7 @@ export function unitOptions(
                     ? `${roomType.name} · Bed ${number}`
                     : `${roomType.name} #${number}`,
                 isBed: roomType.isBed,
+                capacity: roomType.isBed ? 1 : roomCapacity(line),
             });
         }
     }

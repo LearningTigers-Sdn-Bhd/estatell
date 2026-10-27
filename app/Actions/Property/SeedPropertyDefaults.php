@@ -86,7 +86,7 @@ class SeedPropertyDefaults
                 'check_in_time' => '15:00',
                 'check_out_time' => '11:00',
                 'arrival_grace_minutes' => 0,
-                'auto_assign_rooms' => false,
+                'auto_assign_rooms' => true,
                 'audit_time' => '02:00',
                 'auto_audit_enabled' => false,
                 'missed_arrival_policy' => MissedArrivalPolicy::KeepAsLateArrival,
