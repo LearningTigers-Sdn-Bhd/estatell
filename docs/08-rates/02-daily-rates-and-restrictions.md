@@ -120,6 +120,17 @@ rate_hour_prices    id, rate_id, hours, amount
 
 Built now: the rate plan editor's **Pricing** tab (`settings.rate-plans.pricing.edit`). It has the rates ending warning with **Extend 12 months**, then one table. Each room type is a collapsible group row that shows how far it is priced, its **Auto** button and its "Different price by adults" switch, with its price rows underneath. On a PerGuest plan in By day view, only one group is open at a time. The date range has the same **Auto fill dates** menu as Bulk edit (`AutoFillDatesMenu`). The form starts empty for each save. It does not preload saved prices. Bulk edit restrictions are on the calendar's Bulk edit page.
 
+## Saved prices tab
+
+Not built yet. The rate plan editor gets a read-only **Saved prices** tab after Pricing rules (`settings.rate-plans.saved-prices.show`, `settings.manage`). The Pricing rules form starts empty, so this is where staff see what is stored. It is the [rate calendar](#the-rate-calendar) for one plan.
+
+- **Plans.** Every plan type: direct, derived, package and Day use. Derived plans show the resolved price with a link marker. Package plans show `600/2N`. Day use shows "from 40", with the hour prices in a tooltip.
+- **Data.** The tab asks `RateCalendarService` for one plan and adds no price logic. It loads only its own data, like the other tabs.
+- **Toolbar.** Today, the arrows, the range picker, the 14 days, 21 days and Month presets, and a room type multi-select. There is no plan filter. The range is in the URL (`?from=&to=`), up to 62 days, like the calendar.
+- **Grid.** The `DateGrid` engine without `fill`, so it sizes itself to the window and scrolls inside its panel. The panel is full width (`panelWidth="full"`). The room type column is sticky. The cells reuse the rate calendar cell styling and `calendar-model.ts`. The grid is a small read-only component, not `RateCalendarGrid`, which carries the editing state.
+- **Cells.** A plain price, with stop sell, CTA, CTD and min and max stay as small badges. A dash means no saved price. A cell does nothing when clicked.
+- **Footer.** "Priced until" for each room type, and an "Edit in Pricing rules" link.
+
 ## The rate calendar
 
 Route: `rates.calendar` at `/p/{code}/rates/calendar` (`rates.view`). It is in the Front desk context under Operations. `rates.calendar.changes` (`PUT /rates/calendar/changes`, `rates.manage`) saves all staged edits together and returns to the calendar. `rates.calendar.extend` (`rates.manage`) extends one plan and returns to the calendar. `rates.calendar.bulk` and `rates.calendar.bulk.update` (`rates.manage`) are the Bulk edit page and its save.
