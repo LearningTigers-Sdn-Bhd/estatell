@@ -62,6 +62,18 @@ class UnitStayResult
 
     public const REFUSAL_DAY_USE_UNIT = 'day_use_unit';
 
+    public const REFUSAL_NOT_SAME_DAY = 'not_same_day';
+
+    public const REFUSAL_PAST_MIDNIGHT = 'past_midnight';
+
+    public const REFUSAL_START_TIME_INVALID = 'start_time_invalid';
+
+    public const REFUSAL_HOURS_INVALID = 'hours_invalid';
+
+    public const REFUSAL_AMOUNT_REQUIRED = 'amount_required';
+
+    public const REFUSAL_OVERRIDE_REASON_REQUIRED = 'override_reason_required';
+
     public const REFUSAL_RESTRICTED = 'restricted';
 
     public const REFUSAL_NOT_AN_EXTENSION = 'not_an_extension';

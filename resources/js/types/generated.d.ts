@@ -3195,6 +3195,22 @@ deposit: string | null,
 billTotal: string,
 billHidden: boolean,
 };
+export type CheckOutAsDayUseData = {
+refusal: string | null,
+date: string | null,
+start: string | null,
+end: string | null,
+blockEnd: string | null,
+hours: number | null,
+ratePlanId: number | null,
+planPrice: string | null,
+amount: string | null,
+overrideAmount: string | null,
+midnightLimited: boolean,
+settlement: App.Data.Reservations.UnitCheckOutPreviewData | null,
+lines: App.Data.Reservations.UnitPendingLineData[],
+folioLines: App.Data.Reservations.UnitPendingLineData[],
+};
 export type CheckOutCollectData = {
 paymentMethodId: number,
 amount: string,

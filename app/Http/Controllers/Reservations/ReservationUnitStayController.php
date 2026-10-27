@@ -9,6 +9,7 @@ use App\Actions\FrontDesk\ChangeUnitDates;
 use App\Actions\FrontDesk\CheckInAllUnits;
 use App\Actions\FrontDesk\CheckInAndCollect;
 use App\Actions\FrontDesk\CheckOutAndRefund;
+use App\Actions\FrontDesk\CheckOutAsDayUse;
 use App\Actions\FrontDesk\CheckOutOverdueStay;
 use App\Actions\FrontDesk\EarlyCheckOut;
 use App\Actions\FrontDesk\ExtendDepartureTime;
@@ -28,6 +29,7 @@ use App\Http\Requests\Reservations\CancelReservationRequest;
 use App\Http\Requests\Reservations\ChangeUnitDatesRequest;
 use App\Http\Requests\Reservations\CheckInAllRequest;
 use App\Http\Requests\Reservations\CheckInUnitRequest;
+use App\Http\Requests\Reservations\CheckOutAsDayUseRequest;
 use App\Http\Requests\Reservations\CheckOutUnitRequest;
 use App\Http\Requests\Reservations\LateCheckOutRequest;
 use App\Http\Requests\Reservations\MoveUnitPreviewRequest;
@@ -40,6 +42,7 @@ use App\Http\Requests\Reservations\UnitUndoRequest;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
+use App\Services\FrontDesk\CheckOutAsDayUseQuote;
 use App\Services\Payments\PaymentRefusals;
 use App\Services\Reservations\ReservationRefusals;
 use App\Services\Reservations\UnitActionPreview;
@@ -201,6 +204,18 @@ class ReservationUnitStayController extends Controller
         $result = $earlyCheckOut($request->user(), $unit, $request->doNotCharge(), $request->reason(), $request->expectedFee(), $request->refundAmount(), $request->collectBalance(), $request->string('idempotency_key')->toString(), $request->leftYesterday(), $request->damage());
 
         return $this->respond($property, $reservation, $result->refusal, $refusals, __('Unit checked out early.'), rooms: $result->rooms);
+    }
+
+    public function checkOutAsDayUse(CheckOutAsDayUseRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, CheckOutAsDayUse $checkOut, ReservationRefusals $refusals): RedirectResponse
+    {
+        $result = $checkOut($request->user(), $unit, $request->start(), $request->end(), $request->amount(), $request->reason(), $request->refundAmount(), $request->collectBalance(), $request->string('idempotency_key')->toString(), $request->damage());
+
+        return $this->respond($property, $reservation, $result->refusal, $refusals, __('Unit checked out as day use.'), rooms: $result->rooms);
+    }
+
+    public function checkOutAsDayUsePreview(CheckOutAsDayUseRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, CheckOutAsDayUseQuote $quote): JsonResponse
+    {
+        return response()->json($quote->preview($unit, $request->user(), $request->start(), $request->end(), $request->amount(), $request->reason()));
     }
 
     /**

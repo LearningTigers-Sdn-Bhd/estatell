@@ -2,6 +2,7 @@
 
 namespace App\Services\Folio;
 
+use App\Enums\PricingBasis;
 use App\Models\Property;
 use App\Models\RatePlanInclusion;
 use App\Models\ReservationUnit;
@@ -38,7 +39,9 @@ class DayUseChargeQuote
         $gross = Money::of($dayUse->amount, $currency);
         $room = $gross;
         $inclusionLines = [];
-        $inclusions = $unit->ratePlan->inclusions->keyBy('id');
+        $inclusions = $unit->ratePlan->pricing_basis === PricingBasis::DayUse
+            ? $unit->ratePlan->inclusions->keyBy('id')
+            : collect();
 
         if ($inclusions->isNotEmpty()) {
             $split = $this->inclusionAllocator->allocate($gross, $inclusions, $unit->adults + $unit->children, true);
