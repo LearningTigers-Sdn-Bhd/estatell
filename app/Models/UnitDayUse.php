@@ -22,11 +22,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $ends_at
  * @property int $hours
  * @property string $amount
+ * @property string|null $override_amount
  * @property CarbonImmutable|null $released_at
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['date', 'room_id', 'starts_at', 'ends_at', 'hours', 'amount', 'released_at'])]
+#[Fillable(['date', 'room_id', 'starts_at', 'ends_at', 'hours', 'amount', 'override_amount', 'released_at'])]
 class UnitDayUse extends Model
 {
     /** @use HasFactory<UnitDayUseFactory> */
@@ -41,6 +42,7 @@ class UnitDayUse extends Model
             'date' => 'date',
             'hours' => 'integer',
             'amount' => 'decimal:2',
+            'override_amount' => 'decimal:2',
             'released_at' => 'datetime',
         ];
     }

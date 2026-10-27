@@ -217,7 +217,6 @@ class ReservationRefusals
             ReservationResult::REFUSAL_NOT_AVAILABLE => ['room_type_id', $day === '' ? __('No unit is available for these dates.') : __('No unit is available on :date.', ['date' => $day])],
             ReservationResult::REFUSAL_OVERRIDE_REASON_REQUIRED => ['override_reason', __('Enter a reason for the price override.')],
             ReservationResult::REFUSAL_OVERRIDE_INVALID => ['override_total', __('Enter an amount such as 840.00.')],
-            ReservationResult::REFUSAL_OVERRIDE_NOT_ALLOWED => ['override_total', __('The price of a day use cannot be overridden.')],
             ReservationResult::REFUSAL_STAY_TYPE_MISMATCH => [self::FORM, __('This reservation is all overnight or all day use. Start a new booking for the other kind.')],
             ReservationResult::REFUSAL_STAY_TYPES_MIXED => [self::FORM, __('A booking is all overnight or all day use. Book the other kind separately.')],
             ReservationResult::REFUSAL_DAY_USE_NOT_FOR_CHANNEL => [self::FORM, __('Day use is sold at the front desk only.')],

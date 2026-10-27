@@ -26,7 +26,7 @@ import { Input } from '@/components/ui/input';
  * `DayUseLinesHeader` uses the same template. Below `lg` the cells stack and show their labels.
  */
 export const DAY_USE_LINE_COLUMNS =
-    'lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1.2fr)_minmax(0,1.3fr)_minmax(0,0.9fr)_4rem_4rem_minmax(0,9rem)_2rem]';
+    'lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1.2fr)_minmax(0,1.3fr)_minmax(0,0.9fr)_4rem_4rem_minmax(0,12rem)_2rem]';
 
 /** The header of the day use lines table. Hidden below `lg`, where each cell shows its own label. */
 export function DayUseLinesHeader() {
@@ -52,7 +52,7 @@ type Errors = Record<string, string | undefined>;
 
 /**
  * One day use line: a room type and a day use plan, the hours the plan sells on the date from the start time with their
- * prices, the room (required, free for those hours), the party and the server's rate. There is no price override, no
+ * prices, the room (required, free for those hours), the party and the server's rate with an optional override. There is no
  * discount and no beds.
  */
 export function DayUseLineRow({
@@ -307,12 +307,11 @@ export function DayUseLineRow({
                     quote={quote}
                     loading={loading}
                     currency={currency}
-                    overrideTotal=""
-                    overrideReason=""
+                    overrideTotal={line.override_total}
+                    overrideReason={line.override_reason}
                     onOverrideChange={onChange}
                     errors={errors}
                     index={index}
-                    canOverride={false}
                 />
             </div>
             <div className="flex items-center justify-end">

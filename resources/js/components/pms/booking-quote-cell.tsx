@@ -54,7 +54,7 @@ export function BookingQuoteCell({
     }) => void;
     errors: Record<string, string | undefined>;
     index: number;
-    /** A day use price cannot be overridden, so its line has no pencil. */
+    /** Company portal lines never offer a price override. */
     canOverride?: boolean;
     /** Migrated stay only: a night before this date shows "before go-live" and no price. */
     goLiveDate?: string | null;

@@ -1,6 +1,7 @@
 import { useForm } from '@inertiajs/react';
 import { ChevronDown } from 'lucide-react';
 import { useState } from 'react';
+import { BookingQuoteCell } from '@/components/pms/booking-quote-cell';
 import { DatePicker } from '@/components/pms/date-picker';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
@@ -10,14 +11,19 @@ import {
     useFormOptions,
 } from '@/components/pms/use-form-options';
 import { BookingUnitPicker } from '@/components/pms/reservations/booking-unit-picker';
-import { plansFor } from '@/components/pms/reservations/booking-lines';
+import {
+    emptyLine,
+    plansFor,
+} from '@/components/pms/reservations/booking-lines';
 import {
     dayUseRoomTypes,
     endsAt,
+    isDayUseQuotable,
     isHalfHour,
     offerOptions,
 } from '@/components/pms/reservations/day-use';
 import { useDayUseOffers } from '@/components/pms/reservations/use-day-use-offers';
+import { useBookingQuote } from '@/components/pms/reservations/use-booking-quote';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
 import { Button } from '@/components/ui/button';
 import {
@@ -97,8 +103,6 @@ function AddUnitForm({
                       stay_type: 'day_use',
                       departure_date: values.arrival_date,
                       child_ages: parseAges(values.child_ages),
-                      override_total: '',
-                      override_reason: '',
                   }
                 : {
                       ...values,
@@ -121,6 +125,20 @@ function AddUnitForm({
     };
 
     const isDayUse = stayType === 'day_use';
+    const quoteLine = {
+        ...emptyLine(),
+        ...data,
+        child_ages: parseAges(data.child_ages).map(String),
+    };
+    const { quote, loading: quoteLoading } = useBookingQuote(
+        quoteLine,
+        data.arrival_date,
+        data.arrival_date,
+        false,
+        isDayUse &&
+            isDayUseQuotable(quoteLine, data.arrival_date, data.start_time),
+        data.start_time,
+    );
     const roomTypes = isDayUse
         ? dayUseRoomTypes(options?.roomTypes ?? [], options?.ratePlans ?? [])
         : (options?.roomTypes ?? []);
@@ -385,6 +403,25 @@ function AddUnitForm({
                     <FieldError>{childAgesError}</FieldError>
                 </Field>
             </div>
+            {isDayUse && (
+                <BookingQuoteCell
+                    quote={quote}
+                    loading={quoteLoading}
+                    currency={currency}
+                    overrideTotal={data.override_total}
+                    overrideReason={data.override_reason}
+                    onOverrideChange={(patch) =>
+                        form.setData((current) => ({ ...current, ...patch }))
+                    }
+                    errors={Object.fromEntries(
+                        Object.entries(errors).map(([key, value]) => [
+                            `lines.0.${key}`,
+                            value,
+                        ]),
+                    )}
+                    index={0}
+                />
+            )}
             {!isDayUse && (
                 <Collapsible
                     open={overrideOpen || overrideInvalid}

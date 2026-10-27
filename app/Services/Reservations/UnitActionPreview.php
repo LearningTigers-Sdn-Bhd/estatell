@@ -723,11 +723,16 @@ class UnitActionPreview
     }
 
     /**
-     * The block price as booked and as `ReinstateUnit` will price it again for a day use unit.
+     * The block price as booked and as reinstated. An override stays without quoting again.
      */
     private function reinstateDayUse(ReservationUnit $unit): UnitReinstatePreviewData
     {
         $dayUse = $unit->dayUse()->firstOrFail();
+
+        if ($dayUse->override_amount !== null) {
+            return new UnitReinstatePreviewData(previousTotal: $dayUse->amount, newTotal: $dayUse->override_amount, error: null);
+        }
+
         $quote = $this->rateQuoteService->quoteDayUse($unit->roomType()->firstOrFail(), $unit->ratePlan()->firstOrFail(), $dayUse->date, $dayUse->hours);
 
         if ($quote->isRefused()) {

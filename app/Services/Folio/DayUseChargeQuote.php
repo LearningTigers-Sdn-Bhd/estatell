@@ -18,7 +18,7 @@ use Illuminate\Support\Collection;
  * Works out the lines of one day use block, for the folio page to show as a Scheduled row now and for check in to post
  * later, so the two never differ. It reads and writes nothing. The block price is split by `InclusionAllocator` into
  * the room and the plan's inclusions, which are allocated as for one night (every inclusion once). The tax comes from
- * the taxes of the DAY_USE code, which never follows the Taxes tab. There is no discount and no override. The booker's
+ * the taxes of the DAY_USE code, which never follows the Taxes tab. The stored amount includes any price override. There is no discount. The booker's
  * nationality drives foreign-guest taxes, as `PostCharge` does. The unit needs `ratePlan.inclusions.chargeItem.transactionCode`
  * loaded. Keys: `dayuse:{unit_id}` and `dayuse:{unit_id}:incl:{inclusion_id}`. See docs/12-reservations/10-day-use.md.
  */
