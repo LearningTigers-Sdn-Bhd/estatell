@@ -107,14 +107,8 @@ class UnitActionPreview
             return UnitCheckInPreviewData::refused($this->refusals->message(UnitStayResult::REFUSAL_NO_BUSINESS_DATE));
         }
 
-        $isDayUse = $unit->stay_type === StayType::DayUse;
-
-        if ($isDayUse) {
-            $room = $unit->dayUse()->with('room')->first()?->room?->number;
-        } else {
-            $tonight = $unit->nights()->with(['room', 'bed'])->whereDate('date', $this->stayDay->forCheckIn($unit, $businessDate)->toDateString())->first();
-            $room = $tonight?->room?->number ?? $tonight?->bed?->label;
-        }
+        $tonight = $unit->nights()->with(['room', 'bed'])->whereDate('date', $this->stayDay->forCheckIn($unit, $businessDate)->toDateString())->first();
+        $room = $tonight->room->number ?? $tonight?->bed?->label;
         $cardRequired = (bool) $property->settings?->card_required_for_check_in;
         $needsNationality = $this->unitNationality->for($unit) === null
             && Tax::query()->where('property_id', $unit->property_id)->where('enabled', true)->where('foreign_guests_only', true)->exists();
@@ -164,7 +158,7 @@ class UnitActionPreview
 
         $units = $reservation->units()
             ->where('status', UnitStatus::Confirmed)
-            ->with(['roomType', 'guests.guest', 'dayUse.room', 'nights' => fn ($nights) => $nights->whereBetween('date', [$today, $businessDate->addDay()->toDateString()]), 'nights.room', 'nights.bed'])
+            ->with(['roomType', 'guests.guest', 'nights' => fn ($nights) => $nights->whereBetween('date', [$today, $businessDate->addDay()->toDateString()]), 'nights.room', 'nights.bed'])
             ->orderBy('id')
             ->get();
 
@@ -172,13 +166,8 @@ class UnitActionPreview
             $day = $this->stayDay->forCheckIn($unit, $businessDate)->toDateString();
             $tonight = $unit->nights->first(fn ($night): bool => $night->date->toDateString() === $day);
             $arrival = $unit->arrival_date->toDateString();
-            $isDayUse = $unit->stay_type === StayType::DayUse;
-            $ready = $isDayUse
-                ? $day === $arrival
-                : ($day >= $arrival && $day < $unit->departure_date->toDateString());
-            $room = $isDayUse
-                ? $unit->dayUse?->room?->number
-                : ($tonight?->room?->number ?? $tonight?->bed?->label);
+            $ready = $day >= $arrival && $day < $unit->departure_date->toDateString();
+            $room = $tonight->room->number ?? $tonight?->bed?->label;
 
             $rows[] = [
                 'unitId' => $unit->id,
