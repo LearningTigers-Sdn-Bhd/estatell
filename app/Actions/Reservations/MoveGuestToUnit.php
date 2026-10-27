@@ -9,18 +9,20 @@ use App\Models\RegistrationCard;
 use App\Models\ReservationUnit;
 use App\Models\UnitGuest;
 use App\Models\User;
+use App\Services\Reservations\UnitCapacity;
 use Illuminate\Support\Facades\DB;
 
 class MoveGuestToUnit
 {
-    public function __construct(private AttachGuest $attachGuest) {}
+    public function __construct(private AttachGuest $attachGuest, private UnitCapacity $capacity) {}
 
     /**
      * Move a guest to another unit of the same reservation. The `unit_guests` row keeps its guest and changes unit.
      * The guest is primary on the new unit when it has no guest yet; when the guest was primary on the old unit, the
      * oldest other guest there becomes primary. A Draft registration card is deleted with the move; a signed or void
      * card refuses it, because the card keeps the guest's snapshot and points at the row. Nothing is posted or repriced,
-     * and a folio points at a guest, not at this row. Both unit rows are locked in id order, and every check runs
+     * and a folio points at a guest, not at this row. A full unit refuses the guest (`bed_unit_full` or `unit_full`,
+     * see `UnitCapacity`). Both unit rows are locked in id order, and every check runs
      * before the first write, so a refusal writes and logs nothing. See
      * docs/12-reservations/06-reservation-page.md#move-a-guest-to-another-unit.
      */
@@ -58,10 +60,11 @@ class MoveGuestToUnit
                 return AttachGuestResult::refused(AttachGuestResult::REFUSAL_ALREADY_ATTACHED);
             }
 
-            $destinationHasGuest = $destination->guests()->exists();
+            $destinationGuests = $destination->guests()->count();
+            $destinationHasGuest = $destinationGuests > 0;
 
-            if ($destinationHasGuest && $destination->roomType->sell_unit === SellUnit::Bed) {
-                return AttachGuestResult::refused(AttachGuestResult::REFUSAL_BED_UNIT_FULL);
+            if ($destinationGuests >= $this->capacity->of($destination)) {
+                return AttachGuestResult::refused($destination->roomType->sell_unit === SellUnit::Bed ? AttachGuestResult::REFUSAL_BED_UNIT_FULL : AttachGuestResult::REFUSAL_UNIT_FULL);
             }
 
             $deletedCards = $cards->pluck('id')->all();

@@ -3605,6 +3605,7 @@ export type ReservationUnitOptionData = {
 id: number,
 roomType: string,
 isBed: boolean,
+capacity: number,
 assigned: string | null,
 label: string,
 status: App.Data.Shared.BadgeData,

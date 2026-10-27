@@ -912,6 +912,7 @@ function actionsSecondUnit(array $setup): ReservationUnit
         'rate_plan_id' => $setup['plan']->id,
         'arrival_date' => '2026-10-20',
         'departure_date' => '2026-10-22',
+        'adults' => 2,
     ]);
 }
 
@@ -968,6 +969,10 @@ test('a refused move writes and logs nothing', function (string $case, string $f
             $setup['roomType']->forceFill(['sell_unit' => 'bed'])->save();
             UnitGuest::factory()->create(['reservation_unit_id' => $target->id, 'guest_id' => Guest::factory()->create(['property_id' => $setup['property']->id])->id]);
         })(),
+        'room full' => (function () use ($setup, $target): void {
+            $target->forceFill(['adults' => 1, 'children' => 0])->save();
+            UnitGuest::factory()->create(['reservation_unit_id' => $target->id, 'guest_id' => Guest::factory()->create(['property_id' => $setup['property']->id])->id]);
+        })(),
     };
 
     $this->actingAs($setup['user'])
@@ -981,6 +986,7 @@ test('a refused move writes and logs nothing', function (string $case, string $f
     ['closed target', 'form', 'This unit is closed, so it cannot change.'],
     ['already there', 'guest_id', 'This guest already stays in this unit.'],
     ['bed full', 'form', 'A bed unit holds one guest.'],
+    ['room full', 'form', 'This unit is full. Raise its adults or children first.'],
 ]);
 
 test('the target must be another unit of the same reservation', function () {

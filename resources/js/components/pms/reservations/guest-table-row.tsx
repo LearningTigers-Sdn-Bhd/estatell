@@ -588,7 +588,7 @@ export function DraftGuestRow({
     reservationId,
     draft,
     units,
-    taken,
+    full,
     showUnit = true,
     replacing,
     canManageGuests,
@@ -601,7 +601,7 @@ export function DraftGuestRow({
     reservationId: number;
     draft: BookingGuest;
     units: Unit[];
-    taken: Set<number>;
+    full: Set<number>;
     /** False in the Grouped view: the unit is the open one and Stays in is not shown. */
     showUnit?: boolean;
     /** Set when the row replaces a saved guest: Save runs the replace route and the guest keeps the unit. */
@@ -759,7 +759,8 @@ export function DraftGuestRow({
                                                 ? `${unit.label} · Checked out`
                                                 : unit.label,
                                         disabled:
-                                            unit.isBed && taken.has(unit.id),
+                                            full.has(unit.id) &&
+                                            String(unit.id) !== draft.stays_in,
                                     }))}
                                     value={draft.stays_in}
                                     onValueChange={(value) =>

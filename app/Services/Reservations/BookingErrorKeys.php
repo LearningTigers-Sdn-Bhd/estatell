@@ -72,7 +72,7 @@ class BookingErrorKeys
     {
         return match ($refusal) {
             BookingResult::REFUSAL_GUEST_NAME_REQUIRED => 'full_name',
-            AttachGuestResult::REFUSAL_BED_UNIT_FULL, AddOnResult::REFUSAL_UNIT_NOT_OPEN, BookingResult::REFUSAL_UNIT_NOT_FOUND => 'stays_in',
+            AttachGuestResult::REFUSAL_BED_UNIT_FULL, AttachGuestResult::REFUSAL_UNIT_FULL, AddOnResult::REFUSAL_UNIT_NOT_OPEN, BookingResult::REFUSAL_UNIT_NOT_FOUND => 'stays_in',
             default => $field === 'form' ? 'stays_in' : 'guest_id',
         };
     }

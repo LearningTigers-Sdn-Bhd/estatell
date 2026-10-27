@@ -16,7 +16,7 @@ import {
     groupKey,
     MAX_DRAFTS,
     NOT_STAYING_KEY,
-    takenBedUnits,
+    fullUnitIds,
     unitsWithoutGuest,
 } from '@/components/pms/reservations/guest-rows';
 import { MoveGuestDialog } from '@/components/pms/reservations/move-guest-dialog';
@@ -340,7 +340,7 @@ export function GuestsTab({
                                     reservationId={reservationId}
                                     draft={replacing}
                                     units={openUnits}
-                                    taken={new Set()}
+                                    full={new Set()}
                                     showUnit={false}
                                     replacing={replacements[replacing.key]}
                                     canManageGuests={canManageGuests}
@@ -410,12 +410,7 @@ export function GuestsTab({
                             draft={draft}
                             showUnit={showUnit}
                             units={openUnits}
-                            taken={takenBedUnits(
-                                guests,
-                                drafts,
-                                units,
-                                draft.key,
-                            )}
+                            full={fullUnitIds(guests, drafts, units, draft.key)}
                             canManageGuests={canManageGuests}
                             countries={countries}
                             genders={genders}
