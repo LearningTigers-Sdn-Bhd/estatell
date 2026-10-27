@@ -319,7 +319,8 @@ class IngestChannelBooking
     }
 
     /**
-     * The booker: a guest of the property with the same email or phone, or a new guest.
+     * The booker: an existing guest of the property with the same name and email/phone, or a new guest.
+     * An OTA booking must never be attached to an existing guest if the name differs.
      *
      * @param  array<string, mixed>  $payload
      */
@@ -328,10 +329,18 @@ class IngestChannelBooking
         $details = $this->mapper->guest($payload);
         $phone = $this->guestMatcher->normalizePhone($details['phone'], $property);
 
-        $match = array_find(
-            $this->guestMatcher->find($property, $details['full_name'], $details['email'], $details['phone']),
-            fn (array $match): bool => in_array(GuestMatchReason::Email, $match['reasons'], true) || in_array(GuestMatchReason::Phone, $match['reasons'], true),
-        );
+        $matches = $this->guestMatcher->find($property, $details['full_name'], $details['email'], $phone);
+
+        $match = array_find($matches, function (array $candidate): bool {
+            $hasName = in_array(GuestMatchReason::Name, $candidate['reasons'], true)
+                || in_array(GuestMatchReason::NameAndBirthDate, $candidate['reasons'], true);
+
+            $hasContact = in_array(GuestMatchReason::Email, $candidate['reasons'], true)
+                || in_array(GuestMatchReason::Phone, $candidate['reasons'], true)
+                || in_array(GuestMatchReason::IdNumber, $candidate['reasons'], true);
+
+            return $hasName && $hasContact;
+        });
 
         return $match['guest'] ?? ($this->createGuest)($actor, $property, array_filter([
             'full_name' => $details['full_name'],

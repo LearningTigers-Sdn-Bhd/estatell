@@ -37,7 +37,7 @@ IngestChannelBooking ── CreateReservation(fromChannel: true), booking source
 2. `IngestChannelBooking` maps the revision:
     - One OTA booking with 3 rooms = 1 reservation with 3 units.
     - The room's Channex `rate_plan_id` maps to the rate plan and room type through `channel_rate_plan_mappings`. A room with no `room_type_id` or `rate_plan_id`, or one we have no mapping for, fails the revision.
-    - The booker is a guest of the property with the same email or phone (`GuestMatcher`), or a new guest. The other guests of the OTA booking are not attached to units.
+    - The booker is an existing guest of the property with the same name and contact (email, phone or ID number via `GuestMatcher`), or a new guest. An OTA booking never attaches to a profile with a different name. OTA support emails (such as `@trip.com` lodging support) and call center phone numbers are ignored so they do not pollute guest profiles or merge unrelated guests. The other guests of the OTA booking are not attached to units.
     - Prices are stored on `unit_nights`: the room `amount` is the unit's stay total, saved as `override_total` spread over the nights. A stay the rate quote cannot price (no rate on a date, over capacity) is still saved this way, with no calculated price on its nights.
     - A booking in another currency than the property's fails the revision.
     - `EnsureOtaBookingSource` gives the property's OTA [booking source](../12-reservations/11-booking-sources.md) for the revision's channel, and creates it when missing. The reservation gets its `booking_source_id` and `external_reference`. Manual and ingested bookings for the same OTA share one source.
