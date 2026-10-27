@@ -24,6 +24,7 @@ use App\Enums\UnitStatus;
 use App\Enums\WastaysEventType;
 use App\Models\Folio;
 use App\Models\FolioLine;
+use App\Models\ImportLink;
 use App\Models\Payment;
 use App\Models\ReservationUnit;
 use App\Models\RoomRevenuePolicy;
@@ -132,6 +133,16 @@ class ReplayWastaysCorrections
             return;
         }
 
+        // A charge taken before the check-in is still waiting in estatell, so reversing it only drops the wait.
+        $waiting = $original === null ? ImportLink::query()->forSource($context->property->id, 'waiting_charges', (string) $row['reversal_of_transaction_id'])->first() : null;
+
+        if ($waiting !== null) {
+            $waiting->delete();
+            $context->summary->count('waiting charges reversed before check-in');
+
+            return;
+        }
+
         if (! $original instanceof FolioLine) {
             throw new ReplayStopped("folio_transactions {$event->sourceId}: the reversed line {$row['reversal_of_transaction_id']} is not in estatell.");
         }
@@ -166,7 +177,7 @@ class ReplayWastaysCorrections
     private function adjustment(ReplayContext $context, WastaysEvent $event): void
     {
         $unit = $this->unitOf($context, $event);
-        $folio = $this->unitFolio($unit) ?? ($this->createFolio)($unit->reservation, $unit);
+        $folio = $this->lineFolio($context, $event, $unit) ?? ($this->createFolio)($unit->reservation, $unit);
         $result = ($this->postAdjustment)($context->actor, $folio, (string) $event->row['amount'], (string) ($event->row['description'] ?? ''), 'wastays:folio_transactions:'.$event->sourceId);
 
         if ($result->isRefused()) {
@@ -180,7 +191,7 @@ class ReplayWastaysCorrections
     private function refund(ReplayContext $context, WastaysEvent $event): void
     {
         $unit = $this->unitOf($context, $event);
-        $folio = $this->unitFolio($unit) ?? throw new ReplayStopped("folio_transactions {$event->sourceId}: the booking has no folio to refund from.");
+        $folio = $this->lineFolio($context, $event, $unit) ?? throw new ReplayStopped("folio_transactions {$event->sourceId}: the booking has no folio to refund from.");
         $result = ($this->refundFolioCredit)($context->actor, $folio, $this->amount($event->row['amount']), null, 'wastays replay: refund', 'wastays:folio_transactions:'.$event->sourceId);
 
         if ($result->isRefused()) {
@@ -240,7 +251,7 @@ class ReplayWastaysCorrections
         $this->done($event, ($this->undoCheckOut)($context->actor, $unit, $reason), 'the check-out could not be undone');
         $context->summary->count('check-outs undone');
 
-        $departure = substr((string) ((json_decode((string) $undo['new_value'], true) ?: [])['check_out'] ?? ''), 0, 10);
+        $departure = $context->index->localDate((string) ((json_decode((string) $undo['new_value'], true) ?: [])['check_out'] ?? ''));
         $unit->refresh();
 
         if ($departure === '' || $departure <= $unit->departure_date->toDateString()) {
@@ -270,8 +281,8 @@ class ReplayWastaysCorrections
     {
         $new = json_decode((string) $event->row['new_value'], true) ?: [];
         $old = json_decode((string) $event->row['old_value'], true) ?: [];
-        $arrival = substr((string) ($new['check_in'] ?? $unit->arrival_date->toDateString()), 0, 10);
-        $departure = substr((string) ($new['check_out'] ?? $unit->departure_date->toDateString()), 0, 10);
+        $arrival = $context->index->localDate((string) ($new['check_in'] ?? $unit->arrival_date->toDateString()));
+        $departure = $context->index->localDate((string) ($new['check_out'] ?? $unit->departure_date->toDateString()));
 
         if (($old['check_in'] ?? null) === ($new['check_in'] ?? null) && ($old['check_out'] ?? null) === ($new['check_out'] ?? null)) {
             $context->summary->count('room type changes left out');
@@ -293,10 +304,30 @@ class ReplayWastaysCorrections
 
         if ($unit->status === UnitStatus::CheckedIn) {
             $arrival = $unit->arrival_date->toDateString();
+
+            // wastays let staff move a checked-in stay to the day before it was checked in. estatell keeps the arrival
+            // it checked in on, so a new departure on or before it leaves no night to keep.
+            if ($departure <= $arrival) {
+                $context->summary->count('stays moved earlier after check-in left out');
+
+                return;
+            }
         }
 
         $before = array_values($unit->nights()->pluck('date')->map(fn ($date) => $date->toDateString())->all());
         $result = ($this->changeUnitDates)($context->actor, $unit, CarbonImmutable::parse($arrival), CarbonImmutable::parse($departure), true, $reason);
+
+        // estatell placed the room itself, so wastays can have moved a stay into a night that room already holds, and it
+        // cannot move a stay to a night that has closed. The stay keeps its dates and is listed.
+        $left = ['not_available' => 'stay dates left: the room is not free', 'arrival_in_past' => 'stay dates left: the new arrival is in a closed night'];
+
+        if ($result->isRefused() && isset($left[$result->refusal])) {
+            $context->summary->count($left[$result->refusal]);
+            $context->summary->note("stay dates of wastays booking {$event->bookingId} left as they were: {$left[$result->refusal]} ({$arrival} to {$departure})");
+
+            return;
+        }
+
         $this->done($event, $result, 'the stay dates could not be changed');
 
         $this->priceAddedNights($context, $event, $unit, $before, $reason);
@@ -420,6 +451,18 @@ class ReplayWastaysCorrections
         }
 
         return $unit->load('reservation');
+    }
+
+    /**
+     * The folio a wastays line sits on: the Master folio for a company folio, otherwise the unit's folio.
+     */
+    private function lineFolio(ReplayContext $context, WastaysEvent $event, ReservationUnit $unit): ?Folio
+    {
+        if ($context->index->onCompanyFolio($event->row)) {
+            return Folio::query()->where('reservation_id', $unit->reservation_id)->where('type', FolioType::Master)->orderBy('id')->first();
+        }
+
+        return $this->unitFolio($unit);
     }
 
     private function unitFolio(ReservationUnit $unit): ?Folio

@@ -14,11 +14,13 @@ use App\Actions\FrontDesk\EarlyCheckOut;
 use App\Actions\FrontDesk\ExtendDepartureTime;
 use App\Actions\FrontDesk\MarkNoShow;
 use App\Actions\FrontDesk\MoveUnit;
+use App\Actions\FrontDesk\MoveUnitStay;
 use App\Actions\FrontDesk\ReinstateUnit;
 use App\Actions\FrontDesk\UndoCheckIn;
 use App\Actions\FrontDesk\UndoCheckOut;
 use App\Actions\FrontDesk\UnitStayResult;
 use App\Actions\Reservations\AssignmentResult;
+use App\Data\Reservations\UnitMoveStayPreviewData;
 use App\Enums\PermissionEnum;
 use App\Enums\SystemTransactionCode;
 use App\Http\Controllers\Controller;
@@ -30,6 +32,8 @@ use App\Http\Requests\Reservations\CheckOutUnitRequest;
 use App\Http\Requests\Reservations\LateCheckOutRequest;
 use App\Http\Requests\Reservations\MoveUnitPreviewRequest;
 use App\Http\Requests\Reservations\MoveUnitRequest;
+use App\Http\Requests\Reservations\MoveUnitStayPreviewRequest;
+use App\Http\Requests\Reservations\MoveUnitStayRequest;
 use App\Http\Requests\Reservations\ReinstateUnitRequest;
 use App\Http\Requests\Reservations\UnitPolicyFeeRequest;
 use App\Http\Requests\Reservations\UnitUndoRequest;
@@ -109,7 +113,18 @@ class ReservationUnitStayController extends Controller
 
     public function movePreview(MoveUnitPreviewRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, UnitActionPreview $preview): JsonResponse
     {
-        return response()->json($preview->move($unit, $request->fromNight(), $request->roomTypeId()));
+        return response()->json($preview->move($unit, $request->fromNight(), $request->roomTypeId(), $request->wantsTargets()));
+    }
+
+    public function moveStayPreview(MoveUnitStayPreviewRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, UnitActionPreview $preview, ReservationRefusals $refusals): JsonResponse
+    {
+        $target = $request->target($property);
+
+        if ($target === null) {
+            return response()->json(UnitMoveStayPreviewData::refused($refusals->message($request->filled('bed_id') ? AssignmentResult::REFUSAL_BED_NOT_FOUND : AssignmentResult::REFUSAL_ROOM_NOT_FOUND)));
+        }
+
+        return response()->json($preview->moveStay($unit, $request->arrival(), $request->departure(), $target));
     }
 
     /**
@@ -320,6 +335,30 @@ class ReservationUnitStayController extends Controller
         }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Unit moved.')]);
+
+        return back(fallback: $page);
+    }
+
+    /**
+     * Move a Confirmed unit to new dates and a room or bed in one step (the Timeline drag). A refusal saves nothing and
+     * goes back to the Dialog as an error on the field it belongs to.
+     */
+    public function moveStay(MoveUnitStayRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, MoveUnitStay $moveUnitStay, ReservationRefusals $refusals): RedirectResponse
+    {
+        $target = $request->target($property);
+        $page = route('reservations.show', ['property' => $property, 'reservation' => $reservation]);
+
+        if ($target === null) {
+            return back(fallback: $page)->withErrors($refusals->unitErrors($request->filled('bed_id') ? AssignmentResult::REFUSAL_BED_NOT_FOUND : AssignmentResult::REFUSAL_ROOM_NOT_FOUND));
+        }
+
+        $result = $moveUnitStay($request->user(), $unit, $request->arrival(), $request->departure(), $target, $request->reason(), $request->restrictionOverrideReason());
+
+        if ($result->isRefused()) {
+            return back(fallback: $page)->withErrors($refusals->unitErrors((string) $result->refusal, $result->date, canOverrideRestrictions: $request->user()->can(PermissionEnum::RatesOverrideRestrictions->value)));
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Stay moved.')]);
 
         return back(fallback: $page);
     }

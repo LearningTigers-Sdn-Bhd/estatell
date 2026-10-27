@@ -350,6 +350,24 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
         return $this->hasMany(PropertyDocumentPrefixHistory::class);
     }
 
+    /** @return HasOne<DoorLockConnection, $this> */
+    public function doorLockConnection(): HasOne
+    {
+        return $this->hasOne(DoorLockConnection::class);
+    }
+
+    /** @return HasMany<DoorPasscode, $this> */
+    public function doorPasscodes(): HasMany
+    {
+        return $this->hasMany(DoorPasscode::class);
+    }
+
+    /** @return HasMany<DoorLock, $this> */
+    public function doorLocks(): HasMany
+    {
+        return $this->hasMany(DoorLock::class);
+    }
+
     /** @return HasOne<AccountingConnection, $this> */
     public function accountingConnection(): HasOne
     {

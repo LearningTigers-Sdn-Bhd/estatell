@@ -9,11 +9,7 @@ const links = [
     { href: '/#platform', label: 'Platform' },
     { href: '/#channels', label: 'Channels' },
     { href: '/#direct', label: 'Booking Engine' },
-    {
-        href: 'https://wastays.com/explore',
-        label: 'Direct Booking',
-        external: true,
-    },
+    { href: '/#save-ota', label: 'Direct Booking' },
     { href: '/#concierge', label: 'AI Concierge' },
     { href: '/#checkin', label: 'Smart Locks' },
     { href: '/#kiosk', label: 'Kiosk' },
@@ -85,21 +81,9 @@ export function Navbar() {
                             <a
                                 key={link.href}
                                 href={link.href}
-                                {...(link.external
-                                    ? {
-                                          target: '_blank',
-                                          rel: 'noopener noreferrer',
-                                      }
-                                    : {})}
                                 className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-medium whitespace-nowrap text-foreground/70 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-ring motion-reduce:transition-none"
                             >
                                 {link.label}
-                                {link.external && (
-                                    <span className="sr-only">
-                                        {' '}
-                                        (opens in a new tab)
-                                    </span>
-                                )}
                             </a>
                         ))}
                     </nav>
@@ -142,22 +126,10 @@ export function Navbar() {
                         <a
                             key={link.href}
                             href={link.href}
-                            {...(link.external
-                                ? {
-                                      target: '_blank',
-                                      rel: 'noopener noreferrer',
-                                  }
-                                : {})}
                             onClick={() => setOpen(false)}
                             className="flex min-h-12 items-center justify-between rounded-xl px-4 text-base font-medium text-foreground/70 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-ring motion-reduce:transition-none"
                         >
                             {link.label}
-                            {link.external && (
-                                <span className="sr-only">
-                                    {' '}
-                                    (opens in a new tab)
-                                </span>
-                            )}
                             <ArrowRight
                                 className="size-4 text-foreground"
                                 aria-hidden="true"

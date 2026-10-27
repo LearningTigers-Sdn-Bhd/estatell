@@ -8,9 +8,11 @@ use App\Events\RatesChanged;
 use App\Events\ReservationChanged;
 use App\Jobs\FlushChannelAriJob;
 use App\Models\ChannelAriChange;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 
 require_once __DIR__.'/../Support/ChannelStructure.php';
+require_once __DIR__.'/../Support/RecordingQueue.php';
 
 test('a rate change records one line for each pair of the plan and starts one delayed flush', function () {
     Queue::fake();
@@ -99,4 +101,21 @@ test('a paused property keeps the change but starts no flush', function () {
 
     expect(ChannelAriChange::query()->count())->toBe(1);
     Queue::assertNothingPushed();
+});
+
+test('a change recorded in a transaction that rolls back queues no flush, and a committed one does', function () {
+    $queued = recordQueuedJobs();
+    $setup = channelAriSetup();
+
+    DB::beginTransaction();
+    InventoryChanged::dispatch($setup['property']->id, '2026-10-20', '2026-10-21', $setup['roomType']->id);
+    DB::rollBack();
+
+    expect($queued->getArrayCopy())->toBe([])
+        ->and(ChannelAriChange::query()->count())->toBe(0);
+
+    DB::transaction(fn () => InventoryChanged::dispatch($setup['property']->id, '2026-10-20', '2026-10-21', $setup['roomType']->id));
+
+    expect($queued->getArrayCopy())->toBe([FlushChannelAriJob::class])
+        ->and(ChannelAriChange::query()->count())->toBe(1);
 });

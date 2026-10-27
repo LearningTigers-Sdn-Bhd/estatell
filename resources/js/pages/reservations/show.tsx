@@ -2,6 +2,7 @@ import { Head } from '@inertiajs/react';
 import { useState } from 'react';
 import { BedDouble, CreditCard, History, Receipt, Users } from 'lucide-react';
 import type { EnumOption } from '@/components/pms/enum-select';
+import { BookingSourceBadge } from '@/components/pms/booking-source-badge';
 import { DateText } from '@/components/pms/date-text';
 import { FolioRail } from '@/components/pms/folio/folio-rail';
 import { FolioTab } from '@/components/pms/folio/folio-tab';
@@ -63,6 +64,7 @@ type Props = {
     boatDepartures?: App.Data.Boats.BoatDepartureOptionData[];
     boatSetup?: App.Data.Boats.BoatSetupUnitData[];
     unit?: App.Data.Reservations.ReservationUnitData | null;
+    doorPins?: App.Data.DoorLocks.UnitDoorPinsData | null;
     guests?: App.Data.Reservations.ReservationGuestData[];
     canManageGuests?: boolean;
     countries?: EnumOption[];
@@ -116,6 +118,7 @@ export default function ReservationShow({
     boatDepartures,
     boatSetup,
     unit = null,
+    doorPins = null,
     guests = [],
     canManageGuests = false,
     countries = [],
@@ -222,21 +225,46 @@ export default function ReservationShow({
 
             <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4 lg:overflow-hidden">
                 <PageHeader
-                    title={`${reservation.reference} · ${reservation.title}`}
+                    title={reservation.title}
                     description={
-                        <span className="flex flex-wrap items-center gap-x-2">
-                            <DateText date={reservation.firstArrival} /> →{' '}
-                            <DateText date={reservation.lastDeparture} />
-                            <span>
-                                · {reservation.unitCount}{' '}
-                                {reservation.unitCount === 1 ? 'unit' : 'units'}
-                            </span>
-                            <span>· {reservation.sourceName}</span>
-                            {reservation.externalReference && (
+                        <span className="flex flex-col gap-1">
+                            <span className="flex flex-wrap items-center gap-x-2">
                                 <span>
-                                    · Ext. ref {reservation.externalReference}
+                                    Ref:{' '}
+                                    <strong className="font-semibold text-foreground">
+                                        {reservation.reference}
+                                    </strong>
                                 </span>
-                            )}
+                                <span>·</span>
+                                <DateText
+                                    date={reservation.firstArrival}
+                                /> →{' '}
+                                <DateText date={reservation.lastDeparture} />
+                                <span>
+                                    · {reservation.unitCount}{' '}
+                                    {reservation.unitCount === 1
+                                        ? 'unit'
+                                        : 'units'}
+                                </span>
+                            </span>
+                            <span className="flex flex-wrap items-center gap-x-2">
+                                <span className="inline-flex items-center gap-1.5">
+                                    <BookingSourceBadge
+                                        source={reservation.source}
+                                        size="sm"
+                                        tooltip={false}
+                                    />
+                                    {reservation.source.name}
+                                </span>
+                                {reservation.externalReference && (
+                                    <span>
+                                        · Ext. ref:{' '}
+                                        <strong className="font-semibold text-foreground">
+                                            {reservation.externalReference}
+                                        </strong>
+                                    </span>
+                                )}
+                            </span>
                         </span>
                     }
                     badge={
@@ -363,6 +391,7 @@ export default function ReservationShow({
                             <UnitsTab
                                 reservationId={reservation.id}
                                 unit={unit}
+                                doorPins={doorPins}
                                 autoAssignRooms={autoAssignRooms}
                                 canWaiveFees={canWaiveFees}
                                 canOverrideRestrictions={

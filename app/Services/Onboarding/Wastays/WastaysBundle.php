@@ -2,6 +2,7 @@
 
 namespace App\Services\Onboarding\Wastays;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Support\LazyCollection;
 use InvalidArgumentException;
 use JsonException;
@@ -12,6 +13,8 @@ use Spatie\SimpleExcel\SimpleExcelReader;
  */
 final class WastaysBundle
 {
+    private ?string $timeZone = null;
+
     private function __construct(
         public readonly string $path,
         public readonly WastaysManifest $manifest,
@@ -57,6 +60,40 @@ final class WastaysBundle
 
             $reader->close();
         });
+    }
+
+    /**
+     * The calendar date a wastays timestamp falls on in the hotel's own time zone. wastays keeps `check_in` and
+     * `check_out` as UTC timestamps, so a Malaysian check-in at 03:00 is stored on the evening before. A plain date or
+     * an empty value comes back as it is.
+     */
+    public function localDate(string $value): string
+    {
+        if ($value === '' || preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) === 1) {
+            return $value;
+        }
+
+        return CarbonImmutable::parse($value, 'UTC')->setTimezone($this->timeZone())->toDateString();
+    }
+
+    /**
+     * The hotel's time zone from `hotels.csv` (wastays names it like "Kuala Lumpur"), Kuala Lumpur when the file is not in the bundle.
+     */
+    public function timeZone(): string
+    {
+        if ($this->timeZone !== null) {
+            return $this->timeZone;
+        }
+
+        $name = array_key_exists('hotels.csv', $this->manifest->files) ? trim((string) ($this->rows('hotels')->first()['time_zone'] ?? '')) : '';
+
+        foreach ([$name, 'Asia/'.str_replace(' ', '_', $name), 'Pacific/'.str_replace(' ', '_', $name), 'Australia/'.str_replace(' ', '_', $name)] as $candidate) {
+            if ($name !== '' && in_array($candidate, timezone_identifiers_list(), true)) {
+                return $this->timeZone = $candidate;
+            }
+        }
+
+        return $this->timeZone = 'Asia/Kuala_Lumpur';
     }
 
     /**

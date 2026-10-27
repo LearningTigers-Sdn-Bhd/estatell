@@ -78,7 +78,7 @@ class HousekeepingBoardController extends Controller
             ? ['type' => 'success', 'message' => __('Room :room is now :status.', ['room' => $room->number, 'status' => $request->status()->label()])]
             : ['type' => 'error', 'message' => $refusal->message($room->number)]);
 
-        return to_route('housekeeping.index', $property);
+        return back();
     }
 
     public function assignee(AssignHousekeeperRequest $request, Property $property, Room $room, AssignHousekeeper $assignHousekeeper): RedirectResponse
@@ -105,7 +105,7 @@ class HousekeepingBoardController extends Controller
 
         $setDoNotDisturb($request->user(), $room, $request->boolean('dnd'), $housekeepingDate->for($property));
 
-        return to_route('housekeeping.index', $property);
+        return back();
     }
 
     /**

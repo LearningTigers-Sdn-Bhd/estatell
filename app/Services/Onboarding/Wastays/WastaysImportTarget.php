@@ -36,11 +36,13 @@ final readonly class WastaysImportTarget
     }
 
     /**
+     * `$alignPrefix` is for `wastays:import-setup`, which replaces a different document prefix with the bundle's hotel code.
+     *
      * @throws InvalidArgumentException with a sentence for the console when the import must not run
      */
-    public static function resolve(string $bundlePath, string $propertyCode, string $actorEmail): self
+    public static function resolve(string $bundlePath, string $propertyCode, string $actorEmail, bool $alignPrefix = false): self
     {
-        $target = self::load($bundlePath, $propertyCode, $actorEmail);
+        $target = self::load($bundlePath, $propertyCode, $actorEmail, $alignPrefix);
 
         if (! in_array($target->property->status, [PropertyStatus::Onboarding, PropertyStatus::PendingApproval], true)) {
             throw new InvalidArgumentException('The property has already gone live. Import before go-live is approved.');
@@ -49,7 +51,7 @@ final readonly class WastaysImportTarget
         return $target;
     }
 
-    private static function load(string $bundlePath, string $propertyCode, string $actorEmail): self
+    private static function load(string $bundlePath, string $propertyCode, string $actorEmail, bool $alignPrefix = false): self
     {
         $bundle = WastaysBundle::open($bundlePath);
 
@@ -63,7 +65,7 @@ final readonly class WastaysImportTarget
             throw new InvalidArgumentException("No admin user has the email {$actorEmail}.");
         }
 
-        if ($property->document_prefix !== $bundle->manifest->hotelCode) {
+        if (! $alignPrefix && $property->document_prefix !== $bundle->manifest->hotelCode) {
             throw new InvalidArgumentException("The bundle is for {$bundle->manifest->hotelCode}, but the property's document prefix is ".($property->document_prefix ?? 'not set').'.');
         }
 

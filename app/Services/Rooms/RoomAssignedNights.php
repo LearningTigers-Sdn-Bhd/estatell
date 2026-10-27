@@ -2,6 +2,7 @@
 
 namespace App\Services\Rooms;
 
+use App\Enums\UnitStatus;
 use App\Models\Room;
 use App\Models\UnitDayUse;
 use App\Models\UnitNight;
@@ -42,5 +43,28 @@ class RoomAssignedNights
         $dates = array_filter([$night, $dayUse]);
 
         return $dates === [] ? null : CarbonImmutable::parse(min($dates));
+    }
+
+    /**
+     * Whether a unit that holds inventory has a night from the first to the last night (both included) that a block
+     * on the room, or on one of its beds, would take.
+     *
+     * Without a bed, a night on the room or on any of its beds counts. With a bed, a night on that bed or on the whole
+     * room counts. A day use holds no night, so it does not count.
+     */
+    public function existBetween(Room $room, ?int $bedId, string $firstNight, string $lastNight): bool
+    {
+        return UnitNight::query()
+            ->join('reservation_units', 'reservation_units.id', '=', 'unit_nights.reservation_unit_id')
+            ->whereIn('reservation_units.status', array_map(fn (UnitStatus $status): string => $status->value, UnitStatus::holdingInventory()))
+            ->whereBetween('unit_nights.date', [$firstNight, $lastNight])
+            ->where(fn ($query) => $query
+                ->where('unit_nights.room_id', $room->id)
+                ->when(
+                    $bedId === null,
+                    fn ($query) => $query->orWhereIn('unit_nights.bed_id', $room->beds()->select('id')),
+                    fn ($query) => $query->orWhere('unit_nights.bed_id', $bedId),
+                ))
+            ->exists();
     }
 }

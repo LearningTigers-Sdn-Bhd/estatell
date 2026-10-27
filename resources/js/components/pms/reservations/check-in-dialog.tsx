@@ -94,6 +94,7 @@ function CheckInForm({
         without_card: false,
         credit_override_reason: '',
         collect_now: true,
+        room_charges: false,
         collect_deposit: true,
         payment_method_id: '',
         reference: '',
@@ -102,18 +103,30 @@ function CheckInForm({
     const methodId = data.payment_method_id || String(methods[0]?.id ?? '');
     const method = methods.find((one) => String(one.id) === methodId);
     const collection = preview?.collection ?? null;
-    const taxesTotal =
+    // The full bill is offered unless the company is billed. Ticked, it holds the tax rows, so they drop out.
+    const billOffered =
+        collection !== null &&
+        !collection.billHidden &&
+        Number(collection.billTotal) > 0;
+    const billTicked = billOffered && data.room_charges;
+    const taxesDue =
         collection !== null && !collection.taxesHidden
             ? Number(collection.taxesTotal)
             : 0;
+    const taxesTotal = billTicked ? 0 : taxesDue;
+    const billAmount =
+        billTicked && collection !== null ? Number(collection.billTotal) : 0;
     const depositAmount =
         collection?.deposit != null && data.collect_deposit
             ? Number(collection.deposit)
             : 0;
-    const collectTotal = taxesTotal + depositAmount;
+    const collectTotal = taxesTotal + billAmount + depositAmount;
     // Rows can exist with nothing due (an exempt tax), so Collect now has nothing to take.
     const nothingToCollect =
-        collection !== null && taxesTotal === 0 && collection.deposit === null;
+        collection !== null &&
+        taxesDue === 0 &&
+        collection.deposit === null &&
+        !billOffered;
     const collecting = collection !== null && !nothingToCollect;
     const needsOverride =
         preview !== null && preview.cardsMissing > 0 && !data.without_card;
@@ -125,6 +138,7 @@ function CheckInForm({
             reference: method?.requiresReference ? values.reference : '',
             collect_now: collecting && values.collect_now,
             collect_taxes: collecting && values.collect_now,
+            room_charges: billTicked && collecting && values.collect_now,
             collect_deposit:
                 collection?.deposit != null &&
                 values.collect_now &&
@@ -336,7 +350,39 @@ function CheckInForm({
                         ))}
                     {collection !== null && (
                         <>
-                            {!collection.taxesHidden &&
+                            {billOffered && (
+                                <FieldLabel htmlFor="check-in-room_charges">
+                                    <Field orientation="horizontal">
+                                        <Checkbox
+                                            id="check-in-room_charges"
+                                            checked={data.room_charges}
+                                            onCheckedChange={(checked) =>
+                                                form.setData(
+                                                    'room_charges',
+                                                    checked,
+                                                )
+                                            }
+                                        />
+                                        <FieldContent>
+                                            <span className="flex justify-between gap-4 text-sm font-medium">
+                                                Room charges and tax
+                                                <MoneyText
+                                                    amount={
+                                                        collection.billTotal
+                                                    }
+                                                    currency={currency}
+                                                />
+                                            </span>
+                                            <FieldDescription>
+                                                The whole bill: nights, add-ons
+                                                and every tax.
+                                            </FieldDescription>
+                                        </FieldContent>
+                                    </Field>
+                                </FieldLabel>
+                            )}
+                            {!billTicked &&
+                                !collection.taxesHidden &&
                                 collection.taxes.length > 0 && (
                                     <div className="flex flex-col gap-1 text-sm">
                                         <span className="font-medium">
@@ -483,6 +529,7 @@ function CheckInForm({
                                                     </FieldLabel>
                                                     <Input
                                                         id="check-in-reference"
+                                                        placeholder="e.g. 4821 0933"
                                                         value={data.reference}
                                                         onChange={(event) =>
                                                             form.setData(
@@ -516,7 +563,7 @@ function CheckInForm({
 
 /**
  * Check in one unit. Shows the room and the registration card status, a Nationality field when a tax needs it, the
- * overrides the user may use, and Collect now (the taxes flagged for check-in and the security deposit) for a user
+ * overrides the user may use, and Collect now (the taxes flagged for check-in or, ticked, the full bill, and the security deposit) for a user
  * who may record payments. The form sends choices only. The server works out every amount.
  */
 export function CheckInDialog(props: Props) {

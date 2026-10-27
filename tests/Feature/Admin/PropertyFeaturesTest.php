@@ -58,7 +58,7 @@ test('the property page lists features with their state for that property only',
             ->where('features.0', [
                 'feature' => 'channel-manager',
                 'label' => 'Channel manager',
-                'description' => 'Connect this property to Channex and sync OTAs.',
+                'description' => 'Connect this property to a channel manager and sync OTAs.',
                 'active' => false,
             ])
         );

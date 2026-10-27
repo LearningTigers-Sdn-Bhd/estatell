@@ -9,9 +9,9 @@ use App\Enums\TransactionKind;
 use App\Models\Discount;
 use App\Models\Folio;
 use App\Models\FolioLine;
-use App\Models\Tax;
 use App\Models\User;
 use App\Services\Folio\DiscountQuote;
+use App\Services\Folio\LineTaxes;
 use App\Services\NightAudit\CurrentBusinessDate;
 use Brick\Math\BigDecimal;
 use Brick\Math\RoundingMode;
@@ -24,11 +24,13 @@ class ApplyDiscount
         private CurrentBusinessDate $currentBusinessDate,
         private DiscountQuote $discountQuote,
         private CloseSettledUnitFolio $closeSettledUnitFolio,
+        private LineTaxes $lineTaxes,
     ) {}
 
     /**
      * Post a negative discount line under each eligible charge, then a negative tax line under each discount line for
-     * every percent tax line of the charge (tax x share / net amount). Flat taxes are never reduced and
+     * every live percent tax line of the charge (tax x share / net amount). A reversed tax line (from `RemoveLineTax`
+     * or `RecalculateLineTax`) is skipped, so each tax counts once and only tax still charged is reduced. Flat taxes are never reduced and
      * `TaxCalculator` is not called. The folio row is locked first, so two applications never race, and the unique
      * ledger key is the second guard. Every check runs before the first write, so a refusal writes and logs nothing.
      * Permissions are checked by the route. See docs/13-folio/04-folio-discounts.md.
@@ -125,8 +127,8 @@ class ApplyDiscount
             ]);
             $lines[] = $discountLine;
 
-            foreach ($charge->children()->where('kind', TransactionKind::Tax)->orderBy('id')->get() as $taxLine) {
-                $tax = Tax::query()->where('property_id', $folio->property_id)->where('transaction_code_id', $taxLine->transaction_code_id)->first();
+            foreach ($this->lineTaxes->liveTaxLines($charge) as $taxLine) {
+                $tax = $this->lineTaxes->taxOf($taxLine, $folio->property_id);
 
                 if ($tax === null || $tax->rate_type !== TaxRateType::Percent) {
                     continue;

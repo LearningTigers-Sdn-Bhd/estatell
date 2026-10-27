@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Reservations;
 
+use App\Actions\FrontDesk\CheckInWalkIn;
 use App\Actions\Reservations\BookingResult;
 use App\Actions\Reservations\CreateBooking;
 use App\Actions\Reservations\CreateMigratedStay;
 use App\Actions\Reservations\CreateOldStay;
 use App\Actions\Reservations\CreatePastStay;
 use App\Data\Property\CurrencyData;
+use App\Data\Reservations\WalkInPaymentData;
 use App\Enums\BillingMode;
 use App\Enums\BoatDirection;
 use App\Enums\Gender;
@@ -22,6 +24,8 @@ use App\Http\Requests\Reservations\FreeUnitsRequest;
 use App\Http\Requests\Reservations\QuoteBookingLineRequest;
 use App\Http\Requests\Reservations\StoreBookingRequest;
 use App\Http\Requests\Reservations\StorePastStayRequest;
+use App\Http\Requests\Reservations\StoreWalkInRequest;
+use App\Http\Requests\Reservations\WalkInPaymentRequest;
 use App\Models\Property;
 use App\Models\RatePlan;
 use App\Models\RoomType;
@@ -29,6 +33,7 @@ use App\Services\Availability\DayUseAvailability;
 use App\Services\Availability\FreeUnits;
 use App\Services\Boats\BoatSeats;
 use App\Services\CityLedger\CompanyOptions;
+use App\Services\FrontDesk\WalkInPayment;
 use App\Services\Guests\CountryOptions;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\NightAudit\FirstBusinessDate;
@@ -36,10 +41,13 @@ use App\Services\Property\MigrationWindow;
 use App\Services\Property\PropertyToday;
 use App\Services\Rates\DayUseOffers;
 use App\Services\Reservations\BookingErrorKeys;
+use App\Services\Reservations\BookingFormBack;
+use App\Services\Reservations\BookingPrefill;
 use App\Services\Reservations\BookingQuote;
 use App\Services\Reservations\BookingSourceOptions;
 use App\Services\Reservations\ReservationFormOptions;
 use App\Services\Reservations\ReservationRefusals;
+use App\Services\Reservations\WalkInOutcome;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -55,7 +63,7 @@ class ReservationBookingController extends Controller
      */
     public function new(Request $request, Property $property, ReservationFormOptions $options, CurrentBusinessDate $businessDate, PropertyToday $today, BookingSourceOptions $sourceOptions): Response
     {
-        return $this->form($request, $property, $options, $businessDate, $today, $sourceOptions, walkIn: false);
+        return $this->form($request, $property, $options, $businessDate, $today, $sourceOptions, walkIn: false, readsPrefill: true);
     }
 
     /**
@@ -213,6 +221,58 @@ class ReservationBookingController extends Controller
     }
 
     /**
+     * Save a walk-in: book the stay, check in every unit and take the payment in one step. A refused booking goes back
+     * to the form as errors and nothing is saved, as `store()` does. A total that is not the one the rail showed goes
+     * back with `amount_changed` and nothing is saved. Otherwise the reservation page opens with a toast that counts the
+     * units checked in; each unit that stayed Confirmed is named with its reason in the toast description.
+     */
+    public function storeWalkIn(StoreWalkInRequest $request, Property $property, CheckInWalkIn $checkInWalkIn, BookingErrorKeys $errorKeys, WalkInOutcome $outcome): RedirectResponse
+    {
+        $result = $checkInWalkIn($request->user(), $property, $request->toBookingData(), $request->paymentChoice(), $request->withoutCard());
+
+        if ($result->booking !== null) {
+            return back(fallback: route('reservations.walk-in', ['property' => $property]))->withErrors(
+                $errorKeys->errors($result->booking, $request->unitsPerLine(), $request->user()->can(PermissionEnum::RatesOverrideRestrictions->value)),
+            );
+        }
+
+        if ($result->amountChanged) {
+            return back(fallback: route('reservations.walk-in', ['property' => $property]))->withErrors([
+                'amount_changed' => __('The amount changed. Check the payment and press Check in again.'),
+            ]);
+        }
+
+        $reasons = $outcome->reasons($result, $request->user()->can(PermissionEnum::FrontDeskCheckInWithoutCard->value));
+
+        $toast = ['type' => $reasons === [] ? 'success' : 'warning', 'message' => $outcome->headline($property, $result)];
+
+        if ($reasons !== []) {
+            $toast['description'] = implode("\n", $reasons);
+        }
+
+        Inertia::flash('toast', $toast);
+
+        return to_route('reservations.show', ['property' => $property, 'reservation' => $result->reservation]);
+    }
+
+    /**
+     * What the walk-in would pay, for the Payment section of the rail. The booking is tried and rolled back, so nothing
+     * is saved. A booking that would be refused answers 200 with `errors`, keyed as a save keys them.
+     */
+    public function walkInPayment(WalkInPaymentRequest $request, Property $property, WalkInPayment $walkInPayment, BookingErrorKeys $errorKeys): JsonResponse
+    {
+        $payment = $walkInPayment->preview($request->user(), $property, $request->toBookingData());
+
+        if ($payment instanceof BookingResult) {
+            return response()->json(WalkInPaymentData::refused(
+                $errorKeys->errors($payment, $request->unitsPerLine(), $request->user()->can(PermissionEnum::RatesOverrideRestrictions->value)),
+            ));
+        }
+
+        return response()->json($payment);
+    }
+
+    /**
      * Price one booking line for the booking form. A line that cannot be priced answers 200 with `errors`.
      */
     public function quote(QuoteBookingLineRequest $request, Property $property, BookingQuote $bookingQuote): JsonResponse
@@ -268,6 +328,7 @@ class ReservationBookingController extends Controller
             $roomType,
             $request->date('arrival_date', 'Y-m-d'),
             $request->date('departure_date', 'Y-m-d'),
+            includeNotReady: $request->boolean('walk_in'),
         )]);
     }
 
@@ -305,8 +366,9 @@ class ReservationBookingController extends Controller
         return response()->json(['seats' => (object) $boatSeats->forDate($direction, $request->date('date', 'Y-m-d')->toImmutable(), $departureIds)]);
     }
 
-    private function form(Request $request, Property $property, ReservationFormOptions $options, CurrentBusinessDate $businessDate, PropertyToday $today, BookingSourceOptions $sourceOptions, bool $walkIn, bool $pastStay = false, bool $migratedStay = false, bool $oldStay = false): Response
+    private function form(Request $request, Property $property, ReservationFormOptions $options, CurrentBusinessDate $businessDate, PropertyToday $today, BookingSourceOptions $sourceOptions, bool $walkIn, bool $pastStay = false, bool $migratedStay = false, bool $oldStay = false, bool $readsPrefill = false): Response
     {
+        $todayDate = $businessDate->date($property) ?? $today->date($property);
         $canManageGuests = $request->user()->can(PermissionEnum::GuestsManage->value);
         $companies = $request->user()->can(PermissionEnum::CompanyView->value) ? app(CompanyOptions::class)->active($property) : [];
 
@@ -315,13 +377,15 @@ class ReservationBookingController extends Controller
             'isPastStay' => $pastStay,
             'isMigratedStay' => $migratedStay,
             'isOldStay' => $oldStay,
+            'back' => app(BookingFormBack::class)->fromQuery($property, $request->query()),
+            'prefill' => $readsPrefill ? app(BookingPrefill::class)->fromQuery($property, $request->query(), $todayDate) : null,
             'canEnterMigratedStay' => $request->user()->can(PermissionEnum::FolioManual->value) && app(MigrationWindow::class)->isOpen($property),
             'canEnterOldStay' => $request->user()->can(PermissionEnum::FolioManual->value) && app(MigrationWindow::class)->isOpen($property),
             'oldFolioModes' => OldFolioMode::options(),
             'goLiveDate' => (app(FirstBusinessDate::class)->date($property) ?? $today->date($property))->toDateString(),
             'canEnterPastStay' => $request->user()->can(PermissionEnum::FolioManual->value),
             'sources' => $sourceOptions->forBooking($property, $walkIn, canUseCompany: $companies !== []),
-            'today' => ($businessDate->date($property) ?? $today->date($property))->toDateString(),
+            'today' => $todayDate->toDateString(),
             'checkInTime' => substr($property->settings->check_in_time ?? '15:00', 0, 5),
             'checkOutTime' => substr($property->settings->check_out_time ?? '11:00', 0, 5),
             'nowTime' => CarbonImmutable::now($property->settings->time_zone ?? config('app.timezone'))->format('H:i'),
@@ -338,7 +402,11 @@ class ReservationBookingController extends Controller
             'currency' => CurrencyData::forProperty($property),
             'canOverrideRestrictions' => $request->user()->can(PermissionEnum::RatesOverrideRestrictions->value),
             'canManageGuests' => $canManageGuests,
+            'canRecordPayment' => $request->user()->can(PermissionEnum::PaymentRecord->value),
+            'canCheckInWithoutCard' => $walkIn && (bool) $property->settings?->card_required_for_check_in && $request->user()->can(PermissionEnum::FrontDeskCheckInWithoutCard->value),
+            'paymentOptions' => Inertia::optional(fn () => $request->user()->can(PermissionEnum::PaymentRecord->value) ? $options->payments($property, $request->user()) : null),
             'countries' => $canManageGuests ? app(CountryOptions::class)->options() : [],
+            'defaultNationalityCode' => $property->country_code ?? 'MY',
             'genders' => Gender::options(),
             'locales' => Locale::options(),
         ]);

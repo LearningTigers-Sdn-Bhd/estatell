@@ -60,19 +60,9 @@ export default function Login({ status, canResetPassword }: Props) {
                             </Field>
 
                             <Field data-invalid={!!errors.password}>
-                                <div className="flex flex-wrap items-center justify-between gap-2">
-                                    <FieldLabel htmlFor="password">
-                                        Password
-                                    </FieldLabel>
-                                    {canResetPassword && (
-                                        <TextLink
-                                            href={request()}
-                                            className="text-sm"
-                                        >
-                                            Forgot your password?
-                                        </TextLink>
-                                    )}
-                                </div>
+                                <FieldLabel htmlFor="password">
+                                    Password
+                                </FieldLabel>
                                 <PasswordInput
                                     id="password"
                                     name="password"
@@ -82,10 +72,29 @@ export default function Login({ status, canResetPassword }: Props) {
                                     placeholder="Password"
                                 />
                                 <FieldError>{errors.password}</FieldError>
+                                {canResetPassword && (
+                                    <TextLink
+                                        href={request()}
+                                        className="self-end text-sm"
+                                    >
+                                        Forgot your password?
+                                    </TextLink>
+                                )}
                             </Field>
 
                             <Field orientation="horizontal">
-                                <Checkbox id="remember" name="remember" />
+                                <Checkbox
+                                    id="remember"
+                                    name="remember"
+                                    onKeyDown={(event) => {
+                                        if (event.key === 'Enter') {
+                                            event.preventDefault();
+                                            event.currentTarget
+                                                .closest('form')
+                                                ?.requestSubmit();
+                                        }
+                                    }}
+                                />
                                 <FieldLabel htmlFor="remember">
                                     Remember me
                                 </FieldLabel>

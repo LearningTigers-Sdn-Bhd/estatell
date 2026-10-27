@@ -183,6 +183,7 @@ test('a housekeeper marks a room clean and the change is logged', function () {
     $room = boardRoom($property, '101', HousekeepingStatus::Dirty);
 
     $this->actingAs($housekeeper)
+        ->from(route('housekeeping.index', $property->code))
         ->put(route('housekeeping.rooms.status', [$property->code, $room]), ['status' => 'clean'])
         ->assertRedirect(route('housekeeping.index', $property->code));
 
@@ -506,4 +507,24 @@ test('the board sends the print layout and who may edit it', function () {
     $this->actingAs($housekeeper)
         ->get(route('housekeeping.index', $property->code))
         ->assertInertia(fn (Assert $page) => $page->where('canEditLayout', false));
+});
+
+test('the status and do-not-disturb routes go back to the page that sent them', function () {
+    $owner = User::factory()->owner()->create();
+    $property = boardProperty($owner);
+    $room = boardRoom($property, '101', HousekeepingStatus::Dirty);
+    $roomView = route('front-desk.rooms', [$property->code, 'date' => '2026-10-14', 'show' => ['vacant']]);
+
+    $this->actingAs($owner)
+        ->from($roomView)
+        ->put(route('housekeeping.rooms.status', [$property->code, $room]), ['status' => 'clean'])
+        ->assertRedirect($roomView);
+    $this->actingAs($owner)
+        ->from($roomView)
+        ->put(route('housekeeping.rooms.dnd', [$property->code, $room]), ['dnd' => true])
+        ->assertRedirect($roomView);
+    $this->actingAs($owner)
+        ->from(route('housekeeping.index', $property->code))
+        ->put(route('housekeeping.rooms.dnd', [$property->code, $room]), ['dnd' => false])
+        ->assertRedirect(route('housekeeping.index', $property->code));
 });

@@ -8,10 +8,14 @@ use Spatie\LaravelData\Data;
 
 /**
  * One row of the boat departures tables and the departure form. Times are `HH:MM`. `upcomingBookings` counts the bookings
- * whose upcoming trips use the departure, for the turn-off warning and the edit note.
+ * whose upcoming trips use the departure, for the turn-off warning and the edit note. `meals` names the meal periods a
+ * guest on it can get, for the Meals column.
  */
 class BoatDepartureData extends Data
 {
+    /**
+     * @param  list<string>  $meals
+     */
     public function __construct(
         public int $id,
         public BoatDirection $direction,
@@ -23,12 +27,15 @@ class BoatDepartureData extends Data
         public ?BoatFareData $fare,
         public bool $active,
         public int $upcomingBookings = 0,
+        public array $meals = [],
     ) {}
 
     /**
      * The departure's fare is loaded with `chargeItem`, even when that fare is no longer available.
+     *
+     * @param  list<string>  $meals
      */
-    public static function fromModel(BoatDeparture $boatDeparture, int $upcomingBookings = 0): self
+    public static function fromModel(BoatDeparture $boatDeparture, int $upcomingBookings = 0, array $meals = []): self
     {
         return new self(
             id: $boatDeparture->id,
@@ -41,6 +48,7 @@ class BoatDepartureData extends Data
             fare: $boatDeparture->chargeItem === null ? null : BoatFareData::fromModel($boatDeparture->chargeItem),
             active: $boatDeparture->active,
             upcomingBookings: $upcomingBookings,
+            meals: $meals,
         );
     }
 }

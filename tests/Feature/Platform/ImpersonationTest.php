@@ -109,7 +109,7 @@ test('starting redirects to the path and shares the impersonation prop', functio
             ->where('impersonation.userName', $this->owner->name)
             ->where('impersonation.userRole', 'Owner')
             ->where('impersonation.propertyCode', 'ES10142')
-            ->where('impersonation.minutesLeft', 30)
+            ->where('impersonation.minutes', 0)
             ->where('impersonation.stopUrl', '/impersonation/stop')
         );
 });
@@ -268,16 +268,16 @@ test('logging out while impersonating ends the whole session and logs it', funct
         ->and($ended->causer_id)->toBe($this->admin->id)
         ->and($ended->properties['duration_minutes'])->toBe(7);
     $this->assertGuest();
-    Notification::assertSentTo($this->owner, SupportAccessUsed::class);
+    Notification::assertNothingSent();
 });
 
-test('the minutes left count down from 30', function () {
+test('the banner shows the minutes used', function () {
     $this->actingAs($this->admin)->post(route('view-as.store', 'ES10142'), viewAsInput($this->owner));
 
     $this->travel(12)->minutes();
 
     $this->get(route('dashboard', 'ES10142'))
-        ->assertInertia(fn (Assert $page) => $page->where('impersonation.minutesLeft', 18));
+        ->assertInertia(fn (Assert $page) => $page->where('impersonation.minutes', 12));
 });
 
 test('no impersonation prop for a signed-in admin', function () {
@@ -371,63 +371,35 @@ test('a write outside a session keeps its own causer', function () {
         ->and($activity->properties->has('impersonated_user_id'))->toBeFalse();
 });
 
-test('the owner is told when the session ends, with the partner name for a partner', function () {
+test('ending a session sends the owner nothing', function () {
     Notification::fake();
-    $partnerUser = User::factory()->partner()->create();
-    $property = Property::factory()->create(['partner_id' => $partnerUser->partner_id]);
-    $owner = User::factory()->owner()->create(['property_id' => $property->id]);
-    $manager = User::factory()->create(['property_id' => $property->id]);
-
-    $this->actingAs($partnerUser)->post(route('view-as.store', $property->code), viewAsInput($owner, ['note' => 'Call']));
-    Notification::assertNothingSent();
-
+    $this->actingAs($this->admin)->post(route('view-as.store', 'ES10142'), viewAsInput($this->owner));
     $this->travel(4)->minutes();
+
     $this->post(route('impersonation.stop'));
 
-    Notification::assertSentTo($owner, SupportAccessUsed::class, fn (SupportAccessUsed $notification): bool => $notification->supportUserName === $partnerUser->name
-        && $notification->partnerName === $partnerUser->partner->name
-        && $notification->note === 'Call'
-        && $notification->minutes === 4);
-    Notification::assertNotSentTo($manager, SupportAccessUsed::class);
+    expect(Activity::query()->where('event', 'impersonation.ended')->sole()->properties['duration_minutes'])->toBe(4);
+    Notification::assertNothingSent();
 });
 
-test('the notification follows the owner preferences', function () {
-    $notification = new SupportAccessUsed('Sam', null, 'Support', null, now(), 5);
-
-    expect($notification->via($this->owner))->toBe(['mail', 'database'])
-        ->and($notification->toMail($this->owner)->subject)->toBe('Support session ended at '.$this->owner->property->name)
-        ->and($notification->toArray($this->owner)['minutes'])->toBe(5);
-});
-
-test('a session ends on the next request after 30 minutes', function (string $url) {
-    Notification::fake();
+test('a session has no time limit', function () {
     $this->actingAs($this->admin)->post(route('view-as.store', 'ES10142'), viewAsInput($this->owner));
-    $this->travel(31)->minutes();
+    $this->travel(3)->hours();
 
-    $this->get($url)
-        ->assertRedirect(route('admin.properties.show', 'ES10142', absolute: false))
-        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Support session ended (30 min).']);
-
-    $ended = Activity::query()->where('event', 'impersonation.ended')->sole();
-
-    expect(session('impersonation'))->toBeNull()
-        ->and(auth()->id())->toBe($this->admin->id)
-        ->and($ended->causer_id)->toBe($this->admin->id)
-        ->and($ended->properties['duration_minutes'])->toBe(30);
-    Notification::assertSentTo($this->owner, SupportAccessUsed::class);
-    $this->get(route('admin.dashboard'))->assertOk();
-})->with([
-    'staff page' => '/p/ES10142/dashboard',
-    'account page' => '/account/profile',
-]);
-
-test('a session still open at 29 minutes is left alone', function () {
-    $this->actingAs($this->admin)->post(route('view-as.store', 'ES10142'), viewAsInput($this->owner));
-    $this->travel(29)->minutes();
-
-    $this->get(route('dashboard', 'ES10142'))->assertOk();
+    $this->get(route('dashboard', 'ES10142'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where('impersonation.minutes', 180));
 
     expect(Activity::query()->where('event', 'impersonation.ended')->exists())->toBeFalse();
+});
+
+test('the money correction notice is in-app only and names the partner', function () {
+    $notification = new SupportAccessUsed('Sam', 'Andaman Stays', 'Refund', '30.00', 'RF-1');
+    $data = $notification->toArray($this->owner);
+
+    expect($notification->via($this->owner))->toBe(['database'])
+        ->and($data['title'])->toBe('Support made a money correction')
+        ->and($data['body'])->toBe('Sam from Andaman Stays made a money correction: Refund 30.00 (reference RF-1).');
 });
 
 test('opening another property during a session asks to switch', function () {
@@ -460,7 +432,7 @@ test('confirming a switch ends the old session and starts the new one', function
         ->and(Activity::query()->where('event', 'impersonation.started')->latest('id')->first()->subject_id)->toBe($other->id)
         ->and(session('impersonation.property_id'))->toBe($other->id)
         ->and(session('impersonation.support_user_id'))->toBe($this->admin->id);
-    Notification::assertSentTo($this->owner, SupportAccessUsed::class);
+    Notification::assertNothingSent();
 
     $this->get(route('dashboard', 'ES10150'))->assertOk();
 });
@@ -595,7 +567,7 @@ function setMoneyCorrections(Property $property, bool $allowed): void
     PropertySetting::query()->where('property_id', $property->id)->update(['allow_support_money_corrections' => $allowed]);
 }
 
-test('with the money switch on, a refund during a session runs and is listed in the owner notice', function () {
+test('with the money switch on, a refund during a session runs and tells the owner in the app at once', function () {
     Notification::fake();
     $fixture = moneyFixture();
     $this->actingAs($this->admin)->post(route('view-as.store', $fixture['property']->code), ['user' => $fixture['owner']->id, 'reason' => 'support'])->assertRedirect();
@@ -611,13 +583,47 @@ test('with the money switch on, a refund during a session runs and is listed in 
 
     expect(Payment::query()->whereNotNull('refund_of_id')->sole()->amount)->toBe('30.00');
 
-    $this->post(route('impersonation.stop'));
+    Notification::assertSentToTimes($fixture['owner'], SupportAccessUsed::class, 1);
+    Notification::assertSentTo($fixture['owner'], SupportAccessUsed::class, fn (SupportAccessUsed $notification): bool => $notification->supportUserName === $this->admin->name
+        && $notification->partnerName === null
+        && $notification->label === 'Refund'
+        && $notification->amount === '30.00'
+        && $notification->via($fixture['owner']) === ['database']);
+});
 
-    Notification::assertSentTo($fixture['owner'], SupportAccessUsed::class, function (SupportAccessUsed $notification) use ($fixture) {
-        $line = collect($notification->toMail($fixture['owner'])->introLines)->contains(fn (string $text): bool => str_contains($text, 'Refund 30.00'));
+test('a refund during a partner session names the partner in the owner notice', function () {
+    Notification::fake();
+    $fixture = moneyFixture();
+    $partnerUser = User::factory()->partner()->create();
+    $fixture['property']->forceFill(['partner_id' => $partnerUser->partner_id])->save();
+    $this->actingAs($partnerUser)->post(route('view-as.store', $fixture['property']->code), ['user' => $fixture['owner']->id, 'reason' => 'support'])->assertRedirect();
 
-        return $notification->moneyCorrections === [['label' => 'Refund', 'amount' => '30.00', 'reference' => null]] && $line;
-    });
+    $this->post(route('reservations.folios.payments.refunds.store', [
+        'property' => $fixture['property']->code,
+        'reservation' => $fixture['reservation']->id,
+        'folio' => $fixture['folio']->id,
+        'payment' => $fixture['payment']->id,
+    ]), ['amount' => '30.00', 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasNoErrors();
+
+    Notification::assertSentTo($fixture['owner'], SupportAccessUsed::class, fn (SupportAccessUsed $notification): bool => $notification->supportUserName === $partnerUser->name
+        && $notification->partnerName === $partnerUser->partner->name);
+});
+
+test('a refund by staff outside a session tells the owner nothing', function () {
+    Notification::fake();
+    $fixture = moneyFixture();
+
+    $this->actingAs($fixture['owner'])->post(route('reservations.folios.payments.refunds.store', [
+        'property' => $fixture['property']->code,
+        'reservation' => $fixture['reservation']->id,
+        'folio' => $fixture['folio']->id,
+        'payment' => $fixture['payment']->id,
+    ]), ['amount' => '30.00', 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasNoErrors();
+
+    expect(Payment::query()->whereNotNull('refund_of_id')->count())->toBe(1);
+    Notification::assertNothingSent();
 });
 
 test('with the money switch off, a refund during a session is refused with a toast and nothing is refunded', function () {

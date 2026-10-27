@@ -25,23 +25,33 @@ test('without reports.view the dashboard is Today, even for ?tab=performance', f
             ->missing('tiles'));
 });
 
-test('with reports.view the default tab is Today and no performance prop is sent', function () {
+test('with reports.view the default tab is Performance and Today props are not sent', function () {
     $setup = dashboardSetup();
 
     $this->actingAs($setup['user'])->get(route('dashboard', $setup['property']->code))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('tab', 'today')
+            ->where('tab', 'performance')
             ->where('can.canViewReports', true)
+            ->has('period')
+            ->where('tiles', null));
+});
+
+test('?tab=today opens Today for a user with reports.view', function () {
+    $setup = dashboardSetup();
+
+    $this->actingAs($setup['user'])->get(route('dashboard', $setup['property']->code).'?tab=today')
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('tab', 'today')
             ->where('period', null)
             ->where('performance', null)
             ->missing('tiles'));
 });
 
-test('an unknown tab is Today', function () {
+test('an unknown tab is Performance', function () {
     $setup = dashboardSetup();
 
     $this->actingAs($setup['user'])->get(route('dashboard', $setup['property']->code).'?tab=money')
-        ->assertInertia(fn (Assert $page) => $page->where('tab', 'today'));
+        ->assertInertia(fn (Assert $page) => $page->where('tab', 'performance'));
 });
 
 test('the Performance tab sends only its own props, and the figures are deferred', function () {
@@ -74,7 +84,7 @@ test('the Performance tab sends only its own props, and the figures are deferred
 test('Today keeps the You are live card and the Today props, the Performance tab does not', function () {
     $setup = dashboardSetup([PermissionEnum::ReservationsView, PermissionEnum::ReportsView, PermissionEnum::StaffManage]);
 
-    $this->actingAs($setup['user'])->get(route('dashboard', $setup['property']->code))
+    $this->actingAs($setup['user'])->get(route('dashboard', $setup['property']->code).'?tab=today')
         ->assertInertia(fn (Assert $page) => $page->whereNot('youreLive', null));
 
     $this->actingAs($setup['user'])->get(performanceUrl($setup['property']->code))

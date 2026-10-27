@@ -209,6 +209,12 @@ final class WastaysDay
         }
 
         foreach ($this->rows('deposits') as $row) {
+            // A prepayment is money a booking paid before it was made. The part wastays applied to a folio is already a
+            // payment line, and the rest is held outside any folio, so only a security deposit is replayed.
+            if (($row['kind'] ?? null) === 'prepayment') {
+                continue;
+            }
+
             yield $this->event(WastaysEventType::Deposit, $row['received_at'], 'deposits', $row['id'], $row['booking_id'], $row);
         }
     }
@@ -267,6 +273,11 @@ final class WastaysDay
     {
         $category = (string) $row['category'];
         $source = json_decode((string) $row['metadata'], true)['posting_source'] ?? null;
+
+        // Moving a line to another folio of the same payer is a reversal and a new line. estatell keeps the line where it is.
+        if ($source === 'folio_movement') {
+            return WastaysEventType::FolioMovement;
+        }
 
         if ($category === 'tax') {
             return null;

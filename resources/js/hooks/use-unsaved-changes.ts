@@ -55,6 +55,15 @@ export function useUnsavedChanges(dirty: boolean): UnsavedChangesGuard {
         };
     }, [dirty]);
 
+    // A refused save from the dialog closes it, so the form errors behind it can be seen.
+    useEffect(() => {
+        if (target === null) {
+            return;
+        }
+
+        return router.on('error', () => setTarget(null));
+    }, [target]);
+
     const proceed = useCallback(() => {
         const destination = target;
 

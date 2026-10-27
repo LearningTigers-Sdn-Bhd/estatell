@@ -45,4 +45,4 @@ Part of the [design system](../design-system.md). Short contract: [DESIGN.md](..
 ## Tables and grids
 
 - **`DataTable`**: shadcn `table` + `@tanstack/react-table`. Browser-side for bounded lists, server-side (`spatie/laravel-query-builder`) for unbounded lists. Column visibility is stored in `localStorage` per user.
-- **`pms/grid` engine**: CSS grid + `@tanstack/react-virtual` for rows and columns. Fixed row height. Bars placed with `grid-column: start / span n`. Built with the rate calendar first, then reused by Stay View.
+- **`pms/grid` engine**: CSS grid + `@tanstack/react-virtual` for rows and columns. Fixed row height. Bars are an overlay layer placed with the same column offsets. Built with the rate calendar first, then reused by the Stay View (Timeline View).

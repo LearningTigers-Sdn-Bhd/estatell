@@ -19,7 +19,7 @@ test('the card lists the pending staff, the expiry and the first business day', 
     app(OpenBusinessDate::class)($this->property, CarbonImmutable::parse('2026-10-01'));
 
     $this->actingAs($this->owner)
-        ->get(route('dashboard', $this->property->code))
+        ->get(route('dashboard', $this->property->code).'?tab=today')
         ->assertInertia(fn (Assert $page) => $page
             ->where('youreLive.propertyName', $this->property->name)
             ->where('youreLive.firstBusinessDate', '2026-10-01')

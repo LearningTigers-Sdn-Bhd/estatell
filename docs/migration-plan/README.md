@@ -10,16 +10,16 @@ All figures come from a read-only clone of wastays production (`wastays_prod_clo
 
 ## Hotels
 
-| Hotel                                                                 | wastays id | Path           | Status                                    |
-| --------------------------------------------------------------------- | ---------- | -------------- | ----------------------------------------- |
-| [Grand Eastern Hotel](grand-eastern-hotel.md)                         | 3          | Full replay    | Pilot. Replay from 13 Aug agreed          |
-| [Sand Bay Resort Semporna](sand-bay-resort-semporna.md)               | 5          | Full migration | Needs city ledger item 10 and the answers |
-| [Y Hotel](y-hotel.md)                                                 | 4          | Copy setup     | Rate plans studied                        |
-| [Hotel Asia City](hotel-asia-city.md)                                 | 6          | Copy setup     | Rate plans studied. Tax basis to confirm  |
-| [Hotel Puri 36](hotel-puri-36.md)                                     | 8          | Copy setup     | No rooms yet                              |
-| [Summer Holiday](summer-holiday.md)                                   | 10         | Copy setup     | No rooms yet                              |
-| [LKH Motel](lkh-motel.md)                                             | 9          | Start fresh    | Nothing to copy                           |
-| [Amanah Shar Hotel and Apartment](amanah-shar-hotel-and-apartment.md) | 11         | Start fresh    | Nothing to copy                           |
+| Hotel                                                                 | wastays id | Path           | Status                                  |
+| --------------------------------------------------------------------- | ---------- | -------------- | --------------------------------------- |
+| [Grand Eastern Hotel](grand-eastern-hotel.md)                         | 3          | Full replay    | Done. Replayed on production            |
+| [Sand Bay Resort Semporna](sand-bay-resort-semporna.md)               | 5          | Full migration | Done. Replayed, companies billed        |
+| [Y Hotel](y-hotel.md)                                                 | 4          | Copy setup     | Done. Check its rates (SST off)         |
+| [Hotel Asia City](hotel-asia-city.md)                                 | 6          | Copy setup     | Done. Live 26 Oct. Service Tax to ask   |
+| [Hotel Puri 36](hotel-puri-36.md)                                     | 8          | Copy setup     | Done. Live 26 Oct. Tax basis to confirm |
+| [Summer Holiday](summer-holiday.md)                                   | 10         | Copy setup     | Done. Live 26 Oct. Bunk Bed per room?   |
+| [LKH Motel](lkh-motel.md)                                             | 9          | Start fresh    | Nothing to copy                         |
+| [Amanah Shar Hotel and Apartment](amanah-shar-hotel-and-apartment.md) | 11         | Start fresh    | Nothing to copy                         |
 
 Not migrated: Hotel Boreno (1, test data), Gail Decker (2, test data), FPHP UiTM Sabah (7, suspended, not a customer).
 
@@ -61,4 +61,4 @@ wastays has one standing price per room type and plan. estatell keeps a price pe
 | `ta_access` except                             | No match in estatell. Decide per plan                            |
 | Archived plans and archived rooms              | Not imported                                                     |
 
-**Tax basis is not clear.** Hotel Asia City's prices look like they are stored before tax (93.22 + 18% = 110.00). Grand Eastern's look like they include SST (162.00 posts as 150.00 + 12.00 SST). Check wastays `NightlyChargeCalculation` and one real booking per hotel before the import sets prices.
+**Tax basis.** Grand Eastern's prices include SST (162.00 posts as 150.00 + 12.00 SST), so `wastays:import-setup` divides them by 1.08. Hotel Asia City's and Hotel Puri 36's are already before tax (93.22 + 18% = 110.00; 88.89 + 8% = 96.00): run them with `--net-prices`. A hotel with SST off keeps its prices as they are, with or without the flag. Check one real booking per hotel before the first run.

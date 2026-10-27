@@ -2,6 +2,7 @@
 
 namespace App\Services\Onboarding\Wastays;
 
+use App\Enums\ChargingUnit;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TransactionCategory;
 use Brick\Math\BigDecimal;
@@ -62,6 +63,14 @@ class WastaysCodeMap
         'BED' => ['name' => 'Extra Bed', 'code' => 'EXTRA_BED', 'category' => TransactionCategory::Fee],
         // The manual TTX extra charge, until the hotel says whether it is the tourism tax. It carries no tax.
         'TAX' => ['name' => 'TTX', 'code' => 'TTX', 'category' => TransactionCategory::Other],
+        // Sand Bay: charges that carry their own price in `hotel_extra_charges`.
+        'TTX' => ['name' => 'TTX', 'code' => 'TTX', 'category' => TransactionCategory::Other],
+        'JETTY' => ['name' => 'Tourist Jetty Fee', 'code' => 'JETTY_FEE', 'category' => TransactionCategory::Fee],
+        'SO' => ['name' => 'Single Occupancy', 'code' => 'SINGLE_OCCUPANCY', 'category' => TransactionCategory::Fee],
+        'CB' => ['name' => 'Charter Boat', 'code' => 'CHARTER_BOAT', 'category' => TransactionCategory::Transport],
+        'CAKE' => ['name' => '1/2kg Cake', 'code' => 'CAKE', 'category' => TransactionCategory::FoodAndBeverage],
+        'PS' => ['name' => 'Peak Season', 'code' => 'PEAK_SEASON', 'category' => TransactionCategory::Fee],
+        'SFS' => ['name' => 'Sea Fishing (Half Day)', 'code' => 'SEA_FISHING', 'category' => TransactionCategory::Other],
     ];
 
     public function payment(string $code): ?SystemTransactionCode
@@ -88,6 +97,19 @@ class WastaysCodeMap
     public function newCharge(string $code): ?array
     {
         return self::NEW_CHARGES[$code] ?? null;
+    }
+
+    /**
+     * The estatell charging unit of a wastays extra charge, or per item when wastays has no matching unit.
+     */
+    public function chargingUnit(?string $unit): ChargingUnit
+    {
+        return match ($unit) {
+            'per_person' => ChargingUnit::PerGuest,
+            'per_person_night' => ChargingUnit::PerGuestNight,
+            'per_room_night' => ChargingUnit::PerNight,
+            default => ChargingUnit::PerItem,
+        };
     }
 
     /**

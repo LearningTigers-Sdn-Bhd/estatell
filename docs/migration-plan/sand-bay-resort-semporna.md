@@ -4,6 +4,8 @@ wastays id 5 · Semporna · 41 rooms · in wastays since 16 Sep 2026 · **Full m
 
 ## Summary
 
+Check-in 15:00 and check-out 12:00 (confirmed 25 Oct 2026). Property `AS1102` exists in production with an account only, so the setup import fills its details: `wastays:import-setup ... --check-in=15:00 --check-out=12:00`.
+
 The hardest move. The resort sells to travel agents on company rates, has real company debt and credit, and has bookings out to August 2027. It moves after the Grand Eastern pilot and after [city ledger item 10](../15-city-ledger/05-old-system-balances.md) is built.
 
 ## Setup
@@ -17,6 +19,23 @@ The hardest move. The resort sells to travel agents on company rates, has real c
 | Stay discounts | Min 2 nights, an amount off from night 2: 50, 100, 180 or 200 by plan                                                                                                                                                            | Stay discounts                                           |
 | Taxes          | SST off. Tourist Jetty Fee 10.00 flat, off                                                                                                                                                                                       | Ask the hotel                                            |
 | Extra charges  | Tourist Jetty Fee 10 per person, Tourism Tax 10 per room-night, Charter Boat 280, Peak Season 100 per person-night, 1/2kg Cake 65, Sea Fishing (Half Day) 340, Single Occupancy, Food & Beverage, Miscellaneous Revenue, Parking | Charge items. Tourism Tax maps to the Tourism tax preset |
+
+### Charge codes
+
+The setup import maps these wastays codes to charge items, with the wastays price and unit when the extra charge is fixed. The folio lines of the replay land on them.
+
+| wastays code | estatell charge item                                      | Price and unit         |
+| ------------ | --------------------------------------------------------- | ---------------------- |
+| JETTY        | Tourist Jetty Fee                                         | 10.00 per guest        |
+| TTX          | TTX (a charge, no tax; `TAX_TTX` is the real tourism tax) | 10.00 per night        |
+| SO           | Single Occupancy                                          | none (manual)          |
+| MISC, PARK   | Miscellaneous Revenue, Parking                            | none (manual)          |
+| CB           | Charter Boat                                              | 280.00 per item        |
+| CAKE         | 1/2kg Cake                                                | 65.00 per item         |
+| PS           | Peak Season                                               | 100.00 per guest-night |
+| SFS          | Sea Fishing (Half Day)                                    | 340.00 per item        |
+
+`auto_apply` on the Jetty Fee is not copied. The replay posts the wastays lines as they were, so it does not need it. Decide after cutover whether the item should add itself to new bookings.
 
 ### Rate plans
 
@@ -36,7 +55,21 @@ Prices are nightly totals by number of adults, for example Malaysian Publish Rat
 | CU World Travel, Good Earth Travel, GuangZhou Asian World, Zeng Jiaming | 1 each | **All agents except** the named company | Almost certainly meant "only". Confirm                          |
 | Aladdin Holiday Tours, Guangdong Everbright                             | 1 each | All agents except nobody                | Confirm who should use them                                     |
 
-**Decision needed:** estatell allows Only these companies on a derived plan only. The company plans have their own prices by occupancy, so a single percentage from a parent will not fit. Choose one: allow Only these companies on a plan with its own prices, or make each company plan a derived plan with an Amount and accept small price differences.
+**Decided 25 Oct 2026:** estatell now allows Only these companies on any plan ([Who can use this rate](../08-rates/01-rate-plans.md#who-can-use-this-rate)), so the company plans keep their own prices. The import (`wastays:import-setup`, `ImportWastaysOccupancyRatePlans`) does this when the bundle has an active plan that is not Standard, Walk-in or Corporate:
+
+| Step           | Rule                                                                                                                                                                                                                                                             |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Merge          | Active copies with the same name become one per-guest plan that sells all their room types. Archived plans (Walk-in) are not imported. Base Rate joins Standard Rate, because it is the Standard Rate of the one room type Standard Rate lacks. Result: 14 plans |
+| Standard Rate  | The seeded Basic Rate, switched to per guest. It keeps the name Basic Rate until the hotel renames it after go-live                                                                                                                                              |
+| Prices         | Daily rates from the first audit date to 31 Dec 2027. The 1-adult price is the rate amount and every adult count is an occupancy price. No SST division, because SST is off. The room type base price (0) is ignored                                             |
+| Children       | The youngest band goes to the youngest age group. A band of 0 is Free, a multiplier is Percent, an amount is Fixed. Child prices that differ by room type are not copied                                                                                         |
+| Stay discounts | Amount or percent, from the night wastays names                                                                                                                                                                                                                  |
+| Access         | hidden → Everyone. all → All companies, with the market when the copies agree (else all). only → Only these companies. except with a named company → Only that company. except with nobody → All companies                                                       |
+| Companies      | Not in the export, so a limited plan starts with an empty list. The summary names the wastays company ids to list after the companies import                                                                                                                     |
+
+Re-running writes nothing: every wastays plan copy and every room type price has an `import_links` row.
+
+**Taxes step:** SST is off, so the setup import answers the Taxes step with "We don't charge tax" when no tax is on. Go-live would otherwise stay locked. The replay turns Tourism tax on from the day wastays first charged it.
 
 ## History
 
@@ -46,6 +79,104 @@ Prices are nightly totals by number of adults, for example Malaysian Publish Rat
 | Night audits | 36                           | Daily figures copied once          |
 | Folio lines  | 570                          | Stay in wastays                    |
 | Companies    | 187                          | Copy. Confirm which are still used |
+
+### Companies
+
+`wastays:import-companies {bundle} {property} --actor= --dry-run` runs after the setup import and before go-live. It reads `hotel_corporate_accounts` with the account name from `accounts`.
+
+| wastays                                                            | estatell                                                                                                                                      |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Account name                                                       | Company name. Two wastays companies with the same name (ignoring case) become one company, and both ids link to it. Sand Bay has 3 such pairs |
+| `account_type`                                                     | travel_agent → Travel agent, government → Government, anything else (company, salesperson, airline) → Corporate                               |
+| `market`                                                           | Local or International                                                                                                                        |
+| `relationship_type` direct_bill                                    | Direct bill on. City ledger is turned on when a company is created                                                                            |
+| Contact email, phone                                               | Email lower case, dropped if invalid. Phone as E.164, dropped if unreadable (18 at Sand Bay)                                                  |
+| Credit limit, payment terms, BRN, TIN, SST number, billing address | Copied. The export has no billing state or country                                                                                            |
+| `status` suspended                                                 | Suspended                                                                                                                                     |
+| Agent code, agent booking switches, portal login                   | Not copied. No portal login is created, so nobody gets an invitation                                                                          |
+| `rate_plan_agency_rules`                                           | The company is listed on the merged plan that is limited to companies (6 links)                                                               |
+
+Each wastays company has an `import_links` row (`hotel_corporate_accounts`), which the replay uses to put a booking on its company. A second run writes nothing.
+
+### Replay
+
+Sand Bay replays like Grand Eastern: `wastays:go-live` on the first wastays date (16 Sep 2026), then `wastays:replay {bundle} {property} --actor=` up to the last night audit in the export (22 Oct 2026, which wastays had started but not completed). estatell then trades on 23 Oct. Its first weeks were typed in after the fact, so some days cannot match the night audit. The replay lists each case it cannot hold, and the day compare explains the rest.
+
+What the replay does for Sand Bay that it did not for Grand Eastern:
+
+| wastays                                                                                                    | estatell                                                                                                                                                                             |
+| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `check_in` and `check_out` are UTC timestamps (a 03:00 check-in is stored the evening before)              | The date is read in the hotel's time zone (`hotels.csv`, Kuala Lumpur)                                                                                                               |
+| A booking created already cancelled (31, from its bulk entry of old bookings)                              | Created, then cancelled at once                                                                                                                                                      |
+| A receipt number that arrives out of order, and a payment wastays never numbered (91 deposit applications) | Only the replay may issue a wastays receipt number below the last one, up to wastays' highest. A payment with no number takes one above wastays' highest. The desk flow is unchanged |
+| A payment dated to an earlier, closed night                                                                | Posted on the business date. The day compare leaves it out of the estatell day, as wastays leaves it out of every total                                                              |
+| A line moved to another folio of the same payer (156 lines)                                                | Stays on the folio it was first posted on. Counted, with the wastays booking named                                                                                                   |
+| One payer covers a whole group, and every booking checks out with its own balance (6 credits, RM 15,471)   | The unit checks out with a balance and its folio stays open. The note names the booking and the group. The desk still refuses a balance                                              |
+| A charge on a code wastays had turned off (MISC)                                                           | Posted once on the code, which is then turned off again                                                                                                                              |
+| A guest paid before the company that now takes the rooms was added                                         | The advance goes in as a settlement                                                                                                                                                  |
+| A stay moved to an earlier arrival after its check-in                                                      | The check-in waits for the move and is made as of the new arrival                                                                                                                    |
+| A stay moved to a night that has closed, or into a room that is not free                                   | The stay keeps its dates and the booking is listed (6 stays, one night off)                                                                                                          |
+| A charge before check-in that is reversed before it posts                                                  | The wait is dropped                                                                                                                                                                  |
+
+Local rehearsal on the 25 Oct bundle (a throwaway database, 37 days, 16 Sep to 22 Oct, all 278 bookings checked against wastays):
+
+| Check                               | Result                                                                                                                                                                                                                                                                                                                         |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Days that match the night audit     | 27 of 37 exactly. The other 10 differ by the cases below                                                                                                                                                                                                                                                                       |
+| Stay dates                          | 272 of 278 match. The 6 that differ (519, 536 to 540) were moved by wastays into a night that had closed                                                                                                                                                                                                                       |
+| Status                              | 277 of 278 match. Booking 961 is a no-show wastays only detected                                                                                                                                                                                                                                                               |
+| Balance of each booking             | 255 of 278 match to the sen. The 23 that differ: 13 pre-arrival charges that estatell posts at check-in (599 to 609 except 603, and 972 to 974), 5 from the moved stays (519, 536 to 539), 4 tourism tax lines of RM 10 that wastays charged and estatell did not (523, 534, 535, 880) and the RM 20 of a voided booking (472) |
+| Room revenue the compare cannot tie | 10 Oct and 15 to 16 Oct match once folio movements are taken out. The 7, 8, 13 and 14 Oct differences (RM 972, 228, 3,360, 840) match the nights of the six moved stays. 2 Oct (RM 1,050, booking 720) is a night wastays posted after its audit                                                                               |
+
+Nothing is written to production until a dry run on the real bundle gives these figures.
+
+### Stays (cutover route)
+
+Sand Bay does not use the day-by-day replay on this route. Its first weeks were typed into wastays after the fact (72 of 92 check-ins were recorded on or after the departure date), so the daily figures cannot match. It follows the [Migration](../17-onboarding/07-migration.md) rule instead: before go-live belongs to wastays, and only what is open comes across. Go-live is the cutover day (`wastays:go-live --opening-date=2026-10-23`), then `wastays:import-stays {bundle} {property} --actor= --dry-run`:
+
+| wastays                                          | Bookings | estatell                                                                                                                                                                                                                              |
+| ------------------------------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Completed, left before go-live                   | 88       | **Old stay**: room and guest history, no money. The room is the one wastays gave it (or the room named on the booking when the stay was upgraded). A stay on a plan that needs a company, booked without one (11), goes on Basic Rate |
+| Confirmed, arriving on or after go-live, not OTA | 110      | Normal booking with its company, source, plan and wastays price. What was paid in wastays, net of refunds, is one **Old system** payment on the Master folio (companies) or the unit folio. 12 bookings, RM 14,145.00                 |
+| Confirmed OTA                                    | 13       | Not imported. They come through Channex                                                                                                                                                                                               |
+| Cancelled, voided, no-show                       | 63       | Not imported. History stays in wastays                                                                                                                                                                                                |
+| In the house or due out                          | 4        | Not imported yet. The hotel decides (see below)                                                                                                                                                                                       |
+
+Bookings go in by wastays reservation number, so the numbers stay in order, and a second run writes nothing. The command exits with a failure and lists any stay it could not place (for example a room that is not free); the others are kept.
+
+### Company bookings in the replay
+
+| wastays                                                                                              | estatell                                                                                                                                                                                       |
+| ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The company of a booking: `bookings.hotel_corporate_account_id`, else its company billing party      | The reservation's company. Billing mode Master pays all, so room charges and company money sit on the Master folio                                                                             |
+| A line on a company folio (`booking_folios.payer_type` company): charge, payment, adjustment, refund | Master folio. Payments are Advance before check-in and Settlement after                                                                                                                        |
+| A line on a guest folio of the same booking                                                          | The unit folio                                                                                                                                                                                 |
+| A booking with no company on a plan limited to companies (15 bookings)                               | Created as an imported stay: the company check is skipped, because wastays allowed it                                                                                                          |
+| `deposits` of kind prepayment                                                                        | Not replayed. The part wastays applied to a folio is already a payment line, and the rest (4 available deposits, RM 4,374; 1 cancelled group deposit) is held outside any folio. Ask the hotel |
+
+### Other rules the replay needed
+
+| wastays                                                                 | estatell                                                                                                                                                                                |
+| ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A charge taken before the guest checked in (28 Jetty fee lines)         | estatell posts charges only on a checked-in unit. The charge waits and is posted when the unit checks in, on the check-in day. The day compare lists these days as accepted differences |
+| More bookings of a room type than rooms (a group of 11 in a type of 10) | The booking is kept as an over-capacity stay: the replay retries it without the availability check and counts it                                                                        |
+| Receipt of a prepayment deposit, issued when the deposit came in        | The first payment taken from the deposit takes that receipt number (the numbers stay in order). Later payments from the same deposit get the next estatell number                       |
+| Payment with no reference on a method that needs one                    | Reference `wastays folio_transactions {id}`, or the wastays receipt number when there is one                                                                                            |
+
+A check-in that wastays recorded on or after the departure date (72 of the 92 check-ins) is made as of the arrival day, and the day is listed as an accepted difference. The nights then post on the check-in day, while wastays posted them on the day it caught up. Local run: 2 Oct shows room revenue 3,930 in estatell against 0 in wastays, and 4 Oct shows 0 against 2,880, so the replay stops on 4 Oct.
+
+### Booking sources
+
+The replay places each wastays `bookings.source` like this. A booking with a wastays corporate account takes its company from the companies import (`import_links` table `hotel_corporate_accounts`), and the replay stops with "Import the companies first" when the company is missing.
+
+| wastays source | Bookings                 | estatell source                                |
+| -------------- | ------------------------ | ---------------------------------------------- |
+| travel_agent   | 218 (211 with a company) | Company / Travel agent                         |
+| phone          | 25                       | Phone                                          |
+| ota            | 24                       | OTA (the Other channel, named OTA)             |
+| internal       | 8                        | Internal (a Direct source, added when missing) |
+| walk_in        | 2                        | Walk-in                                        |
+| email          | 1                        | Email                                          |
 
 ## Open at cutover
 
@@ -59,9 +190,11 @@ Prices are nightly totals by number of adults, for example Malaysian Publish Rat
 | Guangzhou Asian World International | 4,620.00  | 17, 18, 29         |
 | Guangzhou Youxieren Trip Service    | 3,720.00  | 1, 2               |
 
-13 of the 16 unpaid invoices are overdue. Each comes in with **Add from old system**, with its wastays reference (SBR-264000xx) and real dates.
+13 of the 16 unpaid invoices are overdue. Each comes in with **Add from old system**, with its wastays reference (SBR-264000xx) and real dates. `wastays:import-balances {bundle} {property} --actor= --dry-run` does it on go-live day, after `wastays:import-companies`. It works out what is owed from the allocations that were never reversed (never from the stored `paid_amount`), leaves void invoices, fully paid invoices and voided payments, and moves a due date that is before the issue date to the issue date (question 6 below). Each row has an `import_links` row (`ar_invoices`, `ar_payments`), so a second run writes nothing. It exits with a failure and lists any row it could not place.
 
 ### Company credit: RM 6,980
+
+What is left of each payment after its allocations that were not reversed comes in as Old system credit, with the wastays reference number and the real date.
 
 | Company                    | Credit   | Payments                       |
 | -------------------------- | -------- | ------------------------------ |
@@ -113,5 +246,5 @@ The 4 available deposits (ids 30–33, received 1 Oct) belong to bookings 482–
 
 1. City ledger item 10.
 2. Setup import with the company plan decision.
-3. Companies, guests, Old stays, daily figures.
-4. On go-live day: in-house stays, travel-agent and phone bookings with Old system payments, company debt and credit, and the Channex switch for OTA bookings.
+3. `wastays:import-companies`, then guests, then `wastays:go-live` without an opening date (16 Sep 2026), then `wastays:replay` to 21 Oct.
+4. After the replay, **do not run `wastays:import-balances`**: the replay leaves the invoiced company stays on open company folios (RM 62,400 across 59 stays), so importing the invoices as well would count the debt twice. `wastays:bill-companies {bundle} {property} --actor= --dry-run` settles those folios to the city ledger instead: each wastays invoice settles the company folio that holds exactly its amount, with its wastays number and dates, then the company payments and their allocations come in, and each company's surplus credit goes to its oldest open invoices. A dry run, or any problem, rolls everything back, and a second run writes nothing. In the rehearsal it brought 19 invoices in with their wastays numbers, left 9 wastays invoices with no matching folio (the group and regrouped ones) and kept the credit at RM 6,980. Four of five debtor companies end within RM 20 of wastays. Company 8 (Perfect Vacation) ends RM 5,839 over in invoices that wastays never raised, which the hotel must review. Then the Channex switch for OTA bookings. The cutover route (`go-live --opening-date`, `import-stays`, `import-balances`) stays for a hotel that wants only what is open.

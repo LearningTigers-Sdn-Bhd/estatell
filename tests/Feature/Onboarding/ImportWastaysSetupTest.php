@@ -1,10 +1,16 @@
 <?php
 
 use App\Actions\Property\SeedPropertyDefaults;
+use App\Enums\ChargingUnit;
 use App\Enums\CompanyAccess;
+use App\Enums\CompanyRateMarket;
+use App\Enums\OnboardingStep;
+use App\Enums\PricingBasis;
 use App\Enums\PropertyType;
 use App\Models\ChargeItem;
+use App\Models\DocumentSequence;
 use App\Models\ImportLink;
+use App\Models\OnboardingSkip;
 use App\Models\PaymentMethod;
 use App\Models\Property;
 use App\Models\Rate;
@@ -14,6 +20,7 @@ use App\Models\RoomType;
 use App\Models\Tax;
 use App\Models\TransactionCode;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Testing\PendingCommand;
 
 beforeEach(function () {
@@ -208,14 +215,294 @@ it('stops and writes nothing when a code with lines has no estatell target', fun
     expect(setupSnapshot($this->property))->toBe($before);
 });
 
-it('refuses a property that is not the bundle hotel', function () {
-    $other = Property::factory()->onboarding()->create(['document_prefix' => 'ABC']);
+it('replaces a different document prefix with the bundle hotel code, once', function () {
+    $this->property->forceFill(['document_prefix' => 'ABC'])->save();
 
-    $this->artisan('wastays:import-setup', [
-        'bundle' => wastaysBundleDir(wastaysSetupTables()),
-        'property' => $other->code,
-        '--actor' => $this->admin->email,
-    ])->expectsOutputToContain('The bundle is for GEH')->assertFailed();
+    runSetupImport()->expectsOutputToContain('Document prefix ABC → GEH')->assertSuccessful();
 
-    expect(RoomType::query()->count())->toBe(0);
+    expect($this->property->refresh()->document_prefix)->toBe('GEH')
+        ->and($this->property->documentPrefixHistories()->where('prefix', 'GEH')->count())->toBe(1);
+
+    runSetupImport()->doesntExpectOutputToContain('Document prefix')->assertSuccessful();
+
+    expect($this->property->refresh()->document_prefix)->toBe('GEH');
+});
+
+it('leaves the prefix alone on a dry run', function () {
+    $this->property->forceFill(['document_prefix' => 'ABC'])->save();
+
+    runSetupImport(options: ['--dry-run' => true])->expectsOutputToContain('Document prefix ABC → GEH')->assertSuccessful();
+
+    expect($this->property->refresh()->document_prefix)->toBe('ABC');
+});
+
+it('refuses a new prefix when the property has issued documents', function () {
+    $this->property->forceFill(['document_prefix' => 'ABC'])->save();
+    DocumentSequence::factory()->create(['property_id' => $this->property->id]);
+
+    runSetupImport()->expectsOutputToContain('already issued documents')->assertFailed();
+
+    expect($this->property->refresh()->document_prefix)->toBe('ABC')->and(RoomType::query()->count())->toBe(0);
+});
+
+it('refuses a prefix that another property holds', function () {
+    $this->property->forceFill(['document_prefix' => 'ABC'])->save();
+    Property::factory()->onboarding()->create(['document_prefix' => 'GEH']);
+
+    runSetupImport()->expectsOutputToContain('Another property holds or held the prefix GEH')->assertFailed();
+
+    expect($this->property->refresh()->document_prefix)->toBe('ABC')->and(RoomType::query()->count())->toBe(0);
+});
+
+/**
+ * @return array<string, list<array<string, string>>>
+ */
+function wastaysTablesWithDetails(): array
+{
+    $tables = wastaysSetupTables();
+    $tables['hotels'] = [[...$tables['hotels'][0], 'address' => 'Jalan Pantai 1', 'city' => 'Semporna', 'contact_phone' => '+60 89 781 000', 'contact_email' => 'info@hotel.test', 'ssm_number' => '202601000001', 'tin' => 'C1234567890']];
+
+    return $tables;
+}
+
+it('fills the details and the check-in times of a property that has only an account', function () {
+    $this->property->forceFill(['document_prefix' => 'XYZ'])->save();
+    $this->property = Property::factory()->onboarding()->create(['document_prefix' => 'ABC', 'city' => null]);
+    expect($this->property->settings()->exists())->toBeFalse();
+
+    runSetupImport(wastaysTablesWithDetails(), ['--check-in' => '15:00', '--check-out' => '12:00'])->assertSuccessful();
+
+    $this->property->refresh();
+
+    expect($this->property->address_line1)->toBe('Jalan Pantai 1')
+        ->and($this->property->city)->toBe('Semporna')
+        ->and($this->property->contact_email)->toBe('info@hotel.test')
+        ->and($this->property->registration_number)->toBe('202601000001')
+        ->and($this->property->tin)->toBe('C1234567890')
+        ->and(substr($this->property->settings->check_in_time, 0, 5))->toBe('15:00')
+        ->and(substr($this->property->settings->check_out_time, 0, 5))->toBe('12:00')
+        ->and(RoomType::query()->count())->toBe(4);
+});
+
+it('keeps what the owner already entered', function () {
+    $this->property->forceFill(['address_line1' => 'Owner street', 'city' => 'Tawau'])->save();
+
+    runSetupImport(wastaysTablesWithDetails())->assertSuccessful();
+
+    $this->property->refresh();
+
+    expect($this->property->address_line1)->toBe('Owner street')
+        ->and($this->property->city)->toBe('Tawau')
+        ->and($this->property->contact_email)->toBe('info@hotel.test');
+});
+
+it('refuses a time that is not HH:MM or only one of the two', function () {
+    runSetupImport(options: ['--check-in' => '3pm', '--check-out' => '12:00'])->expectsOutputToContain('must be a time as HH:MM')->assertFailed();
+    runSetupImport(options: ['--check-in' => '15:00'])->expectsOutputToContain('Give both')->assertFailed();
+});
+
+it('creates priced charge items for the Sand Bay codes', function () {
+    $tables = wastaysSetupTables();
+    $tables['transaction_codes'][] = ['id' => '201', 'code' => 'JETTY', 'name' => 'Tourist Jetty Fee', 'active' => 't'];
+    $tables['transaction_codes'][] = ['id' => '202', 'code' => 'CB', 'name' => 'Charter Boat', 'active' => 't'];
+    $tables['hotel_extra_charges'] = [
+        ['id' => '14', 'transaction_code_id' => '201', 'position' => '8', 'pricing_type' => 'fixed', 'rate_value' => '10.0000', 'charging_unit' => 'per_person'],
+        ['id' => '35', 'transaction_code_id' => '202', 'position' => '9', 'pricing_type' => 'fixed', 'rate_value' => '280.0000', 'charging_unit' => 'per_item'],
+        ...$tables['hotel_extra_charges'],
+    ];
+    $tables['folio_transactions'][] = ['id' => '9', 'transaction_code_id' => '201'];
+
+    runSetupImport($tables)->assertSuccessful();
+
+    $jetty = ChargeItem::query()->where('property_id', $this->property->id)->where('name', 'Tourist Jetty Fee')->sole();
+    $boat = ChargeItem::query()->where('property_id', $this->property->id)->where('name', 'Charter Boat')->sole();
+
+    expect($jetty->default_amount)->toBe('10.00')
+        ->and($jetty->charging_unit)->toBe(ChargingUnit::PerGuest)
+        ->and($boat->default_amount)->toBe('280.00')
+        ->and($boat->charging_unit)->toBe(ChargingUnit::PerItem)
+        ->and(ImportLink::query()->where('source_table', 'transaction_codes')->where('source_id', '201')->exists())->toBeTrue();
+});
+
+/**
+ * A Sand Bay shaped bundle: per-person plans repeated for each room type, an archived Walk-in, Base Rate for the room
+ * type Standard Rate does not cover, an agent plan, a plan only for one company and an "except" plan with a named company.
+ *
+ * @return array<string, list<array<string, string>>>
+ */
+function wastaysOccupancyTables(): array
+{
+    $tables = wastaysSetupTables();
+    $plan = fn (string $id, string $name, string $access = 'hidden', string $market = 'all', string $archived = ''): array => [
+        'id' => $id, 'name' => $name, 'sell_mode' => 'per_person', 'archived_at' => $archived, 'ta_access' => $access, 'ta_market' => $market,
+    ];
+    $tables['rate_plans'] = [
+        $plan('10', 'Standard Rate'), $plan('11', 'Base Rate'), $plan('12', 'Malaysian Agent Rate', 'all', 'local'),
+        $plan('13', 'Super Sightseeing', 'only'), $plan('14', 'CU World Travel', 'except'), $plan('15', 'Walk-in', archived: '2026-10-01 00:00:00'),
+    ];
+    $tables['room_type_rate_plans'] = array_map(fn (array $row): array => ['id' => $row[0], 'room_type_id' => $row[1], 'rate_plan_id' => $row[2]], [
+        ['100', '1', '10'], ['101', '2', '10'], ['102', '3', '11'], ['103', '1', '12'], ['104', '1', '13'], ['105', '1', '14'], ['106', '1', '15'],
+    ]);
+    $tables['room_type_rate_plan_occupancy_prices'] = [];
+
+    foreach (['100' => 600, '101' => 700, '102' => 525, '103' => 500, '104' => 400, '105' => 450, '106' => 300] as $linkId => $one) {
+        foreach ([1, 2] as $adults) {
+            $tables['room_type_rate_plan_occupancy_prices'][] = ['id' => $linkId.$adults, 'room_type_rate_plan_id' => $linkId, 'adults' => (string) $adults, 'price' => number_format($one * $adults, 2, '.', '')];
+        }
+    }
+
+    $tables['rate_plan_age_bands'] = [
+        ['id' => '1', 'rate_plan_id' => '10', 'min_age' => '0', 'max_age' => '3', 'price_value' => '0.00', 'pricing_mode' => 'amount'],
+        ['id' => '2', 'rate_plan_id' => '10', 'min_age' => '4', 'max_age' => '12', 'price_value' => '0.00', 'pricing_mode' => 'amount'],
+        ['id' => '3', 'rate_plan_id' => '12', 'min_age' => '0', 'max_age' => '3', 'price_value' => '0.00', 'pricing_mode' => 'multiplier'],
+        ['id' => '4', 'rate_plan_id' => '12', 'min_age' => '4', 'max_age' => '12', 'price_value' => '50.00', 'pricing_mode' => 'multiplier'],
+    ];
+    $tables['rate_plan_stay_discounts'] = [['id' => '1', 'rate_plan_id' => '12', 'min_nights' => '2', 'discount_type' => 'amount', 'value' => '100.00', 'from_night' => '2']];
+    $tables['rate_plan_agency_rules'] = [
+        ['id' => '1', 'rate_plan_id' => '13', 'hotel_corporate_account_id' => '8'],
+        ['id' => '2', 'rate_plan_id' => '14', 'hotel_corporate_account_id' => '9'],
+    ];
+
+    return $tables;
+}
+
+it('merges the copies of each per-person plan into one per-guest plan with its prices, children, discounts and access', function () {
+    runSetupImport(wastaysOccupancyTables())->assertSuccessful();
+
+    $plans = RatePlan::query()->where('property_id', $this->property->id)->active()->get()->keyBy('name');
+
+    expect($plans->keys()->sort()->values()->all())->toBe(['Basic Rate', 'CU World Travel', 'Malaysian Agent Rate', 'Super Sightseeing'])
+        ->and($plans['Basic Rate']->pricing_basis)->toBe(PricingBasis::PerGuest)
+        ->and($plans['Basic Rate']->roomTypes()->count())->toBe(4)
+        ->and($plans['Basic Rate']->company_access)->toBe(CompanyAccess::Everyone)
+        ->and($plans['Malaysian Agent Rate']->company_access)->toBe(CompanyAccess::All)
+        ->and($plans['Malaysian Agent Rate']->company_market)->toBe(CompanyRateMarket::Local)
+        ->and($plans['Super Sightseeing']->company_access)->toBe(CompanyAccess::Selected)
+        ->and($plans['CU World Travel']->company_access)->toBe(CompanyAccess::Selected);
+
+    $baseRoomType = ImportLink::query()->where('property_id', $this->property->id)->where('source_table', 'room_types')->where('source_id', '3')->value('target_id');
+    $rate = Rate::query()->where('rate_plan_id', $plans['Basic Rate']->id)->where('room_type_id', $baseRoomType)->whereDate('date', '2026-08-13')->sole();
+
+    expect($rate->amount)->toBe('525.00')
+        ->and(DB::table('rate_occupancy_prices')->where('rate_id', $rate->id)->orderBy('adults')->pluck('amount', 'adults')->all())->toBe([1 => '525.00', 2 => '1050.00']);
+
+    $children = $plans['Malaysian Agent Rate']->childPrices()->get()->sortBy('property_age_group_id')->values();
+    $standardChildren = $plans['Basic Rate']->childPrices()->get()->sortBy('property_age_group_id')->values();
+
+    expect($children->pluck('pricing')->map->value->all())->toBe(['free', 'percent'])
+        ->and($children[1]->value)->toBe('50.00')
+        ->and($standardChildren->pluck('pricing')->map->value->all())->toBe(['free', 'free'])
+        ->and($plans['Malaysian Agent Rate']->stayDiscounts()->sole()->value)->toBe('100.00');
+});
+
+it('imports the per-person plans once', function () {
+    runSetupImport(wastaysOccupancyTables())->assertSuccessful();
+    $rates = Rate::query()->count();
+    $plans = RatePlan::query()->count();
+
+    runSetupImport(wastaysOccupancyTables())->assertSuccessful();
+
+    expect(Rate::query()->count())->toBe($rates)->and(RatePlan::query()->count())->toBe($plans);
+});
+
+it('answers the Taxes step when the hotel has SST off and no tax is on', function () {
+    $tables = wastaysOccupancyTables();
+    $tables['hotels'] = [['id' => '5', 'created_at' => '2026-09-16T08:00:00Z', 'sst_enabled' => 'f', 'address' => 'Jalan Pantai 1', 'city' => 'Semporna']];
+    Tax::query()->where('property_id', $this->property->id)->update(['enabled' => false]);
+
+    runSetupImport($tables)->assertSuccessful();
+
+    expect(OnboardingSkip::query()->where('property_id', $this->property->id)->where('step', OnboardingStep::Taxes)->exists())->toBeTrue();
+});
+
+/**
+ * A Hotel Asia City shaped bundle: per-room plans repeated for each room type, a half day plan with hours, a staff
+ * plan, an OTA plan with a price that is not fixed and an archived plan. Prices are before SST.
+ *
+ * @return array<string, list<array<string, string>>>
+ */
+function wastaysFixedTables(): array
+{
+    $tables = wastaysSetupTables();
+    $tables['room_types'] = [
+        ['id' => '1', 'name' => 'Deluxe Queen', 'base_price' => '93.22', 'max_adults' => '2', 'max_children' => '0'],
+        ['id' => '2', 'name' => 'Superior Triple', 'base_price' => '118.65', 'max_adults' => '3', 'max_children' => '0'],
+    ];
+    $tables['rooms'] = [['id' => '1', 'number' => '101', 'room_type_id' => '1', 'archived_at' => '']];
+    $plan = fn (string $id, string $name, string $hours = '', string $archived = ''): array => [
+        'id' => $id, 'name' => $name, 'sell_mode' => 'per_room', 'archived_at' => $archived, 'ta_access' => 'hidden', 'day_use_hours' => $hours,
+    ];
+    $tables['rate_plans'] = [
+        $plan('1', 'Standard Rate'), $plan('2', 'Standard Rate'), $plan('3', 'HALFDAY', '4'), $plan('4', 'HALFDAY', '4'),
+        $plan('5', 'STAFF'), $plan('6', 'STAFF'), $plan('7', 'OYO'), $plan('8', 'DayUse Rate', '4', '2026-10-06 00:00:00'),
+    ];
+    $link = fn (string $id, string $roomType, string $plan, string $mode = 'fixed', string $value = ''): array => [
+        'id' => $id, 'room_type_id' => $roomType, 'rate_plan_id' => $plan, 'pricing_mode' => $mode, 'pricing_value' => $value,
+    ];
+    $tables['room_type_rate_plans'] = [
+        $link('1', '1', '1'), $link('2', '2', '2'),
+        $link('3', '1', '3', value: '50.85'), $link('4', '2', '4', value: '63.56'),
+        $link('5', '1', '5', value: '76.27'), $link('6', '2', '6', value: '110.17'),
+        $link('7', '1', '7', 'multiplier', '0.80'), $link('8', '1', '8', value: '50.85'),
+    ];
+
+    return $tables;
+}
+
+it('imports the other per-room plans with a fixed price for each room type', function () {
+    runSetupImport(wastaysFixedTables(), ['--net-prices' => true])->assertSuccessful();
+
+    $plans = RatePlan::query()->where('property_id', $this->property->id)->active()->get()->keyBy('name');
+    $roomTypes = $this->property->roomTypes()->orderBy('id')->get();
+    $price = fn (string $plan, RoomType $type): string => (string) Rate::query()->where('rate_plan_id', $plans[$plan]->id)->where('room_type_id', $type->id)->whereDate('date', '2026-08-13')->value('amount');
+
+    expect($plans->keys()->sort()->values()->all())->toBe(['Basic Rate', 'Corporate Rate', 'HALFDAY', 'STAFF', 'Walk-in Rate'])
+        ->and($plans['STAFF']->pricing_basis)->toBe(PricingBasis::PerRoom)
+        ->and($plans['STAFF']->roomTypes()->count())->toBe(2)
+        ->and([$price('STAFF', $roomTypes[0]), $price('STAFF', $roomTypes[1])])->toBe(['76.27', '110.17'])
+        ->and([$price('Basic Rate', $roomTypes[0]), $price('Basic Rate', $roomTypes[1])])->toBe(['93.22', '118.65'])
+        ->and($plans['HALFDAY']->pricing_basis)->toBe(PricingBasis::DayUse)
+        ->and([$plans['HALFDAY']->day_use_min_hours, $plans['HALFDAY']->day_use_max_hours])->toBe([4, 4])
+        ->and(DB::table('rate_hour_prices')->join('rates', 'rates.id', '=', 'rate_hour_prices.rate_id')->where('rates.rate_plan_id', $plans['HALFDAY']->id)->whereDate('rates.date', '2026-08-13')->orderBy('amount')->pluck('rate_hour_prices.amount', 'rate_hour_prices.hours')->all())->toBe([4 => '63.56']);
+});
+
+it('skips a plan whose price is not fixed and an archived plan, and says so', function () {
+    runSetupImport(wastaysFixedTables(), ['--net-prices' => true])
+        ->expectsOutputToContain('OYO has no room type with a fixed price')
+        ->assertSuccessful();
+
+    expect($this->property->ratePlans()->whereIn('name', ['OYO', 'DayUse Rate'])->exists())->toBeFalse();
+});
+
+it('imports the other per-room plans once', function () {
+    runSetupImport(wastaysFixedTables(), ['--net-prices' => true])->assertSuccessful();
+    $counts = setupSnapshot($this->property);
+
+    runSetupImport(wastaysFixedTables(), ['--net-prices' => true])->assertSuccessful();
+
+    expect(setupSnapshot($this->property))->toBe($counts);
+});
+
+function wastaysBasicRatePrice(array $options, string $sst): string
+{
+    $tables = wastaysSetupTables();
+    $tables['hotels'] = [['id' => '3', 'created_at' => '2026-08-13T08:02:00.038624Z', 'sst_enabled' => $sst]];
+    $tables['room_types'] = [['id' => '1', 'name' => 'Deluxe Queen', 'base_price' => '108.00', 'max_adults' => '2', 'max_children' => '0']];
+    $tables['rooms'] = [];
+
+    runSetupImport($tables, $options)->assertSuccessful();
+
+    return (string) Rate::query()->whereIn('rate_plan_id', RatePlan::query()->where('property_id', test()->property->id)->where('name', 'Basic Rate')->pluck('id'))->whereDate('date', '2026-08-13')->value('amount');
+}
+
+it('divides a price that includes SST by it', function () {
+    expect(wastaysBasicRatePrice([], 't'))->toBe('100.00');
+});
+
+it('keeps a price that is before SST', function () {
+    expect(wastaysBasicRatePrice(['--net-prices' => true], 't'))->toBe('108.00');
+});
+
+it('keeps the price of a hotel with SST off', function () {
+    expect(wastaysBasicRatePrice([], 'f'))->toBe('108.00');
 });

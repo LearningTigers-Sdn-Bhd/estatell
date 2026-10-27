@@ -103,16 +103,16 @@ test('arrivals and departures show the matching trip, in time order, with the bo
     boatDeskTrip($early, BoatDirection::In);
     $leaving = boatDeskUnit($property, '09:00:00', '12:15:00');
     boatDeskTrip($leaving, BoatDirection::Out, 'charter');
-    $query = '?from=2026-10-10&to=2026-10-10';
+    $query = 'from=2026-10-10&to=2026-10-10';
 
-    $this->actingAs($user)->get("/p/{$property->code}/reports/arrivals{$query}")->assertInertia(fn (Assert $page) => $page
+    $this->actingAs($user)->get("/p/{$property->code}/reports/guest-list?tab=arrivals&{$query}")->assertInertia(fn (Assert $page) => $page
         ->where('rows.data', fn ($rows) => collect($rows)->map(fn ($row) => [$row['key'], $row['boat']])->all() === [
             [$early->id, '09:00 boat'],
             [$late->id, 'Own 11:30'],
         ])
         ->where('layout.columns', fn ($columns) => collect($columns)->contains(fn ($column) => $column['key'] === 'boat' && $column['visible'])));
 
-    $this->actingAs($user)->get("/p/{$property->code}/reports/departures{$query}")->assertInertia(fn (Assert $page) => $page
+    $this->actingAs($user)->get("/p/{$property->code}/reports/guest-list?tab=departures&{$query}")->assertInertia(fn (Assert $page) => $page
         ->where('rows.data', fn ($rows) => collect($rows)->map(fn ($row) => [$row['key'], $row['boat']])->all() === [
             [$leaving->id, 'Charter 12:15'],
         ]));
@@ -124,7 +124,7 @@ test('with boats off the column is out of the layout and no trip is read', funct
     boatDeskTrip($unit, BoatDirection::In);
     DB::enableQueryLog();
 
-    $this->actingAs($user)->get("/p/{$property->code}/reports/arrivals?from=2026-10-10&to=2026-10-10")->assertInertia(fn (Assert $page) => $page
+    $this->actingAs($user)->get("/p/{$property->code}/reports/guest-list?tab=arrivals&from=2026-10-10&to=2026-10-10")->assertInertia(fn (Assert $page) => $page
         ->where('layout.columns', fn ($columns) => ! collect($columns)->contains(fn ($column) => $column['key'] === 'boat'))
         ->where('rows.data.0.boat', null));
 

@@ -16,7 +16,7 @@ class ImpersonationData extends Data
         public ?string $userRole,
         public string $propertyName,
         public string $propertyCode,
-        public int $minutesLeft,
+        public int $minutes,
         public string $stopUrl,
         public bool $canCorrectMoney,
     ) {}

@@ -11,6 +11,7 @@ use App\Enums\ChannelAlertEvent;
 use App\Enums\ChannelConnectionStatus;
 use App\Enums\ChannelPropertyStatus;
 use App\Enums\ChannelSupport;
+use App\Enums\ChargeStatus;
 use App\Enums\CompanyStatus;
 use App\Enums\FolioRowTag;
 use App\Enums\FolioStatus;
@@ -23,6 +24,7 @@ use App\Enums\RatePlanStatus;
 use App\Enums\RegistrationCardStatus;
 use App\Enums\ReservationStatus;
 use App\Enums\RevisionKind;
+use App\Enums\RoomDayState;
 use App\Enums\Tone;
 use App\Enums\UnitStatus;
 use Spatie\LaravelData\Data;
@@ -69,6 +71,11 @@ class BadgeData extends Data
     }
 
     public static function fromArInvoiceStatus(ArInvoiceStatus $status): self
+    {
+        return new self($status->value, $status->label(), $status->tone());
+    }
+
+    public static function fromChargeStatus(ChargeStatus $status): self
     {
         return new self($status->value, $status->label(), $status->tone());
     }
@@ -146,5 +153,10 @@ class BadgeData extends Data
     public static function fromUnitStatus(UnitStatus $status): self
     {
         return new self($status->value, $status->label(), $status->tone());
+    }
+
+    public static function fromRoomDayState(RoomDayState $state): self
+    {
+        return new self($state->value, $state->label(), $state->tone());
     }
 }

@@ -1,5 +1,6 @@
 import { Link, router } from '@inertiajs/react';
 import {
+    ArrowRightLeft,
     BookUser,
     ChevronRight,
     IdCard,
@@ -59,6 +60,7 @@ import { Switch } from '@/components/ui/switch';
 import type { GuestMatchCriteria } from '@/hooks/use-guest-matches';
 import { show as showGuest } from '@/routes/guests';
 import { show as showCard } from '@/routes/registration';
+import { update as updateBooker } from '@/routes/reservations/booker';
 import {
     replace as replaceGuest,
     store as storeGuest,
@@ -144,15 +146,20 @@ function StaysIn({ row }: { row: Row }) {
 function RowMenu({
     row,
     canChange,
+    canMove,
     onBill,
     onReplace,
+    onMove,
     onRemove,
 }: {
     row: Row;
     /** Replace and Remove: an open unit, a saved guest and `reservations.manage`. */
     canChange: boolean;
+    /** Move to unit, or Add to a unit for the booker who does not stay: another open unit to go to. */
+    canMove: boolean;
     onBill: (row: Row) => void;
     onReplace: (row: Row) => void;
+    onMove: (row: Row) => void;
     onRemove: (row: Row) => void;
 }) {
     const open =
@@ -160,7 +167,7 @@ function RowMenu({
     const hasCard = row.cardUnitGuestId !== null && open;
     const hasBill = row.canBill && row.guestId !== null;
 
-    if (!hasCard && !hasBill && !canChange) {
+    if (!hasCard && !hasBill && !canChange && !canMove) {
         return <span />;
     }
 
@@ -195,7 +202,9 @@ function RowMenu({
                         </DropdownMenuItem>
                     </DropdownMenuGroup>
                 )}
-                {hasCard && (hasBill || canChange) && <DropdownMenuSeparator />}
+                {hasCard && (hasBill || canChange || canMove) && (
+                    <DropdownMenuSeparator />
+                )}
                 {hasBill && (
                     <DropdownMenuGroup>
                         <DropdownMenuLabel>Billing</DropdownMenuLabel>
@@ -205,21 +214,33 @@ function RowMenu({
                         </DropdownMenuItem>
                     </DropdownMenuGroup>
                 )}
-                {hasBill && canChange && <DropdownMenuSeparator />}
-                {canChange && (
+                {hasBill && (canChange || canMove) && <DropdownMenuSeparator />}
+                {(canChange || canMove) && (
                     <DropdownMenuGroup>
                         <DropdownMenuLabel>Guest</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => onReplace(row)}>
-                            <Replace />
-                            Replace guest
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                            variant="destructive"
-                            onClick={() => onRemove(row)}
-                        >
-                            <UserMinus />
-                            Remove from unit
-                        </DropdownMenuItem>
+                        {canChange && (
+                            <DropdownMenuItem onClick={() => onReplace(row)}>
+                                <Replace />
+                                Replace guest
+                            </DropdownMenuItem>
+                        )}
+                        {canMove && (
+                            <DropdownMenuItem onClick={() => onMove(row)}>
+                                <ArrowRightLeft />
+                                {row.unitId === null
+                                    ? 'Add to a unit'
+                                    : 'Move to unit'}
+                            </DropdownMenuItem>
+                        )}
+                        {canChange && (
+                            <DropdownMenuItem
+                                variant="destructive"
+                                onClick={() => onRemove(row)}
+                            >
+                                <UserMinus />
+                                Remove from unit
+                            </DropdownMenuItem>
+                        )}
                     </DropdownMenuGroup>
                 )}
             </DropdownMenuContent>
@@ -229,7 +250,7 @@ function RowMenu({
 
 /**
  * A guest already on a unit, a unit with no guest, or the booker who does not stay. With `canEdit` the row opens to the
- * profile of the guest; the unit link never changes here. Save and Cancel show only after an edit.
+ * profile of the guest (the booker who does not stay saves through the reservation); the unit link never changes here. Save and Cancel show only after an edit.
  */
 export function SavedGuestRow({
     rowId,
@@ -239,12 +260,14 @@ export function SavedGuestRow({
     canAdd,
     canEdit,
     canChange,
+    canMove,
     countries,
     genders,
     locales,
     onAdd,
     onBill,
     onReplace,
+    onMove,
     onRemove,
     onDirtyChange,
 }: {
@@ -257,12 +280,15 @@ export function SavedGuestRow({
     canEdit: boolean;
     /** Replace and Remove in the menu: an open unit, a saved guest and `reservations.manage`. */
     canChange: boolean;
+    /** Move to unit, or Add to a unit for the booker who does not stay: another open unit to go to. */
+    canMove: boolean;
     countries: EnumOption[];
     genders: EnumOption[];
     locales: EnumOption[];
     onAdd: (unitId: number) => void;
     onBill: (row: Row) => void;
     onReplace: (row: Row) => void;
+    onMove: (row: Row) => void;
     onRemove: (row: Row) => void;
     onDirtyChange: (key: string, dirty: boolean) => void;
 }) {
@@ -354,8 +380,10 @@ export function SavedGuestRow({
                 <RowMenu
                     row={row}
                     canChange={canChange}
+                    canMove={canMove}
                     onBill={onBill}
                     onReplace={onReplace}
+                    onMove={onMove}
                     onRemove={onRemove}
                 />
             </div>
@@ -363,29 +391,31 @@ export function SavedGuestRow({
     }
 
     const save = () => {
-        if (row.unitId === null || row.guestId === null) {
+        if (row.guestId === null) {
             return;
         }
 
-        router.put(
-            updateGuest.url({
-                reservation: reservationId,
-                unit: row.unitId,
-                guestId: row.guestId,
-            }),
-            profilePayload(values),
-            {
-                preserveScroll: true,
-                preserveState: true,
-                onStart: () => setProcessing(true),
-                onFinish: () => setProcessing(false),
-                onError: (found) => setErrors(found),
-                onSuccess: () => {
-                    setErrors({});
-                    setBase(values);
-                },
+        // The booker who does not stay has no unit, so the profile saves through the reservation.
+        const url =
+            row.unitId === null
+                ? updateBooker.url({ reservation: reservationId })
+                : updateGuest.url({
+                      reservation: reservationId,
+                      unit: row.unitId,
+                      guestId: row.guestId,
+                  });
+
+        router.put(url, profilePayload(values), {
+            preserveScroll: true,
+            preserveState: true,
+            onStart: () => setProcessing(true),
+            onFinish: () => setProcessing(false),
+            onError: (found) => setErrors(found),
+            onSuccess: () => {
+                setErrors({});
+                setBase(values);
             },
-        );
+        });
     };
 
     const cancel = () => {
@@ -465,8 +495,10 @@ export function SavedGuestRow({
                         <RowMenu
                             row={row}
                             canChange={canChange}
+                            canMove={canMove}
                             onBill={onBill}
                             onReplace={onReplace}
+                            onMove={onMove}
                             onRemove={onRemove}
                         />
                     </div>

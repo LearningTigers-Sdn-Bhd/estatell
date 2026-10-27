@@ -1,12 +1,21 @@
-import { Ellipsis, Ship } from 'lucide-react';
+import { Ellipsis, ExternalLink, Info, Ship } from 'lucide-react';
 import { EmptyState } from '@/components/pms/empty-state';
-import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+    Popover,
+    PopoverContent,
+    PopoverDescription,
+    PopoverHeader,
+    PopoverTitle,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
 import {
     Table,
@@ -16,9 +25,78 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { mealPeriods as mealPeriodsRoute } from '@/routes/settings';
 
 type Departure = App.Data.Boats.BoatDepartureData;
 type Fare = App.Data.Boats.BoatFareData;
+type MealPeriod = App.Data.Meals.MealPeriodData;
+
+/**
+ * The Meals header with an info button. The popover lists the active meal times and the rule, and links to the meal
+ * periods, where a wrong result is fixed. A popover, not a hover card, so it also opens on a tap.
+ */
+function MealsHeader({ mealPeriods }: { mealPeriods: MealPeriod[] }) {
+    return (
+        <div className="flex items-center gap-1">
+            Meals
+            <Popover>
+                <PopoverTrigger
+                    render={
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-xs"
+                            aria-label="Meal times"
+                        />
+                    }
+                >
+                    <Info />
+                </PopoverTrigger>
+                <PopoverContent className="w-72" align="end">
+                    <PopoverHeader>
+                        <PopoverTitle>Meal times</PopoverTitle>
+                    </PopoverHeader>
+                    {mealPeriods.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">
+                            No meal periods yet.
+                        </p>
+                    ) : (
+                        <dl className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 text-sm">
+                            {mealPeriods.map((mealPeriod) => (
+                                <div key={mealPeriod.id} className="contents">
+                                    <dt>{mealPeriod.name}</dt>
+                                    <dd className="tabular-nums">
+                                        {mealPeriod.startsAt}–
+                                        {mealPeriod.endsAt}
+                                    </dd>
+                                </div>
+                            ))}
+                        </dl>
+                    )}
+                    <PopoverDescription>
+                        Boat in: meals that end after the boat arrives. Boat
+                        out: meals that start before the boat leaves.
+                    </PopoverDescription>
+                    {/* A new tab keeps the departures open while staff fix the times. Inertia's Link cannot open one. */}
+                    <a
+                        href={mealPeriodsRoute.url()}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={buttonVariants({
+                            variant: 'link',
+                            size: 'sm',
+                            className: 'h-auto self-start p-0',
+                        })}
+                    >
+                        Edit meal periods
+                        <ExternalLink data-icon="inline-end" />
+                        <span className="sr-only">(opens in a new tab)</span>
+                    </a>
+                </PopoverContent>
+            </Popover>
+        </div>
+    );
+}
 
 /** The fare's name, with its adult price when it has one. Shared with the departure form. */
 export function fareLabel(fare: Fare, money: Intl.NumberFormat): string {
@@ -35,6 +113,7 @@ export function fareLabel(fare: Fare, money: Intl.NumberFormat): string {
  */
 export function BoatDepartureTable({
     departures,
+    mealPeriods,
     emptyTitle,
     money,
     togglingIds,
@@ -43,6 +122,7 @@ export function BoatDepartureTable({
     onDelete,
 }: {
     departures: Departure[];
+    mealPeriods: MealPeriod[];
     emptyTitle: string;
     money: Intl.NumberFormat;
     togglingIds: Set<number>;
@@ -60,7 +140,10 @@ export function BoatDepartureTable({
                         <TableHead className="w-24">Arrives</TableHead>
                         <TableHead>Pick-up point</TableHead>
                         <TableHead className="w-20 text-right">Seats</TableHead>
-                        <TableHead className="w-72">Fare</TableHead>
+                        <TableHead className="w-64">Fare</TableHead>
+                        <TableHead className="w-64">
+                            <MealsHeader mealPeriods={mealPeriods} />
+                        </TableHead>
                         <TableHead className="w-14">
                             <span className="sr-only">Actions</span>
                         </TableHead>
@@ -69,7 +152,7 @@ export function BoatDepartureTable({
                 <TableBody>
                     {departures.length === 0 && (
                         <TableRow className="hover:bg-transparent">
-                            <TableCell colSpan={7}>
+                            <TableCell colSpan={8}>
                                 <EmptyState icon={Ship} title={emptyTitle} />
                             </TableCell>
                         </TableRow>
@@ -121,6 +204,21 @@ export function BoatDepartureTable({
                                     </span>
                                 ) : (
                                     fareLabel(departure.fare, money)
+                                )}
+                            </TableCell>
+                            <TableCell className="whitespace-normal">
+                                {departure.meals.length === 0 ? (
+                                    <span className="text-muted-foreground">
+                                        —
+                                    </span>
+                                ) : (
+                                    <div className="flex flex-wrap gap-1">
+                                        {departure.meals.map((meal) => (
+                                            <Badge key={meal} variant="outline">
+                                                {meal}
+                                            </Badge>
+                                        ))}
+                                    </div>
                                 )}
                             </TableCell>
                             <TableCell>

@@ -5,6 +5,7 @@ namespace App\Actions\Onboarding\Wastays;
 use App\Actions\Catalogues\CreateChargeItem;
 use App\Actions\Catalogues\UpdatePaymentMethod;
 use App\Actions\Catalogues\UpdateTax;
+use App\Actions\Onboarding\SkipOnboardingStep;
 use App\Actions\Rates\CreateDerivedRatePlan;
 use App\Actions\Rates\SaveRates;
 use App\Actions\Rates\SetRatePlanCompanyAccess;
@@ -13,6 +14,7 @@ use App\Actions\Rooms\CreateRoom;
 use App\Actions\Rooms\CreateRoomType;
 use App\Data\Catalogues\TaxInputData;
 use App\Enums\CompanyAccess;
+use App\Enums\OnboardingStep;
 use App\Enums\RateDerivation;
 use App\Enums\SellUnit;
 use App\Enums\SurchargeType;
@@ -56,6 +58,11 @@ class ImportWastaysSetup
         private UpdateTax $updateTax,
         private UpdatePaymentMethod $updatePaymentMethod,
         private CreateChargeItem $createChargeItem,
+        private ImportWastaysDetails $importDetails,
+        private SkipOnboardingStep $skipOnboardingStep,
+        private ImportWastaysOccupancyRatePlans $occupancyRatePlans,
+        private ImportWastaysFixedRatePlans $fixedRatePlans,
+        private AlignWastaysDocumentPrefix $alignPrefix,
         private RecordImportLink $recordImportLink,
         private ImportLinks $links,
         private WastaysCodeMap $map,
@@ -64,12 +71,12 @@ class ImportWastaysSetup
     /**
      * @throws RuntimeException with a sentence for the console when the bundle cannot be imported; nothing is written then
      */
-    public function __invoke(WastaysImportTarget $target, bool $dryRun = false): WastaysSetupSummary
+    public function __invoke(WastaysImportTarget $target, bool $dryRun = false, ?string $checkIn = null, ?string $checkOut = null, bool $netPrices = false): WastaysSetupSummary
     {
         DB::beginTransaction();
 
         try {
-            $summary = $this->import($target->bundle, $target->property, $target->actor);
+            $summary = $this->import($target->bundle, $target->property, $target->actor, $checkIn, $checkOut, $netPrices);
 
             $dryRun ? DB::rollBack() : DB::commit();
         } catch (Throwable $exception) {
@@ -81,14 +88,26 @@ class ImportWastaysSetup
         return $summary;
     }
 
-    private function import(WastaysBundle $bundle, Property $property, User $actor): WastaysSetupSummary
+    private function import(WastaysBundle $bundle, Property $property, User $actor, ?string $checkIn, ?string $checkOut, bool $netPrices): WastaysSetupSummary
     {
         $summary = new WastaysSetupSummary;
+        ($this->importDetails)($property, $actor, $bundle->rows('hotels')->first() ?? [], $checkIn, $checkOut, $summary);
+        $summary->prefixChange = ($this->alignPrefix)($property, $bundle->manifest->hotelCode);
 
         [$roomTypes, $newRoomTypeIds] = $this->roomTypes($bundle, $property, $actor, $summary);
         $this->rooms($bundle, $property, $actor, $roomTypes, $summary);
-        $standard = $this->ratePlans($bundle, $property, $actor, $roomTypes, $summary);
-        $this->rates($bundle, $property, $actor, $standard, $roomTypes, $newRoomTypeIds, $summary);
+        if (ImportWastaysOccupancyRatePlans::applies($bundle, $this->map)) {
+            ($this->occupancyRatePlans)($bundle, $property, $actor, $roomTypes, $summary);
+        } else {
+            $grossPrices = $this->map->isTrue($bundle->rows('hotels')->first()['sst_enabled'] ?? null) && ! $netPrices;
+            $hasFixedPlans = ImportWastaysFixedRatePlans::applies($bundle, $this->map);
+            $standard = $this->ratePlans($bundle, $property, $actor, $roomTypes, $hasFixedPlans, $summary);
+            $this->rates($bundle, $property, $actor, $standard, $roomTypes, $newRoomTypeIds, $grossPrices, $summary);
+
+            if ($hasFixedPlans) {
+                ($this->fixedRatePlans)($bundle, $property, $actor, $roomTypes, $grossPrices, $this->map, $summary);
+            }
+        }
         $this->salesTax($bundle, $property, $actor, $summary);
         $this->skipDbkk($bundle, $summary);
         $this->createdAt($bundle, $property);
@@ -188,8 +207,9 @@ class ImportWastaysSetup
      * everyone, and link the wastays rate plans by name.
      *
      * @param  array<string, RoomType>  $roomTypes
+     * @param  bool  $otherPlansImported  the fixed-price plans import places the plans that are not Standard, Walk-in or Corporate
      */
-    private function ratePlans(WastaysBundle $bundle, Property $property, User $actor, array $roomTypes, WastaysSetupSummary $summary): RatePlan
+    private function ratePlans(WastaysBundle $bundle, Property $property, User $actor, array $roomTypes, bool $otherPlansImported, WastaysSetupSummary $summary): RatePlan
     {
         $standard = $this->activePlan($property, 'Basic Rate') ?? $this->activePlan($property, 'Standard Rate')
             ?? throw new RuntimeException('The property has no Basic Rate plan.');
@@ -222,7 +242,9 @@ class ImportWastaysSetup
             if ($row['archived_at'] ?? null) {
                 $summary->count('Rate plans', 'skipped');
             } elseif ($key === null) {
-                $summary->skip('Rate plans', 'wastays plan '.$id.' matches none of Standard, Walk-in or Corporate');
+                if (! $otherPlansImported) {
+                    $summary->skip('Rate plans', 'wastays plan '.$id.' matches none of Standard, Walk-in or Corporate');
+                }
             } elseif ($this->links->has($property, 'rate_plans', $id)) {
                 $summary->count('Rate plans', 'linked');
             } else {
@@ -235,12 +257,13 @@ class ImportWastaysSetup
     }
 
     /**
-     * Price the new room types on Basic Rate from the first audit date, at base price without SST.
+     * Price the new room types on Basic Rate from the first audit date, at base price without SST. A wastays price that
+     * includes SST is divided by it; a price that is already before tax, or of a hotel with SST off, is kept.
      *
      * @param  array<string, RoomType>  $roomTypes
      * @param  list<string>  $newRoomTypeIds
      */
-    private function rates(WastaysBundle $bundle, Property $property, User $actor, RatePlan $standard, array $roomTypes, array $newRoomTypeIds, WastaysSetupSummary $summary): void
+    private function rates(WastaysBundle $bundle, Property $property, User $actor, RatePlan $standard, array $roomTypes, array $newRoomTypeIds, bool $grossPrices, WastaysSetupSummary $summary): void
     {
         $priced = [];
 
@@ -252,7 +275,7 @@ class ImportWastaysSetup
             } elseif (blank($row['base_price'] ?? null)) {
                 $summary->skip('Rates', "room type {$id} has no base price");
             } else {
-                $amount = $this->map->netPrice((string) $row['base_price']);
+                $amount = $grossPrices ? $this->map->netPrice((string) $row['base_price']) : number_format((float) $row['base_price'], 2, '.', '');
 
                 $priced[] = [
                     'room_type_id' => $roomTypes[$id]->id,
@@ -287,6 +310,11 @@ class ImportWastaysSetup
 
         if (! $this->map->isTrue($hotel['sst_enabled'] ?? null)) {
             $summary->skip('SST', 'the hotel has SST off');
+
+            if (! $property->taxes()->where('enabled', true)->exists()) {
+                ($this->skipOnboardingStep)($property, OnboardingStep::Taxes, $actor);
+                $summary->skip('Taxes', 'answered "We don\'t charge tax" so go-live can open; the replay turns Tourism tax on from the day wastays first charged it');
+            }
 
             return;
         }
@@ -363,6 +391,10 @@ class ImportWastaysSetup
                     'code' => $new['code'],
                     'category' => $new['category']->value,
                     'active' => $this->map->isTrue($wastaysCode['active'] ?? 'true'),
+                    ...(($row['pricing_type'] ?? null) === 'fixed' && filled($row['rate_value'] ?? null) ? [
+                        'default_amount' => number_format((float) $row['rate_value'], 2, '.', ''),
+                        'charging_unit' => $this->map->chargingUnit($row['charging_unit'] ?? null),
+                    ] : []),
                 ]);
             }
 

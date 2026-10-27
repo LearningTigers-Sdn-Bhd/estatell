@@ -19,7 +19,7 @@ test('owners get front desk, finance, reports and settings contexts with the act
             ->where('navigation.contexts.1.key', 'finance')
             ->where('navigation.contexts.1.href', "/p/{$code}/finance/city-ledger/companies")
             ->where('navigation.contexts.2.key', 'reports')
-            ->where('navigation.contexts.2.href', "/p/{$code}/reports/arrivals")
+            ->where('navigation.contexts.2.href', "/p/{$code}/reports/guest-list")
             ->where('navigation.contexts.3.key', 'settings')
             ->where('navigation.contexts.3.groups.0.items.0.active', false)
         );

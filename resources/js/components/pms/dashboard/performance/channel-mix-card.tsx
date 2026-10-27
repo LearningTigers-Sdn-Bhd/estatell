@@ -1,3 +1,4 @@
+import { IconChip } from '@/components/pms/dashboard/performance/icon-chip';
 import { ChartPie, ChevronRight, Globe, Shapes } from 'lucide-react';
 import { useState } from 'react';
 import { Cell, Label, Pie, PieChart } from 'recharts';
@@ -18,7 +19,6 @@ import {
     PopoverTitle,
     PopoverTrigger,
 } from '@/components/ui/popover';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
     Tooltip,
     TooltipContent,
@@ -28,7 +28,7 @@ import { MoneyText } from '@/components/pms/money-text';
 import { cn } from 'cn';
 
 type Row = App.Data.Dashboard.ChannelMixRowData;
-type View = 'source' | 'type';
+export type View = 'source' | 'type';
 
 /** The four types use fixed chart tokens. A literal class for each, so Tailwind sees them. */
 const typeClasses: Record<App.Enums.BookingSourceType, string> = {
@@ -93,52 +93,34 @@ function CompanyPopover({ row }: { row: Row }) {
 }
 
 /**
- * Share of room nights by booking source or by source type, as a donut with the total in the middle and the list
- * below. Hovering a slice or a row highlights both. Both views come with the page, so the switch makes no
- * request. Colors come from each source's badge swatch; color never carries meaning alone, each row names its source.
+ * Share of room nights by booking source, or by source type, as a donut with the total in the middle and the list
+ * below. Hovering a slice or a row highlights both. Colors come from each source's badge swatch; color never carries
+ * meaning alone, each row names its source.
  */
 export function ChannelMixCard({
+    view,
     mix,
     currency,
 }: {
+    view: View;
     mix: App.Data.Dashboard.PerformanceChannelMixData;
     currency: App.Data.Property.CurrencyData | null;
 }) {
-    const [view, setView] = useState<View>('source');
     const rows = view === 'source' ? mix.bySource : mix.byType;
     const [hovered, setHovered] = useState<string | null>(null);
     /** The chevron slot is kept only when a row of this view opens its companies, so the figures line up. */
     const hasCompanies = rows.some((row) => row.companies.length > 0);
+    const Icon = view === 'source' ? Globe : Shapes;
 
     return (
         <Card className="min-w-0 flex-1">
-            <CardHeader className="flex flex-wrap items-center justify-between gap-2">
+            <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                    <ChartPie
-                        aria-hidden
-                        className="size-5 text-muted-foreground"
-                    />
-                    Channel mix
+                    <IconChip icon={Icon} />
+                    {view === 'source'
+                        ? 'Channel mix by source'
+                        : 'Channel mix by type'}
                 </CardTitle>
-                <ToggleGroup
-                    variant="outline"
-                    size="sm"
-                    spacing={0}
-                    value={[view]}
-                    onValueChange={(value) =>
-                        value[0] && setView(value[0] as View)
-                    }
-                    aria-label="Channel mix view"
-                >
-                    <ToggleGroupItem value="source">
-                        <Globe data-icon="inline-start" />
-                        Source
-                    </ToggleGroupItem>
-                    <ToggleGroupItem value="type">
-                        <Shapes data-icon="inline-start" />
-                        Type
-                    </ToggleGroupItem>
-                </ToggleGroup>
             </CardHeader>
             <CardContent className="flex flex-1 flex-col gap-4">
                 {rows.length === 0 ? (
@@ -153,9 +135,9 @@ export function ChannelMixCard({
                     <>
                         <ChartContainer
                             config={config}
-                            className="mx-auto aspect-square w-full max-w-52"
+                            className="mx-auto aspect-square w-full max-w-44"
                             role="img"
-                            aria-label="Room nights by channel"
+                            aria-label={`Room nights by ${view}`}
                         >
                             <PieChart>
                                 <ChartTooltip

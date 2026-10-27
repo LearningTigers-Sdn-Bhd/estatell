@@ -7,6 +7,7 @@ use App\Actions\FrontDesk\UndoCheckOut;
 use App\Actions\FrontDesk\UnitStayResult;
 use App\Actions\Payments\RecordPayment;
 use App\Data\Payments\NewPaymentData;
+use App\Enums\BillingMode;
 use App\Enums\BusinessDateStatus;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\FolioStatus;
@@ -23,6 +24,7 @@ use App\Enums\UnitStatus;
 use App\Models\ArInvoice;
 use App\Models\BusinessDate;
 use App\Models\ChargeItem;
+use App\Models\Company;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\FolioRoutingRule;
@@ -245,10 +247,19 @@ test('the dates preview shows the price difference of a longer and a shorter sta
     $this->actingAs($setup['user'])
         ->postJson(uaUrl($setup, 'dates-preview'), ['arrival_date' => today()->toDateString(), 'departure_date' => today()->addDay()->toDateString()])
         ->assertOk()
-        ->assertJson(['newTotal' => '100.00', 'difference' => '-100.00', 'nights' => 1, 'isEarlyDeparture' => true, 'fee' => '40.00']);
+        ->assertJson(['newTotal' => '100.00', 'difference' => '-100.00', 'nights' => 1, 'isEarlyDeparture' => false, 'fee' => null]);
 
     expect(Activity::query()->count())->toBe(0)
         ->and($setup['unit']->fresh()->departure_date->toDateString())->toBe(today()->addDays(2)->toDateString());
+});
+
+test('the dates preview shows the early departure fee of a checked-in unit that leaves early', function () {
+    $setup = uaSetup(DefaultRoleEnum::Owner, ['status' => UnitStatus::CheckedIn, 'checked_in_at' => now()]);
+
+    $this->actingAs($setup['user'])
+        ->postJson(uaUrl($setup, 'dates-preview'), ['arrival_date' => today()->toDateString(), 'departure_date' => today()->addDay()->toDateString()])
+        ->assertOk()
+        ->assertJson(['newTotal' => '100.00', 'difference' => '-100.00', 'nights' => 1, 'isEarlyDeparture' => true, 'fee' => '40.00']);
 });
 
 test('the dates preview treats a shorter stay that also moves the arrival as a new booking, with no fee', function () {
@@ -272,7 +283,7 @@ test('the dates preview refuses a departure that is not after arrival', function
         ->assertJson(['newTotal' => null, 'error' => 'Departure must be after arrival.']);
 });
 
-test('change dates extends the stay and a shorter stay posts the early departure fee', function () {
+test('change dates extends a confirmed stay, and a shorter confirmed stay saves with no fee', function () {
     $setup = uaSetup();
 
     $this->actingAs($setup['user'])
@@ -288,7 +299,7 @@ test('change dates extends the stay and a shorter stay posts the early departure
         ->assertSessionHasNoErrors();
 
     expect($setup['unit']->fresh()->departure_date->toDateString())->toBe(today()->addDay()->toDateString())
-        ->and(FolioLine::query()->sole()->amount)->toBe('40.00');
+        ->and(FolioLine::query()->count())->toBe(0);
 });
 
 test('unchanged dates are refused on the departure field', function () {
@@ -465,6 +476,79 @@ test('the amounts of Collect now come from the server, not from the form', funct
         ->assertRedirect();
 
     expect(Payment::query()->sole()->amount)->toBe('16.00');
+});
+
+test('the check-in preview offers the full bill, and a unit with no tax or deposit still offers Collect now', function () {
+    $setup = uaSetup();
+    uaCheckInSetup($setup, ['security_deposit_amount' => '0.00']);
+    Tax::query()->where('property_id', $setup['property']->id)->update(['enabled' => false]);
+
+    $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-in-preview'))
+        ->assertOk()
+        ->assertJsonPath('collection.billTotal', '200.00')
+        ->assertJsonPath('collection.billHidden', false)
+        ->assertJsonPath('collection.taxes', [])
+        ->assertJsonPath('collection.deposit', null);
+});
+
+test('check in with Room charges and tax records the full bill as one advance in place of the taxes, then the deposit', function () {
+    $setup = uaSetup();
+    $cash = uaCheckInSetup($setup);
+    $bill = $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-in-preview'))->json('collection.billTotal');
+    $key = fake()->uuid();
+
+    $this->post(uaUrl($setup, 'check-in'), ['collect_now' => true, 'room_charges' => true, 'collect_taxes' => true, 'collect_deposit' => true, 'payment_method_id' => $cash->id, 'idempotency_key' => $key])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    $payments = Payment::query()->orderBy('id')->get();
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn)
+        ->and($payments->pluck('amount')->all())->toBe([$bill, '100.00'])
+        ->and($payments->pluck('purpose')->all())->toBe([PaymentPurpose::Advance, PaymentPurpose::SecurityDeposit])
+        ->and($payments->pluck('folio.type')->unique()->all())->toBe([FolioType::Unit]);
+});
+
+test('a repeat of the same check-in form takes no payment twice', function () {
+    $setup = uaSetup();
+    $cash = uaCheckInSetup($setup);
+    $form = ['collect_now' => true, 'room_charges' => true, 'collect_deposit' => true, 'payment_method_id' => $cash->id, 'idempotency_key' => fake()->uuid()];
+
+    $this->actingAs($setup['user'])->post(uaUrl($setup, 'check-in'), $form)->assertSessionHasNoErrors();
+    $this->post(uaUrl($setup, 'check-in'), $form);
+
+    expect(Payment::query()->count())->toBe(2);
+});
+
+test('check in with Room charges and tax on a unit whose rooms go to the Master folio records the bill on the Master folio', function () {
+    $setup = uaSetup();
+    $cash = uaCheckInSetup($setup);
+    $master = Folio::factory()->master()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id]);
+    FolioRoutingRule::factory()->forCategory(TransactionCategory::Room)->toFolio($master)->create(['reservation_id' => $setup['reservation']->id]);
+
+    $this->actingAs($setup['user'])
+        ->post(uaUrl($setup, 'check-in'), ['collect_now' => true, 'room_charges' => true, 'collect_deposit' => true, 'payment_method_id' => $cash->id, 'idempotency_key' => fake()->uuid()])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    $payments = Payment::query()->with('folio')->orderBy('id')->get();
+
+    expect($setup['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn)
+        ->and($payments->pluck('purpose')->all())->toBe([PaymentPurpose::Advance, PaymentPurpose::SecurityDeposit])
+        ->and($payments->pluck('folio.type')->all())->toBe([FolioType::Master, FolioType::Unit]);
+});
+
+test('a company billed on Master pays collects no bill at check-in, even when the form sends room_charges', function () {
+    $setup = uaSetup();
+    $cash = uaCheckInSetup($setup);
+    $setup['reservation']->update(['company_id' => Company::factory()->for($setup['property'])->create()->id, 'billing_mode' => BillingMode::MasterPays]);
+
+    $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-in-preview'))->assertJsonPath('collection.billHidden', true);
+
+    $this->post(uaUrl($setup, 'check-in'), ['collect_now' => true, 'room_charges' => true, 'collect_deposit' => true, 'payment_method_id' => $cash->id, 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasNoErrors();
+
+    expect(Payment::query()->pluck('purpose')->all())->toBe([PaymentPurpose::SecurityDeposit]);
 });
 
 test('a missing card refuses check-in unless the user may check in without one', function () {

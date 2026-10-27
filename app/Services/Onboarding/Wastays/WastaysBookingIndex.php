@@ -2,6 +2,7 @@
 
 namespace App\Services\Onboarding\Wastays;
 
+use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
 
 /**
@@ -35,7 +36,137 @@ final class WastaysBookingIndex
     /** @var array<string, array<string, string>>|null the price each night was first charged at, by booking and date */
     private ?array $posted = null;
 
+    /** @var array<string, array<string, string|null>>|null */
+    private ?array $folioRows = null;
+
+    /** @var array<string, BigDecimal>|null */
+    private ?array $groupBalances = null;
+
+    /** @var array<string, string>|null the booking of each wastays folio */
+    private ?array $folioBookings = null;
+
+    /** @var array<string, bool>|null wastays folio ids that belong to a company, by id */
+    private ?array $companyFolios = null;
+
     public function __construct(private readonly WastaysBundle $bundle) {}
+
+    /** The date a wastays booking timestamp falls on in the hotel's time zone. */
+    public function localDate(string $value): string
+    {
+        return $this->bundle->localDate($value);
+    }
+
+    /** @var array<string, string>|null the corporate account of each booking's company billing party */
+    private ?array $companyParties = null;
+
+    /**
+     * A wastays `folio_transactions` row by id.
+     *
+     * @return array<string, string|null>
+     */
+    public function folioRow(string $id): array
+    {
+        $this->folioRows ??= $this->keyed('folio_transactions', 'id');
+
+        return $this->folioRows[$id] ?? [];
+    }
+
+    /**
+     * What a booking has been paid net of refunds and reversals, the date of the last payment line, and the wastays
+     * receipt numbers of its payments, from every folio of the booking.
+     *
+     * @return array{amount: string, date: string|null, lines: list<string>}
+     */
+    public function paid(string $bookingId, string $timeZone): array
+    {
+        if ($this->folioBookings === null) {
+            $this->folioBookings = [];
+
+            foreach ($this->rows('booking_folios') as $folio) {
+                $this->folioBookings[(string) $folio['id']] = (string) $folio['booking_id'];
+            }
+        }
+
+        $total = '0';
+        $date = null;
+        $lines = [];
+
+        foreach ($this->rows('folio_transactions') as $row) {
+            if (($row['transaction_type'] ?? null) !== 'payment' || ($this->folioBookings[(string) ($row['booking_folio_id'] ?? '')] ?? null) !== $bookingId) {
+                continue;
+            }
+
+            $total = (string) BigDecimal::of($total)->plus((string) $row['amount']);
+            $day = CarbonImmutable::parse((string) $row['created_at'])->setTimezone($timeZone)->toDateString();
+            $date = $date === null || $day > $date ? $day : $date;
+            $lines[] = (string) $row['id'];
+        }
+
+        return ['amount' => $total, 'date' => $date, 'lines' => $lines];
+    }
+
+    /**
+     * What the guest or company still owes on the booking, from every folio: charges and adjustments less payments and refunds.
+     * A negative amount is credit.
+     */
+    public function balance(string $bookingId): string
+    {
+        $this->paid($bookingId, 'UTC');
+        $total = '0';
+
+        foreach ($this->rows('folio_transactions') as $row) {
+            if (($this->folioBookings[(string) ($row['booking_folio_id'] ?? '')] ?? null) !== $bookingId) {
+                continue;
+            }
+
+            $amount = BigDecimal::of((string) $row['amount']);
+            $total = (string) BigDecimal::of($total)->plus(($row['transaction_type'] ?? null) === 'payment' ? $amount->negated() : $amount);
+        }
+
+        return $total;
+    }
+
+    /**
+     * The wastays corporate account that pays for the booking: the one on the booking, or else the company billing party.
+     */
+    public function companyAccountId(string $bookingId): ?string
+    {
+        $onBooking = $this->booking($bookingId)['hotel_corporate_account_id'] ?? null;
+
+        if (filled($onBooking)) {
+            return (string) $onBooking;
+        }
+
+        if ($this->companyParties === null) {
+            $this->companyParties = [];
+
+            foreach ($this->rows('booking_billing_parties') as $party) {
+                if (($party['party_kind'] ?? null) === 'company' && blank($party['archived_at'] ?? null) && filled($party['hotel_corporate_account_id'] ?? null)) {
+                    $this->companyParties[(string) $party['booking_id']] ??= (string) $party['hotel_corporate_account_id'];
+                }
+            }
+        }
+
+        return $this->companyParties[$bookingId] ?? null;
+    }
+
+    /**
+     * Whether a folio transaction sits on a wastays company folio (an external folio paid by a company), not on the guest's.
+     *
+     * @param  array<string, string|null>  $row  a `folio_transactions` row
+     */
+    public function onCompanyFolio(array $row): bool
+    {
+        if ($this->companyFolios === null) {
+            $this->companyFolios = [];
+
+            foreach ($this->rows('booking_folios') as $folio) {
+                $this->companyFolios[(string) $folio['id']] = ($folio['payer_type'] ?? null) === 'company';
+            }
+        }
+
+        return $this->companyFolios[(string) ($row['booking_folio_id'] ?? '')] ?? false;
+    }
 
     /** @return array<string, string|null> */
     public function booking(string $id): array
@@ -107,12 +238,51 @@ final class WastaysBookingIndex
         return array_map(fn (array $row): string => (string) $row['guest_id'], $rows);
     }
 
+    public function groupId(string $bookingId): ?string
+    {
+        $id = $this->booking($bookingId)['group_booking_id'] ?? null;
+
+        return $id === null ? null : (string) $id;
+    }
+
     public function groupName(string $bookingId): ?string
     {
         $this->groups ??= array_map(fn (array $row): string => (string) $row['name'], $this->keyed('group_bookings', 'id'));
         $groupId = $this->booking($bookingId)['group_booking_id'] ?? null;
 
         return $groupId === null ? null : ($this->groups[$groupId] ?? null);
+    }
+
+    /**
+     * What a booking of a group paid beyond its own charges (a credit) or still owes (a negative figure), over the whole
+     * of its wastays history, or null when it is not in a group or its money balances. One payer can cover a whole group,
+     * and wastays keeps that money on the payer's booking, so every booking of the group checks out with its own balance.
+     * Payments count as they are and every other line, charge or correction, against them.
+     */
+    public function groupBalance(string $bookingId): ?string
+    {
+        if (($this->booking($bookingId)['group_booking_id'] ?? null) === null) {
+            return null;
+        }
+
+        if ($this->groupBalances === null) {
+            $this->groupBalances = [];
+
+            foreach ($this->bundle->rows('folio_transactions') as $row) {
+                $id = (string) ($row['source_booking_id'] ?? '');
+
+                if ($id === '') {
+                    continue;
+                }
+
+                $amount = BigDecimal::of((string) $row['amount']);
+                $this->groupBalances[$id] = ($this->groupBalances[$id] ?? BigDecimal::zero())->plus($row['transaction_type'] === 'payment' ? $amount : $amount->negated());
+            }
+        }
+
+        $balance = $this->groupBalances[$bookingId] ?? BigDecimal::zero();
+
+        return $balance->abs()->isGreaterThan('0.5') ? (string) $balance->toScale(2) : null;
     }
 
     /**
@@ -127,8 +297,8 @@ final class WastaysBookingIndex
     public function firstDates(string $bookingId, ?string $businessDate = null, ?WastaysDay $day = null): array
     {
         $booking = $this->booking($bookingId);
-        $arrival = substr((string) $booking['check_in'], 0, 10);
-        $departure = substr((string) $booking['check_out'], 0, 10);
+        $arrival = $this->localDate((string) $booking['check_in']);
+        $departure = $this->localDate((string) $booking['check_out']);
 
         foreach ($this->audit($bookingId) as $row) {
             if ($row['action_type'] !== 'update') {
@@ -142,8 +312,8 @@ final class WastaysBookingIndex
                 $movedIntoClosedNight = $businessDate !== null && isset($new['check_in'], $new['check_out'])
                     && $this->movesIntoClosedNight($row, $old, $new, $businessDate, $day);
                 $dates = $movedIntoClosedNight ? $new : $old;
-                $arrival = substr((string) ($dates['check_in'] ?? $arrival), 0, 10);
-                $departure = substr((string) ($dates['check_out'] ?? $departure), 0, 10);
+                $arrival = $this->localDate((string) ($dates['check_in'] ?? $arrival));
+                $departure = $this->localDate((string) ($dates['check_out'] ?? $departure));
 
                 break;
             }
@@ -205,8 +375,8 @@ final class WastaysBookingIndex
     private function movesIntoClosedNight(array $row, array $old, array $new, string $businessDate, ?WastaysDay $day): bool
     {
         $at = CarbonImmutable::parse((string) $row['occurred_at']);
-        $arrival = substr((string) $new['check_in'], 0, 10);
-        $oldArrival = substr((string) ($old['check_in'] ?? ''), 0, 10);
+        $arrival = $this->localDate((string) $new['check_in']);
+        $oldArrival = $this->localDate((string) ($old['check_in'] ?? ''));
         $arrivalClosed = $day?->window($arrival)['closed'] ?? null;
         $oldClosed = $day?->window($oldArrival)['closed'] ?? null;
 
@@ -231,6 +401,28 @@ final class WastaysBookingIndex
         return null;
     }
 
+    /**
+     * Whether staff move the booking to an arrival earlier than `$currentArrival` after `$at`. wastays let them do it after the check-in, which
+     * estatell cannot, so the replay leaves that check-in for the move and checks the guest in as of the new arrival.
+     */
+    public function arrivalMovesEarlierAfter(string $bookingId, CarbonImmutable $at, string $currentArrival): bool
+    {
+        foreach ($this->audit($bookingId) as $row) {
+            if ($row['action_type'] !== 'update' || CarbonImmutable::parse((string) $row['occurred_at'])->lte($at)) {
+                continue;
+            }
+
+            $old = json_decode((string) $row['old_value'], true) ?: [];
+            $new = json_decode((string) $row['new_value'], true) ?: [];
+
+            if (isset($old['check_in'], $new['check_in']) && $this->localDate((string) $new['check_in']) < $this->localDate((string) $old['check_in']) && $this->localDate((string) $new['check_in']) < $currentArrival) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function checkOutAt(string $bookingId): ?CarbonImmutable
     {
         $at = null;
@@ -251,7 +443,7 @@ final class WastaysBookingIndex
     {
         $booking = $this->booking($bookingId);
 
-        return substr((string) ($booking['check_out'] ?? ''), 0, 10) <= substr((string) ($booking['check_in'] ?? ''), 0, 10);
+        return $this->localDate((string) ($booking['check_out'] ?? '')) <= $this->localDate((string) ($booking['check_in'] ?? ''));
     }
 
     public function hasEarlyDeparture(string $bookingId): bool
@@ -352,6 +544,16 @@ final class WastaysBookingIndex
         }
 
         return $this->repairs;
+    }
+
+    /**
+     * Whether wastays created the booking already cancelled. Its bulk entry of old bookings did, and no cancel follows.
+     */
+    public function createdCancelled(string $bookingId): bool
+    {
+        $create = collect($this->audit($bookingId))->first(fn (array $row): bool => $row['action_type'] === 'create');
+
+        return ((json_decode((string) ($create['new_value'] ?? ''), true) ?: [])['status'] ?? null) === 'cancelled';
     }
 
     /**

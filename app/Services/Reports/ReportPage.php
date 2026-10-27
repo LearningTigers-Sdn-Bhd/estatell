@@ -10,8 +10,8 @@ use Spatie\LaravelData\Data;
 
 /**
  * Sorts and pages the full row list of a report on the server, with the `?sort` (`name` or `-name`) and `?page`
- * keys of `DataTable`. The sort name is a column key, which is also a property of the row. A row with no value (null)
- * in the sort column comes last, in either direction.
+ * keys of `DataTable`. The sort name is a column key, which is also a property of the row; a `tax:` column key is
+ * read from the row's `values()`. A row with no value (null) in the sort column comes last, in either direction.
  */
 class ReportPage
 {
@@ -82,7 +82,7 @@ class ReportPage
 
     private function sortValue(Data $row, string $key): float|int|string
     {
-        $value = $row->{$key} ?? '';
+        $value = str_starts_with($key, 'tax:') && $row instanceof ReportRow ? ($row->values()[$key] ?? '') : ($row->{$key} ?? '');
         $value = $value instanceof BadgeData ? $value->label : $value;
 
         return match (true) {

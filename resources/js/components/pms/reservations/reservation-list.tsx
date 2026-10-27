@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import {
     ReservationMarkers,
     RoomTotalLabel,
+    ExternalReference,
     reservationSubtitle,
 } from './reservation-parts';
 import { show } from '@/routes/reservations';
@@ -66,7 +67,9 @@ export function ReservationList({
                             />
                         </span>
                         <span className="text-xs text-muted-foreground">
-                            {reservationSubtitle(info.row.original)}
+                            {reservationSubtitle(info.row.original, {
+                                withReference: false,
+                            })}
                         </span>
                     </span>
                 ),
@@ -109,12 +112,9 @@ export function ReservationList({
                         <BookingSourceBadge source={info.row.original.source} />
                         <span className="flex flex-col">
                             <span>{info.row.original.source.name}</span>
-                            {info.row.original.source.type === 'ota' &&
-                                info.row.original.externalReference && (
-                                    <span className="text-xs text-muted-foreground">
-                                        {info.row.original.externalReference}
-                                    </span>
-                                )}
+                            <ExternalReference
+                                reservation={info.row.original}
+                            />
                         </span>
                     </span>
                 ),

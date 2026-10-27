@@ -8,6 +8,7 @@ import {
     Clock,
     Footprints,
     History,
+    LogIn,
     ListPlus,
     LogOut,
     Moon,
@@ -55,13 +56,21 @@ import type {
     BookingLine,
 } from '@/components/pms/reservations/booking-lines';
 import { BookingSummaryRail } from '@/components/pms/reservations/booking-summary-rail';
+import { useWalkInPayment } from '@/components/pms/reservations/use-walk-in-payment';
+import { walkInPaymentPayload } from '@/components/pms/reservations/walk-in-payment';
+import { WalkInCardSection } from '@/components/pms/reservations/walk-in-card-section';
+import { WalkInPaymentSection } from '@/components/pms/reservations/walk-in-payment-section';
+import {
+    KEEP_OPTIONS,
+    useFormOptions,
+} from '@/components/pms/use-form-options';
 import {
     errorTabs,
     firstErrorTab,
     tabClass,
 } from '@/components/pms/reservations/booking-tabs';
 import type { BookingTab } from '@/components/pms/reservations/booking-tabs';
-import { FormError } from '@/components/pms/form-error';
+import { announceFormError, FormError } from '@/components/pms/form-error';
 import { StayDateTime } from '@/components/pms/reservations/stay-date-time';
 import { BookingBoatSelect } from '@/components/pms/reservations/booking-boat-select';
 import {
@@ -110,6 +119,7 @@ import {
     past,
     store,
     storePast,
+    storeWalkIn,
     walkIn,
 } from '@/routes/reservations';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
@@ -120,6 +130,17 @@ const LONGEST_STAY_DAYS = 365;
 
 /** The longest note the server takes. */
 const NOTES_LIMIT = 2000;
+
+/** The departure that keeps the nights of a stay when its arrival moves. A stay with no nights (day use, or a missing date) keeps its departure. */
+function departureKeepingNights(
+    arrival: string,
+    departure: string,
+    newArrival: string,
+): string {
+    const nights = nightsBetween(arrival, departure);
+
+    return nights >= 1 ? addDays(newArrival, nights) : departure;
+}
 
 /** Charging units that bill every night. A day use has no nights, so the server refuses them. */
 const NIGHTLY_UNITS = ['per_night', 'per_guest_night'];
@@ -138,6 +159,15 @@ type Props = {
     canEnterMigratedStay: boolean;
     /** Old stay mode (it shares the Past stay form): a stay that began and ended before go-live, kept for history only. */
     isOldStay: boolean;
+    /** Where the back arrow and Cancel go: the page that opened the form, from `back` in the query. */
+    back: App.Data.Reservations.BookingBackData;
+    /** New booking only: what an empty Timeline cell passed in the query. Each part is already checked; a bad one is null. */
+    prefill: {
+        arrival: string | null;
+        roomTypeId: number | null;
+        roomId: number | null;
+        bedId: number | null;
+    } | null;
     /** Whether Old stay shows in the select: `folio.manual` inside the migration window. */
     canEnterOldStay: boolean;
     /** The ways to carry the old folio over, from `OldFolioMode::options()`. */
@@ -162,6 +192,12 @@ type Props = {
     currency: App.Data.Property.CurrencyData | null;
     canOverrideRestrictions: boolean;
     canManageGuests: boolean;
+    /** Whether the user may take a payment (`payment.record`): it shows the walk-in Payment section. */
+    canRecordPayment: boolean;
+    /** Walk-in only: whether the property requires a signed card for check-in and the user may check in without one (`front-desk.check-in-without-card`). It shows the Registration card block. */
+    canCheckInWithoutCard: boolean;
+    /** The payment methods, asked for the first time the walk-in form opens. */
+    paymentOptions?: App.Data.Payments.PaymentFormOptionsData | null;
     /** Whether the property has an active Day use plan: it turns the Stay type switch on. */
     hasDayUse: boolean;
     /** Whether the Boats feature is on: it shows the Boat in and Boat out picks on the Stay row. */
@@ -169,6 +205,8 @@ type Props = {
     /** The available boat departures, both directions. Each pick filters them by direction. */
     boatDepartures: App.Data.Boats.BoatDepartureOptionData[];
     countries: EnumOption[];
+    /** The property's country code: the nationality a new guest starts with. */
+    defaultNationalityCode: string;
     genders: EnumOption[];
     locales: EnumOption[];
 };
@@ -204,6 +242,8 @@ export default function ReservationCreate({
     isPastStay,
     isMigratedStay,
     isOldStay,
+    back,
+    prefill,
     canEnterPastStay,
     canEnterMigratedStay,
     canEnterOldStay,
@@ -224,10 +264,14 @@ export default function ReservationCreate({
     currency,
     canOverrideRestrictions,
     canManageGuests,
+    canRecordPayment,
+    canCheckInWithoutCard,
+    paymentOptions,
     hasDayUse,
     hasBoats,
     boatDepartures,
     countries,
+    defaultNationalityCode,
     genders,
     locales,
 }: Props) {
@@ -237,6 +281,21 @@ export default function ReservationCreate({
                 sources[0]?.id ||
                 '',
         );
+    /** The first line: blank, or with the room or bed a Timeline cell picked. */
+    function prefilledLine(): BookingLine {
+        const line = emptyLine(autoAddOns(chargeItems, 'overnight'));
+
+        if (prefill?.roomTypeId == null) {
+            return line;
+        }
+
+        return {
+            ...line,
+            room_type_id: String(prefill.roomTypeId),
+            room_id: prefill.roomId === null ? '' : String(prefill.roomId),
+            bed_ids: prefill.bedId === null ? [] : [String(prefill.bedId)],
+        };
+    }
     const form = useForm<BookingForm>({
         stay_type: 'overnight',
         start_time: '',
@@ -254,8 +313,8 @@ export default function ReservationCreate({
               ? addDays(goLiveDate, -1)
               : isPastStay
                 ? addDays(today, -1)
-                : today,
-        departure_date: '',
+                : (prefill?.arrival ?? today),
+        departure_date: prefill?.arrival ? addDays(prefill.arrival, 1) : '',
         arrival_time: isWalkIn ? nowTime : checkInTime,
         departure_time: checkOutTime,
         group_name: '',
@@ -263,10 +322,16 @@ export default function ReservationCreate({
         credit_override_reason: '',
         billing_mode: billingModes[0]?.value ?? 'master_pays',
         notes: '',
-        guests: [emptyGuest()],
-        lines: [emptyLine(autoAddOns(chargeItems, 'overnight'))],
+        guests: [emptyGuest('', defaultNationalityCode)],
+        lines: [prefilledLine()],
         boat_in: NOT_SET,
         boat_out: NOT_SET,
+        without_card: false,
+        collect_room_charges: true,
+        collect_deposit: true,
+        payment_method_id: '',
+        reference: '',
+        expected_total: '',
     });
     const { data, errors } = form;
     const [quotes, setQuotes] = useState<Record<string, Quote>>({});
@@ -357,7 +422,15 @@ export default function ReservationCreate({
                 : isPastStay
                   ? checkInTime
                   : current.arrival_time,
-            departure_date: isPastStay ? '' : current.departure_date,
+            departure_date: isPastStay
+                ? ''
+                : isWalkIn
+                  ? departureKeepingNights(
+                        current.arrival_date,
+                        current.departure_date,
+                        today,
+                    )
+                  : current.departure_date,
             start_time:
                 current.stay_type === 'day_use' && !isPastStay
                     ? defaultStart(isWalkIn)
@@ -408,7 +481,7 @@ export default function ReservationCreate({
                       ? walkIn
                       : newMethod;
 
-        guard.visitWithout(target.url(), {
+        guard.visitWithout(target.url(undefined, { query: back.query }), {
             preserveState: true,
             preserveScroll: true,
             only: [
@@ -463,8 +536,25 @@ export default function ReservationCreate({
         : lockedNights !== null && data.arrival_date
           ? addDays(data.arrival_date, lockedNights)
           : data.departure_date;
+    const showPayment = isWalkIn && canRecordPayment;
+    useFormOptions(showPayment, paymentOptions !== undefined, 'paymentOptions');
+    const [paymentRefresh, setPaymentRefresh] = useState(0);
+    const walkInPayment = useWalkInPayment(
+        showPayment
+            ? walkInPaymentPayload(
+                  { ...data, departure_date: departure },
+                  roomTypes,
+              )
+            : null,
+        paymentRefresh,
+    );
+    // The total posted with the form is the one the rail shows, so a save waits for the rail's answer while a box is ticked.
+    const waitingForPayment =
+        showPayment &&
+        walkInPayment.loading &&
+        Boolean(data.collect_room_charges || data.collect_deposit);
     const emptyPickLabel =
-        isWalkIn || isPastStay
+        isPastStay || (isWalkIn && !autoAssignRooms)
             ? 'Select'
             : autoAssignRooms
               ? 'Auto-assign'
@@ -582,21 +672,64 @@ export default function ReservationCreate({
                     roomTypes,
                 ) as unknown as BookingForm,
         );
-        form.post((isPastStay ? storePast : store).url(), {
-            preserveScroll: true,
-            onError: (submitted) => {
-                const failing = firstErrorTab(errorTabs(submitted));
+        form.post(
+            (isPastStay ? storePast : isWalkIn ? storeWalkIn : store).url(),
+            {
+                preserveScroll: true,
+                except: KEEP_OPTIONS,
+                onError: (submitted) => {
+                    if (submitted.amount_changed) {
+                        // The rates, taxes or deposit changed since the rail asked: ask again.
+                        setPaymentRefresh((count) => count + 1);
+                    }
 
-                if (failing !== null) {
-                    setTab(failing);
-                }
+                    const failing = firstErrorTab(errorTabs(submitted));
 
-                document
-                    .querySelector('[aria-invalid="true"]')
-                    ?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                    if (failing !== null) {
+                        setTab(failing);
+                    }
+
+                    if (announceFormError(submitted)) {
+                        return;
+                    }
+
+                    document
+                        .querySelector('[aria-invalid="true"]')
+                        ?.scrollIntoView({
+                            block: 'center',
+                            behavior: 'smooth',
+                        });
+                },
             },
-        });
+        );
     };
+
+    const submitLabel = isWalkIn
+        ? 'Check in'
+        : isOldStay
+          ? 'Save old stay'
+          : isCheckedOut && !isMigratedStay
+            ? 'Save and open Manual Folio Editor'
+            : isPastStay
+              ? 'Save and open folio'
+              : 'Create booking';
+    const submitButton = (className?: string) => (
+        <Button
+            type="submit"
+            className={className}
+            disabled={form.processing || waitingForPayment}
+            focusableWhenDisabled
+        >
+            {form.processing ? (
+                <Spinner data-icon="inline-start" />
+            ) : isWalkIn ? (
+                <LogIn data-icon="inline-start" />
+            ) : (
+                <CalendarPlus data-icon="inline-start" />
+            )}
+            {submitLabel}
+        </Button>
+    );
 
     return (
         <>
@@ -620,7 +753,7 @@ export default function ReservationCreate({
                                       ? 'A guest at the desk now. Every unit needs a room or bed.'
                                       : 'Reserve rooms or beds for a guest who arrives on a later date.'
                         }
-                        back={{ href: index.url(), label: 'Reservations' }}
+                        back={{ href: back.href, label: back.label }}
                     />
 
                     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
@@ -1551,6 +1684,9 @@ export default function ReservationCreate({
                                                                         emptyPickLabel={
                                                                             emptyPickLabel
                                                                         }
+                                                                        walkIn={
+                                                                            isWalkIn
+                                                                        }
                                                                         takenIds={takenBy(
                                                                             position,
                                                                         )}
@@ -1714,6 +1850,9 @@ export default function ReservationCreate({
                                             units={unitChoices}
                                             canManageGuests={canManageGuests}
                                             countries={countries}
+                                            defaultNationalityCode={
+                                                defaultNationalityCode
+                                            }
                                             genders={genders}
                                             locales={locales}
                                             errors={errors}
@@ -1851,6 +1990,60 @@ export default function ReservationCreate({
                                         unitChoices[Number(tab.stays_in)]
                                             ?.label ?? null,
                                 }))}
+                                submitAction={submitButton('h-10 w-full')}
+                                registrationCard={
+                                    isWalkIn && canCheckInWithoutCard ? (
+                                        <WalkInCardSection
+                                            checked={data.without_card ?? false}
+                                            onChange={(checked) =>
+                                                form.setData(
+                                                    'without_card',
+                                                    checked,
+                                                )
+                                            }
+                                        />
+                                    ) : undefined
+                                }
+                                payment={
+                                    showPayment ? (
+                                        <WalkInPaymentSection
+                                            payment={walkInPayment.payment}
+                                            loading={walkInPayment.loading}
+                                            invalid={walkInPayment.invalid}
+                                            problem={walkInPayment.problem}
+                                            options={paymentOptions}
+                                            currency={currency}
+                                            values={{
+                                                collect_room_charges:
+                                                    data.collect_room_charges ??
+                                                    true,
+                                                collect_deposit:
+                                                    data.collect_deposit ??
+                                                    true,
+                                                payment_method_id:
+                                                    data.payment_method_id ??
+                                                    '',
+                                                reference: data.reference ?? '',
+                                                expected_total:
+                                                    data.expected_total ?? '',
+                                            }}
+                                            errors={errors}
+                                            onChange={(patch) =>
+                                                form.setData((current) => ({
+                                                    ...current,
+                                                    ...patch,
+                                                }))
+                                            }
+                                            onDerive={(patch) => {
+                                                form.setData((current) => ({
+                                                    ...current,
+                                                    ...patch,
+                                                }));
+                                                form.setDefaults(patch);
+                                            }}
+                                        />
+                                    ) : undefined
+                                }
                                 discountCount={
                                     data.lines.filter(
                                         (line) => line.discount_id !== '',
@@ -1873,30 +2066,13 @@ export default function ReservationCreate({
 
                 <FormActions fixed>
                     <Link
-                        href={index.url()}
+                        href={back.href}
                         className={buttonVariants({ variant: 'outline' })}
                     >
                         <X data-icon="inline-start" />
                         Cancel
                     </Link>
-                    <Button
-                        type="submit"
-                        disabled={form.processing}
-                        focusableWhenDisabled
-                    >
-                        {form.processing ? (
-                            <Spinner data-icon="inline-start" />
-                        ) : (
-                            <CalendarPlus data-icon="inline-start" />
-                        )}
-                        {isOldStay
-                            ? 'Save old stay'
-                            : isCheckedOut && !isMigratedStay
-                              ? 'Save and open Manual Folio Editor'
-                              : isPastStay
-                                ? 'Save and open folio'
-                                : 'Create booking'}
-                    </Button>
+                    {submitButton()}
                 </FormActions>
             </form>
 

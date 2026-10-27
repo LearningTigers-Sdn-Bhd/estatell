@@ -192,12 +192,12 @@ test('All companies needs the front desk or the portal on', function () {
         ->and(Activity::query()->count())->toBe(0);
 });
 
-test('Only these companies is for derived plans, and an archived plan cannot change', function () {
+test('Only these companies works on a plan with its own prices, and an archived plan cannot change', function () {
     $setup = companyAccessSetup();
     $action = app(SetRatePlanCompanyAccess::class);
 
-    expect($action($setup['user'], $setup['basic'], CompanyAccess::Selected))->toBe(SetRatePlanCompanyAccess::REFUSAL_NOT_DERIVED)
-        ->and($setup['basic']->refresh()->company_access)->toBe(CompanyAccess::Everyone);
+    expect($action($setup['user'], $setup['basic'], CompanyAccess::Selected))->toBeNull()
+        ->and($setup['basic']->refresh()->company_access)->toBe(CompanyAccess::Selected);
 
     $setup['derived']->forceFill(['archived_at' => now()])->save();
 

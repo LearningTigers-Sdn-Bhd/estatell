@@ -12,6 +12,7 @@ use App\Enums\PricingBasis;
 use App\Enums\SystemTransactionCode;
 use App\Enums\UnitStatus;
 use App\Events\ReservationChanged;
+use App\Events\StayDatesChanged;
 use App\Models\BusinessDate;
 use App\Models\ChargeItem;
 use App\Models\FolioLine;
@@ -204,8 +205,8 @@ test('moving the arrival earlier or later adds or removes nights at the front wi
         ->and(FolioLine::query()->count())->toBe(0);
 });
 
-test('a shorter stay posts the early departure fee, removes the unused nights and their unposted add-ons', function () {
-    $setup = datesSetup();
+test('a shorter stay of a checked-in unit posts the early departure fee, removes the unused nights and their unposted add-ons', function () {
+    $setup = datesSetup(['status' => UnitStatus::CheckedIn, 'checked_in_at' => now()]);
     $nightly = ChargeItem::factory()->create(['property_id' => $setup['property']->id, 'charging_unit' => ChargingUnit::PerNight]);
 
     foreach ([1, 2, 3] as $offset) {
@@ -229,8 +230,25 @@ test('a shorter stay posts the early departure fee, removes the unused nights an
         ->and($log->properties['total'])->toBe('200.00');
 });
 
-test('a shorter stay with do not charge posts no fee, and a stale fee is refused', function () {
+test('a shorter stay of a confirmed unit changes dates with no fee and no policy check', function () {
     $setup = datesSetup();
+
+    $result = changeDates($setup, departure: today()->addDays(3), expectedFee: '80.00');
+    $log = Activity::query()->where('event', 'reservation.unit_dates_changed')->sole();
+
+    expect($result->isRefused())->toBeFalse()
+        ->and($result->fee)->toBe('0.00')
+        ->and($result->feeCharged)->toBeFalse()
+        ->and(FolioLine::query()->count())->toBe(0)
+        ->and($setup['unit']->fresh()->departure_date->toDateString())->toBe(today()->addDays(3)->toDateString())
+        ->and($setup['unit']->nights()->count())->toBe(2)
+        ->and(array_keys(nightAmounts($setup['unit'])))->toBe([today()->addDay()->toDateString(), today()->addDays(2)->toDateString()])
+        ->and($log->properties['fee'])->toBe('0.00')
+        ->and($log->properties['total'])->toBe('200.00');
+});
+
+test('a shorter stay of a checked-in unit with do not charge posts no fee, and a stale fee is refused', function () {
+    $setup = datesSetup(['status' => UnitStatus::CheckedIn, 'checked_in_at' => now()]);
 
     $stale = changeDates($setup, departure: today()->addDays(3), expectedFee: '80.00');
 
@@ -288,7 +306,8 @@ test('changing dates is refused and writes nothing', function (string $case, str
         'checked out' => datesSetup(['status' => UnitStatus::CheckedOut, 'checked_in_at' => now()->subDay(), 'checked_out_at' => now()]),
         'cancelled' => datesSetup(['status' => UnitStatus::Cancelled]),
         'no business date' => tap(datesSetup(), fn (array $setup) => BusinessDate::query()->where('property_id', $setup['property']->id)->delete()),
-        'invalid stay', 'unchanged', 'arrival in the past', 'sold out', 'no rate', 'policy missing', 'reason missing' => datesSetup(),
+        'policy missing', 'reason missing' => datesSetup(['status' => UnitStatus::CheckedIn, 'checked_in_at' => now()]),
+        'invalid stay', 'unchanged', 'arrival in the past', 'sold out', 'no rate' => datesSetup(),
         'package plan' => tap(datesSetup(), fn (array $setup) => $setup['plan']->update(['pricing_basis' => PricingBasis::Package, 'package_unit' => PackageUnit::PerGuest, 'fixed_nights' => 3])),
         'in-house arrival moved' => datesSetup(['status' => UnitStatus::CheckedIn, 'checked_in_at' => now()->subDay(), 'arrival_date' => today()->subDay()->toDateString(), 'departure_date' => today()->addDay()->toDateString()]),
         'in-house departure in the past' => datesSetup(['status' => UnitStatus::CheckedIn, 'checked_in_at' => now()->subDays(3), 'arrival_date' => today()->subDays(3)->toDateString(), 'departure_date' => today()->addDay()->toDateString()]),
@@ -460,4 +479,15 @@ test('changing the dates tells the channels about the old and the new nights', f
     Event::assertDispatched(ReservationChanged::class, fn (ReservationChanged $event): bool => $event->roomTypeId === $setup['roomType']->id
         && $event->dateFrom === today()->addDay()->toDateString()
         && $event->dateTo === today()->addDays(5)->toDateString());
+});
+
+test('extending the stay or the departure time tells the door locks', function () {
+    Event::fake([StayDatesChanged::class]);
+    $stay = datesSetup(['status' => UnitStatus::CheckedIn, 'checked_in_at' => now()->subDay(), 'arrival_date' => today()->subDay()->toDateString(), 'departure_date' => today()->addDay()->toDateString()]);
+
+    app(ExtendStay::class)($stay['actor'], $stay['unit'], today()->addDays(3));
+    Event::assertDispatchedTimes(StayDatesChanged::class, 1);
+
+    expect(lateCheckout(lateCheckoutSetup())->isRefused())->toBeFalse();
+    Event::assertDispatchedTimes(StayDatesChanged::class, 2);
 });

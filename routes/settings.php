@@ -11,6 +11,7 @@ use App\Http\Controllers\Catalogues\RoomRevenueController;
 use App\Http\Controllers\Catalogues\RoomRevenueDayUseController;
 use App\Http\Controllers\Catalogues\RoomRevenuePolicyController;
 use App\Http\Controllers\Catalogues\TaxController;
+use App\Http\Controllers\DoorLocks\DoorLockSettingsController;
 use App\Http\Controllers\Meals\MealPeriodController;
 use App\Http\Controllers\Onboarding\RecommendedItemDismissalController;
 use App\Http\Controllers\Property\AgeGroupController;
@@ -179,6 +180,19 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::post('/', [PaymentMethodController::class, 'store'])->name('store');
         Route::put('order', [PaymentMethodController::class, 'reorder'])->name('reorder');
         Route::put('{paymentMethod}', [PaymentMethodController::class, 'update'])->name('update');
+    });
+
+    Route::prefix('door-locks')->name('door-locks.')->middleware(['door-locks', 'can:'.PermissionEnum::SettingsManage->value])->scopeBindings()->group(function () {
+        Route::get('/', [DoorLockSettingsController::class, 'edit'])->name('edit');
+        Route::put('/', [DoorLockSettingsController::class, 'update'])->name('update');
+        Route::post('test', [DoorLockSettingsController::class, 'test'])->name('test');
+        Route::post('sync', [DoorLockSettingsController::class, 'sync'])->name('sync');
+        Route::put('locks/{doorLock}/link', [DoorLockSettingsController::class, 'link'])->name('link');
+        Route::post('locks/{doorLock}/unlock', [DoorLockSettingsController::class, 'unlock'])->name('unlock');
+        Route::post('locks/{doorLock}/clock', [DoorLockSettingsController::class, 'clock'])->name('clock');
+        Route::post('passcodes', [DoorLockSettingsController::class, 'storePasscode'])->name('passcodes.store');
+        Route::post('passcodes/{doorPasscode}/revoke', [DoorLockSettingsController::class, 'revoke'])->name('passcodes.revoke');
+        Route::post('passcodes/{doorPasscode}/retry', [DoorLockSettingsController::class, 'retry'])->name('passcodes.retry');
     });
 
     Route::prefix('accounting')->name('accounting.')->middleware(['accounting', 'can:'.PermissionEnum::SettingsManage->value])->scopeBindings()->group(function () {

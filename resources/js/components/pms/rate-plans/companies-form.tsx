@@ -208,18 +208,12 @@ export function RatePlanCompaniesForm({
                 choices={accessOptions.map((option) => ({
                     value: option.value,
                     label: option.label,
-                    disabled: option.value === 'selected' && !access.isDerived,
                     ...CHOICES[option.value],
                 }))}
                 value={choice}
                 onValueChange={pick}
                 columns={3}
             />
-            {!access.isDerived && (
-                <p className="text-sm text-muted-foreground">
-                    Only a derived plan can be limited to some companies.
-                </p>
-            )}
 
             {choice === 'all' && (
                 <form

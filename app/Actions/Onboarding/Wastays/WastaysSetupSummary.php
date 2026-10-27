@@ -13,6 +13,9 @@ class WastaysSetupSummary
     /** @var list<string> */
     public array $skippedNotes = [];
 
+    /** The prefix the import replaced, as "ABC → SBR", or null when it already matched. */
+    public ?string $prefixChange = null;
+
     public function count(string $part, string $outcome): void
     {
         $this->parts[$part] ??= ['created' => 0, 'linked' => 0, 'skipped' => 0];
