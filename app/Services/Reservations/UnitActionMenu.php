@@ -5,6 +5,7 @@ namespace App\Services\Reservations;
 use App\Actions\FrontDesk\UnitStayResult;
 use App\Data\Reservations\UnitActionData;
 use App\Enums\PermissionEnum;
+use App\Enums\SellUnit;
 use App\Enums\StayType;
 use App\Enums\UnitAction;
 use App\Models\BusinessDate;
@@ -112,7 +113,8 @@ class UnitActionMenu
             UnitAction::CheckOut => $stayDay >= $departure || $this->isEarlyCheckOut($unit, $businessDate, $user)
                 || $this->earlyCheckOutRule->refusal($unit, $businessDate) === UnitStayResult::REFUSAL_ARRIVED_TODAY,
             UnitAction::CheckOutAsDayUse => $arrival === $businessDate && $departure > $businessDate
-                && $user->can(PermissionEnum::ReservationsManage->value),
+                && $user->can(PermissionEnum::ReservationsManage->value)
+                && ! $unit->roomType()->where('sell_unit', SellUnit::Bed)->exists(),
             UnitAction::LateCheckOut => $stayDay === $departure,
             UnitAction::Reinstate, UnitAction::MoveRoom => $businessDate < $departure,
             default => true,

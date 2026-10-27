@@ -3213,6 +3213,7 @@ folioLines: App.Data.Reservations.UnitPendingLineData[],
 ratePlanName: string | null,
 checkedInTime: string | null,
 noTaxes: boolean,
+droppedAddOns: string[],
 errors: Record<string, string>,
 };
 export type CheckOutCollectData = {

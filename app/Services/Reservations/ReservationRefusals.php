@@ -132,6 +132,7 @@ class ReservationRefusals
             UnitStayResult::REFUSAL_INVALID_STATUS => [self::FORM, __('This unit cannot do that in its current status.')],
             UnitStayResult::REFUSAL_NOT_SAME_DAY => [self::FORM, __('Only an overnight unit that arrived on the business date can check out as day use.')],
             UnitStayResult::REFUSAL_PAST_MIDNIGHT => [self::FORM, __('The guest stayed past midnight, so this is a night. Use normal or early check-out.')],
+            UnitStayResult::REFUSAL_BED_UNIT => [self::FORM, __('A dorm bed cannot check out as day use. Use Undo check-in or check out on the departure date.')],
             UnitStayResult::REFUSAL_HOURS_INVALID => ['end', __('Choose an end time after the start on the business date.')],
             UnitStayResult::REFUSAL_START_TIME_INVALID => ['start', __('Choose a start time before 23:00 on the business date.')],
             UnitStayResult::REFUSAL_AMOUNT_REQUIRED => ['amount', __('Enter an amount of 0 or more for this day use.')],

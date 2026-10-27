@@ -66,6 +66,8 @@ class UnitStayResult
 
     public const REFUSAL_PAST_MIDNIGHT = 'past_midnight';
 
+    public const REFUSAL_BED_UNIT = 'bed_unit';
+
     public const REFUSAL_START_TIME_INVALID = 'start_time_invalid';
 
     public const REFUSAL_HOURS_INVALID = 'hours_invalid';

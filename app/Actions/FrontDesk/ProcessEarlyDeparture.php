@@ -2,18 +2,16 @@
 
 namespace App\Actions\FrontDesk;
 
-use App\Enums\ChargingUnit;
 use App\Enums\SystemTransactionCode;
 use App\Events\ReservationChanged;
 use App\Models\ReservationUnit;
 use App\Models\RoomRevenuePolicy;
-use App\Models\UnitAddOn;
 use App\Models\User;
 use App\Services\Catalogues\PolicyChargeCalculator;
+use App\Services\FrontDesk\UnpostedAddOnsAfter;
 use App\Services\NightAudit\CurrentBusinessDate;
 use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
-use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 
 class ProcessEarlyDeparture
@@ -22,6 +20,7 @@ class ProcessEarlyDeparture
         private CurrentBusinessDate $currentBusinessDate,
         private PolicyChargeCalculator $policyChargeCalculator,
         private PostUnitPolicyFee $postUnitPolicyFee,
+        private UnpostedAddOnsAfter $unpostedAddOnsAfter,
     ) {}
 
     /**
@@ -37,8 +36,7 @@ class ProcessEarlyDeparture
      * passes `$newArrival`, so both dates are saved in one write: a new departure alone can fall on or before the old
      * arrival and break the `departure_date > arrival_date` check.
      *
-     * An add-on row goes when it is unposted and its date is on or after the new departure (nightly items) or after
-     * it (other items, whose date may be the departure date). A posted add-on stays.
+     * The add-on rows go as `UnpostedAddOnsAfter` selects them. A posted add-on stays.
      * See docs/18-front-desk/01-check-in-and-check-out.md.
      */
     public function __invoke(?User $actor, ReservationUnit $unit, CarbonImmutable $newDeparture, bool $doNotCharge = false, ?string $reason = null, ?string $expectedFee = null, bool $applyPolicy = true, ?CarbonImmutable $newArrival = null): StayDatesResult
@@ -90,7 +88,7 @@ class ProcessEarlyDeparture
             }
 
             $unit->nights()->whereDate('date', '>=', $departure->toDateString())->delete();
-            $this->deleteUnpostedAddOns($unit, $departure);
+            $this->unpostedAddOnsAfter->query($unit, $departure)->delete();
 
             $previousArrival = $unit->arrival_date->toDateString();
             $previousDeparture = $unit->departure_date->toDateString();
@@ -105,19 +103,5 @@ class ProcessEarlyDeparture
 
             return StayDatesResult::done($unit, $fee, $postsFee);
         });
-    }
-
-    private function deleteUnpostedAddOns(ReservationUnit $unit, CarbonInterface $departure): void
-    {
-        $nightly = [ChargingUnit::PerNight->value, ChargingUnit::PerGuestNight->value];
-
-        UnitAddOn::query()
-            ->where('reservation_unit_id', $unit->id)
-            ->whereNull('folio_line_id')
-            ->whereNotNull('service_date')
-            ->where(fn ($query) => $query
-                ->where(fn ($nightlyRows) => $nightlyRows->whereDate('service_date', '>=', $departure->toDateString())->whereHas('chargeItem', fn ($item) => $item->whereIn('charging_unit', $nightly)))
-                ->orWhereDate('service_date', '>', $departure->toDateString()))
-            ->delete();
     }
 }

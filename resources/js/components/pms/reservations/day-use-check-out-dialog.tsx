@@ -242,6 +242,15 @@ function DayUseCheckOutForm(props: Props) {
                     </AlertDescription>
                 </Alert>
             )}
+            {preview !== null && preview.droppedAddOns.length > 0 && (
+                <Alert>
+                    <Info />
+                    <AlertDescription>
+                        Removed at check-out (not charged yet):{' '}
+                        {preview.droppedAddOns.join(', ')}.
+                    </AlertDescription>
+                </Alert>
+            )}
             {settlement?.error && (
                 <Alert variant="destructive">
                     <AlertDescription>{settlement.error}</AlertDescription>

@@ -6,9 +6,11 @@ use App\Actions\Folio\PostDayUseBlock;
 use App\Data\Reservations\CheckOutCollectData;
 use App\Data\Reservations\CheckOutDamageData;
 use App\Enums\StayType;
+use App\Events\ReservationChanged;
 use App\Models\ReservationUnit;
 use App\Models\User;
 use App\Services\FrontDesk\CheckOutAsDayUseQuote;
+use App\Services\FrontDesk\UnpostedAddOnsAfter;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Throwable;
@@ -19,6 +21,7 @@ class CheckOutAsDayUse
         private CheckOutAsDayUseQuote $quote,
         private PostDayUseBlock $postDayUseBlock,
         private CheckOutAndRefund $checkOutAndRefund,
+        private UnpostedAddOnsAfter $unpostedAddOnsAfter,
     ) {}
 
     public function __invoke(User $actor, ReservationUnit $unit, ?string $start = null, ?string $end = null, ?string $amount = null, ?string $reason = null, ?string $refundAmount = null, ?CheckOutCollectData $collect = null, ?string $idempotencyKey = null, ?CheckOutDamageData $damage = null): UnitStayResult
@@ -52,9 +55,10 @@ class CheckOutAsDayUse
         }
 
         $night = $locked->nights()->whereDate('date', $quote->date)->first();
-        $roomId = $night->room_id ?? $night?->bed?->room_id;
+        $roomId = $night?->room_id;
         $oldDates = ['arrival_date' => $locked->arrival_date->toDateString(), 'departure_date' => $locked->departure_date->toDateString()];
         $locked->nights()->delete();
+        $this->unpostedAddOnsAfter->query($locked, $locked->arrival_date)->delete();
         $locked->forceFill([
             'stay_type' => StayType::DayUse,
             'departure_date' => $locked->arrival_date,
@@ -62,6 +66,7 @@ class CheckOutAsDayUse
             'departure_time' => $quote->blockEnd,
             'rate_plan_id' => $quote->ratePlanId ?? $locked->rate_plan_id,
         ])->save();
+        event(ReservationChanged::forUnit($locked, $oldDates['arrival_date'], $oldDates['departure_date']));
         $locked->dayUse()->create([
             'date' => $quote->date,
             'room_id' => $roomId,

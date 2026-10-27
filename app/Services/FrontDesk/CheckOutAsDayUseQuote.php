@@ -8,6 +8,7 @@ use App\Data\Reservations\UnitPendingLineData;
 use App\Enums\FolioStatus;
 use App\Enums\PermissionEnum;
 use App\Enums\PricingBasis;
+use App\Enums\SellUnit;
 use App\Enums\StayType;
 use App\Enums\SystemTransactionCode;
 use App\Enums\UnitStatus;
@@ -15,6 +16,7 @@ use App\Models\FolioLine;
 use App\Models\RatePlan;
 use App\Models\ReservationUnit;
 use App\Models\TransactionCode;
+use App\Models\UnitAddOn;
 use App\Models\UnitDayUse;
 use App\Models\User;
 use App\Services\Folio\DayUseChargeQuote;
@@ -47,6 +49,7 @@ class CheckOutAsDayUseQuote
         private CheckOutSettlement $checkOutSettlement,
         private Impersonation $impersonation,
         private ReservationRefusals $refusals,
+        private UnpostedAddOnsAfter $unpostedAddOnsAfter,
     ) {}
 
     public function quote(ReservationUnit $unit, ?string $start = null, ?string $end = null, ?string $amount = null, ?string $reason = null): CheckOutAsDayUseData
@@ -57,6 +60,8 @@ class CheckOutAsDayUseQuote
             $data->refusal = UnitStayResult::REFUSAL_INVALID_STATUS;
         } elseif ($unit->stay_type === StayType::DayUse) {
             $data->refusal = UnitStayResult::REFUSAL_DAY_USE_UNIT;
+        } elseif ($unit->roomType->sell_unit === SellUnit::Bed) {
+            $data->refusal = UnitStayResult::REFUSAL_BED_UNIT;
         }
 
         if ($data->refusal !== null) {
@@ -164,6 +169,9 @@ class CheckOutAsDayUseQuote
             return $data;
         }
 
+        $data->droppedAddOns = $this->unpostedAddOnsAfter->query($unit, $unit->arrival_date)->with('chargeItem')->orderBy('service_date')->orderBy('id')->get()
+            ->map(fn (UnitAddOn $addOn): string => __(':item × :quantity · :date', ['item' => $addOn->chargeItem->name, 'quantity' => $addOn->quantity, 'date' => $addOn->service_date->format('j M')]))
+            ->all();
         $proposed = clone $unit;
         $proposed->stay_type = StayType::DayUse;
         $proposed->departure_date = $unit->arrival_date;

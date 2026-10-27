@@ -26,6 +26,8 @@ class CheckOutAsDayUseData extends Data
         public ?string $ratePlanName = null,
         public ?string $checkedInTime = null,
         public bool $noTaxes = false,
+        /** @var list<string> */
+        public array $droppedAddOns = [],
         /** @var array<string, string> */
         public array $errors = [],
     ) {}

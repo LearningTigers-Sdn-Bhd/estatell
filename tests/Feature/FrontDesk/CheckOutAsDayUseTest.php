@@ -11,8 +11,10 @@ use App\Enums\HousekeepingStatus;
 use App\Enums\InclusionEnd;
 use App\Enums\InclusionStart;
 use App\Enums\PermissionEnum;
+use App\Enums\SellUnit;
 use App\Enums\StayType;
 use App\Enums\UnitStatus;
+use App\Events\ReservationChanged;
 use App\Models\BusinessDate;
 use App\Models\ChargeItem;
 use App\Models\Folio;
@@ -22,10 +24,12 @@ use App\Models\PaymentMethod;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\RoomStatus;
+use App\Models\UnitAddOn;
 use App\Models\User;
 use App\Services\FrontDesk\CheckOutAsDayUseQuote;
 use App\Services\NightAudit\StatisticsCalculator;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
@@ -374,3 +378,55 @@ test('group page props open the day use dialog before midnight and early check-o
     'same day' => ['23:59:59', 'check-out-as-day-use', 'Arrived today.'],
     'past midnight' => ['24:00:00', 'check-out', 'Departs 15 Nov'],
 ]);
+
+test('unposted add-ons of the dropped nights are previewed and removed, and the freed nights reach the channels', function () {
+    $s = overnightDayUseCheckout();
+    Event::fake([ReservationChanged::class]);
+    $today = $s['date']->toDateString();
+    $tomorrow = $s['date']->addDay()->toDateString();
+    $breakfast = ChargeItem::factory()->create(['property_id' => $s['property']->id, 'name' => 'Breakfast', 'charging_unit' => ChargingUnit::PerNight]);
+    $transfer = ChargeItem::factory()->create(['property_id' => $s['property']->id, 'name' => 'Transfer', 'charging_unit' => ChargingUnit::PerStay]);
+    $dropped = [
+        UnitAddOn::factory()->create(['reservation_unit_id' => $s['unit']->id, 'charge_item_id' => $breakfast->id, 'quantity' => 2, 'service_date' => $today]),
+        UnitAddOn::factory()->create(['reservation_unit_id' => $s['unit']->id, 'charge_item_id' => $breakfast->id, 'quantity' => 2, 'service_date' => $tomorrow]),
+        UnitAddOn::factory()->create(['reservation_unit_id' => $s['unit']->id, 'charge_item_id' => $transfer->id, 'service_date' => $tomorrow]),
+    ];
+    $kept = UnitAddOn::factory()->create(['reservation_unit_id' => $s['unit']->id, 'charge_item_id' => $transfer->id, 'service_date' => $today]);
+
+    $this->actingAs($s['user'])->postJson(route('reservations.units.check-out-as-day-use.preview', ['property' => $s['property'], 'reservation' => $s['reservation'], 'unit' => $s['unit']]))
+        ->assertOk()
+        ->assertJsonPath('droppedAddOns', [
+            'Breakfast × 2 · '.$s['date']->format('j M'),
+            'Breakfast × 2 · '.$s['date']->addDay()->format('j M'),
+            'Transfer × 1 · '.$s['date']->addDay()->format('j M'),
+        ]);
+    expect(UnitAddOn::query()->where('reservation_unit_id', $s['unit']->id)->count())->toBe(4);
+    Event::assertNotDispatched(ReservationChanged::class);
+
+    $result = app(CheckOutAsDayUse::class)($s['user'], $s['unit'], collect: dayUseCheckoutCollect($s, '120.00'));
+
+    expect($result->refusal)->toBeNull()
+        ->and(UnitAddOn::query()->whereKey(collect($dropped)->modelKeys())->exists())->toBeFalse()
+        ->and($kept->fresh())->not->toBeNull();
+    Event::assertDispatchedTimes(ReservationChanged::class, 1);
+    Event::assertDispatched(ReservationChanged::class, fn (ReservationChanged $event): bool => $event->propertyId === $s['property']->id
+        && $event->roomTypeId === $s['roomType']->id
+        && $event->dateFrom === $today
+        && $event->dateTo === $tomorrow);
+});
+
+test('a dorm bed unit cannot check out as day use and the menu does not offer it', function () {
+    $s = overnightDayUseCheckout();
+    $s['roomType']->update(['sell_unit' => SellUnit::Bed]);
+    $counts = [FolioLine::count(), Activity::count()];
+
+    expect(app(CheckOutAsDayUse::class)($s['user'], $s['unit']->fresh(), amount: '80.00', reason: 'Same-day stay')->refusal)->toBe('bed_unit')
+        ->and($s['unit']->fresh()->stay_type)->toBe(StayType::Overnight)
+        ->and($s['unit']->fresh()->nights()->count())->toBe(2)
+        ->and([FolioLine::count(), Activity::count()])->toBe($counts);
+    $this->actingAs($s['user'])->postJson(route('reservations.units.check-out-as-day-use.preview', ['property' => $s['property'], 'reservation' => $s['reservation'], 'unit' => $s['unit']]))
+        ->assertJsonPath('refusal', 'bed_unit')
+        ->assertJsonPath('errors.form', 'A dorm bed cannot check out as day use. Use Undo check-in or check out on the departure date.');
+    $this->get(route('reservations.show', ['property' => $s['property'], 'reservation' => $s['reservation']]))
+        ->assertInertia(fn (Assert $page) => $page->where('unit.actions', fn ($actions) => ! collect($actions)->pluck('key')->contains('check-out-as-day-use')));
+});
