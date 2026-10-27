@@ -342,3 +342,31 @@ test('a modified revision whose longer stay loses the room moves the unit to a r
     expect($result->ok)->toBeTrue()
         ->and($unit->nights()->orderBy('date')->pluck('room_id')->all())->toBe([$other->id, $other->id, $other->id]);
 });
+
+test('the booker is the primary guest of every unit of a new OTA booking', function () {
+    $setup = channelBookingSetup();
+    fakeChannexAck();
+
+    ingest($setup, ['rooms' => [channelRevisionRoom(), channelRevisionRoom()]]);
+
+    $reservation = Reservation::query()->with('units.guests')->sole();
+
+    expect($reservation->units)->toHaveCount(2)
+        ->and($reservation->units->map(fn (ReservationUnit $unit): array => $unit->guests->map(fn ($guest): array => [$guest->guest_id, $guest->is_primary])->all())->all())
+        ->toBe([[[$reservation->booker_guest_id, true]], [[$reservation->booker_guest_id, true]]]);
+});
+
+test('a room added by a modified revision gets the booker as its primary guest', function () {
+    $setup = channelBookingSetup();
+    fakeChannexAck();
+    ingest($setup);
+
+    ingest($setup, ['status' => 'modified', 'rooms' => [channelRevisionRoom(), channelRevisionRoom()]]);
+
+    $reservation = Reservation::query()->sole();
+    $added = $reservation->units()->latest('id')->first();
+
+    expect($reservation->units()->count())->toBe(2)
+        ->and($added->guests()->sole()->guest_id)->toBe($reservation->booker_guest_id)
+        ->and($added->guests()->sole()->is_primary)->toBeTrue();
+});

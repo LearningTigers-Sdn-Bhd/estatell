@@ -7,6 +7,7 @@ use App\Actions\FrontDesk\CancelUnits;
 use App\Actions\FrontDesk\ChangeUnitDates;
 use App\Actions\Guests\CreateGuest;
 use App\Actions\Reservations\AddUnit;
+use App\Actions\Reservations\AttachGuest;
 use App\Actions\Reservations\ChangeNightPrice;
 use App\Actions\Reservations\CreateReservation;
 use App\Actions\Reservations\EnsureOtaBookingSource;
@@ -53,6 +54,7 @@ class IngestChannelBooking
         private NotifyChannelReservationStaff $notifyStaff,
         private ChannelDriverManager $drivers,
         private AutoAssignBookedUnit $autoAssignBookedUnit,
+        private AttachGuest $attachGuest,
     ) {}
 
     /**
@@ -151,6 +153,9 @@ class IngestChannelBooking
     }
 
     /**
+     * Save a new OTA booking. Each unit gets the booker as its primary guest, so the Timeline shows a name, and then a
+     * room from `AutoAssignBookedUnit`.
+     *
      * @param  array<string, mixed>  $payload
      * @param  list<NewUnitData>  $lines
      *
@@ -158,8 +163,9 @@ class IngestChannelBooking
      */
     private function create(User $actor, Property $property, array $payload, array $lines, OtaChannel $channel, string $otaName): Reservation
     {
+        $booker = $this->resolveGuest($actor, $property, $payload);
         $result = ($this->createReservation)($actor, $property, new NewReservationData(
-            bookerGuestId: $this->resolveGuest($actor, $property, $payload)->id,
+            bookerGuestId: $booker->id,
             bookingSource: ($this->ensureOtaBookingSource)($property, $channel, $otaName),
             units: $lines,
             externalReference: filled($payload['unique_id'] ?? null) ? (string) $payload['unique_id'] : null,
@@ -171,6 +177,7 @@ class IngestChannelBooking
         }
 
         foreach ($result->reservation->units()->orderBy('id')->get() as $unit) {
+            ($this->attachGuest)($actor, $unit, $booker);
             ($this->autoAssignBookedUnit)($actor, $unit);
         }
 
@@ -180,8 +187,8 @@ class IngestChannelBooking
     /**
      * Match the units of the reservation to the rooms of the revision in order. A unit with another room type or rate
      * plan is cancelled and replaced, one with other dates keeps its room and changes dates, a room with no unit is
-     * added, and a unit with no room is cancelled. Nothing is charged for the changes: the channel decides. With `auto_assign_rooms` on, an added or
-     * replaced unit, and a Confirmed unit whose date change left a night without a room, gets one from
+     * added, and a unit with no room is cancelled. Nothing is charged for the changes: the channel decides. An added or replaced unit gets the booker as
+     * primary guest. With `auto_assign_rooms` on, an added or replaced unit, and a Confirmed unit whose date change left a night without a room, gets one from
      * `AutoAssignBookedUnit`. A kept
      * unit is then priced as the channel says: each night that differs from the revision's day amount (or from the
      * room amount spread over the nights, when the revision has no days) gets that price through `ChangeNightPrice`,
@@ -304,6 +311,10 @@ class IngestChannelBooking
         }
 
         if ($result->unit !== null) {
+            if ($reservation->booker !== null) {
+                ($this->attachGuest)($actor, $result->unit, $reservation->booker);
+            }
+
             ($this->autoAssignBookedUnit)($actor, $result->unit->refresh());
         }
     }
