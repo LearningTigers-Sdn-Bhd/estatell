@@ -205,7 +205,7 @@ Optional. A picked room or bed fills `room_id` or `bed_id` on every night of the
 
 - The list shows only rooms or beds free on every night of the unit, from `AvailabilityService`. A room picked on another line is disabled.
 - On a walk-in the list also shows a room or bed that is not ready, disabled, with the reason after the number: `106 · In house` (a unit is still CheckedIn there, for example a guest who leaves today and has not checked out) or `108 · Dirty` (the room's `room_statuses.status` is Dirty). A bed takes the reason of its room for Dirty, and its own for In house. `FreeUnits` returns the reason; a new booking does not ask for it, because the room is not needed today.
-- A walk-in with no pick and `auto_assign_rooms` on is assigned by `CheckInUnit`, which calls `AutoAssignRooms` first.
+- With `auto_assign_rooms` on, a unit left on **Auto-assign** gets a room or bed when the booking is saved (`CreateBooking` runs `AutoAssignRooms` after the picks). With nothing free it saves with no room. A walk-in is assigned the same way before check-in; `CheckInUnit` still assigns any unit left without one. See [Room and bed assignment](../18-front-desk/02-room-and-bed-assignment.md).
 - Changing the room type or dates reloads the list. A picked room that is no longer free is cleared.
 - `AssignRoom` and `AssignBed` lock the room type row, then check that the room or bed is free on every night. A refusal writes nothing and comes back as an inline error on the line. Two unique indexes on `unit_nights` (room and night, bed and night) enforce it in the database. See [Room and bed assignment](../18-front-desk/02-room-and-bed-assignment.md).
 - Mid-stay moves, `AutoAssignRooms` and later changes are in [Room and bed assignment](../18-front-desk/02-room-and-bed-assignment.md).
@@ -250,8 +250,16 @@ Typing in Name opens the match list under the Name cell. The list floats over th
 | Other rows     | One guest staying in a unit. The name shows "Guest N" while empty. A new row opens when it is added.                                                                                                                                              |
 | Badges         | Booker, Existing (linked guest) or New. A VIP or blacklisted guest shows an icon in the main row, so a warning is visible when the row is closed.                                                                                                 |
 | Open state     | Several rows can be open. A row with an error opens itself.                                                                                                                                                                                       |
-| Stays in       | Lists every unit on the form (Deluxe King #1, Dorm Bed 1). The first guest in a unit becomes `is_primary`. A bed unit takes one guest only.                                                                                                       |
+| Stays in       | Lists every unit on the form (Deluxe King #1, Dorm Bed 1). The first guest in a unit becomes `is_primary`. See [Stays in and capacity](#stays-in-and-capacity).                                                                                   |
 | Narrow screens | Below `lg` each row is a stacked card with the same collapsible part.                                                                                                                                                                             |
+
+### Stays in and capacity
+
+- A unit's capacity is its line's adults + children. A bed unit holds one guest.
+- The booker starts in the first unit. A new row starts in the first unit with space left, or empty when every unit is full.
+- The select lists **Not staying** (booker only) and every unit. A full unit is disabled, except the unit the row already has.
+- When a line loses adults or children, or a unit goes away, the last rows over capacity go back to empty (`clampStaysIn`).
+- `AttachGuest` checks the same rule (`unit_full`), so the server decides.
 
 Units without a guest are allowed. The footer counts them, and they show "No guest yet" with an **Add** button on the [Guests tab](06-reservation-page.md#guests-tab) of the reservation page.
 

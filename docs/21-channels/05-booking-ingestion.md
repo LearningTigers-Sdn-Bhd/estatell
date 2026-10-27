@@ -37,7 +37,8 @@ IngestChannelBooking ── CreateReservation(fromChannel: true), booking source
 2. `IngestChannelBooking` maps the revision:
     - One OTA booking with 3 rooms = 1 reservation with 3 units.
     - The room's Channex `rate_plan_id` maps to the rate plan and room type through `channel_rate_plan_mappings`. A room with no `room_type_id` or `rate_plan_id`, or one we have no mapping for, fails the revision.
-    - The booker is a guest of the property with the same email or phone (`GuestMatcher`), or a new guest. The other guests of the OTA booking are not attached to units.
+    - The booker is a guest of the property with the same email or phone (`GuestMatcher`), or a new guest. The booker is attached (`AttachGuest`) as the primary guest of each unit of a new booking and of each unit a Modified revision adds or replaces, so the Timeline bar shows a name. The other guests of the OTA booking are not attached.
+    - With `auto_assign_rooms` on, each new, added or replaced unit gets a room or bed from `AutoAssignRooms`. A Confirmed unit whose date change left a night without a room is assigned again for the whole stay. With nothing free the booking is still saved, with no room. See [Room and bed assignment](../18-front-desk/02-room-and-bed-assignment.md).
     - Prices are stored on `unit_nights`: the room `amount` is the unit's stay total, saved as `override_total` spread over the nights. A stay the rate quote cannot price (no rate on a date, over capacity) is still saved this way, with no calculated price on its nights.
     - A booking in another currency than the property's fails the revision.
     - `EnsureOtaBookingSource` gives the property's OTA [booking source](../12-reservations/11-booking-sources.md) for the revision's channel, and creates it when missing. The reservation gets its `booking_source_id` and `external_reference`. Manual and ingested bookings for the same OTA share one source.
