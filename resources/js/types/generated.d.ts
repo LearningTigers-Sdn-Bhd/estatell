@@ -3762,31 +3762,6 @@ paid: string,
 reopens: string[],
 error: string | null,
 };
-export type WalkInCollectData = {
-roomCharges: boolean,
-deposit: boolean,
-paymentMethodId: number,
-reference: string | null,
-expectedTotal: string,
-};
-export type WalkInPaymentData = {
-roomCharges: string,
-roomChargesHidden: boolean,
-taxes: {
-name: string,
-amount: string,
-exempt: boolean,
-}[],
-taxesTotal: string,
-deposit: {
-amount: string,
-units: number,
-total: string,
-} | null,
-totalWithRoomCharges: string,
-totalWithoutRoomCharges: string,
-errors: Record<string, string>,
-};
 }
 namespace Rooms {
 export type BedData = {

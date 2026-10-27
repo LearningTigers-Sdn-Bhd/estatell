@@ -9,6 +9,7 @@ use App\Models\RoomType;
 use App\Models\User;
 use App\Services\Rates\RateCalendarService;
 use Illuminate\Support\Facades\Date;
+use Inertia\Testing\AssertableInertia as Assert;
 
 test('saved prices hold only the plan, its room types and every date of the range', function () {
     $owner = User::factory()->owner()->create();
@@ -54,6 +55,29 @@ test('saved prices of a derived plan show the parent price after the derivation'
     expect($plan->derived)->toBeTrue()
         ->and($plan->followsName)->toBe('Basic')
         ->and($plan->cells[0]->amount)->toBe('180.00');
+});
+
+test('the saved prices tab sends the plan, the range and how far each room type is priced', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    PropertySetting::factory()->for($property)->create();
+    $plan = RatePlan::factory()->for($property)->create();
+    $roomType = RoomType::factory()->for($property)->create();
+    $plan->roomTypes()->attach($roomType);
+    Rate::factory()->create(['room_type_id' => $roomType->id, 'rate_plan_id' => $plan->id, 'date' => '2026-10-14', 'amount' => '200.00']);
+
+    $this->actingAs($owner)->get(route('settings.rate-plans.saved-prices.show', [$property->code, $plan, 'from' => '2026-10-14', 'to' => '2026-10-20']))
+        ->assertInertia(fn (Assert $page) => $page->component('settings/rate-plans/saved-prices')
+            ->where('ratePlan.id', $plan->id)
+            ->where('saved.from', '2026-10-14')
+            ->where('saved.to', '2026-10-20')
+            ->has('saved.dates', 7)
+            ->where('saved.roomTypes.0.plans.0.cells.0.amount', '200.00')
+            ->where('pricedUntil.'.$roomType->id, '2026-10-14')
+            ->has('weekendDays'));
+
+    $this->actingAs($owner)->get(route('settings.rate-plans.saved-prices.show', [$property->code, $plan, 'from' => '2026-10-14', 'to' => '2026-12-31']))
+        ->assertSessionHasErrors('to');
 });
 
 test('the saved prices tab is limited to settings managers of the property', function () {

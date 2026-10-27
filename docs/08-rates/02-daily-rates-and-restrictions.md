@@ -122,12 +122,12 @@ Built now: the rate plan editor's **Pricing** tab (`settings.rate-plans.pricing.
 
 ## Saved prices tab
 
-Not built yet. The rate plan editor gets a read-only **Saved prices** tab after Pricing rules (`settings.rate-plans.saved-prices.show`, `settings.manage`). The Pricing rules form starts empty, so this is where staff see what is stored. It is the [rate calendar](#the-rate-calendar) for one plan.
+Built. The rate plan editor has a read-only **Saved prices** tab after Pricing rules (`settings.rate-plans.saved-prices.show`, `settings.manage`). The Pricing rules form starts empty, so this is where staff see what is stored. It is the [rate calendar](#the-rate-calendar) for one plan.
 
 - **Plans.** Every plan type: direct, derived, package and Day use. Derived plans show the resolved price with a link marker. Package plans show `600/2N`. Day use shows "from 40", with the hour prices in a tooltip.
 - **Data.** The tab asks `RateCalendarService` for one plan and adds no price logic. It loads only its own data, like the other tabs.
-- **Toolbar.** Today, the arrows, the range picker, the 14 days, 21 days and Month presets, and a room type multi-select. There is no plan filter. The range is in the URL (`?from=&to=`), up to 62 days, like the calendar.
-- **Grid.** The `DateGrid` engine without `fill`, so it sizes itself to the window and scrolls inside its panel. The panel is full width (`panelWidth="full"`). The room type column is sticky. The cells reuse the rate calendar cell styling and `calendar-model.ts`. The grid is a small read-only component, not `RateCalendarGrid`, which carries the editing state.
+- **Toolbar.** Today, the arrows, the range picker, the 14 days, 21 days and Month presets, and a room type filter (one room type or all, in the browser). There is no plan filter. The range is in the URL (`?from=&to=`), up to 62 days, like the calendar.
+- **Grid.** The `DateGrid` engine without `fill`, so it sizes itself to the window and scrolls inside its panel. The panel is full width (`panelWidth="full"`). The room type column is sticky. The cells reuse the rate calendar cell styling and `calendar-model.ts`. The grid is `SavedPricesGrid`, a small read-only component, not `RateCalendarGrid`, which carries the editing state. It has square corners. It reuses `RateCell`, so the cells match the calendar.
 - **Cells.** A plain price, with stop sell, CTA, CTD and min and max stay as small badges. A dash means no saved price. A cell does nothing when clicked.
 - **Footer.** "Priced until" for each room type, and an "Edit in Pricing rules" link.
 

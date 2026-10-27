@@ -318,7 +318,7 @@ class RatePlanController extends Controller
             'ratePlan' => RatePlanData::fromModel($ratePlan->load('roomTypes')),
             'saved' => $rateCalendarService->forPlan($property, $ratePlan, $from, $to, $property->settings->currency->getCurrencyCode()),
             'pricedUntil' => $pricedUntil,
-            'currency' => CurrencyData::forProperty($property),
+            'weekendDays' => $property->settings->weekend_nights->isoWeekdays(),
             'today' => $today->toDateString(),
         ]);
     }
