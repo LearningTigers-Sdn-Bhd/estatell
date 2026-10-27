@@ -179,14 +179,8 @@ class AddUnit
 
         $overrideTotal = null;
 
-        if ($data->overrideTotal !== null) {
-            if (trim((string) $data->overrideReason) === '') {
-                return $refuse(ReservationResult::REFUSAL_OVERRIDE_REASON_REQUIRED);
-            }
-
-            if (preg_match('/^\d+(\.\d{1,2})?$/', $data->overrideTotal) !== 1) {
-                return $refuse(ReservationResult::REFUSAL_OVERRIDE_INVALID);
-            }
+        if ($data->overrideTotal !== null && preg_match('/^\d+(\.\d{1,2})?$/', $data->overrideTotal) !== 1) {
+            return $refuse(ReservationResult::REFUSAL_OVERRIDE_INVALID);
         }
 
         $quote = $this->rateQuoteService->quote(new RateQuoteRequest(
@@ -375,7 +369,7 @@ class AddUnit
 
         if ($overrideTotal !== null) {
             $properties['override_total'] = (string) $overrideTotal->getAmount();
-            $properties['override_reason'] = trim((string) $overrideReason);
+            $properties['override_reason'] = trim((string) $overrideReason) === '' ? null : trim((string) $overrideReason);
         }
 
         activity()

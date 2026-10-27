@@ -203,7 +203,6 @@ test('a refused unit shows an inline error and writes nothing', function (array 
 })->with([
     'arrival in the past' => [['arrival_date' => '2026-10-01', 'departure_date' => '2026-10-03'], 'arrival_date', 'Arrival cannot be before today.'],
     'departure before arrival' => [['departure_date' => '2026-10-23'], 'departure_date', 'Departure must be after arrival.'],
-    'override without a reason' => [['override_total' => '150.00'], 'override_reason', 'Enter a reason for the price override.'],
     'a restriction without the permission' => [['arrival_date' => '2026-10-25', 'departure_date' => '2026-10-27'], 'form', 'This stay breaks a rate restriction, for example a minimum stay. Ask someone who may book past restrictions.'],
 ]);
 

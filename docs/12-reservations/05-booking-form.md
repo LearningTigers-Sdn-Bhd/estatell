@@ -180,7 +180,7 @@ The toast names the result with the currency code: "Reservation R-1042: 3 of 3 c
     - Bed lines: "Beds: N", expanded into N units, with one bed picker per unit.
     - Package plans: departure is locked, the stay total is shown.
     - Children: one required age field per child under the line (not a comma list, unlike the Add unit Sheet on the reservation page).
-    - Rate cell: the server quote from `RateQuoteService`. ⓘ opens the night breakdown. ✎ sets an override (logged, needs a reason).
+    - Rate cell: the server quote from `RateQuoteService`. ⓘ opens the night breakdown. ✎ sets an override (logged, with an optional reason). **Reset** clears it and goes back to the quote.
     - A restriction that fails (stop-sell, closed to arrival or departure, min or max stay) shows a warning under the lines. Staff with `rates.override-restrictions` can continue after entering a reason (see [Daily rates and restrictions](../08-rates/02-daily-rates-and-restrictions.md)).
 3. **Guests** (tab **Rooms & guests**, under Rooms and beds): see [Guests section](#guests-section).
 4. **Discounts** and **Add-ons** (optional, one tab each; both tables keep their header and footer when empty, with an `EmptyState` in the body: "Pick a room type in Rooms & guests first" until a room type is picked, "No room discounts" when the property has none, and "No add-ons yet" when the Add-ons table has no rows; the Add add-on button is disabled until a room type is picked). A tab with an error turns red and opens itself on submit; an error on a room, bed or guest opens **Rooms & guests**. Both tabs are tables, in the same style as the lines table.

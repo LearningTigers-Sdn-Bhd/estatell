@@ -442,12 +442,16 @@ test('it reads the room type with a row lock before checking availability', func
         ->and($lock)->toBeLessThan($availability);
 });
 
-test('an override needs a reason', function () {
+test('an override without a reason is booked and logged with no reason', function () {
     $setup = unitSetup();
 
-    expect(addUnit($setup, unitData($setup, 2, ['overrideTotal' => '150.00']))->refusal)->toBe(ReservationResult::REFUSAL_OVERRIDE_REASON_REQUIRED)
-        ->and(addUnit($setup, unitData($setup, 2, ['overrideTotal' => '150.00', 'overrideReason' => '  ']))->refusal)->toBe(ReservationResult::REFUSAL_OVERRIDE_REASON_REQUIRED);
-    expectNothingWritten();
+    expect(addUnit($setup, unitData($setup, 2, ['overrideTotal' => '150.00', 'overrideReason' => '  ']))->isRefused())->toBeFalse()
+        ->and(UnitNight::query()->pluck('amount')->unique()->all())->toBe(['75.00']);
+
+    $activity = Activity::query()->where('event', 'reservation.unit_added')->sole();
+
+    expect($activity->properties['override_total'])->toBe('150.00')
+        ->and($activity->properties['override_reason'])->toBeNull();
 });
 
 test('a negative override is refused and zero is allowed', function () {

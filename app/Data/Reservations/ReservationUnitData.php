@@ -20,7 +20,8 @@ use Spatie\LaravelData\Data;
  * price and `stayLabel` reads "Day use · 4h" (`nightCount` is 0); an overnight unit has no `stayLabel`. `actions` is the unit ⋯ menu the user may use.
  * `canChangePrice` shows Change price on the night table, and `chargedNightIds` marks the nights already charged.
  * `boatIn` and `boatOut` are the boat trips, read when `boatTrips` is loaded (otherwise null), and `canSetBoatIn` and
- * `canSetBoatOut` say whether the unit panel shows Change for them.
+ * `canSetBoatOut` say whether the unit panel shows Change for them. `hasPriceOverride` shows the price override note,
+ * with `priceOverrideReason` when one was given.
  */
 class ReservationUnitData extends Data
 {
@@ -59,13 +60,14 @@ class ReservationUnitData extends Data
         public ?UnitBoatTripData $boatOut = null,
         public bool $canSetBoatIn = false,
         public bool $canSetBoatOut = false,
+        public bool $hasPriceOverride = false,
     ) {}
 
     /**
      * @param  list<UnitActionData>  $actions
      * @param  list<int>  $chargedNightIds
      */
-    public static function fromModel(ReservationUnit $unit, bool $canViewGuest, ?string $overrideReason, ?string $overrideBy, array $actions = [], bool $canChangePrice = false, array $chargedNightIds = [], bool $canSetBoatIn = false, bool $canSetBoatOut = false): self
+    public static function fromModel(ReservationUnit $unit, bool $canViewGuest, ?string $overrideReason, ?string $overrideBy, array $actions = [], bool $canChangePrice = false, array $chargedNightIds = [], bool $canSetBoatIn = false, bool $canSetBoatOut = false, bool $hasPriceOverride = false): self
     {
         $isDayUse = $unit->stay_type === StayType::DayUse;
         $trips = $unit->relationLoaded('boatTrips') ? $unit->boatTrips : collect();
@@ -105,6 +107,7 @@ class ReservationUnitData extends Data
             boatOut: $isDayUse ? null : UnitBoatTripData::forDirection($trips, BoatDirection::Out, $unit),
             canSetBoatIn: $canSetBoatIn,
             canSetBoatOut: $canSetBoatOut,
+            hasPriceOverride: $hasPriceOverride,
         );
     }
 }
