@@ -2519,6 +2519,12 @@ name: string,
 sellUnit: App.Enums.SellUnit,
 fits: boolean,
 };
+export type RatePlanSavedPricesData = {
+from: string,
+to: string,
+dates: string[],
+roomTypes: App.Data.Rates.RateCalendarRoomTypeData[],
+};
 export type RatePlanStayDiscountData = {
 minNights: number,
 discountType: App.Enums.StayDiscountType,
