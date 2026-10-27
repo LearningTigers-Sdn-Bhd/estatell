@@ -8,18 +8,19 @@ Day use is sold at the front desk only. It is never on the public site, the comp
 
 ## Decisions
 
-| Decision       | Rule                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Set up         | A rate plan with the pricing basis **Day use** (see [Rate plans](../08-rates/01-rate-plans.md#day-use-plans)). Having an active Day use plan turns day use on in the booking form.                                                                                                                                                                                                                                                      |
-| Price          | One price per number of hours, per room type and date, in `rate_hour_prices` (see [Daily rates](../08-rates/02-daily-rates-and-restrictions.md#day-use-prices)).                                                                                                                                                                                                                                                                        |
-| Hours          | Whole hours from the plan's minimum to its maximum. Half hours are out.                                                                                                                                                                                                                                                                                                                                                                 |
-| Room types     | Room types sold per room. Dorm beds are out.                                                                                                                                                                                                                                                                                                                                                                                            |
-| Adults         | No price by adults. A Day use price is for the room.                                                                                                                                                                                                                                                                                                                                                                                    |
-| Night model    | Unchanged. A day use unit has **no `unit_nights`**, so it never takes night inventory and never touches the one-room-per-night rule.                                                                                                                                                                                                                                                                                                    |
-| Tourism tax    | Not charged by default: the day use code has its own taxes, seeded without the Tourism tax (see [Taxes](#taxes)). Customs agrees: day use is not subject to tourism tax unless the guest is charged the per-night room rate ([General Guide on Tourism Tax](https://www.myttx.customs.gov.my/wp-content/uploads/2022/05/APPENDIX-A-General-Guide.pdf), paragraph 13 and Example 12). Staff can add it on the Day use tab for that case. |
-| Price override | Staff can override the price of a day use line with ✎ and an optional reason, as on an overnight line (see [Price override](#price-override)). Decided 2026-10-27; it replaces "no price override for day use".                                                                                                                                                                                                                         |
-| Same-day stay  | An overnight stay that ends the day it starts, before midnight, becomes a day use at check-out (`CheckOutAsDayUse`). It works with or without a Day use plan; without one, staff enter the amount and a reason. Decided 2026-10-27, not built.                                                                                                                                                                                          |
-| Extending      | Changing the hours after booking is a later item. The hour prices already support it.                                                                                                                                                                                                                                                                                                                                                   |
+| Decision       | Rule                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Set up         | Optional. A rate plan with the pricing basis **Day use** (see [Rate plans](../08-rates/01-rate-plans.md#day-use-plans)) gives preset hour prices, hours, a window, inclusions and restrictions. Without one, staff pick **No plan · enter price** and type the amount (see [Entered price](#entered-price)). Day use shows in the booking form when the property has an active room type sold per room. Decided 2026-10-28; it replaces "an active Day use plan turns day use on". |
+| Entered late   | A day use entered after it started: today under **Walk-in** (front desk), a past date under **Past stay** (Owner, Manager). See [Entered after it started](#entered-after-it-started). Decided 2026-10-28.                                                                                                                                                                                                                                                                         |
+| Price          | One price per number of hours, per room type and date, in `rate_hour_prices` (see [Daily rates](../08-rates/02-daily-rates-and-restrictions.md#day-use-prices)).                                                                                                                                                                                                                                                                                                                   |
+| Hours          | Whole hours from the plan's minimum to its maximum. Half hours are out. With an entered price, any whole hours from 1 that end before midnight.                                                                                                                                                                                                                                                                                                                                    |
+| Room types     | Room types sold per room. Dorm beds are out.                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| Adults         | No price by adults. A Day use price is for the room.                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Night model    | Unchanged. A day use unit has **no `unit_nights`**, so it never takes night inventory and never touches the one-room-per-night rule.                                                                                                                                                                                                                                                                                                                                               |
+| Tourism tax    | Not charged by default: the day use code has its own taxes, seeded without the Tourism tax (see [Taxes](#taxes)). Customs agrees: day use is not subject to tourism tax unless the guest is charged the per-night room rate ([General Guide on Tourism Tax](https://www.myttx.customs.gov.my/wp-content/uploads/2022/05/APPENDIX-A-General-Guide.pdf), paragraph 13 and Example 12). Staff can add it on the Day use tab for that case.                                            |
+| Price override | Staff can override the price of a day use line with ✎ and an optional reason, as on an overnight line (see [Price override](#price-override)). Decided 2026-10-27; it replaces "no price override for day use".                                                                                                                                                                                                                                                                    |
+| Same-day stay  | An overnight stay that ends the day it starts, before midnight, becomes a day use at check-out (`CheckOutAsDayUse`). It works with or without a Day use plan; without one, staff enter the amount and an optional reason. Decided 2026-10-27, built. The reason became optional on 2026-10-28.                                                                                                                                                                                     |
+| Extending      | Changing the hours after booking is a later item. The hour prices already support it.                                                                                                                                                                                                                                                                                                                                                                                              |
 
 ## Data model
 
@@ -51,8 +52,9 @@ Hours       [ 4 hours · MYR 95.00 ▾ ]          Ends 14:00
 Room        [ 101 ▾ ]   (rooms free from 10:00 to 14:00)
 ```
 
-- The **Stay type** switch shows only when the property has an active Day use plan. It applies to every room on the form: a reservation is all overnight or all day use at first.
-- **Date**: the business date or later. **Start**: on the hour or half hour, inside the plan's **Sold between** window.
+- The **Stay type** switch shows when the property has an active room type sold per room, with or without a Day use plan (`hasDayUse`). It applies to every room on the form: a reservation is all overnight or all day use at first.
+- **Date**: the business date or later. **Start**: on the hour or half hour, inside the plan's **Sold between** window. With an entered price there is no window.
+- **Plan** lists the property's Day use plans for the room type, then **No plan · enter price** (see [Entered price](#entered-price)).
 - **Hours** lists every hour count the plan sells with that date's price, and leaves out those that would end after the window. A missing hour price is not listed.
 - **Room** is required for day use: the room is the inventory. It lists the rooms of the type that are free for those hours (see [Availability](#availability)).
 - The rest of the form (booker, guests, company, add-ons, notes) is the same as an overnight booking. `CreateReservation` and `AddUnit` take `stay_type`, `start_time`, `hours` and `room_id` for a day use line.
@@ -90,6 +92,93 @@ Room        [ 101 ▾ ]   (rooms free from 10:00 to 14:00)
 This replaces the original refusal of day-use overrides in commits 2a and 2b below, and the unconditional re-quote on reinstate in commit 3a.
 
 - [Check out as day use](../18-front-desk/01-check-in-and-check-out.md#check-out-as-day-use) uses the same rule for a changed plan price, and for the amount staff enter when there is no Day use plan.
+
+## Entered price
+
+**Decided 2026-10-28, not built.** Staff can sell day use without a Day use plan, or outside what a plan sells, and type the amount.
+
+```
+Plan  [ No plan · enter price ▾ ]
+      ┌───────────────────────────────┐
+      │ Day use (2–6h)                │  only when the property has one
+      │ ───────────────────────────── │
+      │ No plan · enter price         │  any hours, staff type the amount
+      └───────────────────────────────┘
+
+ Day use · 28 Oct · start 14:00
+│ Deluxe King │ No plan · enter price │ 5 hours │ 204 │ [ e.g. 150.00 ] MYR │
+```
+
+| With a Day use plan                          | No plan · enter price                                     |
+| -------------------------------------------- | --------------------------------------------------------- |
+| Price from the hour prices                   | Staff type the amount (required, 0 or more, two decimals) |
+| Hours from the plan's minimum to its maximum | Any whole hours from 1 that end before midnight           |
+| Start inside the Sold between window         | Any start on the hour or half hour                        |
+| Inclusions split from the price              | None                                                      |
+| Stop sell refuses unless overridden          | Not checked                                               |
+| ✎ override with an optional reason           | The amount is already entered. An optional reason         |
+
+- **The unit's plan.** `reservation_units.rate_plan_id` is required, so the unit is stored on the room type's first active **per-night plan** the front desk can sell: pricing basis Per room or Per guest, by `position`. It is an existing plan, for example Standard. Its price, inclusions, policies and restrictions are not used. Check out as day use already keeps the unit on its per-night plan the same way.
+- **No per-night plan.** A room type with no such plan (only Package, company-only or Day use plans) does not offer **No plan · enter price**. The option is disabled with "Add a per-night plan for this room type to enter a price."
+- **Storage.** `unit_day_uses.amount` and `override_amount` both hold the entered amount, as for an override. Reinstate keeps it and never quotes again.
+- **Charging.** `DayUseChargeQuote` already skips the inclusions of a plan that is not Day use, so the block posts as one DAY_USE line with its taxes.
+- **Label.** Where a day use unit's plan name shows (reservation page, unit panel, folio, reports), a unit whose plan is not Day use shows **Entered price**, not the per-night plan's name.
+- **Meal counts.** `MealCounts` leaves day use units out, so a per-night plan with breakfast does not count a breakfast. This also closes the leak for Check out as day use.
+- **Switching.** A line on a Day use plan whose start, hours or window the plan does not sell switches to **No plan · enter price**, with a note: "Outside what Day use (2–6h) sells. Enter the price."
+- `AddDayUseUnit` accepts a per-night plan only with an amount (`amount_required` without one). It then skips `DayUseOffers::refusal`, the hour price and the restriction check. A per-night plan not linked to the room type refuses with the existing `rate_plan_not_linked`.
+
+## Entered after it started
+
+**Decided 2026-10-28, not built.** A day use that is entered after the guest arrived, for example a walk-in at 02:00 who left at 12:00 and is entered at 15:00.
+
+| Date                     | Who                             | Where       | Guest status                           |
+| ------------------------ | ------------------------------- | ----------- | -------------------------------------- |
+| The business date        | Front desk, Owner, Manager      | Walk-in     | Still in house, or Already checked out |
+| Before the business date | Owner, Manager (`folio.manual`) | Past stay   | Already checked out only               |
+| After the business date  | –                               | New booking | Not entered late                       |
+
+Shared rules:
+
+- **Start and End** are typed. Start can be any time on the date. Hours = End − Start rounded up to whole hours, stored as Start to Start + Hours, as in [Check out as day use](../18-front-desk/01-check-in-and-check-out.md#check-out-as-day-use). The block must end before midnight. A stay that crosses midnight is an overnight stay.
+- **Availability** is checked for the stored block, as for any day use. The rounded block can end later than the real departure: if that clashes with another stay in the room, staff change the times or the room.
+- **Plan.** A plan's window and min and max hours are not checked when the stay is entered late. A plan with an hour price for the hours quotes it. Otherwise the line switches to **No plan · enter price**.
+- **Audit pending.** When the property's calendar date is past the business date (the night audit has not run), Walk-in day use refuses with `night_audit_pending`, "Run the night audit first.", so a block is never dated the day before.
+
+### Walk-in, today
+
+```
+┌─ New booking ──────────────────────────────────────────────────────────┐
+│ Reservation mode [Walk-in ▾]                                           │
+│ Stay type     ( ) Overnight   (•) Day use                              │
+│ Guest status  ( ) Still in house   (•) Already checked out             │
+│               The guest came and left today. Saved as checked out.     │
+│ Date  28 Oct (today)   Start [ 02:00 ]   End [ 12:00 ]   Hours 10      │
+│                                                                        │
+│ Line 1  Deluxe King · Plan [No plan · enter price ▾] · Room [204 ▾]    │
+│         Price [ e.g. 150.00 ] MYR                                      │
+│                                                                        │
+│ Payment  Room charges and tax                RM 162.00                 │
+│          Method [ Cash ▾ ]  Reference [ e.g. 0042 ]                    │
+│          Paid in full, so the guest is checked out at 12:00.           │
+│                                      [Cancel]  [Save and check out]    │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+- **Still in house** (the default): Start can be earlier today and the guest is checked in at Start (`CheckInUnit` with `asOf`). Hours are picked as today. The walk-in [Payment section](05-booking-form.md#payment-section) is unchanged.
+- **Already checked out**: End is required, after Start and not after now. One save books the unit, checks it in at Start, posts the block, takes the payment and checks the unit out at End (`CheckOutUnit` with `asOf`). The room is marked Dirty.
+- **Payment.** Already checked out needs the guest's balance paid in full: Room charges and tax is ticked and locked, and the Security deposit row is hidden. A balance that is not paid refuses with `balance_not_settled`, and staff pick **Still in house** and check the guest out later. Room charges routed to a company or the Master folio follow the normal check-out rules.
+- **Registration card.** With `card_required_for_check_in`, Already checked out needs `front-desk.check-in-without-card`, as Past stay does: the guest left before signing. Without it the save refuses with `card_missing`.
+- Permissions: `reservations.manage`, `front-desk.check-in` and, for Already checked out, `front-desk.check-out`.
+
+### Past stay, a past date
+
+The [Past stay](12-past-and-migrated-stays.md#past-stay) mode gains the **Stay type** switch. With Day use:
+
+- **Date** is before the business date and on or after the go-live date. Guest status is **Already checked out** only.
+- **Start**, **End** and the **Reason** are required.
+- `CreatePastStay` books the day use unit, checks it in at Start and out at End with `asOf` and `skipBalanceCheck`, as for an overnight past stay. The block posts on the business date with the date as its `service_date`, key `dayuse:{unit_id}`. The room is not marked Dirty.
+- The Folio tab opens with the **Settle the folio now?** dialog, as for an overnight past stay.
+- **Reports.** The date's `daily_statistics` row is already closed, so its `day_use_sold` does not count the unit. The revenue counts on the posting date, as for the nights of an overnight past stay.
 
 ## Availability
 
@@ -131,16 +220,16 @@ No new tax column. A tax applies to the codes in its charge list (the `tax_trans
 
 ## Front desk
 
-| Action                                                | Day use rule                                                                                                                                                                                                                                                                                         |
-| ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Check in                                              | On the business date that equals the date. `stay_ended` and `arrival_not_reached` read the date for day use, because arrival and departure are the same day. The room comes from `unit_day_uses`.                                                                                                    |
-| Check out                                             | On or after the date, as today. Marks the room of `unit_day_uses` Dirty, which matters for the evening arrival.                                                                                                                                                                                      |
-| Cancel, no-show                                       | The policy counts the block as one night priced at the block (first night, whole stay and one charge all give the block price; Current rate uses `quoteDayUse`). `ReleaseUnitRooms` sets `released_at` and keeps `room_id`.                                                                          |
-| Reinstate                                             | Until the date (`stay_ended` after it). Locks the room row and re-checks it for those hours with `DayUseAvailability::isFree`, or refuses `not_available`. Keeps an override without quoting again; otherwise prices the block with `quoteDayUse`. Clears `released_at`.                             |
-| Change dates, extend, early check-out, late check-out | Not offered for day use at first. Cancel and book again. Changing hours is a later item.                                                                                                                                                                                                             |
-| Move room                                             | `MoveUnit` moves the block to another free room of the same room type for the same hours, until the date. No from-night; a reason is always required. The amount stays.                                                                                                                              |
-| Unit menu                                             | Check in (business date = date), Check out (on or after the date), Cancel, No-show, Reinstate and Move room (until the date). No Late check-out or Change dates. The Move room dialog has no night picker for day use.                                                                               |
-| Overnight unit that ends the same day                 | **Decided, not built.** An overnight unit that arrived on the business date can be checked out as day use before midnight, with the real times and the plan price, an override or an entered amount. See [Check out as day use](../18-front-desk/01-check-in-and-check-out.md#check-out-as-day-use). |
+| Action                                                | Day use rule                                                                                                                                                                                                                                                                            |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Check in                                              | On the business date that equals the date. `stay_ended` and `arrival_not_reached` read the date for day use, because arrival and departure are the same day. The room comes from `unit_day_uses`.                                                                                       |
+| Check out                                             | On or after the date, as today. Marks the room of `unit_day_uses` Dirty, which matters for the evening arrival.                                                                                                                                                                         |
+| Cancel, no-show                                       | The policy counts the block as one night priced at the block (first night, whole stay and one charge all give the block price; Current rate uses `quoteDayUse`). `ReleaseUnitRooms` sets `released_at` and keeps `room_id`.                                                             |
+| Reinstate                                             | Until the date (`stay_ended` after it). Locks the room row and re-checks it for those hours with `DayUseAvailability::isFree`, or refuses `not_available`. Keeps an override without quoting again; otherwise prices the block with `quoteDayUse`. Clears `released_at`.                |
+| Change dates, extend, early check-out, late check-out | Not offered for day use at first. Cancel and book again. Changing hours is a later item.                                                                                                                                                                                                |
+| Move room                                             | `MoveUnit` moves the block to another free room of the same room type for the same hours, until the date. No from-night; a reason is always required. The amount stays.                                                                                                                 |
+| Unit menu                                             | Check in (business date = date), Check out (on or after the date), Cancel, No-show, Reinstate and Move room (until the date). No Late check-out or Change dates. The Move room dialog has no night picker for day use.                                                                  |
+| Overnight unit that ends the same day                 | **Built.** An overnight unit that arrived on the business date can be checked out as day use before midnight, with the real times and the plan price, an override or an entered amount. See [Check out as day use](../18-front-desk/01-check-in-and-check-out.md#check-out-as-day-use). |
 
 ## Night audit
 
@@ -190,6 +279,22 @@ A Day use plan is never mapped. The mapping capability refuses it with "Day use 
 **Sample data.** `SandbaySeeder` adds a "Day use" plan: 2 to 6 hours, sold between 08:00 and 18:00, on every room type. The first block costs 30% of the room's nightly price and each extra hour adds 10% (Garden Room: 2h 60.00, +20.00 an hour). It goes through `CreateRatePlan`, so DAY_USE gets the Taxes tab taxes except the Tourism tax.
 
 **Built (Stay view).** The Timeline View draws a day use as a clock marker in the third quarter of its date cell (see [Stay view](../18-front-desk/03-stay-view.md)). The hours are in its hover card.
+
+### Entered price and entered late
+
+Staff feedback on 2026-10-28: a 02:00 to 12:00 walk-in entered at 15:00 could not be booked, and a property without a Day use plan could not sell day use from the booking form.
+
+| #   | Commit                                                               | Contains                                                                                                                                                                                                         |
+| --- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `docs(reservations): plan day use without a plan and past day use`   | This section, [Entered price](#entered-price), [Entered after it started](#entered-after-it-started), the matching parts of the booking form, past stay, check-out and meal docs, and the checklist items        |
+| 2   | `fix(meals): leave day use units out of meal counts`                 | `MealCounts` skips day use units, with a test of a day use unit on a per-night plan with breakfast                                                                                                               |
+| 3   | `feat(reservations): book day use with an entered price`             | Backend: `AddDayUseUnit` takes a per-night plan with an amount, `amount_required`, `hasDayUse` read from room types, the "Entered price" label in the unit data, and the optional reason in `CheckOutAsDayUse`   |
+| 4   | `feat(reservations): add the enter price option to the booking form` | The Stay type switch without a Day use plan, **No plan · enter price** in the Plan select with the disabled reason, the Price field, the Add unit Sheet, the switch to entered price outside what the plan sells |
+| 5   | `feat(front-desk): book a walk-in day use that started today`        | Walk-in day use with Start earlier today, Still in house, `CheckInUnit` with `asOf` at Start, `night_audit_pending` when the calendar date is past the business date                                             |
+| 6   | `feat(front-desk): check out a walk-in day use on save`              | Already checked out on Walk-in: End, the locked full payment, the hidden deposit, `CheckOutUnit` with `asOf` at End, `balance_not_settled`, the card rule                                                        |
+| 7   | `feat(reservations): add day use to past stays`                      | The Stay type switch on Past stay, the day use path in `CreatePastStay` (Already checked out only, `service_date` on the block), the Settle dialog                                                               |
+
+Item 2 can ship at any time. Items 6 and 7 do not depend on each other.
 
 ## Later
 
