@@ -75,7 +75,6 @@ function DayUseCheckOutForm(props: Props) {
                             id={`day-use-${field}`}
                             name={field}
                             type="time"
-                            step="1"
                             value={data[field]}
                             onChange={(event) =>
                                 form.setData(field, event.target.value)
@@ -116,7 +115,7 @@ function DayUseCheckOutForm(props: Props) {
                         <div className="flex items-center gap-2">
                             <MoneyInput
                                 id="day-use-amount"
-                                value={data.amount}
+                                value={data.amount || preview?.planPrice || ''}
                                 onChange={(value) =>
                                     form.setData('amount', value)
                                 }
@@ -172,7 +171,9 @@ function DayUseCheckOutForm(props: Props) {
                                 form.setData('reason', event.target.value)
                             }
                             maxLength={500}
-                            required
+                            required={
+                                data.amount !== '' || preview?.planPrice == null
+                            }
                             aria-invalid={!!errors.reason}
                             placeholder="e.g. Guest left the same day"
                         />
@@ -227,7 +228,6 @@ function DayUseCheckOutForm(props: Props) {
                         aria-label="Override day use price"
                         onClick={() => {
                             state.setOverriding(true);
-                            form.setData('amount', preview.planPrice ?? '');
                         }}
                     >
                         <Pencil />

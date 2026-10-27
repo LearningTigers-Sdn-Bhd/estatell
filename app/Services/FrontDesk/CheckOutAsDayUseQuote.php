@@ -86,10 +86,10 @@ class CheckOutAsDayUseQuote
         }
 
         $zone = $property->settings->time_zone ?? config('app.timezone');
-        $checkedIn = $unit->checked_in_at?->setTimezone($zone);
+        $checkedIn = $unit->checked_in_at?->setTimezone($zone)->startOfMinute();
         $data->checkedInTime = $checkedIn?->format('H:i');
         $startAt = $start === null ? $checkedIn : $this->time($data->date, $start, $zone);
-        $endAt = $end === null ? now($zone) : $this->time($data->date, $end, $zone);
+        $endAt = $end === null ? now($zone)->toImmutable()->startOfMinute() : $this->time($data->date, $end, $zone);
         $data->start = $startAt?->format('H:i:s');
         $data->end = $endAt?->format('H:i:s');
 
@@ -239,6 +239,6 @@ class CheckOutAsDayUseQuote
             return null;
         }
 
-        return CarbonImmutable::parse($date.' '.$time, $zone);
+        return CarbonImmutable::parse($date.' '.$time, $zone)->startOfMinute();
     }
 }

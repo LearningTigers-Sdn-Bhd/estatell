@@ -1,5 +1,5 @@
 import { useForm, useHttp } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
     KEEP_OPTIONS,
     useFormOptions,
@@ -9,6 +9,9 @@ import { preview as previewRoute } from '@/routes/reservations/units/check-out-a
 
 type Preview = App.Data.Reservations.CheckOutAsDayUseData;
 type Options = App.Data.Payments.PaymentFormOptionsData;
+
+/** The time without seconds: a day use is priced from whole minutes. */
+const minute = (time: string | null | undefined) => time?.slice(0, 5) ?? '';
 
 /** The server quotes every change. Old responses never enable a save of newer fields. */
 export function useDayUseCheckOut({
@@ -49,6 +52,8 @@ export function useDayUseCheckOut({
         ...(data.reason !== '' && { reason: data.reason }),
     };
     const key = JSON.stringify(payload);
+    // The key of the last answer. The first quote is sent at once; later changes wait for typing to stop.
+    const answered = useRef<string | null>(null);
     const http = useHttp<Record<string, string>, Preview>(
         'post',
         previewRoute.url(routeKey),
@@ -61,42 +66,48 @@ export function useDayUseCheckOut({
             return;
         }
 
-        let current = true;
-        const timer = window.setTimeout(() => {
-            transform(() => JSON.parse(key));
-            submit()
-                .then((preview) => {
-                    if (!current) {
-                        return;
-                    }
+        if (answered.current === key) {
+            return;
+        }
 
-                    setRequestError(null);
-                    const typed = JSON.parse(key) as Record<string, string>;
-                    // Freeze the real check-in and now on first load; later quotes keep these times.
-                    const times = {
-                        start: typed.start ?? preview.start ?? '',
-                        end: typed.end ?? preview.end ?? '',
-                    };
-                    setData((values) => ({ ...values, ...times }));
-                    setAnswer({
-                        key: JSON.stringify(
+        let current = true;
+        const timer = window.setTimeout(
+            () => {
+                transform(() => JSON.parse(key));
+                submit()
+                    .then((preview) => {
+                        if (!current) {
+                            return;
+                        }
+
+                        setRequestError(null);
+                        const typed = JSON.parse(key) as Record<string, string>;
+                        // Freeze the real check-in and now on first load; later quotes keep these times.
+                        const times = {
+                            start: typed.start ?? minute(preview.start),
+                            end: typed.end ?? minute(preview.end),
+                        };
+                        const answerKey = JSON.stringify(
                             Object.fromEntries(
                                 Object.entries({ ...times, ...typed }).filter(
                                     ([, value]) => value !== '',
                                 ),
                             ),
-                        ),
-                        preview,
-                    });
-                })
-                .catch(() => {
-                    if (current) {
-                        setRequestError(
-                            'Could not load the preview. Change a field to try again.',
                         );
-                    }
-                });
-        }, 300);
+                        answered.current = answerKey;
+                        setData((values) => ({ ...values, ...times }));
+                        setAnswer({ key: answerKey, preview });
+                    })
+                    .catch(() => {
+                        if (current) {
+                            setRequestError(
+                                'Could not load the preview. Change a field to try again.',
+                            );
+                        }
+                    });
+            },
+            answered.current === null ? 0 : 300,
+        );
 
         return () => {
             current = false;

@@ -430,3 +430,13 @@ test('a dorm bed unit cannot check out as day use and the menu does not offer it
     $this->get(route('reservations.show', ['property' => $s['property'], 'reservation' => $s['reservation']]))
         ->assertInertia(fn (Assert $page) => $page->where('unit.actions', fn ($actions) => ! collect($actions)->pluck('key')->contains('check-out-as-day-use')));
 });
+
+test('the quote prices whole minutes and ignores seconds', function () {
+    $s = overnightDayUseCheckout();
+    $s['unit']->forceFill(['checked_in_at' => CarbonImmutable::parse($s['date']->toDateString().' 14:00:40', 'Asia/Kuala_Lumpur')->utc()])->save();
+    $url = route('reservations.units.check-out-as-day-use.preview', ['property' => $s['property'], 'reservation' => $s['reservation'], 'unit' => $s['unit']]);
+
+    $this->actingAs($s['user'])->postJson($url, ['end' => '15:00:30', 'amount' => '1.00', 'reason' => 'Whole minutes'])->assertOk()
+        ->assertJsonPath('start', '14:00:00')->assertJsonPath('end', '15:00:00')
+        ->assertJsonPath('hours', 1)->assertJsonPath('blockEnd', '15:00:00');
+});
