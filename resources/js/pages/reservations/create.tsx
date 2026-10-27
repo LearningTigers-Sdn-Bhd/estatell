@@ -849,6 +849,8 @@ export default function ReservationCreate({
                                                     The block starts on the hour
                                                     or the half hour and ends
                                                     the same day.
+                                                    {isWalkIn &&
+                                                        ' A start earlier today checks the guest in at that time.'}
                                                 </FieldDescription>
                                                 <FieldError>
                                                     {errors.arrival_date ??

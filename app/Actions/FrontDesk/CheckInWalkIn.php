@@ -6,6 +6,7 @@ use App\Actions\Reservations\CreateBooking;
 use App\Data\Reservations\CollectNowData;
 use App\Data\Reservations\NewBookingData;
 use App\Data\Reservations\WalkInCollectData;
+use App\Enums\StayType;
 use App\Models\Payment;
 use App\Models\Property;
 use App\Models\Reservation;
@@ -13,6 +14,7 @@ use App\Models\ReservationUnit;
 use App\Models\User;
 use App\Services\FrontDesk\WalkInPayment;
 use Brick\Math\BigDecimal;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -33,13 +35,19 @@ class CheckInWalkIn
      * `{uuid}:{unit id}`. `CheckInAndCollect` opens its own transaction, which is a savepoint inside this one, so a unit
      * that is refused (a check-in code, or a payment code) rolls back alone: it stays Confirmed, pays nothing, and the
      * other units go on. `CheckInUnit` syncs the reservation status after each check-in, so no sync is needed at the
-     * end. One `reservation.walk_in` entry logs the counts and the total collected. Permissions (`reservations.manage`,
+     * end. A day use unit that started earlier today is checked in at its start (`asOf`). One `reservation.walk_in` entry logs the counts and the total collected. Permissions (`reservations.manage`,
      * `front-desk.check-in`, `payment.record`, `front-desk.check-in-without-card`) are checked by the route and the Form
      * Request. See docs/18-front-desk/01-check-in-and-check-out.md#walk-in-check-in.
      */
     public function __invoke(User $actor, Property $property, NewBookingData $data, ?WalkInCollectData $collect = null, bool $withoutCard = false): WalkInResult
     {
         try {
+            $pending = $this->walkInPayment->auditPendingRefusal($property, $data);
+
+            if ($pending !== null) {
+                return WalkInResult::bookingRefused($pending);
+            }
+
             return DB::transaction(function () use ($actor, $property, $data, $collect, $withoutCard): WalkInResult {
                 $booking = ($this->createBooking)($actor, $property, $data);
 
@@ -66,7 +74,7 @@ class CheckInWalkIn
                         reference: $collect->reference,
                         idempotencyKey: $key.':'.$unit->id,
                         roomCharges: $collect->roomCharges,
-                    ));
+                    ), $this->startedAt($unit, $property));
                     $paid = array_reduce($result->payments, fn (BigDecimal $sum, Payment $payment): BigDecimal => $sum->plus($payment->amount), BigDecimal::zero());
                     $refusal = $result->stay->refusal ?? $result->paymentRefusal;
                     $collected = $collected->plus($paid);
@@ -92,6 +100,22 @@ class CheckInWalkIn
         } catch (WalkInAmountChanged) {
             return WalkInResult::amountChanged();
         }
+    }
+
+    /**
+     * When a walk-in day use started earlier today, the moment it started: the guest is checked in at Start, not at the
+     * save. Null for an overnight unit and for a day use that starts later.
+     */
+    private function startedAt(ReservationUnit $unit, Property $property): ?CarbonImmutable
+    {
+        if ($unit->stay_type !== StayType::DayUse) {
+            return null;
+        }
+
+        $timeZone = $property->settings->time_zone ?? config('app.timezone');
+        $start = CarbonImmutable::parse($unit->arrival_date->toDateString().' '.$unit->arrival_time, $timeZone);
+
+        return $start->isBefore(CarbonImmutable::now($timeZone)) ? $start : null;
     }
 
     private function totalMatches(Reservation $reservation, WalkInCollectData $collect): bool

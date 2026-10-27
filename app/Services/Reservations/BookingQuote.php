@@ -145,7 +145,7 @@ class BookingQuote
 
         $blockRefusal = $enteredPrice
             ? $this->dayUseOffers->enteredRefusal($startTime, $hours)
-            : $this->dayUseOffers->refusal($ratePlan, $startTime, $hours);
+            : $this->dayUseOffers->refusal($ratePlan, $startTime, $hours, $date);
 
         if ($blockRefusal !== null) {
             return BookingQuoteData::refused($this->refusals->errors($blockRefusal));
@@ -157,7 +157,7 @@ class BookingQuote
         if ($enteredPrice) {
             $currency = $property->settings->currency->getCurrencyCode();
         } else {
-            $quote = $this->rateQuoteService->quoteDayUse($roomType, $ratePlan, $date, $hours, ignoreStopSell: true);
+            $quote = $this->rateQuoteService->quoteDayUse($roomType, $ratePlan, $date, $hours, ignoreStopSell: true, ignoreHoursLimit: $this->dayUseOffers->isLate($property, $date, $startTime));
 
             if ($quote->isRefused()) {
                 return BookingQuoteData::refused($this->refusals->errors((string) $quote->refusal, $quote->refusalDate));

@@ -116,7 +116,7 @@ class AddDayUseUnit
 
         $blockRefusal = $enteredPrice
             ? $this->offers->enteredRefusal($data->startTime, $data->hours)
-            : $this->offers->refusal($ratePlan, $data->startTime, $data->hours);
+            : $this->offers->refusal($ratePlan, $data->startTime, $data->hours, $date);
 
         if ($blockRefusal !== null) {
             return $refuse($blockRefusal);
@@ -165,7 +165,7 @@ class AddDayUseUnit
             $quotedAmount = null;
             $currency = $reservation->property->settings->currency->getCurrencyCode();
         } else {
-            $quote = $this->rateQuoteService->quoteDayUse($roomType, $ratePlan, $date, $data->hours, $restrictionOverride !== null);
+            $quote = $this->rateQuoteService->quoteDayUse($roomType, $ratePlan, $date, $data->hours, $restrictionOverride !== null, $this->offers->isLate($reservation->property, $date, $startsAt));
 
             if ($quote->isRefused()) {
                 return $refuse((string) $quote->refusal, $quote->refusalDate);

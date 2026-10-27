@@ -171,6 +171,8 @@ Shared rules:
 - **Registration card.** With `card_required_for_check_in`, Already checked out needs `front-desk.check-in-without-card`, as Past stay does: the guest left before signing. Without it the save refuses with `card_missing`.
 - Permissions: `reservations.manage`, `front-desk.check-in` and, for Already checked out, `front-desk.check-out`.
 
+**Built (item 5, Still in house).** `DayUseOffers::isLate()` (the date is today in the property's time zone and the start has passed) skips the plan window and the min and max hours in `refusal()`, `forStart()` and `DayUsePricing` (`$ignoreHoursLimit`); the hour price is still needed (`no_hour_price`). `CheckInWalkIn` checks a day use unit in at its start (`asOf` through `CheckInAndCollect`) when the start has passed, and at the save when it starts later. `WalkInPayment::auditPendingRefusal()` refuses a walk-in day use with `night_audit_pending` ("Run the night audit first.") in the save and the preview. The form has no Guest status switch yet: it arrives with Already checked out, and the Start field says an earlier start checks the guest in at that time.
+
 ### Past stay, a past date
 
 The [Past stay](12-past-and-migrated-stays.md#past-stay) mode gains the **Stay type** switch. With Day use:

@@ -38,6 +38,8 @@ class BookingResult
 
     public const REFUSAL_DEPARTURE_NOT_BEFORE_GO_LIVE = 'departure_not_before_go_live';
 
+    public const REFUSAL_NIGHT_AUDIT_PENDING = 'night_audit_pending';
+
     private function __construct(
         public readonly ?Reservation $reservation,
         public readonly ?string $refusal,

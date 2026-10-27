@@ -13,7 +13,8 @@ use Carbon\CarbonInterface;
 /**
  * Prices one day use block: the `rate_hour_prices` row for the room type, the plan, the date and the number of hours.
  * It does not implement `StayPricing`, because that interface prices nights. `RateQuoteService::quoteDayUse()` calls it.
- * Stop sell on the date's `rates` row refuses with `restricted`, unless the caller has accepted the override.
+ * Stop sell on the date's `rates` row refuses with `restricted`, unless the caller has accepted the override. A block
+ * entered after it started skips the plan's min and max hours (`$ignoreHoursLimit`).
  * Min stay, max stay and the closed to arrival and departure flags do not apply. See docs/12-reservations/10-day-use.md.
  */
 class DayUsePricing
@@ -21,7 +22,7 @@ class DayUsePricing
     /**
      * @throws QuoteRefused when the block cannot be priced
      */
-    public function price(RatePlan $plan, RoomType $roomType, CarbonInterface $date, int $hours, string $currency, bool $ignoreStopSell = false): Money
+    public function price(RatePlan $plan, RoomType $roomType, CarbonInterface $date, int $hours, string $currency, bool $ignoreStopSell = false, bool $ignoreHoursLimit = false): Money
     {
         if ($plan->pricing_basis !== PricingBasis::DayUse) {
             throw new QuoteRefused(RateQuote::REFUSAL_PLAN_NOT_DAY_USE);
@@ -35,7 +36,7 @@ class DayUsePricing
             throw new QuoteRefused(RateQuote::REFUSAL_ROOM_TYPE_NOT_SOLD);
         }
 
-        if ($hours < ($plan->day_use_min_hours ?? 1) || $hours > ($plan->day_use_max_hours ?? 24)) {
+        if (! $ignoreHoursLimit && ($hours < ($plan->day_use_min_hours ?? 1) || $hours > ($plan->day_use_max_hours ?? 24))) {
             throw new QuoteRefused(RateQuote::REFUSAL_HOURS_NOT_SOLD);
         }
 
