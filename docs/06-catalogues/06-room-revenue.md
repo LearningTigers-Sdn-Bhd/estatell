@@ -97,9 +97,9 @@ Unsaved changes                           [Save policy]
 
 ### Day use tab
 
-**Decided, not built:** the tab is always shown, also without a Day use plan, because [Check out as day use](../18-front-desk/01-check-in-and-check-out.md#check-out-as-day-use) posts to DAY_USE without one. The routes stop answering 404, `hasDayUse` no longer hides the tab, and `SeedDayUseTaxes` runs at the first Day use plan only when DAY_USE has no taxes yet, so taxes the property already set are kept. Until that is built:
+The tab is always shown, also without a Day use plan, because [Check out as day use](../18-front-desk/01-check-in-and-check-out.md#check-out-as-day-use) posts to DAY_USE without one.
 
-Shown when the property has a Day use plan (active or archived), at `/p/{code}/settings/room-revenue/day-use`. It has one **Taxes** multiselect for DAY_USE, the same component as the policy tabs but with no Follow switch, and the posting preview for a sample MYR 100.00 day use. `UpdateDayUseTaxes` saves it. Routes: `settings.room-revenue.day-use.show`, `.update` and `.preview` (declared before `{tab}`), 404 until the property has a Day use plan. The Taxes and policy pages send `hasDayUse` to show the tab. `SeedDayUseTaxes` runs from `CreateRatePlan` for the property's first Day use plan. When the first Day use plan is created, DAY_USE is linked to the Taxes tab's taxes except flat taxes (a fixed amount per room-night, such as Tourism tax), because a per-night tax does not fit an hourly stay. A later Taxes tab save does not change DAY_USE.
+At `/p/{code}/settings/room-revenue/day-use`, it has one **Taxes** multiselect for DAY_USE, the same component as the policy tabs but with no Follow switch, and the posting preview for a sample MYR 100.00 day use. `UpdateDayUseTaxes` saves it. Routes: `settings.room-revenue.day-use.show`, `.update` and `.preview` (declared before `{tab}`). All three work without a Day use plan. `SeedDayUseTaxes` runs from `CreateRatePlan` for the property's first Day use plan only when DAY_USE has no taxes linked yet, so taxes the property already set are kept. Empty DAY_USE taxes are linked to the Taxes tab's taxes except flat taxes (a fixed amount per room-night, such as Tourism tax), because a per-night tax does not fit an hourly stay. A later Taxes tab save does not change DAY_USE.
 
 ### Own taxes
 

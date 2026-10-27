@@ -37,21 +37,18 @@ function dayUseCodeTaxIds(Property $property): array
     return $property->transactionCodes()->where('system_key', 'day_use_revenue')->sole()->applicableTaxes()->pluck('taxes.id')->sort()->values()->all();
 }
 
-test('the Day use tab exists only when the property has a day use plan', function () {
+test('the Day use tab is available without a day use plan', function () {
     [$owner, $property] = dayUseRevenueSetup(withPlan: false);
 
-    $this->actingAs($owner)->get(route('settings.room-revenue.day-use.show', $property->code))->assertNotFound();
-    $this->actingAs($owner)->put(route('settings.room-revenue.day-use.update', $property->code), ['tax_ids' => []])->assertNotFound();
+    $this->actingAs($owner)->get(route('settings.room-revenue.day-use.show', $property->code))
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('settings/room-revenue/day-use')
+            ->where('taxIds', [])
+            ->where('preview.localTotal', '100.00'));
     $this->actingAs($owner)->get(route('settings.room-revenue.index', $property->code))
-        ->assertInertia(fn (Assert $page) => $page->where('hasDayUse', false));
-
-    RatePlan::factory()->for($property)->dayUse()->archived()->create();
-
-    $this->actingAs($owner)->get(route('settings.room-revenue.day-use.show', $property->code))->assertOk();
-    $this->actingAs($owner)->get(route('settings.room-revenue.index', $property->code))
-        ->assertInertia(fn (Assert $page) => $page->where('hasDayUse', true));
+        ->assertInertia(fn (Assert $page) => $page->missing('hasDayUse'));
     $this->actingAs($owner)->get(route('settings.room-revenue.policies.show', [$property->code, 'no-show']))
-        ->assertInertia(fn (Assert $page) => $page->where('hasDayUse', true));
+        ->assertInertia(fn (Assert $page) => $page->missing('hasDayUse'));
 });
 
 test('the Day use tab shows the saved taxes and a sample posting preview', function () {
@@ -69,8 +66,8 @@ test('the Day use tab shows the saved taxes and a sample posting preview', funct
             ->where('preview.localTotal', '108.00'));
 });
 
-test('saving links the taxes to DAY_USE only and logs a real change once', function () {
-    [$owner, $property] = dayUseRevenueSetup();
+test('saving without a day use plan links the taxes to DAY_USE only and logs a real change once', function () {
+    [$owner, $property] = dayUseRevenueSetup(withPlan: false);
     $sst = $property->taxes()->where('code', 'SST')->sole();
 
     $this->actingAs($owner)
@@ -85,8 +82,8 @@ test('saving links the taxes to DAY_USE only and logs a real change once', funct
         ->and(Activity::query()->where('event', 'day_use.taxes_updated')->count())->toBe(1);
 });
 
-test('the preview calculates an unsaved selection without saving it', function () {
-    [$owner, $property] = dayUseRevenueSetup();
+test('the preview without a day use plan calculates an unsaved selection without saving it', function () {
+    [$owner, $property] = dayUseRevenueSetup(withPlan: false);
     $tourism = $property->taxes()->where('code', 'TTX')->sole();
 
     $this->actingAs($owner)

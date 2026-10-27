@@ -25,7 +25,7 @@ class RoomRevenueDayUseController extends Controller
      */
     public function show(Property $property, RoomRevenueTaxIds $roomRevenueTaxIds, RoomRevenuePreview $roomRevenuePreview): Response
     {
-        $this->ensureAvailable($property);
+        abort_if($property->settings === null, 404);
 
         $taxIds = $roomRevenueTaxIds->linkedTo($property, SystemTransactionCode::DayUseRevenue);
 
@@ -46,27 +46,19 @@ class RoomRevenueDayUseController extends Controller
      */
     public function preview(RoomRevenueTaxesRequest $request, Property $property, RoomRevenuePreview $roomRevenuePreview): JsonResponse
     {
-        $this->ensureAvailable($property);
+        abort_if($property->settings === null, 404);
 
         return response()->json(RoomRevenuePreviewData::fromCalculation($roomRevenuePreview->calculate($property, $request->taxIds())));
     }
 
     public function update(RoomRevenueTaxesRequest $request, Property $property, UpdateDayUseTaxes $updateDayUseTaxes): RedirectResponse
     {
-        $this->ensureAvailable($property);
+        abort_if($property->settings === null, 404);
 
         Inertia::flash('toast', $updateDayUseTaxes($property, $request->user(), $request->taxIds())
             ? ['type' => 'success', 'message' => __('Day use taxes saved.')]
             : ['type' => 'error', 'message' => __('The Day use code is missing. Check the transaction codes.')]);
 
         return to_route('settings.room-revenue.day-use.show', $property);
-    }
-
-    /**
-     * The tab exists only for a property that has a Day use plan, active or archived.
-     */
-    private function ensureAvailable(Property $property): void
-    {
-        abort_if($property->settings === null || ! $property->ratePlans()->dayUse()->exists(), 404);
     }
 }

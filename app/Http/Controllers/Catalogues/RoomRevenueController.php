@@ -42,7 +42,6 @@ class RoomRevenueController extends Controller
             'taxIds' => $taxIds,
             'preview' => RoomRevenuePreviewData::fromCalculation($roomRevenuePreview->calculate($property, $taxIds)),
             'currency' => CurrencyData::forProperty($property),
-            'hasDayUse' => $property->ratePlans()->dayUse()->exists(),
         ]);
     }
 
