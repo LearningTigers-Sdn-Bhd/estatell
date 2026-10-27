@@ -91,8 +91,71 @@ A unit's own folio can hold another room's charges: a Manual rule such as "Room 
 
 - **One transaction.** The fee, the deleted nights, the payment, the refund and the check-out commit together. A refusal at any step writes nothing.
 - **New departure** is the stay day: the business date, or the property's calendar date while the night audit is pending. The form never sends it, except the **Guest actually left yesterday** choice (see [Night audit pending](#night-audit-pending)).
-- **Same-day stay.** A unit that arrived on the business date has no night to keep, so `departure_date > arrival_date` cannot hold. It is refused with `arrived_today`. `EarlyCheckOutRule` (`app/Services/FrontDesk/`) holds this rule and the unit menu, the group check-out page, the preview and the Action all ask it, so none of them offers what another refuses. The Dialog's preview carries the message and the group page shows it as the row note, without **Check out early…**. The guest checks out on the departure date, or after Undo check-in once it is built (see [Cancel, void and undo](#cancel-void-and-undo)).
+- **Same-day stay.** A unit that arrived on the business date has no night to keep, so `departure_date > arrival_date` cannot hold. It is refused with `arrived_today`. `EarlyCheckOutRule` (`app/Services/FrontDesk/`) holds this rule and the unit menu, the group check-out page, the preview and the Action all ask it, so none of them offers what another refuses. The Dialog's preview carries the message and the group page shows it as the row note, without **Check out early…**. The guest checks out on the departure date, with [Check out as day use](#check-out-as-day-use) (proposed), or after Undo check-in once it is built (see [Cancel, void and undo](#cancel-void-and-undo)).
 - **Departure today or later.** `not_early` is refused. Normal check-out runs through `CheckOutAndRefund`.
+
+### Check out as day use
+
+**Proposed, not built.** Settles the same-day stay above: a guest who arrived on the business date and leaves the same day. Open points are listed at the end of this section.
+
+`CheckOutAsDayUse` (Action) ends an overnight unit as a day use block, in one transaction. A refusal of any step rolls everything back.
+
+| Check, in order                                                              | Refusal                                      |
+| ---------------------------------------------------------------------------- | -------------------------------------------- |
+| The unit is CheckedIn (the unit row is locked first)                         | `invalid_status`                             |
+| The unit is overnight, arrived on the business date and departs later        | `not_same_day` (a day use unit is `day_use_unit`) |
+| No night of the unit is posted yet (the audit has not run for it)            | `night_already_posted`                       |
+| Start and end are on the business date, end after start; hours are 1 to 24   | `start_time_invalid`, `hours_invalid`        |
+| With a Day use plan: the plan sells those hours for the room type            | `hours_not_sold`, `no_hour_price`            |
+| Without a price from a plan: an amount (0 or more) and a reason              | `amount_required`, `reason_required`         |
+| The user may enter an amount (`front-desk.waive-fees`) when it is not the plan price | `forbidden`                          |
+| The checks of `CheckOutAndRefund`                                            | `refund_exceeds_payment`, `balance_not_settled` |
+
+- **Start** defaults to the unit's `arrival_time` (the real check-in time), **End** to now in the property time zone. Both are editable. **Hours** = (End − Start) rounded up to whole hours, at most 24. End is stored as Start + Hours.
+- **Rate.** With an active Day use plan for the room type, the price is the `rate_hour_prices` row for those hours (`quoteDayUse`), and staff may change it with the permission above. With no plan or no hour price, staff enter the amount and a reason. Zero is allowed. The plan's minimum and maximum hours and its Sold between window do not apply: this closes a stay, it does not sell one.
+- **Steps.**
+    1. Delete the unit's `unit_nights` and release their room hold.
+    2. Set `stay_type = DayUse` and `departure_date = arrival_date`. Set `arrival_time` and `departure_time` to Start and End.
+    3. Create the `unit_day_uses` row (room kept, Start, End, Hours, amount).
+    4. Post the block with `PostDayUseBlock`, key `dayuse:{unit_id}`, to DAY_USE with its taxes. Without a plan the whole amount is the line and there are no inclusions to split.
+    5. Run `CheckOutAndRefund`, which marks the room Dirty.
+- **Log.** The reservation keeps its booked dates in the log (`reservation.unit_checked_out_as_day_use`, with the old dates and the reason).
+- **Reports.** The unit counts in `day_use_sold` and `day_use_revenue`, and not in occupancy, ADR or RevPAR.
+- **Menu.** `UnitActionMenu` lists **Check out as day use** for a CheckedIn overnight unit that arrived on the business date and departs later, to a user with `reservations.manage` and `front-desk.check-out`. It sits where `EarlyCheckOutRule` returns `arrived_today`. Plain **Check out** stays in the menu, disabled, with "Arrived today, so there is no night to remove." With no Day use plan and no permission to enter an amount, the item is disabled with "No Day use plan. Needs front-desk.waive-fees to enter an amount." The group check-out page shows the same action in the row.
+- **Route.** `reservations.units.check-out-as-day-use`, in the `reservations.manage` group with `front-desk.check-out` inside it.
+
+```
+┌─ Check out as day use · Room 204 ─────────────────────────────┐
+│ Aisha Rahman · In 14:05 today · Booked 12 → 14 Oct            │
+│                                                               │
+│ Start  [ 14:05 ]     End  [ 18:20 ]     Hours  4 (rounded up) │
+│                                                               │
+│ Plan   [ Day use ▾ ]                                          │
+│ Rate   MYR 95.00   (4 hours, Deluxe King, from the plan)      │
+│        [ ] Change the amount                                  │
+│                                                               │
+│ ┌ Folio after check-out ────────────────────────────────────┐ │
+│ │ Day use · 14:05–18:20                       MYR   95.00   │ │
+│ │ SST 8%                                      MYR    7.60   │ │
+│ │ Night 12 Oct (removed)                      MYR  -150.00  │ │
+│ │ Payments                                    MYR  -200.00  │ │
+│ │ Refund to guest                             MYR   47.40   │ │
+│ └───────────────────────────────────────────────────────────┘ │
+│ Refund  [ 47.40 ]  Method [ Cash ▾ ]                          │
+│                      [ Cancel ]  [ Check out as day use ]     │
+└───────────────────────────────────────────────────────────────┘
+```
+
+With no Day use plan, the Plan and Rate rows become **Amount** (MYR, 0 allowed) and a required **Reason**. A note shows when DAY_USE has no taxes: "DAY_USE has no taxes set. Set them under Room revenue."
+
+**Open points.**
+
+| Point                                                       | Leaning                                                                                              |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Taxes of DAY_USE when the property has no Day use plan      | None until set. Show the Day use tab on Room revenue always, or keep the note in the form. To decide |
+| Night already posted (audit ran or is pending)              | Refuse at first (`night_already_posted`); the early-departure rules apply                            |
+| Amount rule: day use has no price override today            | Allowed only on this path, behind `front-desk.waive-fees`                                            |
+| Needs a Day use plan                                        | No: the manual amount covers it                                                                      |
 - **Fee:** read by `PolicyChargeCalculator` with the new departure, and posted with the key `early_departure:{unit}:{n}`. **Do not charge** needs a reason and `front-desk.waive-fees`. `$expectedFee` from the form guards against a policy change (`fee_changed`).
 - **Balance:** the fee joins the unit folio, so the balance to settle includes it. Posted add-ons on removed nights stay and can leave a balance. The form shows the balance before submit, and settles it as the check-out Dialog does: Collect balance when the guest owes, a refund when the folio holds a credit ([Refund the credit](#refund-the-credit)).
 - **Money for the unused nights.** The night audit posts one night at a time, so the unused nights were never charged: they are Scheduled and are deleted. A payment line never changes, so money paid for them stays on the folio as a **credit**. The fee is the only part of that credit the hotel keeps. The rest goes back to the guest at check-out. See [Early departure examples](#early-departure-examples).
