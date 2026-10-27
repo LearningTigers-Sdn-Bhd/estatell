@@ -11,7 +11,8 @@ import {
     emptyGuest,
     guestLabel,
     linkGuest,
-    takenBedUnits,
+    firstUnitWithSpace,
+    fullUnits,
     unlinkGuest,
     unitsWithoutGuest,
 } from '@/components/pms/reservations/booking-guests';
@@ -88,7 +89,7 @@ function GuestRow({
     const [checked, setChecked] = useState<GuestMatchCriteria>({});
     const [dismissed, setDismissed] = useState('');
     const [open, setOpen] = useState(true);
-    const taken = takenBedUnits(guests, units, index);
+    const full = fullUnits(guests, units, index);
     const criteria = JSON.stringify(checked);
     const hiddenError = Object.keys(errors).some(
         (key) =>
@@ -196,7 +197,8 @@ function GuestRow({
                                         value: unit.value,
                                         label: unit.label,
                                         disabled:
-                                            unit.isBed && taken.has(unit.value),
+                                            full.has(unit.value) &&
+                                            unit.value !== guest.stays_in,
                                     })),
                                 ]}
                                 value={guest.stays_in}
@@ -381,7 +383,10 @@ export function BookingGuestsSection({
                     onClick={() =>
                         onChange([
                             ...guests,
-                            emptyGuest('', defaultNationalityCode),
+                            emptyGuest(
+                                firstUnitWithSpace(guests, units),
+                                defaultNationalityCode,
+                            ),
                         ])
                     }
                 >

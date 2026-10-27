@@ -115,7 +115,7 @@ Every drop opens a small Dialog. Nothing saves until **Save**. Cancel or Esc put
 
 ## Unassigned lane
 
-A booking shows **Auto** for its room until check-in, so many Confirmed units have no room. Without a lane the Timeline shows those rooms as free.
+A unit can have no room: auto-assign is off, nothing was free when it was booked, or a date change left a night without one. Many Confirmed units can be in this state. Without a lane the Timeline shows those rooms as free.
 
 - A segment with no room or bed gets the row key `unassigned-{roomTypeId}` (the unit's room type), and consecutive nights form one segment. `StayViewQuery` does this with no extra query.
 - The lane rows come from the browser, not the `rooms` prop. A lane shows only when a visible stay has an `unassigned-{roomTypeId}` segment in the window, and only for room types that pass the Room type filter. The Room group and Status filters are about physical rooms, so they never hide a lane or a stay with no room.

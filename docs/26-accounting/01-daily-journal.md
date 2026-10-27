@@ -9,7 +9,7 @@ Push the money of each closed business date to the property's accounting softwar
 | Now                                                                                       | Later                                                                     |
 | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | QNE Cloud Accounting and Bukku, one provider per hotel                                    | More providers, each one a new `AccountingGateway` and enum case          |
-| One journal per closed business date, pushed as a draft                                   | Posting the journal as approved instead of draft, once an accountant asks |
+| One journal per closed business date. Bukku keeps it as a draft, QNE posts it at once     | A review step for QNE journals, if QNE ever allows a draft journal        |
 | Owner or manager sets the key, accounts and switch                                        | A scheduled retry of failed dates (today a person presses **Push again**) |
 | Company invoices, credit notes and payments, see [Company billing](02-company-billing.md) | A backfill of documents issued before company billing was switched on     |
 | Behind the `AccountingIntegration` feature, off by default                                |                                                                           |
@@ -93,14 +93,15 @@ Source: [QNE open API](https://openapi.account.qne.cloud/doc/index.html).
 | Test               | `GET api/AccountCodes/Leaf/Query?$top=1`                                                           |
 | Find an account id | `GET api/AccountCodes/Leaf/Query?$filter=code eq '...'`. A journal line needs the id, not the code |
 | New journal        | `GET api/Journals/New` gives QNE's own currency and numbering defaults                             |
-| Create             | `POST api/Journals/Create` with the template, our lines and `documentStatus` 0 (Draft)             |
+| Create             | `POST api/Journals/Create` with the template, our lines. No `documentStatus` (see below)           |
 
 - Every response is an envelope. `code` `0000` is success, anything else is a failure and the message is shown to staff.
 - The base URL is `services.qne.base_url` (`QNE_BASE_URL`). QNE has no separate sandbox host that we found, so test with a trial company, never a customer's books.
-- The journal is a draft so the accountant checks the first ones in QNE.
+- QNE cannot hold a journal as a draft. Checked on a real company: `documentStatus` 0 and `isParkAndPostEnable` both came back Approved with a final number, and the QNE template defaults to Approved. So a QNE journal posts at once. A wrong one is voided with `POST api/Journals/Void` and sent again.
+- QNE sets the journal's post date and tax date to the day it was sent, not the business date. `docDate` carries the business date. To verify: which of the two QNE reports use.
 - The local amounts equal the amounts, because the property's currency is assumed to be QNE's local currency.
 
-To verify against a real QNE company: the OData property name `code` in `$filter`, whether `Journals/Create` accepts the template unchanged, and the draft status.
+To verify against a real QNE company: the OData property name `code` in `$filter`, whether `Journals/Create` accepts the template unchanged.
 
 ## Bukku gateway
 

@@ -509,13 +509,27 @@ export default function ReservationCreate({
     const units = totalUnits(data.lines, roomTypes);
     const unitChoices = unitOptions(data.lines, roomTypes);
 
+    const unitCapacities = unitChoices.map((unit) => unit.capacity).join(',');
+    const previousUnitCount = useRef(0);
+
+    // Keep each "stays in" inside a unit with space, and put the booker in the first unit once there is one.
     useEffect(() => {
-        const next = clampStaysIn(form.data.guests, unitChoices.length);
+        let next = clampStaysIn(form.data.guests, unitChoices);
+
+        if (
+            previousUnitCount.current === 0 &&
+            unitChoices.length > 0 &&
+            next[0]?.stays_in === ''
+        ) {
+            next = [{ ...next[0], stays_in: '0' }, ...next.slice(1)];
+        }
+
+        previousUnitCount.current = unitChoices.length;
 
         if (next !== form.data.guests) {
             form.setData('guests', next);
         }
-    }, [unitChoices.length]);
+    }, [unitCapacities]);
     const lastBookable = addDays(today, BOOKING_WINDOW_DAYS);
     const nights = nightsBetween(data.arrival_date, data.departure_date);
     const lockedNights = useMemo(() => {

@@ -90,43 +90,69 @@ export function guestLabel(tab: BookingGuest, index: number): string {
     return index === 0 ? 'Booker' : `Guest ${index + 1}`;
 }
 
-/** Clears a "stays in" that no longer points at a unit, after a line was removed or its beds were reduced. */
+/**
+ * Clears a "stays in" that no longer fits: it points past the units (a line was removed or its beds were reduced), or
+ * the unit has more guests than it holds (its adults or children went down). The earlier tabs keep their unit.
+ */
 export function clampStaysIn(
     tabs: BookingGuest[],
-    unitCount: number,
+    options: UnitOption[],
 ): BookingGuest[] {
-    const stale = tabs.some(
-        (tab) => tab.stays_in !== '' && Number(tab.stays_in) >= unitCount,
-    );
+    const counts = new Map<string, number>();
+    let changed = false;
+    const next = tabs.map((tab) => {
+        if (tab.stays_in === '') {
+            return tab;
+        }
 
-    return stale
-        ? tabs.map((tab) =>
-              tab.stays_in !== '' && Number(tab.stays_in) >= unitCount
-                  ? { ...tab, stays_in: '' }
-                  : tab,
-          )
-        : tabs;
+        const option = options[Number(tab.stays_in)];
+        const count = (counts.get(tab.stays_in) ?? 0) + 1;
+
+        if (option === undefined || count > option.capacity) {
+            changed = true;
+
+            return { ...tab, stays_in: '' };
+        }
+
+        counts.set(tab.stays_in, count);
+
+        return tab;
+    });
+
+    return changed ? next : tabs;
 }
 
-/** The bed units that already have a guest on another tab, so a second guest cannot be picked for them. */
-export function takenBedUnits(
+/** The units that are full with the guests of the other tabs, so the select disables them for this tab. */
+export function fullUnits(
     tabs: BookingGuest[],
     options: UnitOption[],
     exceptIndex: number,
 ): Set<string> {
-    const taken = new Set<string>();
+    const counts = new Map<string, number>();
 
     tabs.forEach((tab, index) => {
-        if (
-            index !== exceptIndex &&
-            tab.stays_in !== '' &&
-            options[Number(tab.stays_in)]?.isBed
-        ) {
-            taken.add(tab.stays_in);
+        if (index !== exceptIndex && tab.stays_in !== '') {
+            counts.set(tab.stays_in, (counts.get(tab.stays_in) ?? 0) + 1);
         }
     });
 
-    return taken;
+    return new Set(
+        options
+            .filter(
+                (option) => (counts.get(option.value) ?? 0) >= option.capacity,
+            )
+            .map((option) => option.value),
+    );
+}
+
+/** The first unit with space left for one more guest, for a new tab. Empty when every unit is full. */
+export function firstUnitWithSpace(
+    tabs: BookingGuest[],
+    options: UnitOption[],
+): string {
+    const full = fullUnits(tabs, options, -1);
+
+    return options.find((option) => !full.has(option.value))?.value ?? '';
 }
 
 /**

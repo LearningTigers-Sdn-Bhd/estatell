@@ -3,6 +3,7 @@
 namespace App\Services\Accounting;
 
 use App\Enums\AccountingDocumentKind;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
@@ -15,10 +16,10 @@ use Throwable;
  */
 class QneGateway implements AccountingGateway
 {
-    /** QNE `DocumentStatus`: 0 Draft, 1 Waiting for approval, 2 Approved. A draft lets the accountant check it first. */
-    private const DRAFT = 0;
-
-    /** QNE `DocumentStatus` 2, Approved. Invoices, credit notes and receipts must be approved to be matched to each other. */
+    /**
+     * QNE `DocumentStatus` 2, Approved. Invoices, credit notes and receipts must be approved to be matched to each other.
+     * A journal cannot be a draft: QNE ignores `documentStatus` 0 on `Journals/Create` and approves it, so it is not sent.
+     */
     private const APPROVED = 2;
 
     private ?string $token = null;
@@ -67,7 +68,8 @@ class QneGateway implements AccountingGateway
         foreach ($journal->lines as $position => $line) {
             $details[] = [
                 'pos' => $position + 1,
-                'accountId' => $ids[$line->accountCode],
+                // QNE ignores `accountId` on a journal line (it is read only): the account goes in as an object.
+                'account' => ['id' => $ids[$line->accountCode], 'code' => $line->accountCode],
                 'description' => mb_substr($line->description, 0, 250),
                 'debit' => (float) $line->debit,
                 'credit' => (float) $line->credit,
@@ -79,7 +81,6 @@ class QneGateway implements AccountingGateway
 
         $created = $this->post('api/Journals/Create', [
             ...$template,
-            'documentStatus' => self::DRAFT,
             'docDate' => $journal->date->toDateString().'T00:00:00',
             'description' => mb_substr($journal->description, 0, 250),
             'referenceNo' => mb_substr($journal->reference, 0, 50),
@@ -101,7 +102,7 @@ class QneGateway implements AccountingGateway
             'zipCode' => mb_substr((string) $customer->postalCode, 0, 20),
             'country' => mb_substr((string) $customer->countryCode, 0, 100),
             'phoneNo1' => mb_substr((string) $customer->phone, 0, 20),
-            'emailList' => $customer->email,
+            'emailList' => filled($customer->email) ? [$customer->email] : [],
         ]);
 
         return (string) ($created['id'] ?? '');
@@ -109,8 +110,8 @@ class QneGateway implements AccountingGateway
 
     public function createInvoice(InvoiceDetails $invoice): DocumentRef
     {
-        $created = $this->post('api/SalesInvoices/Create', [
-            ...$this->get('api/SalesInvoices/New'),
+        $created = $this->post('api/Invoices/Create', [
+            ...$this->get('api/Invoices/New'),
             'documentStatus' => self::APPROVED,
             'customerId' => (int) $invoice->customerId,
             'docDate' => $invoice->date->toDateString().'T00:00:00',
@@ -134,6 +135,8 @@ class QneGateway implements AccountingGateway
             'referenceNo' => mb_substr($note->reference, 0, 50),
             'description' => mb_substr($note->description, 0, 250),
             'isTaxInclusive' => false,
+            // QNE checks the knockoff against the totals sent here, not against the lines, so the totals go in too.
+            ...$this->totals((float) $note->amount),
             'details' => [$this->line($note->accountCode, $note->description, $note->amount)],
             'knockoff' => [$this->knockoff($note->invoice, $note->amount, (int) $note->customerId)],
         ]);
@@ -152,6 +155,9 @@ class QneGateway implements AccountingGateway
             'docDate' => $receipt->date->toDateString().'T00:00:00',
             'referenceNo' => mb_substr($receipt->reference, 0, 50),
             'description' => mb_substr($receipt->description, 0, 250),
+            // QNE only reads `multiPayments` when the flag is on, and checks the knockoff against the totals sent here.
+            'isMultiPayment' => true,
+            ...$this->totals((float) $receipt->amount),
             'multiPayments' => [[
                 'accountId' => $bank,
                 'description' => mb_substr($receipt->description, 0, 250),
@@ -170,7 +176,7 @@ class QneGateway implements AccountingGateway
     public function voidDocument(AccountingDocumentKind $kind, DocumentRef $document, string $reason): void
     {
         $path = match ($kind) {
-            AccountingDocumentKind::Invoice => 'api/SalesInvoices/Void',
+            AccountingDocumentKind::Invoice => 'api/Invoices/Void',
             AccountingDocumentKind::CreditNote => 'api/ARCNs/Void',
             AccountingDocumentKind::Receipt => 'api/ARReceipts/Void',
         };
@@ -180,6 +186,24 @@ class QneGateway implements AccountingGateway
             'cancelledDate' => now()->toDateString().'T00:00:00',
             'cancelledRemark' => mb_substr($reason, 0, 100),
         ]);
+    }
+
+    /**
+     * The document totals QNE needs when a document is knocked off against another. The currency is QNE's local one, so
+     * the local totals equal the totals.
+     *
+     * @return array<string, float>
+     */
+    private function totals(float $amount): array
+    {
+        return [
+            'subtotalAmount' => $amount,
+            'subtotalAmountLocal' => $amount,
+            'totalAmount' => $amount,
+            'totalAmountLocal' => $amount,
+            'netTotalAmount' => $amount,
+            'netTotalAmountLocal' => $amount,
+        ];
     }
 
     /**
@@ -208,8 +232,17 @@ class QneGateway implements AccountingGateway
             'customerId' => $customerId,
             'docId' => $invoice->id,
             'docType' => $invoice->type ?? 'INV',
+            'docCode' => $this->invoiceCode($invoice->id),
             'paymentAmount' => (float) $amount,
         ];
+    }
+
+    /**
+     * The document number of a sent invoice. QNE needs it on a knockoff (`PayForDocCode`), and estatell keeps only the id.
+     */
+    private function invoiceCode(string $id): string
+    {
+        return (string) ($this->get('api/Invoices/'.$id)['docCode'] ?? '');
     }
 
     private function accountId(string $code): string
@@ -229,7 +262,11 @@ class QneGateway implements AccountingGateway
      */
     private function get(string $path, array $query = []): array
     {
-        return $this->data($this->client()->get($path, $query), $path);
+        try {
+            return $this->data($this->client()->get($path, $query), $path);
+        } catch (ConnectionException $exception) {
+            throw new AccountingException(__('QNE could not be reached.'), previous: $exception);
+        }
     }
 
     /**
@@ -238,7 +275,11 @@ class QneGateway implements AccountingGateway
      */
     private function post(string $path, array $payload): array
     {
-        return $this->data($this->client()->post($path, $payload), $path);
+        try {
+            return $this->data($this->client()->post($path, $payload), $path);
+        } catch (ConnectionException $exception) {
+            throw new AccountingException(__('QNE could not be reached.'), previous: $exception);
+        }
     }
 
     private function client(): PendingRequest
@@ -285,6 +326,11 @@ class QneGateway implements AccountingGateway
 
         if (! is_array($body) || ($body['code'] ?? null) !== '0000') {
             $message = is_array($body) ? (string) ($body['message'] ?? '') : '';
+
+            // A 400 comes as a validation problem (`errors`), not as the usual envelope with a `message`.
+            if ($message === '' && is_array($body) && is_array($body['errors'] ?? null)) {
+                $message = collect($body['errors'])->flatten()->implode(' ');
+            }
 
             throw new AccountingException(__('QNE refused :path (:status). :message', [
                 'path' => $path,

@@ -8,6 +8,7 @@ use App\Enums\UnitStatus;
 use App\Models\ChannelBookingRevision;
 use App\Models\Guest;
 use App\Models\Reservation;
+use App\Models\ReservationUnit;
 use App\Models\TransactionCode;
 use App\Notifications\ChannelBookingCancelled;
 use App\Notifications\ChannelBookingReceived;
@@ -59,15 +60,78 @@ test('one booking with two rooms is one reservation with two units', function ()
     expect($reservation->units_count)->toBe(2);
 });
 
-test('an existing guest with the same email is the booker', function () {
+test('an existing guest with the same name and email is the booker', function () {
     $setup = channelBookingSetup();
     fakeChannexAck();
-    $guest = Guest::factory()->create(['property_id' => $setup['property']->id, 'full_name' => 'A. Rahman', 'email' => 'aina@example.com']);
+    $guest = Guest::factory()->create(['property_id' => $setup['property']->id, 'full_name' => 'Aina Rahman', 'email' => 'aina@example.com']);
 
     ingest($setup);
 
-    expect(Reservation::query()->sole()->booker_guest_id)->toBe($guest->id)
-        ->and(Guest::query()->where('property_id', $setup['property']->id)->where('full_name', 'Aina Rahman')->exists())->toBeFalse();
+    expect(Reservation::query()->sole()->booker_guest_id)->toBe($guest->id);
+});
+
+test('an existing guest with the same email but a different name is not the booker', function () {
+    $setup = channelBookingSetup();
+    fakeChannexAck();
+    $guest = Guest::factory()->create(['property_id' => $setup['property']->id, 'full_name' => 'Farid Rahman', 'email' => 'aina@example.com']);
+
+    ingest($setup);
+
+    expect(Reservation::query()->sole()->booker_guest_id)->not->toBe($guest->id)
+        ->and(Guest::query()->where('property_id', $setup['property']->id)->where('full_name', 'Aina Rahman')->exists())->toBeTrue();
+});
+
+test('OTA support emails and call center phone numbers are not stored on the guest profile', function () {
+    $setup = channelBookingSetup();
+    fakeChannexAck();
+
+    ingest($setup, [
+        'customer' => [
+            'name' => 'Elvis',
+            'surname' => 'Jayvier',
+            'mail' => 'lodgingsupport@trip.com',
+            'phone' => '+601546000327',
+            'country' => 'MY',
+        ],
+    ]);
+
+    $guest = Guest::query()->where('property_id', $setup['property']->id)->where('full_name', 'Elvis Jayvier')->sole();
+    expect($guest->email)->toBeNull()
+        ->and($guest->phone)->toBeNull();
+});
+
+test('different guests sharing an OTA support email create separate profiles', function () {
+    $setup = channelBookingSetup();
+    fakeChannexAck();
+
+    ingest($setup, [
+        'booking_id' => 'booking-1',
+        'unique_id' => 'CTP-1',
+        'customer' => [
+            'name' => 'Elvis',
+            'surname' => 'Jayvier',
+            'mail' => 'lodgingsupport@trip.com',
+            'phone' => '+601546000327',
+            'country' => 'MY',
+        ],
+    ]);
+
+    ingest($setup, [
+        'booking_id' => 'booking-2',
+        'unique_id' => 'CTP-2',
+        'customer' => [
+            'name' => 'Asraf',
+            'surname' => 'Amilnulla',
+            'mail' => 'lodgingsupport@trip.com',
+            'phone' => '+601546000327',
+            'country' => 'MY',
+        ],
+    ]);
+
+    $elvis = Guest::query()->where('property_id', $setup['property']->id)->where('full_name', 'Elvis Jayvier')->sole();
+    $asraf = Guest::query()->where('property_id', $setup['property']->id)->where('full_name', 'Asraf Amilnulla')->sole();
+
+    expect($elvis->id)->not->toBe($asraf->id);
 });
 
 test('a stay with no rates and no room left is still accepted at the OTA price', function () {
@@ -306,4 +370,66 @@ test('a revision with an unknown status is not stored', function () {
 
     expect(app(StoreChannelRevision::class)($setup['channelProperty'], channelRevisionPayload(['status' => 'odd'])))->toBeNull()
         ->and(ChannelBookingRevision::query()->count())->toBe(0);
+});
+
+test('with auto-assign on each unit of a new OTA booking gets its own room', function () {
+    $setup = channelBookingSetup();
+    $setup['property']->settings->forceFill(['auto_assign_rooms' => true])->save();
+    fakeChannexAck();
+
+    ingest($setup, ['rooms' => [channelRevisionRoom(), channelRevisionRoom()]]);
+
+    $rooms = Reservation::query()->sole()->units()->orderBy('id')->get()
+        ->map(fn ($unit) => $unit->nights()->pluck('room_id')->unique()->values()->all());
+
+    expect($rooms->flatten()->sort()->values()->all())->toBe(collect($setup['rooms'])->pluck('id')->sort()->values()->all());
+});
+
+test('a modified revision whose longer stay loses the room moves the unit to a room free for the whole stay', function () {
+    $setup = channelBookingSetup();
+    $setup['property']->settings->forceFill(['auto_assign_rooms' => true])->save();
+    fakeChannexAck();
+    ingest($setup);
+    $unit = Reservation::query()->sole()->units()->sole();
+    $first = $unit->nights()->value('room_id');
+    $other = collect($setup['rooms'])->firstWhere(fn ($room) => $room->id !== $first);
+    $taker = ReservationUnit::factory()->withNights()->create(['property_id' => $setup['property']->id, 'room_type_id' => $setup['roomType']->id, 'rate_plan_id' => $setup['plan']->id, 'arrival_date' => '2026-10-22', 'departure_date' => '2026-10-23']);
+    $taker->nights()->update(['room_id' => $first]);
+
+    [, $result] = ingest($setup, [
+        'status' => 'modified',
+        'departure_date' => '2026-10-23',
+        'rooms' => [channelRevisionRoom(['checkout_date' => '2026-10-23', 'amount' => '300.00'])],
+    ]);
+
+    expect($result->ok)->toBeTrue()
+        ->and($unit->nights()->orderBy('date')->pluck('room_id')->all())->toBe([$other->id, $other->id, $other->id]);
+});
+
+test('the booker is the primary guest of every unit of a new OTA booking', function () {
+    $setup = channelBookingSetup();
+    fakeChannexAck();
+
+    ingest($setup, ['rooms' => [channelRevisionRoom(), channelRevisionRoom()]]);
+
+    $reservation = Reservation::query()->with('units.guests')->sole();
+
+    expect($reservation->units)->toHaveCount(2)
+        ->and($reservation->units->map(fn (ReservationUnit $unit): array => $unit->guests->map(fn ($guest): array => [$guest->guest_id, $guest->is_primary])->all())->all())
+        ->toBe([[[$reservation->booker_guest_id, true]], [[$reservation->booker_guest_id, true]]]);
+});
+
+test('a room added by a modified revision gets the booker as its primary guest', function () {
+    $setup = channelBookingSetup();
+    fakeChannexAck();
+    ingest($setup);
+
+    ingest($setup, ['status' => 'modified', 'rooms' => [channelRevisionRoom(), channelRevisionRoom()]]);
+
+    $reservation = Reservation::query()->sole();
+    $added = $reservation->units()->latest('id')->first();
+
+    expect($reservation->units()->count())->toBe(2)
+        ->and($added->guests()->sole()->guest_id)->toBe($reservation->booker_guest_id)
+        ->and($added->guests()->sole()->is_primary)->toBeTrue();
 });

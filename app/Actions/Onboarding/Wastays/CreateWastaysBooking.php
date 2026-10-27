@@ -59,7 +59,7 @@ class CreateWastaysBooking
     {
         $data = $this->data($context, $bookingId, $arrival, $departure, $overrideTotal, $overrideReason);
         $skipsCompanyCheck = $this->skipsCompanyCheck($context, $bookingId, $data);
-        $book = fn (bool $skipChecks) => $this->numbers->run(DocumentType::Reservation, $this->number($context, $bookingId), fn () => ($this->createBooking)($context->actor, $context->property, $data, $skipChecks, $allowPastArrival), true, $bookingId);
+        $book = fn (bool $skipChecks) => $this->numbers->run(DocumentType::Reservation, $this->number($context, $bookingId), fn () => ($this->createBooking)($context->actor, $context->property, $data, $skipChecks, $allowPastArrival, autoAssignRooms: false), true, $bookingId);
         $result = $book($skipsCompanyCheck);
 
         if ($result->isRefused() && $result->refusal === ReservationResult::REFUSAL_NOT_AVAILABLE) {

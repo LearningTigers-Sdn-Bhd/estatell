@@ -6,7 +6,8 @@ import {
     guestLabel,
     hasDetails,
     linkGuest,
-    takenBedUnits,
+    firstUnitWithSpace,
+    fullUnits,
     unitsWithoutGuest,
     unlinkGuest,
 } from './booking-guests';
@@ -102,35 +103,68 @@ test('units are listed in the order the lines add them, numbered for each room t
     ];
 
     expect(unitOptions(lines, [room, dorm])).toEqual([
-        { value: '0', label: 'Deluxe King #1', isBed: false },
-        { value: '1', label: 'Dorm · Bed 1', isBed: true },
-        { value: '2', label: 'Dorm · Bed 2', isBed: true },
-        { value: '3', label: 'Deluxe King #2', isBed: false },
+        { value: '0', label: 'Deluxe King #1', isBed: false, capacity: 2 },
+        { value: '1', label: 'Dorm · Bed 1', isBed: true, capacity: 1 },
+        { value: '2', label: 'Dorm · Bed 2', isBed: true, capacity: 1 },
+        { value: '3', label: 'Deluxe King #2', isBed: false, capacity: 2 },
     ]);
 });
 
-test('a stays-in that points past the units is cleared and the rest is left alone', () => {
-    const tabs = [emptyGuest('0'), emptyGuest('3'), emptyGuest('')];
-
-    expect(clampStaysIn(tabs, 4)).toBe(tabs);
-
-    const clamped = clampStaysIn(tabs, 3);
-
-    expect(clamped.map((tab) => tab.stays_in)).toEqual(['0', '', '']);
-});
-
-test('a bed unit with a guest on another tab is taken, a room unit never is', () => {
+test('a stays-in past the units or over a unit capacity is cleared, the earlier tabs keep theirs', () => {
     const options = unitOptions(
         [
-            { ...emptyLine(), room_type_id: '1' },
-            { ...emptyLine(), room_type_id: '2', beds: '2' },
+            { ...emptyLine(), room_type_id: '1', adults: '2' },
+            { ...emptyLine(), room_type_id: '2', beds: '1' },
         ],
         [room, dorm],
     );
     const tabs = [emptyGuest('0'), emptyGuest('1'), emptyGuest('')];
 
-    expect([...takenBedUnits(tabs, options, 2)]).toEqual(['1']);
-    expect([...takenBedUnits(tabs, options, 1)]).toEqual([]);
+    expect(clampStaysIn(tabs, options)).toBe(tabs);
+    expect(
+        clampStaysIn(tabs, options.slice(0, 1)).map((tab) => tab.stays_in),
+    ).toEqual(['0', '', '']);
+
+    const crowded = [emptyGuest('0'), emptyGuest('0'), emptyGuest('0')];
+
+    expect(clampStaysIn(crowded, options).map((tab) => tab.stays_in)).toEqual([
+        '0',
+        '0',
+        '',
+    ]);
+});
+
+test('a room holds its adults and children, a bed one guest', () => {
+    const options = unitOptions(
+        [
+            {
+                ...emptyLine(),
+                room_type_id: '1',
+                adults: '1',
+                child_ages: ['5'],
+            },
+            { ...emptyLine(), room_type_id: '2', beds: '1' },
+        ],
+        [room, dorm],
+    );
+
+    expect(options.map((option) => option.capacity)).toEqual([2, 1]);
+});
+
+test('a full unit is disabled for another tab, and a new tab starts in the first unit with space', () => {
+    const options = unitOptions(
+        [
+            { ...emptyLine(), room_type_id: '1', adults: '2' },
+            { ...emptyLine(), room_type_id: '2', beds: '1' },
+        ],
+        [room, dorm],
+    );
+    const tabs = [emptyGuest('0'), emptyGuest('0'), emptyGuest('')];
+
+    expect([...fullUnits(tabs, options, 2)]).toEqual(['0']);
+    expect([...fullUnits(tabs, options, 1)]).toEqual([]);
+    expect(firstUnitWithSpace(tabs, options)).toBe('1');
+    expect(firstUnitWithSpace([...tabs, emptyGuest('1')], options)).toBe('');
 });
 
 test('a linked guest posts only its id, and a new or updated guest posts what was typed', () => {

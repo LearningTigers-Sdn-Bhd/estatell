@@ -12,7 +12,8 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 class PropertySettingFactory extends Factory
 {
     /**
-     * Define the model's default state.
+     * Define the model's default state. Rooms are not assigned automatically here, unlike the column default, so a test
+     * that wants auto-assign turns it on itself.
      *
      * @return array<string, mixed>
      */
@@ -20,6 +21,7 @@ class PropertySettingFactory extends Factory
     {
         return [
             'property_id' => Property::factory(),
+            'auto_assign_rooms' => false,
         ];
     }
 }

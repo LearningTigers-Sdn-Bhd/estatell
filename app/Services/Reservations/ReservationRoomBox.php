@@ -86,7 +86,7 @@ class ReservationRoomBox
                 state: ReservationRoomBoxState::AutoAssign,
                 label: ReservationRoomBoxState::AutoAssign->label(),
                 tone: ReservationRoomBoxState::AutoAssign->tone(),
-                tooltip: __('Room assigned automatically'),
+                tooltip: __('No free room when booked. Check-in assigns one.'),
                 numbers: [],
                 more: 0,
                 count: $unassigned->count(),

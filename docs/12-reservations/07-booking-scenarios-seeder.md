@@ -32,7 +32,7 @@ Rules this depends on:
 
 - `missed_arrival_policy` is set to **Mark no-show** with `UpdatePropertySettings`, so an arrival that is not checked in by the audit becomes NoShow. `late_arrival_expected` units are skipped (S14).
 - `overdue_departure_policy` stays **Block**. Every unit that departs on a day is checked out before that day's audit.
-- `auto_assign_rooms` is on, so check-in runs `AutoAssignRooms` and no in-house unit is without a room at audit time (the readiness blocker). No booking picks a room. After `ExtendStay` (S9), the added nights get the unit's room with `MoveUnit`.
+- `auto_assign_rooms` is on, so each booking gets its rooms when it is saved (`AutoAssignBookedUnit`), check-in fills any still missing, and no in-house unit is without a room at audit time (the readiness blocker). No booking picks a room. After `ExtendStay` (S9), the added nights get the unit's room with `MoveUnit`.
 - A unit is checked out only after its folio balance is 0 (`balance_not_settled`), so the seeder records a Settlement payment first.
 
 ## Setup

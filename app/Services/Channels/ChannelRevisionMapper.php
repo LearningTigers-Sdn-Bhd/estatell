@@ -92,12 +92,61 @@ class ChannelRevisionMapper
         $customer = $payload['customer'] ?? [];
         $name = trim(trim((string) ($customer['name'] ?? '')).' '.trim((string) ($customer['surname'] ?? '')));
         $country = strtoupper((string) ($customer['country'] ?? ''));
+        $email = filled($customer['mail'] ?? null) ? trim((string) $customer['mail']) : null;
+        $phone = filled($customer['phone'] ?? null) ? trim((string) $customer['phone']) : null;
 
         return [
             'full_name' => $name !== '' ? $name : __('OTA guest'),
-            'email' => filled($customer['mail'] ?? null) ? trim((string) $customer['mail']) : null,
-            'phone' => filled($customer['phone'] ?? null) ? trim((string) $customer['phone']) : null,
+            'email' => $this->isOtaSupportEmail($email) ? null : $email,
+            'phone' => $this->isOtaSupportPhone($phone) ? null : $phone,
             'country_code' => preg_match('/^[A-Z]{2}$/', $country) === 1 ? $country : null,
         ];
+    }
+
+    /**
+     * Corporate OTA support mailboxes that belong to the channel, not the guest staying.
+     */
+    private function isOtaSupportEmail(?string $email): bool
+    {
+        if (blank($email)) {
+            return false;
+        }
+
+        $email = mb_strtolower(trim($email));
+        $parts = explode('@', $email);
+
+        if (count($parts) !== 2) {
+            return false;
+        }
+
+        [$user, $domain] = $parts;
+
+        if (in_array($domain, ['trip.com', 'ctrip.com', 'agoda.com', 'booking.com', 'expedia.com', 'airbnb.com'], true)) {
+            return true;
+        }
+
+        return in_array($user, ['lodgingsupport', 'hotel_support', 'hotelsupport', 'support', 'cs', 'noreply', 'no-reply'], true);
+    }
+
+    /**
+     * Known OTA call center hotlines and placeholder numbers that do not reach the guest.
+     */
+    private function isOtaSupportPhone(?string $phone): bool
+    {
+        if (blank($phone)) {
+            return false;
+        }
+
+        $digits = preg_replace('/\D+/', '', $phone);
+
+        if (strlen($digits) < 5 || preg_match('/^(\d)\1+$/', $digits) === 1) {
+            return true;
+        }
+
+        return in_array($digits, [
+            '601546000327',
+            '442039293737',
+            '862152296241',
+        ], true);
     }
 }

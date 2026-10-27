@@ -9,7 +9,7 @@ Operating settings for one property, kept out of the `properties` table.
 ```
 property_settings    property_id (unique), currency, time_zone, default_locale,
                      check_in_time, check_out_time, arrival_grace_minutes,
-                     auto_assign_rooms,
+                     auto_assign_rooms (bool, default true),
                      audit_time, auto_audit_enabled,
                      missed_arrival_policy, overdue_departure_policy,
                      registration_card_scope, card_required_for_check_in,
@@ -22,6 +22,7 @@ property_settings    property_id (unique), currency, time_zone, default_locale,
 ```
 
 - A 1:1 table with typed columns. New settings are new columns.
+- `auto_assign_rooms` is the **Assign rooms automatically** switch on the General tab: "On: new bookings and OTA bookings get a free room. Check-in fills any still missing." See [Room and bed assignment](../18-front-desk/02-room-and-bed-assignment.md).
 - `migration_window_days` is on the Operations tab. It sets how long after go-live the migration tools stay open ([Migration](../17-onboarding/07-migration.md#migration-window)).
 - The first Basics save calls `SeedPropertyDefaults`, which creates the row from the Malaysia preset. The migration defaults stay aligned as a database fallback. Repeating Basics does not replace edited settings.
 - Current property staff can edit the page. Finer permissions arrive with the roles module.
@@ -50,4 +51,4 @@ property_settings    property_id (unique), currency, time_zone, default_locale,
 - Country, currency and time zone are changed on Basics until go-live ([Changing country](03-seed-property-defaults.md#changing-country)). The settings page always shows them disabled. After go-live the request drops them (`SettingsLock`).
 - All business dates and schedules use `time_zone`.
 - The Details page has seven tabs, each with its own URL: Profile, Business licence, General, Operations, Age groups, Meal periods and Support access. Each tab saves separately. Profile is first, and the sidebar item opens it. It edits the property's identity and logo, not `property_settings` (see [Properties](01-properties.md#profile)). Business licence is second. It holds the registered name, registration number, TIN and licences (see [Properties](01-properties.md#business-licence)). The Age groups tab saves through its own route (see [Age groups](04-age-groups.md)). The registration card settings (scope, card required, ID retention, deposit) are on their own Registration card page, General tab. See [Card fields](../16-registration/01-card-fields.md#ui). PDF settings (font, size, letterhead, footer, and what the customer documents show) are on their own Printing page, in their own `print_settings` table. See [Printing settings](05-printing-settings.md). Before Basics is complete, it links to `/p/{code}/onboarding/basics`.
-- Initial values are MYR, `Asia/Kuala_Lumpur`, English, 15:00 check-in, 11:00 check-out, 02:00 audit, no automatic audit or room assignment, no room revenue policy charges, blocked overdue departures, primary-only registration cards, no card requirement, zero deposit, Friday + Saturday weekend nights and support access on. ID retention is unset, so scans are kept until a number of days (at least 1) is set.
+- Initial values are MYR, `Asia/Kuala_Lumpur`, English, 15:00 check-in, 11:00 check-out, 02:00 audit, no automatic audit, automatic room assignment on (decided 2026-10-27, as in wastays; existing properties were switched on by a data migration), no room revenue policy charges, blocked overdue departures, primary-only registration cards, no card requirement, zero deposit, Friday + Saturday weekend nights and support access on. ID retention is unset, so scans are kept until a number of days (at least 1) is set.

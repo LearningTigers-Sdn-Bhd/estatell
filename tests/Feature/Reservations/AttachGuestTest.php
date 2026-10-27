@@ -33,7 +33,7 @@ function expectNoGuestAttached(): void
 }
 
 test('the first guest of a unit is primary and the second is not', function () {
-    $unit = ReservationUnit::factory()->create();
+    $unit = ReservationUnit::factory()->create(['adults' => 2]);
     $actor = User::factory()->create();
     $first = attachGuestGuestOf($unit);
     $second = attachGuestGuestOf($unit);
@@ -118,10 +118,10 @@ test('it refuses a guest already on the unit', function () {
         ->and(Activity::query()->count())->toBe(1);
 });
 
-test('a bed unit takes one guest and a room unit has no limit', function () {
+test('a bed unit takes one guest and a room unit its adults and children', function () {
     $bedType = RoomType::factory()->bed()->create();
     $bed = ReservationUnit::factory()->create(['property_id' => $bedType->property_id, 'room_type_id' => $bedType->id, 'reservation_id' => Reservation::factory()->create(['property_id' => $bedType->property_id])->id]);
-    $room = ReservationUnit::factory()->create();
+    $room = ReservationUnit::factory()->create(['adults' => 2, 'children' => 1]);
     $actor = User::factory()->create();
 
     expect(attachGuest($actor, $bed, attachGuestGuestOf($bed))->isRefused())->toBeFalse();
@@ -132,11 +132,12 @@ test('a bed unit takes one guest and a room unit has no limit', function () {
         ->and($bed->guests()->count())->toBe(1)
         ->and(Activity::query()->count())->toBe(1);
 
-    foreach (range(1, 4) as $ignored) {
+    foreach (range(1, 3) as $ignored) {
         expect(attachGuest($actor, $room, attachGuestGuestOf($room))->isRefused())->toBeFalse();
     }
 
-    expect($room->guests()->count())->toBe(4);
+    expect(attachGuest($actor, $room, attachGuestGuestOf($room))->refusal)->toBe(AttachGuestResult::REFUSAL_UNIT_FULL)
+        ->and($room->guests()->count())->toBe(3);
 });
 
 test('the unit is read with a row lock before the checks', function () {
@@ -172,7 +173,7 @@ test('a checked-out unit takes a guest and posts nothing', function () {
  */
 function attachGuestCheckedOutUnit(?string $bookerNationality = 'MY'): ReservationUnit
 {
-    $unit = ReservationUnit::factory()->checkedOut()->create();
+    $unit = ReservationUnit::factory()->checkedOut()->create(['adults' => 2]);
     $unit->reservation->booker->update(['nationality_code' => $bookerNationality]);
 
     return $unit;
