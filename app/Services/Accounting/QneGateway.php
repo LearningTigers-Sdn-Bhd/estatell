@@ -16,10 +16,10 @@ use Throwable;
  */
 class QneGateway implements AccountingGateway
 {
-    /** QNE `DocumentStatus`: 0 Draft, 1 Waiting for approval, 2 Approved. A draft lets the accountant check it first. */
-    private const DRAFT = 0;
-
-    /** QNE `DocumentStatus` 2, Approved. Invoices, credit notes and receipts must be approved to be matched to each other. */
+    /**
+     * QNE `DocumentStatus` 2, Approved. Invoices, credit notes and receipts must be approved to be matched to each other.
+     * A journal cannot be a draft: QNE ignores `documentStatus` 0 on `Journals/Create` and approves it, so it is not sent.
+     */
     private const APPROVED = 2;
 
     private ?string $token = null;
@@ -81,7 +81,6 @@ class QneGateway implements AccountingGateway
 
         $created = $this->post('api/Journals/Create', [
             ...$template,
-            'documentStatus' => self::DRAFT,
             'docDate' => $journal->date->toDateString().'T00:00:00',
             'description' => mb_substr($journal->description, 0, 250),
             'referenceNo' => mb_substr($journal->reference, 0, 50),
