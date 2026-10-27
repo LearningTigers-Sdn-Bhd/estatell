@@ -12,3 +12,7 @@ test('early check-out dialog', function () {
 
     $this->shoot($page, 'early-departure', element: '[role="dialog"]');
 });
+
+test('early-departure policy settings', function () {
+    $this->shoot($this->openPolicy('early-departure', '100'), 'early-departure-policy', highlight: ['a[href$="/settings/room-revenue"]', '[role="tab"][aria-selected="true"]']);
+});

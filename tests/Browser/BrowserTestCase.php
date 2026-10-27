@@ -113,6 +113,19 @@ abstract class BrowserTestCase extends TestCase
     }
 
     /**
+     * Open a policy tab of Settings › Billing setup › Room revenue with a Percentage charge filled in but not saved, so
+     * the screenshot shows the charge fields and the worked example. The demo properties keep every policy Free.
+     */
+    protected function openPolicy(string $tab, string $percent, ?string $freeUntilDays = null): AwaitableWebpage
+    {
+        $page = $this->open(route('settings.room-revenue.policies.show', [$this->property, $tab]), height: 1200)
+            ->click('Percentage')
+            ->type('#percent', $percent);
+
+        return $freeUntilDays === null ? $page->wait(1) : $page->type('#free_until_days', $freeUntilDays)->wait(1);
+    }
+
+    /**
      * The demo reservation with the most units, used as the group booking in the docs.
      */
     protected function largestGroup(): Reservation

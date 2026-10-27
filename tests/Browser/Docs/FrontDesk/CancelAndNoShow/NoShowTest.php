@@ -12,3 +12,7 @@ test('mark no-show dialog', function () {
 
     $this->shoot($page, 'mark-no-show', element: '[role="dialog"]');
 });
+
+test('no-show policy settings', function () {
+    $this->shoot($this->openPolicy('no-show', '100'), 'no-show-policy', highlight: ['a[href$="/settings/room-revenue"]', '[role="tab"][aria-selected="true"]']);
+});

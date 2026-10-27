@@ -13,3 +13,7 @@ test('late check-out dialog', function () {
 
     $this->shoot($page, 'late-check-out', element: '[role="dialog"]');
 });
+
+test('late-checkout policy settings', function () {
+    $this->shoot($this->openPolicy('late-checkout', '50'), 'late-check-out-policy', highlight: ['a[href$="/settings/room-revenue"]', '[role="tab"][aria-selected="true"]']);
+});

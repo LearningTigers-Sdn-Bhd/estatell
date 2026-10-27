@@ -21,3 +21,7 @@ test('cancel reservation dialog', function () {
 
     $this->shoot($page, 'cancel-reservation', element: '[role="dialog"]');
 });
+
+test('cancellation policy settings', function () {
+    $this->shoot($this->openPolicy('cancellation', '100', '2'), 'cancellation-policy', highlight: ['a[href$="/settings/room-revenue"]', '[role="tab"][aria-selected="true"]']);
+});
