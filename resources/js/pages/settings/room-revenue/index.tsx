@@ -33,13 +33,11 @@ export default function RoomRevenue({
     taxIds,
     preview: savedPreview,
     currency,
-    hasDayUse,
 }: {
     taxes: Tax[];
     taxIds: number[];
     preview: Preview;
     currency: App.Data.Property.CurrencyData;
-    hasDayUse: boolean;
 }) {
     const http = useHttp<Selection, Preview>({ tax_ids: taxIds });
     const guard = useUnsavedChanges(http.isDirty);
@@ -107,7 +105,7 @@ export default function RoomRevenue({
                     description="How room nights and stay changes are taxed and charged."
                 />
 
-                <RoomRevenueTabs activeTab="taxes" hasDayUse={hasDayUse}>
+                <RoomRevenueTabs activeTab="taxes">
                     {taxes.length === 0 ? (
                         <EmptyState
                             icon={Landmark}

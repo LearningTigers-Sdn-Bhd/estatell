@@ -80,7 +80,7 @@ function dayUseRefusalCase(string $case, array $setup): array
         'a date with no price' => [['arrivalDate' => $date->addDays(20)->toDateString(), 'departureDate' => $date->addDays(20)->toDateString()], RateQuote::REFUSAL_NO_HOUR_PRICE],
         'a nightly plan' => [['ratePlanId' => $setup['basic']->id], RateQuote::REFUSAL_PLAN_NOT_DAY_USE],
         'no adults' => [['adults' => 0], ReservationResult::REFUSAL_ADULTS_REQUIRED],
-        'an override total' => [['overrideTotal' => '50.00', 'overrideReason' => 'friend'], ReservationResult::REFUSAL_OVERRIDE_NOT_ALLOWED],
+        'an invalid override total' => [['overrideTotal' => '-1.00'], ReservationResult::REFUSAL_OVERRIDE_INVALID],
         'a discount' => [['discountId' => 1], ReservationResult::REFUSAL_DISCOUNT_NOT_ALLOWED],
     };
 }
@@ -99,8 +99,55 @@ test('a refusal writes nothing', function (string $case) {
 })->with([
     'no room', 'a room of another type', 'a start off the half hour', 'no start', 'a block past midnight', 'hours not sold', 'no hours',
     'before the window', 'ends after the window', 'a date before the business date', 'different arrival and departure', 'a date with no price',
-    'a nightly plan', 'no adults', 'an override total', 'a discount',
+    'a nightly plan', 'no adults', 'an invalid override total', 'a discount',
 ]);
+
+test('staff can override the block price with an optional logged reason', function (string $amount, ?string $reason) {
+    $setup = dayUseSetup();
+
+    $result = createDayUseReservation($setup, [dayUseLine($setup, ['overrideTotal' => $amount, 'overrideReason' => $reason])]);
+
+    expect($result->isRefused())->toBeFalse();
+    $block = $result->reservation->units()->sole()->dayUse;
+    expect($block->amount)->toBe($amount)
+        ->and($block->override_amount)->toBe($amount);
+    $log = Activity::query()->where('event', 'reservation.unit_added')->sole();
+    expect($log->properties['override_total'])->toBe($amount)
+        ->and($log->properties['override_reason'])->toBe($reason === null ? null : trim($reason));
+})->with([
+    'reason supplied' => ['80.00', ' Regular guest '],
+    'no reason' => ['80.00', null],
+    'complimentary' => ['0.00', null],
+]);
+
+test('invalid override amounts write and log nothing', function (string $amount) {
+    $setup = dayUseSetup();
+
+    $result = createDayUseReservation($setup, [dayUseLine($setup, ['overrideTotal' => $amount])]);
+
+    expect($result->refusal)->toBe(ReservationResult::REFUSAL_OVERRIDE_INVALID);
+    $this->assertDatabaseCount('reservation_units', 0);
+    $this->assertDatabaseCount('activity_log', 0);
+})->with(['-1.00', '1.234', 'abc', '']);
+
+test('an override cannot sell hours the plan does not price', function () {
+    $setup = dayUseSetup();
+
+    $result = createDayUseReservation($setup, [dayUseLine($setup, ['hours' => 8, 'overrideTotal' => '80.00'])]);
+
+    expect($result->refusal)->toBe(RateQuote::REFUSAL_HOURS_NOT_SOLD);
+    $this->assertDatabaseCount('reservation_units', 0);
+});
+
+test('an override still needs a price for the date and hours', function () {
+    $setup = dayUseSetup();
+    $date = $setup['date']->addDays(20)->toDateString();
+
+    $result = createDayUseReservation($setup, [dayUseLine($setup, ['arrivalDate' => $date, 'departureDate' => $date, 'overrideTotal' => '80.00'])]);
+
+    expect($result->refusal)->toBe(RateQuote::REFUSAL_NO_HOUR_PRICE);
+    $this->assertDatabaseCount('reservation_units', 0);
+});
 
 test('a room busy for the hours is refused and the same room is free once the block ends', function () {
     $setup = dayUseSetup();

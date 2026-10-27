@@ -288,6 +288,7 @@ class ReservationBookingController extends Controller
                 $request->integer('adults'),
                 array_values(array_map(intval(...), $request->validated('child_ages') ?? [])),
                 $request->addOns(),
+                $request->filled('override_total') ? $request->string('override_total')->toString() : null,
             ));
         }
 

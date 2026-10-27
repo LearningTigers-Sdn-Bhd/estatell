@@ -11,7 +11,8 @@ use Spatie\LaravelData\Data;
  * moves and `refundOnMove` what it refunds from the payments the folio holds. `incoming` names the rooms that still
  * charge their Scheduled nights to this room's folio, and `canMoveCharges` says the user may send them elsewhere
  * (`folio.transfer`). `unit` is the room as the reservation page sends it, only for a room that departs later, for the
- * **Check out** Dialog opened by **Check out early…**. `checkedOutOn` is the date a room that is out was checked out
+ * Dialog chosen by `checkOutAction` (early check-out or day use). Both are null when the user cannot open it.
+ * `checkedOutOn` is the date a room that is out was checked out
  * (`Y-m-d`, property time zone), null for any other room. `pendingLines` and `pendingTotal` are the lines the check-out
  * posts first for the night of the business date while the night audit is pending (shown as added now); the balance and
  * the settle amounts already include them.
@@ -51,5 +52,6 @@ class GroupCheckOutRowData extends Data
         public ?ReservationUnitData $unit,
         public array $pendingLines = [],
         public string $pendingTotal = '0.00',
+        public ?UnitActionData $checkOutAction = null,
     ) {}
 }

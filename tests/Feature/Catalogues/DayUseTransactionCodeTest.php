@@ -2,6 +2,7 @@
 
 use App\Actions\Catalogues\SeedTaxes;
 use App\Actions\Catalogues\SeedTransactionCodes;
+use App\Actions\Catalogues\UpdateDayUseTaxes;
 use App\Actions\Catalogues\UpdateRoomRevenueTaxes;
 use App\Actions\Rates\CreateRatePlan;
 use App\Enums\SystemTransactionCode;
@@ -78,6 +79,16 @@ test('the first day use plan links the Taxes tab taxes except flat taxes, and la
     app(CreateRatePlan::class)($property, $owner, ['name' => 'Day use 2', 'pricing_basis' => 'day_use', 'day_use_min_hours' => 1, 'day_use_max_hours' => 3]);
 
     expect(dayUseTaxIds($property))->toBe([]);
+});
+
+test('the first day use plan keeps taxes already set on DAY_USE', function () {
+    [$owner, $property] = dayUseTaxSetup();
+    $tax = Tax::factory()->for($property)->create(['enabled' => false]);
+    app(UpdateDayUseTaxes::class)($property, $owner, [$tax->id]);
+
+    app(CreateRatePlan::class)($property, $owner, ['name' => 'Day use', 'pricing_basis' => 'day_use', 'day_use_min_hours' => 2, 'day_use_max_hours' => 6]);
+
+    expect(dayUseTaxIds($property))->toBe([$tax->id]);
 });
 
 test('an archived day use plan still counts as the first', function () {

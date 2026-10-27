@@ -10,6 +10,7 @@ enum UnitAction: string
 {
     case CheckIn = 'check-in';
     case CheckOut = 'check-out';
+    case CheckOutAsDayUse = 'check-out-as-day-use';
     case LateCheckOut = 'late-check-out';
     case ChangeDates = 'change-dates';
     case Cancel = 'cancel';
@@ -24,6 +25,7 @@ enum UnitAction: string
         return match ($this) {
             self::CheckIn => __('Check in'),
             self::CheckOut => __('Check out'),
+            self::CheckOutAsDayUse => __('Check out as day use…'),
             self::LateCheckOut => __('Late check-out'),
             self::Cancel => __('Cancel unit'),
             self::NoShow => __('Mark no-show'),
@@ -39,7 +41,7 @@ enum UnitAction: string
     {
         return match ($this) {
             self::CheckIn => PermissionEnum::FrontDeskCheckIn,
-            self::CheckOut, self::LateCheckOut => PermissionEnum::FrontDeskCheckOut,
+            self::CheckOut, self::CheckOutAsDayUse, self::LateCheckOut => PermissionEnum::FrontDeskCheckOut,
             self::UndoCheckIn => PermissionEnum::FrontDeskUndoCheckIn,
             self::UndoCheckOut => PermissionEnum::FrontDeskUndoCheckOut,
             self::Cancel, self::NoShow, self::Reinstate, self::ChangeDates, self::MoveRoom => PermissionEnum::ReservationsManage,
@@ -55,7 +57,7 @@ enum UnitAction: string
         return match ($this) {
             self::CheckIn => $status->canTransitionTo(UnitStatus::CheckedIn),
             self::CheckOut => $status->canTransitionTo(UnitStatus::CheckedOut),
-            self::LateCheckOut => $status === UnitStatus::CheckedIn,
+            self::LateCheckOut, self::CheckOutAsDayUse => $status === UnitStatus::CheckedIn,
             self::UndoCheckIn => $status->canUndoCheckIn(),
             self::UndoCheckOut => $status->canUndoCheckOut(),
             self::Cancel => $status->canTransitionTo(UnitStatus::Cancelled),

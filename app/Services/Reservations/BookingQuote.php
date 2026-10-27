@@ -118,12 +118,12 @@ class BookingQuote
 
     /**
      * Price one day use line: the hour price of the date, the stop sell warning and how many rooms are free for the hours.
-     * `nights` is empty and `lineTotal` equals `unitTotal`. A price override is not offered for day use.
+     * `nights` is empty and `lineTotal` equals `unitTotal`. An override changes the price, not the hours sold.
      *
      * @param  list<int>  $childAges
      * @param  list<NewAddOnData>  $addOns
      */
-    public function dayUseLine(Property $property, int $roomTypeId, int $ratePlanId, CarbonImmutable $date, string $startTime, int $hours, int $adults, array $childAges, array $addOns = []): BookingQuoteData
+    public function dayUseLine(Property $property, int $roomTypeId, int $ratePlanId, CarbonImmutable $date, string $startTime, int $hours, int $adults, array $childAges, array $addOns = [], ?string $overrideTotal = null): BookingQuoteData
     {
         $roomType = RoomType::query()->where('property_id', $property->id)->active()->find($roomTypeId);
         $ratePlan = RatePlan::query()->where('property_id', $property->id)->find($ratePlanId);
@@ -155,14 +155,19 @@ class BookingQuote
 
         $startsAt = DayUseOffers::time(DayUseOffers::minutes($startTime));
         $endsAt = (string) DayUseOffers::endsAt($startsAt, $hours);
-        $total = (string) $quote->amount->getAmount();
+
+        if ($overrideTotal !== null && preg_match('/^\d+(\.\d{1,2})?$/', $overrideTotal) !== 1) {
+            return BookingQuoteData::refused($this->refusals->errors(ReservationResult::REFUSAL_OVERRIDE_INVALID));
+        }
+
+        $total = (string) ($overrideTotal === null ? $quote->amount : Money::of($overrideTotal, $quote->amount->getCurrency()))->getAmount();
 
         return new BookingQuoteData(
             nights: [],
             unitTotal: $total,
             lineTotal: $total,
             addOnsTotal: (string) $this->addOnsTotal($property, $addOns, $date, $date, $adults, $childAges, $quote->amount->getCurrency())->getAmount(),
-            isOverridden: false,
+            isOverridden: $overrideTotal !== null,
             beds: 1,
             violations: $this->restrictionCheck->dayUseViolations($ratePlan->id, $roomType->id, $date),
             available: count($this->dayUseAvailability->freeRooms($roomType, $date, $startsAt, $endsAt)),

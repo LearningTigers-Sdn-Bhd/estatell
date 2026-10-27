@@ -105,6 +105,16 @@ test('free-units for a day use lists only the rooms free for those hours', funct
         ->assertJsonCount(2, 'units');
 });
 
+test('a day use quote uses an override but still refuses unsold hours', function () {
+    $setup = dayUseHttpSetup();
+    $body = ['room_type_id' => $setup['roomType']->id, 'rate_plan_id' => $setup['plan']->id, 'stay_type' => 'day_use', 'arrival_date' => $setup['date']->toDateString(), 'start_time' => '10:00', 'hours' => 4, 'adults' => 2, 'override_total' => '80.00'];
+
+    $this->actingAs($setup['user'])->postJson(route('reservations.quote', $setup['property']->code), $body)
+        ->assertJsonPath('unitTotal', '80.00')->assertJsonPath('lineTotal', '80.00')->assertJsonPath('isOverridden', true);
+    $this->postJson(route('reservations.quote', $setup['property']->code), [...$body, 'hours' => 9])
+        ->assertJsonPath('unitTotal', null)->assertJsonPath('errors.hours', 'This plan does not sell that number of hours.');
+});
+
 test('store creates a day use reservation with the guest attached and no room pick', function () {
     $setup = dayUseHttpSetup();
 
@@ -173,7 +183,7 @@ test('the payload the booking form posts for a day use line is accepted', functi
             'child_ages' => [],
             'beds' => '1',
             'discount_id' => '',
-            'override_total' => '',
+            'override_total' => '80.00',
             'override_reason' => '',
             'restriction_override_reason' => '',
             'add_ons' => [],
@@ -185,7 +195,8 @@ test('the payload the booking form posts for a day use line is accepted', functi
 
     $this->actingAs($setup['user'])->post(route('reservations.store', $setup['property']->code), $body)->assertSessionHasNoErrors();
 
-    expect(Reservation::query()->sole()->units()->sole()->dayUse->hours)->toBe(4);
+    expect(Reservation::query()->sole()->units()->sole()->dayUse->hours)->toBe(4)
+        ->and(Reservation::query()->sole()->units()->sole()->dayUse->override_amount)->toBe('80.00');
 });
 
 test('the Add unit sheet posts a day use unit to an existing day use reservation', function () {
@@ -199,7 +210,7 @@ test('the Add unit sheet posts a day use unit to an existing day use reservation
         'departure_date' => $setup['date']->toDateString(),
         'adults' => '2',
         'child_ages' => [],
-        'override_total' => '',
+        'override_total' => '50.00',
         'override_reason' => '',
         'restriction_override_reason' => '',
         'stay_type' => 'day_use',
@@ -208,5 +219,6 @@ test('the Add unit sheet posts a day use unit to an existing day use reservation
         'room_id' => (string) $setup['rooms'][0]->id,
     ])->assertSessionHasNoErrors();
 
-    expect($reservation->units()->count())->toBe(2);
+    expect($reservation->units()->count())->toBe(2)
+        ->and($reservation->units()->latest('id')->first()->dayUse->override_amount)->toBe('50.00');
 });

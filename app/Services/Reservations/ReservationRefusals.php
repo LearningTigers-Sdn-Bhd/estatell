@@ -130,6 +130,13 @@ class ReservationRefusals
     {
         return match ($code) {
             UnitStayResult::REFUSAL_INVALID_STATUS => [self::FORM, __('This unit cannot do that in its current status.')],
+            UnitStayResult::REFUSAL_NOT_SAME_DAY => [self::FORM, __('Only an overnight unit that arrived on the business date can check out as day use.')],
+            UnitStayResult::REFUSAL_PAST_MIDNIGHT => [self::FORM, __('The guest stayed past midnight, so this is a night. Use normal or early check-out.')],
+            UnitStayResult::REFUSAL_BED_UNIT => [self::FORM, __('A dorm bed cannot check out as day use. Use Undo check-in or check out on the departure date.')],
+            UnitStayResult::REFUSAL_HOURS_INVALID => ['end', __('Choose an end time after the start on the business date.')],
+            UnitStayResult::REFUSAL_START_TIME_INVALID => ['start', __('Choose a start time before 23:00 on the business date.')],
+            UnitStayResult::REFUSAL_AMOUNT_REQUIRED => ['amount', __('Enter an amount of 0 or more for this day use.')],
+            UnitStayResult::REFUSAL_OVERRIDE_REASON_REQUIRED => ['reason', __('Enter a reason for the day use amount.')],
             UnitStayResult::REFUSAL_NO_BUSINESS_DATE => [self::FORM, __('This property has no open business date yet.')],
             UnitStayResult::REFUSAL_STAY_ENDED => [self::FORM, __('The stay has ended.')],
             UnitStayResult::REFUSAL_ARRIVAL_NOT_REACHED => [self::FORM, __('The guest cannot check in before the arrival date.')],
@@ -217,7 +224,6 @@ class ReservationRefusals
             ReservationResult::REFUSAL_NOT_AVAILABLE => ['room_type_id', $day === '' ? __('No unit is available for these dates.') : __('No unit is available on :date.', ['date' => $day])],
             ReservationResult::REFUSAL_OVERRIDE_REASON_REQUIRED => ['override_reason', __('Enter a reason for the price override.')],
             ReservationResult::REFUSAL_OVERRIDE_INVALID => ['override_total', __('Enter an amount such as 840.00.')],
-            ReservationResult::REFUSAL_OVERRIDE_NOT_ALLOWED => ['override_total', __('The price of a day use cannot be overridden.')],
             ReservationResult::REFUSAL_STAY_TYPE_MISMATCH => [self::FORM, __('This reservation is all overnight or all day use. Start a new booking for the other kind.')],
             ReservationResult::REFUSAL_STAY_TYPES_MIXED => [self::FORM, __('A booking is all overnight or all day use. Book the other kind separately.')],
             ReservationResult::REFUSAL_DAY_USE_NOT_FOR_CHANNEL => [self::FORM, __('Day use is sold at the front desk only.')],

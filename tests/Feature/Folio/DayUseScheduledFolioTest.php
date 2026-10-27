@@ -63,7 +63,7 @@ test('without taxes on DAY_USE the row is the price alone, and the Tourism tax i
     expect(scheduledBlocks($setup, $reservation)[0][2])->toBe(['dayuse:'.$unit->id => '100.00']);
 });
 
-test('the plan inclusions are split from the price as one night', function () {
+test('the plan inclusions are split from the price as one night', function (?string $override, string $roomAmount) {
     $setup = dayUseHttpSetup();
     seedDayUseCodes($setup['property']);
     $lunch = ChargeItem::factory()->create(['property_id' => $setup['property']->id, 'default_amount' => '30.00', 'charging_unit' => ChargingUnit::PerItem]);
@@ -71,16 +71,16 @@ test('the plan inclusions are split from the price as one night', function () {
         'charge_item_id' => $lunch->id, 'charging_unit' => ChargingUnit::PerGuest, 'quantity' => 1, 'allocated_amount' => '15.00',
         'starts_on' => InclusionStart::ArrivalDay, 'ends_on' => InclusionEnd::DepartureDay,
     ]);
-    $reservation = createDayUseReservation($setup, [dayUseLine($setup)])->reservation;
+    $reservation = createDayUseReservation($setup, [dayUseLine($setup, ['overrideTotal' => $override])])->reservation;
     $unit = $reservation->units()->sole();
 
     $blocks = scheduledBlocks($setup, $reservation);
     $inclusion = $setup['plan']->inclusions()->sole();
 
     expect($blocks)->toHaveCount(2)
-        ->and($blocks[0][2])->toBe(['dayuse:'.$unit->id => '70.00'])
+        ->and($blocks[0][2])->toBe(['dayuse:'.$unit->id => $roomAmount])
         ->and($blocks[1][2])->toBe(['dayuse:'.$unit->id.':incl:'.$inclusion->id => '30.00']);
-});
+})->with(['plan price' => [null, '70.00'], 'overridden price' => ['80.00', '50.00']]);
 
 test('the row disappears once a folio line with its key exists', function () {
     $setup = dayUseHttpSetup();

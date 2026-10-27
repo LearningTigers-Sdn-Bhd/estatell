@@ -113,6 +113,9 @@ export function dayUseQuotePayload(
         hours: line.hours,
         adults: line.adults,
         child_ages: line.child_ages.map(Number),
+        override_total: /^\d+(\.\d{1,2})?$/.test(line.override_total)
+            ? line.override_total
+            : '',
         add_ons: line.add_ons
             .filter((addOn) => addOn.charge_item_id !== '')
             .map((addOn) => ({

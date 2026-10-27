@@ -188,6 +188,10 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                 Route::post('dates/preview', [ReservationUnitStayController::class, 'datesPreview'])->name('dates-preview');
                 Route::put('dates', [ReservationUnitStayController::class, 'changeDates'])->name('dates');
                 Route::post('early-check-out', [ReservationUnitStayController::class, 'earlyCheckOut'])->middleware('can:'.PermissionEnum::FrontDeskCheckOut->value)->name('early-check-out');
+                Route::middleware('can:'.PermissionEnum::FrontDeskCheckOut->value)->group(function () {
+                    Route::post('check-out-as-day-use', [ReservationUnitStayController::class, 'checkOutAsDayUse'])->name('check-out-as-day-use');
+                    Route::post('check-out-as-day-use/preview', [ReservationUnitStayController::class, 'checkOutAsDayUsePreview'])->name('check-out-as-day-use.preview');
+                });
                 Route::post('move/preview', [ReservationUnitStayController::class, 'movePreview'])->name('move-preview');
                 Route::post('move', [ReservationUnitStayController::class, 'move'])->name('move');
                 Route::post('move-stay/preview', [ReservationUnitStayController::class, 'moveStayPreview'])->name('move-stay-preview');

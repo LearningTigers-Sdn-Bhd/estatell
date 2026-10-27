@@ -33,6 +33,7 @@ use App\Services\Catalogues\PolicyChargeCalculator;
 use App\Services\Folio\ScheduledFolioRows;
 use App\Services\NightAudit\AuditReadiness;
 use App\Services\Reservations\UnitActionMenu;
+use App\Services\Reservations\UnitActionPreview;
 use Carbon\CarbonImmutable;
 use Spatie\Activitylog\Models\Activity;
 
@@ -75,8 +76,8 @@ function setBusinessDate(array $setup, CarbonImmutable $date): void
     BusinessDate::query()->where('property_id', $setup['property']->id)->update(['date' => $date->toDateString()]);
 }
 
-test('check-in posts the block, its inclusions and every add-on, dated or not', function () {
-    $setup = dayUseDesk();
+test('check-in posts the block, its inclusions and every add-on, dated or not', function (?string $override, string $roomAmount) {
+    $setup = dayUseDesk(['overrideTotal' => $override]);
     $lunch = ChargeItem::factory()->create(['property_id' => $setup['property']->id, 'default_amount' => '30.00']);
     $setup['plan']->inclusions()->create([
         'charge_item_id' => $lunch->id, 'charging_unit' => ChargingUnit::PerGuest, 'quantity' => 1, 'allocated_amount' => '15.00',
@@ -97,7 +98,7 @@ test('check-in posts the block, its inclusions and every add-on, dated or not', 
         ->and($block->transactionCode->code)->toBe('DAY_USE')
         ->and($block->posting_date->toDateString())->toBe($setup['date']->toDateString())
         ->and($block->source_id)->toBe($setup['unit']->id)
-        ->and($block->amount)->toBe('70.00')
+        ->and($block->amount)->toBe($roomAmount)
         ->and($inclusion->amount)->toBe('30.00')
         ->and($undated->fresh()->folio_line_id)->not->toBeNull()
         ->and($dated->fresh()->folio_line_id)->not->toBeNull()
@@ -106,7 +107,7 @@ test('check-in posts the block, its inclusions and every add-on, dated or not', 
     $blocks = app(ScheduledFolioRows::class)->forReservation($setup['property']->refresh(), $setup['reservation']->load('booker'), [$setup['unit']->id => '101']);
 
     expect($blocks)->toBe([]);
-});
+})->with(['plan price' => [null, '70.00'], 'overridden price' => ['80.00', '50.00']]);
 
 test('check-in is refused before the date and after it', function () {
     $setup = dayUseDesk();
@@ -214,6 +215,23 @@ test('reinstate is refused after the date', function () {
 
     expect(app(ReinstateUnit::class)($setup['actor'], $setup['unit']->fresh(), 'Late')->refusal)->toBe('stay_ended');
 });
+
+test('reinstate and its preview keep an overridden price without quoting again', function (string $amount) {
+    $setup = dayUseDesk(['overrideTotal' => $amount]);
+    app(CancelUnit::class)($setup['actor'], $setup['unit']);
+    $setup['plan']->rates()->whereDate('date', $setup['date'])->update(['stop_sell' => true]);
+
+    $preview = app(UnitActionPreview::class)->reinstate($setup['unit']->fresh());
+    $result = app(ReinstateUnit::class)($setup['actor'], $setup['unit']->fresh(), 'Guest is back');
+
+    expect($preview->error)->toBeNull()
+        ->and($preview->newTotal)->toBe($amount)
+        ->and($result->isRefused())->toBeFalse();
+    $block = $setup['unit']->dayUse()->sole();
+    expect($block->amount)->toBe($amount)
+        ->and($block->override_amount)->toBe($amount)
+        ->and($block->released_at)->toBeNull();
+})->with(['80.00', '0.00']);
 
 test('move room puts the block in another free room for the same hours and keeps the amount', function () {
     $setup = dayUseDesk();

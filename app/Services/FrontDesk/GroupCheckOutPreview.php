@@ -18,6 +18,7 @@ use App\Enums\PaymentMethodType;
 use App\Enums\PaymentPurpose;
 use App\Enums\PermissionEnum;
 use App\Enums\StayType;
+use App\Enums\UnitAction;
 use App\Enums\UnitStatus;
 use App\Models\Company;
 use App\Models\Folio;
@@ -36,6 +37,7 @@ use App\Services\Folio\MoveChargesPreview;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Payments\PaymentPurposeChoices;
 use App\Services\Platform\Impersonation;
+use App\Services\Reservations\UnitActionMenu;
 use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -75,6 +77,7 @@ class GroupCheckOutPreview
         private AuditPendingNotice $auditPendingNotice,
         private PaymentPurposeChoices $paymentPurposeChoices,
         private FolioStatement $folioStatement,
+        private UnitActionMenu $unitActionMenu,
     ) {}
 
     public static function selectable(string $kind): bool
@@ -298,6 +301,9 @@ class GroupCheckOutPreview
             $actionable && $balance->isNegative() && $refundPool->isPositive() && $this->impersonation->mayRefund($user) ? 'refund' : null,
         ]));
         $earlyRefusal = $kind === self::KIND_DEPARTS_LATER ? $this->earlyCheckOutRule->refusal($unit, $businessDate->toDateString()) : null;
+        $rowAction = $kind === self::KIND_DEPARTS_LATER
+            ? collect($this->unitActionMenu->for($user, $unit))->first(fn ($item): bool => ! $item->disabled && in_array($item->key, [UnitAction::CheckOutAsDayUse, UnitAction::CheckOut], true))
+            : null;
         $group = match ($kind) {
             self::KIND_READY => 'ready',
             self::KIND_OUT, self::KIND_CANCELLED => 'money',
@@ -323,7 +329,7 @@ class GroupCheckOutPreview
             $selectable,
             match ($kind) {
                 self::KIND_DEPARTS_LATER => match ($earlyRefusal) {
-                    UnitStayResult::REFUSAL_ARRIVED_TODAY => __('Departs :date. Arrived today, so there is no night to remove. If it checked in by mistake, use Undo check-in.', ['date' => $unit->departure_date->format('j M')]),
+                    UnitStayResult::REFUSAL_ARRIVED_TODAY => __('Arrived today.'),
                     UnitStayResult::REFUSAL_NIGHT_AUDIT_PENDING => __('The night audit for :date has not run. Run it first, so the night of :date is charged.', ['date' => $businessDate->format('j M')]),
                     default => __('Departs :date', ['date' => $unit->departure_date->format('j M')]),
                 },
@@ -350,14 +356,15 @@ class GroupCheckOutPreview
             $folioClosed ? $closedFolio?->id : null,
             $folioClosed && $closedFolio !== null && $this->folioReopenRule->allows($user, $closedFolio),
             $kind === self::KIND_CHARGED_ELSEWHERE && $user->can(PermissionEnum::FolioTransfer->value),
-            $kind === self::KIND_DEPARTS_LATER && ! in_array($earlyRefusal, [UnitStayResult::REFUSAL_ARRIVED_TODAY, UnitStayResult::REFUSAL_NIGHT_AUDIT_PENDING], true) ? $this->unitData($unit, $user) : null,
+            $rowAction !== null ? $this->unitData($unit, $user) : null,
             $pendingLines,
             (string) $pending->toScale(2),
+            $rowAction,
         );
     }
 
     /**
-     * The unit as the reservation page sends it, for the **Check out** Dialog opened by **Check out early…**.
+     * The unit as the reservation page sends it, for the early or day use check-out Dialog.
      */
     private function unitData(ReservationUnit $unit, User $user): ReservationUnitData
     {

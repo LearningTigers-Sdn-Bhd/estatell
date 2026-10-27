@@ -1,0 +1,185 @@
+import { useForm, useHttp } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
+import {
+    KEEP_OPTIONS,
+    useFormOptions,
+} from '@/components/pms/use-form-options';
+import { checkOutAsDayUse } from '@/routes/reservations/units';
+import { preview as previewRoute } from '@/routes/reservations/units/check-out-as-day-use';
+
+type Preview = App.Data.Reservations.CheckOutAsDayUseData;
+type Options = App.Data.Payments.PaymentFormOptionsData;
+
+/** The server quotes every change. Old responses never enable a save of newer fields. */
+export function useDayUseCheckOut({
+    open,
+    onOpenChange,
+    reservationId,
+    unitId,
+    paymentOptions,
+}: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    reservationId: number;
+    unitId: number;
+    paymentOptions?: Options;
+}) {
+    const routeKey = { reservation: reservationId, unit: unitId };
+    const [idempotencyKey] = useState(() => crypto.randomUUID());
+    const [overriding, setOverriding] = useState(false);
+    const [answer, setAnswer] = useState<{
+        key: string;
+        preview: Preview;
+    } | null>(null);
+    const [requestError, setRequestError] = useState<string | null>(null);
+    const form = useForm({
+        start: '',
+        end: '',
+        amount: '',
+        reason: '',
+        refund_amount: '',
+        payment_method_id: '',
+        reference: '',
+    });
+    const { data, setData } = form;
+    const payload = {
+        ...(data.start !== '' && { start: data.start }),
+        ...(data.end !== '' && { end: data.end }),
+        ...(data.amount !== '' && { amount: data.amount }),
+        ...(data.reason !== '' && { reason: data.reason }),
+    };
+    const key = JSON.stringify(payload);
+    const http = useHttp<Record<string, string>, Preview>(
+        'post',
+        previewRoute.url(routeKey),
+        {},
+    );
+    const { submit, transform } = http;
+
+    useEffect(() => {
+        if (!open) {
+            return;
+        }
+
+        let current = true;
+        const timer = window.setTimeout(() => {
+            transform(() => JSON.parse(key));
+            submit()
+                .then((preview) => {
+                    if (!current) {
+                        return;
+                    }
+
+                    setRequestError(null);
+                    const typed = JSON.parse(key) as Record<string, string>;
+                    // Freeze the real check-in and now on first load; later quotes keep these times.
+                    const times = {
+                        start: typed.start ?? preview.start ?? '',
+                        end: typed.end ?? preview.end ?? '',
+                    };
+                    setData((values) => ({ ...values, ...times }));
+                    setAnswer({
+                        key: JSON.stringify(
+                            Object.fromEntries(
+                                Object.entries({ ...times, ...typed }).filter(
+                                    ([, value]) => value !== '',
+                                ),
+                            ),
+                        ),
+                        preview,
+                    });
+                })
+                .catch(() => {
+                    if (current) {
+                        setRequestError(
+                            'Could not load the preview. Change a field to try again.',
+                        );
+                    }
+                });
+        }, 300);
+
+        return () => {
+            current = false;
+            window.clearTimeout(timer);
+        };
+    }, [open, key, submit, transform, setData]);
+
+    const preview = answer?.preview ?? null;
+    const current = answer?.key === key && requestError === null;
+    const settlement = preview?.settlement ?? null;
+    const methods = (paymentOptions?.methods ?? []).filter(
+        (method) => !method.isOldSystem,
+    );
+    const methodId = data.payment_method_id || String(methods[0]?.id ?? '');
+    const method = methods.find((one) => String(one.id) === methodId);
+    const refund = data.refund_amount || settlement?.refundDefault || '0.00';
+    const owing = settlement?.owing ?? '0.00';
+    const collecting = Number(owing) > 0 && settlement?.canCollect === true;
+    const refunding =
+        Number(settlement?.balance ?? 0) < 0 &&
+        Number(refund) > 0 &&
+        settlement?.canRefund === true;
+    const settled =
+        settlement !== null &&
+        settlement.error === null &&
+        (Number(settlement.balance) === 0 ||
+            collecting ||
+            (refunding &&
+                Math.abs(Number(settlement.balance) + Number(refund)) < 0.005));
+    useFormOptions(
+        open && collecting,
+        paymentOptions !== undefined,
+        'paymentOptions',
+    );
+
+    const save = () => {
+        if (!current || preview?.refusal !== null || !settled) {
+            return;
+        }
+
+        form.transform((values) => ({
+            ...values,
+            amount: values.amount || null,
+            refund_amount: refunding ? refund : '',
+            collect_amount: collecting ? owing : '',
+            payment_method_id: collecting ? methodId : '',
+            reference:
+                collecting && method?.requiresReference ? values.reference : '',
+            idempotency_key: idempotencyKey,
+        }));
+        form.post(checkOutAsDayUse.url(routeKey), {
+            preserveScroll: true,
+            except: KEEP_OPTIONS,
+            onSuccess: () => onOpenChange(false),
+        });
+    };
+
+    return {
+        form,
+        preview,
+        current,
+        overriding,
+        setOverriding,
+        settlement,
+        methods,
+        methodId,
+        method,
+        refund,
+        owing,
+        collecting,
+        refunding,
+        errors: {
+            ...(current ? preview?.errors : {}),
+            ...http.errors,
+            ...form.errors,
+            ...(requestError !== null &&
+                !http.hasErrors && { form: requestError }),
+        },
+        canSave:
+            current &&
+            preview?.refusal === null &&
+            settled &&
+            (!collecting || methodId !== ''),
+        save,
+    };
+}

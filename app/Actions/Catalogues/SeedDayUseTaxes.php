@@ -14,14 +14,14 @@ class SeedDayUseTaxes
 
     /**
      * Give DAY_USE the taxes of the Taxes tab, except flat taxes: a fixed amount per room-night does not fit an hourly stay.
-     * Run when the property's first Day use plan is created. Does nothing when the property has no DAY_USE code.
+     * Run when the property's first Day use plan is created. Keep existing taxes; do nothing without a DAY_USE code.
      */
     public function __invoke(Property $property): void
     {
         DB::transaction(function () use ($property): void {
             $dayUse = $property->transactionCodes()->where('system_key', SystemTransactionCode::DayUseRevenue->value)->lockForUpdate()->first();
 
-            if ($dayUse === null) {
+            if ($dayUse === null || $dayUse->applicableTaxes()->exists()) {
                 return;
             }
 

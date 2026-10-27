@@ -102,7 +102,7 @@ export default function RoomRevenueDayUse({
                     description="How room nights and stay changes are taxed and charged."
                 />
 
-                <RoomRevenueTabs activeTab="day-use" hasDayUse>
+                <RoomRevenueTabs activeTab="day-use">
                     <form onSubmit={submit} className="flex flex-col gap-6">
                         <div className="flex flex-col gap-8">
                             <FieldSet className="min-w-0">
