@@ -3600,6 +3600,7 @@ boatIn: App.Data.Boats.UnitBoatTripData | null,
 boatOut: App.Data.Boats.UnitBoatTripData | null,
 canSetBoatIn: boolean,
 canSetBoatOut: boolean,
+hasPriceOverride: boolean,
 };
 export type ReservationUnitOptionData = {
 id: number,

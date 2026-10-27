@@ -51,9 +51,9 @@ class ReservationActivityLog
 
     /**
      * The latest price override of a unit: the one logged when the unit was added, or a later Change price. Its reason
-     * and who set it. Null when the unit has none.
+     * (null when none was given) and who set it. Null when the unit has none.
      *
-     * @return array{reason: string, by: ?string}|null
+     * @return array{reason: ?string, by: ?string}|null
      */
     public function priceOverride(Reservation $reservation, int $unitId): ?array
     {
@@ -61,15 +61,19 @@ class ReservationActivityLog
             ->where('subject_type', $reservation->getMorphClass())
             ->where('subject_id', $reservation->id)
             ->where(fn ($query) => $query
-                ->where(fn ($added) => $added->where('event', 'reservation.unit_added')->whereNotNull('properties->override_reason'))
+                ->where(fn ($added) => $added->where('event', 'reservation.unit_added')->whereNotNull('properties->override_total'))
                 ->orWhere('event', 'reservation.night_price_changed'))
             ->where('properties->reservation_unit_id', $unitId)
             ->with('causer')
             ->latest('id')
             ->first();
-        $reason = $activity?->properties->get($activity->event === 'reservation.unit_added' ? 'override_reason' : 'reason');
+        if ($activity === null) {
+            return null;
+        }
 
-        return $reason === null ? null : ['reason' => (string) $reason, 'by' => $this->causerName($activity->causer)];
+        $reason = $activity->properties->get($activity->event === 'reservation.unit_added' ? 'override_reason' : 'reason');
+
+        return ['reason' => $reason === null ? null : (string) $reason, 'by' => $this->causerName($activity->causer)];
     }
 
     /**
@@ -160,7 +164,11 @@ class ReservationActivityLog
     private function overrideReason(Collection $properties): ?string
     {
         $parts = array_filter([
-            $properties->get('override_reason') === null ? null : __('Price override to :amount: :reason', ['amount' => $properties->get('override_total'), 'reason' => $properties->get('override_reason')]),
+            match (true) {
+                $properties->get('override_total') === null => null,
+                $properties->get('override_reason') === null => __('Price override to :amount', ['amount' => $properties->get('override_total')]),
+                default => __('Price override to :amount: :reason', ['amount' => $properties->get('override_total'), 'reason' => $properties->get('override_reason')]),
+            },
             $properties->get('restriction_override_reason') === null ? null : __('Restriction override: :reason', ['reason' => $properties->get('restriction_override_reason')]),
         ]);
 

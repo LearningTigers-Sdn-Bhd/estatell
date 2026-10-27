@@ -288,6 +288,7 @@ class ReservationController extends Controller
             $charged,
             canSetBoatIn: $canManageBoats && $boatAccess->refusalFor($unit, BoatDirection::In) === null,
             canSetBoatOut: $canManageBoats && $boatAccess->refusalFor($unit, BoatDirection::Out) === null,
+            hasPriceOverride: $override !== null,
         );
     }
 

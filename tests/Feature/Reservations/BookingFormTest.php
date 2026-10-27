@@ -194,7 +194,6 @@ test('a refused booking goes back with an error on the line and saves nothing', 
         'an arrival in the past' => [bookingBody($setup, ['arrival_date' => '2026-10-01', 'departure_date' => '2026-10-03']), 'arrival_date', 'Arrival cannot be before today.'],
         'no stock on the second line' => [bookingBody($setup, ['lines' => [$other, $other, $other]]), 'lines.2.room_type_id', 'No unit is available on 20 Oct 2026.'],
         'a plan not sold for the room type' => [bookingBody($setup, ['lines' => [$other, bookingFormLine($setup, ['rate_plan_id' => $setup['bedPlan']->id])]]), 'lines.1.rate_plan_id', 'This rate plan is not sold for the room type.'],
-        'an override without a reason' => [bookingBody($setup, ['lines' => [bookingFormLine($setup, ['override_total' => '90.00'])]]), 'lines.0.override_reason', 'Enter a reason for the price override.'],
         'a bed that is not a bed of the dorm' => [bookingBody($setup, ['lines' => [['room_type_id' => $setup['dorm']->id, 'rate_plan_id' => $setup['bedPlan']->id, 'adults' => 1, 'beds' => 2, 'bed_ids' => [$setup['beds'][0]->id, 0]]]]), 'lines.0.bed_ids.1', 'This bed cannot be picked.'],
         'a room of another property' => [bookingBody($setup, ['lines' => [bookingFormLine($setup, ['room_id' => Room::factory()->create()->id])]]), 'lines.0.room_id', 'This room cannot be picked.'],
         'an unknown booker' => [bookingBody($setup, ['guests' => [['guest_id' => Guest::factory()->create()->id]]]), 'guests.0.guest_id', 'The booker is not one of this property\'s guests.'],
@@ -208,7 +207,7 @@ test('a refused booking goes back with an error on the line and saves nothing', 
 
     expect(Reservation::query()->count())->toBe(0)
         ->and(Activity::query()->count())->toBe(0);
-})->with(['an arrival in the past', 'no stock on the second line', 'a plan not sold for the room type', 'an override without a reason', 'a bed that is not a bed of the dorm', 'a room of another property', 'an unknown booker']);
+})->with(['an arrival in the past', 'no stock on the second line', 'a plan not sold for the room type', 'a bed that is not a bed of the dorm', 'a room of another property', 'an unknown booker']);
 
 test('a stay that breaks a restriction asks for a reason from staff who may override', function (DefaultRoleEnum $role, string $key) {
     $setup = bookingSetup();

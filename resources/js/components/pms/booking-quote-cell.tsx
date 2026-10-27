@@ -186,7 +186,7 @@ export function BookingQuoteCell({
                                 <FieldLabel
                                     htmlFor={`override-reason-${index}`}
                                 >
-                                    Reason
+                                    Reason (optional)
                                 </FieldLabel>
                                 <Input
                                     id={`override-reason-${index}`}
@@ -197,7 +197,7 @@ export function BookingQuoteCell({
                                         })
                                     }
                                     maxLength={500}
-                                    placeholder="Corporate rate"
+                                    placeholder="e.g. Corporate rate"
                                     aria-invalid={
                                         !!errors[
                                             `lines.${index}.override_reason`
@@ -220,7 +220,7 @@ export function BookingQuoteCell({
                                         })
                                     }
                                 >
-                                    Use the rate
+                                    Reset
                                 </Button>
                             )}
                         </FieldGroup>
