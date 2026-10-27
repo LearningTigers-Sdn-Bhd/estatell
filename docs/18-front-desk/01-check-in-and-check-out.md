@@ -135,24 +135,27 @@ Built: the Advance is refunded with the deposit, so the first two rows check out
 
 `CheckOutAsDayUse` (Action) ends an overnight unit as a day use block, in one transaction. A refusal of any step rolls everything back.
 
-| Check, in order                                                                      | Refusal                                           |
-| ------------------------------------------------------------------------------------ | ------------------------------------------------- |
-| The unit is CheckedIn (the unit row is locked first)                                 | `invalid_status`                                  |
-| The unit is overnight, arrived on the business date and departs later                | `not_same_day` (a day use unit is `day_use_unit`) |
-| No night of the unit is posted yet (the audit has not run for it)                    | `night_already_posted`                            |
-| Start and end are on the business date, end after start; hours are 1 to 24           | `start_time_invalid`, `hours_invalid`             |
-| With a Day use plan: the plan sells those hours for the room type                    | `hours_not_sold`, `no_hour_price`                 |
-| Without a price from a plan: an amount (0 or more) and a reason                      | `amount_required`, `reason_required`              |
-| The user may enter an amount (`front-desk.waive-fees`) when it is not the plan price | `forbidden`                                       |
-| The checks of `CheckOutAndRefund`                                                    | `refund_exceeds_payment`, `balance_not_settled`   |
+| Check, in order                                                                      | Refusal                                         |
+| ------------------------------------------------------------------------------------ | ----------------------------------------------- |
+| The unit is CheckedIn (the unit row is locked first)                                 | `invalid_status`                                |
+| The unit is not a day use unit                                                       | `day_use_unit`                                  |
+| The unit is overnight, arrived on the business date and departs later                | `not_same_day`                                  |
+| No night of the unit is posted yet (the audit has not run for it)                    | `night_already_posted`                          |
+| Start and end are on the business date, end after start; Start is 23:00 or earlier   | `start_time_invalid`, `hours_invalid`           |
+| With a Day use plan: the plan sells those hours for the room type                    | `hours_not_sold`, `no_hour_price`               |
+| Without a price from a plan: an amount (0 or more) and a reason                      | `amount_required`, `reason_required`            |
+| The user may enter an amount (`front-desk.waive-fees`) when it is not the plan price | `forbidden`                                     |
+| The checks of `CheckOutAndRefund`                                                    | `refund_exceeds_payment`, `balance_not_settled` |
 
-- **Start** defaults to the unit's `arrival_time` (the real check-in time), **End** to now in the property time zone. Both are editable. **Hours** = (End − Start) rounded up to whole hours, at most 24. End is stored as Start + Hours.
+- **Start** defaults to the time of `checked_in_at` (the real check-in), **End** to now, both in the property time zone. Both are editable. `arrival_time` is not used: it holds the booked time (the property's check-in time by default).
+- **Hours** = (End − Start) rounded up to whole hours. The block is stored as Start to Start + Hours, because `unit_day_uses` requires `ends_at − starts_at` to equal `hours`. So the stored end can be later than the real departure: 14:05 to 18:20 is 4h15, stored as 5 hours, 14:05–19:05. The real departure stays in `checked_out_at`.
+- **Midnight.** `starts_at` and `ends_at` are `time` columns and `ends_at` must be after `starts_at`, so the block must end before midnight. When rounding up passes midnight, Hours rounds down to the whole hours left before midnight, and the last part hour is not charged: 22:30 to 23:40 is 1 hour, 22:30–23:30. A Start after 23:00 leaves no whole hour and is refused with `start_time_invalid`.
 - **Rate.** With an active Day use plan for the room type, the price is the `rate_hour_prices` row for those hours (`quoteDayUse`), and staff may change it with the permission above. With no plan or no hour price, staff enter the amount and a reason. Zero is allowed. The plan's minimum and maximum hours and its Sold between window do not apply: this closes a stay, it does not sell one.
 - **Steps.**
-    1. Delete the unit's `unit_nights` and release their room hold.
-    2. Set `stay_type = DayUse` and `departure_date = arrival_date`. Set `arrival_time` and `departure_time` to Start and End.
+    1. Delete the unit's `unit_nights`. This frees the room for those nights (`unit_nights_room_date_unique`).
+    2. Set `stay_type = DayUse` and `departure_date = arrival_date`. Set `arrival_time` and `departure_time` to Start and Start + Hours. With a Day use plan, set `rate_plan_id` to that plan, as `AddDayUseUnit` does.
     3. Create the `unit_day_uses` row (room kept, Start, End, Hours, amount).
-    4. Post the block with `PostDayUseBlock`, key `dayuse:{unit_id}`, to DAY_USE with its taxes. Without a plan the whole amount is the line and there are no inclusions to split.
+    4. Post the block with `PostDayUseBlock`, key `dayuse:{unit_id}`, to DAY_USE with its taxes. `DayUseChargeQuote` splits the inclusions of the unit's `ratePlan`. With a Day use plan these are that plan's inclusions. Without one, the unit keeps its overnight plan, so `DayUseChargeQuote` must skip inclusions when the plan's pricing basis is not Day use. Otherwise a "Room + Breakfast" plan would split the entered amount into a breakfast line. This item makes that code change. Without a plan, the whole amount is one DAY_USE line.
     5. Run `CheckOutAndRefund`, which marks the room Dirty.
 - **Log.** The reservation keeps its booked dates in the log (`reservation.unit_checked_out_as_day_use`, with the old dates and the reason).
 - **Reports.** The unit counts in `day_use_sold` and `day_use_revenue`, and not in occupancy, ADR or RevPAR.
@@ -161,22 +164,21 @@ Built: the Advance is refunded with the deposit, so the first two rows check out
 
 ```
 ┌─ Check out as day use · Room 204 ─────────────────────────────┐
-│ Aisha Rahman · In 14:05 today · Booked 12 → 14 Oct            │
+│ Aisha Rahman · Checked in 14:05 today · Booked 12 → 14 Oct    │
 │                                                               │
-│ Start  [ 14:05 ]     End  [ 18:20 ]     Hours  4 (rounded up) │
+│ Start  [ 14:05 ]     End  [ 18:20 ]     Hours  5 (4h15 → 5)   │
 │                                                               │
 │ Plan   [ Day use ▾ ]                                          │
-│ Rate   MYR 95.00   (4 hours, Deluxe King, from the plan)      │
+│ Rate   MYR 95.00   (5 hours, Deluxe King, from the plan)      │
 │        [ ] Change the amount                                  │
 │                                                               │
 │ ┌ Folio after check-out ────────────────────────────────────┐ │
-│ │ Day use · 14:05–18:20                       MYR   95.00   │ │
+│ │ Day use · 14:05–19:05                       MYR   95.00   │ │
 │ │ SST 8%                                      MYR    7.60   │ │
-│ │ Night 12 Oct (removed)                      MYR  -150.00  │ │
 │ │ Payments                                    MYR  -200.00  │ │
-│ │ Refund to guest                             MYR   47.40   │ │
+│ │ Refund to guest                             MYR   97.40   │ │
 │ └───────────────────────────────────────────────────────────┘ │
-│ Refund  [ 47.40 ]  Method [ Cash ▾ ]                          │
+│ Refund  [ 97.40 ]  Method [ Cash ▾ ]                          │
 │                      [ Cancel ]  [ Check out as day use ]     │
 └───────────────────────────────────────────────────────────────┘
 ```
