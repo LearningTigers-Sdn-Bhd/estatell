@@ -115,25 +115,23 @@ test('no plan keeps the overnight plan but never splits its breakfast inclusion'
         ->and(FolioLine::query()->where('idempotency_key', 'like', 'dayuse:'.$s['unit']->id.':incl:%')->count())->toBe(0);
 })->with(['80.00', '0.00']);
 
-test('a plan price override requires a reason and is recorded', function () {
+test('a plan price override is recorded and its reason is optional', function () {
     $s = overnightDayUseCheckout();
-    expect(app(CheckOutAsDayUse::class)($s['user'], $s['unit'], amount: '80.00')->refusal)->toBe('override_reason_required');
     $result = app(CheckOutAsDayUse::class)($s['user'], $s['unit'], amount: '80.00', reason: 'Guest left early', collect: dayUseCheckoutCollect($s, '80.00'));
     expect($result->refusal)->toBeNull()
         ->and($s['unit']->fresh()->dayUse->override_amount)->toBe('80.00')
         ->and(Activity::query()->where('event', 'reservation.unit_checked_out_as_day_use')->sole()->properties['reason'])->toBe('Guest left early');
 });
 
-test('unpriced or unsold hours need an amount and reason but still switch plans', function (string $failure) {
+test('unpriced or unsold hours need an amount but still switch plans', function (string $failure) {
     $s = overnightDayUseCheckout();
     if ($failure === 'hours_not_sold') {
         $s['plan']->update(['day_use_max_hours' => 4]);
     } else {
         $s['plan']->rates()->whereDate('date', $s['date']->toDateString())->sole()->hourPrices()->where('hours', 5)->delete();
     }
-    expect(app(CheckOutAsDayUse::class)($s['user'], $s['unit'])->refusal)->toBe('amount_required')
-        ->and(app(CheckOutAsDayUse::class)($s['user'], $s['unit'], amount: '80.00')->refusal)->toBe('override_reason_required');
-    $result = app(CheckOutAsDayUse::class)($s['user'], $s['unit'], amount: '80.00', reason: 'Manual day use', collect: dayUseCheckoutCollect($s, '80.00'));
+    expect(app(CheckOutAsDayUse::class)($s['user'], $s['unit'])->refusal)->toBe('amount_required');
+    $result = app(CheckOutAsDayUse::class)($s['user'], $s['unit'], amount: '80.00', collect: dayUseCheckoutCollect($s, '80.00'));
     expect($result->refusal)->toBeNull()
         ->and($s['unit']->fresh()->rate_plan_id)->toBe($s['plan']->id)
         ->and($s['unit']->fresh()->dayUse->override_amount)->toBe('80.00');
@@ -294,7 +292,8 @@ test('the preview sends inline errors and manual price fields without a plan', f
         ->assertJsonPath('noTaxes', true)
         ->assertJsonPath('errors.amount', 'Enter an amount of 0 or more for this day use.');
     $this->postJson($url, ['amount' => '0.00'])
-        ->assertJsonPath('errors.reason', 'Enter a reason for the day use amount.');
+        ->assertJsonPath('refusal', null)
+        ->assertJsonPath('errors', []);
     $this->postJson($url, ['amount' => '0.00', 'reason' => 'No charge'])
         ->assertJsonPath('refusal', null)
         ->assertJsonPath('amount', '0.00')

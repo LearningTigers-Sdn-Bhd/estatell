@@ -43,6 +43,8 @@ class ReservationResult
 
     public const REFUSAL_OVERRIDE_INVALID = 'override_invalid';
 
+    public const REFUSAL_AMOUNT_REQUIRED = 'amount_required';
+
     public const REFUSAL_RESERVATION_CLOSED = 'reservation_closed';
 
     public const REFUSAL_COMPANY_NOT_AVAILABLE = 'company_not_available';

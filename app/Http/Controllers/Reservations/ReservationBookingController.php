@@ -16,6 +16,7 @@ use App\Enums\Gender;
 use App\Enums\Locale;
 use App\Enums\OldFolioMode;
 use App\Enums\PermissionEnum;
+use App\Enums\SellUnit;
 use App\Features\Boats;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Reservations\BoatSeatsRequest;
@@ -396,7 +397,7 @@ class ReservationBookingController extends Controller
             'billingModes' => BillingMode::options(),
             'canOverrideCredit' => $request->user()->can(PermissionEnum::CompanyCreditOverride->value),
             'companies' => $companies,
-            'hasDayUse' => $property->ratePlans()->active()->dayUse()->exists(),
+            'hasDayUse' => $property->roomTypes()->active()->where('sell_unit', SellUnit::Room)->exists(),
             'hasBoats' => Feature::for($property)->active(Boats::class),
             'boatDepartures' => Feature::for($property)->active(Boats::class) ? $options->boatDepartures($property) : [],
             'autoAssignRooms' => (bool) $property->settings?->auto_assign_rooms,

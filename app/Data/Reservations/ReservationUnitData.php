@@ -81,7 +81,7 @@ class ReservationUnitData extends Data
         return new self(
             id: $unit->id,
             roomType: $unit->roomType->name,
-            ratePlan: $unit->ratePlan->name,
+            ratePlan: app(StayLabel::class)->planForUnit($unit),
             status: BadgeData::fromUnitStatus($unit->status),
             arrival: $unit->arrival_date->toDateString(),
             departure: $unit->departure_date->toDateString(),

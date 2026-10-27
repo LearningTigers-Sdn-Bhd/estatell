@@ -74,8 +74,6 @@ class UnitStayResult
 
     public const REFUSAL_AMOUNT_REQUIRED = 'amount_required';
 
-    public const REFUSAL_OVERRIDE_REASON_REQUIRED = 'override_reason_required';
-
     public const REFUSAL_RESTRICTED = 'restricted';
 
     public const REFUSAL_NOT_AN_EXTENSION = 'not_an_extension';

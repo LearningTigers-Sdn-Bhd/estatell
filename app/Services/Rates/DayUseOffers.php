@@ -44,6 +44,19 @@ class DayUseOffers
     }
 
     /**
+     * The refusal code for an entered price block, or null. No plan limits it: any start on the hour or half hour, and
+     * whole hours from 1 that end before midnight.
+     */
+    public function enteredRefusal(string $startTime, int $hours): ?string
+    {
+        if (preg_match('/^\d{2}:(00|30)(:00)?$/', $startTime) !== 1 || self::minutes($startTime) >= 24 * 60 || self::endsAt($startTime, $hours) === null) {
+            return ReservationResult::REFUSAL_START_TIME_INVALID;
+        }
+
+        return $hours < 1 ? RateQuote::REFUSAL_HOURS_NOT_SOLD : null;
+    }
+
+    /**
      * The refusal code for a start time and hours the plan does not sell, or null when the block fits the plan.
      * It does not read prices.
      */

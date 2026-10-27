@@ -95,7 +95,7 @@ This replaces the original refusal of day-use overrides in commits 2a and 2b bel
 
 ## Entered price
 
-**Decided 2026-10-28, not built.** Staff can sell day use without a Day use plan, or outside what a plan sells, and type the amount.
+**Decided 2026-10-28. The backend is built; the booking form is not.** Staff can sell day use without a Day use plan, or outside what a plan sells, and type the amount.
 
 ```
 Plan  [ No plan · enter price ▾ ]

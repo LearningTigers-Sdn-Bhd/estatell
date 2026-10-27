@@ -3,6 +3,7 @@
 require_once __DIR__.'/../Support/DayUseSetup.php';
 
 use App\Enums\DefaultRoleEnum;
+use App\Enums\SellUnit;
 use App\Enums\StayType;
 use App\Models\Rate;
 use App\Models\Reservation;
@@ -33,7 +34,7 @@ function dayUseBody(array $setup, array $overrides = []): array
     ];
 }
 
-test('the booking pages send hasDayUse and the plan flags only when the property has an active day use plan', function () {
+test('the booking pages send hasDayUse for a room type sold per room and the day use plan flags', function () {
     $setup = dayUseHttpSetup();
 
     $this->actingAs($setup['user'])->get(route('reservations.new', $setup['property']->code))
@@ -48,7 +49,12 @@ test('the booking pages send hasDayUse and the plan flags only when the property
     $setup['plan']->forceFill(['archived_at' => now()])->save();
 
     $this->actingAs($setup['user'])->get(route('reservations.walk-in', $setup['property']->code))
-        ->assertInertia(fn (Assert $page) => $page->where('hasDayUse', false)->has('addUnitOptions.ratePlans', 1));
+        ->assertInertia(fn (Assert $page) => $page->where('hasDayUse', true)->has('addUnitOptions.ratePlans', 1));
+
+    $setup['roomType']->forceFill(['sell_unit' => SellUnit::Bed])->save();
+
+    $this->actingAs($setup['user'])->get(route('reservations.walk-in', $setup['property']->code))
+        ->assertInertia(fn (Assert $page) => $page->where('hasDayUse', false));
 });
 
 test('day-use-offers lists the priced hours inside the window with prices and end times', function () {

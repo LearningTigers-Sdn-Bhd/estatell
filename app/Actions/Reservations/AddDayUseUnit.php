@@ -47,6 +47,9 @@ class AddDayUseUnit
      * The unit has no nights. Its `unit_day_uses` row holds the room, the hours and the quoted price, and the unit's
      * `arrival_time` and `departure_time` equal the start and the end of the block.
      *
+     * A per-night plan (Per room or Per guest) is the placeholder plan of an entered price: it needs `overrideTotal` (`amount_required`
+     * without it), and then the offer window, the hour price and the restriction check are skipped.
+     *
      * The room is required and is locked, then checked again with `DayUseAvailability`. The exclusion constraint on
      * `unit_day_uses` is the last guard. A price override has an optional logged reason; a catalogue discount is refused. A Stop sell date is
      * refused unless the caller may book past restrictions (`$mayOverride`) and gave a reason.
@@ -68,7 +71,9 @@ class AddDayUseUnit
             return $refuse(ReservationResult::REFUSAL_ROOM_TYPE_NOT_FOUND);
         }
 
-        if ($ratePlan->pricing_basis !== PricingBasis::DayUse) {
+        $enteredPrice = $ratePlan->pricing_basis !== PricingBasis::DayUse;
+
+        if ($enteredPrice && (! in_array($ratePlan->pricing_basis, [PricingBasis::PerRoom, PricingBasis::PerGuest], true) || $ratePlan->archived_at !== null)) {
             return $refuse(RateQuote::REFUSAL_PLAN_NOT_DAY_USE);
         }
 
@@ -101,11 +106,17 @@ class AddDayUseUnit
             return $refuse(ReservationResult::REFUSAL_OVERRIDE_INVALID);
         }
 
+        if ($enteredPrice && $data->overrideTotal === null) {
+            return $refuse(ReservationResult::REFUSAL_AMOUNT_REQUIRED);
+        }
+
         if ($data->startTime === null || $data->hours === null) {
             return $refuse($data->startTime === null ? ReservationResult::REFUSAL_START_TIME_INVALID : RateQuote::REFUSAL_HOURS_NOT_SOLD);
         }
 
-        $blockRefusal = $this->offers->refusal($ratePlan, $data->startTime, $data->hours);
+        $blockRefusal = $enteredPrice
+            ? $this->offers->enteredRefusal($data->startTime, $data->hours)
+            : $this->offers->refusal($ratePlan, $data->startTime, $data->hours);
 
         if ($blockRefusal !== null) {
             return $refuse($blockRefusal);
@@ -129,7 +140,7 @@ class AddDayUseUnit
             return $refuse(AssignmentResult::REFUSAL_ROOM_NOT_FOUND);
         }
 
-        $violations = $this->restrictionCheck->dayUseViolations($ratePlan->id, $roomType->id, $date);
+        $violations = $enteredPrice ? [] : $this->restrictionCheck->dayUseViolations($ratePlan->id, $roomType->id, $date);
         $restrictionOverride = null;
 
         if ($violations !== []) {
@@ -150,13 +161,21 @@ class AddDayUseUnit
             return $refuse(ReservationResult::REFUSAL_NOT_AVAILABLE, $date);
         }
 
-        $quote = $this->rateQuoteService->quoteDayUse($roomType, $ratePlan, $date, $data->hours, $restrictionOverride !== null);
+        if ($enteredPrice) {
+            $quotedAmount = null;
+            $currency = $reservation->property->settings->currency->getCurrencyCode();
+        } else {
+            $quote = $this->rateQuoteService->quoteDayUse($roomType, $ratePlan, $date, $data->hours, $restrictionOverride !== null);
 
-        if ($quote->isRefused()) {
-            return $refuse((string) $quote->refusal, $quote->refusalDate);
+            if ($quote->isRefused()) {
+                return $refuse((string) $quote->refusal, $quote->refusalDate);
+            }
+
+            $quotedAmount = $quote->amount;
+            $currency = $quote->amount->getCurrency();
         }
 
-        $overrideTotal = $data->overrideTotal === null ? null : Money::of($data->overrideTotal, $quote->amount->getCurrency());
+        $overrideTotal = $data->overrideTotal === null ? null : Money::of($data->overrideTotal, $currency);
 
         $unit = $reservation->units()->make([
             'room_type_id' => $roomType->id,
@@ -178,7 +197,7 @@ class AddDayUseUnit
                 'starts_at' => $startsAt,
                 'ends_at' => $endsAt,
                 'hours' => $data->hours,
-                'amount' => (string) ($overrideTotal ?? $quote->amount)->getAmount(),
+                'amount' => (string) ($overrideTotal ?? $quotedAmount)->getAmount(),
                 'override_amount' => $overrideTotal === null ? null : (string) $overrideTotal->getAmount(),
             ]));
         } catch (QueryException $exception) {

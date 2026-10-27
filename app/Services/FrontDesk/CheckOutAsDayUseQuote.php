@@ -150,10 +150,6 @@ class CheckOutAsDayUseQuote
         $data->amount = (string) Money::of($amount ?? $data->planPrice, $currency)->getAmount();
         $data->overrideAmount = $data->planPrice === $data->amount ? null : $data->amount;
 
-        if ($data->overrideAmount !== null && ! filled($reason)) {
-            $data->refusal = UnitStayResult::REFUSAL_OVERRIDE_REASON_REQUIRED;
-        }
-
         return $data;
     }
 
