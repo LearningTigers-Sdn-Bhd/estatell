@@ -47,7 +47,7 @@ test('new owners are sent to setup, and saving basics creates defaults', functio
         ->and($settings->check_in_time)->toBe('15:00:00')
         ->and($settings->check_out_time)->toBe('11:00:00')
         ->and($settings->audit_time)->toBe('02:00:00')
-        ->and($settings->auto_assign_rooms)->toBeFalse()
+        ->and($settings->auto_assign_rooms)->toBeTrue()
         ->and($settings->auto_audit_enabled)->toBeFalse()
         ->and($settings->missed_arrival_policy->value)->toBe('keep_as_late_arrival')
         ->and($settings->overdue_departure_policy->value)->toBe('block')

@@ -637,7 +637,7 @@ class BookingScenariosSeeder extends Seeder
 
     /**
      * Book one scenario through `CreateBooking` with a new guest on every unit. The first guest is the booker.
-     * No room is picked: check-in assigns one (`auto_assign_rooms`).
+     * No room is picked: the booking assigns one (`auto_assign_rooms`), and check-in fills any still missing.
      *
      * @param  list<NewUnitData>  $lines
      * @param  array{source?: string, billingMode?: BillingMode, groupName?: string, companyId?: int, externalReference?: string, fromChannel?: bool}  $options
@@ -789,7 +789,7 @@ class BookingScenariosSeeder extends Seeder
     }
 
     /**
-     * Check units in through `CheckInAllUnits`. Check-in assigns a room or bed (`auto_assign_rooms`).
+     * Check units in through `CheckInAllUnits`. A unit still without a room or bed gets one here (`auto_assign_rooms`).
      *
      * @param  list<int>|null  $indexes
      */
