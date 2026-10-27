@@ -39,6 +39,24 @@ export function isHalfHour(time: string): boolean {
     return value !== null && value % 30 === 0;
 }
 
+/**
+ * An `H:i` time as the browser shows it in a time input (02:00 PM or 14:00), so the Start field and the end time next to it
+ * read the same. A bad time comes back as it was.
+ */
+export function timeText(time: string): string {
+    const total = minutes(time);
+
+    if (total === null) {
+        return time;
+    }
+
+    return new Intl.DateTimeFormat(undefined, {
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'UTC',
+    }).format(new Date(Date.UTC(1970, 0, 1, 0, total)));
+}
+
 /** "1 hour" or "4 hours". */
 export function hoursText(hours: number): string {
     return `${hours} ${hours === 1 ? 'hour' : 'hours'}`;

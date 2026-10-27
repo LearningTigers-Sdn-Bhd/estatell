@@ -18,6 +18,7 @@ import {
     offerOptions,
     planIdFromSelect,
     planSelectValue,
+    timeText,
 } from './day-use';
 
 const offers = [
@@ -184,4 +185,15 @@ describe('a day use line', () => {
             ).override_total,
         ).toBe('');
     });
+});
+
+test('a time reads as the browser shows it in a time input', () => {
+    const expected = new Intl.DateTimeFormat(undefined, {
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'UTC',
+    }).format(new Date(Date.UTC(1970, 0, 1, 14, 30)));
+
+    expect(timeText('14:30')).toBe(expected);
+    expect(timeText('soon')).toBe('soon');
 });

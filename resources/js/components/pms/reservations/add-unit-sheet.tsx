@@ -26,6 +26,7 @@ import {
     offerOptions,
     planIdFromSelect,
     planSelectValue,
+    timeText,
 } from '@/components/pms/reservations/day-use';
 import { useDayUseOffers } from '@/components/pms/reservations/use-day-use-offers';
 import { useEnteredSwitch } from '@/components/pms/reservations/use-entered-switch';
@@ -329,6 +330,7 @@ function AddUnitForm({
                                 max={23}
                                 step={1}
                                 placeholder="e.g. 5"
+                                className="max-w-32"
                                 value={data.hours}
                                 onChange={(event) =>
                                     form.setData((current) => ({
@@ -361,7 +363,9 @@ function AddUnitForm({
                             />
                         )}
                         {ends && (
-                            <FieldDescription>Ends {ends}.</FieldDescription>
+                            <FieldDescription>
+                                Ends {timeText(ends)}.
+                            </FieldDescription>
                         )}
                         <FieldError>{errors.hours}</FieldError>
                     </Field>

@@ -19,6 +19,7 @@ import {
     offerOptions,
     planIdFromSelect,
     planSelectValue,
+    timeText,
 } from '@/components/pms/reservations/day-use';
 import { useBookingQuote } from '@/components/pms/reservations/use-booking-quote';
 import { useDayUseOffers } from '@/components/pms/reservations/use-day-use-offers';
@@ -32,7 +33,7 @@ import { Input } from '@/components/ui/input';
  * `DayUseLinesHeader` uses the same template. Below `lg` the cells stack and show their labels.
  */
 export const DAY_USE_LINE_COLUMNS =
-    'lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1.2fr)_minmax(0,1.3fr)_minmax(0,0.9fr)_4rem_4rem_minmax(0,12rem)_2rem]';
+    'lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.1fr)_4rem_4rem_minmax(0,12rem)_2rem]';
 
 /** The header of the day use lines table. Hidden below `lg`, where each cell shows its own label. */
 export function DayUseLinesHeader() {
@@ -255,7 +256,9 @@ export function DayUseLineRow({
                     />
                 )}
                 {ends && (
-                    <p className="text-xs text-muted-foreground">Ends {ends}</p>
+                    <p className="text-xs text-muted-foreground">
+                        Ends {timeText(ends)}
+                    </p>
                 )}
                 <FieldError>{error('hours')}</FieldError>
             </Field>
