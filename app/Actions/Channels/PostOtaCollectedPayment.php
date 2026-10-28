@@ -37,7 +37,7 @@ class PostOtaCollectedPayment
      * posts only a higher amount. With nothing collected yet, each room's amount goes to its unit, in order, when the
      * revision has one amount per live unit, and the rest goes to the first unit. Otherwise the first unit takes it
      * all. A unit's money goes to the folio that takes its Room charges: the Master folio, or the unit's own folio.
-     * Payments to the same folio are posted as one, with the purpose Advance and the key
+     * Payments to the same folio are posted as one, with the purpose Advance, no receipt number and the key
      * `ota-collected:{revision_id}:{n}`. A refused payment does not refuse the booking: it opens an
      * `OtaPaymentNotPosted` alert, and staff record the money by hand. See docs/21-channels/05-booking-ingestion.md.
      */
@@ -82,6 +82,7 @@ class PostOtaCollectedPayment
                 idempotencyKey: $key,
                 lineKey: $key,
                 allowOtaCollected: true,
+                issueReceipt: false,
             ));
 
             if ($result->isRefused()) {

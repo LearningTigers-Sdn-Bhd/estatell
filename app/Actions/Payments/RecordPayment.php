@@ -49,8 +49,8 @@ class RecordPayment
      * on a Master or ThirdParty folio is refused (`deposit_on_unit_only`), and so is an Advance on a unit whose Room
      * charges go to the Master folio (`advance_on_master`). The last step closes the folio when it is an Open Unit folio of a
      * CheckedOut unit at 0 (`CloseSettledUnitFolio`). An Old system payment (`folio.manual` and an open migration window) takes no receipt number and no surcharge, needs a
-     * reference and a service date of any real day up to the business date, and prints as "Paid in old system · {reference}". An OTA
-     * collected payment takes no receipt number either: the OTA took the money, not the desk. A surcharge
+     * reference and a service date of any real day up to the business date, and prints as "Paid in old system · {reference}". A payment with
+     * `issueReceipt` off (an OTA collected payment a channel booking posts) takes no receipt number either. A surcharge
      * posts as a charge on the same folio, and the payment line covers the amount, the fee and its tax, so the balance
      * falls by the amount entered. The key `payment:{uuid}` (or the given `lineKey`) makes a repeat return the existing payment. The route
      * checks the permission and that the folio or unit belongs to the reservation's property.
@@ -133,7 +133,7 @@ class RecordPayment
             $postingDate = $businessDate->toDateString();
             $serviceDate = $data->serviceDate ?? $postingDate;
             $target ??= ($this->createFolio)($reservation, $lockedUnit);
-            $receiptNumber = $isOldSystem || $method->type === PaymentMethodType::OtaCollected ? null : ($this->nextDocumentNumber)($property, DocumentType::Receipt)->reference;
+            $receiptNumber = $isOldSystem || ! $data->issueReceipt ? null : ($this->nextDocumentNumber)($property, DocumentType::Receipt)->reference;
             $surchargeLines = [];
 
             if ($quote->tax !== null && $quote->surcharge !== null) {
