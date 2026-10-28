@@ -94,7 +94,7 @@ test('company folio settled to the city ledger', function () {
 
     $url = route('reservations.folio', [$this->property, $reservation, 'folio' => $companyFolio->id]);
 
-    $this->shoot($this->open($url)->waitForText('Borneo Ventures Sdn Bhd'), 'pay-later-folios', badges: ['Unit 104', 'Settle to City ledger'], highlight: ['button:has(.lucide-landmark)']);
+    $this->shoot($this->open($url)->waitForText('Borneo Ventures Sdn Bhd'), 'pay-later-folios', badges: ['Unit 103', 'Settle to City ledger'], highlight: ['button:has(.lucide-landmark)']);
 
     $page = $this->open($url)
         ->click('button:has-text("Settle to City ledger")')

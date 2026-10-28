@@ -1,10 +1,18 @@
 <?php
 
+use App\Actions\Reservations\AssignRoom;
+use App\Models\Room;
+
 beforeEach(function () {
     $this->signInAsScenariosOwner();
 });
 
 test('undo check-out dialog', function () {
+    // S13 is assigned S11's room for tonight when it is booked, and a taken room blocks the undo: move S13 to a free room.
+    $arrival = $this->scenario('S13')->units()->firstOrFail();
+    $rooms = Room::query()->where('room_type_id', $arrival->room_type_id)->whereKeyNot($arrival->nights()->value('room_id'))->get();
+    $rooms->first(fn (Room $room): bool => ! app(AssignRoom::class)(auth()->user(), $arrival, $room)->isRefused());
+
     $page = $this->open(route('reservations.show', [$this->property, $this->scenario('S11')]))
         ->click('More')
         ->click('Check out')
