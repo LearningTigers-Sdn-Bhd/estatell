@@ -434,9 +434,11 @@ export function NightAuditSheet({
     const notEnded = sheet !== null && !sheet.dateEnded;
     const blocked = (sheet?.blockers.length ?? 0) > 0 || notEnded;
     const description =
-        sheet?.date && sheet.nextDate
-            ? `Closes ${formatBusinessDay(sheet.date, 'short')} and opens ${formatBusinessDay(sheet.nextDate, 'short')}`
-            : undefined;
+        view === 'completed' && sheet?.audit && sheet.date
+            ? `Closed ${formatBusinessDay(sheet.audit.date, 'short')} · now trading on ${formatBusinessDay(sheet.date, 'short')}`
+            : sheet?.date && sheet.nextDate
+              ? `Closes ${formatBusinessDay(sheet.date, 'short')} and opens ${formatBusinessDay(sheet.nextDate, 'short')}`
+              : undefined;
     const errors = {
         ...runner.errors,
         ...(fixError ? { form: fixError } : {}),
@@ -515,7 +517,9 @@ export function NightAuditSheet({
                             <AlertTitle>Not over yet</AlertTitle>
                             <AlertDescription>
                                 {formatBusinessDay(sheet.date, 'short')} has not
-                                ended. The audit runs by itself after midnight.
+                                ended. You can run the audit after midnight. If
+                                the automatic run is on, it starts after the
+                                night audit time.
                             </AlertDescription>
                         </Alert>
                     )}
@@ -647,9 +651,9 @@ export function NightAuditSheet({
                     )}
                     {sheet.audit && sheet.audit.openExceptions > 0 && (
                         <p className="text-sm text-warning">
-                            {sheet.audit.openExceptions} item
-                            {sheet.audit.openExceptions === 1 ? '' : 's'} need a
-                            look.
+                            {sheet.audit.openExceptions === 1
+                                ? '1 item needs a look.'
+                                : `${sheet.audit.openExceptions} items need a look.`}
                         </p>
                     )}
                 </div>

@@ -166,9 +166,9 @@ Opened by the **Run Night Audit** button in the Operations group (shown to users
 | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
 | Ready     | "Closes 12 Oct and opens 13 Oct". **Fix before running** (blockers), **Needs a look** (warnings), or "Everything is ready"                                                 | Cancel, **Run audit**    |
 | Blocked   | The same, with **Not over yet** first when the date has not ended. **Run audit** is disabled. Users with `night-audit.force` see **Force close…**, which asks for a reason | Cancel, **Force close**  |
-| Running   | The six steps with their counts, refreshed every 3 seconds                                                                                                                 | Close                    |
+| Running   | The seven steps with their counts, refreshed every 3 seconds                                                                                                               | Close                    |
 | Failed    | The step it stopped at. Finished steps are kept                                                                                                                            | Cancel, **Resume audit** |
-| Completed | "Now trading on 13 Oct" and the number of items that need a look                                                                                                           | Done                     |
+| Completed | "Closed 12 Oct · now trading on 13 Oct", and "1 item needs a look" or "N items need a look"                                                                                | Done                     |
 
 The sheet shows what its own run is doing until the audit of that date has finished, even before the queue picks the job up. A date that is Auditing when the sheet opens shows as Running or Failed.
 
