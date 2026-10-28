@@ -32,6 +32,7 @@ test('confirm dialog', function () {
 
 test('waiting for approval', function () {
     $page = $this->open(route('onboarding.go-live.show', $this->property->code), height: 700)
+        ->resize(440, 700)
         ->waitForText('Everything is set')
         ->click('Send for approval')
         ->waitForText('sign-in details')

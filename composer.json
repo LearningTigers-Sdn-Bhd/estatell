@@ -103,6 +103,7 @@
             "Composer\\Config::disableProcessTimeout",
             "@php artisan test --testsuite=Browser",
             "magick tests/Browser/Screenshots/reservations/reservation-page-summary-source.png -crop 690x768+740+246 +repage -bordercolor '#d4d4d4' -border 1 tests/Browser/Screenshots/reservations/reservation-page-summary.png",
+            "f=tests/Browser/Screenshots/onboarding/waiting.png; s=$(magick \"$f\" -format '%[fx:max(w,h)+192]' info:); magick \"$f\" -background white -gravity center -extent ${s}x${s} -resize 50% \"$f\"",
             "for f in tests/Browser/Screenshots/get-started/*.png; do s=$(magick \"$f\" -format '%[fx:max(w,h)+192]' info:); magick \"$f\" -background white -gravity center -extent ${s}x${s} -resize 50% \"$f\"; done",
             "mkdir -p \"${DOCS_REPO:-../estatell-docs}/public/screenshots\"",
             "rsync -a --exclude='/*.png' tests/Browser/Screenshots/ \"${DOCS_REPO:-../estatell-docs}/public/screenshots/\""
