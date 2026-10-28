@@ -63,6 +63,23 @@ test('more rates', function () {
     $this->shoot($page, 'more-rates', badges: ['Name', 'Price', 'Room types'], badgesFromLeft: 0);
 });
 
+test('more rates with own prices', function () {
+    $page = $this->open(route('onboarding.basic-rate.edit', $this->property->code), height: 1100)
+        ->waitForText('What does each room type cost per night?')
+        ->type('tbody tr:nth-child(1) td:nth-child(3) input', '180')
+        ->type('tbody tr:nth-child(2) td:nth-child(3) input', '200')
+        ->waitForText('guest pays')
+        ->click('Add rate')
+        ->type('[aria-label="Name of rate 1"]', 'Long stay')
+        ->click('[aria-label="Price of rate 1"]')
+        ->click('[role="option"]:has-text("Own prices")')
+        ->type('input[placeholder="e.g. 150.00"] >> nth=0', '150')
+        ->type('input[placeholder="e.g. 150.00"] >> nth=1', '170')
+        ->wait(1);
+
+    $this->shoot($page, 'more-rates-own-prices', badges: ['Name', 'Price', 'Room types'], badgesFromLeft: 0);
+});
+
 test('switch price by on saved prices', function () {
     [$standard, $longhouse] = $this->roomTypes;
 
