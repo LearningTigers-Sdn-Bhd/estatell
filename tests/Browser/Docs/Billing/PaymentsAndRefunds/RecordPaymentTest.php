@@ -39,12 +39,9 @@ test('the record payment button', function () {
 test('the record payment dialog', function () {
     $page = $this->open(route('reservations.folio', [$this->property, $this->scenario('S11')]))
         ->click('button:has-text("Record payment")')
-        ->waitForText('Method')
-        ->wait(2)
-        ->click('#payment-method')
-        ->click('[role="option"]:has-text("Cash")')
         ->waitForText('Total to collect')
-        ->wait(1);
+        ->wait(1)
+        ->assertSeeIn('#payment-method', 'Cash');
 
     $this->shoot($page, 'record-payment', frame: '[role="dialog"]');
 });
