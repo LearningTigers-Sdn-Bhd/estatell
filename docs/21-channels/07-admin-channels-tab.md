@@ -61,7 +61,7 @@ Below **On Channex** the tab shows **Alerts** and **Recent bookings from channel
 
 ### Automatic sync and removals
 
-When staff change a room type, a rate plan or the room types a plan sells, the card shows "Changes are waiting to sync" for about 2 minutes, then the sync runs by itself with the same progress and toast (see [Automatic sync](02-mappings-and-capability.md#automatic-sync-after-staff-change-something)). When staff archive an item that is on Channex, it is removed there first (see the [archive guard](02-mappings-and-capability.md#archive-guard)). Two kinds of alert come from this: **Structure sync failed** and **Removal blocked** (an OTA still uses the item). Both have **Close**. The **Remove** buttons under **On Channex** stay for an item that could not be cleared.
+When staff change a room type, a rate plan or the room types a plan sells, the card shows "Changes are waiting to sync" for about 2 minutes, then the sync runs by itself with the same progress and toast (see [Automatic sync](02-mappings-and-capability.md#automatic-sync-after-staff-change-something)). When staff archive an item that is on Channex, it is removed there first (see the [archive guard](02-mappings-and-capability.md#archive-guard)). Two kinds of alert come from this: **Structure sync failed** and **Removal blocked** (an OTA still uses the item). Both have **Close**, as does **OTA payment not posted**, which opens when a channel booking's OTA collected payment is refused (see [OTA collected payments](05-booking-ingestion.md#ota-collected-payments)). The **Remove** buttons under **On Channex** stay for an item that could not be cleared.
 
 ### Live
 

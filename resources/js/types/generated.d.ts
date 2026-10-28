@@ -1786,6 +1786,7 @@ manualBatchId: number | null,
 migrated: boolean,
 lineKey: string | null,
 allowOtaCollected: boolean,
+issueReceipt: boolean,
 };
 export type PaymentFormOptionsData = {
 methods: App.Data.Payments.PaymentMethodOptionData[],
@@ -4095,7 +4096,7 @@ export type BoatMode = 'scheduled' | 'charter' | 'own';
 export type BookingSourceIcon = 'phone' | 'message-circle' | 'mail' | 'globe' | 'users' | 'handshake' | 'briefcase-business' | 'building-2' | 'footprints' | 'ticket' | 'megaphone' | 'star';
 export type BookingSourceType = 'direct' | 'ota' | 'company' | 'walk_in';
 export type BusinessDateStatus = 'open' | 'auditing' | 'closed';
-export type ChannelAlertEvent = 'non_acked_booking' | 'booking_unmapped_room' | 'booking_unmapped_rate' | 'sync_error' | 'rate_error' | 'structure_sync_failed' | 'removal_blocked';
+export type ChannelAlertEvent = 'non_acked_booking' | 'booking_unmapped_room' | 'booking_unmapped_rate' | 'sync_error' | 'rate_error' | 'structure_sync_failed' | 'removal_blocked' | 'ota_payment_not_posted';
 export type ChannelConnectionStatus = 'draft' | 'mapped' | 'active' | 'paused' | 'error';
 export type ChannelPropertyStatus = 'not_synced' | 'synced' | 'paused' | 'error';
 export type ChannelProvider = 'channex';
