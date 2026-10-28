@@ -3,14 +3,17 @@
 namespace Tests\Browser;
 
 use App\Actions\Onboarding\RegisterPropertyOwner;
+use App\Actions\Onboarding\SaveOnboardingBasicRate;
 use App\Actions\Onboarding\SaveOnboardingRooms;
 use App\Actions\Onboarding\SaveOnboardingRoomTypes;
 use App\Actions\Onboarding\SaveOnboardingTaxes;
 use App\Actions\Onboarding\SavePropertyBasics;
 use App\Data\Onboarding\NewPropertyOwnerData;
 use App\Enums\DefaultRoleEnum;
+use App\Enums\PricingBasis;
 use App\Enums\PropertyType;
 use App\Enums\UnitStatus;
+use App\Enums\WeekendNights;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\RoomType;
@@ -185,6 +188,22 @@ abstract class BrowserTestCase extends TestCase
         ], [
             ['room_type_id' => $roomType->id, 'group_key' => 'ground', 'prefix' => '', 'from' => '101', 'to' => '103'],
             ['room_type_id' => $roomType->id, 'group_key' => 'garden', 'prefix' => 'G', 'from' => '1', 'to' => '2'],
+        ]);
+    }
+
+    /**
+     * Finish every required section of the onboarding property: two room types with rooms and a basic rate.
+     */
+    protected function makeOnboardingReady(): void
+    {
+        [$standard, $longhouse] = $this->saveOnboardingPriceableRoomTypes();
+        app(SaveOnboardingRooms::class)($this->property, auth()->user(), [], [
+            ['room_type_id' => $standard->id, 'group_key' => null, 'prefix' => '', 'from' => '101', 'to' => '103'],
+            ['room_type_id' => $longhouse->id, 'group_key' => null, 'prefix' => 'L', 'from' => '1', 'to' => '2'],
+        ]);
+        app(SaveOnboardingBasicRate::class)($this->property, auth()->user(), WeekendNights::FriSat, true, [
+            ['room_type_id' => $standard->id, 'price_by' => PricingBasis::PerRoom, 'weekday' => '180', 'weekend' => null],
+            ['room_type_id' => $longhouse->id, 'price_by' => PricingBasis::PerRoom, 'weekday' => '200', 'weekend' => null],
         ]);
     }
 
