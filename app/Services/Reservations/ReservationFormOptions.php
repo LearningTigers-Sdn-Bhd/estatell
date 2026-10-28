@@ -125,15 +125,15 @@ class ReservationFormOptions
     }
 
     /**
-     * The methods of the Record payment Dialog. City ledger and OTA collected methods are not offered
-     * yet. The Old system method is added, at the end, only for a user with `folio.manual` while the migration window
+     * The methods of the Record payment Dialog. City ledger is not offered. An active OTA collected method is, for an
+     * OTA booking the OTA was paid for; check-in and check-out collection leave it out (`isOtaCollected`). The Old system method is added, at the end, only for a user with `folio.manual` while the migration window
      * is open, whatever its `active` flag says. `RecordPayment` checks the method again.
      */
     public function payments(Property $property, ?User $user = null): PaymentFormOptionsData
     {
         $methods = PaymentMethod::query()->where('property_id', $property->id)
             ->where(function ($query) use ($property, $user): void {
-                $query->where(fn ($active) => $active->active()->whereNotIn('type', [PaymentMethodType::OtaCollected, PaymentMethodType::DirectBill, PaymentMethodType::OldSystem]));
+                $query->where(fn ($active) => $active->active()->whereNotIn('type', [PaymentMethodType::DirectBill, PaymentMethodType::OldSystem]));
 
                 if ($user !== null && app(AvailablePaymentMethod::class)->oldSystemOffered($property, $user)) {
                     $query->orWhere('type', PaymentMethodType::OldSystem);

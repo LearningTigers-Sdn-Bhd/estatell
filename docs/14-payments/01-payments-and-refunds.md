@@ -45,7 +45,7 @@ payments    id, property_id, folio_id, payment_method_id, amount,
 | The folio is Open                                                                          | `folio_not_open`                                                 |
 | A SecurityDeposit goes on a Unit folio or a unit entry                                     | `deposit_on_unit_only`                                           |
 | An Advance on a Unit folio or unit entry only when Room does not route to the Master folio | `advance_on_master`                                              |
-| The method is active, the property's, and not City ledger or OTA collected                 | `method_not_available`                                           |
+| The method is active, the property's, not City ledger, and OTA collected only when allowed | `method_not_available`                                           |
 | The amount is greater than 0 with at most two decimals                                     | `amount_invalid`                                                 |
 | A method with `requires_reference` has a reference                                         | `reference_required`                                             |
 | The tax on the surcharge can be calculated                                                 | the `TaxCalculator` refusal (for example `nationality_required`) |
@@ -125,7 +125,7 @@ payments    id, property_id, folio_id, payment_method_id, amount,
 - A held deposit is a credit on the unit folio like any payment, so [check-out](../18-front-desk/01-check-in-and-check-out.md#taxes-and-deposit) needs no deposit rule: the balance must reach 0, and the credit is refunded through `RefundPayment`. Check-out refunds the deposit first, then other held payments (see [Refund the credit](../18-front-desk/01-check-in-and-check-out.md#refund-the-credit)).
 - The check-in form can record two payments with one method and one reference: the flagged taxes (Advance) and the security deposit (SecurityDeposit). Each has its own receipt number.
 - The receipt PDF is rendered on demand from payment + folio with dompdf (see [Receipt](#receipt)). It is not stored.
-- `DirectBill` is never offered here: staff use **Settle to City ledger** ([AR invoices](../15-city-ledger/02-ar-invoices.md)), which posts its own ledger line without a `payments` row. OTA collected methods are not offered yet: they come with [Booking ingestion](../21-channels/05-booking-ingestion.md).
+- `DirectBill` is never offered here: staff use **Settle to City ledger** ([AR invoices](../15-city-ledger/02-ar-invoices.md)), which posts its own ledger line without a `payments` row. An active OTA collected method is offered in the Record payment Dialog (decided 2026-10-28): channel bookings do not post the money the OTA took yet ([Booking ingestion](../21-channels/05-booking-ingestion.md#open)), so staff record it by hand. The route sets `allowOtaCollected`; check-in, check-out and walk-in collection do not, and their forms leave the method out (`isOtaCollected`).
 - Card, Bank transfer and E-wallet require a reference by default ([Payment methods](../06-catalogues/04-payment-methods.md)).
 
 ## Permissions
@@ -164,7 +164,7 @@ A separate `ReservationPaymentController` (the folio controller is already long)
 - A payment on a "not started" entry redirects to `?folio={new folio id}`, because the `u{unit id}` entry is gone once the folio exists.
 - The refund routes also take `payment_method_id` and `reason`. The Action checks `payment.refund-other-method`, so a user without it gets the `other_method_not_allowed` error on the field.
 - `PaymentRefusals` maps each refusal code to a field (`payment_method_id`, `amount`, `reference`) or one message for the form, like `FolioRefusals`.
-- The methods are one optional prop, `paymentOptions`, read when the Dialog opens: active methods that are not City ledger or OTA collected, with `requiresReference`. The purposes are per folio, on `FolioData` (see [Purposes by stage](#purposes-by-stage)).
+- The methods are one optional prop, `paymentOptions`, read each time the Dialog opens: active methods that are not City ledger, with `requiresReference` and `isOtaCollected`. The purposes are per folio, on `FolioData` (see [Purposes by stage](#purposes-by-stage)).
 - `FolioData` gets `paymentPurposes` and `defaultPaymentPurpose`, and `canRecordPayment` (an Open folio, or a "not started" entry, with at least one purpose) and `paymentUnitId` (the unit of a "not started" entry). `FolioRowData` gets `note` (the payment reference), `paymentId`, `methodType` and `refundable` (the amount left to refund), the `refund` action on an Open folio for a user with `payment.refund` when something is left, and the `void` action when the payment was posted on the business date and has no refund. `FolioData` gets `refundCredit` (the most a Refund credit can give back, or null), `refundMethods` (the methods the Refund to field offers beyond the payment's own; empty without `payment.refund-other-method`) and `canRefundOtherMethod`.
 
 ### Refusal messages
@@ -271,7 +271,7 @@ Decisions made at build time (checklist item 21):
 
 ## Not in this item
 
-OTA collected payments, the Stay View Record payment button ([Stay View](../18-front-desk/03-stay-view.md)), the Cards and List money strip, online gateways with Pending payments.
+Automatic OTA collected payments from channel bookings, the Stay View Record payment button ([Stay View](../18-front-desk/03-stay-view.md)), the Cards and List money strip, online gateways with Pending payments.
 
 ## Lessons from wastays
 

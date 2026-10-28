@@ -90,7 +90,9 @@ export function WalkInPaymentSection({
     /** Sets a value the server worked out or the first method, which is not an edit by the user: the form stays clean. */
     onDerive: (patch: Partial<WalkInPaymentValues>) => void;
 }) {
-    const methods = (options?.methods ?? []).filter((one) => !one.isOldSystem);
+    const methods = (options?.methods ?? []).filter(
+        (one) => !one.isOldSystem && !one.isOtaCollected,
+    );
     const methodId = values.payment_method_id || String(methods[0]?.id ?? '');
     const method = methods.find((one) => String(one.id) === methodId);
     const roomsHidden = payment?.roomChargesHidden === true;

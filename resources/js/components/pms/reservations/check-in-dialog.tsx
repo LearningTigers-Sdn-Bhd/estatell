@@ -87,7 +87,7 @@ function CheckInForm({
     const { preview } = useUnitPreview<Preview>(checkInPreview.url(key), open);
     const [idempotencyKey] = useState(() => crypto.randomUUID());
     const methods = (paymentOptions?.methods ?? []).filter(
-        (one) => !one.isOldSystem,
+        (one) => !one.isOldSystem && !one.isOtaCollected,
     );
     const form = useForm({
         nationality_code: '',

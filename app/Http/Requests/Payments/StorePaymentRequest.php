@@ -56,6 +56,7 @@ class StorePaymentRequest extends FormRequest
             reference: $this->filled('reference') ? $this->string('reference')->toString() : null,
             idempotencyKey: $this->string('idempotency_key')->toString(),
             serviceDate: $this->filled('service_date') ? $this->string('service_date')->toString() : null,
+            allowOtaCollected: true,
         );
     }
 }

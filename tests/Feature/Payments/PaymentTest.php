@@ -234,7 +234,7 @@ test('a payment refusal writes and logs nothing', function (string $refusal, Clo
     'inactive method' => [PaymentResult::REFUSAL_METHOD_NOT_AVAILABLE, fn (array $setup) => payData(PaymentMethod::factory()->inactive()->create(['property_id' => $setup['property']->id]))],
     'another property\'s method' => [PaymentResult::REFUSAL_METHOD_NOT_AVAILABLE, fn (array $setup) => payData(PaymentMethod::factory()->create())],
     'city ledger' => [PaymentResult::REFUSAL_METHOD_NOT_AVAILABLE, fn (array $setup) => payData(PaymentMethod::factory()->create(['property_id' => $setup['property']->id, 'type' => PaymentMethodType::DirectBill]))],
-    'ota collected' => [PaymentResult::REFUSAL_METHOD_NOT_AVAILABLE, fn (array $setup) => payData(PaymentMethod::factory()->create(['property_id' => $setup['property']->id, 'type' => PaymentMethodType::OtaCollected]))],
+    'ota collected, not allowed' => [PaymentResult::REFUSAL_METHOD_NOT_AVAILABLE, fn (array $setup) => payData(PaymentMethod::factory()->create(['property_id' => $setup['property']->id, 'type' => PaymentMethodType::OtaCollected]))],
     'inactive surcharge item' => [PaymentResult::REFUSAL_METHOD_NOT_AVAILABLE, function (array $setup) {
         $card = paySurchargeMethod($setup['property'], SurchargeType::Fixed, '5.00');
         $card->surchargeChargeItem->update(['active' => false]);
