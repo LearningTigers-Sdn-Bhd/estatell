@@ -282,9 +282,10 @@ test('the payment routes need their permission and stay inside the property and 
     expect(Payment::query()->count())->toBe(2);
 });
 
-test('the payment options load on request only and leave out city ledger and OTA collected', function () {
+test('the payment options load on request only, leave out city ledger and mark OTA collected', function () {
     $setup = fpSetup();
     PaymentMethod::factory()->create(['property_id' => $setup['property']->id, 'type' => PaymentMethodType::DirectBill, 'position' => 2]);
+    $ota = PaymentMethod::factory()->create(['property_id' => $setup['property']->id, 'type' => PaymentMethodType::OtaCollected, 'position' => 3]);
     $url = fpUrl($setup, 'reservations.folio');
 
     $this->actingAs($setup['user'])->get($url)->assertInertia(fn (Assert $page) => $page->missing('paymentOptions'));
@@ -292,9 +293,23 @@ test('the payment options load on request only and leave out city ledger and OTA
     $this->actingAs($setup['user'])
         ->get($url, ['X-Inertia' => 'true', 'X-Inertia-Partial-Component' => 'reservations/show', 'X-Inertia-Partial-Data' => 'paymentOptions', 'X-Inertia-Version' => Inertia\Inertia::getVersion()])
         ->assertOk()
-        ->assertJsonCount(1, 'props.paymentOptions.methods')
+        ->assertJsonCount(2, 'props.paymentOptions.methods')
         ->assertJsonPath('props.paymentOptions.methods.0.id', $setup['cash']->id)
+        ->assertJsonPath('props.paymentOptions.methods.0.isOtaCollected', false)
+        ->assertJsonPath('props.paymentOptions.methods.1.id', $ota->id)
+        ->assertJsonPath('props.paymentOptions.methods.1.isOtaCollected', true)
         ->assertJsonMissingPath('props.paymentOptions.purposes');
+});
+
+test('the Record payment Dialog records money the OTA collected', function () {
+    $setup = fpSetup();
+    $ota = PaymentMethod::factory()->create(['property_id' => $setup['property']->id, 'type' => PaymentMethodType::OtaCollected, 'requires_reference' => false]);
+
+    $this->actingAs($setup['user'])
+        ->post(fpUrl($setup, 'reservations.folios.payments.store', ['folio' => $setup['folio']->id]), fpPayload($ota))
+        ->assertInertiaFlash('toast.type', 'success');
+
+    expect(Payment::query()->sole()->payment_method_id)->toBe($ota->id);
 });
 
 test('the receipt opens inline as an A4 PDF named after the receipt number', function () {

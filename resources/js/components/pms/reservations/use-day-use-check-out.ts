@@ -127,7 +127,7 @@ export function useDayUseCheckOut({
     const current = answer?.key === key && requestError === null;
     const settlement = preview?.settlement ?? null;
     const methods = (paymentOptions?.methods ?? []).filter(
-        (method) => !method.isOldSystem,
+        (method) => !method.isOldSystem && !method.isOtaCollected,
     );
     const methodId = data.payment_method_id || String(methods[0]?.id ?? '');
     const method = methods.find((one) => String(one.id) === methodId);
