@@ -202,15 +202,16 @@ abstract class BrowserTestCase extends TestCase
      * @param  list<string>  $badges  The exact text of the element for badge 1, 2, 3 and so on. The docs page names each number in a table.
      * @param  list<string>  $highlight  CSS selectors of the sections to draw a red box around.
      * @param  string|null  $element  A CSS selector to screenshot only that element, for example `[role="dialog"]`.
+     * @param  int  $badgesFromLeft  Badges match only elements at least this many pixels from the left edge, which skips the staff sidebar. Pass 0 on a page without one, like the onboarding wizard.
      */
-    protected function shoot(AwaitableWebpage $page, string $name, array $badges = [], array $highlight = [], ?string $element = null, bool $checkErrors = true): AwaitableWebpage
+    protected function shoot(AwaitableWebpage $page, string $name, array $badges = [], array $highlight = [], ?string $element = null, bool $checkErrors = true, int $badgesFromLeft = 256): AwaitableWebpage
     {
         if ($highlight !== []) {
             $this->assertSame([], $page->script($this->highlightScript($highlight)), 'No element matches these highlight selectors.');
         }
 
         if ($badges !== []) {
-            $this->assertSame([], $page->script($this->badgesScript($badges)), 'No element has exactly this badge text.');
+            $this->assertSame([], $page->script($this->badgesScript($badges, $badgesFromLeft)), 'No element has exactly this badge text.');
         }
 
         if ($checkErrors) {
@@ -298,7 +299,7 @@ abstract class BrowserTestCase extends TestCase
      *
      * @param  list<string>  $texts
      */
-    private function badgesScript(array $texts): string
+    private function badgesScript(array $texts, int $fromLeft): string
     {
         $json = json_encode($texts, JSON_THROW_ON_ERROR);
 
@@ -311,7 +312,7 @@ abstract class BrowserTestCase extends TestCase
                 const match = [...document.querySelectorAll('body *')].find(
                     (el) => same(el)
                         && ![...el.children].some(same)
-                        && el.getBoundingClientRect().left >= 256
+                        && el.getBoundingClientRect().left >= {$fromLeft}
                         && el.getBoundingClientRect().width > 0,
                 );
                 if (!match) { missing.push(text); return; }
