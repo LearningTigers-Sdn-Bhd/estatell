@@ -52,7 +52,7 @@ payments    id, property_id, folio_id, payment_method_id, amount,
 
 - One transaction, with the folio row locked (the unit row first when a unit is given). A refusal writes and logs nothing.
 - Order of writes: the folio when needed, the receipt number, the surcharge lines, the payment line, then the `payments` row with `folio_line_id` and `surcharge_line_id`. The row is inserted once and never updated.
-- **Surcharge:** `Fixed` is the method's value. `Percent` is that percent of the amount. The fee posts as a charge line on the **same folio** with the method's surcharge charge item, and tax on it follows the charge item's code (`TaxCalculator`, the booker's nationality). The payment line covers `amount + fee + tax`, so the balance falls by the amount entered. This is how wastays collects it (`post_configured_payment.rb`).
+- **Surcharge:** `Fixed` is the method's value. `Percent` is that percent of the amount. An Old system or OTA collected payment never takes one, even when the method row has one: that money was not taken at the desk (OTA collected decided 2026-10-28). The fee posts as a charge line on the **same folio** with the method's surcharge charge item, and tax on it follows the charge item's code (`TaxCalculator`, the booker's nationality). The payment line covers `amount + fee + tax`, so the balance falls by the amount entered. This is how wastays collects it (`post_configured_payment.rb`).
 - **No `PostCharge` for the fee.** `PostCharge` needs a CheckedIn or CheckedOut unit, and a deposit has none. The line-writing core of `PostCharge` (tax calculation, the charge line and its tax children, for a given folio) moves into an Action `PostFolioCharge`. `PostCharge` keeps its own checks and calls it, and so does `RecordPayment`.
 - Keys use the form's UUID, not the payment id (the payment row needs its line first): payment line `payment:{uuid}`, fee `payment:{uuid}:surcharge`, its tax lines `payment:{uuid}:surcharge:tax:{tax_id}`. A repeated key finds the payment line, then the payment by `folio_line_id`, and returns it. No column stores the key.
 - `posting_date` is the business date. The payment line's code is the method's own transaction code.
@@ -124,8 +124,9 @@ payments    id, property_id, folio_id, payment_method_id, amount,
 - A refund or payment after check-out needs the unit folio reopened first, because check-out closes it ([When to reopen](../13-folio/01-folios-and-lines.md#close-and-reopen)). At 0 it closes itself again.
 - A held deposit is a credit on the unit folio like any payment, so [check-out](../18-front-desk/01-check-in-and-check-out.md#taxes-and-deposit) needs no deposit rule: the balance must reach 0, and the credit is refunded through `RefundPayment`. Check-out refunds the deposit first, then other held payments (see [Refund the credit](../18-front-desk/01-check-in-and-check-out.md#refund-the-credit)).
 - The check-in form can record two payments with one method and one reference: the flagged taxes (Advance) and the security deposit (SecurityDeposit). Each has its own receipt number.
+- An OTA collected payment that a channel booking posts takes no receipt number (`issueReceipt` off), like Old system: the OTA took the money, not the desk (decided 2026-10-28). It has no Download receipt. One recorded in the Record payment Dialog, or replayed from wastays, keeps its receipt number.
 - The receipt PDF is rendered on demand from payment + folio with dompdf (see [Receipt](#receipt)). It is not stored.
-- `DirectBill` is never offered here: staff use **Settle to City ledger** ([AR invoices](../15-city-ledger/02-ar-invoices.md)), which posts its own ledger line without a `payments` row. An active OTA collected method is offered in the Record payment Dialog (decided 2026-10-28): channel bookings do not post the money the OTA took yet ([Booking ingestion](../21-channels/05-booking-ingestion.md#open)), so staff record it by hand. The route sets `allowOtaCollected`; check-in, check-out and walk-in collection do not, and their forms leave the method out (`isOtaCollected`).
+- `DirectBill` is never offered here: staff use **Settle to City ledger** ([AR invoices](../15-city-ledger/02-ar-invoices.md)), which posts its own ledger line without a `payments` row. An active OTA collected method is offered in the Record payment Dialog (decided 2026-10-28), for money the OTA took that channel bookings did not post ([OTA collected payments](../21-channels/05-booking-ingestion.md#ota-collected-payments)). The route sets `allowOtaCollected`; check-in, check-out and walk-in collection do not, and their forms leave the method out (`isOtaCollected`).
 - Card, Bank transfer and E-wallet require a reference by default ([Payment methods](../06-catalogues/04-payment-methods.md)).
 
 ## Permissions
@@ -271,7 +272,7 @@ Decisions made at build time (checklist item 21):
 
 ## Not in this item
 
-Automatic OTA collected payments from channel bookings, the Stay View Record payment button ([Stay View](../18-front-desk/03-stay-view.md)), the Cards and List money strip, online gateways with Pending payments.
+The Stay View Record payment button ([Stay View](../18-front-desk/03-stay-view.md)), the Cards and List money strip, online gateways with Pending payments.
 
 ## Lessons from wastays
 

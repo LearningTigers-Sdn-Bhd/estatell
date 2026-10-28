@@ -179,7 +179,7 @@ test('a save that turns every addable method off is refused', function () {
 
     ($this->save)($rows)->assertSessionHasErrors('rows');
 
-    expect($this->property->paymentMethods()->active()->count())->toBe(4);
+    expect($this->property->paymentMethods()->active()->count())->toBe(5);
 });
 
 test('a new row needs a type and only an addable type', function () {

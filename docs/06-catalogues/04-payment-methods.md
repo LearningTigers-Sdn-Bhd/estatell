@@ -6,7 +6,7 @@ How guests and companies pay.
 
 ## Built first slice
 
-Every Malaysian property receives six system-backed payment methods through `SeedPaymentMethods`. Properties in other countries receive Cash, Card, Bank transfer and City ledger (off) ([Country profiles](../02-property/03-seed-property-defaults.md#country-profiles)). Cash, Card, Bank transfer and E-wallet start active. OTA collected and City ledger start inactive. Repeated seeding restores missing methods and preserves property changes.
+Every Malaysian property receives six system-backed payment methods through `SeedPaymentMethods`. Properties in other countries receive Cash, Card, Bank transfer and City ledger (off) ([Country profiles](../02-property/03-seed-property-defaults.md#country-profiles)). Cash, Card, Bank transfer, E-wallet and OTA collected start active. City ledger starts inactive. OTA collected starts active so channel bookings can post the money the OTA took (decided 2026-10-28). Repeated seeding restores missing methods and preserves property changes.
 
 Staff with `settings.manage` can rename, activate, configure and reorder every method. The six seeded methods keep their type and system code.
 
@@ -45,6 +45,6 @@ payment_methods    id, property_id, transaction_code_id, name, type (PaymentMeth
 - Recording a payment with a surcharge also posts the surcharge as a charge line (for example a 2% card fee).
 - `requires_reference` forces a reference, for example a card approval code.
 - `DirectBill` (label "City ledger") moves the balance to the city ledger through **Settle to City ledger** (see [AR invoices](../15-city-ledger/02-ar-invoices.md)). It stays inactive and is not offered in Record payment: it supplies only the transaction code.
-- `OtaCollected` is used when an OTA collected payment (see [Booking ingestion](../21-channels/05-booking-ingestion.md)).
+- `OtaCollected` records money the guest paid the OTA. Channel bookings post it automatically (see [OTA collected payments](../21-channels/05-booking-ingestion.md#ota-collected-payments)), and staff can record it in the Record payment Dialog. It never takes a surcharge, even when one is set on the method.
 
 Payment recording and surcharge posting are in [Payments and refunds](../14-payments/01-payments-and-refunds.md). OTA ingestion and city-ledger invoice creation are later modules.

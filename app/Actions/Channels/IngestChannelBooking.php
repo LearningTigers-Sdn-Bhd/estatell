@@ -55,6 +55,7 @@ class IngestChannelBooking
         private ChannelDriverManager $drivers,
         private AutoAssignBookedUnit $autoAssignBookedUnit,
         private AttachGuest $attachGuest,
+        private PostOtaCollectedPayment $postOtaCollectedPayment,
     ) {}
 
     /**
@@ -64,7 +65,8 @@ class IngestChannelBooking
      * New revision creates a reservation with one unit for each room; a Modified one moves the units to the new rooms
      * and dates (matched in order); a Cancelled one cancels the units without a fee. OTA bookings are always
      * accepted: availability, restrictions and missing prices do not refuse them. The reservation is created by the
-     * property's owner. Staff are notified after the save. See docs/21-channels/05-booking-ingestion.md.
+     * property's owner. A New or Modified revision the OTA collected posts what is still due as an OTA collected payment
+     * (`PostOtaCollectedPayment`). Staff are notified after the save. See docs/21-channels/05-booking-ingestion.md.
      */
     public function __invoke(ChannelBookingRevision $revision): ChannelActionResult
     {
@@ -118,6 +120,7 @@ class IngestChannelBooking
             $reservation = $existing === null
                 ? $this->create($actor, $property, $payload, $lines, $channel, $otaName)
                 : $this->modify($actor, $existing, $lines, $payload['rooms'] ?? [], $channelName);
+            ($this->postOtaCollectedPayment)($actor, $reservation, $revision);
         }
 
         $revision->update(['processed_at' => now(), 'reservation_id' => $reservation->id, 'error' => null]);
