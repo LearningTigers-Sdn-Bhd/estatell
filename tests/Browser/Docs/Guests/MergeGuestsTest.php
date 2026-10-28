@@ -8,13 +8,14 @@ use App\Models\GuestNote;
 
 /**
  * The card reader bridge is a program on the front-desk PC, so the ID form must not depend on it.
+ * The stub is wrapped so the script returns nothing: the browser driver calls a returned function.
  */
-const MERGE_BRIDGE_OFFLINE = "const real = window.fetch.bind(window); window.fetch = (url, ...rest) => String(url).includes('127.0.0.1:9292') ? Promise.reject(new TypeError('Failed to fetch')) : real(url, ...rest);";
+const MERGE_BRIDGE_OFFLINE = "(() => { const real = window.fetch.bind(window); window.fetch = (url, ...rest) => String(url).includes('127.0.0.1:9292') ? Promise.reject(new TypeError('Failed to fetch')) : real(url, ...rest); })();";
 
 /**
- * The scanner box shows what the real bridge says, so a page that has one on load gets it removed before the shot.
+ * The scanner box shows what the real bridge says, so a page that has one on load gets it hidden before the shot (hidden, not removed: React still owns the node).
  */
-const MERGE_HIDE_SCANNER = "document.querySelectorAll('div.rounded-lg').forEach((box) => { if (box.textContent.startsWith('MyKad Smart Card Reader')) { box.remove(); } });";
+const MERGE_HIDE_SCANNER = "document.querySelectorAll('div.rounded-lg').forEach((box) => { if (box.textContent.startsWith('MyKad Smart Card Reader')) { box.style.display = 'none'; } });";
 
 beforeEach(function () {
     $this->signInAsDemoOwner('pearlside', 'Pearlside View Resort');
@@ -50,10 +51,11 @@ test('guest form warning', function () {
         ->type('#add-email', 'aisyah.rahman@example.my')
         ->wait(0.5)
         ->keys('#add-email', 'Tab')
-        ->waitForText('Possible duplicate guest');
+        ->waitForText('Possible duplicate guest')
+        ->hover('[role="dialog"] >> text=Full name');
 
     $this->shoot($page, 'merge-guests-guest-form-warning', frame: '[role="dialog"]');
-})->skip('use-guest-matches.ts sends an empty body, so no warning shows');
+});
 
 test('id form warning', function () {
     $other = Guest::factory()->create(['property_id' => $this->property->id, 'full_name' => 'Hafiz Ismail']);
@@ -69,7 +71,7 @@ test('id form warning', function () {
         ->waitForText('Possible duplicate guest');
 
     $this->shoot($page, 'merge-guests-id-form-warning', frame: '[role="dialog"]');
-})->skip('use-guest-matches.ts sends an empty body, so no warning shows');
+});
 
 test('booking form warning', function () {
     $page = $this->open(route('reservations.walk-in', $this->property), height: 1200);
@@ -79,10 +81,12 @@ test('booking form warning', function () {
         ->type('#guest-0-email', 'aisyah.rahman@example.my')
         ->wait(0.5)
         ->keys('#guest-0-email', 'Tab')
-        ->waitForText('Create new anyway');
+        ->waitForText('Possible duplicate guest');
+    $page->script(MERGE_HIDE_SCANNER);
+    $page->script("document.querySelector('[data-slot=\"alert\"]').scrollIntoView({ block: 'center' });");
 
-    $this->shoot($page, 'merge-guests-booking-form-warning', badges: ['Use existing', 'Create new anyway']);
-})->skip('use-guest-matches.ts sends an empty body, so no warning shows');
+    $this->shoot($page, 'merge-guests-booking-form-warning', badges: ['Use existing', 'Create new anyway'], frame: '[data-slot="alert"]');
+});
 
 test('possible duplicates list', function () {
     $page = $this->open(route('guests.show', [$this->property, $this->survivor]), height: 1200)

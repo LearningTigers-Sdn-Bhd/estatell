@@ -9,8 +9,9 @@ use Illuminate\Http\UploadedFile;
 /**
  * The card reader bridge is a program on the front-desk PC, so a test must not depend on it. The scanner always shows
  * "Bridge offline" here.
+ * The stub is wrapped so the script returns nothing: the browser driver calls a returned function.
  */
-const IDENTITY_BRIDGE_OFFLINE = "const real = window.fetch.bind(window); window.fetch = (url, ...rest) => String(url).includes('127.0.0.1:9292') ? Promise.reject(new TypeError('Failed to fetch')) : real(url, ...rest);";
+const IDENTITY_BRIDGE_OFFLINE = "(() => { const real = window.fetch.bind(window); window.fetch = (url, ...rest) => String(url).includes('127.0.0.1:9292') ? Promise.reject(new TypeError('Failed to fetch')) : real(url, ...rest); })();";
 
 /**
  * A plain card-shaped scan, so the screenshots do not show the black image of a fake upload.
