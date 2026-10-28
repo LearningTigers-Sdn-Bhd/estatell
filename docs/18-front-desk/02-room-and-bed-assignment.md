@@ -13,7 +13,7 @@ Put units into physical rooms or beds, per night.
     - `IngestChannelBooking` runs it for each unit of a new OTA booking and for each unit a Modified revision adds or replaces. After a Modified date change, a Confirmed unit with a night left without a room (`unassignedNights` > 0) runs it for the whole stay, so the unit moves to one free room; with none free the unit stays as it is. A CheckedIn unit is left alone.
     - The reservation page's **Add unit** runs it after `AddUnit`.
     - `CheckInUnit` still runs it when tonight has no room, as the last chance.
-    - A unit still without a room shows **Auto** in the room box, with the tooltip "No free room when booked. Check-in assigns one."
+    - A unit still without a room reads **Assigned when you check in** on the reservation page (**At check-in** in the unit list of a group), the same words as the Check in form. With the setting off it reads **Not assigned**.
     - Nothing free is not a refusal: the booking saves with no room, shows in the Unassigned lane, and check-in tries again. Assignment never refuses or rolls back a booking.
     - A day use unit is skipped: its room is picked in the form.
 
