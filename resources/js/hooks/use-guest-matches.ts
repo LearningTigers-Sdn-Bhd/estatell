@@ -32,15 +32,14 @@ function clean(criteria: GuestMatchCriteria): GuestMatchCriteria {
  */
 export function useGuestMatches(criteria: GuestMatchCriteria): GuestMatch[] {
     const [matches, setMatches] = useState<GuestMatch[]>([]);
-    const payload = useRef<GuestMatchCriteria>({});
     const latest = useRef(0);
     const http = useHttp<GuestMatchCriteria, { matches: GuestMatch[] }>(
         'post',
         matchesRoute.url(),
-        () => payload.current,
+        {},
     );
     const key = JSON.stringify(clean(criteria));
-    const submit = http.submit;
+    const { submit, transform } = http;
 
     useEffect(() => {
         const request = ++latest.current;
@@ -56,7 +55,7 @@ export function useGuestMatches(criteria: GuestMatchCriteria): GuestMatch[] {
         }
 
         const timeout = setTimeout(() => {
-            payload.current = cleaned;
+            transform(() => cleaned);
             submit()
                 .then((response) => {
                     if (request === latest.current) {
@@ -67,7 +66,7 @@ export function useGuestMatches(criteria: GuestMatchCriteria): GuestMatch[] {
         }, 400);
 
         return () => clearTimeout(timeout);
-    }, [key, submit]);
+    }, [key, submit, transform]);
 
     return matches;
 }
