@@ -187,13 +187,14 @@ export default function GoLive({
                                     <AlertDialogContent>
                                         <AlertDialogHeader>
                                             <AlertDialogTitle>
-                                                Go live today?
+                                                {requiresApproval
+                                                    ? 'Send for approval?'
+                                                    : 'Go live today?'}
                                             </AlertDialogTitle>
                                             <AlertDialogDescription>
-                                                Your first business day opens on{' '}
-                                                {review.firstBusinessDate}.
-                                                Country, currency and time zone
-                                                can't be changed after this.
+                                                {requiresApproval
+                                                    ? "Estatell support reviews your setup, usually within 1 working day. Nothing opens until support approves. Your first business day opens on the day it is approved. Country, currency and time zone can't be changed after that."
+                                                    : `Your first business day opens on ${review.firstBusinessDate}. Country, currency and time zone can't be changed after this.`}
                                                 {review.signInCount > 0 &&
                                                     ` ${review.signInCount} ${review.signInCount === 1 ? 'staff member gets' : 'staff members get'} sign-in details.`}
                                             </AlertDialogDescription>
