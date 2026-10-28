@@ -1,24 +1,10 @@
 <?php
 
-use App\Actions\Onboarding\SavePropertyBasics;
-use App\Enums\PropertyType;
-use App\Models\Property;
 use App\Models\RoomType;
 
 beforeEach(function () {
     $this->startOnboarding();
 });
-
-function saveBasics(Property $property): void
-{
-    app(SavePropertyBasics::class)(auth()->user(), $property, [
-        'name' => 'Seaview Lodge',
-        'type' => PropertyType::Hotel->value,
-        'address_line1' => '12 Jalan Pantai',
-        'city' => 'Kota Kinabalu',
-        'country_code' => 'MY',
-    ], ['legal_name' => null, 'registration_number' => null, 'tin' => null], []);
-}
 
 test('basics form', function () {
     $page = $this->open(route('onboarding.basics.edit', $this->property->code), height: 1100)
@@ -44,7 +30,7 @@ test('basics for another country', function () {
 });
 
 test('basics after setup started', function () {
-    saveBasics($this->property);
+    $this->saveOnboardingBasics();
     RoomType::factory()->create(['property_id' => $this->property->id]);
 
     $page = $this->open(route('onboarding.basics.edit', $this->property->code), height: 900)
@@ -63,7 +49,7 @@ test('basics after setup started', function () {
 });
 
 test('check-in essentials', function () {
-    saveBasics($this->property);
+    $this->saveOnboardingBasics();
 
     $this->post(route('onboarding.basics.update', $this->property->code));
 
@@ -74,7 +60,7 @@ test('check-in essentials', function () {
 });
 
 test('team', function () {
-    saveBasics($this->property);
+    $this->saveOnboardingBasics();
 
     $page = $this->open(route('onboarding.team.edit', $this->property->code), height: 900)
         ->waitForText('Add person')

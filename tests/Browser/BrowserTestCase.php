@@ -3,11 +3,16 @@
 namespace Tests\Browser;
 
 use App\Actions\Onboarding\RegisterPropertyOwner;
+use App\Actions\Onboarding\SaveOnboardingRooms;
+use App\Actions\Onboarding\SaveOnboardingRoomTypes;
+use App\Actions\Onboarding\SavePropertyBasics;
 use App\Data\Onboarding\NewPropertyOwnerData;
 use App\Enums\DefaultRoleEnum;
+use App\Enums\PropertyType;
 use App\Enums\UnitStatus;
 use App\Models\Property;
 use App\Models\Reservation;
+use App\Models\RoomType;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Database\Seeders\BookingScenariosSeeder;
@@ -94,6 +99,48 @@ abstract class BrowserTestCase extends TestCase
         $this->actingAs($owner);
 
         return $this->property = $owner->property;
+    }
+
+    /**
+     * Save the Basics section of the onboarding property, the way the form does, so the sections after it unlock.
+     */
+    protected function saveOnboardingBasics(): void
+    {
+        app(SavePropertyBasics::class)(auth()->user(), $this->property, [
+            'name' => 'Seaview Lodge',
+            'type' => PropertyType::Hotel->value,
+            'address_line1' => '12 Jalan Pantai',
+            'city' => 'Kota Kinabalu',
+            'country_code' => 'MY',
+        ], ['legal_name' => null, 'registration_number' => null, 'tin' => null], []);
+    }
+
+    /**
+     * Save Basics and one room type, "Standard Double", so the Rooms section unlocks.
+     */
+    protected function saveOnboardingRoomType(): RoomType
+    {
+        $this->saveOnboardingBasics();
+
+        app(SaveOnboardingRoomTypes::class)($this->property, auth()->user(), [
+            ['id' => null, 'name' => 'Standard Double', 'max_adults' => 2, 'max_children' => 1],
+        ]);
+
+        return $this->property->roomTypes()->firstOrFail();
+    }
+
+    /**
+     * Save the rooms of the onboarding docs: 101 to 103 on the Ground floor and G1 to G2 in the Garden block.
+     */
+    protected function saveOnboardingRooms(RoomType $roomType): void
+    {
+        app(SaveOnboardingRooms::class)($this->property, auth()->user(), [
+            ['key' => 'ground', 'id' => null, 'name' => 'Ground floor'],
+            ['key' => 'garden', 'id' => null, 'name' => 'Garden block'],
+        ], [
+            ['room_type_id' => $roomType->id, 'group_key' => 'ground', 'prefix' => '', 'from' => '101', 'to' => '103'],
+            ['room_type_id' => $roomType->id, 'group_key' => 'garden', 'prefix' => 'G', 'from' => '1', 'to' => '2'],
+        ]);
     }
 
     /**
