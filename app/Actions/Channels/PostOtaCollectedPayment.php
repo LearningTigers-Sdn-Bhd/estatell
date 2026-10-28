@@ -127,14 +127,13 @@ class PostOtaCollectedPayment
             return [[$units->first(), $due]];
         }
 
+        $rest = $due->minus(BigDecimal::sum(...array_map(fn (string $amount): BigDecimal => BigDecimal::of($amount), $roomAmounts)));
         $shares = [];
 
         foreach ($units as $index => $unit) {
-            $shares[] = [$unit, BigDecimal::of((string) $roomAmounts[$index])];
+            $amount = BigDecimal::of((string) $roomAmounts[$index]);
+            $shares[] = [$unit, $index === 0 ? $amount->plus($rest) : $amount];
         }
-
-        $rest = $due->minus(BigDecimal::sum(...array_map(fn (array $share): BigDecimal => $share[1], $shares)));
-        $shares[0][1] = $shares[0][1]->plus($rest);
 
         return $shares;
     }
