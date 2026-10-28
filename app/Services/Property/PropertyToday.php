@@ -17,4 +17,12 @@ class PropertyToday
 
         return CarbonImmutable::now($timeZone)->startOfDay();
     }
+
+    /**
+     * The current moment in the property's time zone.
+     */
+    public function now(Property $property): CarbonImmutable
+    {
+        return CarbonImmutable::now($property->settings->time_zone ?? config('app.timezone'));
+    }
 }

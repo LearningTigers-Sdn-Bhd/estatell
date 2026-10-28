@@ -16,13 +16,20 @@ import {
     plansFor,
 } from '@/components/pms/reservations/booking-lines';
 import {
+    dayUsePlanOptions,
     dayUseRoomTypes,
     endsAt,
+    enteredEndsAt,
     isDayUseQuotable,
+    isEnteredPlan,
     isHalfHour,
     offerOptions,
+    planIdFromSelect,
+    planSelectValue,
+    timeText,
 } from '@/components/pms/reservations/day-use';
 import { useDayUseOffers } from '@/components/pms/reservations/use-day-use-offers';
+import { useEnteredSwitch } from '@/components/pms/reservations/use-entered-switch';
 import { useBookingQuote } from '@/components/pms/reservations/use-booking-quote';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
 import { Button } from '@/components/ui/button';
@@ -140,7 +147,7 @@ function AddUnitForm({
         data.start_time,
     );
     const roomTypes = isDayUse
-        ? dayUseRoomTypes(options?.roomTypes ?? [], options?.ratePlans ?? [])
+        ? dayUseRoomTypes(options?.roomTypes ?? [])
         : (options?.roomTypes ?? []);
     const ratePlans = plansFor(
         options?.ratePlans ?? [],
@@ -148,21 +155,43 @@ function AddUnitForm({
         companyId === null ? '' : String(companyId),
         isDayUse,
     );
+    const roomType = roomTypes.find(
+        (type) => String(type.id) === data.room_type_id,
+    );
+    const entered = isDayUse && isEnteredPlan(data.rate_plan_id, roomType);
     const { offers, loaded } = useDayUseOffers(
         isDayUse ? data.room_type_id : '',
-        data.rate_plan_id,
+        entered ? '' : data.rate_plan_id,
         data.arrival_date,
         isHalfHour(data.start_time) ? data.start_time : '',
     );
+    const planName =
+        !isDayUse || entered || data.rate_plan_id === ''
+            ? null
+            : (ratePlans.find((plan) => String(plan.id) === data.rate_plan_id)
+                  ?.name ?? null);
+    const { note, clear } = useEnteredSwitch({
+        roomType,
+        planName,
+        offers,
+        loaded,
+        hours: data.hours,
+        onSwitch: (ratePlanId) =>
+            form.setData((current) => ({
+                ...current,
+                rate_plan_id: ratePlanId,
+            })),
+        onUnsold: () =>
+            form.setData((current) => ({ ...current, hours: '', room_id: '' })),
+    });
     const money = (amount: string) =>
         new Intl.NumberFormat(undefined, {
             style: 'currency',
             currency: currency?.code ?? 'MYR',
         }).format(Number(amount));
-    const ends = endsAt(offers, data.hours);
-    const roomType = roomTypes.find(
-        (type) => String(type.id) === data.room_type_id,
-    );
+    const ends = entered
+        ? enteredEndsAt(data.start_time, data.hours)
+        : endsAt(offers, data.hours);
     const overrideInvalid = !!errors.override_total || !!errors.override_reason;
     const childAgesError = Object.entries(errors).find(([key]) =>
         key.startsWith('child_ages'),
@@ -214,22 +243,34 @@ function AddUnitForm({
                 <FieldLabel htmlFor="unit-rate_plan_id">Rate plan</FieldLabel>
                 <EnumSelect
                     id="unit-rate_plan_id"
-                    options={ratePlans.map((plan) => ({
-                        value: String(plan.id),
-                        label: plan.name,
-                    }))}
-                    value={data.rate_plan_id}
-                    onValueChange={(value) =>
+                    options={
+                        isDayUse
+                            ? dayUsePlanOptions(ratePlans, roomType)
+                            : ratePlans.map((plan) => ({
+                                  value: String(plan.id),
+                                  label: plan.name,
+                              }))
+                    }
+                    value={
+                        isDayUse
+                            ? planSelectValue(data.rate_plan_id, roomType)
+                            : data.rate_plan_id
+                    }
+                    onValueChange={(value) => {
+                        clear();
                         form.setData((current) => ({
                             ...current,
-                            rate_plan_id: value,
+                            rate_plan_id: isDayUse
+                                ? planIdFromSelect(value, roomType)
+                                : value,
                             hours: '',
                             room_id: '',
-                        }))
-                    }
+                        }));
+                    }}
                     disabled={data.room_type_id === ''}
                     aria-invalid={!!errors.rate_plan_id}
                 />
+                {note && entered && <FieldDescription>{note}</FieldDescription>}
                 <FieldError>{errors.rate_plan_id}</FieldError>
             </Field>
             {isDayUse ? (
@@ -281,27 +322,50 @@ function AddUnitForm({
                     </div>
                     <Field data-invalid={!!errors.hours}>
                         <FieldLabel htmlFor="unit-hours">Hours</FieldLabel>
-                        <EnumSelect
-                            id="unit-hours"
-                            placeholder={
-                                loaded && offers.length === 0
-                                    ? 'No hours sold'
-                                    : 'Select hours'
-                            }
-                            options={offerOptions(offers, money)}
-                            value={data.hours}
-                            onValueChange={(value) =>
-                                form.setData((current) => ({
-                                    ...current,
-                                    hours: value,
-                                    room_id: '',
-                                }))
-                            }
-                            disabled={offers.length === 0}
-                            aria-invalid={!!errors.hours}
-                        />
+                        {entered ? (
+                            <Input
+                                id="unit-hours"
+                                type="number"
+                                min={1}
+                                max={23}
+                                step={1}
+                                placeholder="e.g. 5"
+                                className="max-w-32"
+                                value={data.hours}
+                                onChange={(event) =>
+                                    form.setData((current) => ({
+                                        ...current,
+                                        hours: event.target.value,
+                                        room_id: '',
+                                    }))
+                                }
+                                aria-invalid={!!errors.hours}
+                            />
+                        ) : (
+                            <EnumSelect
+                                id="unit-hours"
+                                placeholder={
+                                    loaded && offers.length === 0
+                                        ? 'No hours sold'
+                                        : 'Select hours'
+                                }
+                                options={offerOptions(offers, money)}
+                                value={data.hours}
+                                onValueChange={(value) =>
+                                    form.setData((current) => ({
+                                        ...current,
+                                        hours: value,
+                                        room_id: '',
+                                    }))
+                                }
+                                disabled={offers.length === 0}
+                                aria-invalid={!!errors.hours}
+                            />
+                        )}
                         {ends && (
-                            <FieldDescription>Ends {ends}.</FieldDescription>
+                            <FieldDescription>
+                                Ends {timeText(ends)}.
+                            </FieldDescription>
                         )}
                         <FieldError>{errors.hours}</FieldError>
                     </Field>
@@ -420,6 +484,7 @@ function AddUnitForm({
                         ]),
                     )}
                     index={0}
+                    enteredPrice={entered}
                 />
             )}
             {!isDayUse && (

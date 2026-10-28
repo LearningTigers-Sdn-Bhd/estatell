@@ -2,6 +2,7 @@
 
 namespace App\Services\Reservations;
 
+use App\Enums\PricingBasis;
 use App\Enums\StayType;
 use App\Models\ReservationUnit;
 use Illuminate\Support\Collection;
@@ -14,6 +15,18 @@ use Illuminate\Support\Collection;
  */
 class StayLabel
 {
+    /**
+     * The plan name of a unit. A day use unit on a plan that is not a Day use plan was sold with an entered price.
+     */
+    public function planForUnit(ReservationUnit $unit): string
+    {
+        if ($unit->stay_type === StayType::DayUse && $unit->ratePlan->pricing_basis !== PricingBasis::DayUse) {
+            return __('Entered price');
+        }
+
+        return $unit->ratePlan->name;
+    }
+
     /**
      * "Day use · 4h" for a day use unit, otherwise null.
      */

@@ -39,6 +39,24 @@ export function isHalfHour(time: string): boolean {
     return value !== null && value % 30 === 0;
 }
 
+/**
+ * An `H:i` time as the browser shows it in a time input (02:00 PM or 14:00), so the Start field and the end time next to it
+ * read the same. A bad time comes back as it was.
+ */
+export function timeText(time: string): string {
+    const total = minutes(time);
+
+    if (total === null) {
+        return time;
+    }
+
+    return new Intl.DateTimeFormat(undefined, {
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'UTC',
+    }).format(new Date(Date.UTC(1970, 0, 1, 0, total)));
+}
+
 /** "1 hour" or "4 hours". */
 export function hoursText(hours: number): string {
     return `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
@@ -67,18 +85,116 @@ export function endsAt(offers: Offer[], hours: string): string | null {
     );
 }
 
-/** The room types that have a day use plan and are sold per room. */
-export function dayUseRoomTypes(
-    roomTypes: RoomType[],
-    plans: Plan[],
-): RoomType[] {
-    return roomTypes.filter(
-        (type) =>
-            !type.isBed &&
-            plans.some(
-                (plan) => plan.isDayUse && plan.roomTypeIds.includes(type.id),
-            ),
+/** The room types day use is sold on: those sold per room, with or without a Day use plan. */
+export function dayUseRoomTypes(roomTypes: RoomType[]): RoomType[] {
+    return roomTypes.filter((type) => !type.isBed);
+}
+
+/** The value of the **No plan · enter price** option in the Plan select. */
+export const ENTERED_PLAN = 'entered';
+
+/** Whether a line is on the room type's per-night plan, which is an entered price. */
+export function isEnteredPlan(
+    ratePlanId: string,
+    roomType: RoomType | undefined,
+): boolean {
+    return (
+        ratePlanId !== '' &&
+        roomType?.enteredPlanId != null &&
+        String(roomType.enteredPlanId) === ratePlanId
     );
+}
+
+/** The Plan select value of a line: the plan id, or `ENTERED_PLAN` for an entered price. */
+export function planSelectValue(
+    ratePlanId: string,
+    roomType: RoomType | undefined,
+): string {
+    return isEnteredPlan(ratePlanId, roomType) ? ENTERED_PLAN : ratePlanId;
+}
+
+/** The plan id a Plan select value stands for. */
+export function planIdFromSelect(
+    value: string,
+    roomType: RoomType | undefined,
+): string {
+    return value === ENTERED_PLAN && roomType?.enteredPlanId != null
+        ? String(roomType.enteredPlanId)
+        : value;
+}
+
+/** The Plan options: the Day use plans, then **No plan · enter price**, disabled when the room type has no per-night plan. */
+export function dayUsePlanOptions(
+    plans: Plan[],
+    roomType: RoomType | undefined,
+): {
+    value: string;
+    label: string;
+    disabled?: boolean;
+    description?: string;
+}[] {
+    const entered =
+        roomType === undefined || roomType.enteredPlanId == null
+            ? {
+                  disabled: true,
+                  description:
+                      'Add a per-night plan for this room type to enter a price.',
+              }
+            : {};
+
+    return [
+        ...plans.map((plan) => ({ value: String(plan.id), label: plan.name })),
+        { value: ENTERED_PLAN, label: 'No plan · enter price', ...entered },
+    ];
+}
+
+/** The end time of an entered price block, `H:i`, or null when the start or hours are not usable or it would pass midnight. */
+export function enteredEndsAt(start: string, hours: string): string | null {
+    const from = minutes(start);
+    const count = /^\d+$/.test(hours) ? Number(hours) : 0;
+
+    if (from === null || count < 1 || from + count * 60 >= 24 * 60) {
+        return null;
+    }
+
+    return format(from + count * 60);
+}
+
+/**
+ * The hours of a block from `start` to `end` (`H:i`), rounded up to whole hours, as text. Empty when the end is not
+ * after the start or the block is longer than the day.
+ */
+export function hoursBetween(start: string, end: string): string {
+    const from = minutes(start);
+    const to = minutes(end);
+
+    if (from === null || to === null || to <= from) {
+        return '';
+    }
+
+    return String(Math.ceil((to - from) / 60));
+}
+
+/**
+ * Whether a line on a Day use plan has to switch to an entered price: the plan's answer is in and it sells no hours at
+ * that start, or not the hours picked.
+ */
+export function needsEnteredPrice(
+    offers: Offer[],
+    loaded: boolean,
+    hours: string,
+): boolean {
+    return (
+        loaded &&
+        (offers.length === 0 ||
+            (hours !== '' &&
+                !offers.some((offer) => String(offer.hours) === hours)))
+    );
+}
+
+/** The note shown after a line switches to an entered price. */
+export function enteredSwitchNote(planName: string): string {
+    return `Outside what ${planName} sells. Enter the price.`;
 }
 
 /** Whether a day use line has what the quote needs. */

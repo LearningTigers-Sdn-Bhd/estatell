@@ -208,14 +208,14 @@ class ReservationUnitStayController extends Controller
 
     public function checkOutAsDayUse(CheckOutAsDayUseRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, CheckOutAsDayUse $checkOut, ReservationRefusals $refusals): RedirectResponse
     {
-        $result = $checkOut($request->user(), $unit, $request->start(), $request->end(), $request->amount(), $request->reason(), $request->refundAmount(), $request->collectBalance(), $request->string('idempotency_key')->toString(), $request->damage());
+        $result = $checkOut($request->user(), $unit, $request->start(), $request->end(), $request->amount(), $request->reason(), $request->refundAmount(), $request->collectBalance(), $request->string('idempotency_key')->toString(), $request->damage(), $request->ratePlanId(), $request->noPlan());
 
         return $this->respond($property, $reservation, $result->refusal, $refusals, __('Unit checked out as day use.'), rooms: $result->rooms);
     }
 
     public function checkOutAsDayUsePreview(CheckOutAsDayUseRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, CheckOutAsDayUseQuote $quote): JsonResponse
     {
-        return response()->json($quote->preview($unit, $request->user(), $request->start(), $request->end(), $request->amount(), $request->reason()));
+        return response()->json($quote->preview($unit, $request->user(), $request->start(), $request->end(), $request->amount(), $request->reason(), $request->ratePlanId(), $request->noPlan()));
     }
 
     /**

@@ -3211,6 +3211,9 @@ settlement: App.Data.Reservations.UnitCheckOutPreviewData | null,
 lines: App.Data.Reservations.UnitPendingLineData[],
 folioLines: App.Data.Reservations.UnitPendingLineData[],
 ratePlanName: string | null,
+perNightPlanName: string | null,
+planNote: string | null,
+planOptions: App.Data.Reservations.DayUsePlanOptionData[],
 checkedInTime: string | null,
 noTaxes: boolean,
 droppedAddOns: string[],
@@ -3255,6 +3258,12 @@ export type DayUseOfferData = {
 hours: number,
 amount: string,
 endsAt: string,
+};
+export type DayUsePlanOptionData = {
+id: number,
+name: string,
+price: string | null,
+disabledReason: string | null,
 };
 export type DiscountOptionData = {
 id: number,
@@ -3647,6 +3656,7 @@ name: string,
 isBed: boolean,
 maxAdults: number,
 maxChildren: number,
+enteredPlanId: number | null,
 };
 export type UnitActionData = {
 key: App.Enums.UnitAction,

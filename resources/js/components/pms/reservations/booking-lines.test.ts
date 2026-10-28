@@ -25,8 +25,16 @@ const roomType = {
     isBed: false,
     maxAdults: 2,
     maxChildren: 2,
+    enteredPlanId: null,
 };
-const dorm = { id: 2, name: 'Dorm', isBed: true, maxAdults: 1, maxChildren: 0 };
+const dorm = {
+    id: 2,
+    name: 'Dorm',
+    isBed: true,
+    maxAdults: 1,
+    maxChildren: 0,
+    enteredPlanId: null,
+};
 
 test('a dorm line adds one unit for each bed and a room line adds one', () => {
     const room = { ...emptyLine(), room_type_id: '1' };

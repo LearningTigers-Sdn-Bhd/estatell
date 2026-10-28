@@ -7,7 +7,7 @@ use App\Models\Reservation;
 
 /**
  * What `CheckInWalkIn` returns: the saved reservation, or null when nothing was saved. A refused booking comes back as
- * its `BookingResult`; `amountChanged` is true when the server total was not `expectedTotal`. `units` has one row per
+ * its `BookingResult`; `amountChanged` is true when the server total was not `expectedTotal`. A unit refused in a walk-in that is already checked out comes back as `unitRefused()`, with the unit alone and nothing saved. `units` has one row per
  * unit in unit order, and `collected` is the sum of everything taken.
  */
 class WalkInResult
@@ -34,6 +34,14 @@ class WalkInResult
     public static function bookingRefused(BookingResult $booking): self
     {
         return new self(null, $booking, false, [], '0.00');
+    }
+
+    /**
+     * A walk-in saved as already checked out whose unit was refused: nothing is saved, and `units` holds the refused unit.
+     */
+    public static function unitRefused(WalkInUnitResult $unit): self
+    {
+        return new self(null, null, false, [$unit], '0.00');
     }
 
     public static function amountChanged(): self

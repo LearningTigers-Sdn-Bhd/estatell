@@ -199,7 +199,7 @@ class BookingSummary
             ? DateRange::long(CarbonImmutable::parse($unit->arrival_date->toDateString()), CarbonImmutable::parse($unit->departure_date->toDateString()))
             : null;
 
-        return implode(' · ', array_filter([$place, $unit->roomType->name, $showPrices ? $unit->ratePlan->name : null, implode(', ', $guests), $dates, $unit->status->holdsInventory() ? null : $unit->status->label()], filled(...)));
+        return implode(' · ', array_filter([$place, $unit->roomType->name, $showPrices ? $this->stayLabel->planForUnit($unit) : null, implode(', ', $guests), $dates, $unit->status->holdsInventory() ? null : $unit->status->label()], filled(...)));
     }
 
     /**

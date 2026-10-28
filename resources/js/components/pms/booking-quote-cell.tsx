@@ -42,6 +42,7 @@ export function BookingQuoteCell({
     index,
     canOverride = true,
     goLiveDate = null,
+    enteredPrice = false,
 }: {
     quote: Quote | null;
     loading: boolean;
@@ -58,10 +59,67 @@ export function BookingQuoteCell({
     canOverride?: boolean;
     /** Migrated stay only: a night before this date shows "before go-live" and no price. */
     goLiveDate?: string | null;
+    /** A day use line with no plan: staff type the price, so the cell is the Price field and the optional reason. */
+    enteredPrice?: boolean;
 }) {
     const overrideInvalid =
         !!errors[`lines.${index}.override_total`] ||
         !!errors[`lines.${index}.override_reason`];
+
+    if (enteredPrice) {
+        return (
+            <FieldGroup className="gap-2">
+                <Field data-invalid={!!errors[`lines.${index}.override_total`]}>
+                    <FieldLabel
+                        htmlFor={`override-total-${index}`}
+                        className="lg:sr-only"
+                    >
+                        Price
+                    </FieldLabel>
+                    <MoneyInput
+                        id={`override-total-${index}`}
+                        value={overrideTotal}
+                        onChange={(value) =>
+                            onOverrideChange({ override_total: value })
+                        }
+                        currency={currency}
+                        placeholder="e.g. 150.00"
+                        invalid={!!errors[`lines.${index}.override_total`]}
+                    />
+                    <FieldError>
+                        {errors[`lines.${index}.override_total`]}
+                    </FieldError>
+                </Field>
+                <Field
+                    data-invalid={!!errors[`lines.${index}.override_reason`]}
+                >
+                    <FieldLabel
+                        htmlFor={`override-reason-${index}`}
+                        className="sr-only"
+                    >
+                        Reason (optional)
+                    </FieldLabel>
+                    <Input
+                        id={`override-reason-${index}`}
+                        value={overrideReason}
+                        onChange={(event) =>
+                            onOverrideChange({
+                                override_reason: event.target.value,
+                            })
+                        }
+                        maxLength={500}
+                        placeholder="Reason (optional), e.g. Walk-in"
+                        aria-invalid={
+                            !!errors[`lines.${index}.override_reason`]
+                        }
+                    />
+                    <FieldError>
+                        {errors[`lines.${index}.override_reason`]}
+                    </FieldError>
+                </Field>
+            </FieldGroup>
+        );
+    }
 
     return (
         <div className="flex items-center gap-1">

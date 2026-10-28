@@ -6,6 +6,7 @@ use App\Enums\DefaultRoleEnum;
 use App\Enums\InclusionEnd;
 use App\Enums\InclusionStart;
 use App\Enums\ReportKey;
+use App\Enums\StayType;
 use App\Features\Boats;
 use App\Models\MealPeriod;
 use App\Models\Property;
@@ -175,4 +176,24 @@ test('with boats on, a late arrival and an early departure trim the dinner and b
 
     $this->actingAs($user)->get($url)->assertInertia(fn (Assert $page) => $page
         ->where('rows.data', fn ($rows) => collect($rows)->pluck('key')->all() === []));
+});
+
+test('day use units are left out of the meal counts', function () {
+    [$user, $property] = reportSetup();
+    $breakfast = MealPeriod::factory()->create(['property_id' => $property->id, 'name' => 'Breakfast', 'starts_at' => '07:00']);
+    $plan = RatePlan::factory()->create(['property_id' => $property->id]);
+    RatePlanInclusion::factory()->create(['rate_plan_id' => $plan->id, 'meal_period_id' => $breakfast->id, 'starts_on' => InclusionStart::ArrivalDay, 'ends_on' => InclusionEnd::DepartureDay]);
+    mealCountsUnit($property, $plan, 'confirmed', '2026-10-10', '2026-10-11', 2);
+    ReservationUnit::factory()->for(Reservation::factory()->create(['property_id' => $property->id]))->create([
+        'rate_plan_id' => $plan->id,
+        'stay_type' => StayType::DayUse,
+        'arrival_date' => '2026-10-10',
+        'departure_date' => '2026-10-10',
+        'arrival_time' => '10:00',
+        'departure_time' => '14:00',
+        'adults' => 3,
+    ]);
+
+    $this->actingAs($user)->get(mealCountsUrl($property, '?from=2026-10-10&to=2026-10-10'))->assertInertia(fn (Assert $page) => $page
+        ->where('rows.data', fn ($rows) => collect($rows)->map(fn ($row) => [$row['meal'], $row['adults']])->all() === [['Breakfast', 2]]));
 });

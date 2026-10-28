@@ -51,13 +51,13 @@ class RateQuoteService
      * Prices one day use block with `DayUsePricing`. Days and hours only: no nights, no long-stay discount and no
      * derived plan. `$ignoreStopSell` is for a caller that has accepted a restriction override.
      */
-    public function quoteDayUse(RoomType $roomType, RatePlan $plan, CarbonInterface $date, int $hours, bool $ignoreStopSell = false): DayUseQuote
+    public function quoteDayUse(RoomType $roomType, RatePlan $plan, CarbonInterface $date, int $hours, bool $ignoreStopSell = false, bool $ignoreHoursLimit = false): DayUseQuote
     {
         $currency = $plan->property->settings?->currency->getCurrencyCode()
             ?? throw new InvalidArgumentException('The property needs settings with a currency to quote a day use.');
 
         try {
-            return DayUseQuote::quoted($this->dayUsePricing->price($plan, $roomType, $date, $hours, $currency, $ignoreStopSell));
+            return DayUseQuote::quoted($this->dayUsePricing->price($plan, $roomType, $date, $hours, $currency, $ignoreStopSell, $ignoreHoursLimit));
         } catch (QuoteRefused $refused) {
             return DayUseQuote::refused($refused->reason, $refused->date);
         }

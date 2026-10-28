@@ -3,6 +3,7 @@
 namespace App\Services\Meals;
 
 use App\Data\Meals\MealInclusionData;
+use App\Enums\StayType;
 use App\Enums\UnitStatus;
 use App\Features\Boats;
 use App\Models\MealPeriod;
@@ -19,6 +20,7 @@ use Laravel\Pennant\Feature;
  * children, and `MealEntitlementResolver` says which dates and periods it is owed. With the Boats feature on, the
  * unit's arrival and departure times trim the first and last day. Confirmed, Checked-in and
  * Checked-out units count (an early check-out has already moved the departure date); Cancelled and No-show units do not.
+ * Day use units never count: they have no meal, even on a per-night plan with breakfast.
  */
 class MealCounts
 {
@@ -45,6 +47,7 @@ class MealCounts
         $units = ReservationUnit::query()
             ->where('property_id', $property->id)
             ->whereIn('status', [UnitStatus::CheckedIn->value, UnitStatus::Confirmed->value, UnitStatus::CheckedOut->value])
+            ->where('stay_type', '!=', StayType::DayUse->value)
             ->whereDate('arrival_date', '<=', $to->toDateString())
             ->whereDate('departure_date', '>=', $from->toDateString())
             ->whereHas('ratePlan.inclusions', fn ($inclusions) => $inclusions->whereNotNull('meal_period_id'))

@@ -16,6 +16,7 @@ use App\Services\Folio\FolioRouter;
 use App\Services\FrontDesk\CheckInCollection;
 use App\Services\Reservations\UnitNationality;
 use Brick\Math\BigDecimal;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
 class CheckInAndCollect
@@ -38,19 +39,20 @@ class CheckInAndCollect
      * company and any billing mode but Each unit pays), on the Master folio when the unit's room charges go there,
      * so it never meets `advance_on_master`. The amounts are worked out here by `CheckInCollection`, never read from
      * the form. Every step is one transaction: a refused check-in or a refused payment saves nothing, so staff fix the field and submit the same form again.
+     * `$asOf` is passed to `CheckInUnit`: a walk-in day use that started earlier today checks in at its start.
      * Permissions are checked by the route and the Form Request.
      * See docs/18-front-desk/01-check-in-and-check-out.md#collect-now.
      */
-    public function __invoke(User $actor, ReservationUnit $unit, ?string $nationality = null, bool $withoutCard = false, ?string $creditOverrideReason = null, ?CollectNowData $collect = null): CheckInAndCollectResult
+    public function __invoke(User $actor, ReservationUnit $unit, ?string $nationality = null, bool $withoutCard = false, ?string $creditOverrideReason = null, ?CollectNowData $collect = null, ?CarbonImmutable $asOf = null): CheckInAndCollectResult
     {
         try {
-            return DB::transaction(function () use ($actor, $unit, $nationality, $withoutCard, $creditOverrideReason, $collect): CheckInAndCollectResult {
+            return DB::transaction(function () use ($actor, $unit, $nationality, $withoutCard, $creditOverrideReason, $collect, $asOf): CheckInAndCollectResult {
                 if ($nationality !== null && ! $this->saveNationality($actor, $unit, $nationality)) {
                     throw new UnitStayRefused(UnitStayResult::refused(UnitStayResult::REFUSAL_NATIONALITY_REQUIRED));
                 }
 
                 $billOffer = $collect?->roomCharges ? $this->checkInCollection->for($unit) : null;
-                $stay = ($this->checkInUnit)($actor, $unit, $withoutCard, $creditOverrideReason);
+                $stay = ($this->checkInUnit)($actor, $unit, $withoutCard, $creditOverrideReason, $asOf);
 
                 if ($stay->isRefused()) {
                     throw new UnitStayRefused($stay);

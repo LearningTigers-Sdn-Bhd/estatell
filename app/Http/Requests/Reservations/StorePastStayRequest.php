@@ -4,6 +4,7 @@ namespace App\Http\Requests\Reservations;
 
 use App\Enums\OldFolioMode;
 use App\Enums\PermissionEnum;
+use App\Enums\StayType;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
@@ -24,7 +25,7 @@ class StorePastStayRequest extends StoreBookingRequest
             'old_folio' => ['required_if:mode,migrated', 'nullable', Rule::enum(OldFolioMode::class)],
             'opening_amount' => ['nullable', 'string', 'max:20'],
             'legacy_number' => ['nullable', 'string', 'max:50'],
-            'departure_date' => ['required', 'date_format:Y-m-d'],
+            'end_time' => ['required_if:stay_type,day_use', 'nullable', 'date_format:H:i'],
         ];
     }
 
@@ -60,6 +61,10 @@ class StorePastStayRequest extends StoreBookingRequest
         return [...parent::after(), function (Validator $validator): void {
             if ($validator->errors()->isNotEmpty()) {
                 return;
+            }
+
+            if ($this->input('stay_type') === StayType::DayUse->value) {
+                $this->checkDayUse($validator);
             }
 
             foreach ($this->input('lines', []) as $index => $line) {
@@ -127,8 +132,28 @@ class StorePastStayRequest extends StoreBookingRequest
         return $this->validated('status') === 'checked_out';
     }
 
+    /**
+     * The End of a day use, `H:i`: the moment the guest left on the stay's date. Null for a stay of nights.
+     */
+    public function endTime(): ?string
+    {
+        return $this->validated('end_time');
+    }
+
     public function reason(): string
     {
         return (string) $this->validated('reason');
+    }
+
+    /**
+     * A past day use has ended, so it is saved as already checked out, with an End after its Start.
+     */
+    private function checkDayUse(Validator $validator): void
+    {
+        if ($this->input('status') !== 'checked_out') {
+            $validator->errors()->add('status', __('A past day use has ended. Save it as already checked out.'));
+        } elseif ($this->input('end_time') <= $this->input('start_time')) {
+            $validator->errors()->add('end_time', __('The end must be after the start.'));
+        }
     }
 }
