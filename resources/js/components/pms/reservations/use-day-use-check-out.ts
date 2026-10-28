@@ -4,6 +4,10 @@ import {
     KEEP_OPTIONS,
     useFormOptions,
 } from '@/components/pms/use-form-options';
+import {
+    planPayload,
+    visibleErrors,
+} from '@/components/pms/reservations/day-use-check-out-plan';
 import { checkOutAsDayUse } from '@/routes/reservations/units';
 import { preview as previewRoute } from '@/routes/reservations/units/check-out-as-day-use';
 
@@ -30,6 +34,9 @@ export function useDayUseCheckOut({
     const routeKey = { reservation: reservationId, unit: unitId };
     const [idempotencyKey] = useState(() => crypto.randomUUID());
     const [overriding, setOverriding] = useState(false);
+    // '' until staff touch the Plan select, then a plan id or 'none'.
+    const [planChoice, setPlanChoice] = useState('');
+    const [saveAttempted, setSaveAttempted] = useState(false);
     const [answer, setAnswer] = useState<{
         key: string;
         preview: Preview;
@@ -50,6 +57,7 @@ export function useDayUseCheckOut({
         ...(data.end !== '' && { end: data.end }),
         ...(data.amount !== '' && { amount: data.amount }),
         ...(data.reason !== '' && { reason: data.reason }),
+        ...planPayload(planChoice),
     };
     const key = JSON.stringify(payload);
     // The key of the last answer. The first quote is sent at once; later changes wait for typing to stop.
@@ -143,7 +151,23 @@ export function useDayUseCheckOut({
         'paymentOptions',
     );
 
+    const amountMissing = current && preview?.refusal === 'amount_required';
+
+    const pickPlan = (value: string) => {
+        setPlanChoice(value);
+        setOverriding(false);
+        setSaveAttempted(false);
+        form.setData((values) => ({ ...values, amount: '', reason: '' }));
+        form.clearErrors('amount', 'reason');
+    };
+
     const save = () => {
+        if (amountMissing) {
+            setSaveAttempted(true);
+
+            return;
+        }
+
         if (!current || preview?.refusal !== null || !settled) {
             return;
         }
@@ -179,13 +203,25 @@ export function useDayUseCheckOut({
         owing,
         collecting,
         refunding,
-        errors: {
-            ...(current ? preview?.errors : {}),
-            ...http.errors,
-            ...form.errors,
-            ...(requestError !== null &&
-                !http.hasErrors && { form: requestError }),
-        },
+        planChoice,
+        pickPlan,
+        errors: visibleErrors(
+            {
+                ...(current ? preview?.errors : {}),
+                ...http.errors,
+                ...form.errors,
+                ...(requestError !== null &&
+                    !http.hasErrors && { form: requestError }),
+            },
+            current ? preview?.refusal : null,
+            saveAttempted,
+        ),
+        canSubmit:
+            amountMissing ||
+            (current &&
+                preview?.refusal === null &&
+                settled &&
+                (!collecting || methodId !== '')),
         canSave:
             current &&
             preview?.refusal === null &&
