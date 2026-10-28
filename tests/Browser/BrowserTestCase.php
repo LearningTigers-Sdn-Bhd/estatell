@@ -2,6 +2,8 @@
 
 namespace Tests\Browser;
 
+use App\Actions\Onboarding\RegisterPropertyOwner;
+use App\Data\Onboarding\NewPropertyOwnerData;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\UnitStatus;
 use App\Models\Property;
@@ -73,6 +75,25 @@ abstract class BrowserTestCase extends TestCase
         $this->actingAs(User::query()->where('email', 'owner@kinabalu-hostel.test')->firstOrFail());
 
         return $this->property;
+    }
+
+    /**
+     * Register the empty "Seaview Lodge" through the real sign-up action and sign in as its verified Owner. The
+     * property starts in Onboarding with the default roles and nothing else, so an onboarding test walks the wizard
+     * from the first section. Each test makes its own, inside the test transaction.
+     */
+    protected function startOnboarding(): Property
+    {
+        $owner = app(RegisterPropertyOwner::class)(new NewPropertyOwnerData(
+            name: 'Aminah Yusof',
+            email: 'aminah@seaviewlodge.my',
+            password: 'Seaview-Lodge-2026',
+            propertyName: 'Seaview Lodge',
+        ));
+        $owner->forceFill(['email_verified_at' => now()])->save();
+        $this->actingAs($owner);
+
+        return $this->property = $owner->property;
     }
 
     /**
