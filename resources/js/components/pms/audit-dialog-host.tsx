@@ -321,6 +321,7 @@ function DismissExceptionDialog({
                     autoFocus
                     rows={3}
                     maxLength={500}
+                    placeholder="e.g. Charged by hand on the folio"
                     value={form.data.reason}
                     onChange={(event) =>
                         form.setData('reason', event.target.value)
