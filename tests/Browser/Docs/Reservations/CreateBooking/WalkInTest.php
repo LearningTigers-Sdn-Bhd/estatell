@@ -44,3 +44,21 @@ test('walk-in payment with the room charges unticked', function () {
 
     $this->shoot($page, 'walk-in-payment-unticked', element: 'aside');
 });
+
+test('walk-in day use payment for a guest who left', function () {
+    $page = $this->open(route('reservations.walk-in', $this->property))
+        ->click('Day use')
+        ->waitForText('Date and start')
+        ->type('input[aria-label="Start time"]', '10:00')
+        ->click('Select room type')
+        ->click('Garden Room')
+        ->click('Already checked out')
+        ->type('#booking-end-time', '13:40')
+        ->waitForText('Ends 02:00 PM')
+        ->click('#line-0-room_id')
+        ->click('[role="listbox"] >> text=101')
+        ->type('#guest-0-full_name', 'Aisyah binti Rahman')
+        ->waitForText('Room charges and tax');
+
+    $this->shoot($page, 'walk-in-day-use-payment', element: 'aside');
+});
