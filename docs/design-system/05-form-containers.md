@@ -90,7 +90,7 @@ Tailwind has no 400 px or 480 px step, so the sizes use the spacing scale (`max-
 
 A page that opens an overlay for a row (`row !== null`) passes the row through `useRetainedValue` (`components/pms/use-retained-value.ts`). It keeps the last row while the overlay closes, so the content stays for the exit animation. The inner form gets the row id and `useFreshOnOpen` in its key.
 
-The optional-prop request stays in `useFormOptions`. The page calls it and passes `loading` down.
+The optional-prop request stays in `useFormOptions`. The page calls it and passes `loading` down. It reads the prop again each time the overlay opens, so a list changed elsewhere (for example a payment method added in Settings) shows without a page reload. `loading` is true only before the first answer; a reopened overlay shows the list it has until the new one arrives.
 
 `FormError`, `DiscardChangesDialog` and `useFormOptions` live in `components/pms/` next to `FormOverlay`. The folio and city-ledger overlays import them from there.
 
