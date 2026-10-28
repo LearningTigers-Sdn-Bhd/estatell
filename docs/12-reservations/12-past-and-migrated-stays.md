@@ -67,6 +67,8 @@ The toggles on this form show an icon and a label: Guest status (`BedDouble` Sti
 
 Restrictions (min stay, closed to arrival) are not checked for the past nights. Availability is.
 
+**Day use** (built). Past stay gains a **Stay type** switch (Overnight, Day use). With Day use, the form asks Date, Start and End instead of Checked in and Departure, Guest status is **Already checked out** only, and a line can use **No plan · enter price**. The date follows the Checked in rule above: a day use on the business date is entered under Walk-in. See [Day use: Past stay, a past date](10-day-use.md#past-stay-a-past-date).
+
 ### Saving
 
 `CreatePastStay` (`app/Actions/Reservations/`) runs the existing Actions in one transaction:

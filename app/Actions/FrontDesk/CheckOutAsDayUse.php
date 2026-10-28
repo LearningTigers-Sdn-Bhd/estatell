@@ -24,12 +24,12 @@ class CheckOutAsDayUse
         private UnpostedAddOnsAfter $unpostedAddOnsAfter,
     ) {}
 
-    public function __invoke(User $actor, ReservationUnit $unit, ?string $start = null, ?string $end = null, ?string $amount = null, ?string $reason = null, ?string $refundAmount = null, ?CheckOutCollectData $collect = null, ?string $idempotencyKey = null, ?CheckOutDamageData $damage = null): UnitStayResult
+    public function __invoke(User $actor, ReservationUnit $unit, ?string $start = null, ?string $end = null, ?string $amount = null, ?string $reason = null, ?string $refundAmount = null, ?CheckOutCollectData $collect = null, ?string $idempotencyKey = null, ?CheckOutDamageData $damage = null, ?int $ratePlanId = null, bool $noPlan = false): UnitStayResult
     {
         DB::beginTransaction();
 
         try {
-            $result = $this->run($actor, $unit, $start, $end, $amount, $reason, $refundAmount, $collect, $idempotencyKey, $damage);
+            $result = $this->run($actor, $unit, $start, $end, $amount, $reason, $refundAmount, $collect, $idempotencyKey, $damage, $ratePlanId, $noPlan);
         } catch (Throwable $exception) {
             DB::rollBack();
 
@@ -45,10 +45,10 @@ class CheckOutAsDayUse
         return $result;
     }
 
-    private function run(User $actor, ReservationUnit $unit, ?string $start, ?string $end, ?string $amount, ?string $reason, ?string $refundAmount, ?CheckOutCollectData $collect, ?string $idempotencyKey, ?CheckOutDamageData $damage): UnitStayResult
+    private function run(User $actor, ReservationUnit $unit, ?string $start, ?string $end, ?string $amount, ?string $reason, ?string $refundAmount, ?CheckOutCollectData $collect, ?string $idempotencyKey, ?CheckOutDamageData $damage, ?int $ratePlanId, bool $noPlan): UnitStayResult
     {
         $locked = ReservationUnit::query()->where('property_id', $unit->property_id)->lockForUpdate()->findOrFail($unit->id);
-        $quote = $this->quote->quote($locked, $start, $end, $amount, $reason);
+        $quote = $this->quote->quote($locked, $start, $end, $amount, $reason, $ratePlanId, $noPlan);
 
         if ($quote->refusal !== null) {
             return UnitStayResult::refused($quote->refusal);

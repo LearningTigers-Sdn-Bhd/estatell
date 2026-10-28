@@ -56,8 +56,10 @@ export type BookingForm = {
     notes: string;
     /** Past stay only: why the stay is entered late. */
     reason?: string;
-    /** Past stay only: still in the house, or already checked out. */
+    /** Past stay and day use walk-in: still in the house, or already checked out. */
     status?: 'in_house' | 'checked_out';
+    /** Day use walk-in, already checked out: when the guest left, `H:i`. */
+    end_time?: string;
     /** Past stay, Migrated stay and Old stay: which of the three the form saves. */
     mode?: 'past' | 'migrated' | 'old';
     /** Migrated stay only: `one_amount` or `copy_line_by_line`. */

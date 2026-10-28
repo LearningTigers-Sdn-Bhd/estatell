@@ -3,7 +3,9 @@
 namespace App\Services\FrontDesk;
 
 use App\Actions\FrontDesk\UnitStayResult;
+use App\Actions\Reservations\ReservationResult;
 use App\Data\Reservations\CheckOutAsDayUseData;
+use App\Data\Reservations\DayUsePlanOptionData;
 use App\Data\Reservations\UnitPendingLineData;
 use App\Enums\FolioStatus;
 use App\Enums\PermissionEnum;
@@ -52,7 +54,7 @@ class CheckOutAsDayUseQuote
         private UnpostedAddOnsAfter $unpostedAddOnsAfter,
     ) {}
 
-    public function quote(ReservationUnit $unit, ?string $start = null, ?string $end = null, ?string $amount = null, ?string $reason = null): CheckOutAsDayUseData
+    public function quote(ReservationUnit $unit, ?string $start = null, ?string $end = null, ?string $amount = null, ?string $reason = null, ?int $ratePlanId = null, bool $noPlan = false): CheckOutAsDayUseData
     {
         $data = new CheckOutAsDayUseData;
 
@@ -86,10 +88,10 @@ class CheckOutAsDayUseQuote
         }
 
         $zone = $property->settings->time_zone ?? config('app.timezone');
-        $checkedIn = $unit->checked_in_at?->setTimezone($zone);
+        $checkedIn = $unit->checked_in_at?->setTimezone($zone)->startOfMinute();
         $data->checkedInTime = $checkedIn?->format('H:i');
         $startAt = $start === null ? $checkedIn : $this->time($data->date, $start, $zone);
-        $endAt = $end === null ? now($zone) : $this->time($data->date, $end, $zone);
+        $endAt = $end === null ? now($zone)->toImmutable()->startOfMinute() : $this->time($data->date, $end, $zone);
         $data->start = $startAt?->format('H:i:s');
         $data->end = $endAt?->format('H:i:s');
 
@@ -115,24 +117,48 @@ class CheckOutAsDayUseQuote
 
         $data->blockEnd = $startAt->addHours($hours)->format('H:i:s');
         $data->hours = $hours;
-        $plan = RatePlan::query()->where('property_id', $unit->property_id)->active()
+        $plans = RatePlan::query()->where('property_id', $unit->property_id)->active()
             ->where('pricing_basis', PricingBasis::DayUse)
             ->whereHas('roomTypes', fn ($types) => $types->whereKey($unit->room_type_id))
-            ->orderBy('position')->orderBy('id')->first();
-        $data->ratePlanId = $plan?->id;
-        $data->ratePlanName = $plan?->name;
+            ->orderBy('position')->orderBy('id')->get();
+        $prices = [];
+        $refused = [];
+        $notes = [];
 
-        if ($plan !== null) {
-            $quote = $this->rateQuoteService->quoteDayUse($unit->roomType, $plan, $businessDate, $hours, ignoreStopSell: true);
+        foreach ($plans as $candidate) {
+            $quote = $this->rateQuoteService->quoteDayUse($unit->roomType, $candidate, $businessDate, $hours, ignoreStopSell: true);
+            $reasons = $quote->isRefused() ? $this->refusalReasons($candidate, $quote->refusal, $businessDate) : null;
+            $prices[$candidate->id] = $quote->isRefused() ? null : (string) $quote->amount->getAmount();
+            $refused[$candidate->id] = $quote->refusal;
+            $notes[$candidate->id] = $reasons[1] ?? null;
+            $data->planOptions[] = new DayUsePlanOptionData($candidate->id, $candidate->name, $prices[$candidate->id], $reasons[0] ?? null);
+        }
 
-            if ($quote->isRefused() && ! in_array($quote->refusal, [RateQuote::REFUSAL_HOURS_NOT_SOLD, RateQuote::REFUSAL_NO_HOUR_PRICE], true)) {
-                $data->refusal = $quote->refusal;
+        $data->perNightPlanName = $unit->ratePlan?->name;
+        $plan = null;
+
+        if (! $noPlan && $ratePlanId !== null) {
+            $plan = $plans->firstWhere('id', $ratePlanId);
+
+            if ($plan === null) {
+                $data->refusal = ReservationResult::REFUSAL_RATE_PLAN_NOT_LINKED;
 
                 return $data;
             }
 
-            $data->planPrice = $quote->isRefused() ? null : (string) $quote->amount->getAmount();
+            if ($refused[$plan->id] !== null) {
+                $data->refusal = $refused[$plan->id];
+
+                return $data;
+            }
+        } elseif (! $noPlan) {
+            $plan = $plans->first(fn (RatePlan $candidate): bool => $refused[$candidate->id] === null);
+            $data->planNote = $plan === null && $plans->isNotEmpty() ? $notes[$plans->first()->id] : null;
         }
+
+        $data->ratePlanId = $plan?->id;
+        $data->ratePlanName = $plan?->name;
+        $data->planPrice = $plan === null ? null : $prices[$plan->id];
 
         if ($amount === null && $data->planPrice === null) {
             $data->refusal = UnitStayResult::REFUSAL_AMOUNT_REQUIRED;
@@ -150,21 +176,21 @@ class CheckOutAsDayUseQuote
         $data->amount = (string) Money::of($amount ?? $data->planPrice, $currency)->getAmount();
         $data->overrideAmount = $data->planPrice === $data->amount ? null : $data->amount;
 
-        if ($data->overrideAmount !== null && ! filled($reason)) {
-            $data->refusal = UnitStayResult::REFUSAL_OVERRIDE_REASON_REQUIRED;
-        }
-
         return $data;
     }
 
-    public function preview(ReservationUnit $unit, User $user, ?string $start = null, ?string $end = null, ?string $amount = null, ?string $reason = null): CheckOutAsDayUseData
+    public function preview(ReservationUnit $unit, User $user, ?string $start = null, ?string $end = null, ?string $amount = null, ?string $reason = null, ?int $ratePlanId = null, bool $noPlan = false): CheckOutAsDayUseData
     {
-        $data = $this->quote($unit, $start, $end, $amount, $reason);
+        $data = $this->quote($unit, $start, $end, $amount, $reason, $ratePlanId, $noPlan);
         $code = $data->hours === null ? null : TransactionCode::query()->where('property_id', $unit->property_id)->where('system_key', SystemTransactionCode::DayUseRevenue)->first();
         $data->noTaxes = $code !== null && ! $code->applicableTaxes()->exists();
 
         if ($data->refusal !== null) {
             $data->errors = $this->refusals->unitErrors($data->refusal);
+
+            if ($ratePlanId !== null && in_array($data->refusal, [RateQuote::REFUSAL_HOURS_NOT_SOLD, RateQuote::REFUSAL_NO_HOUR_PRICE], true)) {
+                $data->errors = ['rate_plan_id' => array_values($data->errors)[0]];
+            }
 
             return $data;
         }
@@ -233,12 +259,36 @@ class CheckOutAsDayUseQuote
         return $data;
     }
 
+    /**
+     * The short reason a plan is disabled and the longer note for the default falling to No plan.
+     *
+     * @return array{0: string, 1: string}
+     */
+    private function refusalReasons(RatePlan $plan, string $refusal, CarbonImmutable $date): array
+    {
+        if ($refusal === RateQuote::REFUSAL_HOURS_NOT_SOLD) {
+            $range = ($plan->day_use_min_hours ?? 1).'–'.($plan->day_use_max_hours ?? 24);
+
+            return [__('Sells :range hours', ['range' => $range]), __(':plan sells :range hours.', ['plan' => $plan->name, 'range' => $range])];
+        }
+
+        if ($refusal === RateQuote::REFUSAL_NO_HOUR_PRICE) {
+            $day = $date->format('j M');
+
+            return [__('No price for :date', ['date' => $day]), __(':plan has no price for :date.', ['plan' => $plan->name, 'date' => $day])];
+        }
+
+        $message = array_values($this->refusals->unitErrors($refusal))[0];
+
+        return [$message, $message];
+    }
+
     private function time(string $date, string $time, string $zone): ?CarbonImmutable
     {
         if (preg_match('/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/', $time) !== 1) {
             return null;
         }
 
-        return CarbonImmutable::parse($date.' '.$time, $zone);
+        return CarbonImmutable::parse($date.' '.$time, $zone)->startOfMinute();
     }
 }

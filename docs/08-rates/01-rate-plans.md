@@ -56,7 +56,7 @@ Staff with `settings.manage` use Settings, Rates, Rate plans (`settings.rate-pla
 
 ## Day use plans
 
-A plan with `pricing_basis = DayUse` sells a room for a number of hours on one day (see [Day use](../12-reservations/10-day-use.md)).
+A plan with `pricing_basis = DayUse` sells a room for a number of hours on one day (see [Day use](../12-reservations/10-day-use.md)). It is optional: without one, staff sell day use with an entered price (see [Entered price](../12-reservations/10-day-use.md#entered-price)).
 
 - **Columns.** `day_use_min_hours` and `day_use_max_hours` (1 to 24, min ≤ max) say which whole hours are sold: each hour from the minimum to the maximum has its own price. `day_use_from` and `day_use_until` are the optional **Sold between** window: a block must start at or after `from` and end at or before `until`. A CHECK keeps the hours set on a Day use plan and empty on every other plan, the two times both set or both empty, `from` before `until`, and no parent. The Form Request also needs the window to be at least the minimum hours long (no CHECK for that).
 - **New plan Sheet.** "How is it priced?" adds **Day use**, which asks **Hours sold** (from, to). Room types sold per room only; a Bed room type is disabled with the reason.

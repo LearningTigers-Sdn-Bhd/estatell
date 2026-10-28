@@ -21,6 +21,7 @@ use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
+use App\Models\RatePlan;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\RoomStatus;
@@ -115,29 +116,99 @@ test('no plan keeps the overnight plan but never splits its breakfast inclusion'
         ->and(FolioLine::query()->where('idempotency_key', 'like', 'dayuse:'.$s['unit']->id.':incl:%')->count())->toBe(0);
 })->with(['80.00', '0.00']);
 
-test('a plan price override requires a reason and is recorded', function () {
+test('a plan price override is recorded and its reason is optional', function () {
     $s = overnightDayUseCheckout();
-    expect(app(CheckOutAsDayUse::class)($s['user'], $s['unit'], amount: '80.00')->refusal)->toBe('override_reason_required');
     $result = app(CheckOutAsDayUse::class)($s['user'], $s['unit'], amount: '80.00', reason: 'Guest left early', collect: dayUseCheckoutCollect($s, '80.00'));
     expect($result->refusal)->toBeNull()
         ->and($s['unit']->fresh()->dayUse->override_amount)->toBe('80.00')
         ->and(Activity::query()->where('event', 'reservation.unit_checked_out_as_day_use')->sole()->properties['reason'])->toBe('Guest left early');
 });
 
-test('unpriced or unsold hours need an amount and reason but still switch plans', function (string $failure) {
+test('unpriced or unsold hours fall back to no plan and need an amount', function (string $failure) {
     $s = overnightDayUseCheckout();
     if ($failure === 'hours_not_sold') {
         $s['plan']->update(['day_use_max_hours' => 4]);
     } else {
         $s['plan']->rates()->whereDate('date', $s['date']->toDateString())->sole()->hourPrices()->where('hours', 5)->delete();
     }
-    expect(app(CheckOutAsDayUse::class)($s['user'], $s['unit'])->refusal)->toBe('amount_required')
-        ->and(app(CheckOutAsDayUse::class)($s['user'], $s['unit'], amount: '80.00')->refusal)->toBe('override_reason_required');
-    $result = app(CheckOutAsDayUse::class)($s['user'], $s['unit'], amount: '80.00', reason: 'Manual day use', collect: dayUseCheckoutCollect($s, '80.00'));
+    expect(app(CheckOutAsDayUse::class)($s['user'], $s['unit'])->refusal)->toBe('amount_required');
+    $result = app(CheckOutAsDayUse::class)($s['user'], $s['unit'], amount: '80.00', collect: dayUseCheckoutCollect($s, '80.00'));
     expect($result->refusal)->toBeNull()
-        ->and($s['unit']->fresh()->rate_plan_id)->toBe($s['plan']->id)
+        ->and($s['unit']->fresh()->rate_plan_id)->toBe($s['basic']->id)
         ->and($s['unit']->fresh()->dayUse->override_amount)->toBe('80.00');
 })->with(['hours_not_sold', 'no_hour_price']);
+
+test('the default picks the first plan that prices the stay, skipping a refused one before it', function () {
+    $s = overnightDayUseCheckout();
+    $s['plan']->update(['day_use_max_hours' => 4]);
+    $second = RatePlan::query()->findOrFail($s['plan']->id)->replicate();
+    $second->fill(['name' => 'Day Use Second', 'day_use_max_hours' => 8, 'position' => $s['plan']->position + 1])->save();
+    $second->roomTypes()->attach($s['roomType']->id);
+    $s['plan']->rates()->each(fn ($rate) => $second->rates()->create([...$rate->only(['room_type_id', 'date']), 'stop_sell' => false])->hourPrices()->createMany($rate->hourPrices->map->only(['hours', 'amount'])->all()));
+
+    $data = app(CheckOutAsDayUseQuote::class)->quote($s['unit']);
+
+    expect($data->refusal)->toBeNull()
+        ->and($data->ratePlanId)->toBe($second->id)
+        ->and($data->planOptions)->toHaveCount(2)
+        ->and($data->planOptions[0]->disabledReason)->toBe('Sells 2–4 hours')
+        ->and($data->planOptions[1]->disabledReason)->toBeNull()
+        ->and($data->planNote)->toBeNull();
+});
+
+test('the default falls to no plan with a note and keeps the per-night plan name', function () {
+    $s = overnightDayUseCheckout();
+    $s['plan']->update(['day_use_max_hours' => 4]);
+
+    $data = app(CheckOutAsDayUseQuote::class)->quote($s['unit'], amount: '50.00');
+
+    expect($data->ratePlanId)->toBeNull()
+        ->and($data->planNote)->toBe($s['plan']->name.' sells 2–4 hours.')
+        ->and($data->perNightPlanName)->toBe($s['basic']->name)
+        ->and($data->planOptions[0]->price)->toBeNull();
+});
+
+test('an explicit plan prices the stay and no plan keeps the per-night plan', function () {
+    $s = overnightDayUseCheckout();
+    $quote = app(CheckOutAsDayUseQuote::class);
+
+    expect($quote->quote($s['unit'], ratePlanId: $s['plan']->id)->ratePlanId)->toBe($s['plan']->id);
+
+    $none = $quote->quote($s['unit'], ratePlanId: $s['plan']->id, noPlan: true);
+    expect($none->refusal)->toBe('amount_required')->and($none->ratePlanId)->toBeNull();
+
+    $result = app(CheckOutAsDayUse::class)($s['user'], $s['unit'], amount: '70.00', collect: dayUseCheckoutCollect($s, '70.00'), noPlan: true);
+    expect($result->refusal)->toBeNull()->and($s['unit']->fresh()->rate_plan_id)->toBe($s['basic']->id);
+});
+
+test('an explicit plan that cannot price the stay refuses with its own refusal on the plan field', function () {
+    $s = overnightDayUseCheckout();
+    $s['plan']->update(['day_use_max_hours' => 4]);
+    $url = route('reservations.units.check-out-as-day-use.preview', ['property' => $s['property'], 'reservation' => $s['reservation'], 'unit' => $s['unit']]);
+
+    expect(app(CheckOutAsDayUse::class)($s['user'], $s['unit'], amount: '80.00', ratePlanId: $s['plan']->id)->refusal)->toBe('hours_not_sold');
+    expect($s['unit']->fresh()->status)->toBe(UnitStatus::CheckedIn);
+    $this->actingAs($s['user'])->postJson($url, ['rate_plan_id' => $s['plan']->id])
+        ->assertJsonPath('refusal', 'hours_not_sold')
+        ->assertJsonPath('errors.rate_plan_id', 'This plan does not sell that number of hours.');
+});
+
+test('a plan that is not a day use plan on the room type is not linked', function () {
+    $s = overnightDayUseCheckout();
+
+    expect(app(CheckOutAsDayUseQuote::class)->quote($s['unit'], ratePlanId: $s['basic']->id)->refusal)->toBe('rate_plan_not_linked');
+    $this->actingAs($s['user'])->postJson(route('reservations.units.check-out-as-day-use.preview', ['property' => $s['property'], 'reservation' => $s['reservation'], 'unit' => $s['unit']]), ['rate_plan_id' => $s['plan']->id, 'no_plan' => true])
+        ->assertJsonValidationErrors('rate_plan_id');
+});
+
+test('without a day use plan the options are empty and an amount is required', function () {
+    $s = overnightDayUseCheckout();
+    $s['plan']->update(['archived_at' => now()]);
+
+    $data = app(CheckOutAsDayUseQuote::class)->quote($s['unit']);
+
+    expect($data->planOptions)->toBe([])->and($data->planNote)->toBeNull()->and($data->refusal)->toBe('amount_required');
+});
 
 test('past midnight refuses before time or amount checks and writes nothing', function () {
     $s = overnightDayUseCheckout();
@@ -294,7 +365,8 @@ test('the preview sends inline errors and manual price fields without a plan', f
         ->assertJsonPath('noTaxes', true)
         ->assertJsonPath('errors.amount', 'Enter an amount of 0 or more for this day use.');
     $this->postJson($url, ['amount' => '0.00'])
-        ->assertJsonPath('errors.reason', 'Enter a reason for the day use amount.');
+        ->assertJsonPath('refusal', null)
+        ->assertJsonPath('errors', []);
     $this->postJson($url, ['amount' => '0.00', 'reason' => 'No charge'])
         ->assertJsonPath('refusal', null)
         ->assertJsonPath('amount', '0.00')
@@ -429,4 +501,14 @@ test('a dorm bed unit cannot check out as day use and the menu does not offer it
         ->assertJsonPath('errors.form', 'A dorm bed cannot check out as day use. Use Undo check-in or check out on the departure date.');
     $this->get(route('reservations.show', ['property' => $s['property'], 'reservation' => $s['reservation']]))
         ->assertInertia(fn (Assert $page) => $page->where('unit.actions', fn ($actions) => ! collect($actions)->pluck('key')->contains('check-out-as-day-use')));
+});
+
+test('the quote prices whole minutes and ignores seconds', function () {
+    $s = overnightDayUseCheckout();
+    $s['unit']->forceFill(['checked_in_at' => CarbonImmutable::parse($s['date']->toDateString().' 14:00:40', 'Asia/Kuala_Lumpur')->utc()])->save();
+    $url = route('reservations.units.check-out-as-day-use.preview', ['property' => $s['property'], 'reservation' => $s['reservation'], 'unit' => $s['unit']]);
+
+    $this->actingAs($s['user'])->postJson($url, ['end' => '15:00:30', 'amount' => '1.00', 'reason' => 'Whole minutes'])->assertOk()
+        ->assertJsonPath('start', '14:00:00')->assertJsonPath('end', '15:00:00')
+        ->assertJsonPath('hours', 1)->assertJsonPath('blockEnd', '15:00:00');
 });

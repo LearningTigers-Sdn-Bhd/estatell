@@ -104,7 +104,7 @@ class AddUnit
         }
 
         if ($data->stayType === StayType::DayUse) {
-            return ($this->addDayUseUnit)($actor, $reservation, $data, $roomType, $ratePlan, $lineIndex, $fromChannel, fn (): bool => $this->canOverrideRestrictions($actor, $reservation));
+            return ($this->addDayUseUnit)($actor, $reservation, $data, $roomType, $ratePlan, $lineIndex, $fromChannel, fn (): bool => $this->canOverrideRestrictions($actor, $reservation), $allowPastArrival);
         }
 
         if ($ratePlan->pricing_basis === PricingBasis::DayUse) {

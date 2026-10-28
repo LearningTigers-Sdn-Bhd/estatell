@@ -16,6 +16,7 @@ use App\Enums\Gender;
 use App\Enums\Locale;
 use App\Enums\OldFolioMode;
 use App\Enums\PermissionEnum;
+use App\Enums\SellUnit;
 use App\Features\Boats;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Reservations\BoatSeatsRequest;
@@ -127,7 +128,7 @@ class ReservationBookingController extends Controller
             return $this->storeMigrated($request, $property, $createMigratedStay, $errorKeys);
         }
 
-        $result = $createPastStay($request->user(), $property, $request->toBookingData(), $request->reason(), $request->withoutCard(), $request->checkedOut());
+        $result = $createPastStay($request->user(), $property, $request->toBookingData(), $request->reason(), $request->withoutCard(), $request->checkedOut(), $request->endTime());
 
         if ($result->isRefused()) {
             return back(fallback: route('reservations.past', ['property' => $property]))->withErrors(
@@ -228,7 +229,7 @@ class ReservationBookingController extends Controller
      */
     public function storeWalkIn(StoreWalkInRequest $request, Property $property, CheckInWalkIn $checkInWalkIn, BookingErrorKeys $errorKeys, WalkInOutcome $outcome): RedirectResponse
     {
-        $result = $checkInWalkIn($request->user(), $property, $request->toBookingData(), $request->paymentChoice(), $request->withoutCard());
+        $result = $checkInWalkIn($request->user(), $property, $request->toBookingData(), $request->paymentChoice(), $request->withoutCard(), $request->checkedOutAt());
 
         if ($result->booking !== null) {
             return back(fallback: route('reservations.walk-in', ['property' => $property]))->withErrors(
@@ -243,6 +244,10 @@ class ReservationBookingController extends Controller
         }
 
         $reasons = $outcome->reasons($result, $request->user()->can(PermissionEnum::FrontDeskCheckInWithoutCard->value));
+
+        if ($result->reservation === null) {
+            return back(fallback: route('reservations.walk-in', ['property' => $property]))->withErrors(['status' => implode("\n", $reasons)]);
+        }
 
         $toast = ['type' => $reasons === [] ? 'success' : 'warning', 'message' => $outcome->headline($property, $result)];
 
@@ -396,7 +401,7 @@ class ReservationBookingController extends Controller
             'billingModes' => BillingMode::options(),
             'canOverrideCredit' => $request->user()->can(PermissionEnum::CompanyCreditOverride->value),
             'companies' => $companies,
-            'hasDayUse' => $property->ratePlans()->active()->dayUse()->exists(),
+            'hasDayUse' => $property->roomTypes()->active()->where('sell_unit', SellUnit::Room)->exists(),
             'hasBoats' => Feature::for($property)->active(Boats::class),
             'boatDepartures' => Feature::for($property)->active(Boats::class) ? $options->boatDepartures($property) : [],
             'autoAssignRooms' => (bool) $property->settings?->auto_assign_rooms,
@@ -404,6 +409,7 @@ class ReservationBookingController extends Controller
             'canOverrideRestrictions' => $request->user()->can(PermissionEnum::RatesOverrideRestrictions->value),
             'canManageGuests' => $canManageGuests,
             'canRecordPayment' => $request->user()->can(PermissionEnum::PaymentRecord->value),
+            'canCheckOut' => $walkIn && $request->user()->can(PermissionEnum::FrontDeskCheckOut->value),
             'canCheckInWithoutCard' => $walkIn && (bool) $property->settings?->card_required_for_check_in && $request->user()->can(PermissionEnum::FrontDeskCheckInWithoutCard->value),
             'paymentOptions' => Inertia::optional(fn () => $request->user()->can(PermissionEnum::PaymentRecord->value) ? $options->payments($property, $request->user()) : null),
             'countries' => $canManageGuests ? app(CountryOptions::class)->options() : [],

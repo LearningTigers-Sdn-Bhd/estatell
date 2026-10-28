@@ -24,6 +24,10 @@ class CheckOutAsDayUseData extends Data
         /** @var list<UnitPendingLineData> */
         public array $folioLines = [],
         public ?string $ratePlanName = null,
+        public ?string $perNightPlanName = null,
+        public ?string $planNote = null,
+        /** @var list<DayUsePlanOptionData> */
+        public array $planOptions = [],
         public ?string $checkedInTime = null,
         public bool $noTaxes = false,
         /** @var list<string> */

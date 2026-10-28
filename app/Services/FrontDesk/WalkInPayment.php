@@ -5,10 +5,13 @@ namespace App\Services\FrontDesk;
 use App\Actions\Reservations\BookingResult;
 use App\Actions\Reservations\CreateBooking;
 use App\Data\Reservations\NewBookingData;
+use App\Data\Reservations\NewUnitData;
 use App\Data\Reservations\WalkInPaymentData;
+use App\Enums\StayType;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\User;
+use App\Services\NightAudit\CurrentBusinessDate;
 use Brick\Math\BigDecimal;
 use Illuminate\Support\Facades\DB;
 
@@ -24,13 +27,38 @@ class WalkInPayment
     public function __construct(
         private CreateBooking $createBooking,
         private CheckInCollection $collection,
+        private CurrentBusinessDate $currentBusinessDate,
+        private StayDay $stayDay,
     ) {}
+
+    /**
+     * A walk-in day use is refused while the night audit is pending (the calendar date is past the business date), so a
+     * block is never dated the day before. Null for an overnight walk-in, which the audit does not block here.
+     */
+    public function auditPendingRefusal(Property $property, NewBookingData $data): ?BookingResult
+    {
+        if (! array_any($data->units, fn (NewUnitData $unit): bool => $unit->stayType === StayType::DayUse)) {
+            return null;
+        }
+
+        $businessDate = $this->currentBusinessDate->date($property);
+
+        return $businessDate !== null && $this->stayDay->isAuditPending($property, $businessDate)
+            ? BookingResult::refused(BookingResult::REFUSAL_NIGHT_AUDIT_PENDING)
+            : null;
+    }
 
     /**
      * The payment of the walk-in, or the refusal of its booking.
      */
     public function preview(User $actor, Property $property, NewBookingData $data): WalkInPaymentData|BookingResult
     {
+        $pending = $this->auditPendingRefusal($property, $data);
+
+        if ($pending !== null) {
+            return $pending;
+        }
+
         DB::beginTransaction();
 
         try {

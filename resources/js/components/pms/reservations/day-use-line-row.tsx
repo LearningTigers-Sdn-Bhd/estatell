@@ -10,13 +10,20 @@ import {
 } from '@/components/pms/reservations/booking-lines';
 import type { BookingLine } from '@/components/pms/reservations/booking-lines';
 import {
+    dayUsePlanOptions,
     dayUseRoomTypes,
     endsAt,
+    enteredEndsAt,
     isDayUseQuotable,
+    isEnteredPlan,
     offerOptions,
+    planIdFromSelect,
+    planSelectValue,
+    timeText,
 } from '@/components/pms/reservations/day-use';
 import { useBookingQuote } from '@/components/pms/reservations/use-booking-quote';
 import { useDayUseOffers } from '@/components/pms/reservations/use-day-use-offers';
+import { useEnteredSwitch } from '@/components/pms/reservations/use-entered-switch';
 import { Button } from '@/components/ui/button';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -26,7 +33,7 @@ import { Input } from '@/components/ui/input';
  * `DayUseLinesHeader` uses the same template. Below `lg` the cells stack and show their labels.
  */
 export const DAY_USE_LINE_COLUMNS =
-    'lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1.2fr)_minmax(0,1.3fr)_minmax(0,0.9fr)_4rem_4rem_minmax(0,12rem)_2rem]';
+    'lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.1fr)_4rem_4rem_minmax(0,12rem)_2rem]';
 
 /** The header of the day use lines table. Hidden below `lg`, where each cell shows its own label. */
 export function DayUseLinesHeader() {
@@ -52,8 +59,8 @@ type Errors = Record<string, string | undefined>;
 
 /**
  * One day use line: a room type and a day use plan, the hours the plan sells on the date from the start time with their
- * prices, the room (required, free for those hours), the party and the server's rate with an optional override. There is no
- * discount and no beds.
+ * prices, the room (required, free for those hours), the party and the server's rate with an optional override. With
+ * **No plan · enter price** the hours are typed and so is the price. There is no discount and no beds.
  */
 export function DayUseLineRow({
     index,
@@ -86,7 +93,7 @@ export function DayUseLineRow({
     onRemove: () => void;
     onQuote: (key: string, quote: Quote | null) => void;
 }) {
-    const roomTypes = dayUseRoomTypes(options.roomTypes, options.ratePlans);
+    const roomTypes = dayUseRoomTypes(options.roomTypes);
     const roomType = roomTypeOf(line, roomTypes);
     const plans = plansFor(
         options.ratePlans,
@@ -94,12 +101,27 @@ export function DayUseLineRow({
         companyId,
         true,
     );
+    const entered = isEnteredPlan(line.rate_plan_id, roomType);
     const { offers, loaded } = useDayUseOffers(
         line.room_type_id,
-        line.rate_plan_id,
+        entered ? '' : line.rate_plan_id,
         date,
         start,
     );
+    const planName =
+        entered || line.rate_plan_id === ''
+            ? null
+            : (plans.find((plan) => String(plan.id) === line.rate_plan_id)
+                  ?.name ?? null);
+    const { note, clear } = useEnteredSwitch({
+        roomType,
+        planName,
+        offers,
+        loaded,
+        hours: line.hours,
+        onSwitch: (ratePlanId) => onChange({ rate_plan_id: ratePlanId }),
+        onUnsold: () => onChange({ hours: '', room_id: '' }),
+    });
     const quotable = isDayUseQuotable(line, date, start);
     const { quote, loading } = useBookingQuote(
         line,
@@ -116,7 +138,9 @@ export function DayUseLineRow({
         }).format(Number(amount));
     const error = (field: string) => errors[`lines.${index}.${field}`];
     const quoteErrors = quote ? Object.values(quote.errors) : [];
-    const ends = endsAt(offers, line.hours);
+    const ends = entered
+        ? enteredEndsAt(start, line.hours)
+        : endsAt(offers, line.hours);
     const agesError = Object.entries(errors).find(([key]) =>
         key.startsWith(`lines.${index}.child_ages`),
     )?.[1];
@@ -126,18 +150,6 @@ export function DayUseLineRow({
 
         return () => onQuote(line.key, null);
     }, [line.key, quote, onQuote]);
-
-    // An hour count the plan no longer sells for the new date or start is cleared, with the room picked for it.
-    useEffect(() => {
-        if (
-            loaded &&
-            line.hours !== '' &&
-            !offers.some((offer) => String(offer.hours) === line.hours)
-        ) {
-            onChange({ hours: '', room_id: '' });
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [loaded, offers, line.hours]);
 
     return (
         <div className={`grid gap-3 p-3 ${DAY_USE_LINE_COLUMNS}`}>
@@ -186,22 +198,23 @@ export function DayUseLineRow({
                 </FieldLabel>
                 <EnumSelect
                     id={`line-${index}-rate_plan_id`}
-                    placeholder="Select day use plan"
-                    options={plans.map((plan) => ({
-                        value: String(plan.id),
-                        label: plan.name,
-                    }))}
-                    value={line.rate_plan_id}
-                    onValueChange={(value) =>
+                    placeholder="Select plan"
+                    options={dayUsePlanOptions(plans, roomType)}
+                    value={planSelectValue(line.rate_plan_id, roomType)}
+                    onValueChange={(value) => {
+                        clear();
                         onChange({
-                            rate_plan_id: value,
+                            rate_plan_id: planIdFromSelect(value, roomType),
                             hours: '',
                             room_id: '',
-                        })
-                    }
+                        });
+                    }}
                     disabled={line.room_type_id === ''}
                     aria-invalid={!!error('rate_plan_id')}
                 />
+                {note && entered && (
+                    <p className="text-xs text-muted-foreground">{note}</p>
+                )}
                 <FieldError>{error('rate_plan_id')}</FieldError>
             </Field>
             <Field data-invalid={!!error('hours')}>
@@ -211,23 +224,41 @@ export function DayUseLineRow({
                 >
                     Hours
                 </FieldLabel>
-                <EnumSelect
-                    id={`line-${index}-hours`}
-                    placeholder={
-                        loaded && offers.length === 0
-                            ? 'No hours sold'
-                            : 'Select hours'
-                    }
-                    options={offerOptions(offers, money)}
-                    value={line.hours}
-                    onValueChange={(value) =>
-                        onChange({ hours: value, room_id: '' })
-                    }
-                    disabled={offers.length === 0}
-                    aria-invalid={!!error('hours')}
-                />
+                {entered ? (
+                    <Input
+                        id={`line-${index}-hours`}
+                        type="number"
+                        min={1}
+                        max={23}
+                        step={1}
+                        placeholder="e.g. 5"
+                        value={line.hours}
+                        onChange={(event) =>
+                            onChange({ hours: event.target.value, room_id: '' })
+                        }
+                        aria-invalid={!!error('hours')}
+                    />
+                ) : (
+                    <EnumSelect
+                        id={`line-${index}-hours`}
+                        placeholder={
+                            loaded && offers.length === 0
+                                ? 'No hours sold'
+                                : 'Select hours'
+                        }
+                        options={offerOptions(offers, money)}
+                        value={line.hours}
+                        onValueChange={(value) =>
+                            onChange({ hours: value, room_id: '' })
+                        }
+                        disabled={offers.length === 0}
+                        aria-invalid={!!error('hours')}
+                    />
+                )}
                 {ends && (
-                    <p className="text-xs text-muted-foreground">Ends {ends}</p>
+                    <p className="text-xs text-muted-foreground">
+                        Ends {timeText(ends)}
+                    </p>
                 )}
                 <FieldError>{error('hours')}</FieldError>
             </Field>
@@ -312,6 +343,7 @@ export function DayUseLineRow({
                     onOverrideChange={onChange}
                     errors={errors}
                     index={index}
+                    enteredPrice={entered}
                 />
             </div>
             <div className="flex items-center justify-end">

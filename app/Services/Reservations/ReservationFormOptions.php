@@ -12,9 +12,11 @@ use App\Data\Reservations\ChargeItemOptionData;
 use App\Data\Reservations\DiscountOptionData;
 use App\Data\Reservations\RatePlanOptionData;
 use App\Data\Reservations\RoomTypeOptionData;
+use App\Enums\CompanyAccess;
 use App\Enums\DiscountScope;
 use App\Enums\DiscountType;
 use App\Enums\PaymentMethodType;
+use App\Enums\PricingBasis;
 use App\Enums\TransactionKind;
 use App\Models\BoatDeparture;
 use App\Models\ChargeItem;
@@ -28,6 +30,7 @@ use App\Models\TransactionCode;
 use App\Models\User;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Payments\AvailablePaymentMethod;
+use Illuminate\Support\Collection;
 
 /**
  * The lists the reservation page forms pick from. Each list is read when its overlay opens, in two queries or fewer.
@@ -42,12 +45,26 @@ class ReservationFormOptions
             ->map(fn ($companies): array => array_values($companies->pluck('id')->map(intval(...))->all()))
             ->all();
 
+        $plans = RatePlan::query()->where('property_id', $property->id)->active()->ordered()->with('roomTypes:id', 'companies:id')->get();
+
         return new AddUnitOptionsData(
             roomTypes: array_values(RoomType::query()->where('property_id', $property->id)->active()->ordered()->get()
-                ->map(RoomTypeOptionData::fromModel(...))->all()),
-            ratePlans: array_values(RatePlan::query()->where('property_id', $property->id)->active()->ordered()->with('roomTypes:id', 'companies:id')->get()
+                ->map(fn (RoomType $roomType): RoomTypeOptionData => RoomTypeOptionData::fromModel($roomType, $this->enteredPlanId($plans, $roomType)))->all()),
+            ratePlans: array_values($plans
                 ->map(fn (RatePlan $ratePlan): RatePlanOptionData => RatePlanOptionData::fromModel($ratePlan, $companyIdsByMarket[$ratePlan->company_market->value] ?? []))->all()),
         );
+    }
+
+    /**
+     * The first per-night plan (Per room or Per guest, open to everyone) of the room type by position, or null.
+     *
+     * @param  Collection<int, RatePlan>  $plans  Ordered by position, with `roomTypes` loaded.
+     */
+    private function enteredPlanId(Collection $plans, RoomType $roomType): ?int
+    {
+        return $plans->first(fn (RatePlan $plan): bool => in_array($plan->pricing_basis, [PricingBasis::PerRoom, PricingBasis::PerGuest], true)
+            && $plan->company_access === CompanyAccess::Everyone
+            && $plan->roomTypes->contains('id', $roomType->id))?->id;
     }
 
     /**

@@ -4,6 +4,11 @@ import { EnumSelect } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { MoneyInput } from '@/components/pms/money-input';
 import { MoneyText } from '@/components/pms/money-text';
+import {
+    checkOutPlanOptions,
+    planSelectValue,
+} from '@/components/pms/reservations/day-use-check-out-plan';
+import { DayUseTimeGroup } from '@/components/pms/reservations/day-use-time-group';
 import { useDayUseCheckOut } from '@/components/pms/reservations/use-day-use-check-out';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -62,50 +67,44 @@ function DayUseCheckOutForm(props: Props) {
             onSubmit={state.save}
             submitLabel="Check out as day use"
             processing={form.processing}
-            submitDisabled={!state.canSave}
+            submitDisabled={!state.canSubmit}
             loading={preview === null && !errors.form}
         >
-            <div className="grid grid-cols-3 gap-3">
-                {(['start', 'end'] as const).map((field) => (
-                    <Field key={field} data-invalid={!!errors[field]}>
-                        <FieldLabel htmlFor={`day-use-${field}`}>
-                            {field === 'start' ? 'Start' : 'End'}
-                        </FieldLabel>
-                        <Input
-                            id={`day-use-${field}`}
-                            name={field}
-                            type="time"
-                            step="1"
-                            value={data[field]}
-                            onChange={(event) =>
-                                form.setData(field, event.target.value)
-                            }
-                            aria-invalid={!!errors[field]}
-                        />
-                        <FieldError>{errors[field]}</FieldError>
-                    </Field>
-                ))}
-                <Field>
-                    <FieldLabel>Hours</FieldLabel>
-                    <output
-                        className="py-2 text-sm tabular-nums"
-                        aria-live="polite"
-                    >
-                        {state.current ? (preview?.hours ?? '—') : '…'}
-                    </output>
+            <DayUseTimeGroup
+                start={data.start}
+                end={data.end}
+                onStart={(value) => form.setData('start', value)}
+                onEnd={(value) => form.setData('end', value)}
+                preview={preview}
+                current={state.current}
+                errors={errors}
+            />
+            {preview !== null && preview.planOptions.length > 0 ? (
+                <Field data-invalid={!!errors.rate_plan_id}>
+                    <FieldLabel htmlFor="day-use-plan">Plan</FieldLabel>
+                    <EnumSelect
+                        id="day-use-plan"
+                        name="rate_plan_id"
+                        options={checkOutPlanOptions(preview)}
+                        value={planSelectValue(state.planChoice, preview)}
+                        onValueChange={state.pickPlan}
+                        aria-invalid={!!errors.rate_plan_id}
+                    />
+                    {preview.planNote && state.planChoice === '' && (
+                        <FieldDescription className="flex items-center gap-1">
+                            <Info className="size-3.5" />
+                            {preview.planNote}
+                        </FieldDescription>
+                    )}
+                    <FieldError>{errors.rate_plan_id}</FieldError>
                 </Field>
-            </div>
-            {preview?.midnightLimited && (
-                <p className="text-sm text-muted-foreground">
-                    Ends at {time(preview.blockEnd)}: a day use must end before
-                    midnight. The last part hour is not charged.
-                </p>
-            )}
-            {preview?.ratePlanName && (
-                <p className="text-sm">
-                    <span className="text-muted-foreground">Plan · </span>
-                    {preview.ratePlanName}
-                </p>
+            ) : (
+                preview !== null && (
+                    <p className="text-sm">
+                        <span className="text-muted-foreground">Plan · </span>
+                        No plan · enter price
+                    </p>
+                )
             )}
             {manual ? (
                 <FieldGroup>
@@ -116,11 +115,12 @@ function DayUseCheckOutForm(props: Props) {
                         <div className="flex items-center gap-2">
                             <MoneyInput
                                 id="day-use-amount"
-                                value={data.amount}
+                                value={data.amount || preview?.planPrice || ''}
                                 onChange={(value) =>
                                     form.setData('amount', value)
                                 }
                                 currency={currency}
+                                placeholder="e.g. 30.00"
                                 invalid={!!errors.amount}
                             />
                             {preview?.planPrice != null && (
@@ -161,8 +161,8 @@ function DayUseCheckOutForm(props: Props) {
                     <Field data-invalid={!!errors.reason}>
                         <FieldLabel htmlFor="day-use-reason">
                             {preview?.planPrice != null
-                                ? 'Override reason'
-                                : 'Reason'}
+                                ? 'Override reason (optional)'
+                                : 'Reason (optional)'}
                         </FieldLabel>
                         <Input
                             id="day-use-reason"
@@ -172,7 +172,6 @@ function DayUseCheckOutForm(props: Props) {
                                 form.setData('reason', event.target.value)
                             }
                             maxLength={500}
-                            required
                             aria-invalid={!!errors.reason}
                             placeholder="e.g. Guest left the same day"
                         />
@@ -227,7 +226,6 @@ function DayUseCheckOutForm(props: Props) {
                         aria-label="Override day use price"
                         onClick={() => {
                             state.setOverriding(true);
-                            form.setData('amount', preview.planPrice ?? '');
                         }}
                     >
                         <Pencil />

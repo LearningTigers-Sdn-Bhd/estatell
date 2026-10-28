@@ -5,18 +5,24 @@ namespace App\Services\Rates;
 use App\Actions\Reservations\ReservationResult;
 use App\Data\Reservations\DayUseOfferData;
 use App\Enums\PricingBasis;
+use App\Models\Property;
 use App\Models\Rate;
 use App\Models\RateHourPrice;
 use App\Models\RatePlan;
 use App\Models\RoomType;
+use App\Services\Property\PropertyToday;
 use Carbon\CarbonInterface;
 
 /**
  * Which day use blocks a plan sells: the hours with a price on the date that start on the hour or the half hour, stay
- * inside the plan's Sold between window and end on the same day. It reads only. See docs/12-reservations/10-day-use.md.
+ * inside the plan's Sold between window and end on the same day. A block that started earlier today is entered late:
+ * the window and the plan's min and max hours are not checked (see `isLate()`). It reads only. See
+ * docs/12-reservations/10-day-use.md.
  */
 class DayUseOffers
 {
+    public function __construct(private PropertyToday $propertyToday) {}
+
     /**
      * Minutes since midnight of an `H:i` or `H:i:s` time.
      */
@@ -44,11 +50,45 @@ class DayUseOffers
     }
 
     /**
-     * The refusal code for a start time and hours the plan does not sell, or null when the block fits the plan.
-     * It does not read prices.
+     * Whether a block is entered after it started: the date is before today in the property's time zone, or it is today
+     * and the start time has passed. The plan's window and hours limits do not apply to it.
      */
-    public function refusal(RatePlan $plan, string $startTime, int $hours): ?string
+    public function isLate(Property $property, CarbonInterface $date, string $startTime): bool
     {
+        $now = $this->propertyToday->now($property);
+
+        if ($date->toDateString() < $now->toDateString()) {
+            return true;
+        }
+
+        return $date->toDateString() === $now->toDateString()
+            && preg_match('/^\d{2}:\d{2}/', $startTime) === 1
+            && self::minutes($startTime) < $now->hour * 60 + $now->minute;
+    }
+
+    /**
+     * The refusal code for an entered price block, or null. No plan limits it: any start on the hour or half hour, and
+     * whole hours from 1 that end before midnight.
+     */
+    public function enteredRefusal(string $startTime, int $hours): ?string
+    {
+        if (preg_match('/^\d{2}:(00|30)(:00)?$/', $startTime) !== 1 || self::minutes($startTime) >= 24 * 60 || self::endsAt($startTime, $hours) === null) {
+            return ReservationResult::REFUSAL_START_TIME_INVALID;
+        }
+
+        return $hours < 1 ? RateQuote::REFUSAL_HOURS_NOT_SOLD : null;
+    }
+
+    /**
+     * The refusal code for a start time and hours the plan does not sell, or null when the block fits the plan.
+     * It does not read prices. With a `$date`, a block that started earlier today skips the window and the hours limits.
+     */
+    public function refusal(RatePlan $plan, string $startTime, int $hours, ?CarbonInterface $date = null): ?string
+    {
+        if ($date !== null && $plan->pricing_basis === PricingBasis::DayUse && $this->isLate($plan->property, $date, $startTime)) {
+            return $this->enteredRefusal($startTime, $hours);
+        }
+
         if (preg_match('/^\d{2}:(00|30)(:00)?$/', $startTime) !== 1 || self::minutes($startTime) >= 24 * 60 || self::endsAt($startTime, $hours) === null) {
             return ReservationResult::REFUSAL_START_TIME_INVALID;
         }
@@ -90,9 +130,10 @@ class DayUseOffers
 
         $prices = RateHourPrice::query()->where('rate_id', $rate->id)->orderBy('hours')->pluck('amount', 'hours');
         $offers = [];
+        $late = $this->isLate($plan->property, $date, $startTime);
 
-        for ($hours = $plan->day_use_min_hours ?? 1; $hours <= ($plan->day_use_max_hours ?? 24); $hours++) {
-            if (! $prices->has($hours) || $this->refusal($plan, $startTime, $hours) !== null) {
+        for ($hours = $late ? 1 : $plan->day_use_min_hours ?? 1; $hours <= ($late ? 24 : $plan->day_use_max_hours ?? 24); $hours++) {
+            if (! $prices->has($hours) || $this->refusal($plan, $startTime, $hours, $date) !== null) {
                 continue;
             }
 

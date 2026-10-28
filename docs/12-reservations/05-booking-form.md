@@ -80,6 +80,8 @@ When the property has an active Day use plan, the Stay section starts with a **S
 
 A walk-in is a guest at the desk now. One save books the stay, checks in every unit and takes the payment. The units end CheckedIn, not Confirmed. A group walk-in is the same flow with more units.
 
+**Day use** walk-ins can start earlier today and can be saved as **Already checked out** for a guest who has left (decided 2026-10-28, not built). See [Day use: Walk-in, today](10-day-use.md#walk-in-today).
+
 | Area           | New booking                       | Walk-in                                                                  |
 | -------------- | --------------------------------- | ------------------------------------------------------------------------ |
 | Source         | Picked                            | Walk-in, locked                                                          |

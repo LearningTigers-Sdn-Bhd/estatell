@@ -69,6 +69,7 @@ export function WalkInPaymentSection({
     problem = null,
     options,
     currency,
+    fullPayment = false,
     values,
     errors,
     onChange,
@@ -81,6 +82,8 @@ export function WalkInPaymentSection({
     problem?: string | null;
     options: Options | null | undefined;
     currency: Currency;
+    /** A walk-in saved as already checked out: the room charges and tax are paid in full, ticked and locked, and there is no deposit. */
+    fullPayment?: boolean;
     values: WalkInPaymentValues;
     errors: Partial<Record<string, string>>;
     onChange: (patch: Partial<WalkInPaymentValues>) => void;
@@ -154,7 +157,11 @@ export function WalkInPaymentSection({
                                 <Field orientation="horizontal">
                                     <Checkbox
                                         id="walk-in-collect_room_charges"
-                                        checked={values.collect_room_charges}
+                                        checked={
+                                            fullPayment ||
+                                            values.collect_room_charges
+                                        }
+                                        disabled={fullPayment}
                                         onCheckedChange={(checked) =>
                                             onChange({
                                                 collect_room_charges: checked,
@@ -185,7 +192,7 @@ export function WalkInPaymentSection({
                                 ))}
                         </>
                     )}
-                    {payment.deposit !== null && (
+                    {payment.deposit !== null && !fullPayment && (
                         <FieldLabel htmlFor="walk-in-collect_deposit">
                             <Field orientation="horizontal">
                                 <Checkbox

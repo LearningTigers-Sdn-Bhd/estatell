@@ -22,6 +22,8 @@ class BookingResult
 
     public const REFUSAL_PAST_STAY_NIGHTS_ONLY = 'past_stay_nights_only';
 
+    public const REFUSAL_PAST_DAY_USE_CHECKED_OUT_ONLY = 'past_day_use_checked_out_only';
+
     public const REFUSAL_ARRIVAL_NOT_PAST = 'arrival_not_past';
 
     public const REFUSAL_ARRIVAL_BEFORE_GO_LIVE = 'arrival_before_go_live';
@@ -37,6 +39,8 @@ class BookingResult
     public const REFUSAL_DEPARTURE_BEFORE_GO_LIVE = 'departure_before_go_live';
 
     public const REFUSAL_DEPARTURE_NOT_BEFORE_GO_LIVE = 'departure_not_before_go_live';
+
+    public const REFUSAL_NIGHT_AUDIT_PENDING = 'night_audit_pending';
 
     private function __construct(
         public readonly ?Reservation $reservation,
