@@ -27,7 +27,7 @@ test('confirm dialog', function () {
         ->waitForText('sign-in details')
         ->wait(1);
 
-    $this->shoot($page, 'send-for-approval-dialog', element: '[role="alertdialog"]');
+    $this->shoot($page, 'send-for-approval-dialog', frame: '[role="alertdialog"]');
 });
 
 test('waiting for approval', function () {

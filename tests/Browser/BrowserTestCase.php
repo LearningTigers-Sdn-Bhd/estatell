@@ -23,6 +23,7 @@ use Database\Seeders\BookingScenariosSeeder;
 use Database\Seeders\DemoSeeder;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
+use Imagick;
 use Pest\Browser\Api\AwaitableWebpage;
 use Tests\TestCase;
 
@@ -42,6 +43,11 @@ abstract class BrowserTestCase extends TestCase
     public const int WIDTH = 1440;
 
     public const int HEIGHT = 900;
+
+    /**
+     * The pixels of the page kept around a sheet or dialog in a `frame` screenshot.
+     */
+    public const int FRAME_MARGIN = 64;
 
     /**
      * Seeded by RefreshDatabase on its one `migrate:fresh` per process.
@@ -220,11 +226,14 @@ abstract class BrowserTestCase extends TestCase
      *
      * @param  list<string>  $badges  The exact text of the element for badge 1, 2, 3 and so on. The docs page names each number in a table.
      * @param  list<string>  $highlight  CSS selectors of the sections to draw a red box around.
-     * @param  string|null  $element  A CSS selector to screenshot only that element, for example `[role="dialog"]`.
+     * @param  string|null  $element  A CSS selector to screenshot only that element, for a part of a page with no overlay, such as one panel.
+     * @param  string|null  $frame  A CSS selector of an open sheet or dialog. The whole screen is taken, then cropped to the element and a margin of the dimmed page around it.
      * @param  int  $badgesFromLeft  Badges match only elements at least this many pixels from the left edge, which skips the staff sidebar. Pass 0 on a page without one, like the onboarding wizard.
      */
-    protected function shoot(AwaitableWebpage $page, string $name, array $badges = [], array $highlight = [], ?string $element = null, bool $checkErrors = true, int $badgesFromLeft = 256): AwaitableWebpage
+    protected function shoot(AwaitableWebpage $page, string $name, array $badges = [], array $highlight = [], ?string $element = null, ?string $frame = null, bool $checkErrors = true, int $badgesFromLeft = 256): AwaitableWebpage
     {
+        $page->script("document.querySelectorAll('[data-docs-mark]').forEach((mark) => mark.remove());");
+
         if ($highlight !== []) {
             $this->assertSame([], $page->script($this->highlightScript($highlight)), 'No element matches these highlight selectors.');
         }
@@ -240,9 +249,38 @@ abstract class BrowserTestCase extends TestCase
         $folder = $this->screenshotFolder();
         File::ensureDirectoryExists(base_path("tests/Browser/Screenshots/{$folder}"));
 
+        if ($frame !== null) {
+            return $this->shootFrame($page, "{$folder}/{$name}", $frame);
+        }
+
         return $element === null
             ? $page->screenshot(filename: "{$folder}/{$name}")
             : $page->screenshotElement($element, filename: "{$folder}/{$name}");
+    }
+
+    /**
+     * Take the whole screen, then crop it to the element plus FRAME_MARGIN pixels on each side, kept inside the screen.
+     * A sheet on the right keeps a strip of the dimmed page at its left, and a dialog keeps the page around it.
+     */
+    private function shootFrame(AwaitableWebpage $page, string $filename, string $selector): AwaitableWebpage
+    {
+        $box = $page->page()->locator("{$selector} >> visible=true >> nth=-1")->boundingBox();
+
+        $this->assertIsArray($box, "No element matches the frame selector {$selector}.");
+
+        $page->screenshot(fullPage: false, filename: $filename);
+
+        $path = base_path("tests/Browser/Screenshots/{$filename}.png");
+        $image = new Imagick($path);
+        $x = (int) max(0, floor($box['x'] - self::FRAME_MARGIN));
+        $y = (int) max(0, floor($box['y'] - self::FRAME_MARGIN));
+        $cropWidth = (int) min($image->getImageWidth(), ceil($box['x'] + $box['width'] + self::FRAME_MARGIN)) - $x;
+        $cropHeight = (int) min($image->getImageHeight(), ceil($box['y'] + $box['height'] + self::FRAME_MARGIN)) - $y;
+        $image->cropImage($cropWidth, $cropHeight, $x, $y);
+        $image->setImagePage(0, 0, 0, 0);
+        $image->writeImage($path);
+
+        return $page;
     }
 
     /**
@@ -313,8 +351,10 @@ abstract class BrowserTestCase extends TestCase
     }
 
     /**
-     * Draws a numbered red badge at the top left of the first element in the main area, right of the sidebar, whose
-     * text is exactly the given text. Returns the texts it could not find.
+     * Draws a numbered red badge on the element in the main area, right of the sidebar, whose text is exactly the given
+     * text. A match inside a button, link, menu item, tab or option on screen wins over plain text. A control gets the
+     * badge on its top left corner; plain text, like a label or column header, gets it centred just left of the text.
+     * Returns the texts it could not find.
      *
      * @param  list<string>  $texts
      */
@@ -328,18 +368,27 @@ abstract class BrowserTestCase extends TestCase
             const missing = [];
             texts.forEach((text, index) => {
                 const same = (el) => el.textContent.trim() === text;
-                const match = [...document.querySelectorAll('body *')].find(
+                const control = (el) => el.closest('button, a, [role="menuitem"], [role="tab"], [role="option"]');
+                const onScreen = (el) => el.getBoundingClientRect().top >= 0 && el.getBoundingClientRect().bottom <= window.innerHeight;
+                const matches = [...document.querySelectorAll('body *')].filter(
                     (el) => same(el)
                         && ![...el.children].some(same)
                         && el.getBoundingClientRect().left >= {$fromLeft}
                         && el.getBoundingClientRect().width > 0,
                 );
+                const match = matches.find((el) => control(el) && onScreen(el)) ?? matches[0];
                 if (!match) { missing.push(text); return; }
-                const box = match.getBoundingClientRect();
+                const target = control(match) ?? match;
+                const box = target.getBoundingClientRect();
+                const besideLeft = box.left - 28;
+                const beside = !control(match) && besideLeft >= {$fromLeft};
+                const left = beside ? besideLeft : Math.max(0, box.left - 14);
+                const top = beside ? box.top + box.height / 2 - 11 : Math.max(0, box.top - 8);
                 const badge = document.createElement('div');
+                badge.dataset.docsMark = '';
                 badge.textContent = String(index + 1);
                 badge.style.cssText = 'position:fixed;z-index:99999;width:22px;height:22px;border-radius:50%;background:#dc2626;color:#fff;font:600 13px/22px sans-serif;text-align:center;box-shadow:0 0 0 2px #fff;pointer-events:none;'
-                    + 'left:' + Math.max(0, box.left - 14) + 'px;top:' + Math.max(0, box.top - 8) + 'px;';
+                    + 'left:' + left + 'px;top:' + top + 'px;';
                 document.body.appendChild(badge);
             });
             return missing;
@@ -366,6 +415,7 @@ abstract class BrowserTestCase extends TestCase
                 if (!match) { missing.push(selector); return; }
                 const box = match.getBoundingClientRect();
                 const frame = document.createElement('div');
+                frame.dataset.docsMark = '';
                 frame.style.cssText = 'position:fixed;z-index:99998;border:3px solid #dc2626;border-radius:8px;pointer-events:none;'
                     + 'left:' + (box.left - 6) + 'px;top:' + (box.top - 6) + 'px;width:' + (box.width + 12) + 'px;height:' + (box.height + 12) + 'px;';
                 document.body.appendChild(frame);

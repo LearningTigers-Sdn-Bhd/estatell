@@ -22,10 +22,14 @@ beforeEach(function () {
 test('check out dialog', function () {
     $page = $this->open(route('reservations.show', [$this->property, $this->scenario('S11')]))
         ->click('More')
-        ->click('Check out')
+        ->wait(1);
+
+    $this->shoot($page, 'check-out-menu', badges: ['Check out']);
+
+    $page->click('Check out')
         ->waitForText('Collect and check out');
 
-    $this->shoot($page, 'check-out', element: '[role="dialog"]');
+    $this->shoot($page, 'check-out', frame: '[role="dialog"]');
 });
 
 /**
@@ -46,15 +50,15 @@ $openWithPayment = function (PaymentPurpose $purpose, string $amount, string $wa
 $openWithDeposit = fn (): AwaitableWebpage => $openWithPayment->call($this, PaymentPurpose::SecurityDeposit, '100.00', 'Security deposit');
 
 test('guest paid more than the bill', function () use ($openWithPayment) {
-    $this->shoot($openWithPayment->call($this, PaymentPurpose::Advance, '500.00', 'Refund and check out'), 'balance-credit', element: '[role="dialog"]');
+    $this->shoot($openWithPayment->call($this, PaymentPurpose::Advance, '500.00', 'Refund and check out'), 'balance-credit', frame: '[role="dialog"]');
 });
 
 test('bill already settled', function () use ($openWithPayment) {
-    $this->shoot($openWithPayment->call($this, PaymentPurpose::Advance, '396.00', 'Settled'), 'balance-settled', element: '[role="dialog"]');
+    $this->shoot($openWithPayment->call($this, PaymentPurpose::Advance, '396.00', 'Settled'), 'balance-settled', frame: '[role="dialog"]');
 });
 
 test('deposit used toward the bill', function () use ($openWithDeposit) {
-    $this->shoot($openWithDeposit->call($this), 'deposit-use-toward-bill', element: '[role="dialog"]');
+    $this->shoot($openWithDeposit->call($this), 'deposit-use-toward-bill', frame: '[role="dialog"]');
 });
 
 test('deposit refunded', function () use ($openWithDeposit) {
@@ -62,7 +66,7 @@ test('deposit refunded', function () use ($openWithDeposit) {
         ->click('Refund it')
         ->waitForText('Refund by');
 
-    $this->shoot($page, 'deposit-refund', element: '[role="dialog"]');
+    $this->shoot($page, 'deposit-refund', frame: '[role="dialog"]');
 });
 
 test('part of the deposit kept for damages', function () use ($openWithDeposit) {
@@ -71,7 +75,7 @@ test('part of the deposit kept for damages', function () use ($openWithDeposit) 
         ->type('#check-out-damage_amount', '50.00')
         ->type('#check-out-damage_note', 'Broken lamp');
 
-    $this->shoot($page->wait(1), 'deposit-damages', element: '[role="dialog"]');
+    $this->shoot($page->wait(1), 'deposit-damages', frame: '[role="dialog"]');
 });
 
 test('new third-party folio dialog', function () {
@@ -80,7 +84,7 @@ test('new third-party folio dialog', function () {
         ->click('Third-party folio')
         ->waitForText('New third-party folio');
 
-    $this->shoot($page, 'pay-later-third-party-folio', element: '[role="dialog"]');
+    $this->shoot($page, 'pay-later-third-party-folio', frame: '[role="dialog"]');
 });
 
 test('company folio settled to the city ledger', function () {
@@ -100,5 +104,5 @@ test('company folio settled to the city ledger', function () {
         ->click('button:has-text("Settle to City ledger")')
         ->waitForText('to City ledger?');
 
-    $this->shoot($page, 'pay-later-settle-city-ledger', element: '[role="alertdialog"]');
+    $this->shoot($page, 'pay-later-settle-city-ledger', frame: '[role="alertdialog"]');
 });

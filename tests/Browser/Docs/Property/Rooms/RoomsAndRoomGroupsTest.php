@@ -23,7 +23,7 @@ test('generate rooms by range', function () {
         ->type('#generate-prefix', 'F')
         ->waitForText('Create 4 rooms');
 
-    $this->shoot($page, 'generate-range', element: '[role="dialog"]');
+    $this->shoot($page, 'generate-range', frame: '[role="dialog"]');
 });
 
 test('generate rooms by floors', function () {
@@ -39,7 +39,7 @@ test('generate rooms by floors', function () {
         ->type('#generate-room_to', '03')
         ->waitForText('Create 6 rooms');
 
-    $this->shoot($page, 'generate-floors', element: '[role="dialog"]');
+    $this->shoot($page, 'generate-floors', frame: '[role="dialog"]');
 });
 
 test('generate rooms with a number in use', function () {
@@ -52,7 +52,7 @@ test('generate rooms with a number in use', function () {
         ->type('#generate-to', '210')
         ->waitForText('already used');
 
-    $this->shoot($page, 'generate-in-use', element: '[role="dialog"]');
+    $this->shoot($page, 'generate-in-use', frame: '[role="dialog"]');
 });
 
 test('edit room dialog', function () {
@@ -60,7 +60,7 @@ test('edit room dialog', function () {
         ->click('Edit')
         ->waitForText('Save changes');
 
-    $this->shoot($page, 'edit-room', element: '[role="dialog"]');
+    $this->shoot($page, 'edit-room', frame: '[role="dialog"]');
 });
 
 test('new room group dialog', function () {
@@ -68,7 +68,7 @@ test('new room group dialog', function () {
         ->click('New group')
         ->waitForText('A group can be a floor');
 
-    $this->shoot($page, 'new-group', element: '[role="dialog"]');
+    $this->shoot($page, 'new-group', frame: '[role="dialog"]');
 });
 
 test('archive room question', function () {
@@ -76,5 +76,5 @@ test('archive room question', function () {
         ->click('Archive')
         ->waitForText('You can restore it later');
 
-    $this->shoot($page, 'archive-room', element: '[role="alertdialog"]');
+    $this->shoot($page, 'archive-room', frame: '[role="alertdialog"]');
 });

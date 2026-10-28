@@ -54,7 +54,7 @@ test('recommended next sheet', function () {
         ->waitForText('done')
         ->wait(1);
 
-    $this->shoot($page, 'recommended-next-all', element: '[role="dialog"]');
+    $this->shoot($page, 'recommended-next-all', frame: '[role="dialog"]');
 });
 
 test('dashboard', function () {

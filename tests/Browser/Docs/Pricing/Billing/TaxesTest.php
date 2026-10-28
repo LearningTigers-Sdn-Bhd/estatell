@@ -19,5 +19,5 @@ test('new tax sheet', function () {
         ->type('#tax-code', 'SVC')
         ->type('#tax-rate', '10');
 
-    $this->shoot($page, 'new-tax', element: '[role="dialog"]');
+    $this->shoot($page, 'new-tax', frame: '[role="dialog"]');
 });

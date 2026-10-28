@@ -7,12 +7,15 @@ beforeEach(function () {
 });
 
 test('new rate plan sheet', function () {
-    $page = $this->open(route('settings.rate-plans.index', $this->property))
-        ->click('New rate plan')
+    $page = $this->open(route('settings.rate-plans.index', $this->property));
+
+    $this->shoot($page, 'new-rate-plan-button', badges: ['New rate plan']);
+
+    $page->click('New rate plan')
         ->waitForText('Create rate plan')
         ->type('#rate-plan-name', 'Weekend Escape');
 
-    $this->shoot($page, 'new-rate-plan', element: '[role="dialog"]');
+    $this->shoot($page, 'new-rate-plan', frame: '[role="dialog"]');
 });
 
 test('new package plan sheet', function () {
@@ -23,7 +26,7 @@ test('new package plan sheet', function () {
         ->click('label[for="rate-plan-basis-package"]')
         ->waitForText('The stay is fixed');
 
-    $this->shoot($page, 'new-package-plan', element: '[role="dialog"]');
+    $this->shoot($page, 'new-package-plan', frame: '[role="dialog"]');
 });
 
 test('new day use plan sheet', function () {
@@ -34,7 +37,7 @@ test('new day use plan sheet', function () {
         ->click('label[for="rate-plan-basis-day_use"]')
         ->waitForText('Hours sold');
 
-    $this->shoot($page, 'new-day-use-plan', element: '[role="dialog"]');
+    $this->shoot($page, 'new-day-use-plan', frame: '[role="dialog"]');
 });
 
 test('details tab', function () {

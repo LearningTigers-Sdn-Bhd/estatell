@@ -59,7 +59,7 @@ test('deactivate dialog', function () {
         ->click('Deactivate')
         ->waitForText('Deactivate Ali Hassan?');
 
-    $this->shoot($page, 'deactivate-dialog', element: '[role="alertdialog"]');
+    $this->shoot($page, 'deactivate-dialog', frame: '[role="alertdialog"]');
 });
 
 test('invited tab', function () {

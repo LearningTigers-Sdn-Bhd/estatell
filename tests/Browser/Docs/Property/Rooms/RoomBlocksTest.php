@@ -40,7 +40,7 @@ test('block room dialog', function () {
         ->click('Block room')
         ->waitForText('A blocked room or bed');
 
-    $this->shoot($page, 'block-room', element: '[role="dialog"]');
+    $this->shoot($page, 'block-room', frame: '[role="dialog"]');
 });
 
 test('end a block question', function () {
@@ -48,5 +48,5 @@ test('end a block question', function () {
         ->click('End now')
         ->waitForText('Keep blocked');
 
-    $this->shoot($page, 'end-block', element: '[role="alertdialog"]');
+    $this->shoot($page, 'end-block', frame: '[role="alertdialog"]');
 });

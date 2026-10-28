@@ -19,7 +19,7 @@ test('invite by email dialog', function () {
         ->waitForText('The link works for 7 days.')
         ->type('#invite-email', 'nadia@pearlside.my');
 
-    $this->shoot($page, 'invite-dialog', element: '[role="dialog"]');
+    $this->shoot($page, 'invite-dialog', frame: '[role="dialog"]');
 });
 
 test('add with temp password dialog', function () {
@@ -30,7 +30,7 @@ test('add with temp password dialog', function () {
         ->type('#add-name', 'Ali Hassan')
         ->type('#add-email', 'ali@pearlside.my');
 
-    $this->shoot($page, 'temp-password-dialog', element: '[role="dialog"]');
+    $this->shoot($page, 'temp-password-dialog', frame: '[role="dialog"]');
 });
 
 test('sign-in message', function () {
@@ -45,7 +45,7 @@ test('sign-in message', function () {
         ->click('[role="dialog"] button[type="submit"]')
         ->waitForText('Sign-in message');
 
-    $this->shoot($page, 'sign-in-message', element: '[role="dialog"]:has-text("Sign-in message")');
+    $this->shoot($page, 'sign-in-message', frame: '[role="dialog"]:has-text("Sign-in message")');
 });
 
 test('bulk add staff', function () {

@@ -7,8 +7,12 @@ beforeEach(function () {
 test('check in dialog', function () {
     $page = $this->open(route('reservations.show', [$this->property, $this->singleArrivalToday()]))
         ->click('More')
-        ->click('Check in')
+        ->wait(1);
+
+    $this->shoot($page, 'check-in-menu', badges: ['Check in']);
+
+    $page->click('Check in')
         ->waitForText('Collect now');
 
-    $this->shoot($page, 'check-in', element: '[role="dialog"]');
+    $this->shoot($page, 'check-in', frame: '[role="dialog"]');
 });

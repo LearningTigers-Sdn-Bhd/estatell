@@ -25,5 +25,5 @@ test('check out as day use dialog', function () {
         ->waitForText('Charged')
         ->wait(1);
 
-    $this->shoot($page, 'check-out-as-day-use', element: '[role="dialog"]');
+    $this->shoot($page, 'check-out-as-day-use', frame: '[role="dialog"]');
 });

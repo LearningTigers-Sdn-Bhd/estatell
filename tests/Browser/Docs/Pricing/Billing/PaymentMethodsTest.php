@@ -18,5 +18,5 @@ test('new payment method sheet', function () {
         ->type('#payment-method-name', 'DuitNow QR')
         ->type('#payment-method-code', 'DUITNOW');
 
-    $this->shoot($page, 'new-payment-method', element: '[role="dialog"]');
+    $this->shoot($page, 'new-payment-method', frame: '[role="dialog"]');
 });

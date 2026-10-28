@@ -94,5 +94,5 @@ test('switch price by on saved prices', function () {
         ->click('[role="option"]:has-text("Guest")')
         ->waitForText('clears its prices');
 
-    $this->shoot($page, 'basic-rate-switch-price-by', element: '[role="alertdialog"]');
+    $this->shoot($page, 'basic-rate-switch-price-by', frame: '[role="alertdialog"]');
 });

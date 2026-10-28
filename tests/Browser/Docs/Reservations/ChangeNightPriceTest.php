@@ -21,5 +21,5 @@ test('change price dialog', function () {
         ->fill('#night-price-reason', 'Corporate rate agreed late')
         ->waitForText('Difference');
 
-    $this->shoot($page, 'change-price', badges: ['Nights', 'New price per night', 'Reason', 'Difference', 'Change'], element: '[role="dialog"]');
+    $this->shoot($page, 'change-price', badges: ['Nights', 'New price per night', 'Reason', 'Difference', 'Change'], frame: '[role="dialog"]');
 });

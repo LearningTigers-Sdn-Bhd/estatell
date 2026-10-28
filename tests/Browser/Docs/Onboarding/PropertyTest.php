@@ -45,7 +45,7 @@ test('basics after setup started', function () {
         ->click('Save & continue')
         ->waitForText('Change country to Indonesia?');
 
-    $this->shoot($page, 'change-country-dialog', element: '[role="alertdialog"]');
+    $this->shoot($page, 'change-country-dialog', frame: '[role="alertdialog"]');
 });
 
 test('check-in essentials', function () {

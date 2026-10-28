@@ -12,9 +12,13 @@ test('undo check-in dialog', function () {
         ->click('[role="dialog"] button[type="submit"]')
         ->waitForText('Checked in')
         ->click('[aria-label="Unit actions"]')
-        ->click('Undo check-in')
+        ->wait(1);
+
+    $this->shoot($page, 'undo-check-in-menu', badges: ['Undo check-in']);
+
+    $page->click('Undo check-in')
         ->waitForText('Nothing is posted or reversed')
         ->type('[role="dialog"]:has-text("Undo check-in") textarea', 'Checked in the wrong booking.');
 
-    $this->shoot($page, 'undo-check-in', element: '[role="dialog"]:has-text("Undo check-in")');
+    $this->shoot($page, 'undo-check-in', frame: '[role="dialog"]:has-text("Undo check-in")');
 });

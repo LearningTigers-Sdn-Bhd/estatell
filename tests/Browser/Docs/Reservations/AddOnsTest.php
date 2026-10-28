@@ -18,5 +18,5 @@ test('add add-on dialog', function () {
         ->click('#add-on-charge_item_id')
         ->click('Airport transfer · Per stay');
 
-    $this->shoot($page, 'add-add-on', element: '[role="dialog"]');
+    $this->shoot($page, 'add-add-on', frame: '[role="dialog"]');
 });

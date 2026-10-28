@@ -18,7 +18,7 @@ test('new room type sheet', function () {
         ->click('New room type')
         ->waitForText('Create room type');
 
-    $this->shoot($page, 'new-room-type', element: '[role="dialog"]');
+    $this->shoot($page, 'new-room-type', frame: '[role="dialog"]');
 });
 
 test('room type details tab', function () {
@@ -46,5 +46,5 @@ test('archive room type question', function () {
         ->click('Archive')
         ->waitForText('You can restore it later');
 
-    $this->shoot($page, 'archive', element: '[role="alertdialog"]');
+    $this->shoot($page, 'archive', frame: '[role="alertdialog"]');
 });

@@ -17,7 +17,7 @@ test('new role dialog', function () {
         ->waitForText('A custom role starts with no permissions.')
         ->type('#role-name', 'Night manager');
 
-    $this->shoot($page, 'new-role-dialog', element: '[role="dialog"]');
+    $this->shoot($page, 'new-role-dialog', frame: '[role="dialog"]');
 });
 
 test('change a staff role', function () {
@@ -26,5 +26,5 @@ test('change a staff role', function () {
         ->click('Change role')
         ->waitForText('The new role replaces the old one straight away.');
 
-    $this->shoot($page, 'change-role-dialog', element: '[role="dialog"]');
+    $this->shoot($page, 'change-role-dialog', frame: '[role="dialog"]');
 });

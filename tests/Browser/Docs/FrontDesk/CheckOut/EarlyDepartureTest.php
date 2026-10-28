@@ -7,10 +7,14 @@ beforeEach(function () {
 test('early check-out dialog', function () {
     $page = $this->open(route('reservations.show', [$this->property, $this->scenario('S8')]))
         ->click('More')
-        ->click('Check out early…')
+        ->wait(1);
+
+    $this->shoot($page, 'early-departure-menu', badges: ['Check out early…']);
+
+    $page->click('Check out early…')
         ->waitForText('Nights removed');
 
-    $this->shoot($page, 'early-departure', element: '[role="dialog"]');
+    $this->shoot($page, 'early-departure', frame: '[role="dialog"]');
 });
 
 test('early-departure policy settings', function () {

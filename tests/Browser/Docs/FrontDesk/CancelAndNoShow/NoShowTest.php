@@ -7,10 +7,14 @@ beforeEach(function () {
 test('mark no-show dialog', function () {
     $page = $this->open(route('reservations.show', [$this->property, $this->largestGroup()]))
         ->click('[aria-label="Unit actions"]')
-        ->click('Mark no-show')
+        ->wait(1);
+
+    $this->shoot($page, 'mark-no-show-menu', badges: ['Mark no-show']);
+
+    $page->click('Mark no-show')
         ->waitForText('No-show policy');
 
-    $this->shoot($page, 'mark-no-show', element: '[role="dialog"]');
+    $this->shoot($page, 'mark-no-show', frame: '[role="dialog"]');
 });
 
 test('no-show policy settings', function () {

@@ -17,7 +17,7 @@ test('new charge item dialog', function () {
         ->waitForText('You set the price and taxes on the next page.')
         ->type('#new-charge-item-name', 'Airport transfer');
 
-    $this->shoot($page, 'new-charge-item', element: '[role="dialog"]');
+    $this->shoot($page, 'new-charge-item', frame: '[role="dialog"]');
 });
 
 test('charge item edit page', function () {

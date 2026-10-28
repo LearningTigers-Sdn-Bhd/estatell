@@ -18,5 +18,5 @@ test('new discount sheet', function () {
         ->type('#discount-name', 'Returning guest')
         ->type('#discount-value', '10');
 
-    $this->shoot($page, 'new-discount', element: '[role="dialog"]');
+    $this->shoot($page, 'new-discount', frame: '[role="dialog"]');
 });

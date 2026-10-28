@@ -14,5 +14,5 @@ test('edit group dialog', function () {
         ->click('Edit group')
         ->waitForText('Who pays the room charges');
 
-    $this->shoot($page, 'edit-group', element: '[role="dialog"]');
+    $this->shoot($page, 'edit-group', frame: '[role="dialog"]');
 });

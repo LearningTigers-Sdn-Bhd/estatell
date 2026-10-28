@@ -16,7 +16,7 @@ test('new booking source dialog', function () {
         ->click('New booking source')
         ->waitForText('Where a booking came from');
 
-    $this->shoot($page, 'new-booking-source', element: '[role="dialog"]');
+    $this->shoot($page, 'new-booking-source', frame: '[role="dialog"]');
 });
 
 test('edit a system booking source dialog', function () {
@@ -24,5 +24,5 @@ test('edit a system booking source dialog', function () {
         ->click('[aria-label="Edit Walk-in"]')
         ->waitForText('Edit booking source');
 
-    $this->shoot($page, 'edit-system-booking-source', element: '[role="dialog"]');
+    $this->shoot($page, 'edit-system-booking-source', frame: '[role="dialog"]');
 });
