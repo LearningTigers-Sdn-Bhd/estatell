@@ -8,9 +8,12 @@ use App\Enums\ChannelAlertEvent;
 use App\Enums\FolioType;
 use App\Enums\PaymentMethodType;
 use App\Enums\PaymentPurpose;
+use App\Enums\SurchargeType;
 use App\Enums\SystemTransactionCode;
 use App\Models\BusinessDate;
 use App\Models\ChannelAlert;
+use App\Models\ChargeItem;
+use App\Models\FolioLine;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
 use App\Models\Reservation;
@@ -59,6 +62,19 @@ test('a virtual card booking names the card and the day it can be charged', func
     ]);
 
     expect(Payment::query()->sole()->reference)->toBe('Virtual card · charge from 2026-10-20');
+});
+
+test('an OTA collected method with a surcharge posts the booking amount with no fee', function () {
+    $setup = otaPaymentSetup();
+    $fee = ChargeItem::factory()->create(['property_id' => $setup['property']->id, 'name' => 'Card fee']);
+    $setup['method']->update(['surcharge_type' => SurchargeType::Percent, 'surcharge_value' => '5.00', 'surcharge_charge_item_id' => $fee->id]);
+
+    ingestOta($setup);
+
+    $payment = Payment::query()->sole();
+    expect($payment->amount)->toBe('200.00')
+        ->and($payment->surcharge_line_id)->toBeNull()
+        ->and(FolioLine::query()->where('description', 'Card fee')->count())->toBe(0);
 });
 
 test('a booking the property collects posts nothing', function (?string $collect) {

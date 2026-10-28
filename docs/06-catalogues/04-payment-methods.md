@@ -45,6 +45,6 @@ payment_methods    id, property_id, transaction_code_id, name, type (PaymentMeth
 - Recording a payment with a surcharge also posts the surcharge as a charge line (for example a 2% card fee).
 - `requires_reference` forces a reference, for example a card approval code.
 - `DirectBill` (label "City ledger") moves the balance to the city ledger through **Settle to City ledger** (see [AR invoices](../15-city-ledger/02-ar-invoices.md)). It stays inactive and is not offered in Record payment: it supplies only the transaction code.
-- `OtaCollected` records money the guest paid the OTA. Channel bookings post it automatically (see [OTA collected payments](../21-channels/05-booking-ingestion.md#ota-collected-payments)), and staff can record it in the Record payment Dialog.
+- `OtaCollected` records money the guest paid the OTA. Channel bookings post it automatically (see [OTA collected payments](../21-channels/05-booking-ingestion.md#ota-collected-payments)), and staff can record it in the Record payment Dialog. It never takes a surcharge, even when one is set on the method.
 
 Payment recording and surcharge posting are in [Payments and refunds](../14-payments/01-payments-and-refunds.md). OTA ingestion and city-ledger invoice creation are later modules.

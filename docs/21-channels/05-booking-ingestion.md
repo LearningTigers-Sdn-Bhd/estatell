@@ -66,10 +66,10 @@ IngestChannelBooking ── CreateReservation(fromChannel: true), booking source
 
 A New or Modified revision with `payment_collect` = `ota` (the guest already paid the OTA) posts the money to the folio through `PostOtaCollectedPayment`, inside the save. `payment_collect` = `property` or no value posts nothing. `payment_type` and the virtual card never decide whether to post or how much (decided 2026-10-28).
 
-- **Amount:** the booking `amount`, the full amount the guest paid. `ota_commission` and the virtual card balance are not used.
+- **Amount:** the booking `amount`, the booking total as the channel sends it. Channex calls it "Total booking amount"; whether it includes tax and the OTA commission depends on the OTA's settings (for example Expedia's Payout or Total amount, Agoda's Inclusive or Inclusive with commissions). Room charges come from the same booking, so the folio still balances. `ota_commission` and the virtual card balance are not used.
 - **What is posted:** only what is still due: the booking amount minus the OTA collected money already on the reservation (Completed payments minus their refunds). Money staff recorded by hand is not posted again. A Modified revision with a higher amount posts the difference; a lower amount posts nothing, and staff refund the difference by hand.
 - **Folio:** with nothing collected yet, each room's `amount` goes to its unit, matching rooms to live units in order, when the revision has one amount per live unit. The rest of the booking amount goes to the first unit. Otherwise the first unit takes it all. A unit's money goes to the folio that takes its Room charges: the Master folio (MasterPays group), or the unit's own folio. Money for the same folio is one payment.
-- **Payment:** `RecordPayment` with the property's OTA collected method, purpose Advance, the business date, and the key `ota-collected:{revision_id}:{n}`. It has no receipt number (`issueReceipt` off, see [Payments](../14-payments/01-payments-and-refunds.md#rules)).
+- **Payment:** `RecordPayment` with the property's OTA collected method, purpose Advance, the business date, and the key `ota-collected:{revision_id}:{n}`. It takes no surcharge and has no receipt number (`issueReceipt` off, see [Payments](../14-payments/01-payments-and-refunds.md#rules)).
 - **Reference:** `Virtual card · charge from {virtual_card_effective_date}` (or `Virtual card`) when `guarantee.is_virtual` is true, `Bank transfer` when `payment_type` is `bank_transfer`, otherwise empty. It tells staff how the OTA pays the property. No card details are read.
 - **Refused payment:** the booking is still saved and acknowledged. The payment is skipped and an **OTA payment not posted** alert opens with the amount and the refusal code (for example `no_business_date`, or `method_not_available` when the OTA collected method is off). Staff record it in the Record payment Dialog.
 - **Cancelled:** nothing is posted or reversed. The payment stays as a credit on the folio, and staff refund it or use it against a fee.
@@ -107,6 +107,7 @@ Booking.com and Expedia support `load_future_reservations`. **Import future book
 - The feed page size.
 - Whether Booking.com virtual card bookings arrive with `payment_collect` = `ota`, or with `property` and `guarantee.is_virtual` = true.
 - How the virtual card balance compares with the booking `amount`.
+- Whether `amount` includes tax and the OTA commission, per OTA.
 
 ## Open
 
