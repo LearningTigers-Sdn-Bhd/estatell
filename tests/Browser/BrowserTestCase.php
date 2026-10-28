@@ -352,8 +352,10 @@ abstract class BrowserTestCase extends TestCase
 
     /**
      * Draws a numbered red badge on the element in the main area, right of the sidebar, whose text is exactly the given
-     * text. A match inside a button, link, menu item, tab or option on screen wins over plain text. A control gets the
-     * badge on its top left corner; plain text, like a label or column header, gets it centred just left of the text.
+     * text. A match inside an open sheet or dialog wins over the page behind it, and a match inside a button, link, menu
+     * item, tab or option on screen wins over plain text. A control gets the
+     * badge on its top left corner; plain text, like a label or column header, gets it centred just left of the text,
+     * or just right of it when the left side would cross the staff sidebar.
      * Returns the texts it could not find.
      *
      * @param  list<string>  $texts
@@ -376,14 +378,20 @@ abstract class BrowserTestCase extends TestCase
                         && el.getBoundingClientRect().left >= {$fromLeft}
                         && el.getBoundingClientRect().width > 0,
                 );
-                const match = matches.find((el) => control(el) && onScreen(el)) ?? matches[0];
+                const dialog = [...document.querySelectorAll('[role="dialog"]')].pop();
+                const inDialog = dialog ? matches.filter((el) => dialog.contains(el)) : [];
+                const pool = inDialog.length > 0 ? inDialog : matches;
+                const match = pool.find((el) => control(el) && onScreen(el)) ?? pool[0];
                 if (!match) { missing.push(text); return; }
                 const target = control(match) ?? match;
                 const box = target.getBoundingClientRect();
+                const textRight = (el) => { const range = document.createRange(); range.selectNodeContents(el); return range.getBoundingClientRect().right; };
                 const besideLeft = box.left - 28;
-                const beside = !control(match) && besideLeft >= {$fromLeft};
-                const left = beside ? besideLeft : Math.max(0, box.left - 14);
-                const top = beside ? box.top + box.height / 2 - 11 : Math.max(0, box.top - 8);
+                const plain = !control(match);
+                const beside = plain && besideLeft >= {$fromLeft};
+                const after = plain && !beside;
+                const left = beside ? besideLeft : after ? textRight(match) + 6 : Math.max(0, box.left - 14);
+                const top = beside || after ? box.top + box.height / 2 - 11 : Math.max(0, box.top - 8);
                 const badge = document.createElement('div');
                 badge.dataset.docsMark = '';
                 badge.textContent = String(index + 1);
