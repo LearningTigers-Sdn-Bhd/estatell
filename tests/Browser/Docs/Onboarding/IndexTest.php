@@ -1,10 +1,19 @@
 <?php
 
-test('the wizard opens on the first section of a new property', function () {
-    $property = $this->startOnboarding();
+beforeEach(function () {
+    $this->startOnboarding();
+});
 
-    $page = $this->open(route('onboarding.basics.edit', $property->code))
-        ->waitForText('Basics');
+test('phase bar and section tabs', function () {
+    $page = $this->open(route('onboarding.basics.edit', $this->property->code), height: 330)
+        ->waitForText('Property basics');
 
-    $this->shoot($page, 'wizard-start');
+    $this->shoot($page, 'phase-bar');
+});
+
+test('locked section preview', function () {
+    $page = $this->open(route('onboarding.room-types.edit', $this->property->code), height: 560)
+        ->waitForText('Finish Basics first');
+
+    $this->shoot($page, 'locked-preview');
 });
