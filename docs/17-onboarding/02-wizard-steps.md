@@ -123,7 +123,7 @@ Setup started (another section is no longer Not started):
 **Changing country**
 
 - While every other section is Not started, country, currency and time zone are plain fields. Saving a change runs `ChangePropertyCountry`, which reseeds the untouched presets.
-- After that they are read-only (`SettingsLock::locksCountry`, sent as `basics.locked`) and the page shows "Country · currency · time zone" as plain text. **Change country**, which unlocks them in place with a warning, is a later item (see the checklist). Until then the server ignores country, currency and time zone in a Basics save once they are locked, and `ChangePropertyCountry` refuses. **Save & continue** opens an AlertDialog with the counts of what resets. Room types, rooms and team stay. Full rules: [Changing country](../02-property/03-seed-property-defaults.md#changing-country).
+- After that they are read-only (`SettingsLock::locksCountry`, sent as `basics.locked`) and the page shows "Country · currency · time zone" as plain text. **Change country** (shown while `basics.canChangeCountry`) unlocks them in place with a warning. Without it the server ignores country, currency and time zone in a Basics save once they are locked. **Save & continue** opens an AlertDialog with the counts of what resets. Room types, rooms and team stay. Full rules: [Changing country](../02-property/03-seed-property-defaults.md#changing-country).
 - After go-live they are fixed.
 
 **Save and check**
