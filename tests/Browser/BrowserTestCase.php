@@ -5,6 +5,7 @@ namespace Tests\Browser;
 use App\Actions\Onboarding\RegisterPropertyOwner;
 use App\Actions\Onboarding\SaveOnboardingRooms;
 use App\Actions\Onboarding\SaveOnboardingRoomTypes;
+use App\Actions\Onboarding\SaveOnboardingTaxes;
 use App\Actions\Onboarding\SavePropertyBasics;
 use App\Data\Onboarding\NewPropertyOwnerData;
 use App\Enums\DefaultRoleEnum;
@@ -127,6 +128,50 @@ abstract class BrowserTestCase extends TestCase
         ]);
 
         return $this->property->roomTypes()->firstOrFail();
+    }
+
+    /**
+     * Save Basics and the Taxes section with Service Tax (SST) turned on and applied to rooms, so the Prices section
+     * unlocks once there is a room type.
+     */
+    protected function saveOnboardingTaxes(): void
+    {
+        $this->saveOnboardingBasics();
+
+        $rows = $this->property->taxes()->get()->map(fn ($tax): array => [
+            'id' => $tax->id,
+            'name' => $tax->name,
+            'rate_type' => $tax->rate_type,
+            'rate' => $tax->rate,
+            'is_inclusive' => $tax->is_inclusive,
+            'foreign_guests_only' => $tax->foreign_guests_only,
+            'collect_at_check_in' => $tax->collect_at_check_in,
+            'registration_number' => $tax->registration_number,
+            'enabled' => $tax->name === 'Service Tax (SST)',
+            'applies_to_rooms' => $tax->name === 'Service Tax (SST)',
+        ])->all();
+
+        app(SaveOnboardingTaxes::class)($this->property, auth()->user(), $rows, false);
+    }
+
+    /**
+     * Save Basics, Taxes and two room types, "Standard Double" and "Family Longhouse", so Basic rate opens.
+     *
+     * @return array{RoomType, RoomType}
+     */
+    protected function saveOnboardingPriceableRoomTypes(): array
+    {
+        $this->saveOnboardingTaxes();
+
+        app(SaveOnboardingRoomTypes::class)($this->property, auth()->user(), [
+            ['id' => null, 'name' => 'Standard Double', 'max_adults' => 2, 'max_children' => 1],
+            ['id' => null, 'name' => 'Family Longhouse', 'max_adults' => 4, 'max_children' => 2],
+        ]);
+
+        return [
+            $this->property->roomTypes()->where('name', 'Standard Double')->firstOrFail(),
+            $this->property->roomTypes()->where('name', 'Family Longhouse')->firstOrFail(),
+        ];
     }
 
     /**
