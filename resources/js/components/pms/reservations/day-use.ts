@@ -161,6 +161,21 @@ export function enteredEndsAt(start: string, hours: string): string | null {
 }
 
 /**
+ * The hours of a block from `start` to `end` (`H:i`), rounded up to whole hours, as text. Empty when the end is not
+ * after the start or the block is longer than the day.
+ */
+export function hoursBetween(start: string, end: string): string {
+    const from = minutes(start);
+    const to = minutes(end);
+
+    if (from === null || to === null || to <= from) {
+        return '';
+    }
+
+    return String(Math.ceil((to - from) / 60));
+}
+
+/**
  * Whether a line on a Day use plan has to switch to an entered price: the plan's answer is in and it sells no hours at
  * that start, or not the hours picked.
  */

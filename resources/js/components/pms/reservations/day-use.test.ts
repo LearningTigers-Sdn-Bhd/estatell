@@ -8,6 +8,7 @@ import {
     endsAt,
     enteredEndsAt,
     enteredSwitchNote,
+    hoursBetween,
     hoursText,
     isDayUseQuotable,
     isEnteredPlan,
@@ -196,4 +197,19 @@ test('a time reads as the browser shows it in a time input', () => {
 
     expect(timeText('14:30')).toBe(expected);
     expect(timeText('soon')).toBe('soon');
+});
+
+describe('hoursBetween', () => {
+    test('rounds up to whole hours', () => {
+        expect(hoursBetween('02:00', '12:00')).toBe('10');
+        expect(hoursBetween('02:00', '12:01')).toBe('11');
+        expect(hoursBetween('10:00', '10:30')).toBe('1');
+    });
+
+    test('is empty when the end is not after the start or a time is missing', () => {
+        expect(hoursBetween('12:00', '12:00')).toBe('');
+        expect(hoursBetween('12:00', '09:00')).toBe('');
+        expect(hoursBetween('', '09:00')).toBe('');
+        expect(hoursBetween('09:00', '')).toBe('');
+    });
 });

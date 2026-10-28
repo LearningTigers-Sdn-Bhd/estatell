@@ -606,6 +606,8 @@ The booking form in Walk-in mode books, checks in and collects in one save. The 
 3. For each unit, in unit order: `CheckInAndCollect`, with the walk-in's method, reference and `without_card`. Each call runs in its own savepoint, so a refused unit rolls back alone and the others go on. A refused unit stays Confirmed.
 4. `SyncReservationStatus` once at the end.
 
+**Already checked out (day use only).** With `checkedOutAt` (the form's End), step 3 also runs `CheckOutUnit` with `asOf` at End for each unit. The guest has left, so a refusal at the check-in, the payment or the check-out (`card_missing`, `balance_not_settled`, a payment code) raises `WalkInUnitRefused` and rolls the whole walk-in back. The result is `WalkInResult::unitRefused()` with that unit, and the form shows the reason on Guest status. See [Walk-in, today](../12-reservations/10-day-use.md#walk-in-today).
+
 It returns `WalkInResult`: the reservation (null when the booking was refused), the booking refusal, and one row per unit with its refusal code or null, and the amount collected.
 
 **What each unit pays.** `CheckInCollection` gains the full bill of the unit, and `CollectNowData` gains `roomCharges`:

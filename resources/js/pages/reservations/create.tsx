@@ -86,7 +86,10 @@ import {
     DayUseLineRow,
     DayUseLinesHeader,
 } from '@/components/pms/reservations/day-use-line-row';
-import { nextHalfHour } from '@/components/pms/reservations/day-use';
+import {
+    hoursBetween,
+    nextHalfHour,
+} from '@/components/pms/reservations/day-use';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -194,6 +197,8 @@ type Props = {
     canManageGuests: boolean;
     /** Whether the user may take a payment (`payment.record`): it shows the walk-in Payment section. */
     canRecordPayment: boolean;
+    /** Walk-in only: whether the user may check a guest out (`front-desk.check-out`), which allows Already checked out on a day use. */
+    canCheckOut: boolean;
     /** Walk-in only: whether the property requires a signed card for check-in and the user may check in without one (`front-desk.check-in-without-card`). It shows the Registration card block. */
     canCheckInWithoutCard: boolean;
     /** The payment methods, asked for the first time the walk-in form opens. */
@@ -265,6 +270,7 @@ export default function ReservationCreate({
     canOverrideRestrictions,
     canManageGuests,
     canRecordPayment,
+    canCheckOut,
     canCheckInWithoutCard,
     paymentOptions,
     hasDayUse,
@@ -301,6 +307,7 @@ export default function ReservationCreate({
         start_time: '',
         reason: '',
         status: 'in_house',
+        end_time: '',
         mode: isOldStay ? 'old' : isMigratedStay ? 'migrated' : 'past',
         old_folio: 'one_amount',
         opening_amount: '',
@@ -453,6 +460,13 @@ export default function ReservationCreate({
             ...current,
             stay_type: next as BookingForm['stay_type'],
             start_time: next === 'day_use' ? defaultStart(isWalkIn) : '',
+            ...(isWalkIn
+                ? {
+                      status: 'in_house' as const,
+                      end_time: '',
+                      collect_deposit: true,
+                  }
+                : {}),
             lines: [
                 emptyLine(
                     autoAddOns(chargeItems, next as BookingForm['stay_type']),
@@ -499,6 +513,8 @@ export default function ReservationCreate({
     )?.type;
     const isDayUse = data.stay_type === 'day_use' && !isPastStay;
     const isCheckedOut = isPastStay && data.status === 'checked_out';
+    const isWalkInCheckedOut =
+        isWalkIn && isDayUse && data.status === 'checked_out';
     // A refusal of the start of a block can come back on the form or on a line.
     const startError =
         errors.start_time ??
@@ -718,15 +734,17 @@ export default function ReservationCreate({
         );
     };
 
-    const submitLabel = isWalkIn
-        ? 'Check in'
-        : isOldStay
-          ? 'Save old stay'
-          : isCheckedOut && !isMigratedStay
-            ? 'Save and open Manual Folio Editor'
-            : isPastStay
-              ? 'Save and open folio'
-              : 'Create booking';
+    const submitLabel = isWalkInCheckedOut
+        ? 'Save and check out'
+        : isWalkIn
+          ? 'Check in'
+          : isOldStay
+            ? 'Save old stay'
+            : isCheckedOut && !isMigratedStay
+              ? 'Save and open Manual Folio Editor'
+              : isPastStay
+                ? 'Save and open folio'
+                : 'Create booking';
     const submitButton = (className?: string) => (
         <Button
             type="submit"
@@ -1068,6 +1086,116 @@ export default function ReservationCreate({
                                                     menuClassName="w-80"
                                                 />
                                             </Field>
+                                        </div>
+                                    )}
+                                    {isWalkIn && isDayUse && canCheckOut && (
+                                        <div className="grid items-start gap-4 sm:grid-cols-[minmax(0,1fr)_12rem]">
+                                            <Field
+                                                data-invalid={!!errors.status}
+                                            >
+                                                <FieldLabel>
+                                                    Guest status
+                                                </FieldLabel>
+                                                <ToggleGroup
+                                                    variant="outline"
+                                                    spacing={0}
+                                                    value={[
+                                                        data.status ??
+                                                            'in_house',
+                                                    ]}
+                                                    onValueChange={(value) =>
+                                                        value[0] &&
+                                                        form.setData(
+                                                            (current) => ({
+                                                                ...current,
+                                                                status: value[0] as
+                                                                    | 'in_house'
+                                                                    | 'checked_out',
+                                                                end_time: '',
+                                                                collect_room_charges: true,
+                                                                collect_deposit:
+                                                                    value[0] ===
+                                                                    'in_house',
+                                                            }),
+                                                        )
+                                                    }
+                                                    aria-label="Guest status"
+                                                >
+                                                    <ToggleGroupItem value="in_house">
+                                                        <BedDouble data-icon="inline-start" />
+                                                        Still in house
+                                                    </ToggleGroupItem>
+                                                    <ToggleGroupItem value="checked_out">
+                                                        <LogOut data-icon="inline-start" />
+                                                        Already checked out
+                                                    </ToggleGroupItem>
+                                                </ToggleGroup>
+                                                <FieldDescription>
+                                                    {isWalkInCheckedOut
+                                                        ? 'The guest came and left today. Saved as checked out, paid in full.'
+                                                        : 'The guest is in the house now.'}
+                                                </FieldDescription>
+                                                <FieldError>
+                                                    {errors.status}
+                                                </FieldError>
+                                            </Field>
+                                            {isWalkInCheckedOut && (
+                                                <Field
+                                                    data-invalid={
+                                                        !!errors.end_time
+                                                    }
+                                                >
+                                                    <FieldLabel htmlFor="booking-end-time">
+                                                        End
+                                                    </FieldLabel>
+                                                    <Input
+                                                        id="booking-end-time"
+                                                        type="time"
+                                                        step={60}
+                                                        min={data.start_time}
+                                                        max={nowTime}
+                                                        value={
+                                                            data.end_time ?? ''
+                                                        }
+                                                        onChange={(event) => {
+                                                            const end =
+                                                                event.target
+                                                                    .value;
+
+                                                            form.setData(
+                                                                (current) => ({
+                                                                    ...current,
+                                                                    end_time:
+                                                                        end,
+                                                                    lines: current.lines.map(
+                                                                        (
+                                                                            line,
+                                                                        ) => ({
+                                                                            ...line,
+                                                                            hours: hoursBetween(
+                                                                                current.start_time,
+                                                                                end,
+                                                                            ),
+                                                                            room_id:
+                                                                                '',
+                                                                        }),
+                                                                    ),
+                                                                }),
+                                                            );
+                                                        }}
+                                                        aria-invalid={
+                                                            !!errors.end_time
+                                                        }
+                                                    />
+                                                    <FieldDescription>
+                                                        Sets the hours of every
+                                                        line, rounded up.
+                                                    </FieldDescription>
+                                                    <FieldError>
+                                                        {errors.end_time}
+                                                    </FieldError>
+                                                </Field>
+                                            )}
                                         </div>
                                     )}
                                     {isPastStay && !isOldStay && (
@@ -2029,6 +2157,7 @@ export default function ReservationCreate({
                                             problem={walkInPayment.problem}
                                             options={paymentOptions}
                                             currency={currency}
+                                            fullPayment={isWalkInCheckedOut}
                                             values={{
                                                 collect_room_charges:
                                                     data.collect_room_charges ??

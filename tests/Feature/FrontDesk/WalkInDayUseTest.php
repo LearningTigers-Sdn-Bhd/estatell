@@ -3,12 +3,18 @@
 require_once __DIR__.'/../Support/DayUseSetup.php';
 
 use App\Enums\BookingSourceType;
+use App\Enums\HousekeepingStatus;
+use App\Enums\PaymentMethodType;
 use App\Enums\UnitStatus;
 use App\Models\BusinessDate;
 use App\Models\FolioLine;
+use App\Models\Payment;
+use App\Models\PaymentMethod;
 use App\Models\Rate;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
+use App\Models\RoomStatus;
+use App\Models\User;
 use Database\Factories\BookingSourceFactory;
 
 beforeEach(function () {
@@ -146,4 +152,115 @@ test('day-use-offers lists every priced hour for a start that has passed today',
 
     $this->getJson(route('reservations.day-use-offers', ['property' => $setup['property']->code, ...$query, 'start_time' => '17:00']))
         ->assertOk()->assertJsonPath('offers', []);
+});
+
+/**
+ * The body of a walk-in day use saved as already checked out: the room charges in full by cash, with the total the
+ * preview answers for them.
+ *
+ * @param  array<string, mixed>  $setup
+ * @param  array<string, mixed>  $extra
+ * @return array<string, mixed>
+ */
+function walkInCheckedOutBody(array $setup, array $extra = []): array
+{
+    $setup['cash'] ??= PaymentMethod::factory()->create(['property_id' => $setup['property']->id, 'type' => PaymentMethodType::Cash, 'requires_reference' => false, 'position' => 1]);
+    $body = walkInDayUseBody($setup, ['hours' => 10]);
+    $total = test()->actingAs($setup['user'])->postJson(route('reservations.walk-in-payment', ['property' => $setup['property']->code]), $body)->assertOk()->json('roomCharges');
+
+    return [
+        ...$body,
+        'status' => 'checked_out',
+        'end_time' => '12:00',
+        'collect_room_charges' => true,
+        'collect_deposit' => false,
+        'payment_method_id' => $setup['cash']->id,
+        'expected_total' => $total,
+        ...$extra,
+    ];
+}
+
+test('a walk-in day use saved as already checked out is paid in full, checked out at its end and the room is dirty', function () {
+    $setup = walkInDayUseSetup();
+
+    $this->actingAs($setup['user'])->post(walkInDayUseUrl($setup), walkInCheckedOutBody($setup))->assertSessionHasNoErrors();
+
+    $unit = ReservationUnit::query()->sole();
+
+    expect($unit->status)->toBe(UnitStatus::CheckedOut)
+        ->and($unit->checked_in_at->format('H:i'))->toBe('02:00')
+        ->and($unit->checked_out_at->format('H:i'))->toBe('12:00')
+        ->and(Payment::query()->count())->toBe(1)
+        ->and(RoomStatus::query()->where('room_id', $setup['rooms'][0]->id)->sole()->status)->toBe(HousekeepingStatus::Dirty);
+});
+
+test('Already checked out takes the room charges in full whatever the boxes say and ignores the deposit', function () {
+    $setup = walkInDayUseSetup();
+    $body = walkInCheckedOutBody($setup);
+
+    $this->actingAs($setup['user'])->post(walkInDayUseUrl($setup), [...$body, 'collect_room_charges' => false, 'collect_deposit' => true])->assertSessionHasNoErrors();
+
+    expect(ReservationUnit::query()->sole()->status)->toBe(UnitStatus::CheckedOut)
+        ->and(Payment::query()->sum('amount'))->toEqual($body['expected_total']);
+});
+
+test('Already checked out needs an end after the start and not after now', function (string $end, string $field) {
+    $setup = walkInDayUseSetup();
+
+    $this->actingAs($setup['user'])->post(walkInDayUseUrl($setup), walkInCheckedOutBody($setup, ['end_time' => $end]))->assertSessionHasErrors($field);
+
+    expect(Reservation::query()->count())->toBe(0);
+})->with([
+    'before the start' => ['01:30', 'end_time'],
+    'after now' => ['15:30', 'end_time'],
+]);
+
+test('Already checked out is refused without the check-out permission', function () {
+    $setup = walkInDayUseSetup();
+    $body = walkInCheckedOutBody($setup);
+    $user = User::factory()->for($setup['property'])->withPermissions(['reservations.manage', 'front-desk.check-in', 'payment.record'])->create();
+
+    $this->actingAs($user)->post(walkInDayUseUrl($setup), $body)->assertSessionHasErrors('status');
+
+    expect(Reservation::query()->count())->toBe(0);
+});
+
+test('Already checked out with the balance unpaid saves nothing and answers balance_not_settled', function () {
+    $setup = walkInDayUseSetup();
+    $body = walkInCheckedOutBody($setup);
+    unset($body['payment_method_id'], $body['expected_total'], $body['collect_room_charges']);
+    $user = User::factory()->for($setup['property'])->withPermissions(['reservations.manage', 'front-desk.check-in', 'front-desk.check-out'])->create();
+
+    $this->actingAs($user)->post(walkInDayUseUrl($setup), $body)->assertSessionHasErrors('status');
+
+    expect(Reservation::query()->count())->toBe(0)
+        ->and(Payment::query()->count())->toBe(0)
+        ->and(FolioLine::query()->count())->toBe(0);
+});
+
+test('Already checked out with a card required and no permission to skip it saves nothing', function () {
+    $setup = walkInDayUseSetup();
+    $setup['property']->settings->update(['card_required_for_check_in' => true]);
+    $user = User::factory()->for($setup['property'])->withPermissions(['reservations.manage', 'front-desk.check-in', 'front-desk.check-out', 'payment.record'])->create();
+
+    $body = walkInCheckedOutBody($setup, ['without_card' => true]);
+
+    $this->actingAs($user)->post(walkInDayUseUrl($setup), $body)->assertSessionHasErrors('status');
+
+    expect(Reservation::query()->count())->toBe(0);
+});
+
+test('a walk-in day use that stays in house is not checked out', function () {
+    $setup = walkInDayUseSetup();
+
+    $this->actingAs($setup['user'])->post(walkInDayUseUrl($setup), [...walkInCheckedOutBody($setup), 'status' => 'in_house'])->assertSessionHasNoErrors();
+
+    expect(ReservationUnit::query()->sole()->status)->toBe(UnitStatus::CheckedIn);
+});
+
+test('an overnight walk-in cannot be saved as already checked out', function () {
+    $setup = walkInDayUseSetup();
+    $body = walkInCheckedOutBody($setup);
+
+    $this->actingAs($setup['user'])->post(walkInDayUseUrl($setup), [...$body, 'stay_type' => 'overnight', 'departure_date' => '2026-10-15'])->assertSessionHasErrors('status');
 });

@@ -24,6 +24,7 @@ class CheckInWalkIn
         private CreateBooking $createBooking,
         private WalkInPayment $walkInPayment,
         private CheckInAndCollect $checkInAndCollect,
+        private CheckOutUnit $checkOutUnit,
     ) {}
 
     /**
@@ -35,11 +36,14 @@ class CheckInWalkIn
      * `{uuid}:{unit id}`. `CheckInAndCollect` opens its own transaction, which is a savepoint inside this one, so a unit
      * that is refused (a check-in code, or a payment code) rolls back alone: it stays Confirmed, pays nothing, and the
      * other units go on. `CheckInUnit` syncs the reservation status after each check-in, so no sync is needed at the
-     * end. A day use unit that started earlier today is checked in at its start (`asOf`). One `reservation.walk_in` entry logs the counts and the total collected. Permissions (`reservations.manage`,
+     * end. A day use unit that started earlier today is checked in at its start (`asOf`). With `$checkedOutAt` (a day
+     * use walk-in saved as already checked out) each unit is also checked out at that moment (`CheckOutUnit` with
+     * `asOf`), and a unit refused at its check-in, its payment or its check-out rolls the whole walk-in back
+     * (`WalkInResult::unitRefused()`), because the guest has already left. One `reservation.walk_in` entry logs the counts and the total collected. Permissions (`reservations.manage`,
      * `front-desk.check-in`, `payment.record`, `front-desk.check-in-without-card`) are checked by the route and the Form
      * Request. See docs/18-front-desk/01-check-in-and-check-out.md#walk-in-check-in.
      */
-    public function __invoke(User $actor, Property $property, NewBookingData $data, ?WalkInCollectData $collect = null, bool $withoutCard = false): WalkInResult
+    public function __invoke(User $actor, Property $property, NewBookingData $data, ?WalkInCollectData $collect = null, bool $withoutCard = false, ?CarbonImmutable $checkedOutAt = null): WalkInResult
     {
         try {
             $pending = $this->walkInPayment->auditPendingRefusal($property, $data);
@@ -48,7 +52,7 @@ class CheckInWalkIn
                 return WalkInResult::bookingRefused($pending);
             }
 
-            return DB::transaction(function () use ($actor, $property, $data, $collect, $withoutCard): WalkInResult {
+            return DB::transaction(function () use ($actor, $property, $data, $collect, $withoutCard, $checkedOutAt): WalkInResult {
                 $booking = ($this->createBooking)($actor, $property, $data);
 
                 if ($booking->isRefused()) {
@@ -78,7 +82,17 @@ class CheckInWalkIn
                     $paid = array_reduce($result->payments, fn (BigDecimal $sum, Payment $payment): BigDecimal => $sum->plus($payment->amount), BigDecimal::zero());
                     $refusal = $result->stay->refusal ?? $result->paymentRefusal;
                     $collected = $collected->plus($paid);
-                    $units[] = new WalkInUnitResult($unit->id, $this->label($unit, count($units)), $refusal, $result->stay->refusal === null && $result->paymentRefusal !== null, (string) $paid->toScale(2));
+                    $row = new WalkInUnitResult($unit->id, $this->label($unit, count($units)), $refusal, $result->stay->refusal === null && $result->paymentRefusal !== null, (string) $paid->toScale(2));
+
+                    if ($checkedOutAt !== null) {
+                        $refusal ??= ($this->checkOutUnit)($actor, $unit->refresh(), $checkedOutAt)->refusal;
+
+                        if ($refusal !== null) {
+                            throw new WalkInUnitRefused($refusal === $row->refusal ? $row : new WalkInUnitResult($unit->id, $row->label, $refusal, false, '0.00'));
+                        }
+                    }
+
+                    $units[] = $row;
                 }
 
                 $done = count(array_filter($units, fn (WalkInUnitResult $unit): bool => $unit->isCheckedIn()));
@@ -99,6 +113,8 @@ class CheckInWalkIn
             });
         } catch (WalkInAmountChanged) {
             return WalkInResult::amountChanged();
+        } catch (WalkInUnitRefused $refused) {
+            return WalkInResult::unitRefused($refused->unit);
         }
     }
 
