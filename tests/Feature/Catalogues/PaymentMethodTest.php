@@ -73,6 +73,7 @@ test('Malaysia properties receive seven payment methods idempotently', function 
             PaymentMethodType::Cash,
             PaymentMethodType::BankTransfer,
             PaymentMethodType::EWallet,
+            PaymentMethodType::OtaCollected,
         ])
         ->and($methods->where('requires_reference', true)->pluck('type')->all())->toBe([
             PaymentMethodType::BankTransfer,
@@ -83,7 +84,7 @@ test('Malaysia properties receive seven payment methods idempotently', function 
         ->and($card->refresh()->name)->toBe('Front desk terminal')
         ->and($card->active)->toBeFalse()
         ->and($card->position)->toBe(9)
-        ->and($methods->firstWhere('type', PaymentMethodType::OtaCollected)->active)->toBeFalse()
+        ->and($methods->firstWhere('type', PaymentMethodType::OtaCollected)->active)->toBeTrue()
         ->and($methods->firstWhere('type', PaymentMethodType::DirectBill)->active)->toBeFalse();
 });
 

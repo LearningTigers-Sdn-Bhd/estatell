@@ -665,6 +665,8 @@ class ReplayWastaysDay
 
     private function pay(ReplayContext $context, ReservationUnit $unit, PaymentMethod $method, PaymentPurpose $purpose, string $amount, ?string $reference, string $key, ?int $receipt, string $label, ?Folio $folio = null): Model
     {
+        // estatell gives an OTA collected payment no receipt number, so a wastays receipt for one is not carried over.
+        $receipt = $method->type === PaymentMethodType::OtaCollected ? null : $receipt;
         $take = fn (PaymentPurpose $purpose) => $this->numbers->run(DocumentType::Receipt, $receipt, fn () => ($this->recordPayment)($context->actor, $unit->reservation, $folio, $folio === null ? $unit : null, new NewPaymentData(
             paymentMethodId: $method->id,
             purpose: $purpose,

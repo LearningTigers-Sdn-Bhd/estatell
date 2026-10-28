@@ -46,6 +46,7 @@ IngestChannelBooking ── CreateReservation(fromChannel: true), booking source
     - Modified: the rooms of the revision are matched to the live units in order. A unit with another room type or rate plan is cancelled and replaced, a unit with other dates changes dates (`ChangeUnitDates`), a room with no unit is added, and a unit with no room is cancelled. Nothing is charged for these changes.
     - Modified prices: a kept unit is then priced as the OTA says, so the reservation total matches the OTA. Each night of the unit takes the revision room's `days` amount for its date, when the revision has an amount for every night. Otherwise the room `amount` is spread over the nights, as a new booking does (the last night takes the remainder). A night that already has that price is skipped. The other nights are changed through `ChangeNightPrice` (reason "Changed on {channel}"), so a night the night audit has already charged is reversed and posted again at the new price, and the change shows in the activity log. This covers nights added by a longer stay and nights whose price the OTA changed. A night that `ChangeNightPrice` refuses (for example a property with no room revenue code) keeps its price and the revision is still saved and acknowledged. A replaced or added unit is priced like a new one (override total spread over the nights).
     - Cancelled: every live unit is cancelled with no fee (`CancelUnits`, do not charge).
+    - OTA collected: see [OTA collected payments](#ota-collected-payments).
 3. Only a saved revision is acknowledged. An acknowledged booking is in estatell.
 4. A failed revision keeps `error`, is not acknowledged, and shows on the admin Channels tab and the night audit readiness panel. Channex then also sends `non_acked_booking`.
 
@@ -61,6 +62,19 @@ IngestChannelBooking ── CreateReservation(fromChannel: true), booking source
 - A refusal that estatell cannot skip fails the revision with its code, for example a Cancel with no cancellation policy (`policy_not_found`), a date change that needs a business date (`no_business_date`), or a closed reservation.
 - Dorm bed bookings are not expected until the dorm work. A revision for an unmapped room fails and alerts.
 
+## OTA collected payments
+
+A New or Modified revision with `payment_collect` = `ota` (the guest already paid the OTA) posts the money to the folio through `PostOtaCollectedPayment`, inside the save. `payment_collect` = `property` or no value posts nothing. `payment_type` and the virtual card never decide whether to post or how much (decided 2026-10-28).
+
+- **Amount:** the booking `amount`, the full amount the guest paid. `ota_commission` and the virtual card balance are not used.
+- **What is posted:** only what is still due: the booking amount minus the OTA collected money already on the reservation (Completed payments minus their refunds). Money staff recorded by hand is not posted again. A Modified revision with a higher amount posts the difference; a lower amount posts nothing, and staff refund the difference by hand.
+- **Folio:** with nothing collected yet, each room's `amount` goes to its unit, matching rooms to live units in order, when the revision has one amount per live unit. The rest of the booking amount goes to the first unit. Otherwise the first unit takes it all. A unit's money goes to the folio that takes its Room charges: the Master folio (MasterPays group), or the unit's own folio. Money for the same folio is one payment.
+- **Payment:** `RecordPayment` with the property's OTA collected method, purpose Advance, the business date, and the key `ota-collected:{revision_id}:{n}`. It has no receipt number ([Payments](../14-payments/01-payments-and-refunds.md#rules)).
+- **Reference:** `Virtual card · charge from {virtual_card_effective_date}` (or `Virtual card`) when `guarantee.is_virtual` is true, `Bank transfer` when `payment_type` is `bank_transfer`, otherwise empty. It tells staff how the OTA pays the property. No card details are read.
+- **Refused payment:** the booking is still saved and acknowledged. The payment is skipped and an **OTA payment not posted** alert opens with the amount and the refusal code (for example `no_business_date`, or `method_not_available` when the OTA collected method is off). Staff record it in the Record payment Dialog.
+- **Cancelled:** nothing is posted or reversed. The payment stays as a credit on the folio, and staff refund it or use it against a fee.
+- The OTA collected method starts active, and a migration switched it on for existing properties (2026-10-28).
+
 ## Alert webhooks
 
 | Channex event           | Admin alert                                    |
@@ -70,6 +84,8 @@ IngestChannelBooking ── CreateReservation(fromChannel: true), booking source
 | `booking_unmapped_rate` | Unmapped rate, with **Fix mapping**            |
 | `sync_error`            | Sync error on the connection                   |
 | `rate_error`            | Rate error, with the dates                     |
+
+estatell also opens **OTA payment not posted** (`ota_payment_not_posted`) itself when an OTA collected payment is refused (see [OTA collected payments](#ota-collected-payments)). It is not tied to a revision, so an admin closes it with **Close**.
 
 Alerts are stored in `channel_alerts` by `RecordChannelAlert` and show on the admin Channels tab only. Owners do not see them. The same event for the same revision is kept once while it is open. An alert tied to a revision (`booking_revision_id` in the payload) closes when that revision is acknowledged. An admin can close any alert with **Close**. A failed revision shows as **Booking not saved** with **Retry** (`RetryChannelRevision`).
 
@@ -88,11 +104,12 @@ Booking.com and Expedia support `load_future_reservations`. **Import future book
 - The signature headers and the secret on a real webhook (`CHANNEX_WEBHOOK_SECRET`).
 - Whether a multi-bed booking arrives as one room entry or N (see [Dorm checks](06-staging-verification.md#dorm-checks-wip)).
 - The room `amount`: tax inclusive or not per OTA (see [Open checks](06-staging-verification.md#open-checks)).
-- The feed page size, and what an OTA-collected booking carries in `payment_collect`.
+- The feed page size.
+- Whether Booking.com virtual card bookings arrive with `payment_collect` = `ota`, or with `property` and `guarantee.is_virtual` = true.
+- How the virtual card balance compares with the booking `amount`.
 
 ## Open
 
-- OTA-collected payments (`payment_collect` = `ota`) are not posted to the folio yet. The `OtaCollected` payment method is there; the posting rule needs the staging amounts above. Until then staff record it in the Record payment Dialog ([Payments](../14-payments/01-payments-and-refunds.md)). The automatic posting must skip a folio that already has an OTA collected payment, so the money is not posted twice.
 - A night that cannot be repriced on a Modified booking (a refusal from `ChangeNightPrice`) keeps its old price without any alert, so the total can differ from the OTA. A refusal needs a property with no room revenue code, or a folio that cannot take the correction.
 
 ## Out of scope

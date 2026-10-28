@@ -6,7 +6,10 @@ use App\Data\Reservations\NewUnitData;
 use App\Models\ChannelProperty;
 use App\Models\ChannelRatePlanMapping;
 use App\Models\OtaChannel;
+use Brick\Math\BigDecimal;
+use Brick\Math\RoundingMode;
 use Carbon\CarbonImmutable;
+use Throwable;
 
 /**
  * Reads a Channex booking revision payload for estatell. It only reads and calculates: it maps rooms to room types and
@@ -63,6 +66,77 @@ class ChannelRevisionMapper
                 overrideReason: __('Booked on :channel', ['channel' => $channelName]),
             );
         }, $rooms, array_keys($rooms));
+    }
+
+    /**
+     * The money the guest paid the OTA, when `payment_collect` is `ota`: the booking amount, the amount of each room
+     * in the order of the rooms (null when a room has none), and a reference that tells staff how the OTA pays the
+     * property. A virtual card gives "Virtual card · charge from {date}" (or "Virtual card" with no date), a bank
+     * transfer gives "Bank transfer". No card detail is read. Null when the property collects, or the amount is not
+     * above 0.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array{amount: string, roomAmounts: list<string|null>, reference: string|null}|null
+     */
+    public function otaPayment(array $payload): ?array
+    {
+        if (($payload['payment_collect'] ?? null) !== 'ota') {
+            return null;
+        }
+
+        $amount = $this->money($payload['amount'] ?? null);
+
+        if ($amount === null || ! BigDecimal::of($amount)->isPositive()) {
+            return null;
+        }
+
+        $rooms = is_array($payload['rooms'] ?? null) ? array_values($payload['rooms']) : [];
+
+        return [
+            'amount' => $amount,
+            'roomAmounts' => array_map(fn (mixed $room): ?string => is_array($room) ? $this->money($room['amount'] ?? null) : null, $rooms),
+            'reference' => $this->otaPaymentReference($payload),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function otaPaymentReference(array $payload): ?string
+    {
+        $guarantee = is_array($payload['guarantee'] ?? null) ? $payload['guarantee'] : [];
+
+        if (($guarantee['is_virtual'] ?? false) === true) {
+            $date = $this->date($guarantee['meta']['virtual_card_effective_date'] ?? null);
+
+            return $date === null ? __('Virtual card') : __('Virtual card · charge from :date', ['date' => $date]);
+        }
+
+        return ($payload['payment_type'] ?? null) === 'bank_transfer' ? __('Bank transfer') : null;
+    }
+
+    /**
+     * A money value from the payload as `0.00`, or null when it is not a number.
+     */
+    private function money(mixed $value): ?string
+    {
+        return is_numeric($value) ? (string) BigDecimal::of((string) $value)->toScale(2, RoundingMode::HalfUp) : null;
+    }
+
+    /**
+     * A date from the payload as `Y-m-d`, or null when it does not read as a date.
+     */
+    private function date(mixed $value): ?string
+    {
+        if (! is_string($value) || trim($value) === '') {
+            return null;
+        }
+
+        try {
+            return CarbonImmutable::parse($value)->toDateString();
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     /**
