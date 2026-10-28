@@ -95,7 +95,7 @@ export function useCheckOutForm({
     );
     const [idempotencyKey] = useState(() => crypto.randomUUID());
     const methods = (paymentOptions?.methods ?? []).filter(
-        (one) => !one.isOldSystem,
+        (one) => !one.isOldSystem && !one.isOtaCollected,
     );
     const early = preview?.early ?? null;
     const overdue = preview?.overdue ?? null;

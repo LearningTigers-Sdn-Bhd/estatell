@@ -1785,7 +1785,7 @@ serviceDate: string | null,
 manualBatchId: number | null,
 migrated: boolean,
 lineKey: string | null,
-otaCollected: boolean,
+allowOtaCollected: boolean,
 };
 export type PaymentFormOptionsData = {
 methods: App.Data.Payments.PaymentMethodOptionData[],
@@ -1797,6 +1797,7 @@ name: string,
 requiresReference: boolean,
 isOldSystem: boolean,
 type: string | null,
+isOtaCollected: boolean,
 };
 export type PaymentQuoteData = {
 amount: string | null,

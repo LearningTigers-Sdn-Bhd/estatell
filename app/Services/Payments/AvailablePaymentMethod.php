@@ -14,8 +14,9 @@ use App\Services\Property\MigrationWindow;
 
 /**
  * Finds the payment method that staff can take money with on a reservation: an active method of its property. City
- * ledger and OTA collected are not offered, the method's code must be an active payment code, and a surcharge needs
- * an active charge item on an active charge code. The system Old system method is offered by the migration window and
+ * ledger is never offered, and OTA collected only when the caller allows it (the Record payment Dialog and the wastays
+ * replay). The method's code must be an active payment code, and a surcharge needs an active charge item on an active
+ * charge code. The system Old system method is offered by the migration window and
  * `folio.manual`, not by its `active` flag, and never has a surcharge. `RecordPayment` and the manual folio preview
  * both use it.
  */
@@ -23,15 +24,12 @@ class AvailablePaymentMethod
 {
     public function __construct(private MigrationWindow $migrationWindow) {}
 
-    public function find(Reservation $reservation, int $methodId, User $actor, bool $otaCollected = false): ?PaymentMethod
+    public function find(Reservation $reservation, int $methodId, User $actor, bool $allowOtaCollected = false): ?PaymentMethod
     {
         $method = PaymentMethod::query()
             ->where('property_id', $reservation->property_id)
-            ->when(
-                $otaCollected,
-                fn ($query) => $query->where('type', PaymentMethodType::OtaCollected),
-                fn ($query) => $query->whereNotIn('type', [PaymentMethodType::OtaCollected, PaymentMethodType::DirectBill]),
-            )
+            ->where('type', '!=', PaymentMethodType::DirectBill)
+            ->when(! $allowOtaCollected, fn ($query) => $query->where('type', '!=', PaymentMethodType::OtaCollected))
             ->with(['transactionCode', 'surchargeChargeItem.transactionCode'])
             ->find($methodId);
 

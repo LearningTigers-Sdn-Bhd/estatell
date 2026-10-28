@@ -672,7 +672,7 @@ class ReplayWastaysDay
             reference: $reference,
             idempotencyKey: $key,
             lineKey: $key,
-            otaCollected: $method->type === PaymentMethodType::OtaCollected,
+            allowOtaCollected: $method->type === PaymentMethodType::OtaCollected,
         )), $receipt !== null, $label);
 
         $result = $take($purpose);

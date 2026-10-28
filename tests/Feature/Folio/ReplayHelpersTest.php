@@ -110,21 +110,21 @@ test('an admin can bill a guest of a unit, staff of another property cannot', fu
         ->and(app(BillToGuest::class)($setup['admin'], $setup['unit'], $guest)->isRefused())->toBeFalse();
 });
 
-test('an OTA collected method is refused at the desk and accepted when the replay asks for it', function () {
+test('an OTA collected method is refused unless the caller allows it', function () {
     $setup = replayHelperSetup();
     $ota = PaymentMethod::factory()->create(['property_id' => $setup['property']->id, 'type' => PaymentMethodType::OtaCollected, 'requires_reference' => false]);
     $cash = PaymentMethod::factory()->create(['property_id' => $setup['property']->id, 'type' => PaymentMethodType::Cash, 'requires_reference' => false]);
-    $pay = fn (PaymentMethod $method, bool $otaCollected) => app(RecordPayment::class)($setup['admin'], $setup['reservation'], $setup['folio'], null, NewPaymentData::from([
+    $pay = fn (PaymentMethod $method, bool $allowOtaCollected) => app(RecordPayment::class)($setup['admin'], $setup['reservation'], $setup['folio'], null, NewPaymentData::from([
         'paymentMethodId' => $method->id,
         'purpose' => PaymentPurpose::Settlement,
         'amount' => '80.00',
         'reference' => null,
         'idempotencyKey' => fake()->uuid(),
-        'otaCollected' => $otaCollected,
+        'allowOtaCollected' => $allowOtaCollected,
     ]));
 
     expect($pay($ota, false)->isRefused())->toBeTrue()
-        ->and($pay($cash, true)->isRefused())->toBeTrue()
+        ->and($pay($cash, true)->isRefused())->toBeFalse()
         ->and($pay($ota, true)->isRefused())->toBeFalse()
-        ->and($setup['folio']->lines()->count())->toBe(1);
+        ->and($setup['folio']->lines()->count())->toBe(2);
 });

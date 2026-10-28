@@ -92,7 +92,7 @@ Booking.com and Expedia support `load_future_reservations`. **Import future book
 
 ## Open
 
-- OTA-collected payments (`payment_collect` = `ota`) are not posted to the folio yet. The `OtaCollected` payment method is there; the posting rule needs the staging amounts above.
+- OTA-collected payments (`payment_collect` = `ota`) are not posted to the folio yet. The `OtaCollected` payment method is there; the posting rule needs the staging amounts above. Until then staff record it in the Record payment Dialog ([Payments](../14-payments/01-payments-and-refunds.md)). The automatic posting must skip a folio that already has an OTA collected payment, so the money is not posted twice.
 - A night that cannot be repriced on a Modified booking (a refusal from `ChangeNightPrice`) keeps its old price without any alert, so the total can differ from the OTA. A refusal needs a property with no room revenue code, or a folio that cannot take the correction.
 
 ## Out of scope

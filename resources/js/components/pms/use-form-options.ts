@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 type OptionProp =
     | 'addUnitOptions'
@@ -14,7 +14,9 @@ type OptionProp =
     | 'manualTaxes';
 
 /**
- * Asks the server for an optional page prop the first time an overlay opens. The prop stays on the page afterwards.
+ * Asks the server for an optional page prop each time an overlay opens, so a list changed elsewhere (a payment method
+ * added in Settings, in another tab or before going Back) shows without a page reload. While the request runs, the
+ * overlay keeps the list it already has; `loaded` is false only before the first answer.
  */
 export function useFormOptions(
     open: boolean,
@@ -23,9 +25,13 @@ export function useFormOptions(
 ): void {
     const only = Array.isArray(prop) ? prop : [prop];
     const key = only.join(',');
+    const wasOpen = useRef(false);
 
     useEffect(() => {
-        if (open && !loaded) {
+        const justOpened = open && !wasOpen.current;
+        wasOpen.current = open;
+
+        if (open && (justOpened || !loaded)) {
             router.reload({ only: key.split(',') });
         }
     }, [open, loaded, key]);
