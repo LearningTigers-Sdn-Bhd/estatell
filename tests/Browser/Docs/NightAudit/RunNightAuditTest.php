@@ -51,7 +51,8 @@ $startAudit = function (AuditStatus $status, array $steps) {
 test('the sheet before the day ends', function () {
     $page = $this->open(route('dashboard', $this->property))
         ->click('Run Night Audit')
-        ->waitForText('Not over yet');
+        ->waitForText('Not over yet')
+        ->assertSee('If the automatic run is on, it starts after the night audit time.');
 
     $this->shoot($page, 'run-night-audit-not-over', frame: '[role="dialog"]');
 });
@@ -66,7 +67,8 @@ test('the sheet ready to run, then completed', function () use ($moveClockBy) {
     $this->shoot($page, 'run-night-audit-ready', frame: '[role="dialog"]');
 
     $page->click('Run audit')
-        ->waitForText('Night audit completed', 15);
+        ->waitForText('Night audit completed', 15)
+        ->assertSee('Closed Wed 14 Oct · now trading on Thu 15 Oct');
 
     $this->shoot($page, 'run-night-audit-completed', badges: ['Open packet'], frame: '[role="dialog"]');
 });
