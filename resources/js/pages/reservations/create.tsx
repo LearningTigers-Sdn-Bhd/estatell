@@ -467,6 +467,17 @@ export default function ReservationCreate({
                       collect_deposit: true,
                   }
                 : {}),
+            // A past day use has ended, so it is always already checked out.
+            ...(isPastStay
+                ? {
+                      status:
+                          next === 'day_use'
+                              ? ('checked_out' as const)
+                              : ('in_house' as const),
+                      end_time: '',
+                      departure_date: '',
+                  }
+                : {}),
             lines: [
                 emptyLine(
                     autoAddOns(chargeItems, next as BookingForm['stay_type']),
@@ -511,7 +522,11 @@ export default function ReservationCreate({
     const sourceType = sources.find(
         (source) => String(source.id) === data.booking_source_id,
     )?.type;
-    const isDayUse = data.stay_type === 'day_use' && !isPastStay;
+    const isDayUse = data.stay_type === 'day_use';
+    // The Past stay mode can enter a day use that ended on an earlier date. Migrated and old stays are nights only.
+    const canPastDayUse =
+        hasDayUse && isPastStay && !isMigratedStay && !isOldStay;
+    const isPastDayUse = canPastDayUse && isDayUse;
     const isCheckedOut = isPastStay && data.status === 'checked_out';
     const isWalkInCheckedOut =
         isWalkIn && isDayUse && data.status === 'checked_out';
@@ -797,35 +812,38 @@ export default function ReservationCreate({
                                 description="The dates and expected times apply to every line."
                             >
                                 <FieldGroup>
-                                    {hasDayUse && !isPastStay && (
-                                        <Field>
-                                            <FieldLabel>Stay type</FieldLabel>
-                                            <ToggleGroup
-                                                variant="outline"
-                                                spacing={0}
-                                                value={[data.stay_type]}
-                                                onValueChange={(value) =>
-                                                    value[0] &&
-                                                    switchStayType(value[0])
-                                                }
-                                                aria-label="Stay type"
-                                            >
-                                                <ToggleGroupItem value="overnight">
-                                                    <Moon data-icon="inline-start" />
-                                                    Overnight
-                                                </ToggleGroupItem>
-                                                <ToggleGroupItem value="day_use">
-                                                    <Clock data-icon="inline-start" />
-                                                    Day use
-                                                </ToggleGroupItem>
-                                            </ToggleGroup>
-                                            <FieldDescription>
-                                                {isDayUse
-                                                    ? 'A room for a number of hours on one day. It applies to every line.'
-                                                    : 'Rooms or beds for one night or more.'}
-                                            </FieldDescription>
-                                        </Field>
-                                    )}
+                                    {hasDayUse &&
+                                        (!isPastStay || canPastDayUse) && (
+                                            <Field>
+                                                <FieldLabel>
+                                                    Stay type
+                                                </FieldLabel>
+                                                <ToggleGroup
+                                                    variant="outline"
+                                                    spacing={0}
+                                                    value={[data.stay_type]}
+                                                    onValueChange={(value) =>
+                                                        value[0] &&
+                                                        switchStayType(value[0])
+                                                    }
+                                                    aria-label="Stay type"
+                                                >
+                                                    <ToggleGroupItem value="overnight">
+                                                        <Moon data-icon="inline-start" />
+                                                        Overnight
+                                                    </ToggleGroupItem>
+                                                    <ToggleGroupItem value="day_use">
+                                                        <Clock data-icon="inline-start" />
+                                                        Day use
+                                                    </ToggleGroupItem>
+                                                </ToggleGroup>
+                                                <FieldDescription>
+                                                    {isDayUse
+                                                        ? 'A room for a number of hours on one day. It applies to every line.'
+                                                        : 'Rooms or beds for one night or more.'}
+                                                </FieldDescription>
+                                            </Field>
+                                        )}
                                     {isDayUse ? (
                                         <div className="grid items-start gap-4 sm:grid-cols-[minmax(0,1fr)_12rem]">
                                             <Field
@@ -843,8 +861,16 @@ export default function ReservationCreate({
                                                     time={data.start_time}
                                                     timeLabel="Start time"
                                                     dateLocked={isWalkIn}
-                                                    min={today}
-                                                    max={lastBookable}
+                                                    min={
+                                                        isPastDayUse
+                                                            ? goLiveDate
+                                                            : today
+                                                    }
+                                                    max={
+                                                        isPastDayUse
+                                                            ? addDays(today, -1)
+                                                            : lastBookable
+                                                    }
                                                     step={1800}
                                                     onDateChange={(value) =>
                                                         form.setData(
@@ -869,6 +895,8 @@ export default function ReservationCreate({
                                                     the same day.
                                                     {isWalkIn &&
                                                         ' A start earlier today checks the guest in at that time.'}
+                                                    {isPastDayUse &&
+                                                        ' The date is before today and on or after go-live.'}
                                                 </FieldDescription>
                                                 <FieldError>
                                                     {errors.arrival_date ??
@@ -1088,7 +1116,8 @@ export default function ReservationCreate({
                                             </Field>
                                         </div>
                                     )}
-                                    {isWalkIn && isDayUse && canCheckOut && (
+                                    {((isWalkIn && isDayUse && canCheckOut) ||
+                                        isPastDayUse) && (
                                         <div className="grid items-start gap-4 sm:grid-cols-[minmax(0,1fr)_12rem]">
                                             <Field
                                                 data-invalid={!!errors.status}
@@ -1096,50 +1125,62 @@ export default function ReservationCreate({
                                                 <FieldLabel>
                                                     Guest status
                                                 </FieldLabel>
-                                                <ToggleGroup
-                                                    variant="outline"
-                                                    spacing={0}
-                                                    value={[
-                                                        data.status ??
-                                                            'in_house',
-                                                    ]}
-                                                    onValueChange={(value) =>
-                                                        value[0] &&
-                                                        form.setData(
-                                                            (current) => ({
-                                                                ...current,
-                                                                status: value[0] as
-                                                                    | 'in_house'
-                                                                    | 'checked_out',
-                                                                end_time: '',
-                                                                collect_room_charges: true,
-                                                                collect_deposit:
-                                                                    value[0] ===
-                                                                    'in_house',
-                                                            }),
-                                                        )
-                                                    }
-                                                    aria-label="Guest status"
-                                                >
-                                                    <ToggleGroupItem value="in_house">
-                                                        <BedDouble data-icon="inline-start" />
-                                                        Still in house
-                                                    </ToggleGroupItem>
-                                                    <ToggleGroupItem value="checked_out">
-                                                        <LogOut data-icon="inline-start" />
+                                                {isPastDayUse ? (
+                                                    <p className="text-sm">
                                                         Already checked out
-                                                    </ToggleGroupItem>
-                                                </ToggleGroup>
+                                                    </p>
+                                                ) : (
+                                                    <ToggleGroup
+                                                        variant="outline"
+                                                        spacing={0}
+                                                        value={[
+                                                            data.status ??
+                                                                'in_house',
+                                                        ]}
+                                                        onValueChange={(
+                                                            value,
+                                                        ) =>
+                                                            value[0] &&
+                                                            form.setData(
+                                                                (current) => ({
+                                                                    ...current,
+                                                                    status: value[0] as
+                                                                        | 'in_house'
+                                                                        | 'checked_out',
+                                                                    end_time:
+                                                                        '',
+                                                                    collect_room_charges: true,
+                                                                    collect_deposit:
+                                                                        value[0] ===
+                                                                        'in_house',
+                                                                }),
+                                                            )
+                                                        }
+                                                        aria-label="Guest status"
+                                                    >
+                                                        <ToggleGroupItem value="in_house">
+                                                            <BedDouble data-icon="inline-start" />
+                                                            Still in house
+                                                        </ToggleGroupItem>
+                                                        <ToggleGroupItem value="checked_out">
+                                                            <LogOut data-icon="inline-start" />
+                                                            Already checked out
+                                                        </ToggleGroupItem>
+                                                    </ToggleGroup>
+                                                )}
                                                 <FieldDescription>
-                                                    {isWalkInCheckedOut
-                                                        ? 'The guest came and left today. Saved as checked out, paid in full.'
-                                                        : 'The guest is in the house now.'}
+                                                    {isPastDayUse
+                                                        ? 'The guest has left. The folio stays open so you can enter the payments.'
+                                                        : isWalkInCheckedOut
+                                                          ? 'The guest came and left today. Saved as checked out, paid in full.'
+                                                          : 'The guest is in the house now.'}
                                                 </FieldDescription>
                                                 <FieldError>
                                                     {errors.status}
                                                 </FieldError>
                                             </Field>
-                                            {isWalkInCheckedOut && (
+                                            {(isWalkInCheckedOut ||
+                                                isPastDayUse) && (
                                                 <Field
                                                     data-invalid={
                                                         !!errors.end_time
@@ -1153,7 +1194,11 @@ export default function ReservationCreate({
                                                         type="time"
                                                         step={60}
                                                         min={data.start_time}
-                                                        max={nowTime}
+                                                        max={
+                                                            isPastDayUse
+                                                                ? undefined
+                                                                : nowTime
+                                                        }
                                                         value={
                                                             data.end_time ?? ''
                                                         }
@@ -1198,7 +1243,7 @@ export default function ReservationCreate({
                                             )}
                                         </div>
                                     )}
-                                    {isPastStay && !isOldStay && (
+                                    {isPastStay && !isOldStay && !isDayUse && (
                                         <Field>
                                             <FieldLabel>
                                                 Guest status

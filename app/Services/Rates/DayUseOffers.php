@@ -50,12 +50,16 @@ class DayUseOffers
     }
 
     /**
-     * Whether a block is entered after it started: the date is today in the property's time zone and the start time has
-     * passed. The plan's window and hours limits do not apply to it.
+     * Whether a block is entered after it started: the date is before today in the property's time zone, or it is today
+     * and the start time has passed. The plan's window and hours limits do not apply to it.
      */
     public function isLate(Property $property, CarbonInterface $date, string $startTime): bool
     {
         $now = $this->propertyToday->now($property);
+
+        if ($date->toDateString() < $now->toDateString()) {
+            return true;
+        }
 
         return $date->toDateString() === $now->toDateString()
             && preg_match('/^\d{2}:\d{2}/', $startTime) === 1

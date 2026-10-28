@@ -128,7 +128,7 @@ class ReservationBookingController extends Controller
             return $this->storeMigrated($request, $property, $createMigratedStay, $errorKeys);
         }
 
-        $result = $createPastStay($request->user(), $property, $request->toBookingData(), $request->reason(), $request->withoutCard(), $request->checkedOut());
+        $result = $createPastStay($request->user(), $property, $request->toBookingData(), $request->reason(), $request->withoutCard(), $request->checkedOut(), $request->endTime());
 
         if ($result->isRefused()) {
             return back(fallback: route('reservations.past', ['property' => $property]))->withErrors(

@@ -53,7 +53,7 @@ class CheckInUnit
      * A day use unit checks in only on its date (`arrival_not_reached` before it, `stay_ended` after it) and takes its
      * room from `unit_day_uses` (`no_room_assigned` without one). Its block is posted at check-in, because the guest
      * leaves before the night audit: first every unposted add-on of the unit, dated or not, then the block through
-     * `PostDayUseBlock`. A posting refusal rolls the whole check-in back.
+     * `PostDayUseBlock` (with the check-in day as its service date when `$asOf` is given). A posting refusal rolls the whole check-in back.
      * A unit that arrives after its arrival date gets the nights it missed: `PostMissedNights` runs after the check-in,
      * so each night before the business date posts with its own service date, and a refusal rolls the check-in back.
      * The check-in day is the business date, or the calendar date for a unit that arrives on it while the night audit
@@ -139,7 +139,7 @@ class CheckInUnit
 
                 if ($isDayUse) {
                     $this->postAddOns($actor, $locked, $locked->addOns()->whereNull('folio_line_id')->orderBy('id')->get());
-                    $this->postBlock($actor, $locked, $today);
+                    $this->postBlock($actor, $locked, $today, $asOf === null ? null : $checkInDay);
                 } else {
                     $this->postAddOns($actor, $locked, $locked->addOns()->whereNull('service_date')->whereNull('folio_line_id')->orderBy('id')->get());
                     $this->postMissedNights($actor, $locked);
@@ -212,9 +212,9 @@ class CheckInUnit
     /**
      * @throws UnitStayRefused when the block is refused by `PostDayUseBlock`
      */
-    private function postBlock(User $actor, ReservationUnit $unit, string $today): void
+    private function postBlock(User $actor, ReservationUnit $unit, string $today, ?string $serviceDate): void
     {
-        $result = ($this->postDayUseBlock)($actor, $unit, $today);
+        $result = ($this->postDayUseBlock)($actor, $unit, $today, $serviceDate);
 
         if ($result->isRefused()) {
             throw new UnitStayRefused(UnitStayResult::refused((string) $result->refusal));

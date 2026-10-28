@@ -30,13 +30,15 @@ class CreatePastStay
      * service date. The stay must begin before the business date and on or after the go-live date. Still in house ends
      * after the business date. With `$checkedOut` it ends on or before it, and `CheckOutUnit` then checks each unit out
      * with `asOf` set to the departure date and time and `skipBalanceCheck`: the folios stay Open with their balance,
-     * for the manual folio page. Every unit needs a room or bed pick, and a reason is required. `$withoutCard` skips the
+     * for the manual folio page. A day use (`$line->stayType`) is Already checked out only
+     * (`past_day_use_checked_out_only`): it is checked in at its start and out at `$endTime` on its date, and its block posts
+     * on the business date with the date as `service_date`. Every unit needs a room or bed pick, and a reason is required. `$withoutCard` skips the
      * registration card rule: no card can exist before the stay does, so the route passes it to a user with
      * `front-desk.check-in-without-card`. No policy runs. Any refusal rolls everything back and names the unit or
      * line. Permissions (`folio.manual`) are checked by the route.
      * See docs/12-reservations/12-past-and-migrated-stays.md#past-stay.
      */
-    public function __invoke(User $actor, Property $property, NewBookingData $data, string $reason, bool $withoutCard = false, bool $checkedOut = false): BookingResult
+    public function __invoke(User $actor, Property $property, NewBookingData $data, string $reason, bool $withoutCard = false, bool $checkedOut = false, ?string $endTime = null): BookingResult
     {
         if (trim($reason) === '') {
             return BookingResult::refused(BookingResult::REFUSAL_REASON_REQUIRED);
@@ -50,8 +52,14 @@ class CreatePastStay
             return BookingResult::refused('no_business_date');
         }
 
-        if ($line === null || array_any($data->units, fn ($unit): bool => $unit->stayType !== StayType::Overnight)) {
+        if ($line === null || array_any($data->units, fn ($unit): bool => $unit->stayType !== $line->stayType)) {
             return BookingResult::refused(BookingResult::REFUSAL_PAST_STAY_NIGHTS_ONLY, lineIndex: 0);
+        }
+
+        $isDayUse = $line->stayType === StayType::DayUse;
+
+        if ($isDayUse && ! $checkedOut) {
+            return BookingResult::refused(BookingResult::REFUSAL_PAST_DAY_USE_CHECKED_OUT_ONLY, lineIndex: 0);
         }
 
         $arrival = $line->arrivalDate->startOfDay();
@@ -66,16 +74,16 @@ class CreatePastStay
 
         $departure = $line->departureDate->startOfDay();
 
-        if (! $checkedOut && $departure->lte($businessDate)) {
+        if (! $isDayUse && ! $checkedOut && $departure->lte($businessDate)) {
             return BookingResult::refused(BookingResult::REFUSAL_DEPARTURE_NOT_AFTER_TODAY, lineIndex: 0);
         }
 
-        if ($checkedOut && $departure->gt($businessDate)) {
+        if (! $isDayUse && $checkedOut && $departure->gt($businessDate)) {
             return BookingResult::refused(BookingResult::REFUSAL_DEPARTURE_AFTER_TODAY, lineIndex: 0);
         }
 
         try {
-            return DB::transaction(function () use ($actor, $property, $data, $reason, $withoutCard, $arrival, $line, $businessDate, $checkedOut, $departure): BookingResult {
+            return DB::transaction(function () use ($actor, $property, $data, $reason, $withoutCard, $arrival, $line, $businessDate, $checkedOut, $departure, $isDayUse, $endTime): BookingResult {
                 $result = ($this->createBooking)($actor, $property, $data, allowPastArrival: true);
 
                 if ($result->isRefused()) {
@@ -83,7 +91,7 @@ class CreatePastStay
                 }
 
                 $reservation = $result->reservation;
-                $checkedInAt = CarbonImmutable::parse($arrival->toDateString().' '.($line->arrivalTime ?? $property->settings->check_in_time ?? '15:00'));
+                $checkedInAt = CarbonImmutable::parse($arrival->toDateString().' '.($isDayUse ? $line->startTime : ($line->arrivalTime ?? $property->settings->check_in_time ?? '15:00')));
                 $units = $reservation->units()->orderBy('id')->get();
 
                 foreach ($units as $index => $unit) {
@@ -95,7 +103,7 @@ class CreatePastStay
                 }
 
                 if ($checkedOut) {
-                    $checkedOutAt = CarbonImmutable::parse($departure->toDateString().' '.($line->departureTime ?? $property->settings->check_out_time ?? '11:00'));
+                    $checkedOutAt = CarbonImmutable::parse($departure->toDateString().' '.($isDayUse ? $endTime : ($line->departureTime ?? $property->settings->check_out_time ?? '11:00')));
 
                     foreach ($units as $index => $unit) {
                         $stay = ($this->checkOutUnit)($actor, $unit, $checkedOutAt, skipBalanceCheck: true);

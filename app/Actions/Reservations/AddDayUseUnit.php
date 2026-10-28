@@ -56,10 +56,11 @@ class AddDayUseUnit
      * See docs/12-reservations/10-day-use.md.
      *
      * @param  Closure(): bool  $mayOverride  Whether the actor may book past rate restrictions.
+     * @param  bool  $allowPastArrival  Only `CreatePastStay` passes it: a date before the business date is accepted.
      *
      * @throws ReservationRefused when an add-on or the database refuses after the unit was written
      */
-    public function __invoke(User $actor, Reservation $reservation, NewUnitData $data, RoomType $roomType, RatePlan $ratePlan, int $lineIndex, bool $fromChannel, Closure $mayOverride): ReservationResult
+    public function __invoke(User $actor, Reservation $reservation, NewUnitData $data, RoomType $roomType, RatePlan $ratePlan, int $lineIndex, bool $fromChannel, Closure $mayOverride, bool $allowPastArrival = false): ReservationResult
     {
         $refuse = fn (string $code, $date = null): ReservationResult => ReservationResult::refused($code, $lineIndex, $date);
 
@@ -86,7 +87,7 @@ class AddDayUseUnit
         $property = $reservation->property;
         $today = $this->currentBusinessDate->date($property) ?? $this->propertyToday->date($property);
 
-        if ($date->lt($today)) {
+        if (! $allowPastArrival && $date->lt($today)) {
             return $refuse(ReservationResult::REFUSAL_ARRIVAL_IN_PAST);
         }
 

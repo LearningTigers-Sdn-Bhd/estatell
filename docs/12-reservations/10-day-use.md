@@ -130,7 +130,7 @@ Plan  [ No plan · enter price ▾ ]
 
 ## Entered after it started
 
-**Decided 2026-10-28, not built.** A day use that is entered after the guest arrived, for example a walk-in at 02:00 who left at 12:00 and is entered at 15:00.
+**Decided 2026-10-28, built.** A day use that is entered after the guest arrived, for example a walk-in at 02:00 who left at 12:00 and is entered at 15:00.
 
 | Date                     | Who                             | Where       | Guest status                           |
 | ------------------------ | ------------------------------- | ----------- | -------------------------------------- |
@@ -183,6 +183,7 @@ The [Past stay](12-past-and-migrated-stays.md#past-stay) mode gains the **Stay t
 - **Start**, **End** and the **Reason** are required.
 - `CreatePastStay` books the day use unit, checks it in at Start and out at End with `asOf` and `skipBalanceCheck`, as for an overnight past stay. The block posts on the business date with the date as its `service_date`, key `dayuse:{unit_id}`. The room is not marked Dirty.
 - The Folio tab opens with the **Settle the folio now?** dialog, as for an overnight past stay.
+- **Built (item 7).** `StorePastStayRequest` reads `stay_type`, `start_time` and `end_time` (End required for a day use, after Start) and refuses a day use that is not `checked_out`. `CreatePastStay` takes a day use line only with `$checkedOut` (`past_day_use_checked_out_only`) and an `$endTime`; migrated and old stays still refuse it (`past_stay_nights_only`). `AddUnit` passes `$allowPastArrival` to `AddDayUseUnit`, which then accepts a date before the business date. `DayUseOffers::isLate()` is true for any date before today, so the plan window and hours are skipped. `CheckInUnit` passes the check-in day to `PostDayUseBlock` as the `service_date` when `asOf` is given. The form shows the Stay type switch only in the Past stay mode, with the Date limited to go-live through yesterday, a fixed Already checked out status and the End field.
 - **Reports.** The date's `daily_statistics` row is already closed, so its `day_use_sold` does not count the unit. The revenue counts on the posting date, as for the nights of an overnight past stay.
 
 ## Availability

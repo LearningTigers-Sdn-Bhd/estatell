@@ -33,9 +33,9 @@ class PostDayUseBlock
      * `DayUseChargeQuote`, the quote the folio page shows as the Scheduled row, and each charge goes to the folio
      * `FolioRouter` chooses for its code, like a night. The unit is the source of every line. The caller runs this
      * inside its transaction (`CheckInUnit`, which locks the unit). Every check runs before the first write, so a
-     * refusal writes nothing. A block already posted returns its lines as replayed. See docs/12-reservations/10-day-use.md.
+     * refusal writes nothing. `$serviceDate` is the day the block was used, for a day use entered after the business date moved on (a past stay); it defaults to the posting date. A block already posted returns its lines as replayed. See docs/12-reservations/10-day-use.md.
      */
-    public function __invoke(User $actor, ReservationUnit $unit, string $postingDate): PostingResult
+    public function __invoke(User $actor, ReservationUnit $unit, string $postingDate, ?string $serviceDate = null): PostingResult
     {
         $existing = FolioLine::query()->where('idempotency_key', 'dayuse:'.$unit->id)->first();
 
@@ -91,6 +91,7 @@ class PostDayUseBlock
                 $postingDate,
                 $unit,
                 $charge->lineAmount,
+                serviceDate: $serviceDate,
             ));
         }
 
