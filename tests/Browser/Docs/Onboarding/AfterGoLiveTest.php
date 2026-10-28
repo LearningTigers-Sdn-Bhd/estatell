@@ -56,3 +56,11 @@ test('recommended next sheet', function () {
 
     $this->shoot($page, 'recommended-next-all', element: '[role="dialog"]');
 });
+
+test('dashboard', function () {
+    $page = $this->open(route('dashboard', ['property' => $this->property->code, 'tab' => 'today']), height: 1250)
+        ->waitForText('Recommended next')
+        ->wait(1);
+
+    $this->shoot($page, 'dashboard', badges: ["You're live!", 'Recommended next'], badgesFromLeft: 0);
+});
