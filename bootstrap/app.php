@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AuthenticateApiToken;
+use App\Http\Middleware\AuthenticateKeyportDevice;
 use App\Http\Middleware\BlockDuringImpersonation;
 use App\Http\Middleware\BlockOnDemo;
 use App\Http\Middleware\EnsureAccountingIsActive;
@@ -11,6 +12,7 @@ use App\Http\Middleware\EnsureChannelManagerIsActive;
 use App\Http\Middleware\EnsureDoorLocksAreActive;
 use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\EnsureKiosksAreActive;
+use App\Http\Middleware\EnsureKeyportVersion;
 use App\Http\Middleware\EnsureOnboarding;
 use App\Http\Middleware\EnsurePasswordChanged;
 use App\Http\Middleware\EnsurePortalAccess;
@@ -49,6 +51,7 @@ return Application::configure(basePath: dirname(__DIR__))
         then: function (): void {
             Route::prefix('webhooks')->name('webhooks.')->group(base_path('routes/webhooks.php'));
             Route::prefix('api')->middleware('api')->group(base_path('routes/api.php'));
+            Route::prefix('api/keyport/v1')->name('keyport.')->middleware('keyport.version')->group(base_path('routes/keyport.php'));
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
@@ -68,6 +71,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'kiosks' => EnsureKiosksAreActive::class,
             'booking-engine' => EnsureBookingEngineIsActive::class,
             'channels' => EnsureChannelManagerIsActive::class,
+            'keyport.device' => AuthenticateKeyportDevice::class,
+            'keyport.version' => EnsureKeyportVersion::class,
             'live' => EnsurePropertyIsLive::class,
             'onboarding.activity' => TrackOnboardingActivity::class,
             'onboarding.only' => EnsureOnboarding::class,
