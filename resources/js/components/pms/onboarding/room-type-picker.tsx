@@ -51,16 +51,16 @@ export function RoomTypePicker({
                 value={String(value)}
                 onValueChange={(next) => onValueChange(Number(next))}
                 disabled={disabled}
-                className="grid items-start gap-3 sm:grid-cols-2 lg:grid-cols-3"
+                className="flex flex-wrap items-start gap-2"
             >
                 {tiles.map((tile) => (
                     <div
                         key={tile.id}
-                        className="flex flex-col rounded-lg border transition-colors hover:bg-muted/50 has-data-checked:border-primary/30 has-data-checked:bg-primary/5 has-[[data-slot=radio-group-item]:focus-visible]:border-ring has-[[data-slot=radio-group-item]:focus-visible]:ring-3 has-[[data-slot=radio-group-item]:focus-visible]:ring-ring/50"
+                        className="flex flex-col rounded-lg border transition-colors hover:bg-muted/50 has-data-checked:border-primary/30 has-data-checked:bg-primary/5 has-[[data-slot=radio-group-item]:focus-visible]:border-ring has-[[data-slot=radio-group-item]:focus-visible]:ring-3 has-[[data-slot=radio-group-item]:focus-visible]:ring-ring/50 max-sm:w-full"
                     >
                         <FieldLabel
                             htmlFor={`room-type-${tile.id}`}
-                            className="w-full flex-1 cursor-pointer items-start gap-3 p-3"
+                            className="w-full flex-1 cursor-pointer items-start gap-2.5 px-3 py-2"
                         >
                             <RadioGroupItem
                                 id={`room-type-${tile.id}`}
@@ -96,7 +96,7 @@ export function RoomTypePicker({
                         {tile.soldByBed && (
                             <Field
                                 orientation="horizontal"
-                                className="justify-between border-t px-3 py-2"
+                                className="justify-between gap-3 border-t px-3 py-1.5"
                                 data-invalid={!!bedErrors[tile.id]}
                             >
                                 <FieldLabel
@@ -112,7 +112,7 @@ export function RoomTypePicker({
                                     max={maxBeds}
                                     step={1}
                                     inputMode="numeric"
-                                    className="w-20"
+                                    className="h-7 w-16"
                                     disabled={disabled}
                                     value={bedsPerRoom[tile.id] ?? ''}
                                     onChange={(event) =>
