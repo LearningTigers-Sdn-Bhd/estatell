@@ -1,5 +1,5 @@
-import { Link, router } from '@inertiajs/react';
-import { LogOut, UserCog } from 'lucide-react';
+import { Link, router, usePage } from '@inertiajs/react';
+import { BookOpen, LogOut, UserCog } from 'lucide-react';
 import {
     DropdownMenuGroup,
     DropdownMenuItem,
@@ -18,6 +18,8 @@ type Props = {
 
 export function UserMenuContent({ user }: Props) {
     const cleanup = useMobileNavigation();
+    // The docs are written for hotel staff, so portal, partner and admin users do not see the link.
+    const { docsUrl, property } = usePage().props;
 
     const handleLogout = () => {
         cleanup();
@@ -48,6 +50,21 @@ export function UserMenuContent({ user }: Props) {
                     <UserCog className="mr-2" />
                     Account
                 </DropdownMenuItem>
+                {property !== null && (
+                    <DropdownMenuItem
+                        render={
+                            <a
+                                className="block w-full cursor-pointer"
+                                href={docsUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            />
+                        }
+                    >
+                        <BookOpen className="mr-2" />
+                        Help & docs
+                    </DropdownMenuItem>
+                )}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem
