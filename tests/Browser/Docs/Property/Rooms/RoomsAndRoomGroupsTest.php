@@ -78,3 +78,37 @@ test('archive room question', function () {
 
     $this->shoot($page, 'archive-room', frame: '[role="alertdialog"]');
 });
+
+test('ticked rooms', function () {
+    $page = $this->open(route('settings.rooms.index', $this->property), 1100)
+        ->assertSee('First Floor')
+        ->click('[aria-label="Select room 104"]')
+        ->click('[aria-label="Select room 105"]')
+        ->waitForText('Change type');
+
+    $this->shoot($page, 'rooms-ticked', badges: ['Change type', 'Archive']);
+});
+
+test('change type menu', function () {
+    $page = $this->open(route('settings.rooms.index', $this->property), 1100)
+        ->assertSee('First Floor')
+        ->click('[aria-label="Select room 104"]')
+        ->click('[aria-label="Select room 105"]')
+        ->click('Change type')
+        ->waitForText('Family Suite');
+
+    $this->shoot($page, 'rooms-change-type');
+});
+
+test('map tab', function () {
+    $page = $this->open(route('settings.rooms.index', [$this->property, 'view' => 'map']), 1000)
+        ->waitForText('Shift-click paints every room between.');
+
+    $page->page()->locator('label[for^="room-type-"]:has-text("Deluxe Twin")')->click();
+    $page->page()->locator('button[aria-label^="Room 104,"]')->click();
+    $page->page()->locator('button[aria-label^="Room 105,"]')->click(['modifiers' => ['Shift']]);
+    $page->waitForText('2 rooms changed');
+    $page->page()->locator('h4 >> nth=0')->hover();
+
+    $this->shoot($page, 'rooms-map', badges: ['List', 'Map']);
+});

@@ -21,6 +21,7 @@ use App\Enums\BoatMode;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\PricingBasis;
 use App\Enums\PropertyType;
+use App\Enums\SellUnit;
 use App\Enums\UnitStatus;
 use App\Enums\WeekendNights;
 use App\Features\Boats;
@@ -36,6 +37,7 @@ use App\Models\RoomType;
 use App\Models\Tax;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Closure;
 use Database\Seeders\BookingScenariosSeeder;
 use Database\Seeders\DemoSeeder;
 use Illuminate\Support\Facades\File;
@@ -192,7 +194,7 @@ abstract class BrowserTestCase extends TestCase
         $this->saveOnboardingBasics();
 
         app(SaveOnboardingRoomTypes::class)($this->property, auth()->user(), [
-            ['id' => null, 'name' => 'Standard Double', 'max_adults' => 2, 'max_children' => 1],
+            ['id' => null, 'name' => 'Standard Double', 'sell_unit' => SellUnit::Room, 'max_adults' => 2, 'max_children' => 1],
         ]);
 
         return $this->property->roomTypes()->firstOrFail();
@@ -232,8 +234,8 @@ abstract class BrowserTestCase extends TestCase
         $this->saveOnboardingTaxes();
 
         app(SaveOnboardingRoomTypes::class)($this->property, auth()->user(), [
-            ['id' => null, 'name' => 'Standard Double', 'max_adults' => 2, 'max_children' => 1],
-            ['id' => null, 'name' => 'Family Longhouse', 'max_adults' => 4, 'max_children' => 2],
+            ['id' => null, 'name' => 'Standard Double', 'sell_unit' => SellUnit::Room, 'max_adults' => 2, 'max_children' => 1],
+            ['id' => null, 'name' => 'Family Longhouse', 'sell_unit' => SellUnit::Room, 'max_adults' => 4, 'max_children' => 2],
         ]);
 
         return [
@@ -247,13 +249,32 @@ abstract class BrowserTestCase extends TestCase
      */
     protected function saveOnboardingRooms(RoomType $roomType): void
     {
-        app(SaveOnboardingRooms::class)($this->property, auth()->user(), [
-            ['key' => 'ground', 'id' => null, 'name' => 'Ground floor'],
-            ['key' => 'garden', 'id' => null, 'name' => 'Garden block'],
-        ], [
-            ['room_type_id' => $roomType->id, 'group_key' => 'ground', 'prefix' => '', 'from' => '101', 'to' => '103'],
-            ['room_type_id' => $roomType->id, 'group_key' => 'garden', 'prefix' => 'G', 'from' => '1', 'to' => '2'],
-        ]);
+        $groups = [
+            ['key' => 'ground', 'id' => null, 'name' => 'Ground floor', 'numbers' => ['101', '102', '103']],
+            ['key' => 'garden', 'id' => null, 'name' => 'Garden block', 'numbers' => ['G1', 'G2']],
+        ];
+
+        app(SaveOnboardingRooms::class)($this->property, auth()->user(), true, $groups, $this->typeByNumber($groups, fn (): int => $roomType->id), []);
+    }
+
+    /**
+     * The room type id of every number in the groups, keyed by the number in lower case, as `SaveOnboardingRooms` takes it.
+     *
+     * @param  list<array{key: string, id: int|null, name: string, numbers: list<string>}>  $groups
+     * @param  Closure(string): int  $typeOf
+     * @return array<string, int>
+     */
+    protected function typeByNumber(array $groups, Closure $typeOf): array
+    {
+        $types = [];
+
+        foreach ($groups as $group) {
+            foreach ($group['numbers'] as $number) {
+                $types[mb_strtolower($number)] = $typeOf($number);
+            }
+        }
+
+        return $types;
     }
 
     /**
@@ -262,10 +283,11 @@ abstract class BrowserTestCase extends TestCase
     protected function makeOnboardingReady(): void
     {
         [$standard, $longhouse] = $this->saveOnboardingPriceableRoomTypes();
-        app(SaveOnboardingRooms::class)($this->property, auth()->user(), [], [
-            ['room_type_id' => $standard->id, 'group_key' => null, 'prefix' => '', 'from' => '101', 'to' => '103'],
-            ['room_type_id' => $longhouse->id, 'group_key' => null, 'prefix' => 'L', 'from' => '1', 'to' => '2'],
-        ]);
+        $groups = [['key' => 'all', 'id' => null, 'name' => '', 'numbers' => ['101', '102', '103', 'L1', 'L2']]];
+        app(SaveOnboardingRooms::class)($this->property, auth()->user(), false, $groups, $this->typeByNumber(
+            $groups,
+            fn (string $number): int => str_starts_with($number, 'L') ? $longhouse->id : $standard->id,
+        ), []);
         app(SaveOnboardingBasicRate::class)($this->property, auth()->user(), WeekendNights::FriSat, true, [
             ['room_type_id' => $standard->id, 'price_by' => PricingBasis::PerRoom, 'weekday' => '180', 'weekend' => null],
             ['room_type_id' => $longhouse->id, 'price_by' => PricingBasis::PerRoom, 'weekday' => '200', 'weekend' => null],
