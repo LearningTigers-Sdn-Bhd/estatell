@@ -2,6 +2,7 @@
 
 namespace Tests\Browser;
 
+use App\Actions\CityLedger\SetCompanyPortalLogin;
 use App\Actions\Onboarding\RegisterPropertyOwner;
 use App\Actions\Onboarding\SaveOnboardingBasicRate;
 use App\Actions\Onboarding\SaveOnboardingRooms;
@@ -14,6 +15,7 @@ use App\Enums\PricingBasis;
 use App\Enums\PropertyType;
 use App\Enums\UnitStatus;
 use App\Enums\WeekendNights;
+use App\Models\Company;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\RoomType;
@@ -90,6 +92,25 @@ abstract class BrowserTestCase extends TestCase
         $this->actingAs(User::query()->where('email', 'owner@kinabalu-hostel.test')->firstOrFail());
 
         return $this->property;
+    }
+
+    /**
+     * Sign in as the portal login of Borneo Ventures, the Corporate company of the booking scenarios property. The
+     * login is made through the real `SetCompanyPortalLogin` action by the property Owner, then its temp password is
+     * cleared so the portal opens without the set-password step. Keeps the property on `$this->property`.
+     */
+    protected function signInAsCompanyPortalUser(): Company
+    {
+        $this->property = Property::query()->where('name', BookingScenariosSeeder::NAME)->firstOrFail();
+        $company = Company::query()->where('property_id', $this->property->id)->where('name', 'Borneo Ventures Sdn Bhd')->firstOrFail();
+        $owner = User::query()->where('email', 'owner@kinabalu-hostel.test')->firstOrFail();
+
+        $link = app(SetCompanyPortalLogin::class)($owner, $company, 'booking@borneo-ventures.test')->link;
+        $user = User::query()->findOrFail($link->user_id);
+        $user->forceFill(['must_change_password' => false, 'temporary_password' => null, 'temporary_password_expires_at' => null])->save();
+        $this->actingAs($user);
+
+        return $company;
     }
 
     /**
