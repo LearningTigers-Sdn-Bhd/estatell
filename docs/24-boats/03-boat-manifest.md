@@ -48,7 +48,7 @@ One row per trip: Confirmed, CheckedIn and CheckedOut units whose trip is on the
 
 ## Empty state
 
-"No boat in trips on 12 Oct." With no departures at all: "No departures yet. Add them in Settings, Boats." with a link for users with `settings.manage`.
+"No boat in trips on 12 Oct." or "No boat out trips on 12 Oct.", following the Direction filter. With no departures at all: "No departures yet" and "Add departures in Settings, Boats.", with an **Open Boats settings** button for users with `settings.manage`.
 
 ## Permissions
 
