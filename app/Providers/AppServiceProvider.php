@@ -29,9 +29,11 @@ use Illuminate\Auth\Access\Response;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Middleware\TrustProxies;
+use Illuminate\Http\Request;
 use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -42,6 +44,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -78,6 +81,15 @@ class AppServiceProvider extends ServiceProvider
         $this->configureMailBranding();
         $this->configureMailLog();
         $this->configureChannelEvents();
+        $this->configureKeyportRateLimits();
+    }
+
+    /**
+     * Pairing is the only Keyport call without a token, so it is limited per IP to blunt guessing of pairing codes.
+     */
+    private function configureKeyportRateLimits(): void
+    {
+        RateLimiter::for('keyport-pair', fn (Request $request): Limit => Limit::perMinute(10)->by((string) $request->ip()));
     }
 
     /**

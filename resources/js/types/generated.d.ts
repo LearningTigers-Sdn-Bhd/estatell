@@ -798,6 +798,20 @@ revokeNote: string | null,
 canRevoke: boolean,
 canRetry: boolean,
 };
+export type KeyportJobData = {
+id: string,
+type: string,
+created_at: string,
+expires_at: string,
+payload: Record<string, any>,
+};
+export type KeyportPairingData = {
+device_id: string,
+device_token: string,
+property_code: string,
+property_name: string,
+poll_seconds: number,
+};
 export type LockWithoutPinData = {
 name: string,
 reason: string | null,
@@ -4156,6 +4170,9 @@ export type IdentityDocumentType = 'mykad' | 'passport' | 'other';
 export type ImpersonationReason = 'onboarding_help' | 'support' | 'setup_check';
 export type InclusionEnd = 'departure_day' | 'night_before_departure';
 export type InclusionStart = 'arrival_day' | 'day_after_arrival';
+export type KeyportApiError = 'invalid_pairing_code' | 'pairing_code_expired' | 'pairing_code_used' | 'unauthorized' | 'door_locks_disabled' | 'upgrade_required' | 'job_not_found' | 'job_already_finished' | 'invalid_request';
+export type KeyportJobStatus = 'pending' | 'claimed' | 'succeeded' | 'failed' | 'uncertain' | 'cancelled' | 'expired';
+export type KeyportJobType = 'guest_card.issue' | 'guest_card.rewrite' | 'guest_card.erase' | 'guest_card.read';
 export type Locale = 'en' | 'ms';
 export type MailStatus = 'sent' | 'delivered' | 'bounced' | 'complained' | 'failed' | 'suppressed';
 export type ManualFolioReason = 'paper_folio' | 'missed_charge' | 'missed_payment' | 'old_system' | 'fix_mistake' | 'other';
