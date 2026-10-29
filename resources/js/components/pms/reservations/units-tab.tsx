@@ -50,7 +50,7 @@ function unitUrl(reservationId: number, unitId: number): string {
 
 function roomText(unit: Unit, autoAssignRooms: boolean): string {
     if (unit.assigned.length === 0) {
-        return autoAssignRooms ? 'Assigned automatically' : 'Not assigned';
+        return autoAssignRooms ? 'Assigned when you check in' : 'Not assigned';
     }
 
     if (unit.assigned.length === 1 && unit.allNightsAssigned) {
@@ -231,7 +231,7 @@ export function UnitsList({
                         <span className="text-muted-foreground">
                             {option.assigned ??
                                 (autoAssignRooms
-                                    ? 'Auto'
+                                    ? 'At check-in'
                                     : 'Not assigned')}{' '}
                             · {option.status.label}
                         </span>

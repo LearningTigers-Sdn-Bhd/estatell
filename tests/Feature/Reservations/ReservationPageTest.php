@@ -386,6 +386,17 @@ test('the activity tab lists entries newest first, 25 to a page, in readable wor
         ->where('activity.data.4.text', 'Reservation created with 1 units'));
 });
 
+test('the activity tab sends entry times in the property time zone', function () {
+    [$user, $property] = pageOwner();
+    $property->settings->update(['time_zone' => 'Asia/Kuala_Lumpur']);
+    $reservation = pageReservation($property);
+    pageUnit($reservation);
+    activity()->performedOn($reservation)->event('reservation.created')->log('Reservation created');
+
+    $this->actingAs($user)->get(pageUrl($property, $reservation, 'reservations.activity'))->assertInertia(fn (Assert $page) => $page
+        ->where('activity.data.0.createdAt', '2026-10-10T20:00:00+08:00'));
+});
+
 test('an entry the page does not know is shown by its description', function () {
     [$user, $property] = pageOwner();
     $reservation = pageReservation($property);

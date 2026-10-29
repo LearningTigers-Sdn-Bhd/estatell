@@ -34,10 +34,10 @@ The staff shell has three rows: the full-width navbar; the workspace label and b
 
 ### Navbar (`AppNavbar`)
 
-| Part  | Content                                                                                                                    |
-| ----- | -------------------------------------------------------------------------------------------------------------------------- |
-| Left  | Sidebar toggle, then the property icon (logo, or initials), name and "ID code". Clicking the identity opens the dashboard. |
-| Right | User menu (`NavUser`): the avatar only, no name. It opens the name, Account and Log out.                                   |
+| Part  | Content                                                                                                                                                      |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Left  | Sidebar toggle, then the property icon (logo, or initials), name and "ID code". Clicking the identity opens the dashboard.                                   |
+| Right | Help icon (staff pages only), theme shortcut, then the user menu (`NavUser`): the avatar only, no name. It opens the name, Account, Help & docs and Log out. |
 
 The navbar is 3.5 rem high. In the staff shell, the navbar and workspace row stay outside the scrolling content. The shell is `h-svh`; the document cannot scroll or overscroll while that shell is mounted. Content and sidebar navigation scroll separately with `overscroll-none`, so reaching an edge does not move the navbar. Fixed grid pages keep their own internal scroll regions. Other layouts keep their existing scroll behavior.
 
@@ -65,6 +65,14 @@ The icon shows the saved preference: sun, moon or monitor. Its accessible label 
 - **Navbar** (default): circular avatar only, for staff and all account pages. The menu opens below and aligns to the right.
 - **Sidebar**: admin and partner sidebar footers show a full-width row with the avatar, name, email and chevrons. The menu opens above and aligns to the left. Collapsed sidebars show only the avatar with a name tooltip; mobile drawers show the full row.
 - Both variants share the same Account and Log out actions. Long names and emails truncate.
+
+### Help & docs link
+
+The shared `docsUrl` prop points at the English user docs (`config('estatell.docs_url')` + `/en/docs`, env `DOCS_URL`). The docs are for hotel staff, so the link shows only when a `property` is shared (never for portal, partner or admin users without one):
+
+- User menu: **Help & docs**, opens in a new tab.
+- Staff navbar: a `CircleHelp` icon button before the theme shortcut.
+- Setup wizard: the existing help popover links to `/onboarding` in the docs.
 
 ### Sidebar rows
 

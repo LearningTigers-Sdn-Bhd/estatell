@@ -16,7 +16,7 @@ import {
 const SUPPORT_EMAIL = 'support@estatell.com';
 
 export function OnboardingHelp() {
-    const { impersonation } = usePage().props;
+    const { impersonation, docsUrl } = usePage().props;
 
     return (
         <Popover>
@@ -36,6 +36,17 @@ export function OnboardingHelp() {
                         preview until the section before it is done.
                     </PopoverDescription>
                 </PopoverHeader>
+                <p className="text-sm">
+                    <a
+                        href={`${docsUrl}/onboarding`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium underline underline-offset-4"
+                    >
+                        Read the setup guide
+                    </a>{' '}
+                    for each step.
+                </p>
                 <p className="text-sm">
                     Need a hand? Contact support at{' '}
                     <a

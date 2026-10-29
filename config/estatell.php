@@ -37,4 +37,16 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | User docs
+    |--------------------------------------------------------------------------
+    |
+    | The staff user guide (source in the estatell-docs repo). Staff pages link
+    | to its English pages for now, even though it has Malay and Chinese too.
+    |
+    */
+
+    'docs_url' => env('DOCS_URL', 'https://docs.estatell.com'),
+
 ];
