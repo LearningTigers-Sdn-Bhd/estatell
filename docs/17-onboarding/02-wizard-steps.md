@@ -223,7 +223,7 @@ Two plain sections, one after the other: **Room numbers** and **Room types**. Ea
 
 **Room grid**
 
-- `RoomGrid` (`components/pms/onboarding/`) shows the rooms of each row under its group name, in the order typed, with the rooms count. With No groups there is one block, "All rooms".
+- `RoomGrid` (`components/pms/rooms/`, shared with the [Map tab](../05-rooms/02-rooms-and-groups.md#map-tab) of Settings > Rooms) shows the rooms of each row under its group name, in the order typed, with the rooms count. With No groups there is one block, "All rooms".
 - Each room is a native `<button>` filled with its room type's category colour (`bg-category-N text-category-N-foreground`). It shows the number and the short label, plus "6 beds" for a bed-sold type. A shadcn `Button` is not recoloured with `className`.
 - Size: at least 56 px tall (`min-h-14`), number `text-base font-semibold`, label `text-xs`, `gap-2`. 5 columns on a phone (`grid-cols-5`), 8 from `sm`, 11 from `lg`.
 - Click or tap a room to give it the selected type. Shift-click gives the type to every room between the last click and this one in the same group. On a touch screen, **Mark a run** does the same: tap the first room (dashed ring), then the last.
