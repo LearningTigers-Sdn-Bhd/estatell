@@ -88,6 +88,7 @@ class AppServiceProvider extends ServiceProvider
         $this->configureChannelEvents();
         $this->configureApiRateLimiting();
         $this->configureInertiaSsr();
+        $this->configureKeyportRateLimits();
     }
 
     /**
@@ -98,6 +99,14 @@ class AppServiceProvider extends ServiceProvider
     private function configureInertiaSsr(): void
     {
         Inertia::disableSsr(fn (): bool => ! config('inertia.ssr.enabled') || ! request()->routeIs('home', 'services.show', 'terms', 'privacy'));
+    }
+
+    /**
+     * Pairing is the only Keyport call without a token, so it is limited per IP to blunt guessing of pairing codes.
+     */
+    private function configureKeyportRateLimits(): void
+    {
+        RateLimiter::for('keyport-pair', fn (Request $request): Limit => Limit::perMinute(10)->by((string) $request->ip()));
     }
 
     /**
