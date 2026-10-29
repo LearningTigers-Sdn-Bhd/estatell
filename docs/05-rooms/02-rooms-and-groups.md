@@ -70,14 +70,15 @@ One read-only Service holds the assigned-nights check, and both paths call it.
 ## Room order
 
 - The onboarding save sets `position` to the typed order of each group's list, for new and saved rooms, so rooms read in the order of the floor sheet, not in the order they were created.
-- Groups follow group position; within a property, room positions are rewritten in one query per save.
+- Groups follow group position; within a property, room positions are rewritten in one query per save by `ReorderRooms`. It takes the active rooms in order (group by group, each in its typed order), puts them first and keeps every other room after them in its current order. It refuses an id that is not an active room of the property, or that is listed twice.
+- `GenerateRooms` gives new rooms positions in the order of its plan, after the last position.
 - Settings runs (range and floors) still add rooms after the last position, as before.
 - Room order drives the onboarding room grid, the housekeeping board and `AutoAssignRooms` (group position, then room position).
 
 ## Actions
 
 - `CreateRoomGroup`, `UpdateRoomGroup`, `ReorderRoomGroups`, `DeleteRoomGroup`
-- `CreateRoom`, `UpdateRoom`, `ArchiveRoom`, `RestoreRoom`
+- `CreateRoom`, `UpdateRoom`, `ArchiveRoom`, `RestoreRoom`, `ReorderRooms`
 - `GenerateRooms`
 - `AssignRoomTypeRooms` (the Rooms tab of a room type: groups, and rooms moved in from other types)
 - `ChangeRoomsType` (bulk Change type on Settings > Rooms)
