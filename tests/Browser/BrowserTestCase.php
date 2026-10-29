@@ -2,6 +2,10 @@
 
 namespace Tests\Browser;
 
+use App\Actions\Boats\CreateBoatDeparture;
+use App\Actions\Boats\CreateBoatFare;
+use App\Actions\Boats\SetBoatTrip;
+use App\Actions\Boats\UpdateBoatDeparture;
 use App\Actions\CityLedger\SetCompanyPortalLogin;
 use App\Actions\Onboarding\RegisterPropertyOwner;
 use App\Actions\Onboarding\SaveOnboardingBasicRate;
@@ -10,17 +14,26 @@ use App\Actions\Onboarding\SaveOnboardingRoomTypes;
 use App\Actions\Onboarding\SaveOnboardingTaxes;
 use App\Actions\Onboarding\SavePropertyBasics;
 use App\Actions\Staff\AssignStaffRole;
+use App\Data\Boats\BoatTripData;
 use App\Data\Onboarding\NewPropertyOwnerData;
+use App\Enums\BoatDirection;
+use App\Enums\BoatMode;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\PricingBasis;
 use App\Enums\PropertyType;
 use App\Enums\UnitStatus;
 use App\Enums\WeekendNights;
+use App\Features\Boats;
+use App\Models\BoatDeparture;
+use App\Models\ChargeItem;
 use App\Models\Company;
 use App\Models\Property;
+use App\Models\PropertyAgeGroup;
 use App\Models\Reservation;
+use App\Models\ReservationUnit;
 use App\Models\Role;
 use App\Models\RoomType;
+use App\Models\Tax;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Database\Seeders\BookingScenariosSeeder;
@@ -28,6 +41,7 @@ use Database\Seeders\DemoSeeder;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Imagick;
+use Laravel\Pennant\Feature;
 use Pest\Browser\Api\AwaitableWebpage;
 use Tests\TestCase;
 
@@ -339,6 +353,66 @@ abstract class BrowserTestCase extends TestCase
             ->type('#percent', $percent);
 
         return $freeUntilDays === null ? $page->wait(1) : $page->type('#free_until_days', $freeUntilDays)->wait(1);
+    }
+
+    /**
+     * Turn the Boats feature on for the property and make its boat data through the real Actions, inside the test
+     * transaction: two fares (Speedboat RM 35 with SST and a child price, Ferry RM 25) and five departures. The Boat
+     * in departures leave the Kuala Besut jetty at 09:00, 13:00 and 16:00 (the last one turned off); the Boat out
+     * departures leave the resort jetty at 08:00 and 12:00. Call it after signing in.
+     *
+     * @return array{speedboat: ChargeItem, ferry: ChargeItem, in0900: BoatDeparture, in1300: BoatDeparture, in1600: BoatDeparture, out0800: BoatDeparture, out1200: BoatDeparture}
+     */
+    protected function enableBoats(): array
+    {
+        $owner = User::query()->where('email', 'owner@kinabalu-hostel.test')->firstOrFail();
+        Feature::for($this->property)->activate(Boats::class);
+
+        $ageGroups = PropertyAgeGroup::query()->where('property_id', $this->property->id)->orderBy('min_age')->get();
+        $sst = Tax::query()->where('property_id', $this->property->id)->where('name', 'like', '%SST%')->firstOrFail();
+
+        $speedboat = app(CreateBoatFare::class)($this->property, $owner, [
+            'name' => 'Speedboat', 'code' => 'SPEEDBOAT', 'default_amount' => '35.00', 'allow_override' => false, 'tax_ids' => [$sst->id],
+            'child_prices' => [
+                ['property_age_group_id' => $ageGroups->first()->id, 'pricing' => 'free', 'value' => null],
+                ['property_age_group_id' => $ageGroups->last()->id, 'pricing' => 'percent', 'value' => '50'],
+            ],
+        ]);
+        $ferry = app(CreateBoatFare::class)($this->property, $owner, [
+            'name' => 'Ferry', 'code' => 'FERRY', 'default_amount' => '25.00', 'allow_override' => false, 'tax_ids' => [], 'child_prices' => null,
+        ]);
+
+        $departure = fn (BoatDirection $direction, string $leaves, string $arrives, ?int $seats, ?ChargeItem $fare): BoatDeparture => app(CreateBoatDeparture::class)($this->property, $owner, [
+            'direction' => $direction->value, 'leaves_at' => $leaves, 'arrives_at' => $arrives,
+            'pickup_point' => $direction === BoatDirection::In ? 'Kuala Besut jetty' : 'Resort jetty',
+            'seats' => $seats, 'charge_item_id' => $fare?->id,
+        ]);
+
+        $in0900 = $departure(BoatDirection::In, '09:00', '09:45', 20, $speedboat);
+        $in1300 = $departure(BoatDirection::In, '13:00', '13:45', 20, $speedboat);
+        $in1600 = $departure(BoatDirection::In, '16:00', '16:45', null, null);
+        $out0800 = $departure(BoatDirection::Out, '08:00', '08:45', 20, $speedboat);
+        $out1200 = $departure(BoatDirection::Out, '12:00', '12:45', null, $ferry);
+
+        $result = app(UpdateBoatDeparture::class)($owner, $in1600, [
+            'direction' => 'in', 'leaves_at' => '16:00', 'arrives_at' => '16:45', 'pickup_point' => 'Kuala Besut jetty',
+            'seats' => null, 'charge_item_id' => null, 'active' => false,
+        ]);
+        $this->assertNull($result->refusal, "The 16:00 boat in was not turned off: {$result->refusal}.");
+
+        return compact('speedboat', 'ferry', 'in0900', 'in1300', 'in1600', 'out0800', 'out1200');
+    }
+
+    /**
+     * Set one direction of a unit's boat trip through the real `SetBoatTrip` action, as the property Owner. A scheduled
+     * trip names its departure; a charter or own boat trip names its time.
+     */
+    protected function setBoatTrip(ReservationUnit $unit, BoatDirection $direction, BoatMode $mode, ?BoatDeparture $departure = null, ?string $time = null, ?string $note = null): void
+    {
+        $owner = User::query()->where('email', 'owner@kinabalu-hostel.test')->firstOrFail();
+        $result = app(SetBoatTrip::class)($owner, $unit, new BoatTripData($direction, $mode, $departure?->id, $time, $note));
+
+        $this->assertNull($result->refusal, "The boat trip was refused: {$result->refusal}.");
     }
 
     /**
