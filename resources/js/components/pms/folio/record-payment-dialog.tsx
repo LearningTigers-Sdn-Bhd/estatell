@@ -85,6 +85,24 @@ function RecordPaymentForm({
         service_date: options.businessDate ?? '',
     });
     const { data, errors } = form;
+
+    // The options load after the Dialog opens, so the first render has no method or business date to default to.
+    useEffect(() => {
+        if (loading) {
+            return;
+        }
+
+        form.setData((previous) => ({
+            ...previous,
+            payment_method_id:
+                previous.payment_method_id ||
+                String(options.methods[0]?.id ?? ''),
+            service_date: previous.service_date || options.businessDate || '',
+        }));
+        // Runs once, when the options arrive. Later changes are the user's.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [loading]);
+
     const method = options.methods.find(
         (one) => String(one.id) === data.payment_method_id,
     );

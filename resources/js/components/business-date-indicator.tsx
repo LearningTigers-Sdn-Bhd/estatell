@@ -26,6 +26,7 @@ const stateIcon: Record<BusinessDateState, LucideIcon> = {
     'audit-pending': TriangleAlert,
     auditing: LoaderCircle,
     overdue: TriangleAlert,
+    ahead: TriangleAlert,
     'not-live': CalendarClock,
 };
 
@@ -34,6 +35,7 @@ const stateTone: Record<BusinessDateState, string> = {
     'audit-pending': 'text-warning',
     auditing: 'text-info',
     overdue: 'text-destructive',
+    ahead: 'text-destructive',
     'not-live': 'text-muted-foreground',
 };
 
@@ -42,6 +44,7 @@ const stateDot: Record<BusinessDateState, string> = {
     'audit-pending': 'bg-warning',
     auditing: 'bg-info',
     overdue: 'bg-destructive',
+    ahead: 'bg-destructive',
     'not-live': 'bg-muted-foreground',
 };
 

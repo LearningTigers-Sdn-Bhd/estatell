@@ -74,7 +74,7 @@ A failed run logs `night-audit.failed` with the step and the error.
 
 ## Force close
 
-Requires `night-audit.force` and a reason. Sets `forced = true`. Open exceptions carry to the next day's readiness panel. `RunNightAudit` stores the flag and the reason and refuses a forced run without one. The route checks the permission. A force overrides the blockers of the [readiness panel](02-readiness-panel.md).
+Requires `night-audit.force` and a reason. Sets `forced = true`. Open exceptions carry to the next day's readiness panel. `RunNightAudit` stores the flag and the reason and refuses a forced run without one. The route checks the permission. A force overrides the blockers of the [readiness panel](02-readiness-panel.md) only. It never closes a date that has not ended: `business_date_not_ended` refuses a forced run too (see [The gate](02-readiness-panel.md#the-gate)).
 
 ## Permissions
 

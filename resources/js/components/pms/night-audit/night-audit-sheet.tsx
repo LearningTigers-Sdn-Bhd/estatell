@@ -312,6 +312,46 @@ function Steps({ audit }: { audit: NonNullable<Sheet['audit']> }) {
 }
 
 /**
+ * Shown while the business date has not ended. No run is allowed then, forced or not, so it says what already
+ * happened and when the date closes instead. The server gives every date and time on the property's clock.
+ */
+function NotEndedNotice({ sheet }: { sheet: Sheet }) {
+    if (sheet.date === null || sheet.nextDate === null) {
+        return null;
+    }
+
+    const last = sheet.lastAudit;
+    const lastAt =
+        last === null
+            ? null
+            : last.completedDay === sheet.date
+              ? last.completedTime
+              : `${last.completedTime} on ${formatBusinessDay(last.completedDay, 'compact')}`;
+    const next = sheet.nextAutoAudit;
+
+    return (
+        <Alert>
+            <CircleCheck />
+            {last !== null && (
+                <AlertTitle>
+                    {formatBusinessDay(last.date, 'compact')} was closed{' '}
+                    {last.trigger === 'scheduled'
+                        ? `automatically at ${lastAt}.`
+                        : `at ${lastAt}${last.runBy ? ` by ${last.runBy}` : ''}.`}
+                </AlertTitle>
+            )}
+            <AlertDescription>
+                {formatBusinessDay(sheet.date, 'compact')} is today&apos;s
+                business date.{' '}
+                {next !== null
+                    ? `It closes automatically at ${next.time} on ${formatBusinessDay(next.day, 'compact')}. You don't need to do anything.`
+                    : `Automatic audit is off. Run the audit after 00:00 on ${formatBusinessDay(sheet.nextDate, 'compact')}.`}
+            </AlertDescription>
+        </Alert>
+    );
+}
+
+/**
  * The Run Night Audit sheet, opened from the Front desk sidebar. It lists what to fix before the audit and what needs
  * a look, runs the audit on the queue and follows its steps. The server decides what is a blocker and what the audit
  * does: the browser only shows it. See docs/20-night-audit/02-readiness-panel.md.
@@ -434,9 +474,13 @@ export function NightAuditSheet({
     const notEnded = sheet !== null && !sheet.dateEnded;
     const blocked = (sheet?.blockers.length ?? 0) > 0 || notEnded;
     const description =
-        sheet?.date && sheet.nextDate
-            ? `Closes ${formatBusinessDay(sheet.date, 'short')} and opens ${formatBusinessDay(sheet.nextDate, 'short')}`
-            : undefined;
+        view === 'completed' && sheet?.audit && sheet.date
+            ? `Closed ${formatBusinessDay(sheet.audit.date, 'short')} · now trading on ${formatBusinessDay(sheet.date, 'short')}`
+            : view === 'ready' && notEnded && sheet?.date
+              ? `Trading on ${formatBusinessDay(sheet.date, 'short')}`
+              : sheet?.date && sheet.nextDate
+                ? `Closes ${formatBusinessDay(sheet.date, 'short')} and opens ${formatBusinessDay(sheet.nextDate, 'short')}`
+                : undefined;
     const errors = {
         ...runner.errors,
         ...(fixError ? { form: fixError } : {}),
@@ -451,6 +495,12 @@ export function NightAuditSheet({
                 variant="outline"
                 onClick={() => close(false)}
             >
+                Close
+            </Button>
+        );
+    } else if (view === 'ready' && notEnded) {
+        footer = (
+            <Button type="button" onClick={() => close(false)}>
                 Close
             </Button>
         );
@@ -509,16 +559,7 @@ export function NightAuditSheet({
 
             {view === 'ready' && sheet && (
                 <div className="flex flex-col gap-6">
-                    {notEnded && sheet.date && (
-                        <Alert variant="destructive">
-                            <CircleAlert />
-                            <AlertTitle>Not over yet</AlertTitle>
-                            <AlertDescription>
-                                {formatBusinessDay(sheet.date, 'short')} has not
-                                ended. The audit runs by itself after midnight.
-                            </AlertDescription>
-                        </Alert>
-                    )}
+                    {notEnded && <NotEndedNotice sheet={sheet} />}
 
                     {!notEnded && <p className="text-sm">{sheet.summary}</p>}
 
@@ -558,19 +599,30 @@ export function NightAuditSheet({
                         </section>
                     )}
 
-                    {blocked && sheet.canForce && !forcing && (
-                        <Button
-                            type="button"
-                            variant="link"
-                            className="self-start px-0"
-                            onClick={() => {
-                                setForcing(true);
-                                runner.setData('force', true);
-                            }}
-                        >
-                            Force close…
-                        </Button>
-                    )}
+                    {!notEnded &&
+                        sheet.blockers.length > 0 &&
+                        !sheet.canForce && (
+                            <p className="text-sm text-muted-foreground">
+                                Ask a manager to fix these or to force close.
+                            </p>
+                        )}
+
+                    {!notEnded &&
+                        sheet.blockers.length > 0 &&
+                        sheet.canForce &&
+                        !forcing && (
+                            <Button
+                                type="button"
+                                variant="link"
+                                className="self-start px-0"
+                                onClick={() => {
+                                    setForcing(true);
+                                    runner.setData('force', true);
+                                }}
+                            >
+                                Force close…
+                            </Button>
+                        )}
 
                     {forcing && (
                         <Field>
@@ -647,9 +699,9 @@ export function NightAuditSheet({
                     )}
                     {sheet.audit && sheet.audit.openExceptions > 0 && (
                         <p className="text-sm text-warning">
-                            {sheet.audit.openExceptions} item
-                            {sheet.audit.openExceptions === 1 ? '' : 's'} need a
-                            look.
+                            {sheet.audit.openExceptions === 1
+                                ? '1 item needs a look.'
+                                : `${sheet.audit.openExceptions} items need a look.`}
                         </p>
                     )}
                 </div>

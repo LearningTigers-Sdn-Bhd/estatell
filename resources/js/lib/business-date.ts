@@ -3,6 +3,7 @@ export type BusinessDateState =
     | 'audit-pending'
     | 'auditing'
     | 'overdue'
+    | 'ahead'
     | 'not-live';
 
 export type BusinessDateView = {
@@ -99,10 +100,10 @@ export function deriveBusinessDateView(
     }
 
     const clock = systemClock(nowMs, businessDate.timeZone);
-    const daysBehind = Math.max(
-        0,
-        Math.round((toUtcMs(clock.day) - toUtcMs(businessDate.date)) / DAY_MS),
+    const difference = Math.round(
+        (toUtcMs(clock.day) - toUtcMs(businessDate.date)) / DAY_MS,
     );
+    const daysBehind = Math.max(0, difference);
     const base = {
         businessDay: businessDate.date,
         systemDay: clock.day,
@@ -112,6 +113,14 @@ export function deriveBusinessDateView(
 
     if (businessDate.status === 'auditing') {
         return { ...base, state: 'auditing', message: 'Night audit running' };
+    }
+
+    if (difference < 0) {
+        return {
+            ...base,
+            state: 'ahead',
+            message: 'Business date is ahead of the calendar',
+        };
     }
 
     if (daysBehind >= 2) {
