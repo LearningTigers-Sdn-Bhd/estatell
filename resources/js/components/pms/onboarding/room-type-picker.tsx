@@ -23,7 +23,8 @@ export type RoomTypeTile = {
 
 /**
  * One tile per room type, built like ChoiceCards: arrow keys move between tiles and one tile is selected. A bed-sold
- * tile adds a badge, its bed total and a Beds per room input under the radio, outside the radio label.
+ * tile adds a badge and its bed total; its Beds per room input shows under the radio, outside the radio label, only
+ * while the tile is selected or the count has an error.
  */
 export function RoomTypePicker({
     tiles,
@@ -44,6 +45,8 @@ export function RoomTypePicker({
     maxBeds: number;
     disabled?: boolean;
 }) {
+    const footerOpen = (id: number) => id === value || !!bedErrors[id];
+
     return (
         <FieldSet>
             <FieldLegend className="sr-only">Room type to set</FieldLegend>
@@ -93,7 +96,7 @@ export function RoomTypePicker({
                                 </span>
                             </FieldContent>
                         </FieldLabel>
-                        {tile.soldByBed && (
+                        {tile.soldByBed && footerOpen(tile.id) && (
                             <Field
                                 orientation="horizontal"
                                 className="justify-between gap-3 border-t px-3 py-1.5"

@@ -191,11 +191,6 @@ export default function Rooms({
             beds: ofType.reduce((sum, room) => sum + bedsOf(room.number), 0),
         };
     });
-    /** Bed-sold tiles are taller, so they lead the first row; colours keep the Room types order. */
-    const bedTilesFirst = [
-        ...tiles.filter((tile) => tile.soldByBed),
-        ...tiles.filter((tile) => !tile.soldByBed),
-    ];
     const total = parsed
         .slice(0, rows.length)
         .reduce((sum, result) => sum + (result?.numbers.length ?? 0), 0);
@@ -650,7 +645,7 @@ export default function Rooms({
                         </p>
                     </div>
                     <RoomTypePicker
-                        tiles={bedTilesFirst}
+                        tiles={tiles}
                         value={selected}
                         onValueChange={setSelected}
                         bedsPerRoom={beds}
