@@ -33,6 +33,14 @@ room_types    id, property_id, name, description, sell_unit (SellUnit),
 - Archive hides a room type without deleting it. Restore puts it at the end of the list, and is refused when an active room type has the same name. The guard against future reservations arrives with reservations. A room type mapped on an active OTA cannot be archived (see [Archive guard](../21-channels/02-mappings-and-capability.md#archive-guard)).
 - `sell_unit` is locked once the room type has any room (see [Rooms](02-rooms-and-groups.md)).
 
+## Colour and short label
+
+Neither is stored. The browser derives both from data the server sends.
+
+- **Colour**: a room type takes `category-N` by its place among the property's active room types (by `position`): N = ((place − 1) mod 12) + 1. See [Category tokens](../design-system/02-tokens-and-typography.md#tokens). Reordering room types changes colours.
+- **Short label**: the first letter of each word of the name, upper case, with `+` kept and the word "Room" dropped. Words split on spaces and hyphens. "Standard Queen Room" gives SQ, "Triple-Sharing Queen + Single Room" gives TSQ+S, "6-Bed Mixed Dorm" gives 6BMD.
+- Both live in one helper in `resources/js/lib/`, with unit tests, and are used on the onboarding room grid first.
+
 ## Permissions
 
 `rooms.view` opens the list and the room type page (read-only). `rooms.manage` creates, edits, reorders, archives, restores and assigns rooms. The Manager default role has both.

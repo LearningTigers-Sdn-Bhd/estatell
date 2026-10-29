@@ -4,7 +4,7 @@ Part of the [design system](../design-system.md). Short contract: [DESIGN.md](..
 
 ## Tokens
 
-- Use only the preset's **semantic tokens**: `background`, `foreground`, `card`, `popover`, `primary`, `secondary`, `muted`, `accent`, `destructive`, `border`, `input`, `ring`, the sidebar tokens and the chart tokens.
+- Use only the preset's **semantic tokens**: `background`, `foreground`, `card`, `popover`, `primary`, `secondary`, `muted`, `accent`, `destructive`, `border`, `input`, `ring`, the sidebar tokens and the chart tokens, plus the added tokens below.
 - **Status tokens** are added in `resources/css/app.css`: `success`, `warning`, `info`, each with a `-foreground`, in light and dark. `warning` also has `warning-text`, a readable amber for text on a soft warning tint.
 - **Auth accent**: `auth-accent` is a faint emerald tint for the auth shell's edge gradient, with separate light and dark values. It is decorative, not a text color. Tailwind exposes it through `--color-auth-accent`.
 - **Grid tokens** are added in `resources/css/app.css` for the date grid engine and the calendars built on it. They are named by role, so the hue can change without touching a component:
@@ -23,6 +23,26 @@ Part of the [design system](../design-system.md). Short contract: [DESIGN.md](..
 
 - Use them as `bg-grid-header`, `text-grid-muted-foreground`, `border-grid-line`. Components inside a grid never use a palette class or a hue name.
 - **Swatch tokens** are added in `resources/css/app.css` for colors a property picks, such as the [booking source badge](../12-reservations/11-booking-sources.md#badge). Ten hues: `swatch-gray`, `swatch-red`, `swatch-orange`, `swatch-amber`, `swatch-green`, `swatch-teal`, `swatch-blue`, `swatch-indigo`, `swatch-violet`, `swatch-pink`, each with a `-foreground`, in light and dark. Light is a mid-tone background (L 0.52) with a near-white foreground; dark is a light background (L 0.76) with a dark foreground (L 0.2), so a badge stays visible on a dark card. Every pair meets 4.5:1 for letters; measured WCAG ratios (light / dark): gray 5.27 / 8.43, red 5.67 / 8.10, orange 5.51 / 8.15, amber 5.34 / 8.34, green 4.97 / 8.79, teal 5.09 / 8.82, blue 5.32 / 8.45, indigo 5.49 / 8.33, violet 5.65 / 8.13, pink 5.74 / 8.00 (green in light is the tightest; re-check any change). `BookingSourceBadge` exports `swatchClasses` and `swatchColorClass()`. The `SwatchColor` enum names them, and a component maps each case to fixed class strings (`bg-swatch-blue text-swatch-blue-foreground`), so Tailwind sees them. They are never used for status: status stays on `Tone`.
+- **Category tokens** are added in `resources/css/app.css` to tell many items apart at a glance on a dense grid, such as [room types](../05-rooms/01-room-types.md#colour-and-short-label) on the onboarding room grid. Twelve solid fills, `category-1` to `category-12`, each with a `-foreground` that is white or ink, whichever passes AA. They differ in hue and lightness, so close hues still read apart (blue and navy, red and light pink). The values are the same in light and dark. No teal: it was too close to emerald.
+
+| Token         | Fill (OKLCH)  | Name       | Text  | Contrast |
+| ------------- | ------------- | ---------- | ----- | -------- |
+| `category-1`  | 0.53 0.12 160 | Emerald    | white | 4.97     |
+| `category-2`  | 0.55 0.19 258 | Blue       | white | 4.98     |
+| `category-3`  | 0.86 0.17 92  | Amber      | ink   | 12.25    |
+| `category-4`  | 0.57 0.24 335 | Fuchsia    | white | 5.11     |
+| `category-5`  | 0.80 0.12 228 | Sky        | ink   | 10.33    |
+| `category-6`  | 0.56 0.21 25  | Red        | white | 5.18     |
+| `category-7`  | 0.80 0.20 140 | Lime       | ink   | 10.72    |
+| `category-8`  | 0.54 0.21 298 | Violet     | white | 5.60     |
+| `category-9`  | 0.70 0.19 45  | Orange     | ink   | 6.56     |
+| `category-10` | 0.40 0.13 265 | Navy       | white | 9.44     |
+| `category-11` | 0.86 0.08 355 | Light pink | ink   | 11.87    |
+| `category-12` | 0.50 0.08 55  | Brown      | white | 6.16     |
+
+- Ink is `oklch(0.18 0.01 107)`. The closest pair (blue and violet) is 0.138 apart in OKLab. Neighbours in the order differ most, so the first six are emerald, blue, amber, fuchsia, sky and red.
+- **Category or swatch.** A swatch is a colour someone picks for a named thing and shows as a badge. A category colour is given by position and fills a cell or tile. Never mix them, and never use either for status.
+- A category colour is never the only signal: the item's label is always shown next to or on it.
 - Every text pair meets WCAG 2.2 AA (4.5:1) in light and dark, and icons meet 3:1. Check a new pair before you ship it. Amber text on a tint uses `text-warning-text`. Other status colors that fail on a tint get a filled pill (`bg-warning text-warning-foreground`) in place of colored text.
 - `weekend` and `hover` are translucent so they lay over any row background. Grid lines are decoration, so they are not held to 3:1.
     - Success badges use a soft (tinted) style. The success color must be clearly different from the emerald primary, so a status never looks like a primary button.

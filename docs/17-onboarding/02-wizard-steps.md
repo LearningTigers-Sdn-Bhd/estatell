@@ -23,8 +23,8 @@ Every section and Review (go live) use the onboarding layout. Basics offers any 
 | 1   | Property | Basics: property type, name, country, address, and currency and time zone outside Malaysia. See [Basics form](#basics-form).                                    | Yes      | –                  |
 | 2   |          | Check-in essentials: times, registration card and security deposit. See [Check-in essentials form](#check-in-essentials-form).                                  | Yes      | Basics             |
 | 3   |          | Team: staff with temp passwords and a role. See [Team table](#team-table).                                                                                      | No       | Basics             |
-| 4   | Rooms    | Room types: an editable table, sold by room only. See [Room types table](#room-types-table).                                                                    | Yes      | Basics             |
-| 5   |          | Rooms: number ranges per room type, optional room groups. See [Rooms table](#rooms-table).                                                                      | Yes      | Room types         |
+| 4   | Rooms    | Room types: an editable table, sold by room or by bed. See [Room types table](#room-types-table).                                                               | Yes      | Basics             |
+| 5   |          | Rooms: numbers per group, then each room's type on a grid, and beds for dorms. See [Rooms table](#rooms-table).                                                 | Yes      | Room types         |
 | 6   | Finance  | Taxes, including which taxes apply to rooms (room revenue). See [Taxes table](#taxes-table).                                                                    | Yes      | Basics             |
 | 7   |          | Payment methods: turn seeded methods on or off, add more. See [Payment methods table](#payment-methods-table).                                                  | Yes      | Basics             |
 | 8   |          | Companies: city ledger companies and their portal logins. See [Companies table](#companies-table).                                                              | No       | Basics             |
@@ -136,82 +136,114 @@ Setup started (another section is no longer Not started):
 
 ```
  What kinds of rooms do you sell?
- ┌────────────────────────────────┬─────────────┬──────────────┬────┐
- │ Name                           │ Max adults  │ Max children │    │
- ├────────────────────────────────┼─────────────┼──────────────┼────┤
- │ [ Standard Double            ] │ [ 2 ]       │ [ 1 ]        │ 🗑 │
- │ [                            ] │ [ 2 ]       │ [ 0 ]        │ 🗑 │
- ├────────────────────────────────┴─────────────┴──────────────┴────┤
- │                                                [+ Add room type] │
- └──────────────────────────────────────────────────────────────────┘
+ ┌────────────────────────────────┬──────────────┬─────────────┬──────────────┬────┐
+ │ Name                           │ Sold by      │ Max adults  │ Max children │    │
+ ├────────────────────────────────┼──────────────┼─────────────┼──────────────┼────┤
+ │ [ Standard Double            ] │ [●Room│ Bed] │ [ 2 ]       │ [ 1 ]        │ 🗑 │
+ │ [ 6-Bed Mixed Dorm           ] │ [ Room│●Bed] │ [ 1 ]       │ [ 0 ]        │ 🗑 │
+ ├────────────────────────────────┴──────────────┴─────────────┴──────────────┴────┤
+ │                                                               [+ Add room type] │
+ └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 - Follows the settings age groups form: shadcn `table`, a remove button per row, **Add room type** in the `TableFooter`.
 - With no room types, the table starts with one empty row. Saved room types load as rows.
 - The last row cannot be removed: its remove button is disabled (`focusableWhenDisabled`, tooltip "At least one room type").
 - New rows default to 2 adults and 0 children.
-- Columns: name, max adults, max children. No sell unit: onboarding always creates `SellUnit::Room`. `base_occupancy` defaults to max adults, so Basic rate has no extra-adult charge. Description, smoking, pets and terms stay in settings. The hint under the table: "After you go live, you can add descriptions and room rules in Settings, under Room types."
-- One submit saves the table in one transaction (`SaveOnboardingRoomTypes`): new rows create, changed rows update, removed rows are archived together with their rooms (a deleted row frees its name, and its rooms free their numbers), through the room type Actions used by settings. The table order sets the display order. Errors show per row (`rows.{n}.name`). `SaveRoomTypesRequest` takes `rows` (1 to 50) and uses the bounds of `RoomTypeRequest` per row. A name must differ from the other rows, from bed-sold types and from the saved name of another kept row, so two rows cannot swap names in one save.
+- Columns: name, sold by, max adults, max children. **Sold by** is a `toggle-group` (**Room**, default, or **Bed**) that saves `sell_unit`. It is disabled once the type has a room, with the tooltip "Sold by is fixed once the type has rooms.", following the `sell_unit` lock. For a Bed type, max adults is guests per bed. `base_occupancy` defaults to max adults, so Basic rate has no extra-adult charge. Description, smoking, pets and terms stay in settings. The hint under the table: "After you go live, you can add descriptions and room rules in Settings, under Room types."
+- One submit saves the table in one transaction (`SaveOnboardingRoomTypes`): new rows create, changed rows update, removed rows are archived together with their rooms (a deleted row frees its name, and its rooms free their numbers), through the room type Actions used by settings. The table order sets the display order. Errors show per row (`rows.{n}.name`). `SaveRoomTypesRequest` takes `rows` (1 to 50) and uses the bounds of `RoomTypeRequest` per row. A name must differ from the other rows and from the saved name of another kept row, so two rows cannot swap names in one save. Each row sends `sell_unit`.
 - Updating a saved row also sets `base_occupancy` to the new max adults.
 - At phone width each row stacks into a card.
-- Dorm beds (`SellUnit::Bed`) are not offered. A hostel sees "Selling dorm beds? After you go live, you can add them in Settings, under Room types." A bed-sold type made in settings shows read-only with "Sold by bed. Edit in settings." and counts toward Done. Basic rate leaves it out ("After you go live, you can price beds in Settings, under Rate plans.").
+- Dorm beds are set up here: a Bed row creates a `SellUnit::Bed` room type, and the [Rooms table](#rooms-table) creates its rooms and beds. Basic rate leaves bed-sold types out ("After you go live, you can price beds in Settings, under Rate plans.").
 - Check: Done with at least one active room type (sold by room or by bed), otherwise Not started. There is no In progress state.
 
 ## Rooms table
 
+Client feedback: room types are mixed along a corridor (101 Queen, 102 Twin, 103 Twin, 104 Queen), so one range per room type needed about 40 single-room ranges for a 65-room property. The step asks for the numbers first, the way they run on each floor, and then for each room's type on a grid.
+
+Two plain sections, one after the other: **Room numbers** and **Room types**. Each is a `<section>` with a heading, a hint and its content in a `flex flex-col` with `gap`. There is no card and no border around a section. A `Separator` divides them.
+
 ```
- Room groups   [ No groups | ● Use groups ]
-
- Groups (only with Use groups)
- ┌──────────────────────────────────────────────┬────┐
- │ Name                                         │    │
- ├──────────────────────────────────────────────┼────┤
- │ [ Ground floor                             ] │ 🗑 │
- │ [ Garden block                             ] │ 🗑 │
- ├──────────────────────────────────────────────┴────┤
- │                                     [+ Add group] │
- └───────────────────────────────────────────────────┘
-
- Rooms
- ┌──────────────────┬────────────────┬────────┬───────┬───────┬───────┬────┐
- │ Room type        │ Group          │ Prefix │ From  │ To    │ Rooms │    │
- ├──────────────────┼────────────────┼────────┼───────┼───────┼───────┼────┤
- │ [Standard Dbl ▾] │ [Ground floor▾]│ [    ] │ [101] │ [106] │   6   │ 🗑 │
- │ [Deluxe King  ▾] │ [Garden block▾]│ [ G  ] │ [  1] │ [  4] │   4   │ 🗑 │
- ├──────────────────┴────────────────┴────────┴───────┴───────┴───────┴────┤
- │ Total: 10                                                 [+ Add range] │
- └─────────────────────────────────────────────────────────────────────────┘
- Preview   Ground floor 101 … 106 · Garden block G1 … G4
+ Room numbers                                [ No groups | ● Use groups ]
+ One row per floor, wing or block. Dash for a range, comma between parts.
+ ┌──────────────┬──────────────────────────────────────┬───────┬────┐
+ │ Group        │ Room numbers                         │ Rooms │    │
+ ├──────────────┼──────────────────────────────────────┼───────┼────┤
+ │ [ Floor 1  ] │ [ 102-134                          ] │   33  │ 🗑 │
+ │ [ Floor 2  ] │ [ 202-216, 218-234                 ] │   32  │ 🗑 │
+ │ [ Floor 3  ] │ [ 301-302                          ] │    2  │ 🗑 │
+ ├──────────────┴──────────────────────────────────────┴───────┴────┤
+ │ Total: 67 rooms                                   [+ Add group]  │
+ └──────────────────────────────────────────────────────────────────┘
+ Examples: 101-110 · 202-216, 218-234 · G1-G4 · Villa 3 · 01-08
+ ─────────────────────────────────────────────────────────────────────
+ Room types
+ Pick a type, then click rooms. Shift-click marks every room between.
+ ╭─────────────────────────────╮ ╭─────────────────────────────╮ ╭─────────────────────────────╮
+ │ ◉ ■ Standard Double Single  │ │ ○ ■ Standard Queen Room     │ │ ○ ■ 6-Bed Mixed Dorm        │
+ │     Room                    │ │     SQ · 25 rooms           │ │     [Sold by bed]           │
+ │     SDS · 30 rooms          │ │                             │ │     6BMD · 2 rooms · 12 beds│
+ ╰─────────────────────────────╯ ╰─────────────────────────────╯ ├─────────────────────────────┤
+                                                                 │      Beds per room  [  6 ]  │
+                                                                 ╰─────────────────────────────╯
+                                                [ Mark a run ] [ Set all to selected type ]
+ Floor 1                                                                        33 rooms
+ ╭───────╮ ╭───────╮ ╭───────╮ ╭───────╮ ╭───────╮ ╭───────╮ ╭───────╮ ╭───────╮ ╭───────╮ ╭───────╮ ╭───────╮
+ │  102  │ │  103  │ │  104  │ │  105  │ │  106  │ │  107  │ │  108  │ │  109  │ │  110  │ │  111  │ │  112  │
+ │  SDS  │ │  SQ   │ │  SDS  │ │  SDS  │ │  SQ   │ │  SDS  │ │  SDS  │ │  SQ   │ │  SQ   │ │  SDS  │ │  SDS  │
+ ╰───────╯ ╰───────╯ ╰───────╯ ╰───────╯ ╰───────╯ ╰───────╯ ╰───────╯ ╰───────╯ ╰───────╯ ╰───────╯ ╰───────╯
+ Floor 3                                                                         2 rooms
+ ╭───────╮ ╭───────╮
+ │  301  │ │  302  │
+ │ 6BMD  │ │ 6BMD  │
+ │6 beds │ │6 beds │
+ ╰───────╯ ╰───────╯
 ```
 
-**Ranges**
+**Room numbers**
 
-- One range row per room-sold room type to start. Only the room type is prefilled. Prefix, From and To are empty, with a grey placeholder (101 to 110) on the first row. Numbers are never guessed.
-- Columns: room type, prefix, from, to, rooms count. The Group column appears with Use groups.
-- No floor mode and no suffix in onboarding: "floors 2 to 3, rooms 01 to 04" is two ranges. Floor mode and suffix stay in settings.
-- The rooms count and preview are derived in the browser for display. The server validates and creates.
-- Limits follow `GenerateRoomsRequest`. A number already in use, or repeated across rows, shows an error on the row and its preview chip, and nothing saves.
-- A fully empty row is ignored on save, not an error.
-- **Add range** in the `TableFooter`. A row can be removed once rooms exist. Before that the last row stays.
-- Returning: saved rooms show as chips (under group headings when grouped) with × to delete, with a confirm popover. One empty range row is added for more rooms.
-- Bed-sold room types are not in the room type menu.
-
-**Room groups**
-
-- A `toggle-group`: **No groups** (default) or **Use groups**. It starts on Use groups when the property already has groups.
-- Use groups shows a Groups table (name, remove, **Add group** in the footer) above the ranges, and a required Group menu on every range row. The first group is preselected. Half-grouped rooms would leave an ungrouped heap on the housekeeping board and Stay View.
-- The Group menu lists the names typed in the Groups table, before anything is saved. Rows refer to new groups by row key. The server maps keys to ids.
+- One row per group: name, numbers, rooms count and remove. Follows the Room types table: shadcn `table`, **Add group** in the `TableFooter`, the last row cannot be removed.
+- Room groups is a `toggle-group`: **No groups** (default) or **Use groups**. No groups shows one row without the name column. It starts on Use groups when the property has groups. With saved groups the toggle is disabled, with the tooltip "After you go live, you can remove groups in Settings, under Rooms."
+- The numbers field takes parts split by commas. A part is one label (`Villa 3`) or a range (`101-110`, `G1-G4`, `01-08`). A range keeps its prefix and the zero padding of the from number. The range rules are those of `RoomNumberGenerator` list mode (see [Number generator](../05-rooms/02-rooms-and-groups.md#number-generator)).
+- At most 200 rooms per group. A number cannot be repeated in the same row or in another row, ignoring case.
+- The browser posts the rows to `onboarding.rooms.preview` while the owner types (debounced). The server parses them and returns, per row, the numbers or an error. The browser never parses numbers. The rooms count shows "—" for a row with an error.
+- Errors show on the row: "\"134-102\" runs backwards. Put the smaller number first.", "210 is listed twice. Each number can be used once.", "That is 240 rooms. One group takes at most 200."
+- A fully empty row is ignored on save, not an error. A row with numbers needs a group name when Use groups is on.
 - Group names follow `RoomGroupRequest` (unique, case-insensitive). Table order sets the group position, which `AutoAssignRooms` uses first.
-- The last group row cannot be removed while Use groups is on. Removing a group that a range uses clears that range's menu and shows an error until a group is picked.
-- Back to No groups: unsaved groups hide and are not sent. With saved groups the toggle is disabled, with the tooltip "After you go live, you can remove groups in Settings, under Rooms."
+- At phone width each row stacks: name, numbers, then count and remove.
+
+**Room types**
+
+- `RoomTypePicker` (`components/pms/onboarding/`): one tile per active room type, in Room types order. It is built like `ChoiceCards`: `RadioGroup`, `RadioGroupItem` and `FieldLabel`, so arrow keys move between tiles and one tile is selected. The first room type starts selected.
+- A tile shows the category colour swatch, the full name, the short label and the rooms count. 1 column on a phone, 2 from `sm`, 3 from `lg`.
+- A bed-sold tile adds a "Sold by bed" `Badge`, the bed total and a **Beds per room** `Input` (1 to 50, the `GenerateBeds` count). The input sits under the radio inside the same tile, never inside the radio label. An invalid count shows "Enter 1 to 50 beds." and blocks Save.
+- Beds per room is not stored (beds have no stored capacity). It starts at the bed count of the type's first saved room with beds, or 4.
+- **Mark a run** and **Set all to selected type** are outline `Button`s under the tiles. Set all gives every room on the grid the selected type, except saved rooms the guards below refuse.
+
+**Room grid**
+
+- `RoomGrid` (`components/pms/onboarding/`) shows the rooms of each row under its group name, in the order typed, with the rooms count. With No groups there is one block, "All rooms".
+- Each room is a native `<button>` filled with its room type's category colour (`bg-category-N text-category-N-foreground`). It shows the number and the short label, plus "6 beds" for a bed-sold type. A shadcn `Button` is not recoloured with `className`.
+- Size: at least 56 px tall (`min-h-14`), number `text-base font-semibold`, label `text-xs`, `gap-2`. 5 columns on a phone (`grid-cols-5`), 8 from `sm`, 11 from `lg`.
+- Click or tap a room to give it the selected type. Shift-click gives the type to every room between the last click and this one in the same group. On a touch screen, **Mark a run** does the same: tap the first room (dashed ring), then the last.
+- New rooms start with the first room type.
+- Hover shows a ring in the room's text colour; keyboard focus shows the standard `focus-visible` ring; a press scales down briefly (not with reduced motion). A number in error shows red with "twice" and cannot be clicked. The `Tooltip` and the accessible name give the full name: "Room 301, 6-Bed Mixed Dorm, 6 beds".
+- A saved room with beds can take only a bed-sold type. Clicking it with a room-sold type shows the toast "301 has beds. Pick a type sold by bed."
+- Colour is never the only signal. The short label is always shown.
+
+**Returning to the step**
+
+- Saved rooms load into their group rows. The server sends each row's numbers as text, with runs of numbers joined into ranges (`102-134`), and each room's type.
+- The numbers field is the full list for the group. Removing a saved number archives that room on save (`ArchiveRoom`). Moving a saved number to another row changes its group. Save asks first when rooms will be archived (AlertDialog: "Save archives 3 rooms: 105, 106, 107.").
+- A saved room's type can change on the grid until go-live, through the guards of `UpdateRoom`.
+- Saved groups stay as rows and cannot be removed here, so a property that has groups always uses groups.
 
 **Save and check**
 
-- One submit, one transaction: create the groups, then `GenerateRooms` (range mode) per row with its `room_group_id`.
-- At phone width each row stacks into a card, with the Group menu on its own line.
-- The save is `SaveOnboardingRooms`, called through `SaveRoomsRequest` (`use_groups`, `groups` with a row `key`, `id` and `name`, `ranges` with room type, `group_key`, prefix, from and to). Errors show per row (`ranges.{n}.from`, `groups.{n}.name`). A number that is taken (by a saved room or by another row) shows on the row. If a number is taken between the check and the save, the Action rolls back and the page shows an error toast.
-- Saved groups stay in the Groups table as read-only rows and cannot be removed here, so a property that has groups always uses groups. A saved room is removed with × and a confirm popover (`onboarding.rooms.destroy`, through `ArchiveRoom`).
-- Check: Done when every room-sold room type has at least one active room. In progress when some have rooms and some do not. Not started when none do, or when there is no room-sold room type.
+- One submit, one transaction (`SaveOnboardingRooms` through `SaveRoomsRequest`): create or rename the groups, archive removed rooms, create new rooms with their type and group (`GenerateRooms`), change type or group of saved rooms (`UpdateRoom`), then `GenerateBeds` with Beds per room for every room of a bed-sold type that has no active bed. A refusal rolls everything back and shows an error toast.
+- `SaveRoomsRequest`: `use_groups`; `groups` with a row `key`, `id`, `name` and `numbers`; `types` with a room `number` and `room_type_id`; `beds_per_room` keyed by bed-sold `room_type_id`. Errors show per row (`groups.{n}.numbers`, `groups.{n}.name`, `beds_per_room.{id}`). A number taken between the preview and the save shows on its row.
+- The server parses the numbers again on save. It never trusts the preview.
+- Check: Done when every active room type (sold by room or by bed) has at least one active room and every room of a bed-sold type has at least one active bed. In progress when some do. Not started when none do.
 
 ## Taxes table
 
@@ -410,13 +442,13 @@ A rate plan has one pricing basis, so the rows map to one plan per basis used:
 
 - One submit, one transaction: plan bases and names, room type links, `SaveRates` per own-price plan from today to today + 364 (property time zone), then the more rates. Re-saving replaces the amounts in that range. That is safe before go-live, because the rate calendar is behind the fence.
 - At phone width each row stacks into a card.
-- Check: every room-sold room type has prices for the next 30 days on its Basic Rate plan. More rates never block.
+- Check: every room-sold room type has prices for the next 30 days on its Basic Rate plan. More rates never block. A property with only bed-sold types has nothing to price here, so the section is Done and shows the bed note.
 - The save is `SaveOnboardingBasicRate`, called through `SaveBasicRateRequest` (`weekend_nights`, `same_every_night`, and one row per room-sold room type with `price_by` `per_room` or `per_guest`, `weekday` and `weekend`). It writes `weekend_nights` through `UpdatePropertySettings`, then reuses an existing Basic Rate plan of each basis, switches a leftover plan with `ChangeRatePlanBasis`, or creates one with `CreateRatePlan`. Links are set in two passes (add, then remove) so a room type that moves is never without a plan, and a plan left empty is archived. A refused step rolls everything back and shows an error toast.
 - `ChangeRatePlanBasis` runs only while the property is onboarding, on a plan that follows no plan and has no followers. It deletes the plan's rates, and moves the child prices: a plan entering Per guest gets the starter ones, a plan leaving it loses them.
 - Prices are saved from today to today + 364 days in the property time zone. A Guest row saves the per-adult price as the rate amount, with no occupancy prices, so the price is the adult price times the adults.
 - The page reads the table back from the first 7 days of saved rates (`BasicRateRows`). **Every night** starts selected when every saved row has one amount on all 7 nights.
 - The guest pays lines come from `OnboardingBasicRatePreview` (`onboarding.basic-rate.preview`): the room taxes for a local guest, and base occupancy times the price on a Guest row. A blank or half-typed price shows no line.
-- `BasicRateCheck`: Done when every room-sold room type has 30 days of prices on its Basic Rate plan, In progress when some do, Not started when none do.
+- `BasicRateCheck`: Done when every room-sold room type has 30 days of prices on its Basic Rate plan, In progress when some do, Not started when none do. With no room-sold type it is Done when the property has an active bed-sold type, otherwise Not started.
 - **More rates** save in the same submit and the same transaction, as `more_rates` rows (`SaveBasicRateRequest`, at most 20). Each row has the saved `plan_ids` (empty for a new row), a name, and `mode` `follows` or `own`. Follows rows send `parent_basis` (`per_room` or `per_guest`, the Basic Rate plan of that basis), `direction` (`up` or `down`), `unit` (`amount` or `percent`), `amount` and `room_type_ids`. Own rows send `prices`, the same room type lines as the Basic rate table.
 - Order inside `SaveOnboardingBasicRate`: `ReleaseOnboardingMoreRates` first (a row that is gone, or changed from Follows to Own prices or back, archives its old plans; a follower gives up the room types its row dropped), then the Basic Rate plans (`SaveOnboardingPricedPlans`, shared with Own prices rows), then `SaveOnboardingMoreRates` (`CreateDerivedRatePlan`, or `SaveRatePlanDerivation` and `SyncRatePlanRoomTypes` on a saved follower). This lets a Basic Rate plan switch basis once its followers are released.
 - A rate with Own prices for room types on both bases becomes "{name} / Room" and "{name} / Guest", and the page reads the two plans back as one row (`MoreRatePlans`). Prices for a Guest line are per adult, like the Basic rate table.

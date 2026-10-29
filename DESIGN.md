@@ -30,6 +30,7 @@ Imports: `pages` → `pms/{feature}`, `pms/`, `ui/`. `pms/{feature}` → `pms/`,
 ## 3. Styling
 
 - Semantic tokens only (`bg-background`, `text-muted-foreground`, `bg-primary`) plus status tokens `success`, `warning`, `info`.
+- Category tokens `category-1` to `category-12` fill items told apart by position (room types on a grid). Swatch tokens are colours someone picks for a badge. Neither is used for status.
 - No palette classes, no manual `dark:` overrides, no arbitrary values, no manual `z-index` on overlays.
 - `flex`/`grid` with `gap-*`, never `space-y-*`. `size-*` for equal sizes. `truncate` for overflow.
 - `className` on components is for layout, never for recoloring.
