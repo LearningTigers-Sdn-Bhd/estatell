@@ -34,6 +34,8 @@ class BoatManifestReportController extends Controller
         $rows = new LengthAwarePaginator($allRows, count($allRows), max(1, count($allRows)), 1, ['path' => $request->url()]);
         $hasDepartures = $manifest->hasDepartures($property);
         $canManageSettings = $request->user()->can(PermissionEnum::SettingsManage->value);
+        $direction = $filters->direction ?? BoatDirection::In;
+        $date = CarbonImmutable::parse($filters->from)->format('j M');
 
         return Inertia::render('reports/boat-manifest', [
             'rows' => BoatManifestRow::collect($rows->withQueryString(), PaginatedDataCollection::class),
@@ -47,11 +49,13 @@ class BoatManifestReportController extends Controller
             'to' => $filters->to,
             'maxRangeDays' => $key->maxRangeDays(),
             'currency' => CurrencyData::forProperty($property),
-            'direction' => $filters->direction->value ?? BoatDirection::In->value,
+            'direction' => $direction->value,
             'directionOptions' => BoatDirection::options(),
-            'emptyTitle' => $hasDepartures
-                ? __('No boat in trips on :date.', ['date' => CarbonImmutable::parse($filters->from)->format('j M')])
-                : __('No departures yet'),
+            'emptyTitle' => match (true) {
+                ! $hasDepartures => __('No departures yet'),
+                $direction === BoatDirection::Out => __('No boat out trips on :date.', ['date' => $date]),
+                default => __('No boat in trips on :date.', ['date' => $date]),
+            },
             'emptyDescription' => $hasDepartures
                 ? __('Pick another date or direction to see the boat trips.')
                 : __('Add departures in Settings, Boats.'),

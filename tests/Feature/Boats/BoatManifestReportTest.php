@@ -440,4 +440,7 @@ test('an empty date says there is no boat trip, and no departures says so with a
         ->assertInertia(fn (Assert $page) => $page
             ->where('emptyTitle', 'No boat in trips on 20 Oct.')
             ->where('settingsUrl', null));
+
+    $this->actingAs($owner)->get(manifestUrl($property, '?date=2026-10-20&direction=out'))
+        ->assertInertia(fn (Assert $page) => $page->where('emptyTitle', 'No boat out trips on 20 Oct.'));
 });
