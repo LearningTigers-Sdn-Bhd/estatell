@@ -9,6 +9,7 @@ use App\Actions\Onboarding\SaveOnboardingRooms;
 use App\Actions\Onboarding\SaveOnboardingRoomTypes;
 use App\Actions\Onboarding\SaveOnboardingTaxes;
 use App\Actions\Onboarding\SavePropertyBasics;
+use App\Actions\Staff\AssignStaffRole;
 use App\Data\Onboarding\NewPropertyOwnerData;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\PricingBasis;
@@ -18,6 +19,7 @@ use App\Enums\WeekendNights;
 use App\Models\Company;
 use App\Models\Property;
 use App\Models\Reservation;
+use App\Models\Role;
 use App\Models\RoomType;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -90,6 +92,28 @@ abstract class BrowserTestCase extends TestCase
     {
         $this->property = Property::query()->where('name', BookingScenariosSeeder::NAME)->firstOrFail();
         $this->actingAs(User::query()->where('email', 'owner@kinabalu-hostel.test')->firstOrFail());
+
+        return $this->property;
+    }
+
+    /**
+     * Sign in as a Finance user of the booking scenarios property, who has `reports.view` but neither `settings.manage`
+     * nor `guests.view-documents`. Reports show ID numbers masked and have no Layout button for this user. The user is
+     * made through the real `AssignStaffRole` action by the property Owner, inside the test transaction.
+     */
+    protected function signInAsScenariosFinance(): Property
+    {
+        $this->property = Property::query()->where('name', BookingScenariosSeeder::NAME)->firstOrFail();
+        $owner = User::query()->where('email', 'owner@kinabalu-hostel.test')->firstOrFail();
+
+        $finance = new User(['name' => 'Siti Finance', 'email' => 'finance@kinabalu-hostel.test', 'password' => 'Kinabalu-Finance-2026']);
+        $finance->property_id = $this->property->id;
+        $finance->email_verified_at = now();
+        $finance->save();
+
+        $role = Role::query()->where('property_id', $this->property->id)->where('default_role', DefaultRoleEnum::Finance)->firstOrFail();
+        app(AssignStaffRole::class)($owner, $finance, $role);
+        $this->actingAs($finance);
 
         return $this->property;
     }
