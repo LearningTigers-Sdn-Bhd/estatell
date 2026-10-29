@@ -7,6 +7,7 @@ use App\Data\Onboarding\OnboardingMoreRateData;
 use App\Data\Property\CurrencyData;
 use App\Enums\OnboardingStep;
 use App\Enums\PricingBasis;
+use App\Enums\SellUnit;
 use App\Enums\WeekendNights;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Onboarding\PreviewBasicRateRequest;
@@ -25,7 +26,8 @@ class BasicRateController extends Controller
 {
     /**
      * The room types sold by room with their saved weekday and weekend price, the weekend nights, and the guest pays
-     * preview of the saved prices. A locked step opens as a preview with no rows to price.
+     * preview of the saved prices, and whether any room type is sold by bed (those are priced in Settings). A locked step
+     * opens as a preview with no rows to price.
      */
     public function edit(Property $property, OnboardingProgress $progress, BasicRateRows $basicRateRows, MoreRateRows $moreRateRows, OnboardingBasicRatePreview $preview): Response
     {
@@ -60,6 +62,7 @@ class BasicRateController extends Controller
                 ], array_values(array_filter($more['rows'], fn (OnboardingMoreRateData $row): bool => $row->mode === 'follows')))),
             ],
             'moreRates' => $more['rows'],
+            'hasBedTypes' => $property->roomTypes()->active()->where('sell_unit', SellUnit::Bed)->exists(),
             'currency' => CurrencyData::forProperty($property),
             'locked' => $blockingStep !== null,
             'blockedBy' => $blockingStep === null ? null : [
