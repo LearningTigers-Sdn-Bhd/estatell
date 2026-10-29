@@ -12,6 +12,7 @@ import {
     Wand2,
 } from 'lucide-react';
 import { Fragment, useState } from 'react';
+import { BulkActionBar } from '@/components/pms/bulk-action-bar';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { PageHeader } from '@/components/pms/page-header';
@@ -32,6 +33,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogClose,
@@ -44,6 +46,7 @@ import {
 import {
     DropdownMenu,
     DropdownMenuContent,
+    DropdownMenuGroup,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -66,6 +69,8 @@ import {
 import { cn } from '@/lib/utils';
 import {
     archive,
+    archiveMany,
+    changeType,
     index,
     restore,
     store,
@@ -91,6 +96,7 @@ type Props = {
     bedPrefixes: Record<number, string>;
     generateLimit: number;
     bedLimit: number;
+    canManage: boolean;
 };
 
 /**
@@ -268,16 +274,20 @@ function ConfirmAction({
     description,
     method,
     url,
+    data = {},
     open: controlledOpen,
     onOpenChange,
+    onSuccess,
 }: {
     label: string;
     title: string;
     description: string;
     method: 'post' | 'delete';
     url: string;
+    data?: Record<string, number[]>;
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
+    onSuccess?: () => void;
 }) {
     const [ownOpen, setOwnOpen] = useState(false);
     const [processing, setProcessing] = useState(false);
@@ -309,16 +319,15 @@ function ConfirmAction({
                         disabled={processing}
                         focusableWhenDisabled
                         onClick={() =>
-                            router[method](
-                                url,
-                                {},
-                                {
-                                    preserveScroll: true,
-                                    onStart: () => setProcessing(true),
-                                    onFinish: () => setProcessing(false),
-                                    onSuccess: () => setOpen(false),
+                            router[method](url, data, {
+                                preserveScroll: true,
+                                onStart: () => setProcessing(true),
+                                onFinish: () => setProcessing(false),
+                                onSuccess: () => {
+                                    setOpen(false);
+                                    onSuccess?.();
                                 },
-                            )
+                            })
                         }
                     >
                         {processing && <Spinner data-icon="inline-start" />}
@@ -340,7 +349,13 @@ type RoomSection = {
     archived?: boolean;
 };
 
-const COLUMNS = 4;
+type RoomSelection = {
+    selected: number[];
+    /** Active rooms in open groups that match the filters. The header tick box ticks these. */
+    tickable: number[];
+    onTick: (roomId: number, checked: boolean) => void;
+    onTickAll: (checked: boolean) => void;
+};
 
 /**
  * Rooms in one table. Each group, then Ungrouped, then Archived, starts with a full-width group row that collapses it.
@@ -359,6 +374,7 @@ function RoomTable({
     onDelete,
     onEdit,
     onBeds,
+    selection,
 }: {
     sections: RoomSection[];
     groupCount: number;
@@ -373,12 +389,34 @@ function RoomTable({
     onDelete: (group: RoomGroup) => void;
     onEdit: (room: Room) => void;
     onBeds: (room: Room) => void;
+    /** Null without `rooms.manage`: no tick boxes. */
+    selection: RoomSelection | null;
 }) {
+    const columns = selection === null ? 4 : 5;
+    const allTicked =
+        selection !== null &&
+        selection.tickable.length > 0 &&
+        selection.selected.length === selection.tickable.length;
+
     return (
         <div className="overflow-auto rounded-lg border">
             <Table>
                 <TableHeader>
                     <TableRow>
+                        {selection !== null && (
+                            <TableHead className="w-10">
+                                <Checkbox
+                                    aria-label="Select all rooms shown"
+                                    checked={allTicked}
+                                    indeterminate={
+                                        selection.selected.length > 0 &&
+                                        !allTicked
+                                    }
+                                    disabled={selection.tickable.length === 0}
+                                    onCheckedChange={selection.onTickAll}
+                                />
+                            </TableHead>
+                        )}
                         <TableHead>Room</TableHead>
                         <TableHead>Room type</TableHead>
                         <TableHead>Beds</TableHead>
@@ -391,7 +429,7 @@ function RoomTable({
                     {sections.length === 0 && emptyMessage !== null && (
                         <TableRow>
                             <TableCell
-                                colSpan={COLUMNS}
+                                colSpan={columns}
                                 className="h-24 text-center text-muted-foreground"
                             >
                                 {emptyMessage}
@@ -408,7 +446,7 @@ function RoomTable({
                             <Fragment key={section.key}>
                                 {section.title !== null && (
                                     <TableRow className="bg-muted/50 hover:bg-muted/50">
-                                        <TableCell colSpan={COLUMNS}>
+                                        <TableCell colSpan={columns}>
                                             <div className="flex items-center justify-between gap-2">
                                                 <button
                                                     type="button"
@@ -536,7 +574,7 @@ function RoomTable({
                                 {!isCollapsed && section.rooms.length === 0 && (
                                     <TableRow>
                                         <TableCell
-                                            colSpan={COLUMNS}
+                                            colSpan={columns}
                                             className="pl-9 text-muted-foreground"
                                         >
                                             No rooms in this group.
@@ -545,7 +583,36 @@ function RoomTable({
                                 )}
                                 {!isCollapsed &&
                                     section.rooms.map((room) => (
-                                        <TableRow key={room.id}>
+                                        <TableRow
+                                            key={room.id}
+                                            data-state={
+                                                selection?.selected.includes(
+                                                    room.id,
+                                                )
+                                                    ? 'selected'
+                                                    : undefined
+                                            }
+                                        >
+                                            {selection !== null && (
+                                                <TableCell>
+                                                    {!section.archived && (
+                                                        <Checkbox
+                                                            aria-label={`Select room ${room.number}`}
+                                                            checked={selection.selected.includes(
+                                                                room.id,
+                                                            )}
+                                                            onCheckedChange={(
+                                                                checked,
+                                                            ) =>
+                                                                selection.onTick(
+                                                                    room.id,
+                                                                    checked,
+                                                                )
+                                                            }
+                                                        />
+                                                    )}
+                                                </TableCell>
+                                            )}
                                             <TableCell
                                                 className={cn(
                                                     'font-medium',
@@ -646,6 +713,98 @@ function RoomTable({
     );
 }
 
+/**
+ * Change type and Archive for the ticked rooms. Ticks clear when the action finishes; the toast lists refused rooms.
+ */
+function RoomBulkActions({
+    selected,
+    roomTypes,
+    onClear,
+}: {
+    selected: number[];
+    roomTypes: RoomType[];
+    onClear: () => void;
+}) {
+    const [processing, setProcessing] = useState(false);
+    const [archiving, setArchiving] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const count = `${selected.length} ${selected.length === 1 ? 'room' : 'rooms'}`;
+
+    const changeTo = (roomTypeId: number) =>
+        router.post(
+            changeType.url(),
+            { room_ids: selected, room_type_id: roomTypeId },
+            {
+                preserveScroll: true,
+                onStart: () => {
+                    setProcessing(true);
+                    setError(null);
+                },
+                onFinish: () => setProcessing(false),
+                onSuccess: onClear,
+                onError: (errors) => setError(Object.values(errors)[0] ?? null),
+            },
+        );
+
+    return (
+        <>
+            <FieldError>{error}</FieldError>
+            <BulkActionBar
+                count={selected.length}
+                onClear={onClear}
+                stackOnMobile
+                disabled={processing}
+            >
+                <DropdownMenu>
+                    <DropdownMenuTrigger
+                        render={
+                            <Button
+                                variant="outline"
+                                disabled={processing}
+                                focusableWhenDisabled
+                            />
+                        }
+                    >
+                        Change type
+                        <ChevronDown data-icon="inline-end" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent side="top" align="end">
+                        <DropdownMenuGroup>
+                            {roomTypes.map((type) => (
+                                <DropdownMenuItem
+                                    key={type.id}
+                                    onClick={() => changeTo(type.id)}
+                                >
+                                    {type.name}
+                                </DropdownMenuItem>
+                            ))}
+                        </DropdownMenuGroup>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+                <Button
+                    variant="outline"
+                    disabled={processing}
+                    focusableWhenDisabled
+                    onClick={() => setArchiving(true)}
+                >
+                    Archive
+                </Button>
+            </BulkActionBar>
+            <ConfirmAction
+                label="Archive"
+                title={`Archive ${count}?`}
+                description="They leave the active list and cannot be used for new work. You can restore them later."
+                method="post"
+                url={archiveMany.url()}
+                data={{ room_ids: selected }}
+                open={archiving}
+                onOpenChange={setArchiving}
+                onSuccess={onClear}
+            />
+        </>
+    );
+}
+
 export default function RoomsIndex({
     rooms,
     roomGroups,
@@ -654,6 +813,7 @@ export default function RoomsIndex({
     bedPrefixes,
     generateLimit,
     bedLimit,
+    canManage,
 }: Props) {
     // `undefined` = closed, `null` = creating, a value = editing.
     const [editingRoom, setEditingRoom] = useState<Room | null | undefined>(
@@ -675,6 +835,7 @@ export default function RoomsIndex({
         () => new Set(['archived']),
     );
     const [deletingGroup, setDeletingGroup] = useState<RoomGroup | null>(null);
+    const [ticked, setTicked] = useState<number[]>([]);
 
     const activeTypes = roomTypes.filter((type) => !type.archived);
     const typeName = (id: number) =>
@@ -778,6 +939,36 @@ export default function RoomsIndex({
     const tableSections = showList
         ? sections
         : sections.filter((section) => section.archived);
+
+    const tickable = canManage
+        ? tableSections
+              .filter(
+                  (section) =>
+                      !section.archived &&
+                      !(section.title !== null && collapsed.has(section.key)),
+              )
+              .flatMap((section) => section.rooms.map((room) => room.id))
+        : [];
+    const selected = ticked.filter((id) => tickable.includes(id));
+
+    // A room hidden by a collapsed group or a filter, or archived, is unticked (adjusting state while rendering).
+    if (selected.length !== ticked.length) {
+        setTicked(selected);
+    }
+
+    const selection: RoomSelection | null = canManage
+        ? {
+              selected,
+              tickable,
+              onTick: (roomId, checked) =>
+                  setTicked((current) =>
+                      checked
+                          ? [...current, roomId]
+                          : current.filter((id) => id !== roomId),
+                  ),
+              onTickAll: (checked) => setTicked(checked ? tickable : []),
+          }
+        : null;
 
     const toggle = (key: string) =>
         setCollapsed((current) => {
@@ -912,6 +1103,15 @@ export default function RoomsIndex({
                         onDelete={setDeletingGroup}
                         onEdit={setEditingRoom}
                         onBeds={setBedsRoom}
+                        selection={selection}
+                    />
+                )}
+
+                {selected.length > 0 && (
+                    <RoomBulkActions
+                        selected={selected}
+                        roomTypes={activeTypes}
+                        onClear={() => setTicked([])}
                     />
                 )}
             </div>

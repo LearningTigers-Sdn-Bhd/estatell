@@ -3909,6 +3909,10 @@ roomGroupId: number | null,
 sellsBeds: boolean,
 beds: App.Data.Rooms.BedData[],
 };
+export type RoomBulkResultData = {
+done: number,
+refused: string[],
+};
 export type RoomData = {
 id: number,
 number: string,
