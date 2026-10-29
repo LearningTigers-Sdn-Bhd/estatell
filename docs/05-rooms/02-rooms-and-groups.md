@@ -43,7 +43,7 @@ A room changes type in four places: the room edit on Settings > Rooms (`UpdateRo
 | Beds  | "301 has beds."                       |
 | Stays | "305 has stays assigned from 20 Oct." |
 
-The room form, the Rooms tab and the onboarding grid add the next step after the beds refusal ("301 has beds. Choose a room type that sells beds."). The bulk toast shows the short refusal only.
+The room form, the Rooms tab and the onboarding grid add the next step after the refusal ("301 has beds. Choose a room type that sells beds.", "305 has stays assigned from 20 Oct. Move them first."). The bulk toast shows the short refusal only.
 
 ## Number generator
 
