@@ -24,7 +24,7 @@ beforeEach(function () {
         ->put(route('onboarding.rooms.update', $this->property->code), $payload);
 });
 
-function roomRow(string $numbers, array $overrides = []): array
+function roomsStepRow(string $numbers, array $overrides = []): array
 {
     return ['key' => 'row-'.md5($numbers.json_encode($overrides)), 'id' => null, 'name' => '', 'numbers' => $numbers, ...$overrides];
 }
@@ -81,7 +81,7 @@ test('an archived room does not count for the check', function () {
 
 test('numbers create rooms in typed order with their types and move to the next step', function () {
     ($this->save)(roomsPayload(
-        [roomRow('103, 101-102, G1-G2')],
+        [roomsStepRow('103, 101-102, G1-G2')],
         typedAs($this->standard, ['103', '101', '102']) + typedAs($this->deluxe, ['G1', 'G2']),
     ))->assertSessionHasNoErrors()->assertRedirect(route('onboarding.taxes.edit', $this->property->code));
 
@@ -92,10 +92,10 @@ test('numbers create rooms in typed order with their types and move to the next 
 });
 
 test('a fully empty row is ignored and at least one number is needed', function () {
-    ($this->save)(roomsPayload([roomRow('')], []))->assertSessionHasErrors('groups.0.numbers');
+    ($this->save)(roomsPayload([roomsStepRow('')], []))->assertSessionHasErrors('groups.0.numbers');
 
     ($this->save)(roomsPayload(
-        [roomRow('Ground', ['name' => 'Ground', 'numbers' => '101']), roomRow('', ['name' => ''])],
+        [roomsStepRow('Ground', ['name' => 'Ground', 'numbers' => '101']), roomsStepRow('', ['name' => ''])],
         typedAs($this->standard, ['101']),
         useGroups: true,
     ))->assertSessionHasNoErrors();
@@ -107,9 +107,9 @@ test('a fully empty row is ignored and at least one number is needed', function 
 test('every number needs a room type of this property', function () {
     $foreign = RoomType::factory()->for(Property::factory())->create();
 
-    ($this->save)(roomsPayload([roomRow('101-102')], typedAs($this->standard, ['101'])))
+    ($this->save)(roomsPayload([roomsStepRow('101-102')], typedAs($this->standard, ['101'])))
         ->assertSessionHasErrors(['groups.0.numbers' => 'Pick a room type for 102.']);
-    ($this->save)(roomsPayload([roomRow('101')], typedAs($foreign, ['101'])))
+    ($this->save)(roomsPayload([roomsStepRow('101')], typedAs($foreign, ['101'])))
         ->assertSessionHasErrors('types.0.room_type_id');
 
     expect($this->property->rooms()->count())->toBe(0);
@@ -117,8 +117,8 @@ test('every number needs a room type of this property', function () {
 
 test('groups are created in table order and each row goes into its group', function () {
     ($this->save)(roomsPayload([
-        roomRow('101-102', ['name' => 'Ground floor']),
-        roomRow('201', ['name' => 'Garden block']),
+        roomsStepRow('101-102', ['name' => 'Ground floor']),
+        roomsStepRow('201', ['name' => 'Garden block']),
     ], typedAs($this->standard, ['101', '102']) + typedAs($this->deluxe, ['201']), useGroups: true))->assertSessionHasNoErrors();
 
     $groups = $this->property->roomGroups()->orderBy('position')->get();
@@ -129,12 +129,12 @@ test('groups are created in table order and each row goes into its group', funct
 });
 
 test('with groups a row with numbers needs a name, and names differ ignoring case', function () {
-    ($this->save)(roomsPayload([roomRow('101')], typedAs($this->standard, ['101']), useGroups: true))
+    ($this->save)(roomsPayload([roomsStepRow('101')], typedAs($this->standard, ['101']), useGroups: true))
         ->assertSessionHasErrors(['groups.0.name' => 'Enter a group name.']);
 
     ($this->save)(roomsPayload([
-        roomRow('101', ['name' => 'Block A']),
-        roomRow('102', ['name' => 'block a']),
+        roomsStepRow('101', ['name' => 'Block A']),
+        roomsStepRow('102', ['name' => 'block a']),
     ], typedAs($this->standard, ['101', '102']), useGroups: true))->assertSessionHasErrors('groups.1.name');
 
     expect($this->property->roomGroups()->count())->toBe(0);
@@ -145,16 +145,16 @@ test('saved groups are renamed but cannot swap names, and keep using groups', fu
     $second = RoomGroup::factory()->for($this->property)->create(['name' => 'B', 'position' => 2]);
 
     ($this->save)(roomsPayload([
-        roomRow('101', ['id' => $first->id, 'name' => 'B']),
-        roomRow('201', ['id' => $second->id, 'name' => 'A']),
+        roomsStepRow('101', ['id' => $first->id, 'name' => 'B']),
+        roomsStepRow('201', ['id' => $second->id, 'name' => 'A']),
     ], typedAs($this->standard, ['101', '201']), useGroups: true))->assertSessionHasErrors(['groups.0.name', 'groups.1.name']);
 
-    ($this->save)(roomsPayload([roomRow('101')], typedAs($this->standard, ['101']), useGroups: false))
+    ($this->save)(roomsPayload([roomsStepRow('101')], typedAs($this->standard, ['101']), useGroups: false))
         ->assertSessionHasErrors('groups.0.name');
 
     ($this->save)(roomsPayload([
-        roomRow('201', ['id' => $second->id, 'name' => 'Upper']),
-        roomRow('101', ['id' => $first->id, 'name' => 'A']),
+        roomsStepRow('201', ['id' => $second->id, 'name' => 'Upper']),
+        roomsStepRow('101', ['id' => $first->id, 'name' => 'A']),
     ], typedAs($this->standard, ['101', '201']), useGroups: false))->assertSessionHasNoErrors();
 
     expect($second->refresh()->only(['name', 'position']))->toBe(['name' => 'Upper', 'position' => 1])
@@ -165,18 +165,18 @@ test('saved groups are renamed but cannot swap names, and keep using groups', fu
 test('a group id of another property is rejected', function () {
     $foreign = RoomGroup::factory()->for(Property::factory())->create();
 
-    ($this->save)(roomsPayload([roomRow('101', ['id' => $foreign->id, 'name' => $foreign->name])], typedAs($this->standard, ['101']), useGroups: true))
+    ($this->save)(roomsPayload([roomsStepRow('101', ['id' => $foreign->id, 'name' => $foreign->name])], typedAs($this->standard, ['101']), useGroups: true))
         ->assertSessionHasErrors('groups.0.id');
 });
 
 test('a row that does not parse shows its error and saves nothing', function () {
-    ($this->save)(roomsPayload([roomRow('110-101')], []))
+    ($this->save)(roomsPayload([roomsStepRow('110-101')], []))
         ->assertSessionHasErrors(['groups.0.numbers' => '"110-101" runs backwards. Put the smaller number first.']);
-    ($this->save)(roomsPayload([roomRow('1-201')], []))
+    ($this->save)(roomsPayload([roomsStepRow('1-201')], []))
         ->assertSessionHasErrors(['groups.0.numbers' => 'That is 201 rooms. One group takes at most 200.']);
     ($this->save)(roomsPayload([
-        roomRow('201-203', ['name' => 'One']),
-        roomRow('203-205', ['name' => 'Two']),
+        roomsStepRow('201-203', ['name' => 'One']),
+        roomsStepRow('203-205', ['name' => 'Two']),
     ], typedAs($this->standard, ['201', '202', '203', '204', '205']), useGroups: true))
         ->assertSessionHasErrors(['groups.1.numbers' => '203 is listed twice. Each number can be used once.']);
 
@@ -189,8 +189,8 @@ test('saved rooms keep their id and take a new type or group, and a removed numb
     $removed = Room::factory()->for($this->property)->for($this->standard)->create(['number' => '102', 'room_group_id' => $group->id]);
 
     ($this->save)(roomsPayload([
-        roomRow('', ['id' => $group->id, 'name' => 'Ground']),
-        roomRow('101, 201', ['name' => 'Upper']),
+        roomsStepRow('', ['id' => $group->id, 'name' => 'Ground']),
+        roomsStepRow('101, 201', ['name' => 'Upper']),
     ], typedAs($this->deluxe, ['101']) + typedAs($this->standard, ['201']), useGroups: true))->assertSessionHasNoErrors();
 
     $upper = $this->property->roomGroups()->where('name', 'Upper')->sole();
@@ -204,7 +204,7 @@ test('saved rooms keep their id and take a new type or group, and a removed numb
 test('an archived room frees its number', function () {
     Room::factory()->for($this->property)->for($this->standard)->archived()->create(['number' => '101']);
 
-    ($this->save)(roomsPayload([roomRow('101')], typedAs($this->standard, ['101'])))->assertSessionHasNoErrors();
+    ($this->save)(roomsPayload([roomsStepRow('101')], typedAs($this->standard, ['101'])))->assertSessionHasNoErrors();
 
     expect($this->property->rooms()->active()->pluck('number')->all())->toBe(['101']);
 });
@@ -215,12 +215,12 @@ test('a saved room with beds takes only a type sold by bed', function () {
     $room = Room::factory()->for($this->property)->for($dorm)->create(['number' => '301']);
     Bed::factory()->for($room)->create();
 
-    ($this->save)(roomsPayload([roomRow('301')], typedAs($this->standard, ['301'])))
+    ($this->save)(roomsPayload([roomsStepRow('301')], typedAs($this->standard, ['301'])))
         ->assertSessionHasErrors(['groups.0.numbers' => '301 has beds. Pick a type sold by bed.']);
 
     expect($room->refresh()->room_type_id)->toBe($dorm->id);
 
-    ($this->save)(roomsPayload([roomRow('301')], typedAs($otherDorm, ['301'])))->assertSessionHasNoErrors();
+    ($this->save)(roomsPayload([roomsStepRow('301')], typedAs($otherDorm, ['301'])))->assertSessionHasNoErrors();
 
     expect($room->refresh()->room_type_id)->toBe($otherDorm->id);
 });
@@ -229,9 +229,9 @@ test('a saved room with stays assigned cannot change type', function () {
     $room = Room::factory()->for($this->property)->for($this->standard)->create(['number' => '305']);
     UnitNight::factory()->create(['room_id' => $room->id, 'date' => '2026-10-20']);
 
-    ($this->save)(roomsPayload([roomRow('305')], typedAs($this->deluxe, ['305'])))
+    ($this->save)(roomsPayload([roomsStepRow('305')], typedAs($this->deluxe, ['305'])))
         ->assertSessionHasErrors(['groups.0.numbers' => '305 has stays assigned from 20 Oct. Move them first.']);
-    ($this->save)(roomsPayload([roomRow('305')], typedAs($this->standard, ['305'])))->assertSessionHasNoErrors();
+    ($this->save)(roomsPayload([roomsStepRow('305')], typedAs($this->standard, ['305'])))->assertSessionHasNoErrors();
 
     expect($room->refresh()->room_type_id)->toBe($this->standard->id);
 });
@@ -239,10 +239,10 @@ test('a saved room with stays assigned cannot change type', function () {
 test('dorm rooms get beds per room once, and the count is needed only for rooms without beds', function () {
     $dorm = RoomType::factory()->for($this->property)->bed()->create(['name' => 'Dorm', 'position' => 3]);
 
-    ($this->save)(roomsPayload([roomRow('301-302')], typedAs($dorm, ['301', '302']), bedsPerRoom: [$dorm->id => 0]))
+    ($this->save)(roomsPayload([roomsStepRow('301-302')], typedAs($dorm, ['301', '302']), bedsPerRoom: [$dorm->id => 0]))
         ->assertSessionHasErrors(["beds_per_room.{$dorm->id}" => 'Enter 1 to 50 beds.']);
 
-    ($this->save)(roomsPayload([roomRow('301-302')], typedAs($dorm, ['301', '302']), bedsPerRoom: [$dorm->id => 6]))
+    ($this->save)(roomsPayload([roomsStepRow('301-302')], typedAs($dorm, ['301', '302']), bedsPerRoom: [$dorm->id => 6]))
         ->assertSessionHasNoErrors();
 
     $rooms = $this->property->rooms()->ordered()->withCount('beds')->get();
@@ -250,8 +250,8 @@ test('dorm rooms get beds per room once, and the count is needed only for rooms 
     expect($rooms->pluck('beds_count', 'number')->all())->toBe(['301' => 6, '302' => 6])
         ->and(Bed::query()->whereIn('room_id', $rooms->pluck('id'))->orderBy('id')->limit(2)->pluck('label')->all())->toBe(['A1', 'A2']);
 
-    ($this->save)(roomsPayload([roomRow('301-302')], typedAs($dorm, ['301', '302'])))->assertSessionHasNoErrors();
-    ($this->save)(roomsPayload([roomRow('301-303')], typedAs($dorm, ['301', '302', '303']), bedsPerRoom: [$dorm->id => 2]))->assertSessionHasNoErrors();
+    ($this->save)(roomsPayload([roomsStepRow('301-302')], typedAs($dorm, ['301', '302'])))->assertSessionHasNoErrors();
+    ($this->save)(roomsPayload([roomsStepRow('301-303')], typedAs($dorm, ['301', '302', '303']), bedsPerRoom: [$dorm->id => 2]))->assertSessionHasNoErrors();
 
     expect($this->property->rooms()->ordered()->withCount('beds')->pluck('beds_count', 'number')->all())->toBe(['301' => 6, '302' => 6, '303' => 2]);
 });
@@ -276,7 +276,7 @@ test('the preview returns the numbers of each row, or its error', function () {
 test('the save is refused while room types are not done', function () {
     $this->property->roomTypes()->update(['archived_at' => now()]);
 
-    ($this->save)(roomsPayload([roomRow('101')], []))->assertSessionHasErrors('onboarding');
+    ($this->save)(roomsPayload([roomsStepRow('101')], []))->assertSessionHasErrors('onboarding');
 });
 
 test('the page sends every room type, the group rows as ranges and the saved rooms', function () {
@@ -317,7 +317,7 @@ test('the page opens as a preview while room types are not done', function () {
 test('another property cannot reach the rooms routes', function () {
     $other = User::factory()->owner()->for(Property::factory()->onboarding())->create();
 
-    $this->actingAs($other)->put(route('onboarding.rooms.update', $this->property->code), roomsPayload([roomRow('101')], typedAs($this->standard, ['101'])))
+    $this->actingAs($other)->put(route('onboarding.rooms.update', $this->property->code), roomsPayload([roomsStepRow('101')], typedAs($this->standard, ['101'])))
         ->assertNotFound();
     $this->actingAs($other)->postJson(route('onboarding.rooms.preview', $this->property->code), ['rows' => [['numbers' => '101']]])
         ->assertNotFound();
