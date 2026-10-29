@@ -2,17 +2,16 @@
 
 namespace App\Actions\Rooms;
 
-use App\Enums\SellUnit;
 use App\Events\InventoryChanged;
 use App\Models\Room;
 use App\Models\RoomType;
 use App\Models\User;
-use App\Services\Rooms\RoomAssignedNights;
+use App\Services\Rooms\RoomTypeChangeGuard;
 use Illuminate\Support\Facades\DB;
 
 class AssignRoomTypeRooms
 {
-    public function __construct(private RoomAssignedNights $assignedNights) {}
+    public function __construct(private RoomTypeChangeGuard $guard) {}
 
     /**
      * Save the rooms of a room type: each room's group, and rooms moved in from other types.
@@ -56,7 +55,7 @@ class AssignRoomTypeRooms
                 $movesIn = $room->room_type_id !== $roomType->id;
 
                 if ($movesIn) {
-                    $refusal = $this->refuseMove($room, $roomType);
+                    $refusal = $this->guard->refusal($room, $roomType, nextStep: true);
 
                     if ($refusal !== null) {
                         return $refusal;
@@ -91,23 +90,5 @@ class AssignRoomTypeRooms
 
             return null;
         });
-    }
-
-    /**
-     * The message that stops a room moving into the room type, or null when it may move.
-     */
-    private function refuseMove(Room $room, RoomType $roomType): ?string
-    {
-        if ($roomType->sell_unit === SellUnit::Room && $room->beds()->exists()) {
-            return __(':number has beds. Choose a room type that sells beds.', ['number' => $room->number]);
-        }
-
-        $firstNight = $this->assignedNights->firstDate($room);
-
-        if ($firstNight !== null) {
-            return __(':number has stays assigned from :date. Move them first.', ['number' => $room->number, 'date' => $firstNight->translatedFormat('j M')]);
-        }
-
-        return null;
     }
 }

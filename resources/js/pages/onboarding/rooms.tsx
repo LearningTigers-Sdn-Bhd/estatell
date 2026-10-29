@@ -284,7 +284,7 @@ export default function Rooms({
 
         if (refused.length > 0) {
             toast.add({
-                title: `${refused[0]} has beds. Pick a type sold by bed.`,
+                title: `${refused[0]} has beds. Choose a room type that sells beds.`,
                 type: 'error',
             });
         }

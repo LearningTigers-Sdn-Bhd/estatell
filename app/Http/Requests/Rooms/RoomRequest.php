@@ -2,12 +2,11 @@
 
 namespace App\Http\Requests\Rooms;
 
-use App\Enums\SellUnit;
 use App\Models\Property;
 use App\Models\Room;
 use App\Models\RoomGroup;
 use App\Models\RoomType;
-use App\Services\Rooms\RoomAssignedNights;
+use App\Services\Rooms\RoomTypeChangeGuard;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -73,23 +72,12 @@ class RoomRequest extends FormRequest
                         return;
                     }
 
-                    $losesBeds = $current instanceof Room
-                        && ! $keepsType
-                        && $current->beds()->exists()
-                        && RoomType::query()->whereKey($value)->where('sell_unit', SellUnit::Room->value)->exists();
-
-                    if ($losesBeds) {
-                        $fail(__('This room has beds. Choose a room type that sells beds.'));
-
-                        return;
-                    }
-
-                    $firstNight = $current instanceof Room && ! $keepsType
-                        ? app(RoomAssignedNights::class)->firstDate($current)
+                    $refusal = $current instanceof Room && ! $keepsType
+                        ? app(RoomTypeChangeGuard::class)->refusal($current, RoomType::query()->whereKey($value)->firstOrFail(), nextStep: true)
                         : null;
 
-                    if ($firstNight !== null) {
-                        $fail(__(':number has stays assigned from :date. Move them first.', ['number' => $current->number, 'date' => $firstNight->translatedFormat('j M')]));
+                    if ($refusal !== null) {
+                        $fail($refusal);
                     }
                 },
             ],

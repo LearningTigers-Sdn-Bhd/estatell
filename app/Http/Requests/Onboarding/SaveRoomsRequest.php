@@ -8,8 +8,8 @@ use App\Models\Property;
 use App\Models\Room;
 use App\Models\RoomGroup;
 use App\Models\RoomType;
-use App\Services\Rooms\RoomAssignedNights;
 use App\Services\Rooms\RoomNumberRows;
+use App\Services\Rooms\RoomTypeChangeGuard;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
@@ -20,7 +20,7 @@ use LogicException;
  * The rooms step of onboarding: one numbers field per group row, the room type of each number, and Beds per room for
  * the bed-sold types. The numbers are parsed again here; the preview is never trusted. A row with no numbers and no
  * saved group is ignored. Saved groups always stay, so a property that has groups always uses groups. A saved room
- * changes type under the guards of RoomRequest: a room with beds needs a bed-sold type, and a room with stays assigned
+ * changes type under the guards of RoomTypeChangeGuard: a room with beds needs a bed-sold type, and a room with stays assigned
  * cannot change type.
  */
 class SaveRoomsRequest extends OnboardingStepRequest
@@ -307,21 +307,7 @@ class SaveRoomsRequest extends OnboardingStepRequest
      */
     private function typeChangeRefusal(Room $room, ?RoomType $roomType): ?string
     {
-        if ($roomType === null || $room->room_type_id === $roomType->id) {
-            return null;
-        }
-
-        if ($roomType->sell_unit === SellUnit::Room && $room->beds()->exists()) {
-            return __(':number has beds. Pick a type sold by bed.', ['number' => $room->number]);
-        }
-
-        $firstNight = app(RoomAssignedNights::class)->firstDate($room);
-
-        if ($firstNight !== null) {
-            return __(':number has stays assigned from :date. Move them first.', ['number' => $room->number, 'date' => $firstNight->translatedFormat('j M')]);
-        }
-
-        return null;
+        return $roomType === null ? null : app(RoomTypeChangeGuard::class)->refusal($room, $roomType, nextStep: true);
     }
 
     /**

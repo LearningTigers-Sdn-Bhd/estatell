@@ -216,7 +216,7 @@ test('a saved room with beds takes only a type sold by bed', function () {
     Bed::factory()->for($room)->create();
 
     ($this->save)(roomsPayload([roomsStepRow('301')], typedAs($this->standard, ['301'])))
-        ->assertSessionHasErrors(['groups.0.numbers' => '301 has beds. Pick a type sold by bed.']);
+        ->assertSessionHasErrors(['groups.0.numbers' => '301 has beds. Choose a room type that sells beds.']);
 
     expect($room->refresh()->room_type_id)->toBe($dorm->id);
 
