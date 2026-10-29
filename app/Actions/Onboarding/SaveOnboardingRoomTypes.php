@@ -26,18 +26,18 @@ class SaveOnboardingRoomTypes
 
     /**
      * Save the room types table in one transaction. A row with an id updates that room type, a row without one creates
-     * a room type sold by room, and a saved room type sold by room that has no row is archived together with its rooms.
-     * Room types sold by bed are never touched. Guests included follows max adults, so the basic rate has no extra
-     * adult charge. The table order becomes the display order.
+     * a room type sold by room or by bed, and a saved room type that has no row is archived together with its rooms
+     * (their beds stay as they are). Guests included follows max adults, so the basic rate has no extra adult charge.
+     * The table order becomes the display order.
      *
-     * @param  list<array{id: int|null, name: string, max_adults: int, max_children: int}>  $rows
+     * @param  list<array{id: int|null, name: string, sell_unit: SellUnit, max_adults: int, max_children: int}>  $rows
      */
     public function __invoke(Property $property, User $actor, array $rows): void
     {
         DB::transaction(function () use ($property, $actor, $rows): void {
             Property::query()->lockForUpdate()->findOrFail($property->id);
 
-            $saved = $property->roomTypes()->active()->where('sell_unit', SellUnit::Room)->get()->keyBy('id');
+            $saved = $property->roomTypes()->active()->get()->keyBy('id');
             $keptIds = array_filter(array_column($rows, 'id'));
 
             foreach ($saved->except($keptIds) as $roomType) {
@@ -49,13 +49,14 @@ class SaveOnboardingRoomTypes
             foreach ($rows as $row) {
                 $attributes = [
                     'name' => $row['name'],
+                    'sell_unit' => $row['sell_unit'],
                     'max_adults' => $row['max_adults'],
                     'max_children' => $row['max_children'],
                     'base_occupancy' => $row['max_adults'],
                 ];
 
                 if ($row['id'] === null) {
-                    $orderedIds[] = ($this->createRoomType)($property, $actor, [...$attributes, 'sell_unit' => SellUnit::Room])->id;
+                    $orderedIds[] = ($this->createRoomType)($property, $actor, $attributes)->id;
 
                     continue;
                 }
@@ -64,12 +65,7 @@ class SaveOnboardingRoomTypes
                 $orderedIds[] = $row['id'];
             }
 
-            $bedIds = array_values(array_map(
-                intval(...),
-                $property->roomTypes()->active()->where('sell_unit', SellUnit::Bed)->ordered()->pluck('id')->all(),
-            ));
-
-            ($this->reorderRoomTypes)($property, $actor, [...$orderedIds, ...$bedIds]);
+            ($this->reorderRoomTypes)($property, $actor, $orderedIds);
         });
     }
 

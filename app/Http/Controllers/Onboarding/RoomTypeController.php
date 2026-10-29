@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Onboarding;
 
 use App\Actions\Onboarding\SaveOnboardingRoomTypes;
-use App\Data\Rooms\RoomTypeData;
+use App\Data\Onboarding\OnboardingRoomTypeData;
 use App\Enums\OnboardingStep;
-use App\Enums\PropertyType;
+use App\Enums\SellUnit;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Onboarding\SaveRoomTypesRequest;
 use App\Models\Property;
@@ -18,18 +18,17 @@ use Inertia\Response;
 class RoomTypeController extends Controller
 {
     /**
-     * The active room types in display order. The page splits them by sell unit: rows for room-sold types, read-only
-     * lines for bed-sold ones. A locked step opens as a preview.
+     * The active room types in display order, one row each, sold by room or by bed. A locked step opens as a preview.
      */
     public function edit(Property $property, OnboardingProgress $progress): Response
     {
         $blockingStep = $progress->blockingStep($property, OnboardingStep::RoomTypes);
 
         return Inertia::render('onboarding/room-types', [
-            'roomTypes' => $property->roomTypes()->active()->ordered()->get()
-                ->map(fn (RoomType $roomType): RoomTypeData => RoomTypeData::fromModel($roomType)),
+            'roomTypes' => $property->roomTypes()->active()->ordered()->withExists('rooms')->get()
+                ->map(fn (RoomType $roomType): OnboardingRoomTypeData => OnboardingRoomTypeData::fromModel($roomType)),
+            'sellUnits' => SellUnit::options(),
             'maxRows' => SaveRoomTypesRequest::MAX_ROWS,
-            'showDormHint' => $property->type === PropertyType::Hostel,
             'locked' => $blockingStep !== null,
             'blockedBy' => $blockingStep === null ? null : [
                 'label' => $blockingStep->label(),

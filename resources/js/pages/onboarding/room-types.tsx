@@ -17,6 +17,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
     Tooltip,
     TooltipContent,
@@ -24,10 +25,12 @@ import {
 } from '@/components/ui/tooltip';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 
-type RoomType = App.Data.Rooms.RoomTypeData;
+type RoomType = App.Data.Onboarding.OnboardingRoomTypeData;
+type Option = { value: string; label: string };
 type Row = {
     id: number | null;
     name: string;
+    sell_unit: App.Enums.SellUnit;
     max_adults: string;
     max_children: string;
 };
@@ -37,35 +40,36 @@ const FORM_ID = 'room-types-form';
 const newRow = (): Row => ({
     id: null,
     name: '',
+    sell_unit: 'room',
     max_adults: '2',
     max_children: '0',
 });
 
 export default function RoomTypes({
     roomTypes,
+    sellUnits,
     maxRows,
-    showDormHint,
     locked,
     blockedBy,
 }: {
     roomTypes: RoomType[];
+    sellUnits: Option[];
     maxRows: number;
-    showDormHint: boolean;
     locked: boolean;
     blockedBy: { label: string; url: string | null } | null;
 }) {
-    const soldByRoom = roomTypes.filter(
-        (roomType) => roomType.sellUnit === 'room',
-    );
-    const soldByBed = roomTypes.filter(
-        (roomType) => roomType.sellUnit === 'bed',
+    const withRooms = new Set(
+        roomTypes
+            .filter((roomType) => roomType.hasRooms)
+            .map((roomType) => roomType.id),
     );
     const form = useForm<{ rows: Row[] }>({
         rows:
-            soldByRoom.length > 0
-                ? soldByRoom.map((roomType) => ({
+            roomTypes.length > 0
+                ? roomTypes.map((roomType) => ({
                       id: roomType.id,
                       name: roomType.name,
+                      sell_unit: roomType.sellUnit,
                       max_adults: String(roomType.maxAdults),
                       max_children: String(roomType.maxChildren),
                   }))
@@ -129,6 +133,7 @@ export default function RoomTypes({
                         <TableHeader className="max-md:hidden">
                             <TableRow>
                                 <TableHead>Name</TableHead>
+                                <TableHead>Sold by</TableHead>
                                 <TableHead>Max adults</TableHead>
                                 <TableHead>Max children</TableHead>
                                 <TableHead>
@@ -163,6 +168,28 @@ export default function RoomTypes({
                                         />
                                         <FieldError>
                                             {errors[`rows.${index}.name`]}
+                                        </FieldError>
+                                    </TableCell>
+                                    <TableCell className="align-top max-md:col-span-2 max-md:p-0">
+                                        <span className="mb-1 block text-xs text-muted-foreground md:hidden">
+                                            Sold by
+                                        </span>
+                                        <SoldBy
+                                            index={index}
+                                            options={sellUnits}
+                                            value={row.sell_unit}
+                                            fixed={
+                                                row.id !== null &&
+                                                withRooms.has(row.id)
+                                            }
+                                            onChange={(sellUnit) =>
+                                                setRow(index, {
+                                                    sell_unit: sellUnit,
+                                                })
+                                            }
+                                        />
+                                        <FieldError>
+                                            {errors[`rows.${index}.sell_unit`]}
                                         </FieldError>
                                     </TableCell>
                                     <TableCell className="align-top max-md:p-0">
@@ -262,7 +289,7 @@ export default function RoomTypes({
                         </TableBody>
                         <TableFooter>
                             <TableRow>
-                                <TableCell colSpan={4}>
+                                <TableCell colSpan={5}>
                                     <div className="flex justify-end">
                                         <Button
                                             type="button"
@@ -286,42 +313,10 @@ export default function RoomTypes({
                     </Table>
                 </div>
 
-                {soldByBed.length > 0 && (
-                    <section
-                        className="flex flex-col gap-2"
-                        aria-labelledby="sold-by-bed"
-                    >
-                        <h3 id="sold-by-bed" className="text-base font-medium">
-                            Sold by bed
-                        </h3>
-                        <ul className="divide-y rounded-lg border text-sm">
-                            {soldByBed.map((roomType) => (
-                                <li
-                                    key={roomType.id}
-                                    className="flex flex-wrap items-center justify-between gap-2 px-3 py-2"
-                                >
-                                    <span>{roomType.name}</span>
-                                    <span className="text-muted-foreground">
-                                        Sold by bed. Edit in settings.
-                                    </span>
-                                </li>
-                            ))}
-                        </ul>
-                    </section>
-                )}
-
-                <div className="flex flex-col gap-1 text-sm text-muted-foreground">
-                    <p>
-                        After you go live, you can add descriptions and room
-                        rules in Settings, under Room types.
-                    </p>
-                    {showDormHint && (
-                        <p>
-                            Selling dorm beds? After you go live, you can add
-                            them in Settings, under Room types.
-                        </p>
-                    )}
-                </div>
+                <p className="text-sm text-muted-foreground">
+                    After you go live, you can add descriptions and room rules
+                    in Settings, under Room types.
+                </p>
             </StepForm>
             <UnsavedChangesDialog
                 guard={guard}
@@ -330,5 +325,55 @@ export default function RoomTypes({
                 onSave={() => save(guard.proceed)}
             />
         </>
+    );
+}
+
+function SoldBy({
+    index,
+    options,
+    value,
+    fixed,
+    onChange,
+}: {
+    index: number;
+    options: Option[];
+    value: App.Enums.SellUnit;
+    fixed: boolean;
+    onChange: (value: App.Enums.SellUnit) => void;
+}) {
+    const group = (
+        <ToggleGroup
+            variant="outline"
+            spacing={0}
+            value={[value]}
+            onValueChange={(selected) =>
+                selected[0] && onChange(selected[0] as App.Enums.SellUnit)
+            }
+            disabled={fixed}
+            aria-label={`Sold by of room type ${index + 1}`}
+        >
+            {options.map((option) => (
+                <ToggleGroupItem key={option.value} value={option.value}>
+                    {option.label}
+                </ToggleGroupItem>
+            ))}
+        </ToggleGroup>
+    );
+
+    if (!fixed) {
+        return group;
+    }
+
+    return (
+        <Tooltip>
+            <TooltipTrigger
+                render={<span tabIndex={0} className="inline-flex" />}
+            >
+                {group}
+            </TooltipTrigger>
+            <TooltipContent>
+                Sold by is fixed once the type has rooms.
+            </TooltipContent>
+        </Tooltip>
     );
 }

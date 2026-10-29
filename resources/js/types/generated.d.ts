@@ -1724,6 +1724,14 @@ value: string,
 label: string,
 description: string,
 };
+export type OnboardingRoomTypeData = {
+id: number,
+name: string,
+sellUnit: App.Enums.SellUnit,
+maxAdults: number,
+maxChildren: number,
+hasRooms: boolean,
+};
 export type OnboardingStaffData = {
 id: number,
 name: string,
