@@ -30,13 +30,20 @@ rooms          id, property_id, room_type_id, room_group_id (nullable),
 
 ## Changing a room's type
 
-A room changes type in three places: the room edit on Settings > Rooms (`UpdateRoom`), the Rooms tab of the [room type page](01-room-types.md#rooms-tab) (`AssignRoomTypeRooms`), and the onboarding [Rooms table](../17-onboarding/02-wizard-steps.md#rooms-table) (`SaveRoomsRequest`, then `UpdateRoom`). All apply the same guards:
+A room changes type in four places: the room edit on Settings > Rooms (`UpdateRoom`), bulk **Change type** on Settings > Rooms (`ChangeRoomsType`), the Rooms tab of the [room type page](01-room-types.md#rooms-tab) (`AssignRoomTypeRooms`), and the onboarding [Rooms table](../17-onboarding/02-wizard-steps.md#rooms-table) (`SaveRoomsRequest`, then `UpdateRoom`). All apply the same guards:
 
 - The new room type is active.
 - A room with beds cannot move into a type that sells rooms.
 - A room cannot change type while it, or one of its beds, has assigned unit nights, or an unreleased day use block (`unit_day_uses`), on or after the business date (`CurrentBusinessDate`). Move those stays first. Without this guard a booking for one type would sit in a room of another type.
 
-One read-only Service holds the assigned-nights check, and both paths call it.
+`RoomTypeChangeGuard` (a read-only Service) holds the beds and stays guards, and every place calls it. It uses `RoomAssignedNights` for the stays guard. The active type guard stays in each request, since it is about the type, not the room. The refusals read the same everywhere:
+
+| Guard | Refusal                               |
+| ----- | ------------------------------------- |
+| Beds  | "301 has beds."                       |
+| Stays | "305 has stays assigned from 20 Oct." |
+
+The room form, the Rooms tab and the onboarding grid add the next step after the beds refusal ("301 has beds. Choose a room type that sells beds."). The bulk toast shows the short refusal only.
 
 ## Number generator
 
@@ -82,6 +89,7 @@ One read-only Service holds the assigned-nights check, and both paths call it.
 - `GenerateRooms`
 - `AssignRoomTypeRooms` (the Rooms tab of a room type: groups, and rooms moved in from other types)
 - `ChangeRoomsType` (bulk Change type on Settings > Rooms)
+- `ArchiveRooms` (bulk Archive on Settings > Rooms, `ArchiveRoom` per room)
 
 ## Permissions
 
@@ -96,8 +104,10 @@ Settings > Rooms (`settings.rooms.index`) lists rooms in one table. Buttons: New
 - A group without rooms shows "No rooms in this group.", so it can still be renamed, deleted or moved.
 - Ungrouped comes after the groups, without controls, and only when it has rooms. A property without groups gets no group rows.
 - Archived comes last as a closed group row, with Restore on each room. The status filter shows or hides it; choosing Archived opens it.
-- Each active room row has a tick box for `rooms.manage`. Ticked rows show the `BulkActionBar` with **Change type** and **Archive**.
-- **Change type** is a menu of active room types. `ChangeRoomsType` applies the guards of [Changing a room's type](#changing-a-rooms-type) to each room. It saves the rooms that pass and lists the refused ones by number in a toast ("2 rooms changed. 301 has beds. 305 has stays assigned from 20 Oct.").
+- Each active room row has a tick box for `rooms.manage` (the page gets `canManage`; without it there are no tick boxes). Group rows and archived rows have none. The header tick box ticks every room you can see: rooms in a collapsed group or hidden by a filter are left out, and collapsing a group or changing a filter unticks its rooms. Ticked rows show the `BulkActionBar` with **Change type** and **Archive**. The ticks clear after the action finishes, or with Clear.
+- **Change type** is a menu of active room types (`settings.rooms.change-type`). `ChangeRoomsType` checks each room on its own, in its own transaction with the room locked: the guards of [Changing a room's type](#changing-a-rooms-type), then `UpdateRoom`. It saves the rooms that pass and lists the refused ones by number in a toast ("2 rooms changed. 301 has beds. 305 has stays assigned from 20 Oct."). The toast lists at most 3 refused rooms, then "and N more.". A room already of that type is skipped without a log line and is not listed. A room archived since the page loaded is refused ("301 is already archived."). When no room changed, the toast says "No rooms changed." and lists the refusals.
+- **Archive** (`settings.rooms.archive-many`) first asks "Archive 3 rooms?" in an `AlertDialog`. `ArchiveRooms` runs `ArchiveRoom` for each room, with no stay guard, the same as a single archive. A room already archived is listed in the toast.
+- Both bulk routes take at most 200 room ids. An id that is not a room of the property returns 404 and changes nothing.
 - The group filter shows one group, or Ungrouped. The room type filter hides other rooms, and hides groups left with none. Generate rooms returns to the page it was opened from: Settings > Rooms, or the Rooms tab of a room type, where the room type is fixed.
 
 ## Lessons from wastays

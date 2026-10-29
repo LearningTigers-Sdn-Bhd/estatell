@@ -229,7 +229,7 @@ Two plain sections, one after the other: **Room numbers** and **Room types**. Ea
 - Click or tap a room to give it the selected type. Shift-click gives the type to every room between the last click and this one in the same group. On a touch screen, **Mark a run** does the same: tap the first room (dashed ring), then the last.
 - New rooms start with the first room type.
 - Hover shows a ring in the room's text colour; keyboard focus shows the standard `focus-visible` ring; a press scales down briefly (not with reduced motion). A number in error shows red with "twice" and cannot be clicked. The `Tooltip` and the accessible name give the full name: "Room 301, 6-Bed Mixed Dorm, 6 beds".
-- A saved room with beds can take only a bed-sold type. Clicking it with a room-sold type shows the toast "301 has beds. Pick a type sold by bed."
+- A saved room with beds can take only a bed-sold type. Clicking it with a room-sold type shows the toast "301 has beds. Choose a room type that sells beds." (the wording of [Changing a room's type](../05-rooms/02-rooms-and-groups.md#changing-a-rooms-type))
 - Colour is never the only signal. The short label is always shown.
 
 **Returning to the step**
