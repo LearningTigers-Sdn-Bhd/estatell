@@ -1,4 +1,4 @@
-import { expect, test } from 'vitest';
+import { expect, test } from 'vite-plus/test';
 import { autoFillDayUse, buildRows, toPayload } from './pricing-state';
 import type { RoomTypeGrid } from './pricing-state';
 
