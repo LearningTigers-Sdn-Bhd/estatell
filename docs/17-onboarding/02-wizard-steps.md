@@ -23,7 +23,7 @@ Every section and Review (go live) use the onboarding layout. Basics offers any 
 | 1   | Property | Basics: property type, name, country, address, and currency and time zone outside Malaysia. See [Basics form](#basics-form).                                    | Yes      | –                  |
 | 2   |          | Check-in essentials: times, registration card and security deposit. See [Check-in essentials form](#check-in-essentials-form).                                  | Yes      | Basics             |
 | 3   |          | Team: staff with temp passwords and a role. See [Team table](#team-table).                                                                                      | No       | Basics             |
-| 4   | Rooms    | Room types: an editable table, sold by room or by bed. See [Room types table](#room-types-table).                                                               | Yes      | Basics             |
+| 4   | Rooms    | Room types: an editable table of types sold by room. See [Room types table](#room-types-table).                                                                 | Yes      | Basics             |
 | 5   |          | Rooms: numbers per group, then each room's type on a grid, and beds for dorms. See [Rooms table](#rooms-table).                                                 | Yes      | Room types         |
 | 6   | Finance  | Taxes, including which taxes apply to rooms (room revenue). See [Taxes table](#taxes-table).                                                                    | Yes      | Basics             |
 | 7   |          | Payment methods: turn seeded methods on or off, add more. See [Payment methods table](#payment-methods-table).                                                  | Yes      | Basics             |
@@ -136,25 +136,25 @@ Setup started (another section is no longer Not started):
 
 ```
  What kinds of rooms do you sell?
- ┌────────────────────────────────┬──────────────┬─────────────┬──────────────┬────┐
- │ Name                           │ Sold by      │ Max adults  │ Max children │    │
- ├────────────────────────────────┼──────────────┼─────────────┼──────────────┼────┤
- │ [ Standard Double            ] │ [●Room│ Bed] │ [ 2 ]       │ [ 1 ]        │ 🗑 │
- │ [ 6-Bed Mixed Dorm           ] │ [ Room│●Bed] │ [ 1 ]       │ [ 0 ]        │ 🗑 │
- ├────────────────────────────────┴──────────────┴─────────────┴──────────────┴────┤
- │                                                               [+ Add room type] │
- └─────────────────────────────────────────────────────────────────────────────────┘
+ ┌────────────────────────────────┬─────────────┬──────────────┬────┐
+ │ Name                           │ Max adults  │ Max children │    │
+ ├────────────────────────────────┼─────────────┼──────────────┼────┤
+ │ [ Standard Double            ] │ [ 2 ]       │ [ 1 ]        │ 🗑 │
+ │ [ Twin                       ] │ [ 2 ]       │ [ 0 ]        │ 🗑 │
+ ├────────────────────────────────┴─────────────┴──────────────┴────┤
+ │                                                [+ Add room type] │
+ └──────────────────────────────────────────────────────────────────┘
 ```
 
 - Follows the settings age groups form: shadcn `table`, a remove button per row, **Add room type** in the `TableFooter`.
 - With no room types, the table starts with one empty row. Saved room types load as rows.
 - The last row cannot be removed: its remove button is disabled (`focusableWhenDisabled`, tooltip "At least one room type").
 - New rows default to 2 adults and 0 children.
-- Columns: name, sold by, max adults, max children. **Sold by** is a `toggle-group` (**Room**, default, or **Bed**) that saves `sell_unit`. It is disabled once the type has a room, with the tooltip "Sold by is fixed once the type has rooms.", following the `sell_unit` lock. For a Bed type, max adults is guests per bed. `base_occupancy` defaults to max adults, so Basic rate has no extra-adult charge. Description, smoking, pets and terms stay in settings. The hint under the table: "After you go live, you can add descriptions and room rules in Settings, under Room types."
+- Columns: name, max adults, max children. New rows save `sell_unit` Room. A saved row sends the `sell_unit` it has, so a bed-sold type made in Settings stays sold by bed (its max adults is guests per bed). `base_occupancy` defaults to max adults, so Basic rate has no extra-adult charge. Description, smoking, pets and terms stay in settings. The hint under the table: "After you go live, you can add descriptions and room rules in Settings, under Room types."
 - One submit saves the table in one transaction (`SaveOnboardingRoomTypes`): new rows create, changed rows update, removed rows are archived together with their rooms (a deleted row frees its name, and its rooms free their numbers), through the room type Actions used by settings. The table order sets the display order. Errors show per row (`rows.{n}.name`). `SaveRoomTypesRequest` takes `rows` (1 to 50) and uses the bounds of `RoomTypeRequest` per row. A name must differ from the other rows and from the saved name of another kept row, so two rows cannot swap names in one save. Each row sends `sell_unit`.
 - Updating a saved row also sets `base_occupancy` to the new max adults.
 - At phone width each row stacks into a card.
-- Dorm beds are set up here: a Bed row creates a `SellUnit::Bed` room type, and the [Rooms table](#rooms-table) creates its rooms and beds. Basic rate leaves bed-sold types out ("After you go live, you can price beds in Settings, under Rate plans.").
+- **Sold by is hidden for now** (decided 2026-10-29): onboarding sells rooms first. The backend still takes `sell_unit` per row with the lock once a type has a room ("Sold by cannot change while this room type has rooms."), and the page still gets `sellUnits` and `hasRooms`, so dorm onboarding comes back by restoring the **Sold by** `toggle-group` column (**Room**, default, or **Bed**, disabled with the tooltip "Sold by is fixed once the type has rooms."). Until then a dorm type is made in Settings, and the [Rooms table](#rooms-table) still creates its rooms and beds. Basic rate leaves bed-sold types out ("After you go live, you can price beds in Settings, under Rate plans.").
 - Check: Done with at least one active room type (sold by room or by bed), otherwise Not started. There is no In progress state.
 
 ## Rooms table
