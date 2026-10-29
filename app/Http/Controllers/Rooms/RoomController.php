@@ -45,6 +45,7 @@ class RoomController extends Controller
     public function index(Request $request, Property $property, BedLabelGenerator $bedLabels): Response
     {
         return Inertia::render('settings/rooms/index', [
+            'view' => $request->query('view') === 'map' ? 'map' : 'list',
             'rooms' => $property->rooms()->ordered()->get()
                 ->map(fn (Room $room): RoomData => RoomData::fromModel($room)),
             'beds' => $property->beds()->ordered()->get()
@@ -104,15 +105,22 @@ class RoomController extends Controller
     }
 
     /**
-     * Bulk Change type: the rooms that pass the guards change, the toast lists the refused ones.
+     * Bulk Change type and the Map tab save: one ChangeRoomsType run per change, one combined toast. The rooms that
+     * pass the guards change, the toast lists the refused ones. It goes back to the tab it came from.
      */
     public function changeType(ChangeRoomsTypeRequest $request, Property $property, ChangeRoomsType $changeRoomsType): RedirectResponse
     {
-        $result = $changeRoomsType($request->user(), $request->rooms(), $request->roomType());
+        $changes = $request->changes();
+        $result = new RoomBulkResultData(0, []);
+
+        foreach ($changes as $change) {
+            $one = $changeRoomsType($request->user(), $change['rooms'], $change['roomType']);
+            $result = new RoomBulkResultData($result->done + $one->done, [...$result->refused, ...$one->refused]);
+        }
 
         $this->flashBulkResult($result, trans_choice('{0} No rooms changed.|{1} :count room changed.|[2,*] :count rooms changed.', $result->done));
 
-        return to_route('settings.rooms.index', $property);
+        return back(fallback: route('settings.rooms.index', $property));
     }
 
     public function archiveMany(BulkRoomsRequest $request, Property $property, ArchiveRooms $archiveRooms): RedirectResponse

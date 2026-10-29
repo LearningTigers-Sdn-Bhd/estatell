@@ -13,6 +13,12 @@ type Props = {
     children: ReactNode;
     stackOnMobile?: boolean;
     disabled?: boolean;
+    /** The text before the actions. Defaults to "N selected". */
+    label?: string;
+    /** Esc clears the selection. Turn it off where Esc must not drop work, for example painted rooms. */
+    clearOnEscape?: boolean;
+    /** The Clear button. Turn it off when the actions already include a way to discard. */
+    showClear?: boolean;
 };
 
 /**
@@ -25,9 +31,12 @@ export function BulkActionBar({
     children,
     stackOnMobile = false,
     disabled = false,
+    label,
+    clearOnEscape = true,
+    showClear = true,
 }: Props) {
     useEffect(() => {
-        if (count === 0) {
+        if (count === 0 || !clearOnEscape) {
             return;
         }
 
@@ -49,7 +58,7 @@ export function BulkActionBar({
         window.addEventListener('keydown', onKeyDown);
 
         return () => window.removeEventListener('keydown', onKeyDown);
-    }, [count, onClear, disabled]);
+    }, [count, onClear, disabled, clearOnEscape]);
 
     if (count === 0) {
         return null;
@@ -73,7 +82,7 @@ export function BulkActionBar({
                     )}
                 >
                     {disabled && <Spinner />}
-                    {count} selected
+                    {label ?? `${count} selected`}
                 </span>
                 <div
                     className={cn(
@@ -84,20 +93,22 @@ export function BulkActionBar({
                 >
                     {children}
                 </div>
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Clear the selection"
-                    onClick={onClear}
-                    disabled={disabled}
-                    focusableWhenDisabled
-                    className={
-                        stackOnMobile ? 'order-2 sm:order-none' : undefined
-                    }
-                >
-                    <X />
-                </Button>
+                {showClear && (
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Clear the selection"
+                        onClick={onClear}
+                        disabled={disabled}
+                        focusableWhenDisabled
+                        className={
+                            stackOnMobile ? 'order-2 sm:order-none' : undefined
+                        }
+                    >
+                        <X />
+                    </Button>
+                )}
             </div>
         </div>
     );

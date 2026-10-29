@@ -8,6 +8,8 @@ import {
     DoorOpen,
     Ellipsis,
     FolderPlus,
+    LayoutGrid,
+    List,
     Plus,
     Wand2,
 } from 'lucide-react';
@@ -21,6 +23,9 @@ import {
     GenerateAllBedsSheet,
 } from '@/components/pms/rooms/beds-sheet';
 import { GenerateRoomsSheet } from '@/components/pms/rooms/generate-rooms-sheet';
+import { RoomMap } from '@/components/pms/rooms/room-map';
+import { TabLinks } from '@/components/pms/tab-links';
+import type { TabLink } from '@/components/pms/tab-links';
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -89,6 +94,7 @@ type RoomType = App.Data.Rooms.RoomTypeData;
 type Bed = App.Data.Rooms.BedData;
 
 type Props = {
+    view: 'list' | 'map';
     rooms: Room[];
     roomGroups: RoomGroup[];
     roomTypes: RoomType[];
@@ -733,7 +739,7 @@ function RoomBulkActions({
     const changeTo = (roomTypeId: number) =>
         router.post(
             changeType.url(),
-            { room_ids: selected, room_type_id: roomTypeId },
+            { changes: [{ room_type_id: roomTypeId, room_ids: selected }] },
             {
                 preserveScroll: true,
                 onStart: () => {
@@ -806,6 +812,7 @@ function RoomBulkActions({
 }
 
 export default function RoomsIndex({
+    view,
     rooms,
     roomGroups,
     roomTypes,
@@ -994,6 +1001,16 @@ export default function RoomsIndex({
         }
     };
 
+    const tabs: TabLink[] = [
+        { value: 'list', label: 'List', icon: List, href: index.url() },
+        {
+            value: 'map',
+            label: 'Map',
+            icon: LayoutGrid,
+            href: index.url(undefined, { query: { view: 'map' } }),
+        },
+    ];
+
     return (
         <>
             <Head title="Rooms" />
@@ -1039,81 +1056,114 @@ export default function RoomsIndex({
                     }
                 />
 
-                {noTypes ? (
-                    <EmptyState
-                        icon={DoorOpen}
-                        title="Add a room type first"
-                        description="Every room belongs to a room type. Create one in Room types, then come back."
-                    />
-                ) : !showList ? (
-                    <EmptyState
-                        icon={DoorOpen}
-                        title="No rooms yet"
-                        description="Generate many rooms at once, or add them one by one."
-                        action={
-                            <Button onClick={() => setGenerating(true)}>
-                                <Wand2 data-icon="inline-start" />
-                                Generate rooms
-                            </Button>
-                        }
-                    />
-                ) : (
-                    <div className="flex flex-wrap justify-end gap-2">
-                        <EnumSelect
-                            aria-label="Filter by status"
-                            className="w-40"
-                            options={statusOptions}
-                            allLabel="All statuses"
-                            value={statusFilter}
-                            onValueChange={changeStatusFilter}
+                <TabLinks
+                    tabs={tabs}
+                    activeTab={view}
+                    panelWidth="full"
+                    panelClassName="flex flex-col gap-6"
+                    className="flex flex-col gap-4"
+                >
+                    {noTypes ? (
+                        <EmptyState
+                            icon={DoorOpen}
+                            title="Add a room type first"
+                            description="Every room belongs to a room type. Create one in Room types, then come back."
                         />
-                        <EnumSelect
-                            aria-label="Filter by room group"
-                            className="w-48"
-                            options={groupFilterOptions}
-                            allLabel="All groups"
-                            value={groupFilter}
-                            onValueChange={setGroupFilter}
+                    ) : view === 'map' ? (
+                        noRooms ? (
+                            <EmptyState
+                                icon={DoorOpen}
+                                title="No rooms yet"
+                                description="Generate many rooms at once, or add them one by one."
+                                action={
+                                    <Button onClick={() => setGenerating(true)}>
+                                        <Wand2 data-icon="inline-start" />
+                                        Generate rooms
+                                    </Button>
+                                }
+                            />
+                        ) : (
+                            <RoomMap
+                                rooms={rooms}
+                                roomGroups={roomGroups}
+                                roomTypes={roomTypes}
+                                beds={beds}
+                                canManage={canManage}
+                            />
+                        )
+                    ) : !showList ? (
+                        <EmptyState
+                            icon={DoorOpen}
+                            title="No rooms yet"
+                            description="Generate many rooms at once, or add them one by one."
+                            action={
+                                <Button onClick={() => setGenerating(true)}>
+                                    <Wand2 data-icon="inline-start" />
+                                    Generate rooms
+                                </Button>
+                            }
                         />
-                        <EnumSelect
-                            aria-label="Filter by room type"
-                            className="w-48"
-                            options={typeOptions}
-                            allLabel="All room types"
-                            value={typeFilter}
-                            onValueChange={setTypeFilter}
-                        />
-                    </div>
-                )}
+                    ) : (
+                        <div className="flex flex-wrap justify-end gap-2">
+                            <EnumSelect
+                                aria-label="Filter by status"
+                                className="w-40"
+                                options={statusOptions}
+                                allLabel="All statuses"
+                                value={statusFilter}
+                                onValueChange={changeStatusFilter}
+                            />
+                            <EnumSelect
+                                aria-label="Filter by room group"
+                                className="w-48"
+                                options={groupFilterOptions}
+                                allLabel="All groups"
+                                value={groupFilter}
+                                onValueChange={setGroupFilter}
+                            />
+                            <EnumSelect
+                                aria-label="Filter by room type"
+                                className="w-48"
+                                options={typeOptions}
+                                allLabel="All room types"
+                                value={typeFilter}
+                                onValueChange={setTypeFilter}
+                            />
+                        </div>
+                    )}
 
-                {(showList || tableSections.length > 0) && (
-                    <RoomTable
-                        sections={tableSections}
-                        groupCount={roomGroups.length}
-                        collapsed={collapsed}
-                        emptyMessage={
-                            showList ? 'No rooms match these filters.' : null
-                        }
-                        typeName={typeName}
-                        sellsBeds={sellsBeds}
-                        bedCount={bedCount}
-                        onToggle={toggle}
-                        onMove={move}
-                        onRename={setEditingGroup}
-                        onDelete={setDeletingGroup}
-                        onEdit={setEditingRoom}
-                        onBeds={setBedsRoom}
-                        selection={selection}
-                    />
-                )}
+                    {view === 'list' &&
+                        (showList || tableSections.length > 0) && (
+                            <RoomTable
+                                sections={tableSections}
+                                groupCount={roomGroups.length}
+                                collapsed={collapsed}
+                                emptyMessage={
+                                    showList
+                                        ? 'No rooms match these filters.'
+                                        : null
+                                }
+                                typeName={typeName}
+                                sellsBeds={sellsBeds}
+                                bedCount={bedCount}
+                                onToggle={toggle}
+                                onMove={move}
+                                onRename={setEditingGroup}
+                                onDelete={setDeletingGroup}
+                                onEdit={setEditingRoom}
+                                onBeds={setBedsRoom}
+                                selection={selection}
+                            />
+                        )}
 
-                {selected.length > 0 && (
-                    <RoomBulkActions
-                        selected={selected}
-                        roomTypes={activeTypes}
-                        onClear={() => setTicked([])}
-                    />
-                )}
+                    {view === 'list' && selected.length > 0 && (
+                        <RoomBulkActions
+                            selected={selected}
+                            roomTypes={activeTypes}
+                            onClear={() => setTicked([])}
+                        />
+                    )}
+                </TabLinks>
             </div>
 
             <Dialog

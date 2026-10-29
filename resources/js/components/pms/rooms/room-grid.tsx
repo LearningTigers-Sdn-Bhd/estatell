@@ -12,7 +12,14 @@ export type RoomGridRoom = {
     shortLabel: string;
     colorClass: string;
     bedText: string | null;
-    repeated: boolean;
+    /** Onboarding only: the number is listed twice, so the tile is red and cannot be clicked. */
+    repeated?: boolean;
+    /** A unique key when numbers may repeat across sections. Defaults to the number. */
+    id?: number;
+    /** Changed in the browser and not saved: a dashed outline. */
+    painted?: boolean;
+    /** The type is archived: a muted tile with no category colour (pass `muted` classes in `colorClass`). */
+    archivedType?: boolean;
 };
 
 export type RoomGridSection = {
@@ -23,16 +30,17 @@ export type RoomGridSection = {
 
 /**
  * The rooms of each group row, in the order typed, as buttons filled with their room type's category colour. The
- * page decides what a click does; `marked` is the first room of a Mark a run.
+ * page decides what a click does; `marked` is the first room of a Mark a run (onboarding), `painted` rooms have a
+ * dashed outline (Settings > Rooms, Map tab).
  */
 export function RoomGrid({
     sections,
-    marked,
+    marked = null,
     disabled,
     onRoomClick,
 }: {
     sections: RoomGridSection[];
-    marked: { section: string; number: string } | null;
+    marked?: { section: string; number: string } | null;
     disabled?: boolean;
     onRoomClick: (sectionKey: string, index: number, shiftKey: boolean) => void;
 }) {
@@ -56,7 +64,12 @@ export function RoomGrid({
                         {section.rooms.map((room, index) => {
                             const name = [
                                 `Room ${room.number}`,
-                                room.repeated ? 'listed twice' : room.typeName,
+                                room.repeated
+                                    ? 'listed twice'
+                                    : room.typeName && room.archivedType
+                                      ? `${room.typeName} (archived)`
+                                      : room.typeName,
+                                room.painted ? 'not saved' : null,
                                 room.repeated ? null : room.bedText,
                             ]
                                 .filter(Boolean)
@@ -66,7 +79,7 @@ export function RoomGrid({
                                 marked.number === room.number;
 
                             return (
-                                <Tooltip key={room.number}>
+                                <Tooltip key={room.id ?? room.number}>
                                     <TooltipTrigger
                                         render={
                                             <button
@@ -88,7 +101,8 @@ export function RoomGrid({
                                                     room.repeated
                                                         ? 'bg-destructive/10 text-destructive'
                                                         : room.colorClass,
-                                                    isMarked &&
+                                                    (isMarked ||
+                                                        room.painted) &&
                                                         'outline-2 outline-offset-2 outline-current outline-dashed',
                                                 )}
                                             />

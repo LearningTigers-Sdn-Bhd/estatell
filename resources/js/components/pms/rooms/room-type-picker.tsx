@@ -23,26 +23,27 @@ export type RoomTypeTile = {
 
 /**
  * One tile per room type, built like ChoiceCards: arrow keys move between tiles and one tile is selected. A bed-sold
- * tile adds a badge and its bed total; its Beds per room input shows under the radio, outside the radio label, only
- * while the tile is selected or the count has an error.
+ * tile adds a badge and its bed total. Onboarding also passes the Beds per room props: that input shows under the
+ * radio, outside the radio label, only while the tile is selected or the count has an error. Without them the
+ * tiles are only a picker (Settings > Rooms, Map tab).
  */
 export function RoomTypePicker({
     tiles,
     value,
     onValueChange,
-    bedsPerRoom,
+    bedsPerRoom = {},
     onBedsPerRoomChange,
-    bedErrors,
-    maxBeds,
+    bedErrors = {},
+    maxBeds = 0,
     disabled,
 }: {
     tiles: RoomTypeTile[];
     value: number;
     onValueChange: (id: number) => void;
-    bedsPerRoom: Record<number, string>;
-    onBedsPerRoomChange: (id: number, value: string) => void;
-    bedErrors: Record<number, string | undefined>;
-    maxBeds: number;
+    bedsPerRoom?: Record<number, string>;
+    onBedsPerRoomChange?: (id: number, value: string) => void;
+    bedErrors?: Record<number, string | undefined>;
+    maxBeds?: number;
     disabled?: boolean;
 }) {
     const footerOpen = (id: number) => id === value || !!bedErrors[id];
@@ -96,43 +97,47 @@ export function RoomTypePicker({
                                 </span>
                             </FieldContent>
                         </FieldLabel>
-                        {tile.soldByBed && footerOpen(tile.id) && (
-                            <Field
-                                orientation="horizontal"
-                                className="justify-between gap-3 border-t px-3 py-1.5"
-                                data-invalid={!!bedErrors[tile.id]}
-                            >
-                                <FieldLabel
-                                    htmlFor={`beds-per-room-${tile.id}`}
-                                    className="text-sm font-normal"
+                        {onBedsPerRoomChange &&
+                            tile.soldByBed &&
+                            footerOpen(tile.id) && (
+                                <Field
+                                    orientation="horizontal"
+                                    className="justify-between gap-3 border-t px-3 py-1.5"
+                                    data-invalid={!!bedErrors[tile.id]}
                                 >
-                                    Beds per room
-                                </FieldLabel>
-                                <Input
-                                    id={`beds-per-room-${tile.id}`}
-                                    type="number"
-                                    min={1}
-                                    max={maxBeds}
-                                    step={1}
-                                    inputMode="numeric"
-                                    className="h-7 w-16"
-                                    disabled={disabled}
-                                    value={bedsPerRoom[tile.id] ?? ''}
-                                    onChange={(event) =>
-                                        onBedsPerRoomChange(
-                                            tile.id,
-                                            event.target.value,
-                                        )
-                                    }
-                                    aria-invalid={!!bedErrors[tile.id]}
-                                />
-                            </Field>
-                        )}
-                        {tile.soldByBed && bedErrors[tile.id] && (
-                            <FieldError className="px-3 pb-2">
-                                {bedErrors[tile.id]}
-                            </FieldError>
-                        )}
+                                    <FieldLabel
+                                        htmlFor={`beds-per-room-${tile.id}`}
+                                        className="text-sm font-normal"
+                                    >
+                                        Beds per room
+                                    </FieldLabel>
+                                    <Input
+                                        id={`beds-per-room-${tile.id}`}
+                                        type="number"
+                                        min={1}
+                                        max={maxBeds}
+                                        step={1}
+                                        inputMode="numeric"
+                                        className="h-7 w-16"
+                                        disabled={disabled}
+                                        value={bedsPerRoom[tile.id] ?? ''}
+                                        onChange={(event) =>
+                                            onBedsPerRoomChange(
+                                                tile.id,
+                                                event.target.value,
+                                            )
+                                        }
+                                        aria-invalid={!!bedErrors[tile.id]}
+                                    />
+                                </Field>
+                            )}
+                        {onBedsPerRoomChange &&
+                            tile.soldByBed &&
+                            bedErrors[tile.id] && (
+                                <FieldError className="px-3 pb-2">
+                                    {bedErrors[tile.id]}
+                                </FieldError>
+                            )}
                     </div>
                 ))}
             </RadioGroup>

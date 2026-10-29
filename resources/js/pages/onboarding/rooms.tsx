@@ -4,9 +4,9 @@ import { useEffect, useRef, useState } from 'react';
 import RoomController from '@/actions/App/Http/Controllers/Onboarding/RoomController';
 import Heading from '@/components/heading';
 import type { OnboardingLayoutProps } from '@/components/pms/onboarding/onboarding-steps';
-import { RoomGrid } from '@/components/pms/onboarding/room-grid';
-import type { RoomGridSection } from '@/components/pms/onboarding/room-grid';
-import { RoomTypePicker } from '@/components/pms/onboarding/room-type-picker';
+import { RoomGrid } from '@/components/pms/rooms/room-grid';
+import type { RoomGridSection } from '@/components/pms/rooms/room-grid';
+import { RoomTypePicker } from '@/components/pms/rooms/room-type-picker';
 import { StepForm } from '@/components/pms/onboarding/step-form';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
 import {
