@@ -123,7 +123,7 @@ Setup started (another section is no longer Not started):
 **Changing country**
 
 - While every other section is Not started, country, currency and time zone are plain fields. Saving a change runs `ChangePropertyCountry`, which reseeds the untouched presets.
-- After that they are read-only (`SettingsLock::locksCountry`, sent as `basics.locked`) and the page shows "Country · currency · time zone" as plain text. **Change country**, which unlocks them in place with a warning, is a later item (see the checklist). Until then the server ignores country, currency and time zone in a Basics save once they are locked, and `ChangePropertyCountry` refuses. **Save & continue** opens an AlertDialog with the counts of what resets. Room types, rooms and team stay. Full rules: [Changing country](../02-property/03-seed-property-defaults.md#changing-country).
+- After that they are read-only (`SettingsLock::locksCountry`, sent as `basics.locked`) and the page shows "Country · currency · time zone" as plain text. **Change country** (shown while `basics.canChangeCountry`) unlocks them in place with a warning. Without it the server ignores country, currency and time zone in a Basics save once they are locked. **Save & continue** opens an AlertDialog with the counts of what resets. Room types, rooms and team stay. Full rules: [Changing country](../02-property/03-seed-property-defaults.md#changing-country).
 - After go-live they are fixed.
 
 **Save and check**
@@ -652,7 +652,7 @@ Not a table: two groups on one page. The registration card group is the same com
 - `GoLiveReadiness::checks()` returns one `GoLiveCheckData` per required section, and `isReady()` needs every one Done. Warnings are a separate card above the phase cards and never block: a tax applied to no charge, no tax on rooms, a more-rates follower missing a room type.
 - Info line: how many staff get their sign-in details. Company users join when the company portal users are built.
 - No opening date field. The day you go live is the first business day.
-- The button is disabled until ready (tooltip "Finish {sections} first"), hidden during view as, and reads **Send for approval** when approval is on. It opens an AlertDialog: "Go live today?" with the first business day, "Country, currency and time zone can't be changed after this." and the sign-in count.
+- The button is disabled until ready (tooltip "Finish {sections} first"), hidden during view as, and reads **Send for approval** when approval is on. It opens an AlertDialog. With approval off: "Go live today?" with the first business day, "Country, currency and time zone can't be changed after this." and the sign-in count. With approval on: "Send for approval?", that nothing opens until support approves, the same lock sentence and the sign-in count.
 - After going live: the dashboard shows the **You're live!** card with **Share sign-in details** (see [After go-live](03-go-live.md#after-go-live)). After sending: the waiting notice. Pending, sent back and approved states: see [Go live](03-go-live.md#approval).
 - Review can be opened before everything is Done and works as a to-do list.
 - There is no Test drive section. Owners try the product on the shared [demo properties](../01-platform/06-demo-properties.md), and the go-live approval setting is the check before go-live.

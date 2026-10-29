@@ -55,7 +55,7 @@ export function YoureLiveCard({
     const share = () => setSharedOn(todayIsoDate());
 
     return (
-        <Card>
+        <Card className="shrink-0">
             <CardHeader>
                 <CardTitle>You're live!</CardTitle>
                 <CardDescription>

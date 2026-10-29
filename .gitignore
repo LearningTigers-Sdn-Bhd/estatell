@@ -34,3 +34,5 @@ yarn-error.log
 /.grok/skills
 /storage/fonts
 /public/vendor
+
+/tests/Browser/Screenshots

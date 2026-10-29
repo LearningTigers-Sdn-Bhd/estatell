@@ -44,6 +44,7 @@
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.9.3",
         "pestphp/pest": "^5.2",
+        "pestphp/pest-plugin-browser": "^5.1",
         "pestphp/pest-plugin-laravel": "^5.0",
         "redberry/mailbox-for-laravel": "^2.3"
     },
@@ -97,6 +98,15 @@
             "@lint:check",
             "@types:check",
             "@php artisan test --parallel --processes=4 --recreate-databases"
+        ],
+        "docs:screenshots": [
+            "Composer\\Config::disableProcessTimeout",
+            "@php artisan test --testsuite=Browser",
+            "magick tests/Browser/Screenshots/reservations/reservation-page-summary-source.png -crop 690x768+740+246 +repage -bordercolor '#d4d4d4' -border 1 tests/Browser/Screenshots/reservations/reservation-page-summary.png",
+            "f=tests/Browser/Screenshots/onboarding/waiting.png; s=$(magick \"$f\" -format '%[fx:max(w,h)+192]' info:); magick \"$f\" -background white -gravity center -extent ${s}x${s} -resize 50% \"$f\"",
+            "for f in tests/Browser/Screenshots/get-started/*.png; do s=$(magick \"$f\" -format '%[fx:max(w,h)+192]' info:); magick \"$f\" -background white -gravity center -extent ${s}x${s} -resize 50% \"$f\"; done",
+            "mkdir -p \"${DOCS_REPO:-../estatell-docs}/public/screenshots\"",
+            "rsync -a --exclude='/*.png' tests/Browser/Screenshots/ \"${DOCS_REPO:-../estatell-docs}/public/screenshots/\""
         ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",

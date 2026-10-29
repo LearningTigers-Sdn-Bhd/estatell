@@ -133,6 +133,24 @@ test('a credit above the deposit is refunded as a whole and cannot change', () =
     expect(result.settled).toBe(true);
 });
 
+test('a folio a payment already settled offers no refund', () => {
+    const settled = figures({
+        balance: '0.00',
+        paid: '-396.00',
+        refundable: '396.00',
+    });
+    const owing = figures({
+        balance: '96.00',
+        paid: '-300.00',
+        refundable: '300.00',
+    });
+
+    expect(settled.canRefund).toBe(false);
+    expect(settled.settled).toBe(true);
+    expect(owing.canRefund).toBe(false);
+    expect(owing.collectAmount).toBe(96);
+});
+
 test('a folio the deposit already settled has nothing to refund', () => {
     const result = figures({ balance: '0.00', depositHeld: '100.00' });
 

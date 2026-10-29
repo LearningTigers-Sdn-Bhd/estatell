@@ -1,5 +1,5 @@
 import { Plus, Trash2 } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { Fragment, useRef, useState } from 'react';
 import { MoneyInput } from '@/components/pms/money-input';
 import { MultiCombobox } from '@/components/pms/multi-combobox';
 import {
@@ -36,6 +36,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { cn } from '@/lib/utils';
 
 type Option = { value: string; label: string };
 
@@ -304,295 +305,328 @@ export function MoreRatesTable({
                                           (line) => line.room_type_id,
                                       );
 
+                            const showPrices =
+                                rate.mode === 'own' && rate.prices.length > 0;
+
                             return (
-                                <TableRow
-                                    key={rate.key}
-                                    className="max-md:grid max-md:grid-cols-1 max-md:gap-3 max-md:p-3"
-                                >
-                                    <TableCell className="align-top max-md:p-0">
-                                        <span className="mb-1 block text-xs text-muted-foreground md:hidden">
-                                            Name
-                                        </span>
-                                        <Input
-                                            aria-label={`Name of rate ${index + 1}`}
-                                            placeholder="e.g. Room with breakfast"
-                                            maxLength={100}
-                                            value={rate.name}
-                                            disabled={!ready}
-                                            aria-invalid={!!fieldError('name')}
-                                            onChange={(event) =>
-                                                setRate(index, {
-                                                    name: event.target.value,
-                                                })
-                                            }
-                                        />
-                                        <FieldError>
-                                            {fieldError('name')}
-                                        </FieldError>
-                                    </TableCell>
-                                    <TableCell className="align-top max-md:p-0">
-                                        <span className="mb-1 block text-xs text-muted-foreground md:hidden">
-                                            Price
-                                        </span>
-                                        <Select
-                                            items={parentOptions}
-                                            value={
-                                                rate.mode === 'own'
-                                                    ? 'own'
-                                                    : `follows:${rate.parent_basis}`
-                                            }
-                                            disabled={!ready}
-                                            onValueChange={(value) =>
-                                                chooseKind(
-                                                    index,
-                                                    value as string,
-                                                )
-                                            }
-                                        >
-                                            <SelectTrigger
-                                                aria-label={`Price of rate ${index + 1}`}
-                                                className="w-full"
-                                                aria-invalid={
-                                                    !!fieldError('parent_basis')
-                                                }
-                                            >
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectGroup>
-                                                    {parentOptions.map(
-                                                        (option) => (
-                                                            <SelectItem
-                                                                key={
-                                                                    option.value
-                                                                }
-                                                                value={
-                                                                    option.value
-                                                                }
-                                                            >
-                                                                {option.label}
-                                                            </SelectItem>
-                                                        ),
-                                                    )}
-                                                </SelectGroup>
-                                            </SelectContent>
-                                        </Select>
-                                        <FieldError>
-                                            {fieldError('parent_basis')}
-                                        </FieldError>
-                                        {rate.mode === 'follows' && (
-                                            <div className="mt-2 flex flex-col gap-1">
-                                                <InputGroup>
-                                                    <InputGroupAddon align="inline-start">
-                                                        <Select
-                                                            items={
-                                                                changeOptions
-                                                            }
-                                                            value={
-                                                                rate.direction
-                                                            }
-                                                            disabled={!ready}
-                                                            onValueChange={(
-                                                                value,
-                                                            ) =>
-                                                                setRate(index, {
-                                                                    direction:
-                                                                        value as string,
-                                                                })
-                                                            }
-                                                        >
-                                                            <SelectTrigger
-                                                                aria-label={`More or less for rate ${index + 1}`}
-                                                                className={
-                                                                    addonTrigger
-                                                                }
-                                                            >
-                                                                <SelectValue />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                                <SelectGroup>
-                                                                    {changeOptions.map(
-                                                                        (
-                                                                            option,
-                                                                        ) => (
-                                                                            <SelectItem
-                                                                                key={
-                                                                                    option.value
-                                                                                }
-                                                                                value={
-                                                                                    option.value
-                                                                                }
-                                                                            >
-                                                                                {
-                                                                                    option.label
-                                                                                }
-                                                                            </SelectItem>
-                                                                        ),
-                                                                    )}
-                                                                </SelectGroup>
-                                                            </SelectContent>
-                                                        </Select>
-                                                    </InputGroupAddon>
-                                                    <InputGroupInput
-                                                        aria-label={`Amount for rate ${index + 1}`}
-                                                        inputMode="decimal"
-                                                        autoComplete="off"
-                                                        placeholder={
-                                                            rate.unit ===
-                                                            'percent'
-                                                                ? 'e.g. 10'
-                                                                : 'e.g. 30.00'
-                                                        }
-                                                        className="tabular-nums"
-                                                        value={rate.amount}
-                                                        disabled={!ready}
-                                                        aria-invalid={
-                                                            !!fieldError(
-                                                                'amount',
-                                                            )
-                                                        }
-                                                        onChange={(event) =>
-                                                            setRate(index, {
-                                                                amount: event
-                                                                    .target
-                                                                    .value,
-                                                            })
-                                                        }
-                                                    />
-                                                    <InputGroupAddon align="inline-end">
-                                                        <Select
-                                                            items={unitOptions}
-                                                            value={rate.unit}
-                                                            disabled={!ready}
-                                                            onValueChange={(
-                                                                value,
-                                                            ) =>
-                                                                setRate(index, {
-                                                                    unit: value as string,
-                                                                })
-                                                            }
-                                                        >
-                                                            <SelectTrigger
-                                                                aria-label={`Unit for rate ${index + 1}`}
-                                                                className={
-                                                                    addonTrigger
-                                                                }
-                                                            >
-                                                                <SelectValue />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                                <SelectGroup>
-                                                                    {unitOptions.map(
-                                                                        (
-                                                                            option,
-                                                                        ) => (
-                                                                            <SelectItem
-                                                                                key={
-                                                                                    option.value
-                                                                                }
-                                                                                value={
-                                                                                    option.value
-                                                                                }
-                                                                            >
-                                                                                {
-                                                                                    option.label
-                                                                                }
-                                                                            </SelectItem>
-                                                                        ),
-                                                                    )}
-                                                                </SelectGroup>
-                                                            </SelectContent>
-                                                        </Select>
-                                                    </InputGroupAddon>
-                                                </InputGroup>
-                                                <FieldError>
-                                                    {fieldError('amount')}
-                                                </FieldError>
-                                                {rate.parent_basis ===
-                                                    'per_guest' && (
-                                                    <p className="text-xs text-muted-foreground">
-                                                        The change is per guest.
-                                                    </p>
-                                                )}
-                                                {shown?.result &&
-                                                    shown.parentAmount && (
-                                                        <p className="text-xs text-muted-foreground">
-                                                            Example:{' '}
-                                                            {money.format(
-                                                                Number(
-                                                                    shown.parentAmount,
-                                                                ),
-                                                            )}{' '}
-                                                            becomes{' '}
-                                                            {money.format(
-                                                                Number(
-                                                                    shown.result,
-                                                                ),
-                                                            )}
-                                                        </p>
-                                                    )}
-                                            </div>
+                                <Fragment key={rate.key}>
+                                    <TableRow
+                                        className={cn(
+                                            'max-md:grid max-md:grid-cols-1 max-md:gap-3 max-md:p-3',
+                                            showPrices && 'border-b-0',
                                         )}
-                                    </TableCell>
-                                    <TableCell className="align-top max-md:p-0">
-                                        <span className="mb-1 block text-xs text-muted-foreground md:hidden">
-                                            Room types
-                                        </span>
-                                        <MultiCombobox
-                                            id={`more-rate-room-types-${rate.key}`}
-                                            name={`more_rates[${index}][room_types]`}
-                                            items={roomTypeItems.map(
-                                                (line) => ({
-                                                    value: String(
-                                                        line.room_type_id,
-                                                    ),
-                                                    label: line.name,
-                                                }),
-                                            )}
-                                            value={selected.map(String)}
-                                            onValueChange={(values) =>
-                                                chooseRoomTypes(index, values)
-                                            }
-                                            placeholder="Pick room types"
-                                            emptyLabel="No matching room types."
-                                            disabled={!ready}
-                                            maxChips={2}
-                                            invalid={
-                                                !!fieldError('room_type_ids') ||
-                                                !!fieldError('prices')
-                                            }
-                                        />
-                                        <FieldError>
-                                            {fieldError('room_type_ids') ??
-                                                fieldError('prices')}
-                                        </FieldError>
-                                    </TableCell>
-                                    <TableCell className="align-top max-md:p-0">
-                                        <div className="flex justify-end">
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon-sm"
-                                                aria-label={`Remove ${rate.name || `rate ${index + 1}`}`}
-                                                onClick={() =>
-                                                    onChange(
-                                                        rates.filter(
-                                                            (_, position) =>
-                                                                position !==
-                                                                index,
-                                                        ),
+                                    >
+                                        <TableCell className="align-top max-md:p-0">
+                                            <span className="mb-1 block text-xs text-muted-foreground md:hidden">
+                                                Name
+                                            </span>
+                                            <Input
+                                                aria-label={`Name of rate ${index + 1}`}
+                                                placeholder="e.g. Room with breakfast"
+                                                maxLength={100}
+                                                value={rate.name}
+                                                disabled={!ready}
+                                                aria-invalid={
+                                                    !!fieldError('name')
+                                                }
+                                                onChange={(event) =>
+                                                    setRate(index, {
+                                                        name: event.target
+                                                            .value,
+                                                    })
+                                                }
+                                            />
+                                            <FieldError>
+                                                {fieldError('name')}
+                                            </FieldError>
+                                        </TableCell>
+                                        <TableCell className="align-top max-md:p-0">
+                                            <span className="mb-1 block text-xs text-muted-foreground md:hidden">
+                                                Price
+                                            </span>
+                                            <Select
+                                                items={parentOptions}
+                                                value={
+                                                    rate.mode === 'own'
+                                                        ? 'own'
+                                                        : `follows:${rate.parent_basis}`
+                                                }
+                                                disabled={!ready}
+                                                onValueChange={(value) =>
+                                                    chooseKind(
+                                                        index,
+                                                        value as string,
                                                     )
                                                 }
                                             >
-                                                <Trash2 />
-                                            </Button>
-                                        </div>
-                                    </TableCell>
-                                    {rate.mode === 'own' &&
-                                        rate.prices.length > 0 && (
+                                                <SelectTrigger
+                                                    aria-label={`Price of rate ${index + 1}`}
+                                                    className="w-full"
+                                                    aria-invalid={
+                                                        !!fieldError(
+                                                            'parent_basis',
+                                                        )
+                                                    }
+                                                >
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectGroup>
+                                                        {parentOptions.map(
+                                                            (option) => (
+                                                                <SelectItem
+                                                                    key={
+                                                                        option.value
+                                                                    }
+                                                                    value={
+                                                                        option.value
+                                                                    }
+                                                                >
+                                                                    {
+                                                                        option.label
+                                                                    }
+                                                                </SelectItem>
+                                                            ),
+                                                        )}
+                                                    </SelectGroup>
+                                                </SelectContent>
+                                            </Select>
+                                            <FieldError>
+                                                {fieldError('parent_basis')}
+                                            </FieldError>
+                                            {rate.mode === 'follows' && (
+                                                <div className="mt-2 flex flex-col gap-1">
+                                                    <InputGroup>
+                                                        <InputGroupAddon align="inline-start">
+                                                            <Select
+                                                                items={
+                                                                    changeOptions
+                                                                }
+                                                                value={
+                                                                    rate.direction
+                                                                }
+                                                                disabled={
+                                                                    !ready
+                                                                }
+                                                                onValueChange={(
+                                                                    value,
+                                                                ) =>
+                                                                    setRate(
+                                                                        index,
+                                                                        {
+                                                                            direction:
+                                                                                value as string,
+                                                                        },
+                                                                    )
+                                                                }
+                                                            >
+                                                                <SelectTrigger
+                                                                    aria-label={`More or less for rate ${index + 1}`}
+                                                                    className={
+                                                                        addonTrigger
+                                                                    }
+                                                                >
+                                                                    <SelectValue />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectGroup>
+                                                                        {changeOptions.map(
+                                                                            (
+                                                                                option,
+                                                                            ) => (
+                                                                                <SelectItem
+                                                                                    key={
+                                                                                        option.value
+                                                                                    }
+                                                                                    value={
+                                                                                        option.value
+                                                                                    }
+                                                                                >
+                                                                                    {
+                                                                                        option.label
+                                                                                    }
+                                                                                </SelectItem>
+                                                                            ),
+                                                                        )}
+                                                                    </SelectGroup>
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </InputGroupAddon>
+                                                        <InputGroupInput
+                                                            aria-label={`Amount for rate ${index + 1}`}
+                                                            inputMode="decimal"
+                                                            autoComplete="off"
+                                                            placeholder={
+                                                                rate.unit ===
+                                                                'percent'
+                                                                    ? 'e.g. 10'
+                                                                    : 'e.g. 30.00'
+                                                            }
+                                                            className="tabular-nums"
+                                                            value={rate.amount}
+                                                            disabled={!ready}
+                                                            aria-invalid={
+                                                                !!fieldError(
+                                                                    'amount',
+                                                                )
+                                                            }
+                                                            onChange={(event) =>
+                                                                setRate(index, {
+                                                                    amount: event
+                                                                        .target
+                                                                        .value,
+                                                                })
+                                                            }
+                                                        />
+                                                        <InputGroupAddon align="inline-end">
+                                                            <Select
+                                                                items={
+                                                                    unitOptions
+                                                                }
+                                                                value={
+                                                                    rate.unit
+                                                                }
+                                                                disabled={
+                                                                    !ready
+                                                                }
+                                                                onValueChange={(
+                                                                    value,
+                                                                ) =>
+                                                                    setRate(
+                                                                        index,
+                                                                        {
+                                                                            unit: value as string,
+                                                                        },
+                                                                    )
+                                                                }
+                                                            >
+                                                                <SelectTrigger
+                                                                    aria-label={`Unit for rate ${index + 1}`}
+                                                                    className={
+                                                                        addonTrigger
+                                                                    }
+                                                                >
+                                                                    <SelectValue />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectGroup>
+                                                                        {unitOptions.map(
+                                                                            (
+                                                                                option,
+                                                                            ) => (
+                                                                                <SelectItem
+                                                                                    key={
+                                                                                        option.value
+                                                                                    }
+                                                                                    value={
+                                                                                        option.value
+                                                                                    }
+                                                                                >
+                                                                                    {
+                                                                                        option.label
+                                                                                    }
+                                                                                </SelectItem>
+                                                                            ),
+                                                                        )}
+                                                                    </SelectGroup>
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </InputGroupAddon>
+                                                    </InputGroup>
+                                                    <FieldError>
+                                                        {fieldError('amount')}
+                                                    </FieldError>
+                                                    {rate.parent_basis ===
+                                                        'per_guest' && (
+                                                        <p className="text-xs text-muted-foreground">
+                                                            The change is per
+                                                            guest.
+                                                        </p>
+                                                    )}
+                                                    {shown?.result &&
+                                                        shown.parentAmount && (
+                                                            <p className="text-xs text-muted-foreground">
+                                                                Example:{' '}
+                                                                {money.format(
+                                                                    Number(
+                                                                        shown.parentAmount,
+                                                                    ),
+                                                                )}{' '}
+                                                                becomes{' '}
+                                                                {money.format(
+                                                                    Number(
+                                                                        shown.result,
+                                                                    ),
+                                                                )}
+                                                            </p>
+                                                        )}
+                                                </div>
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="align-top max-md:p-0">
+                                            <span className="mb-1 block text-xs text-muted-foreground md:hidden">
+                                                Room types
+                                            </span>
+                                            <MultiCombobox
+                                                id={`more-rate-room-types-${rate.key}`}
+                                                name={`more_rates[${index}][room_types]`}
+                                                items={roomTypeItems.map(
+                                                    (line) => ({
+                                                        value: String(
+                                                            line.room_type_id,
+                                                        ),
+                                                        label: line.name,
+                                                    }),
+                                                )}
+                                                value={selected.map(String)}
+                                                onValueChange={(values) =>
+                                                    chooseRoomTypes(
+                                                        index,
+                                                        values,
+                                                    )
+                                                }
+                                                placeholder="Pick room types"
+                                                emptyLabel="No matching room types."
+                                                disabled={!ready}
+                                                maxChips={2}
+                                                invalid={
+                                                    !!fieldError(
+                                                        'room_type_ids',
+                                                    ) || !!fieldError('prices')
+                                                }
+                                            />
+                                            <FieldError>
+                                                {fieldError('room_type_ids') ??
+                                                    fieldError('prices')}
+                                            </FieldError>
+                                        </TableCell>
+                                        <TableCell className="align-top max-md:p-0">
+                                            <div className="flex justify-end">
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon-sm"
+                                                    aria-label={`Remove ${rate.name || `rate ${index + 1}`}`}
+                                                    onClick={() =>
+                                                        onChange(
+                                                            rates.filter(
+                                                                (_, position) =>
+                                                                    position !==
+                                                                    index,
+                                                            ),
+                                                        )
+                                                    }
+                                                >
+                                                    <Trash2 />
+                                                </Button>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                    {showPrices && (
+                                        <TableRow>
                                             <TableCell
                                                 colSpan={4}
-                                                className="bg-muted/30 max-md:p-0"
+                                                className="bg-muted/30 max-md:p-3"
                                             >
                                                 <div className="flex flex-col gap-3">
                                                     {rate.prices.map(
@@ -746,8 +780,9 @@ export function MoreRatesTable({
                                                     )}
                                                 </div>
                                             </TableCell>
-                                        )}
-                                </TableRow>
+                                        </TableRow>
+                                    )}
+                                </Fragment>
                             );
                         })}
                     </TableBody>

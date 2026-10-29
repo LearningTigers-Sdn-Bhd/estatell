@@ -44,7 +44,9 @@ class ReservationActivityLog
             'guest_id' => $this->names(Guest::class, $reservation, $page->getCollection(), ['guest_id'], 'full_name'),
         ];
 
-        $page->setCollection($page->getCollection()->map(fn (Activity $activity): ReservationActivityData => $this->entry($activity, $names)));
+        $timeZone = $reservation->property->settings->time_zone ?? config('app.timezone');
+
+        $page->setCollection($page->getCollection()->map(fn (Activity $activity): ReservationActivityData => $this->entry($activity, $names, $timeZone)));
 
         return $page;
     }
@@ -79,7 +81,7 @@ class ReservationActivityLog
     /**
      * @param  array<string, array<int, string>>  $names
      */
-    private function entry(Activity $activity, array $names): ReservationActivityData
+    private function entry(Activity $activity, array $names, string $timeZone): ReservationActivityData
     {
         $properties = $activity->properties;
         $name = fn (string $key): string => $names[$key][(int) $properties->get($key)] ?? __('unknown');
@@ -134,7 +136,7 @@ class ReservationActivityLog
             text: $text,
             reason: $reason,
             causerName: $this->causerName($activity->causer),
-            createdAt: $activity->created_at->toIso8601String(),
+            createdAt: $activity->created_at->setTimezone($timeZone)->toIso8601String(),
         );
     }
 

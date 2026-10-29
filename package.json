@@ -53,6 +53,7 @@
         "@types/node": "^22.13.5",
         "babel-plugin-react-compiler": "^1.0.0",
         "chokidar": "^4.0.3",
+        "playwright": "^1.64.1",
         "vite-plus": "0.3.0"
     },
     "optionalDependencies": {
