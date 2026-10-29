@@ -52,7 +52,6 @@ export default function GoLive({
         footer: 'back',
         formId: null,
         processing: false,
-        width: '8xl',
     });
 
     // The footer button carries a handler, so it is set in an effect that depends only on plain values. Setting it
@@ -306,3 +305,5 @@ function WaitingAlert({ request }: { request: Request | null }) {
         </Alert>
     );
 }
+
+GoLive.layout = { width: '8xl' };

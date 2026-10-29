@@ -202,7 +202,6 @@ export default function BasicRate({
         footer: bedsOnly ? 'back' : 'auto',
         formId: bedsOnly ? null : FORM_ID,
         processing: saving,
-        width: '8xl',
         primaryAction:
             bedsOnly && next?.url
                 ? {
@@ -622,3 +621,5 @@ export default function BasicRate({
         </>
     );
 }
+
+BasicRate.layout = { width: '8xl' };

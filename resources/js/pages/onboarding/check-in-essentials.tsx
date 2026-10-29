@@ -50,7 +50,6 @@ export default function CheckInEssentials({
         footer: 'auto',
         formId: FORM_ID,
         processing: saving,
-        width: '5xl',
     });
 
     const save = (onSaved?: () => void) =>
@@ -165,3 +164,5 @@ export default function CheckInEssentials({
         </>
     );
 }
+
+CheckInEssentials.layout = { width: '5xl' };

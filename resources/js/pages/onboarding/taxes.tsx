@@ -183,7 +183,6 @@ export default function Taxes({
         footer: 'auto',
         formId: FORM_ID,
         processing: saving,
-        width: '7xl',
     });
 
     const setRow = (index: number, values: Partial<Row>) =>
@@ -782,3 +781,5 @@ function SavedRemove({ row, id }: { row: Row; id: number }) {
         </Popover>
     );
 }
+
+Taxes.layout = { width: '7xl' };

@@ -127,7 +127,6 @@ export default function Rooms({
         footer: 'auto',
         formId: FORM_ID,
         processing: saving,
-        width: '7xl',
     });
 
     const typeIndex = new Map(
@@ -742,3 +741,5 @@ export default function Rooms({
         </>
     );
 }
+
+Rooms.layout = { width: '7xl' };
