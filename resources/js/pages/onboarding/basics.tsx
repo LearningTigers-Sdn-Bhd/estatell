@@ -135,7 +135,6 @@ export default function Basics({
         footer: 'auto',
         formId: FORM_ID,
         processing: form.processing,
-        width: '8xl',
     });
 
     const save = (onSuccess?: () => void) =>
@@ -508,3 +507,5 @@ export default function Basics({
         </>
     );
 }
+
+Basics.layout = { width: '8xl' };

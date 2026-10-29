@@ -3,17 +3,23 @@
 namespace App\Http\Controllers\Rooms;
 
 use App\Actions\Rooms\ArchiveRoom;
+use App\Actions\Rooms\ArchiveRooms;
+use App\Actions\Rooms\ChangeRoomsType;
 use App\Actions\Rooms\CreateRoom;
 use App\Actions\Rooms\GenerateRooms;
 use App\Actions\Rooms\RestoreRoom;
 use App\Actions\Rooms\UpdateRoom;
 use App\Data\Rooms\BedData;
 use App\Data\Rooms\GeneratedRoomData;
+use App\Data\Rooms\RoomBulkResultData;
 use App\Data\Rooms\RoomData;
 use App\Data\Rooms\RoomGroupData;
 use App\Data\Rooms\RoomTypeData;
+use App\Enums\PermissionEnum;
 use App\Enums\SellUnit;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Rooms\BulkRoomsRequest;
+use App\Http\Requests\Rooms\ChangeRoomsTypeRequest;
 use App\Http\Requests\Rooms\GenerateRoomsRequest;
 use App\Http\Requests\Rooms\RoomRequest;
 use App\Models\Bed;
@@ -36,9 +42,10 @@ class RoomController extends Controller
      * Groups, room types, beds and every room of the property. The lists are bounded, so they load once
      * and the browser groups and filters them.
      */
-    public function index(Property $property, BedLabelGenerator $bedLabels): Response
+    public function index(Request $request, Property $property, BedLabelGenerator $bedLabels): Response
     {
         return Inertia::render('settings/rooms/index', [
+            'view' => $request->query('view') === 'map' ? 'map' : 'list',
             'rooms' => $property->rooms()->ordered()->get()
                 ->map(fn (Room $room): RoomData => RoomData::fromModel($room)),
             'beds' => $property->beds()->ordered()->get()
@@ -50,6 +57,7 @@ class RoomController extends Controller
                 ->map(fn (RoomType $roomType): RoomTypeData => RoomTypeData::fromModel($roomType)),
             'generateLimit' => RoomNumberGenerator::MAX_ROOMS,
             'bedLimit' => BedLabelGenerator::MAX_BEDS,
+            'canManage' => $request->user()->can(PermissionEnum::RoomsManage->value),
         ]);
     }
 
@@ -92,6 +100,34 @@ class RoomController extends Controller
         Inertia::flash('toast', $archiveRoom($request->user(), $room)
             ? ['type' => 'success', 'message' => __('Room :number archived.', ['number' => $room->number])]
             : ['type' => 'error', 'message' => __('Room :number is already archived.', ['number' => $room->number])]);
+
+        return to_route('settings.rooms.index', $property);
+    }
+
+    /**
+     * Bulk Change type and the Map tab save: one ChangeRoomsType run per change, one combined toast. The rooms that
+     * pass the guards change, the toast lists the refused ones. It goes back to the tab it came from.
+     */
+    public function changeType(ChangeRoomsTypeRequest $request, Property $property, ChangeRoomsType $changeRoomsType): RedirectResponse
+    {
+        $changes = $request->changes();
+        $result = new RoomBulkResultData(0, []);
+
+        foreach ($changes as $change) {
+            $one = $changeRoomsType($request->user(), $change['rooms'], $change['roomType']);
+            $result = new RoomBulkResultData($result->done + $one->done, [...$result->refused, ...$one->refused]);
+        }
+
+        $this->flashBulkResult($result, trans_choice('{0} No rooms changed.|{1} :count room changed.|[2,*] :count rooms changed.', $result->done));
+
+        return back(fallback: route('settings.rooms.index', $property));
+    }
+
+    public function archiveMany(BulkRoomsRequest $request, Property $property, ArchiveRooms $archiveRooms): RedirectResponse
+    {
+        $result = $archiveRooms($request->user(), $request->rooms());
+
+        $this->flashBulkResult($result, trans_choice('{0} No rooms archived.|{1} :count room archived.|[2,*] :count rooms archived.', $result->done));
 
         return to_route('settings.rooms.index', $property);
     }
@@ -140,5 +176,23 @@ class RoomController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => trans_choice('{1} :count room created.|[2,*] :count rooms created.', $result['created'], ['count' => $result['created']])]);
 
         return back();
+    }
+
+    /**
+     * The count, then at most 3 refusals and "and N more.". Error when nothing changed because of refusals.
+     */
+    private function flashBulkResult(RoomBulkResultData $result, string $message): void
+    {
+        if ($result->refused !== []) {
+            $listed = array_slice($result->refused, 0, 3);
+            $more = count($result->refused) - count($listed);
+
+            $message .= ' '.implode(' ', $listed).($more > 0 ? ' '.__('and :count more.', ['count' => $more]) : '');
+        }
+
+        Inertia::flash('toast', [
+            'type' => $result->refused === [] ? ($result->done === 0 ? 'info' : 'success') : ($result->done === 0 ? 'error' : 'info'),
+            'message' => $message,
+        ]);
     }
 }

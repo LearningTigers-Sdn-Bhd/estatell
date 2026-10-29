@@ -94,7 +94,6 @@ export default function Team({
         footer: 'auto',
         formId: FORM_ID,
         processing: form.processing,
-        width: '5xl',
     });
 
     const setRow = (index: number, values: Partial<Row>) =>
@@ -493,3 +492,5 @@ export default function Team({
         </>
     );
 }
+
+Team.layout = { width: '5xl' };

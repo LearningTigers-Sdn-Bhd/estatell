@@ -12,8 +12,9 @@ use Illuminate\Validation\Rule;
 use LogicException;
 
 /**
- * The room types table of onboarding. Each row asks for a name and the guest limits; the bounds are those of
- * RoomTypeRequest. A row id must be an active room type of this property that is sold by room.
+ * The room types table of onboarding. Each row asks for a name, what it sells and the guest limits; the bounds are
+ * those of RoomTypeRequest. A row id must be an active room type of this property. Sold by cannot change on a saved
+ * room type that has rooms, as in RoomTypeRequest.
  */
 class SaveRoomTypesRequest extends OnboardingStepRequest
 {
@@ -67,8 +68,11 @@ class SaveRoomTypesRequest extends OnboardingStepRequest
                 'nullable', 'integer', 'distinct',
                 Rule::exists('room_types', 'id')
                     ->where('property_id', $property->id)
-                    ->where('sell_unit', SellUnit::Room->value)
                     ->whereNull('archived_at'),
+            ],
+            'rows.*.sell_unit' => [
+                'required', Rule::enum(SellUnit::class),
+                fn (string $attribute, mixed $value, Closure $fail) => $this->checkSellUnit($property, $attribute, $value, $fail),
             ],
             'rows.*.name' => [
                 'required', 'string', 'max:100',
@@ -80,21 +84,46 @@ class SaveRoomTypesRequest extends OnboardingStepRequest
     }
 
     /**
-     * @return list<array{id: int|null, name: string, max_adults: int, max_children: int}>
+     * @return list<array{id: int|null, name: string, sell_unit: SellUnit, max_adults: int, max_children: int}>
      */
     public function rows(): array
     {
         return array_map(fn (array $row): array => [
             'id' => isset($row['id']) ? (int) $row['id'] : null,
             'name' => $row['name'],
+            'sell_unit' => SellUnit::from($row['sell_unit']),
             'max_adults' => (int) $row['max_adults'],
             'max_children' => (int) $row['max_children'],
         ], array_values($this->validated('rows')));
     }
 
     /**
-     * The name must differ from the other rows, from the room types sold by bed (which stay active) and from the saved
-     * name of another kept row. The last one keeps a swap of two names from hitting the unique index.
+     * A saved room type keeps its sell unit once it has any room, archived ones included.
+     */
+    private function checkSellUnit(Property $property, string $attribute, mixed $value, Closure $fail): void
+    {
+        $index = (int) explode('.', $attribute)[1];
+        $id = ((array) $this->input('rows'))[$index]['id'] ?? null;
+
+        if ($id === null || ! is_string($value)) {
+            return;
+        }
+
+        $locked = RoomType::query()
+            ->where('property_id', $property->id)
+            ->whereKey((int) $id)
+            ->where('sell_unit', '!=', $value)
+            ->whereHas('rooms')
+            ->exists();
+
+        if ($locked) {
+            $fail(__('Sold by cannot change while this room type has rooms.'));
+        }
+    }
+
+    /**
+     * The name must differ from the other rows and from the saved name of another kept row. The last one keeps a swap
+     * of two names from hitting the unique index.
      */
     private function checkName(Property $property, string $attribute, string $name, Closure $fail): void
     {
@@ -117,9 +146,8 @@ class SaveRoomTypesRequest extends OnboardingStepRequest
             ->where('property_id', $property->id)
             ->active()
             ->whereRaw('lower(name) = ?', [$lower])
-            ->where(fn ($query) => $query
-                ->where('sell_unit', SellUnit::Bed)
-                ->orWhere(fn ($kept) => $kept->whereIn('id', $keptIds)->when($ownId, fn ($sub, $id) => $sub->where('id', '!=', $id))))
+            ->whereIn('id', $keptIds)
+            ->when($ownId, fn ($query, $id) => $query->where('id', '!=', $id))
             ->exists();
 
         if ($taken) {

@@ -1,9 +1,18 @@
-import { Head, router, setLayoutProps, useHttp } from '@inertiajs/react';
+import {
+    Head,
+    router,
+    setLayoutProps,
+    useHttp,
+    usePage,
+} from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import BasicRateController from '@/actions/App/Http/Controllers/Onboarding/BasicRateController';
 import Heading from '@/components/heading';
 import { MoneyInput } from '@/components/pms/money-input';
-import type { OnboardingLayoutProps } from '@/components/pms/onboarding/onboarding-steps';
+import {
+    neighbours,
+    type OnboardingLayoutProps,
+} from '@/components/pms/onboarding/onboarding-steps';
 import {
     MoreRatesTable,
     type MoreRate,
@@ -75,6 +84,7 @@ export default function BasicRate({
     weekendNightsOptions,
     priceByOptions,
     moreRates: savedMoreRates,
+    hasBedTypes,
     preview: savedPreview,
     currency,
     locked,
@@ -86,6 +96,7 @@ export default function BasicRate({
     weekendNightsOptions: Option[];
     priceByOptions: Option[];
     moreRates: SavedMoreRate[];
+    hasBedTypes: boolean;
     preview: Previews;
     currency: App.Data.Property.CurrencyData | null;
     locked: boolean;
@@ -181,12 +192,24 @@ export default function BasicRate({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [previewKey]);
 
+    const { onboarding } = usePage().props;
+    const next = onboarding ? neighbours(onboarding, 'basic_rate').next : null;
+    // Only bed-sold room types: nothing to price or save, so the footer moves on instead of saving.
+    const bedsOnly = !locked && savedRows.length === 0 && hasBedTypes;
+
     setLayoutProps<OnboardingLayoutProps>({
         step: 'basic_rate',
-        footer: 'auto',
-        formId: FORM_ID,
+        footer: bedsOnly ? 'back' : 'auto',
+        formId: bedsOnly ? null : FORM_ID,
         processing: saving,
-        width: '8xl',
+        primaryAction:
+            bedsOnly && next?.url
+                ? {
+                      label: 'Continue',
+                      disabled: false,
+                      onClick: () => router.visit(next.url as string),
+                  }
+                : null,
     });
 
     const setRow = (index: number, values: Partial<Row>) =>
@@ -278,222 +301,267 @@ export default function BasicRate({
                     save();
                 }}
             >
-                <div className="flex flex-wrap gap-x-8 gap-y-4">
-                    <Field className="w-auto">
-                        <FieldLabel>Sell format</FieldLabel>
-                        <ToggleGroup
-                            variant="outline"
-                            spacing={0}
-                            value={[same ? 'same' : 'different']}
-                            onValueChange={(value) =>
-                                value[0] && chooseSame(value[0] === 'same')
-                            }
-                            aria-label="Sell format"
-                        >
-                            <ToggleGroupItem value="same">
-                                Every night
-                            </ToggleGroupItem>
-                            <ToggleGroupItem value="different">
-                                Weekdays + Weekends
-                            </ToggleGroupItem>
-                        </ToggleGroup>
-                    </Field>
-                    {!same && (
-                        <Field className="w-auto">
-                            <FieldLabel>Weekend nights</FieldLabel>
-                            <ToggleGroup
-                                variant="outline"
-                                spacing={0}
-                                value={[nights]}
-                                onValueChange={(value) =>
-                                    value[0] &&
-                                    http.setData('weekend_nights', value[0])
-                                }
-                                aria-label="Weekend nights"
-                            >
-                                {weekendNightsOptions.map((option) => (
-                                    <ToggleGroupItem
-                                        key={option.value}
-                                        value={option.value}
-                                    >
-                                        {option.label}
+                {bedsOnly ? (
+                    <p className="text-sm text-muted-foreground">
+                        Every room type is sold by bed, so there is nothing to
+                        price here. After you go live, you can price beds in
+                        Settings, under Rate plans.
+                    </p>
+                ) : (
+                    <>
+                        <div className="flex flex-wrap gap-x-8 gap-y-4">
+                            <Field className="w-auto">
+                                <FieldLabel>Sell format</FieldLabel>
+                                <ToggleGroup
+                                    variant="outline"
+                                    spacing={0}
+                                    value={[same ? 'same' : 'different']}
+                                    onValueChange={(value) =>
+                                        value[0] &&
+                                        chooseSame(value[0] === 'same')
+                                    }
+                                    aria-label="Sell format"
+                                >
+                                    <ToggleGroupItem value="same">
+                                        Every night
                                     </ToggleGroupItem>
-                                ))}
-                            </ToggleGroup>
-                            <FieldError>{errors.weekend_nights}</FieldError>
-                        </Field>
-                    )}
-                </div>
-
-                <div className="overflow-hidden rounded-lg border">
-                    <Table>
-                        <TableHeader className="max-md:hidden">
-                            <TableRow>
-                                <TableHead>Room type</TableHead>
-                                <TableHead>Price by</TableHead>
-                                <TableHead>
-                                    {same ? 'Every night' : 'Weekdays'}
-                                </TableHead>
-                                {!same && (
-                                    <TableHead>Weekend ({days})</TableHead>
-                                )}
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {rows.map((row, index) => {
-                                const fieldError = (name: string) =>
-                                    errors[`rows.${index}.${name}`];
-                                const total = totalOf(row.room_type_id);
-                                const placeholder =
-                                    row.price_by === 'per_guest'
-                                        ? 'e.g. 85.00'
-                                        : 'e.g. 180.00';
-
-                                return (
-                                    <TableRow
-                                        key={row.room_type_id}
-                                        className="max-md:grid max-md:grid-cols-2 max-md:gap-3 max-md:p-3"
+                                    <ToggleGroupItem value="different">
+                                        Weekdays + Weekends
+                                    </ToggleGroupItem>
+                                </ToggleGroup>
+                            </Field>
+                            {!same && (
+                                <Field className="w-auto">
+                                    <FieldLabel>Weekend nights</FieldLabel>
+                                    <ToggleGroup
+                                        variant="outline"
+                                        spacing={0}
+                                        value={[nights]}
+                                        onValueChange={(value) =>
+                                            value[0] &&
+                                            http.setData(
+                                                'weekend_nights',
+                                                value[0],
+                                            )
+                                        }
+                                        aria-label="Weekend nights"
                                     >
-                                        <TableCell className="align-top font-medium max-md:col-span-2 max-md:p-0">
-                                            <p className="pt-2">{row.name}</p>
-                                        </TableCell>
-                                        <TableCell className="align-top max-md:col-span-2 max-md:p-0">
-                                            <span className="mb-1 block text-xs text-muted-foreground md:hidden">
-                                                Price by
-                                            </span>
-                                            <Select
-                                                items={priceByOptions}
-                                                value={row.price_by}
-                                                onValueChange={(value) =>
-                                                    choosePriceBy(
-                                                        index,
-                                                        value as string,
-                                                    )
-                                                }
+                                        {weekendNightsOptions.map((option) => (
+                                            <ToggleGroupItem
+                                                key={option.value}
+                                                value={option.value}
                                             >
-                                                <SelectTrigger
-                                                    aria-label={`Price by for ${row.name}`}
-                                                    className="w-full"
-                                                >
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectGroup>
-                                                        {priceByOptions.map(
-                                                            (option) => (
-                                                                <SelectItem
-                                                                    key={
-                                                                        option.value
-                                                                    }
-                                                                    value={
-                                                                        option.value
-                                                                    }
-                                                                >
-                                                                    {
-                                                                        option.label
-                                                                    }
-                                                                </SelectItem>
-                                                            ),
-                                                        )}
-                                                    </SelectGroup>
-                                                </SelectContent>
-                                            </Select>
-                                        </TableCell>
-                                        <TableCell className="align-top max-md:p-0">
-                                            <span className="mb-1 block text-xs text-muted-foreground md:hidden">
-                                                {same
-                                                    ? 'Every night'
-                                                    : 'Weekdays'}
-                                            </span>
-                                            <MoneyInput
-                                                currency={currency}
-                                                placeholder={placeholder}
-                                                value={row.weekday}
-                                                onChange={(value) =>
-                                                    setRow(index, {
-                                                        weekday: value,
-                                                    })
-                                                }
-                                                invalid={
-                                                    !!fieldError('weekday')
-                                                }
-                                            />
-                                            <FieldError>
-                                                {fieldError('weekday')}
-                                            </FieldError>
-                                            <p className="mt-1 text-xs text-muted-foreground">
-                                                {guestPays(
-                                                    row,
-                                                    total?.weekdayTotal,
-                                                )}
-                                            </p>
-                                        </TableCell>
+                                                {option.label}
+                                            </ToggleGroupItem>
+                                        ))}
+                                    </ToggleGroup>
+                                    <FieldError>
+                                        {errors.weekend_nights}
+                                    </FieldError>
+                                </Field>
+                            )}
+                        </div>
+
+                        <div className="overflow-hidden rounded-lg border">
+                            <Table>
+                                <TableHeader className="max-md:hidden">
+                                    <TableRow>
+                                        <TableHead>Room type</TableHead>
+                                        <TableHead>Price by</TableHead>
+                                        <TableHead>
+                                            {same ? 'Every night' : 'Weekdays'}
+                                        </TableHead>
                                         {!same && (
-                                            <TableCell className="align-top max-md:p-0">
-                                                <span className="mb-1 block text-xs text-muted-foreground md:hidden">
-                                                    Weekend ({days})
-                                                </span>
-                                                <MoneyInput
-                                                    currency={currency}
-                                                    placeholder={placeholder}
-                                                    value={row.weekend}
-                                                    onChange={(value) =>
-                                                        setRow(index, {
-                                                            weekend: value,
-                                                        })
-                                                    }
-                                                    invalid={
-                                                        !!fieldError('weekend')
-                                                    }
-                                                />
-                                                <FieldError>
-                                                    {fieldError('weekend')}
-                                                </FieldError>
-                                                <p className="mt-1 text-xs text-muted-foreground">
-                                                    {guestPays(
-                                                        row,
-                                                        total?.weekendTotal,
-                                                    )}
-                                                </p>
-                                            </TableCell>
+                                            <TableHead>
+                                                Weekend ({days})
+                                            </TableHead>
                                         )}
                                     </TableRow>
-                                );
-                            })}
-                        </TableBody>
-                    </Table>
-                </div>
+                                </TableHeader>
+                                <TableBody>
+                                    {rows.map((row, index) => {
+                                        const fieldError = (name: string) =>
+                                            errors[`rows.${index}.${name}`];
+                                        const total = totalOf(row.room_type_id);
+                                        const placeholder =
+                                            row.price_by === 'per_guest'
+                                                ? 'e.g. 85.00'
+                                                : 'e.g. 180.00';
 
-                {rows.length > 0 && (
-                    <p className="text-sm text-muted-foreground">
-                        {mixed
-                            ? `This creates 2 rates: "Basic Rate / Room" (${roomRows.length} room ${roomRows.length === 1 ? 'type' : 'types'}) and "Basic Rate / Guest" (${guestRows.length} room ${guestRows.length === 1 ? 'type' : 'types'}).`
-                            : 'This creates 1 rate: "Basic Rate".'}
-                    </p>
+                                        return (
+                                            <TableRow
+                                                key={row.room_type_id}
+                                                className="max-md:grid max-md:grid-cols-2 max-md:gap-3 max-md:p-3"
+                                            >
+                                                <TableCell className="align-top font-medium max-md:col-span-2 max-md:p-0">
+                                                    <p className="pt-2">
+                                                        {row.name}
+                                                    </p>
+                                                </TableCell>
+                                                <TableCell className="align-top max-md:col-span-2 max-md:p-0">
+                                                    <span className="mb-1 block text-xs text-muted-foreground md:hidden">
+                                                        Price by
+                                                    </span>
+                                                    <Select
+                                                        items={priceByOptions}
+                                                        value={row.price_by}
+                                                        onValueChange={(
+                                                            value,
+                                                        ) =>
+                                                            choosePriceBy(
+                                                                index,
+                                                                value as string,
+                                                            )
+                                                        }
+                                                    >
+                                                        <SelectTrigger
+                                                            aria-label={`Price by for ${row.name}`}
+                                                            className="w-full"
+                                                        >
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectGroup>
+                                                                {priceByOptions.map(
+                                                                    (
+                                                                        option,
+                                                                    ) => (
+                                                                        <SelectItem
+                                                                            key={
+                                                                                option.value
+                                                                            }
+                                                                            value={
+                                                                                option.value
+                                                                            }
+                                                                        >
+                                                                            {
+                                                                                option.label
+                                                                            }
+                                                                        </SelectItem>
+                                                                    ),
+                                                                )}
+                                                            </SelectGroup>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </TableCell>
+                                                <TableCell className="align-top max-md:p-0">
+                                                    <span className="mb-1 block text-xs text-muted-foreground md:hidden">
+                                                        {same
+                                                            ? 'Every night'
+                                                            : 'Weekdays'}
+                                                    </span>
+                                                    <MoneyInput
+                                                        currency={currency}
+                                                        placeholder={
+                                                            placeholder
+                                                        }
+                                                        value={row.weekday}
+                                                        onChange={(value) =>
+                                                            setRow(index, {
+                                                                weekday: value,
+                                                            })
+                                                        }
+                                                        invalid={
+                                                            !!fieldError(
+                                                                'weekday',
+                                                            )
+                                                        }
+                                                    />
+                                                    <FieldError>
+                                                        {fieldError('weekday')}
+                                                    </FieldError>
+                                                    <p className="mt-1 text-xs text-muted-foreground">
+                                                        {guestPays(
+                                                            row,
+                                                            total?.weekdayTotal,
+                                                        )}
+                                                    </p>
+                                                </TableCell>
+                                                {!same && (
+                                                    <TableCell className="align-top max-md:p-0">
+                                                        <span className="mb-1 block text-xs text-muted-foreground md:hidden">
+                                                            Weekend ({days})
+                                                        </span>
+                                                        <MoneyInput
+                                                            currency={currency}
+                                                            placeholder={
+                                                                placeholder
+                                                            }
+                                                            value={row.weekend}
+                                                            onChange={(value) =>
+                                                                setRow(index, {
+                                                                    weekend:
+                                                                        value,
+                                                                })
+                                                            }
+                                                            invalid={
+                                                                !!fieldError(
+                                                                    'weekend',
+                                                                )
+                                                            }
+                                                        />
+                                                        <FieldError>
+                                                            {fieldError(
+                                                                'weekend',
+                                                            )}
+                                                        </FieldError>
+                                                        <p className="mt-1 text-xs text-muted-foreground">
+                                                            {guestPays(
+                                                                row,
+                                                                total?.weekendTotal,
+                                                            )}
+                                                        </p>
+                                                    </TableCell>
+                                                )}
+                                            </TableRow>
+                                        );
+                                    })}
+                                </TableBody>
+                            </Table>
+                        </div>
+
+                        {rows.length > 0 && (
+                            <p className="text-sm text-muted-foreground">
+                                {mixed
+                                    ? `This creates 2 rates: "Basic Rate / Room" (${roomRows.length} room ${roomRows.length === 1 ? 'type' : 'types'}) and "Basic Rate / Guest" (${guestRows.length} room ${guestRows.length === 1 ? 'type' : 'types'}).`
+                                    : 'This creates 1 rate: "Basic Rate".'}
+                            </p>
+                        )}
+                        {guestRows.length > 0 && (
+                            <p className="text-sm text-muted-foreground">
+                                Children on per-guest prices: infants (0–3) stay
+                                free, children (4–11) pay half. After you go
+                                live, you can change this in Settings, under
+                                Rate plans.
+                            </p>
+                        )}
+                        {hasBedTypes && (
+                            <p className="text-sm text-muted-foreground">
+                                Room types sold by bed are not priced here.
+                                After you go live, you can price beds in
+                                Settings, under Rate plans.
+                            </p>
+                        )}
+                        <MoreRatesTable
+                            rates={moreRates}
+                            onChange={(next) =>
+                                http.setData('more_rates', next)
+                            }
+                            basicLines={rows.map((row) => ({
+                                room_type_id: row.room_type_id,
+                                name: row.name,
+                                price_by: row.price_by,
+                            }))}
+                            ready={ready}
+                            sameEveryNight={same}
+                            weekendDays={days}
+                            priceByOptions={priceByOptions}
+                            currency={currency}
+                            examples={previews.followers}
+                            errors={errors}
+                        />
+                    </>
                 )}
-                {guestRows.length > 0 && (
-                    <p className="text-sm text-muted-foreground">
-                        Children on per-guest prices: infants (0–3) stay free,
-                        children (4–11) pay half. After you go live, you can
-                        change this in Settings, under Rate plans.
-                    </p>
-                )}
-                <MoreRatesTable
-                    rates={moreRates}
-                    onChange={(next) => http.setData('more_rates', next)}
-                    basicLines={rows.map((row) => ({
-                        room_type_id: row.room_type_id,
-                        name: row.name,
-                        price_by: row.price_by,
-                    }))}
-                    ready={ready}
-                    sameEveryNight={same}
-                    weekendDays={days}
-                    priceByOptions={priceByOptions}
-                    currency={currency}
-                    examples={previews.followers}
-                    errors={errors}
-                />
             </StepForm>
 
             <AlertDialog
@@ -553,3 +621,5 @@ export default function BasicRate({
         </>
     );
 }
+
+BasicRate.layout = { width: '8xl' };

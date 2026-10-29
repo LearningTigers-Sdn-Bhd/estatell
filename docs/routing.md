@@ -112,6 +112,7 @@ Guest bulk actions use `POST /p/{code}/guests/bulk/{operation}`: `mark-vip`, `un
 | `PUT /p/ES1142/settings/room-types/{roomType}/rooms`              | `settings.room-types.rooms.update`             | Save the room type's rooms and groups            |
 | `GET /p/ES1142/settings/ota-lists`                                | `settings.ota-lists.edit`                      | `pages/settings/ota-lists.tsx`                   |
 | `GET /p/ES1142/onboarding/rooms`                                  | `onboarding.rooms.edit`                        | `pages/onboarding/rooms.tsx`                     |
+| `POST /p/ES1142/onboarding/rooms/preview`                         | `onboarding.rooms.preview`                     | Parsed numbers for the unsaved rows (JSON)       |
 | `GET /p/ES1142/onboarding/taxes`                                  | `onboarding.taxes.edit`                        | `pages/onboarding/taxes.tsx`                     |
 | `POST /p/ES1142/onboarding/taxes/preview`                         | `onboarding.taxes.preview`                     | Example night for the unsaved table (JSON)       |
 | `PUT /p/ES1142/onboarding/taxes`                                  | `onboarding.taxes.update`                      | Save the Taxes table                             |

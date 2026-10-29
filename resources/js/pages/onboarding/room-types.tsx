@@ -24,10 +24,11 @@ import {
 } from '@/components/ui/tooltip';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 
-type RoomType = App.Data.Rooms.RoomTypeData;
+type RoomType = App.Data.Onboarding.OnboardingRoomTypeData;
 type Row = {
     id: number | null;
     name: string;
+    sell_unit: App.Enums.SellUnit;
     max_adults: string;
     max_children: string;
 };
@@ -37,6 +38,7 @@ const FORM_ID = 'room-types-form';
 const newRow = (): Row => ({
     id: null,
     name: '',
+    sell_unit: 'room',
     max_adults: '2',
     max_children: '0',
 });
@@ -44,28 +46,21 @@ const newRow = (): Row => ({
 export default function RoomTypes({
     roomTypes,
     maxRows,
-    showDormHint,
     locked,
     blockedBy,
 }: {
     roomTypes: RoomType[];
     maxRows: number;
-    showDormHint: boolean;
     locked: boolean;
     blockedBy: { label: string; url: string | null } | null;
 }) {
-    const soldByRoom = roomTypes.filter(
-        (roomType) => roomType.sellUnit === 'room',
-    );
-    const soldByBed = roomTypes.filter(
-        (roomType) => roomType.sellUnit === 'bed',
-    );
     const form = useForm<{ rows: Row[] }>({
         rows:
-            soldByRoom.length > 0
-                ? soldByRoom.map((roomType) => ({
+            roomTypes.length > 0
+                ? roomTypes.map((roomType) => ({
                       id: roomType.id,
                       name: roomType.name,
+                      sell_unit: roomType.sellUnit,
                       max_adults: String(roomType.maxAdults),
                       max_children: String(roomType.maxChildren),
                   }))
@@ -80,7 +75,6 @@ export default function RoomTypes({
         footer: 'auto',
         formId: FORM_ID,
         processing: form.processing,
-        width: '5xl',
     });
 
     const setRow = (index: number, values: Partial<Row>) =>
@@ -286,42 +280,10 @@ export default function RoomTypes({
                     </Table>
                 </div>
 
-                {soldByBed.length > 0 && (
-                    <section
-                        className="flex flex-col gap-2"
-                        aria-labelledby="sold-by-bed"
-                    >
-                        <h3 id="sold-by-bed" className="text-base font-medium">
-                            Sold by bed
-                        </h3>
-                        <ul className="divide-y rounded-lg border text-sm">
-                            {soldByBed.map((roomType) => (
-                                <li
-                                    key={roomType.id}
-                                    className="flex flex-wrap items-center justify-between gap-2 px-3 py-2"
-                                >
-                                    <span>{roomType.name}</span>
-                                    <span className="text-muted-foreground">
-                                        Sold by bed. Edit in settings.
-                                    </span>
-                                </li>
-                            ))}
-                        </ul>
-                    </section>
-                )}
-
-                <div className="flex flex-col gap-1 text-sm text-muted-foreground">
-                    <p>
-                        After you go live, you can add descriptions and room
-                        rules in Settings, under Room types.
-                    </p>
-                    {showDormHint && (
-                        <p>
-                            Selling dorm beds? After you go live, you can add
-                            them in Settings, under Room types.
-                        </p>
-                    )}
-                </div>
+                <p className="text-sm text-muted-foreground">
+                    After you go live, you can add descriptions and room rules
+                    in Settings, under Room types.
+                </p>
             </StepForm>
             <UnsavedChangesDialog
                 guard={guard}
@@ -332,3 +294,5 @@ export default function RoomTypes({
         </>
     );
 }
+
+RoomTypes.layout = { width: '5xl' };

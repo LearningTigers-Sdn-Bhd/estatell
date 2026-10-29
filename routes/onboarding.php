@@ -29,7 +29,7 @@ Route::prefix('onboarding')->name('onboarding.')->group(function () {
 
     Route::get('rooms', [RoomController::class, 'edit'])->name('rooms.edit');
     Route::put('rooms', [RoomController::class, 'update'])->name('rooms.update');
-    Route::delete('rooms/{room}', [RoomController::class, 'destroy'])->name('rooms.destroy');
+    Route::post('rooms/preview', [RoomController::class, 'preview'])->name('rooms.preview');
 
     Route::get('taxes', [TaxController::class, 'edit'])->name('taxes.edit');
     Route::put('taxes', [TaxController::class, 'update'])->name('taxes.update');
