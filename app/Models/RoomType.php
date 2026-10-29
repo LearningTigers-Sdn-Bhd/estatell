@@ -33,6 +33,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property CarbonImmutable|null $archived_at
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
+ * @property-read bool $rooms_exists Set by withExists('rooms').
  */
 #[Fillable([
     'name', 'description', 'sell_unit', 'max_adults', 'max_children', 'base_occupancy',

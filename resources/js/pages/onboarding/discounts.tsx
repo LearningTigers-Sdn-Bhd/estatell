@@ -171,7 +171,6 @@ export default function Discounts({
         footer: 'auto',
         formId: FORM_ID,
         processing: saving,
-        width: '7xl',
     });
 
     const setRows = (next: Row[]) => http.setData('rows', next);
@@ -629,3 +628,5 @@ export default function Discounts({
         </>
     );
 }
+
+Discounts.layout = { width: '7xl' };

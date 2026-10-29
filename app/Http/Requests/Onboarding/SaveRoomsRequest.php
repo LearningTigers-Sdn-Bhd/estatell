@@ -5,23 +5,29 @@ namespace App\Http\Requests\Onboarding;
 use App\Enums\OnboardingStep;
 use App\Enums\SellUnit;
 use App\Models\Property;
-use App\Services\Rooms\RoomNumberAvailability;
-use App\Services\Rooms\RoomNumberGenerator;
+use App\Models\Room;
+use App\Models\RoomGroup;
+use App\Models\RoomType;
+use App\Services\Rooms\RoomNumberRows;
+use App\Services\Rooms\RoomTypeChangeGuard;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 use LogicException;
 
 /**
- * The rooms table of onboarding: optional room groups and one range row per run of room numbers. A range row with no
- * prefix, from and to is ignored. Saved groups always stay, so a property that has groups always uses groups. The
- * limits follow GenerateRoomsRequest.
+ * The rooms step of onboarding: one numbers field per group row, the room type of each number, and Beds per room for
+ * the bed-sold types. The numbers are parsed again here; the preview is never trusted. A row with no numbers and no
+ * saved group is ignored. Saved groups always stay, so a property that has groups always uses groups. A saved room
+ * changes type under the guards of RoomTypeChangeGuard: a room with beds needs a bed-sold type, and a room with stays assigned
+ * cannot change type.
  */
 class SaveRoomsRequest extends OnboardingStepRequest
 {
-    public const MAX_RANGES = 50;
-
     public const MAX_GROUPS = 50;
+
+    public const MAX_BEDS = 50;
 
     protected function step(): OnboardingStep
     {
@@ -39,23 +45,16 @@ class SaveRoomsRequest extends OnboardingStepRequest
     protected function prepareForValidation(): void
     {
         $groups = $this->input('groups');
-        $ranges = $this->input('ranges');
 
         $this->merge([
             'groups' => is_array($groups) ? array_map(
-                fn (mixed $row): mixed => is_array($row) ? [...$row, 'name' => trim((string) ($row['name'] ?? ''))] : $row,
-                array_values($groups),
-            ) : $groups,
-            'ranges' => is_array($ranges) ? array_map(
                 fn (mixed $row): mixed => is_array($row) ? [
                     ...$row,
-                    'prefix' => trim((string) ($row['prefix'] ?? '')),
-                    'from' => trim((string) ($row['from'] ?? '')),
-                    'to' => trim((string) ($row['to'] ?? '')),
-                    'group_key' => filled($row['group_key'] ?? null) ? $row['group_key'] : null,
+                    'name' => trim((string) ($row['name'] ?? '')),
+                    'numbers' => trim((string) ($row['numbers'] ?? '')),
                 ] : $row,
-                array_values($ranges),
-            ) : $ranges,
+                array_values($groups),
+            ) : $groups,
         ]);
     }
 
@@ -65,53 +64,25 @@ class SaveRoomsRequest extends OnboardingStepRequest
     public function rules(): array
     {
         $property = $this->property();
-        $usesGroups = $this->usesGroups();
-        $groupKeys = array_column(array_filter((array) $this->input('groups'), is_array(...)), 'key');
 
-        $rules = [
+        return [
             'use_groups' => ['required', 'boolean'],
-            'groups' => $usesGroups ? ['required', 'array', 'min:1', 'max:'.self::MAX_GROUPS] : ['present', 'array', 'max:'.self::MAX_GROUPS],
+            'groups' => ['required', 'array', 'min:1', 'max:'.self::MAX_GROUPS],
+            'groups.*' => ['array'],
             'groups.*.key' => ['required', 'string', 'max:40', 'distinct'],
             'groups.*.id' => [
                 'nullable', 'integer', 'distinct',
                 Rule::exists('room_groups', 'id')->where('property_id', $property->id),
             ],
-            'groups.*.name' => ['required', 'string', 'max:100'],
-            'ranges' => ['required', 'array', 'min:1', 'max:'.self::MAX_RANGES],
-        ];
-
-        foreach (array_keys((array) $this->input('ranges')) as $index) {
-            $filled = $this->rangeIsFilled($index);
-
-            $rules["ranges.{$index}.prefix"] = ['nullable', 'string', 'max:10'];
-            $rules["ranges.{$index}.room_type_id"] = $filled ? [
+            'groups.*.name' => ['nullable', 'string', 'max:100'],
+            'groups.*.numbers' => ['nullable', 'string', 'max:2000'],
+            'types' => ['present', 'array'],
+            'types.*.number' => ['required', 'string', 'max:30'],
+            'types.*.room_type_id' => [
                 'required', 'integer',
-                Rule::exists('room_types', 'id')
-                    ->where('property_id', $property->id)
-                    ->where('sell_unit', SellUnit::Room->value)
-                    ->whereNull('archived_at'),
-            ] : ['nullable'];
-            $rules["ranges.{$index}.from"] = $filled ? ['required', 'regex:/^\d{1,6}$/'] : ['nullable'];
-            $rules["ranges.{$index}.to"] = $filled ? ['required', 'regex:/^\d{1,6}$/'] : ['nullable'];
-            $rules["ranges.{$index}.group_key"] = $usesGroups && $filled
-                ? ['required', Rule::in($groupKeys)]
-                : ['nullable'];
-        }
-
-        return $rules;
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    public function messages(): array
-    {
-        return [
-            'ranges.*.from.regex' => __('Use digits only.'),
-            'ranges.*.to.regex' => __('Use digits only.'),
-            'ranges.*.group_key.required' => __('Choose a group.'),
-            'ranges.*.group_key.in' => __('Choose a group.'),
-            'groups.min' => __('Add at least one group, or choose No groups.'),
+                Rule::exists('room_types', 'id')->where('property_id', $property->id)->whereNull('archived_at'),
+            ],
+            'beds_per_room' => ['nullable', 'array'],
         ];
     }
 
@@ -127,55 +98,80 @@ class SaveRoomsRequest extends OnboardingStepRequest
                 }
 
                 $this->checkGroupNames($validator);
-                $this->checkRanges($validator);
+                $this->checkNumbers($validator);
             },
         ];
     }
 
-    /**
-     * The groups to keep and create: empty when the owner picked No groups and the property has none.
-     *
-     * @return list<array{key: string, id: int|null, name: string}>
-     */
-    public function groups(): array
+    public function usesGroups(): bool
     {
-        if (! $this->usesGroups()) {
-            return [];
-        }
-
-        return array_map(fn (array $row): array => [
-            'key' => (string) $row['key'],
-            'id' => isset($row['id']) ? (int) $row['id'] : null,
-            'name' => (string) $row['name'],
-        ], array_values($this->validated('groups')));
+        return $this->boolean('use_groups') || $this->property()->roomGroups()->exists();
     }
 
     /**
-     * The filled range rows. Blank rows are dropped.
+     * The rows to save, in table order: rows with numbers, and saved groups even when empty. Without groups only the
+     * first row counts and has no name.
      *
-     * @return list<array{room_type_id: int, group_key: string|null, prefix: string, suffix: string, from: string, to: string}>
+     * @return list<array{key: string, id: int|null, name: string, numbers: list<string>}>
      */
-    public function ranges(): array
+    public function groups(): array
     {
+        $parsed = $this->parsedRows();
         $usesGroups = $this->usesGroups();
-        $ranges = [];
+        $groups = [];
 
-        foreach (array_values($this->validated('ranges')) as $index => $row) {
-            if (! $this->rangeIsFilled($index)) {
+        foreach ($this->rows() as $index => $row) {
+            if (! $usesGroups && $index > 0) {
+                break;
+            }
+
+            $id = $usesGroups && isset($row['id']) ? (int) $row['id'] : null;
+
+            if ($id === null && $parsed[$index]['numbers'] === []) {
                 continue;
             }
 
-            $ranges[] = [
-                'room_type_id' => (int) $row['room_type_id'],
-                'group_key' => $usesGroups ? $row['group_key'] : null,
-                'prefix' => (string) ($row['prefix'] ?? ''),
-                'suffix' => '',
-                'from' => $row['from'],
-                'to' => $row['to'],
+            $groups[] = [
+                'key' => (string) $row['key'],
+                'id' => $id,
+                'name' => $usesGroups ? (string) $row['name'] : '',
+                'numbers' => $parsed[$index]['numbers'],
             ];
         }
 
-        return $ranges;
+        return $groups;
+    }
+
+    /**
+     * The room type of each number, keyed by the number in lower case.
+     *
+     * @return array<string, int>
+     */
+    public function typeByNumber(): array
+    {
+        $types = [];
+
+        foreach ((array) $this->validated('types') as $row) {
+            $types[mb_strtolower((string) $row['number'])] = (int) $row['room_type_id'];
+        }
+
+        return $types;
+    }
+
+    /**
+     * Beds per room for each bed-sold type that has a room without beds after the save, keyed by room type id.
+     *
+     * @return array<int, int>
+     */
+    public function bedsPerRoom(): array
+    {
+        $counts = [];
+
+        foreach ($this->typesNeedingBeds() as $typeId) {
+            $counts[$typeId] = (int) data_get($this->all(), "beds_per_room.{$typeId}");
+        }
+
+        return $counts;
     }
 
     private function property(): Property
@@ -189,119 +185,169 @@ class SaveRoomsRequest extends OnboardingStepRequest
         return $property;
     }
 
-    private function usesGroups(): bool
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function rows(): array
     {
-        return $this->boolean('use_groups') || $this->property()->roomGroups()->exists();
-    }
-
-    private function rangeIsFilled(int|string $index): bool
-    {
-        $row = (array) data_get($this->all(), "ranges.{$index}", []);
-
-        return filled($row['prefix'] ?? null) || filled($row['from'] ?? null) || filled($row['to'] ?? null);
+        return array_values(array_filter((array) $this->input('groups'), is_array(...)));
     }
 
     /**
-     * Group names must differ, ignoring case. A new name must also differ from a saved group that is not in the
-     * table. Saved groups always are, so the table covers them.
+     * @return list<array{numbers: list<string>, repeated: list<string>, error: string|null}>
+     */
+    private function parsedRows(): array
+    {
+        $usesGroups = $this->usesGroups();
+
+        return app(RoomNumberRows::class)->parse(array_map(
+            fn (array $row, int $index): string => ! $usesGroups && $index > 0 ? '' : (string) ($row['numbers'] ?? ''),
+            $this->rows(),
+            array_keys($this->rows()),
+        ));
+    }
+
+    /**
+     * With groups, a row with numbers needs a name. Names differ ignoring case, from each other and from the saved name
+     * of another saved group, so two groups cannot swap names in one save.
      */
     private function checkGroupNames(Validator $validator): void
     {
+        if (! $this->usesGroups()) {
+            return;
+        }
+
+        $parsed = $this->parsedRows();
+        $saved = $this->property()->roomGroups()->get(['id', 'name']);
         $seen = [];
 
-        foreach (array_values((array) $this->input('groups')) as $index => $row) {
-            $name = mb_strtolower((string) $row['name']);
+        foreach ($this->rows() as $index => $row) {
+            $name = (string) $row['name'];
+            $id = isset($row['id']) ? (int) $row['id'] : null;
 
-            if (isset($seen[$name])) {
+            if ($name === '') {
+                if ($id !== null || $parsed[$index]['numbers'] !== [] || $parsed[$index]['error'] !== null) {
+                    $validator->errors()->add("groups.{$index}.name", __('Enter a group name.'));
+                }
+
+                continue;
+            }
+
+            $lower = mb_strtolower($name);
+            $takenBySaved = $saved->contains(fn (RoomGroup $group): bool => $group->id !== $id && mb_strtolower($group->name) === $lower);
+
+            if (isset($seen[$lower]) || $takenBySaved) {
                 $validator->errors()->add("groups.{$index}.name", __('Another room group already uses this name.'));
             }
 
-            $seen[$name] = true;
+            $seen[$lower] = true;
         }
     }
 
     /**
-     * Each range must be in order and within the limit, and no number may repeat across rows or be in use already.
+     * Each row parses, at least one room is listed, every number has a room type, saved rooms pass the type change
+     * guards, and every bed-sold type that needs beds has a count.
      */
-    private function checkRanges(Validator $validator): void
+    private function checkNumbers(Validator $validator): void
     {
-        $generator = app(RoomNumberGenerator::class);
-        $usedByRow = [];
-        $filledCount = 0;
+        $parsed = $this->parsedRows();
+        $types = $this->typeByNumber();
 
-        foreach (array_values((array) $this->input('ranges')) as $index => $row) {
-            if (! $this->rangeIsFilled($index)) {
-                continue;
+        foreach ($parsed as $index => $row) {
+            if ($row['error'] !== null) {
+                $validator->errors()->add("groups.{$index}.numbers", $row['error']);
             }
-
-            $filledCount++;
-
-            if ((int) $row['to'] < (int) $row['from']) {
-                $validator->errors()->add("ranges.{$index}.to", __('The last number must not be lower than the first.'));
-
-                continue;
-            }
-
-            if ($generator->size(RoomNumberGenerator::MODE_RANGE, $row) > RoomNumberGenerator::MAX_ROOMS) {
-                $validator->errors()->add("ranges.{$index}.to", __('Create at most :max rooms at a time.', ['max' => RoomNumberGenerator::MAX_ROOMS]));
-
-                continue;
-            }
-
-            $numbers = array_column($generator->generate(RoomNumberGenerator::MODE_RANGE, $row), 'number');
-            $usedByRow[$index] = $numbers;
         }
 
-        $this->checkNumbers($validator, $usedByRow);
-
-        if ($filledCount === 0 && ! $this->property()->rooms()->active()->exists()) {
-            $validator->errors()->add('ranges', __('Add at least one range of rooms.'));
+        if ($validator->errors()->isNotEmpty()) {
+            return;
         }
-    }
 
-    /**
-     * @param  array<int, list<string>>  $usedByRow  The room numbers of each valid range row.
-     */
-    private function checkNumbers(Validator $validator, array $usedByRow): void
-    {
-        $firstSeen = [];
+        if (array_merge(...array_column($parsed, 'numbers') ?: [[]]) === []) {
+            $validator->errors()->add('groups.0.numbers', __('Add at least one room number.'));
 
-        foreach ($usedByRow as $index => $numbers) {
-            $repeated = [];
+            return;
+        }
 
-            foreach ($numbers as $number) {
-                $lower = mb_strtolower($number);
+        $roomTypes = $this->property()->roomTypes()->active()->get()->keyBy('id');
+        $saved = $this->savedRooms();
 
-                if (isset($firstSeen[$lower]) && $firstSeen[$lower] !== $index) {
-                    $repeated[] = $number;
+        foreach ($parsed as $index => $row) {
+            foreach ($row['numbers'] as $number) {
+                $typeId = $types[mb_strtolower($number)] ?? null;
+
+                if ($typeId === null) {
+                    $validator->errors()->add("groups.{$index}.numbers", __('Pick a room type for :number.', ['number' => $number]));
+
+                    continue 2;
                 }
 
-                $firstSeen[$lower] ??= $index;
-            }
+                $room = $saved->get(mb_strtolower($number));
+                $refusal = $room === null ? null : $this->typeChangeRefusal($room, $roomTypes->get($typeId));
 
-            if ($repeated !== []) {
-                $validator->errors()->add("ranges.{$index}.from", __('Also in another row: :numbers.', ['numbers' => $this->summary($repeated)]));
+                if ($refusal !== null) {
+                    $validator->errors()->add("groups.{$index}.numbers", $refusal);
+
+                    continue 2;
+                }
             }
         }
 
-        $taken = app(RoomNumberAvailability::class)->taken($this->property(), array_merge(...array_values($usedByRow) ?: [[]]));
+        foreach ($this->typesNeedingBeds() as $typeId) {
+            $count = data_get($this->all(), "beds_per_room.{$typeId}");
 
-        foreach ($usedByRow as $index => $numbers) {
-            $inRow = array_values(array_filter($taken, fn (string $number): bool => in_array($number, $numbers, true)));
-
-            if ($inRow !== [] && ! $validator->errors()->has("ranges.{$index}.from")) {
-                $validator->errors()->add("ranges.{$index}.from", __('Already in use: :numbers.', ['numbers' => $this->summary($inRow)]));
+            if (filter_var($count, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => self::MAX_BEDS]]) === false) {
+                $validator->errors()->add("beds_per_room.{$typeId}", __('Enter 1 to :max beds.', ['max' => self::MAX_BEDS]));
             }
         }
     }
 
     /**
-     * @param  list<string>  $numbers
+     * The message that stops a saved room taking the room type, or null when it may.
      */
-    private function summary(array $numbers): string
+    private function typeChangeRefusal(Room $room, ?RoomType $roomType): ?string
     {
-        $shown = array_slice(array_values(array_unique($numbers)), 0, 3);
+        return $roomType === null ? null : app(RoomTypeChangeGuard::class)->refusal($room, $roomType, nextStep: true);
+    }
 
-        return implode(', ', $shown).(count($numbers) > 3 ? ' …' : '');
+    /**
+     * The active rooms of the property, keyed by number in lower case.
+     *
+     * @return Collection<string, Room>
+     */
+    private function savedRooms(): Collection
+    {
+        return $this->property()->rooms()->active()->get()->keyBy(fn (Room $room): string => mb_strtolower($room->number));
+    }
+
+    /**
+     * The bed-sold room types that get a room with no active bed: a new room, or a saved room without beds.
+     *
+     * @return list<int>
+     */
+    private function typesNeedingBeds(): array
+    {
+        $bedTypeIds = $this->property()->roomTypes()->active()->where('sell_unit', SellUnit::Bed)->pluck('id')->map(intval(...))->all();
+
+        if ($bedTypeIds === []) {
+            return [];
+        }
+
+        $types = $this->typeByNumber();
+        $withBeds = $this->property()->rooms()->active()->whereHas('beds', fn ($query) => $query->active())
+            ->pluck('number')->map(fn (string $number): string => mb_strtolower($number))->flip();
+        $needing = [];
+
+        foreach (array_column($this->groups(), 'numbers') as $numbers) {
+            foreach ($numbers as $number) {
+                $typeId = $types[mb_strtolower($number)] ?? null;
+
+                if ($typeId !== null && in_array($typeId, $bedTypeIds, true) && ! $withBeds->has(mb_strtolower($number))) {
+                    $needing[$typeId] = true;
+                }
+            }
+        }
+
+        return array_keys($needing);
     }
 }

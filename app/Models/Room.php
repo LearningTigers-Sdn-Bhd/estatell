@@ -24,6 +24,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property CarbonImmutable|null $archived_at
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
+ * @property-read int $beds_count Set by withCount('beds').
  */
 #[Fillable(['room_type_id', 'room_group_id', 'number', 'position', 'archived_at'])]
 class Room extends Model

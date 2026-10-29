@@ -172,7 +172,6 @@ export default function Companies({
         footer: 'auto',
         formId: FORM_ID,
         processing: form.processing,
-        width: '7xl',
     });
 
     const setRow = (index: number, values: Partial<Row>) =>
@@ -980,3 +979,5 @@ export default function Companies({
         </>
     );
 }
+
+Companies.layout = { width: '7xl' };

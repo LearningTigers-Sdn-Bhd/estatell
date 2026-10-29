@@ -11,7 +11,8 @@ use App\Services\Onboarding\BasicRatePlans;
 /**
  * Done when every active room type sold by room has a price on each of the next 30 days (today in the property time zone)
  * on its Basic Rate plan. InProgress when some prices exist but not all, NotStarted when there is none. More rates never
- * count. The window is 30 days because the wizard saves 365 days from the day the form is saved.
+ * count. The window is 30 days because the wizard saves 365 days from the day the form is saved. A property with no room
+ * type sold by room has nothing to price here: Done when it has an active room type sold by bed, NotStarted otherwise.
  */
 class BasicRateCheck implements StepCheck
 {
@@ -24,8 +25,14 @@ class BasicRateCheck implements StepCheck
         $property->loadMissing('settings');
         $roomTypes = $property->roomTypes()->active()->where('sell_unit', SellUnit::Room)->with('ratePlans')->get();
 
-        if ($roomTypes->isEmpty() || $property->settings === null) {
+        if ($property->settings === null) {
             return StepState::NotStarted;
+        }
+
+        if ($roomTypes->isEmpty()) {
+            return $property->roomTypes()->active()->where('sell_unit', SellUnit::Bed)->exists()
+                ? StepState::Done
+                : StepState::NotStarted;
         }
 
         $basicPlanIds = $this->basicRatePlans->forProperty($property)->pluck('id')->all();

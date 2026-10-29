@@ -113,6 +113,8 @@ Route::prefix('settings')->name('settings.')->group(function () {
             Route::post('generate/preview', [RoomController::class, 'preview'])->name('generate.preview');
             Route::post('generate', [RoomController::class, 'generate'])->name('generate');
             Route::post('beds/generate', [BedController::class, 'generate'])->name('beds.generate');
+            Route::post('change-type', [RoomController::class, 'changeType'])->name('change-type');
+            Route::post('archive-many', [RoomController::class, 'archiveMany'])->name('archive-many');
             Route::put('{room}', [RoomController::class, 'update'])->name('update');
             Route::post('{room}/archive', [RoomController::class, 'archive'])->name('archive');
             Route::post('{room}/restore', [RoomController::class, 'restore'])->name('restore');

@@ -34,6 +34,7 @@ There is no `property_id`. A bed reaches its property through its room, so the p
 - Numbers **continue** after the highest active label that is the prefix plus digits (A4 gives A5, A6). Renamed labels such as "Top bunk" are ignored, so adding never clashes.
 - Picked rooms must be active and sell beds. Without a pick, the run covers every active Bed room that has no active bed.
 - **Manual** adds one bed with a typed label (`CreateBed`).
+- **Onboarding** calls `GenerateBeds` on save of the [Rooms table](../17-onboarding/02-wizard-steps.md#rooms-table), with the tile's Beds per room count and no prefix, for every room of a bed-sold type that has no active bed.
 
 ## Actions
 

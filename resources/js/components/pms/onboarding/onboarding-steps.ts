@@ -15,7 +15,11 @@ export type OnboardingLayoutProps = {
     footer: 'auto' | 'back';
     formId: string | null;
     processing: boolean;
-    /** The content column width. Omitted is the narrow default (45rem). */
+    /**
+     * The content column width. Omitted is the narrow default (45rem). Pages set it as a static layout prop
+     * (`Page.layout = { width: '7xl' }`), not with setLayoutProps, which applies only after the first paint and makes
+     * the column jump from narrow to wide.
+     */
     width?: OnboardingWidth;
     /** A button the footer shows on the right in place of Save & continue, for a page with its own confirm step. */
     primaryAction?: OnboardingPrimaryAction | null;

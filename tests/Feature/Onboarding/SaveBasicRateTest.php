@@ -193,6 +193,41 @@ test('the check is not started, in progress, then done once every room type has 
     expect($check->state($this->property))->toBe(StepState::NotStarted);
 });
 
+test('with no room type sold by room the check is done only when a bed room type is active', function () {
+    $check = new BasicRateCheck;
+    $this->property->roomTypes()->update(['archived_at' => now()]);
+
+    expect($check->state($this->property))->toBe(StepState::NotStarted);
+
+    $dorm = RoomType::factory()->bed()->for($this->property)->create();
+
+    expect($check->state($this->property))->toBe(StepState::Done);
+
+    $dorm->update(['archived_at' => now()]);
+
+    expect($check->state($this->property))->toBe(StepState::NotStarted);
+});
+
+test('a bed room type does not count toward the room types to price', function () {
+    RoomType::factory()->bed()->for($this->property)->create();
+
+    expect((new BasicRateCheck)->state($this->property))->toBe(StepState::NotStarted);
+});
+
+test('the page says whether any active room type is sold by bed', function () {
+    $page = fn () => $this->actingAs($this->owner)->get(route('onboarding.basic-rate.edit', $this->property->code));
+
+    $page()->assertInertia(fn (Assert $page) => $page->where('hasBedTypes', false));
+
+    $dorm = RoomType::factory()->bed()->for($this->property)->create();
+
+    $page()->assertInertia(fn (Assert $page) => $page->where('hasBedTypes', true)->has('rows', 2));
+
+    $dorm->update(['archived_at' => now()]);
+
+    $page()->assertInertia(fn (Assert $page) => $page->where('hasBedTypes', false));
+});
+
 test('the page returns the saved rows, the weekend nights and the guest pays preview', function () {
     ($this->save)(basicRatePayload([basicRateRow($this->chalet), basicRateRow($this->longhouse, 'per_guest', '85.00', '95.00')]));
 

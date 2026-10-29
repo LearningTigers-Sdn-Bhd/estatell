@@ -137,6 +137,36 @@
     --swatch-pink-foreground: oklch(0.985 0.008 350);
 
     /*
+     * Category tokens (estatell): solid fills that tell items apart by position on a dense grid, such as room types
+     * on the onboarding room grid. The same in light and dark. Each foreground is white or ink, whichever meets WCAG
+     * AA (4.5:1). Never for status, and never a colour someone picks (that is a swatch).
+     */
+    --category-1: oklch(0.53 0.12 160);
+    --category-1-foreground: oklch(1 0 0);
+    --category-2: oklch(0.55 0.19 258);
+    --category-2-foreground: oklch(1 0 0);
+    --category-3: oklch(0.86 0.17 92);
+    --category-3-foreground: oklch(0.18 0.01 107);
+    --category-4: oklch(0.57 0.24 335);
+    --category-4-foreground: oklch(1 0 0);
+    --category-5: oklch(0.8 0.12 228);
+    --category-5-foreground: oklch(0.18 0.01 107);
+    --category-6: oklch(0.56 0.21 25);
+    --category-6-foreground: oklch(1 0 0);
+    --category-7: oklch(0.8 0.2 140);
+    --category-7-foreground: oklch(0.18 0.01 107);
+    --category-8: oklch(0.54 0.21 298);
+    --category-8-foreground: oklch(1 0 0);
+    --category-9: oklch(0.7 0.19 45);
+    --category-9-foreground: oklch(0.18 0.01 107);
+    --category-10: oklch(0.4 0.13 265);
+    --category-10-foreground: oklch(1 0 0);
+    --category-11: oklch(0.86 0.08 355);
+    --category-11-foreground: oklch(0.18 0.01 107);
+    --category-12: oklch(0.5 0.08 55);
+    --category-12-foreground: oklch(1 0 0);
+
+    /*
      * Grid tokens (estatell): the date grid engine and the calendars built on it. Named by role, so the hue can
      * change here without touching a component. `weekend` and `hover` are translucent tints that lay over any
      * row background. Every text pair meets WCAG 2.2 AA (4.5:1) in light and dark.
@@ -335,6 +365,30 @@
     --color-swatch-violet-foreground: var(--swatch-violet-foreground);
     --color-swatch-pink: var(--swatch-pink);
     --color-swatch-pink-foreground: var(--swatch-pink-foreground);
+    --color-category-1: var(--category-1);
+    --color-category-1-foreground: var(--category-1-foreground);
+    --color-category-2: var(--category-2);
+    --color-category-2-foreground: var(--category-2-foreground);
+    --color-category-3: var(--category-3);
+    --color-category-3-foreground: var(--category-3-foreground);
+    --color-category-4: var(--category-4);
+    --color-category-4-foreground: var(--category-4-foreground);
+    --color-category-5: var(--category-5);
+    --color-category-5-foreground: var(--category-5-foreground);
+    --color-category-6: var(--category-6);
+    --color-category-6-foreground: var(--category-6-foreground);
+    --color-category-7: var(--category-7);
+    --color-category-7-foreground: var(--category-7-foreground);
+    --color-category-8: var(--category-8);
+    --color-category-8-foreground: var(--category-8-foreground);
+    --color-category-9: var(--category-9);
+    --color-category-9-foreground: var(--category-9-foreground);
+    --color-category-10: var(--category-10);
+    --color-category-10-foreground: var(--category-10-foreground);
+    --color-category-11: var(--category-11);
+    --color-category-11-foreground: var(--category-11-foreground);
+    --color-category-12: var(--category-12);
+    --color-category-12-foreground: var(--category-12-foreground);
     --color-grid-surface: var(--grid-surface);
     --color-grid-foreground: var(--grid-foreground);
     --color-grid-header: var(--grid-header);

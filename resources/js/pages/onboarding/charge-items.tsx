@@ -165,7 +165,6 @@ export default function ChargeItems({
         footer: 'auto',
         formId: FORM_ID,
         processing: saving,
-        width: '7xl',
     });
 
     const setRows = (next: Row[]) => http.setData('rows', next);
@@ -606,3 +605,5 @@ const CURRENCY_FALLBACK = {
     code: 'MYR',
     decimals: 2,
 } as App.Data.Property.CurrencyData;
+
+ChargeItems.layout = { width: '7xl' };

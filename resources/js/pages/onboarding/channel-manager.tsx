@@ -43,7 +43,6 @@ export default function ChannelManager({
         footer: 'auto',
         formId: FORM_ID,
         processing: form.processing,
-        width: '7xl',
     });
 
     const save = (onSuccess?: () => void) => {
@@ -105,3 +104,5 @@ export default function ChannelManager({
         </>
     );
 }
+
+ChannelManager.layout = { width: '7xl' };

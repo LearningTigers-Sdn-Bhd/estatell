@@ -79,7 +79,6 @@ export default function PaymentMethods({
         footer: 'auto',
         formId: FORM_ID,
         processing: form.processing,
-        width: '5xl',
     });
 
     const setRow = (index: number, values: Partial<Row>) =>
@@ -366,3 +365,5 @@ export default function PaymentMethods({
         </>
     );
 }
+
+PaymentMethods.layout = { width: '5xl' };
