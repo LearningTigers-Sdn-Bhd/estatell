@@ -115,13 +115,14 @@ Front desk staff must always know which business date they are posting to. After
 
 ### States
 
-| State         | When                                                  | Display                                                                |
-| ------------- | ----------------------------------------------------- | ---------------------------------------------------------------------- |
-| In sync       | Business date = system date in the property time zone | Business date prominent, system date and time small. Neutral.          |
-| Audit pending | System date is 1 day after the business date          | `warning` tone: "Night audit pending ›" links to the readiness panel   |
-| Auditing      | Business date status is `Auditing`                    | `info` tone: "Night audit running ›" links to the audit progress       |
-| Overdue       | System date is 2 or more days after the business date | `danger` tone: "Business date is 2 days behind ›" links to night audit |
-| Not live      | Property is still onboarding                          | "Not live yet". No business date.                                      |
+| State         | When                                                  | Display                                                                                                                                                                                                            |
+| ------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| In sync       | Business date = system date in the property time zone | Business date prominent, system date and time small. Neutral.                                                                                                                                                      |
+| Audit pending | System date is 1 day after the business date          | `warning` tone: "Night audit pending ›" links to the readiness panel                                                                                                                                               |
+| Auditing      | Business date status is `Auditing`                    | `info` tone: "Night audit running ›" links to the audit progress                                                                                                                                                   |
+| Overdue       | System date is 2 or more days after the business date | `danger` tone: "Business date is 2 days behind ›" links to night audit                                                                                                                                             |
+| Ahead         | Business date is after the system date                | `danger` tone: "Business date is ahead of the calendar". It should never happen: no audit closes a day before it ends ([The gate](../20-night-audit/02-readiness-panel.md#the-gate)). It shows a data fix or a bug |
+| Not live      | Property is still onboarding                          | "Not live yet". No business date.                                                                                                                                                                                  |
 
 ### Data
 

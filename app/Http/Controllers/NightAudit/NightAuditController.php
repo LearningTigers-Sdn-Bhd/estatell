@@ -24,6 +24,7 @@ use App\Models\Property;
 use App\Models\Reservation;
 use App\Services\NightAudit\AuditReadiness;
 use App\Services\NightAudit\CurrentBusinessDate;
+use App\Services\NightAudit\DueAudits;
 use App\Services\NightAudit\PackageNightRespread;
 use App\Services\NightAudit\ReadinessAdvice;
 use App\Services\Reservations\ReservationFormOptions;
@@ -38,16 +39,16 @@ class NightAuditController extends Controller
     /**
      * The Run Night Audit sheet as JSON: the date, the blockers and warnings, and the audit progress.
      */
-    public function show(Request $request, Property $property, AuditReadiness $readiness, CurrentBusinessDate $currentBusinessDate, ReadinessAdvice $advice): JsonResponse
+    public function show(Request $request, Property $property, AuditReadiness $readiness, CurrentBusinessDate $currentBusinessDate, ReadinessAdvice $advice, DueAudits $dueAudits): JsonResponse
     {
-        return response()->json(NightAuditSheetData::forProperty($property, $readiness, $currentBusinessDate, $advice, $request->user()));
+        return response()->json(NightAuditSheetData::forProperty($property, $readiness, $currentBusinessDate, $advice, $dueAudits, $request->user()));
     }
 
     /**
-     * Queue the audit. A date with blockers is refused unless the run is forced, and a date that is already Auditing
-     * only resumes a Failed audit, which `RunNightAudit` checks.
+     * Queue the audit. A date with blockers is refused unless the run is forced, a date that has not ended is refused
+     * even when forced, and a date that is already Auditing only resumes a Failed audit, which `RunNightAudit` checks.
      */
-    public function run(RunNightAuditRequest $request, Property $property, AuditReadiness $readiness, CurrentBusinessDate $currentBusinessDate): JsonResponse
+    public function run(RunNightAuditRequest $request, Property $property, AuditReadiness $readiness, CurrentBusinessDate $currentBusinessDate, DueAudits $dueAudits): JsonResponse
     {
         $businessDate = $currentBusinessDate->get($property);
 
@@ -55,12 +56,18 @@ class NightAuditController extends Controller
             return $this->refused(__('This property has no business date yet.'));
         }
 
-        $gate = $request->boolean('force') ? null : $readiness->gate($property);
+        $gate = $readiness->gate($property, ignoreBlockers: $request->boolean('force'));
+
+        if ($gate === NightAuditResult::REFUSAL_BUSINESS_DATE_NOT_ENDED) {
+            $dueAt = $dueAudits->dueAt($property, $businessDate->date);
+
+            return $this->refused($dueAt === null
+                ? __(':date has not ended yet. Run the audit after midnight.', ['date' => $businessDate->date->format('j M')])
+                : __(':date has not ended yet. It closes automatically at :time on :day.', ['date' => $businessDate->date->format('j M'), 'time' => $dueAt->format('H:i'), 'day' => $dueAt->format('j M')]));
+        }
 
         if ($gate !== null) {
-            return $this->refused($gate === NightAuditResult::REFUSAL_BUSINESS_DATE_NOT_ENDED
-                ? __('The business date has not ended yet. Force close if you are sure.')
-                : __('Fix the items under "Fix before running" first.'));
+            return $this->refused(__('Fix the items under "Fix before running" first.'));
         }
 
         RunNightAuditJob::dispatch($property, AuditTrigger::Manual, $request->user(), $request->boolean('force'), $request->input('reason'));

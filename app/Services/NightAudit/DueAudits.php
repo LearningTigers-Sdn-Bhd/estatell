@@ -30,19 +30,33 @@ class DueAudits
             ->values();
     }
 
+    /**
+     * When the automatic audit of a business date is due: `audit_time` on the day after that date, on the property's
+     * clock. Null when the automatic audit is off.
+     */
+    public function dueAt(Property $property, CarbonImmutable $date): ?CarbonImmutable
+    {
+        $settings = $property->settings;
+
+        if ($settings === null || ! $settings->auto_audit_enabled) {
+            return null;
+        }
+
+        return CarbonImmutable::parse($date->toDateString(), $settings->time_zone)
+            ->addDay()
+            ->setTimeFromTimeString($settings->audit_time);
+    }
+
     private function isDue(Property $property, CarbonImmutable $now): bool
     {
         $businessDate = $property->businessDates->first();
-        $settings = $property->settings;
 
-        if ($businessDate === null || $settings === null || $businessDate->status !== BusinessDateStatus::Open) {
+        if ($businessDate === null || $businessDate->status !== BusinessDateStatus::Open) {
             return false;
         }
 
-        $dueAt = CarbonImmutable::parse($businessDate->date->toDateString(), $settings->time_zone)
-            ->addDay()
-            ->setTimeFromTimeString($settings->audit_time);
+        $dueAt = $this->dueAt($property, $businessDate->date);
 
-        return $now->greaterThanOrEqualTo($dueAt);
+        return $dueAt !== null && $now->greaterThanOrEqualTo($dueAt);
     }
 }

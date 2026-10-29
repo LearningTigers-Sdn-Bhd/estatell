@@ -151,24 +151,45 @@ When the nights not charged yet cannot cover their inclusions (here 9 and 10 Oct
 
 `AuditReadiness::gate()` says whether a run that would start the audit may go ahead. `RunNightAudit` and the run route both use it. A date that is already Auditing is under way, so nothing gates it.
 
-| Refusal                   | When                                                                                                                                                                             |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `business_date_not_ended` | The system date in the property time zone is not after the business date. The day has not ended, so closing it would put the business date ahead of the calendar. Checked first. |
-| `blocked_by_readiness`    | A blocker is open.                                                                                                                                                               |
+| Refusal                   | When                                                                                                                                                                             | Force skips it |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| `business_date_not_ended` | The system date in the property time zone is not after the business date. The day has not ended, so closing it would put the business date ahead of the calendar. Checked first. | **No**         |
+| `blocked_by_readiness`    | A blocker is open.                                                                                                                                                               | Yes            |
 
-A forced run (`night-audit.force` and a reason) skips both. A run that resumes a Failed audit is never gated. A scheduled run never forces, so it stops at either. The schedule runs after `audit_time` on the next day, so a scheduled run is never early.
+A forced run (`night-audit.force` and a reason) passes `ignoreBlockers` and skips only `blocked_by_readiness`. **No role can close a day before it has ended**, so the business date never runs ahead of the calendar. After any audit the new date is today, so a second audit on the same day is always refused. A property that is days behind still catches up with audits back to back. A run that resumes a Failed audit is never gated. A scheduled run never forces, so it stops at either. The schedule runs after `audit_time` on the next day, so a scheduled run is never early.
+
+The run route answers `business_date_not_ended` with the date and the next close: "29 Oct has not ended yet. It closes automatically at 00:00 on 30 Oct.", or "29 Oct has not ended yet. Run the audit after midnight." when the automatic audit is off.
+
+Why: on 29 Oct 2026 a hotel's automatic audit closed 28 Oct at 00:00. At 00:48 a staff member on the owner account forced a run, which closed 29 Oct, a day that had just started, and put the business date a day ahead. Force used to skip both refusals.
 
 ## The sheet
 
 Opened by the **Run Night Audit** button in the Operations group (shown to users with `night-audit.run` on a Live property). The nav item has an `action` and the sheet loads its data from `GET /p/{code}/night-audit` as JSON (`night-audit.show`), so nothing loads until it opens.
 
-| State     | What it shows                                                                                                                                                              | Buttons                  |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| Ready     | "Closes 12 Oct and opens 13 Oct". **Fix before running** (blockers), **Needs a look** (warnings), or "Everything is ready"                                                 | Cancel, **Run audit**    |
-| Blocked   | The same, with **Not over yet** first when the date has not ended. **Run audit** is disabled. Users with `night-audit.force` see **Force close…**, which asks for a reason | Cancel, **Force close**  |
-| Running   | The seven steps with their counts, refreshed every 3 seconds                                                                                                               | Close                    |
-| Failed    | The step it stopped at. Finished steps are kept                                                                                                                            | Cancel, **Resume audit** |
-| Completed | "Closed 12 Oct · now trading on 13 Oct", and "1 item needs a look" or "N items need a look"                                                                                | Done                     |
+| State     | What it shows                                                                                                                                                                                        | Buttons                  |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| Not ended | "Trading on 29 Oct". A notice of the last audit and the next close (below), then **Fix before running** and **Needs a look**, so staff can fix things during the day. No run and no force is offered | Close                    |
+| Ready     | "Closes 12 Oct and opens 13 Oct". **Fix before running** (blockers), **Needs a look** (warnings), or "Everything is ready"                                                                           | Cancel, **Run audit**    |
+| Blocked   | The same. **Run audit** is disabled. Users with `night-audit.force` see **Force close…**, which asks for a reason. Others read "Ask a manager to fix these or to force close."                       | Cancel, **Force close**  |
+| Running   | The seven steps with their counts, refreshed every 3 seconds                                                                                                                                         | Close                    |
+| Failed    | The step it stopped at. Finished steps are kept                                                                                                                                                      | Cancel, **Resume audit** |
+| Completed | "Closed 12 Oct · now trading on 13 Oct", and "1 item needs a look" or "N items need a look"                                                                                                          | Done                     |
+
+**Force close…** shows only when all four hold: the user has `night-audit.force`, the date is Open, the date has ended, and a blocker is open.
+
+The Not ended notice says what already happened and when the date closes, with no conditions:
+
+```
+✓ 28 Oct was closed automatically at 00:00.
+29 Oct is today's business date. It closes automatically at 00:00 on 30 Oct. You don't need to do anything.
+```
+
+A manual last audit reads "28 Oct was closed at 00:12 by Aisyah.". With the automatic audit off, the second line reads "Automatic audit is off. Run the audit after 00:00 on 30 Oct.". The data comes from `NightAuditSheetData`:
+
+| Field           | Content                                                                                                                                                                     |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lastAudit`     | `LastAuditData`: the last Completed audit's date, trigger, `runBy` (name, null for the scheduler), `forced`, and its completed day and time on the property's clock.        |
+| `nextAutoAudit` | `NextAutoAuditData`: the day and time the automatic audit closes the current date (`DueAudits::dueAt()`, the rule the schedule uses). Null when the automatic audit is off. |
 
 The sheet shows what its own run is doing until the audit of that date has finished, even before the queue picks the job up. A date that is Auditing when the sheet opens shows as Running or Failed.
 

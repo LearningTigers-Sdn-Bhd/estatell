@@ -44,7 +44,9 @@ export function useBusinessDate(): BusinessDateView {
 
     const view = deriveBusinessDateView(businessDate, now);
     const waitingForAudit =
-        view.state !== 'in-sync' && view.state !== 'not-live';
+        view.state === 'audit-pending' ||
+        view.state === 'auditing' ||
+        view.state === 'overdue';
 
     useEffect(() => {
         if (!waitingForAudit) {
