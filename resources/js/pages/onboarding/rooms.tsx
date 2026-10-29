@@ -1,28 +1,28 @@
-import { Head, router, setLayoutProps, useForm } from '@inertiajs/react';
-import { Layers, Plus, Rows3, Trash2, X } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { Head, router, setLayoutProps, useHttp } from '@inertiajs/react';
+import { Layers, Plus, Rows3, Trash2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import RoomController from '@/actions/App/Http/Controllers/Onboarding/RoomController';
 import Heading from '@/components/heading';
 import type { OnboardingLayoutProps } from '@/components/pms/onboarding/onboarding-steps';
+import { RoomGrid } from '@/components/pms/onboarding/room-grid';
+import type { RoomGridSection } from '@/components/pms/onboarding/room-grid';
+import { RoomTypePicker } from '@/components/pms/onboarding/room-type-picker';
 import { StepForm } from '@/components/pms/onboarding/step-form';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
+import {
+    AlertDialog,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { FieldError } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import {
-    Popover,
-    PopoverContent,
-    PopoverDescription,
-    PopoverTrigger,
-} from '@/components/ui/popover';
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
+import { Spinner } from '@/components/ui/spinner';
 import {
     Table,
     TableBody,
@@ -32,805 +32,708 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { toast } from '@/components/ui/toast';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
+import {
+    roomTypeColorClass,
+    roomTypeShortLabel,
+} from '@/lib/room-type-display';
 
-type RoomType = App.Data.Rooms.RoomTypeData;
-type Group = App.Data.Rooms.RoomGroupData;
-type Room = App.Data.Rooms.RoomData;
-type GroupRow = { key: string; id: number | null; name: string };
-type RangeRow = {
-    room_type_id: string;
-    group_key: string;
-    prefix: string;
-    from: string;
-    to: string;
-};
+type Tile = App.Data.Onboarding.OnboardingRoomTypeTileData;
+type SavedRoom = App.Data.Onboarding.OnboardingRoomData;
+type GroupRow = App.Data.Onboarding.OnboardingRoomGroupRowData;
+type Parsed = { numbers: string[]; repeated: string[]; error: string | null };
+type Pending = { numbers: string[]; parsed: Parsed[]; onSaved?: () => void };
 
 const FORM_ID = 'rooms-form';
 
-const countOf = (row: RangeRow) => {
-    if (!/^\d{1,6}$/.test(row.from) || !/^\d{1,6}$/.test(row.to)) {
-        return 0;
-    }
+const lower = (number: string) => number.toLowerCase();
 
-    return Math.max(0, Number(row.to) - Number(row.from) + 1);
-};
-
-const MAX_LIVE_NUMBERS = 1000;
-
-/** The room numbers a row would create, as the server builds them: prefix, then the number padded to the width of From. */
-const numbersOf = (row: RangeRow): string[] => {
-    const count = countOf(row);
-
-    if (count === 0 || count > MAX_LIVE_NUMBERS) {
-        return [];
-    }
-
-    return Array.from(
-        { length: count },
-        (_, offset) =>
-            `${row.prefix}${String(Number(row.from) + offset).padStart(row.from.length, '0')}`,
-    );
-};
-
-const summary = (numbers: string[]) =>
-    `${[...new Set(numbers)].slice(0, 3).join(', ')}${numbers.length > 3 ? ' …' : ''}`;
-
-/**
- * Live hints for the range rows while the owner types. This only shows what the server will also refuse, so the
- * message appears before saving. The server stays the judge: it also checks the maximum and numbers it holds that this
- * page does not list.
- */
-const liveRangeErrors = (
-    ranges: RangeRow[],
-    savedNumbers: string[],
-): Record<number, { from?: string; to?: string }> => {
-    const saved = new Set(savedNumbers.map((number) => number.toLowerCase()));
-    const firstSeen = new Map<string, number>();
-    const result: Record<number, { from?: string; to?: string }> = {};
-
-    ranges.forEach((row, index) => {
-        if (isBlank(row)) {
-            return;
-        }
-
-        const valid = /^\d{1,6}$/.test(row.from) && /^\d{1,6}$/.test(row.to);
-
-        if (valid && Number(row.to) < Number(row.from)) {
-            result[index] = {
-                to: 'The last number must not be lower than the first.',
-            };
-
-            return;
-        }
-
-        const numbers = numbersOf(row);
-        const repeated: string[] = [];
-        const taken: string[] = [];
-
-        numbers.forEach((number) => {
-            const key = number.toLowerCase();
-            const seenAt = firstSeen.get(key);
-
-            if (seenAt !== undefined && seenAt !== index) {
-                repeated.push(number);
-            }
-
-            if (saved.has(key)) {
-                taken.push(number);
-            }
-
-            if (seenAt === undefined) {
-                firstSeen.set(key, index);
-            }
-        });
-
-        if (repeated.length > 0) {
-            result[index] = {
-                from: `Also in another row: ${summary(repeated)}.`,
-            };
-        } else if (taken.length > 0) {
-            result[index] = { from: `Already in use: ${summary(taken)}.` };
-        }
-    });
-
-    return result;
-};
-
-const isBlank = (row: RangeRow) => !row.prefix && !row.from && !row.to;
+const plural = (count: number, word: string) =>
+    `${count} ${word}${count === 1 ? '' : 's'}`;
 
 export default function Rooms({
     roomTypes,
     groups,
+    parsed: savedParsed,
     rooms,
-    maxRanges,
+    hasSavedGroups,
     maxGroups,
+    maxBeds,
     locked,
     blockedBy,
 }: {
-    roomTypes: RoomType[];
-    groups: Group[];
-    rooms: Room[];
-    maxRanges: number;
+    roomTypes: Tile[];
+    groups: GroupRow[];
+    parsed: Parsed[];
+    rooms: SavedRoom[];
+    hasSavedGroups: boolean;
     maxGroups: number;
+    maxBeds: number;
     locked: boolean;
     blockedBy: { label: string; url: string | null } | null;
 }) {
-    const savedGroups = groups.length > 0;
     const counter = useRef(0);
-    const newKey = () => `new-${++counter.current}`;
-    const typeItems = roomTypes.map((roomType) => ({
-        value: String(roomType.id),
-        label: roomType.name,
-    }));
-
-    const [useGroups, setUseGroups] = useState(savedGroups);
-    const startingTypes = roomTypes.filter(
-        (roomType) => !rooms.some((room) => room.roomTypeId === roomType.id),
-    );
-    const firstKey = savedGroups ? `id-${groups[0].id}` : '';
-    const form = useForm<{ groups: GroupRow[]; ranges: RangeRow[] }>({
-        groups: groups.map((group) => ({
-            key: `id-${group.id}`,
-            id: group.id,
-            name: group.name,
-        })),
-        ranges: (startingTypes.length > 0
-            ? startingTypes
-            : [roomTypes[0]].filter(Boolean)
-        ).map((roomType) => ({
-            room_type_id: String(roomType.id),
-            group_key: firstKey,
-            prefix: '',
-            from: '',
-            to: '',
-        })),
+    const http = useHttp<{ groups: GroupRow[] }, { rows: Parsed[] }>({
+        groups,
     });
-    const guard = useUnsavedChanges(form.isDirty);
-    const { groups: groupRows, ranges } = form.data;
-    const errors = form.errors as Record<string, string | undefined>;
-    const hasRooms = rooms.length > 0;
+    const savedTypes = Object.fromEntries(
+        rooms.map((room) => [lower(room.number), room.roomTypeId]),
+    );
+    const savedBeds = Object.fromEntries(
+        rooms.map((room) => [lower(room.number), room.beds]),
+    );
+    const startingBeds = Object.fromEntries(
+        roomTypes
+            .filter((roomType) => roomType.sellUnit === 'bed')
+            .map((roomType) => [roomType.id, String(roomType.bedsPerRoom)]),
+    );
+    const [useGroups, setUseGroups] = useState(hasSavedGroups);
+    const [parsed, setParsed] = useState(savedParsed);
+    const [types, setTypes] = useState<Record<string, number>>(savedTypes);
+    const [beds, setBeds] = useState<Record<number, string>>(startingBeds);
+    const [selected, setSelected] = useState(roomTypes[0]?.id ?? 0);
+    const [anchor, setAnchor] = useState<{
+        section: string;
+        index: number;
+    } | null>(null);
+    const [marking, setMarking] = useState(false);
+    const [marked, setMarked] = useState<{
+        section: string;
+        number: string;
+    } | null>(null);
+    const [saving, setSaving] = useState(false);
+    const [errors, setErrors] = useState<Record<string, string>>({});
+    const [pending, setPending] = useState<Pending | null>(null);
+    const [confirming, setConfirming] = useState(false);
+    const dirty =
+        http.isDirty ||
+        useGroups !== hasSavedGroups ||
+        JSON.stringify(types) !== JSON.stringify(savedTypes) ||
+        JSON.stringify(beds) !== JSON.stringify(startingBeds);
+    const guard = useUnsavedChanges(dirty);
+    const rows = useGroups ? http.data.groups : http.data.groups.slice(0, 1);
 
     setLayoutProps<OnboardingLayoutProps>({
         step: 'rooms',
         footer: 'auto',
         formId: FORM_ID,
-        processing: form.processing,
+        processing: saving,
         width: '7xl',
     });
 
-    const groupName = (key: string) =>
-        groupRows.find((group) => group.key === key)?.name || 'New group';
+    const typeIndex = new Map(
+        roomTypes.map((roomType, index) => [roomType.id, index]),
+    );
+    const typeOf = (number: string) =>
+        types[lower(number)] ?? roomTypes[0]?.id ?? 0;
+    const tileOf = (id: number) => roomTypes[typeIndex.get(id) ?? 0];
+    const soldByBed = (id: number) => tileOf(id)?.sellUnit === 'bed';
+    const bedsOf = (number: string) =>
+        savedBeds[lower(number)] > 0
+            ? savedBeds[lower(number)]
+            : Number(beds[typeOf(number)] ?? 0);
 
-    const setRange = (index: number, values: Partial<RangeRow>) =>
-        form.setData(
-            'ranges',
-            ranges.map((row, position) =>
+    const sections: RoomGridSection[] = rows
+        .map((row, index) => {
+            const result = parsed[index];
+            const repeated = new Set((result?.repeated ?? []).map(lower));
+
+            return {
+                key: row.key,
+                title: useGroups
+                    ? row.name || `Group ${index + 1}`
+                    : 'All rooms',
+                rooms: (result?.numbers ?? []).map((number) => {
+                    const typeId = typeOf(number);
+                    const tile = tileOf(typeId);
+
+                    return {
+                        number,
+                        typeName: tile?.name ?? null,
+                        shortLabel: tile ? roomTypeShortLabel(tile.name) : '',
+                        colorClass: roomTypeColorClass(
+                            typeIndex.get(typeId) ?? 0,
+                        ),
+                        bedText: soldByBed(typeId)
+                            ? plural(bedsOf(number), 'bed')
+                            : null,
+                        repeated: repeated.has(lower(number)),
+                    };
+                }),
+            };
+        })
+        .filter((section) => section.rooms.length > 0);
+
+    const listed = sections.flatMap((section) =>
+        section.rooms.filter((room) => !room.repeated),
+    );
+    const tiles = roomTypes.map((roomType, index) => {
+        const ofType = listed.filter(
+            (room) => typeOf(room.number) === roomType.id,
+        );
+
+        return {
+            id: roomType.id,
+            name: roomType.name,
+            shortLabel: roomTypeShortLabel(roomType.name),
+            colorClass: roomTypeColorClass(index),
+            soldByBed: roomType.sellUnit === 'bed',
+            rooms: ofType.length,
+            beds: ofType.reduce((sum, room) => sum + bedsOf(room.number), 0),
+        };
+    });
+    const total = parsed
+        .slice(0, rows.length)
+        .reduce((sum, result) => sum + (result?.numbers.length ?? 0), 0);
+
+    const previewKey = JSON.stringify([
+        useGroups,
+        rows.map((row) => row.numbers),
+    ]);
+    const previewedKey = useRef(previewKey);
+
+    const preview = () =>
+        new Promise<Parsed[]>((resolve) => {
+            previewedKey.current = previewKey;
+            http.transform((data) => ({
+                rows: (useGroups ? data.groups : data.groups.slice(0, 1)).map(
+                    (row) => ({ numbers: row.numbers }),
+                ),
+            }));
+            http.post(RoomController.preview.url(), {
+                onSuccess: (response) => {
+                    setParsed(response.rows);
+                    resolve(response.rows);
+                },
+            }).catch(() => resolve(parsed));
+        });
+
+    useEffect(() => {
+        if (previewedKey.current === previewKey || locked) {
+            return;
+        }
+
+        const timer = window.setTimeout(() => void preview(), 300);
+
+        return () => window.clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [previewKey]);
+
+    const setRow = (index: number, values: Partial<GroupRow>) =>
+        http.setData(
+            'groups',
+            http.data.groups.map((row, position) =>
                 position === index ? { ...row, ...values } : row,
             ),
         );
 
-    const setGroup = (index: number, name: string) =>
-        form.setData(
+    const addRow = () => {
+        http.setData('groups', [
+            ...http.data.groups,
+            {
+                key: `new-${++counter.current}`,
+                id: null,
+                name: '',
+                numbers: '',
+            },
+        ]);
+        setParsed([...parsed, { numbers: [], repeated: [], error: null }]);
+    };
+
+    const removeRow = (index: number) => {
+        http.setData(
             'groups',
-            groupRows.map((row, position) =>
-                position === index ? { ...row, name } : row,
-            ),
+            http.data.groups.filter((_, position) => position !== index),
         );
+        setParsed(parsed.filter((_, position) => position !== index));
+        setErrors({});
+    };
 
-    const changeMode = (value: string) => {
-        const on = value === 'groups';
-
+    const changeMode = (on: boolean) => {
         if (on === useGroups) {
             return;
         }
 
-        setUseGroups(on);
-        form.clearErrors();
-
         if (!on) {
+            const numbers = http.data.groups
+                .map((row) => row.numbers.trim())
+                .filter(Boolean)
+                .join(', ');
+
+            http.setData('groups', [{ ...http.data.groups[0], numbers }]);
+        }
+
+        setUseGroups(on);
+        setErrors({});
+    };
+
+    /** Give the rooms a type. A saved room with beds keeps a bed-sold type, so it is left out with a toast. */
+    const assign = (numbers: string[], typeId: number) => {
+        const refused = numbers.filter(
+            (number) => savedBeds[lower(number)] > 0 && !soldByBed(typeId),
+        );
+
+        if (refused.length > 0) {
+            toast.add({
+                title: `${refused[0]} has beds. Pick a type sold by bed.`,
+                type: 'error',
+            });
+        }
+
+        setTypes((current) => ({
+            ...current,
+            ...Object.fromEntries(
+                numbers
+                    .filter((number) => !refused.includes(number))
+                    .map((number) => [lower(number), typeId]),
+            ),
+        }));
+    };
+
+    const runOf = (sectionKey: string, from: number, to: number) => {
+        const section = sections.find((item) => item.key === sectionKey);
+
+        return (section?.rooms ?? [])
+            .slice(Math.min(from, to), Math.max(from, to) + 1)
+            .filter((room) => !room.repeated)
+            .map((room) => room.number);
+    };
+
+    const clickRoom = (sectionKey: string, index: number, shift: boolean) => {
+        const section = sections.find((item) => item.key === sectionKey);
+        const number = section?.rooms[index]?.number;
+
+        if (number === undefined) {
             return;
         }
 
-        const rowsForGroups =
-            groupRows.length > 0
-                ? groupRows
-                : [{ key: newKey(), id: null, name: '' }];
-        const first = rowsForGroups[0].key;
+        if (marking) {
+            if (marked === null || marked.section !== sectionKey) {
+                setMarked({ section: sectionKey, number });
 
-        form.setData({
-            groups: rowsForGroups,
-            ranges: ranges.map((row) => ({
-                ...row,
-                group_key: row.group_key || first,
-            })),
-        });
+                return;
+            }
+
+            const start = section!.rooms.findIndex(
+                (room) => room.number === marked.number,
+            );
+
+            assign(runOf(sectionKey, start, index), selected);
+            setMarked(null);
+            setMarking(false);
+        } else if (shift && anchor !== null && anchor.section === sectionKey) {
+            assign(runOf(sectionKey, anchor.index, index), selected);
+        } else {
+            assign([number], selected);
+        }
+
+        setAnchor({ section: sectionKey, index });
     };
 
-    const removeGroup = (index: number) => {
-        const { key } = groupRows[index];
+    const submit = (fresh: Parsed[], onSaved?: () => void) => {
+        const numbers = fresh.flatMap((result) => result.numbers);
 
-        form.setData({
-            groups: groupRows.filter((_, position) => position !== index),
-            ranges: ranges.map((row) =>
-                row.group_key === key ? { ...row, group_key: '' } : row,
-            ),
-        });
-        form.clearErrors();
-    };
-
-    const removeRange = (index: number) => {
-        form.setData(
-            'ranges',
-            ranges.filter((_, position) => position !== index),
+        router.put(
+            RoomController.update.url(),
+            {
+                use_groups: useGroups,
+                groups: rows,
+                types: numbers.map((number) => ({
+                    number,
+                    room_type_id: typeOf(number),
+                })),
+                beds_per_room: beds,
+            },
+            {
+                preserveScroll: true,
+                onStart: () => setSaving(true),
+                onFinish: () => setSaving(false),
+                onSuccess: () => {
+                    setErrors({});
+                    http.setDefaults();
+                    onSaved?.();
+                },
+                onError: (next) => {
+                    setErrors(next);
+                    guard.stay();
+                },
+            },
         );
-        form.clearErrors();
     };
 
-    const save = (onSuccess?: () => void) => {
-        form.transform((data) => ({
-            use_groups: useGroups,
-            groups: useGroups ? data.groups : [],
-            ranges: data.ranges,
-        }));
-        form.put(RoomController.update.url(), {
-            preserveScroll: true,
-            onSuccess,
-        });
+    /** Parse the rows once more, then ask first when saved rooms will be archived. */
+    const save = async (onSaved?: () => void) => {
+        if (locked) {
+            return;
+        }
+
+        const fresh = await preview();
+        const kept = new Set(
+            fresh.flatMap((result) => result.numbers).map(lower),
+        );
+        const archived = rooms
+            .map((room) => room.number)
+            .filter((number) => !kept.has(lower(number)));
+
+        if (archived.length > 0) {
+            setPending({ numbers: archived, parsed: fresh, onSaved });
+            setConfirming(true);
+
+            return;
+        }
+
+        submit(fresh, onSaved);
     };
 
-    const filled = ranges.filter((row) => !isBlank(row));
-    const live = liveRangeErrors(
-        ranges,
-        rooms.map((room) => room.number),
+    const bedErrors = Object.fromEntries(
+        roomTypes.map((roomType) => [
+            roomType.id,
+            errors[`beds_per_room.${roomType.id}`],
+        ]),
     );
-    const total = filled.reduce((sum, row) => sum + countOf(row), 0);
-    const onlyRange = ranges.length === 1 && !hasRooms;
-    const lastGroup = groupRows.length === 1;
-    const roomSections = useGroups
-        ? groups.map((group) => ({
-              id: group.id,
-              title: group.name,
-              rooms: rooms.filter((room) => room.roomGroupId === group.id),
-          }))
-        : [{ id: 0, title: '', rooms }];
+    const groupsToggle = (
+        <ToggleGroup
+            variant="outline"
+            spacing={0}
+            value={[useGroups ? 'groups' : 'none']}
+            onValueChange={(value) =>
+                value[0] && changeMode(value[0] === 'groups')
+            }
+            aria-label="Room groups"
+            disabled={hasSavedGroups || locked}
+        >
+            <ToggleGroupItem value="none">
+                <Rows3 data-icon="inline-start" />
+                No groups
+            </ToggleGroupItem>
+            <ToggleGroupItem value="groups">
+                <Layers data-icon="inline-start" />
+                Use groups
+            </ToggleGroupItem>
+        </ToggleGroup>
+    );
+    const onlyRow = rows.length === 1;
 
     return (
         <>
             <Head title="Rooms" />
             <Heading
                 title="Rooms"
-                description="Which rooms do you have? Enter each run of room numbers once."
+                description="Which rooms do you have, and what type is each one?"
             />
             <StepForm
                 id={FORM_ID}
                 locked={locked}
                 blockedBy={blockedBy}
-                error={errors.onboarding ?? errors.ranges ?? null}
+                error={errors.onboarding ?? errors.groups ?? null}
                 onSubmit={(event) => {
                     event.preventDefault();
-                    save();
+                    void save();
                 }}
             >
                 <section
-                    className="flex flex-col gap-2"
-                    aria-labelledby="room-groups"
+                    className="flex flex-col gap-3"
+                    aria-labelledby="room-numbers"
                 >
-                    <h3 id="room-groups" className="text-base font-medium">
-                        Room groups
-                    </h3>
-                    <ToggleGroup
-                        variant="outline"
-                        spacing={0}
-                        value={[useGroups ? 'groups' : 'none']}
-                        onValueChange={(value) =>
-                            value[0] &&
-                            changeMode(value[0] === 'groups' ? 'groups' : '')
-                        }
-                        aria-label="Room groups"
-                        disabled={savedGroups}
-                        className="w-fit"
-                    >
-                        <ToggleGroupItem value="none">
-                            <Rows3 data-icon="inline-start" />
-                            No groups
-                        </ToggleGroupItem>
-                        <ToggleGroupItem value="groups">
-                            <Layers data-icon="inline-start" />
-                            Use groups
-                        </ToggleGroupItem>
-                    </ToggleGroup>
-                    {savedGroups && (
-                        <p className="text-sm text-muted-foreground">
-                            After you go live, you can remove groups in
-                            Settings, under Rooms.
-                        </p>
-                    )}
-                </section>
-
-                {useGroups && (
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="flex flex-col gap-1">
+                            <h3
+                                id="room-numbers"
+                                className="text-base font-medium"
+                            >
+                                Room numbers
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                                One row per floor, wing or block. Dash for a
+                                range, comma between parts.
+                            </p>
+                        </div>
+                        {hasSavedGroups ? (
+                            <Tooltip>
+                                <TooltipTrigger
+                                    render={
+                                        <span
+                                            tabIndex={0}
+                                            className="inline-flex"
+                                        />
+                                    }
+                                >
+                                    {groupsToggle}
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    After you go live, you can remove groups in
+                                    Settings, under Rooms.
+                                </TooltipContent>
+                            </Tooltip>
+                        ) : (
+                            groupsToggle
+                        )}
+                    </div>
                     <div className="overflow-hidden rounded-lg border">
                         <Table>
                             <TableHeader className="max-md:hidden">
                                 <TableRow>
-                                    <TableHead>Group name</TableHead>
+                                    {useGroups && (
+                                        <TableHead className="w-56">
+                                            Group
+                                        </TableHead>
+                                    )}
+                                    <TableHead>Room numbers</TableHead>
+                                    <TableHead className="w-20 text-right">
+                                        Rooms
+                                    </TableHead>
                                     <TableHead className="w-12">
                                         <span className="sr-only">Actions</span>
                                     </TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {groupRows.map((row, index) => (
-                                    <TableRow key={row.key}>
-                                        <TableCell className="align-top">
-                                            <Input
-                                                aria-label={`Name of group ${index + 1}`}
-                                                placeholder="e.g. Ground floor"
-                                                maxLength={100}
-                                                readOnly={row.id !== null}
-                                                value={row.name}
-                                                onChange={(event) =>
-                                                    setGroup(
-                                                        index,
-                                                        event.target.value,
-                                                    )
-                                                }
-                                                aria-invalid={
-                                                    !!errors[
-                                                        `groups.${index}.name`
-                                                    ]
-                                                }
-                                            />
-                                            <FieldError>
-                                                {errors[`groups.${index}.name`]}
-                                            </FieldError>
-                                        </TableCell>
-                                        <TableCell className="align-top">
-                                            {row.id === null && (
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="icon-sm"
-                                                    aria-label={`Remove ${row.name || `group ${index + 1}`}`}
-                                                    disabled={lastGroup}
-                                                    focusableWhenDisabled
-                                                    onClick={() =>
-                                                        removeGroup(index)
-                                                    }
-                                                >
-                                                    <Trash2 />
-                                                </Button>
+                                {rows.map((row, index) => {
+                                    const result = parsed[index];
+                                    const numbersError =
+                                        errors[`groups.${index}.numbers`] ??
+                                        result?.error ??
+                                        undefined;
+
+                                    return (
+                                        <TableRow
+                                            key={row.key}
+                                            className="max-md:grid max-md:grid-cols-2 max-md:gap-3 max-md:p-3"
+                                        >
+                                            {useGroups && (
+                                                <TableCell className="align-top max-md:col-span-2 max-md:p-0">
+                                                    <Input
+                                                        aria-label={`Name of group ${index + 1}`}
+                                                        placeholder="e.g. Floor 1"
+                                                        maxLength={100}
+                                                        disabled={locked}
+                                                        value={row.name}
+                                                        onChange={(event) =>
+                                                            setRow(index, {
+                                                                name: event
+                                                                    .target
+                                                                    .value,
+                                                            })
+                                                        }
+                                                        aria-invalid={
+                                                            !!errors[
+                                                                `groups.${index}.name`
+                                                            ]
+                                                        }
+                                                    />
+                                                    <FieldError>
+                                                        {
+                                                            errors[
+                                                                `groups.${index}.name`
+                                                            ]
+                                                        }
+                                                    </FieldError>
+                                                </TableCell>
                                             )}
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
+                                            <TableCell className="align-top max-md:col-span-2 max-md:p-0">
+                                                <Input
+                                                    aria-label={`Room numbers of ${useGroups ? row.name || `group ${index + 1}` : 'all rooms'}`}
+                                                    placeholder="e.g. 202-216, 218-234"
+                                                    maxLength={2000}
+                                                    disabled={locked}
+                                                    value={row.numbers}
+                                                    onChange={(event) =>
+                                                        setRow(index, {
+                                                            numbers:
+                                                                event.target
+                                                                    .value,
+                                                        })
+                                                    }
+                                                    aria-invalid={
+                                                        !!numbersError
+                                                    }
+                                                />
+                                                <FieldError>
+                                                    {numbersError}
+                                                </FieldError>
+                                            </TableCell>
+                                            <TableCell className="text-right align-top tabular-nums max-md:p-0 max-md:text-left md:pt-4">
+                                                {result?.error
+                                                    ? '—'
+                                                    : (result?.numbers.length ??
+                                                      0)}
+                                            </TableCell>
+                                            <TableCell className="align-top max-md:p-0">
+                                                <div className="flex justify-end">
+                                                    {row.id === null && (
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="icon-sm"
+                                                            aria-label={`Remove ${row.name || `group ${index + 1}`}`}
+                                                            disabled={
+                                                                onlyRow ||
+                                                                locked
+                                                            }
+                                                            focusableWhenDisabled
+                                                            onClick={() =>
+                                                                removeRow(index)
+                                                            }
+                                                        >
+                                                            <Trash2 />
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })}
                             </TableBody>
                             <TableFooter>
                                 <TableRow>
-                                    <TableCell colSpan={2}>
+                                    <TableCell colSpan={useGroups ? 4 : 3}>
                                         <div className="flex flex-wrap items-center justify-between gap-2">
-                                            <FieldError>
-                                                {errors.groups}
-                                            </FieldError>
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                className="ml-auto"
-                                                disabled={
-                                                    groupRows.length >=
-                                                    maxGroups
-                                                }
-                                                focusableWhenDisabled
-                                                onClick={() =>
-                                                    form.setData('groups', [
-                                                        ...groupRows,
-                                                        {
-                                                            key: newKey(),
-                                                            id: null,
-                                                            name: '',
-                                                        },
-                                                    ])
-                                                }
-                                            >
-                                                <Plus data-icon="inline-start" />
-                                                Add group
-                                            </Button>
+                                            <span className="text-sm">
+                                                Total: {plural(total, 'room')}
+                                            </span>
+                                            {useGroups && (
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    disabled={
+                                                        rows.length >=
+                                                            maxGroups || locked
+                                                    }
+                                                    focusableWhenDisabled
+                                                    onClick={addRow}
+                                                >
+                                                    <Plus data-icon="inline-start" />
+                                                    Add group
+                                                </Button>
+                                            )}
                                         </div>
                                     </TableCell>
                                 </TableRow>
                             </TableFooter>
                         </Table>
                     </div>
-                )}
-
-                <div className="overflow-hidden rounded-lg border">
-                    <Table>
-                        <TableHeader className="max-md:hidden">
-                            <TableRow>
-                                <TableHead>Room type</TableHead>
-                                {useGroups && <TableHead>Group</TableHead>}
-                                <TableHead>Prefix</TableHead>
-                                <TableHead>From</TableHead>
-                                <TableHead>To</TableHead>
-                                <TableHead className="text-right">
-                                    Rooms
-                                </TableHead>
-                                <TableHead className="w-12">
-                                    <span className="sr-only">Actions</span>
-                                </TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {ranges.map((row, index) => (
-                                <TableRow
-                                    key={index}
-                                    className="max-md:grid max-md:grid-cols-3 max-md:gap-3 max-md:p-3"
-                                >
-                                    <TableCell className="align-top max-md:col-span-3 max-md:p-0">
-                                        <span className="mb-1 block text-xs text-muted-foreground md:hidden">
-                                            Room type
-                                        </span>
-                                        <Select
-                                            items={typeItems}
-                                            value={row.room_type_id}
-                                            onValueChange={(value) =>
-                                                setRange(index, {
-                                                    room_type_id:
-                                                        value as string,
-                                                })
-                                            }
-                                        >
-                                            <SelectTrigger
-                                                className="w-56 max-w-full"
-                                                aria-label={`Room type of range ${index + 1}`}
-                                                aria-invalid={
-                                                    !!errors[
-                                                        `ranges.${index}.room_type_id`
-                                                    ]
-                                                }
-                                            >
-                                                <SelectValue placeholder="Choose a room type" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectGroup>
-                                                    {typeItems.map((item) => (
-                                                        <SelectItem
-                                                            key={item.value}
-                                                            value={item.value}
-                                                        >
-                                                            {item.label}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectGroup>
-                                            </SelectContent>
-                                        </Select>
-                                        <FieldError>
-                                            {
-                                                errors[
-                                                    `ranges.${index}.room_type_id`
-                                                ]
-                                            }
-                                        </FieldError>
-                                    </TableCell>
-                                    {useGroups && (
-                                        <TableCell className="align-top max-md:col-span-3 max-md:p-0">
-                                            <span className="mb-1 block text-xs text-muted-foreground md:hidden">
-                                                Group
-                                            </span>
-                                            <Select
-                                                items={groupRows.map(
-                                                    (group) => ({
-                                                        value: group.key,
-                                                        label:
-                                                            group.name ||
-                                                            'New group',
-                                                    }),
-                                                )}
-                                                value={row.group_key}
-                                                onValueChange={(value) =>
-                                                    setRange(index, {
-                                                        group_key:
-                                                            value as string,
-                                                    })
-                                                }
-                                            >
-                                                <SelectTrigger
-                                                    className="w-44 max-w-full"
-                                                    aria-label={`Group of range ${index + 1}`}
-                                                    aria-invalid={
-                                                        !!errors[
-                                                            `ranges.${index}.group_key`
-                                                        ]
-                                                    }
-                                                >
-                                                    <SelectValue placeholder="Choose a group" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectGroup>
-                                                        {groupRows.map(
-                                                            (group) => (
-                                                                <SelectItem
-                                                                    key={
-                                                                        group.key
-                                                                    }
-                                                                    value={
-                                                                        group.key
-                                                                    }
-                                                                >
-                                                                    {group.name ||
-                                                                        'New group'}
-                                                                </SelectItem>
-                                                            ),
-                                                        )}
-                                                    </SelectGroup>
-                                                </SelectContent>
-                                            </Select>
-                                            <FieldError>
-                                                {
-                                                    errors[
-                                                        `ranges.${index}.group_key`
-                                                    ]
-                                                }
-                                            </FieldError>
-                                        </TableCell>
-                                    )}
-                                    <TableCell className="align-top max-md:p-0">
-                                        <span className="mb-1 block text-xs text-muted-foreground md:hidden">
-                                            Prefix
-                                        </span>
-                                        <Input
-                                            aria-label={`Prefix of range ${index + 1}`}
-                                            placeholder={
-                                                index === 0 ? 'e.g. G' : ''
-                                            }
-                                            maxLength={10}
-                                            className="w-24"
-                                            value={row.prefix}
-                                            onChange={(event) =>
-                                                setRange(index, {
-                                                    prefix: event.target.value,
-                                                })
-                                            }
-                                            aria-invalid={
-                                                !!errors[
-                                                    `ranges.${index}.prefix`
-                                                ]
-                                            }
-                                        />
-                                        <FieldError>
-                                            {errors[`ranges.${index}.prefix`]}
-                                        </FieldError>
-                                    </TableCell>
-                                    <TableCell className="align-top max-md:p-0">
-                                        <span className="mb-1 block text-xs text-muted-foreground md:hidden">
-                                            From
-                                        </span>
-                                        <Input
-                                            aria-label={`First number of range ${index + 1}`}
-                                            inputMode="numeric"
-                                            placeholder={
-                                                index === 0 ? 'e.g. 101' : ''
-                                            }
-                                            maxLength={6}
-                                            className="w-24"
-                                            value={row.from}
-                                            onChange={(event) =>
-                                                setRange(index, {
-                                                    from: event.target.value,
-                                                })
-                                            }
-                                            aria-invalid={
-                                                !!(
-                                                    live[index]?.from ??
-                                                    errors[
-                                                        `ranges.${index}.from`
-                                                    ]
-                                                )
-                                            }
-                                        />
-                                        <FieldError>
-                                            {live[index]?.from ??
-                                                errors[`ranges.${index}.from`]}
-                                        </FieldError>
-                                    </TableCell>
-                                    <TableCell className="align-top max-md:p-0">
-                                        <span className="mb-1 block text-xs text-muted-foreground md:hidden">
-                                            To
-                                        </span>
-                                        <Input
-                                            aria-label={`Last number of range ${index + 1}`}
-                                            inputMode="numeric"
-                                            placeholder={
-                                                index === 0 ? 'e.g. 110' : ''
-                                            }
-                                            maxLength={6}
-                                            className="w-24"
-                                            value={row.to}
-                                            onChange={(event) =>
-                                                setRange(index, {
-                                                    to: event.target.value,
-                                                })
-                                            }
-                                            aria-invalid={
-                                                !!(
-                                                    live[index]?.to ??
-                                                    errors[`ranges.${index}.to`]
-                                                )
-                                            }
-                                        />
-                                        <FieldError>
-                                            {live[index]?.to ??
-                                                errors[`ranges.${index}.to`]}
-                                        </FieldError>
-                                    </TableCell>
-                                    <TableCell className="text-right align-top tabular-nums max-md:p-0 max-md:text-left">
-                                        <span className="mb-1 block text-xs text-muted-foreground md:hidden">
-                                            Rooms
-                                        </span>
-                                        <span className="inline-block pt-2">
-                                            {countOf(row)}
-                                        </span>
-                                    </TableCell>
-                                    <TableCell className="align-top max-md:col-span-3 max-md:p-0">
-                                        <div className="flex justify-end">
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon-sm"
-                                                aria-label={`Remove range ${index + 1}`}
-                                                disabled={onlyRange}
-                                                focusableWhenDisabled
-                                                onClick={() =>
-                                                    removeRange(index)
-                                                }
-                                            >
-                                                <Trash2 />
-                                            </Button>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                        <TableFooter>
-                            <TableRow>
-                                <TableCell
-                                    colSpan={useGroups ? 7 : 6}
-                                    className="max-md:block"
-                                >
-                                    <div className="flex flex-wrap items-center justify-between gap-2">
-                                        <span className="text-sm">
-                                            New rooms: {total}
-                                        </span>
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            disabled={
-                                                ranges.length >= maxRanges
-                                            }
-                                            focusableWhenDisabled
-                                            onClick={() =>
-                                                form.setData('ranges', [
-                                                    ...ranges,
-                                                    {
-                                                        room_type_id: '',
-                                                        group_key: useGroups
-                                                            ? groupRows[0].key
-                                                            : '',
-                                                        prefix: '',
-                                                        from: '',
-                                                        to: '',
-                                                    },
-                                                ])
-                                            }
-                                        >
-                                            <Plus data-icon="inline-start" />
-                                            Add range
-                                        </Button>
-                                    </div>
-                                </TableCell>
-                            </TableRow>
-                        </TableFooter>
-                    </Table>
-                </div>
-
-                {filled.some((row) => countOf(row) > 0) && (
                     <p className="text-sm text-muted-foreground">
-                        <span className="font-medium text-foreground">
-                            Preview
-                        </span>{' '}
-                        {filled
-                            .filter((row) => countOf(row) > 0)
-                            .map(
-                                (row) =>
-                                    `${useGroups ? `${groupName(row.group_key)} ` : ''}${row.prefix}${row.from} … ${row.prefix}${row.to}`,
-                            )
-                            .join(' · ')}
+                        Examples: 101-110 · 202-216, 218-234 · G1-G4 · Villa 3 ·
+                        01-08
                     </p>
-                )}
+                </section>
 
-                {hasRooms && (
-                    <section
-                        className="flex flex-col gap-3"
-                        aria-labelledby="saved-rooms"
-                    >
-                        <h3 id="saved-rooms" className="text-base font-medium">
-                            Saved rooms ({rooms.length})
+                <Separator />
+
+                <section
+                    className="flex flex-col gap-3"
+                    aria-labelledby="room-types"
+                >
+                    <div className="flex flex-col gap-1">
+                        <h3 id="room-types" className="text-base font-medium">
+                            Room types
                         </h3>
-                        {roomSections.map((section) => (
-                            <div
-                                key={section.id}
-                                className="flex flex-col gap-2"
-                            >
-                                {section.title !== '' && (
-                                    <h4 className="text-sm text-muted-foreground">
-                                        {section.title}
-                                    </h4>
-                                )}
-                                <ul className="flex flex-wrap gap-2">
-                                    {section.rooms.map((room) => (
-                                        <li key={room.id}>
-                                            <Popover>
-                                                <PopoverTrigger
-                                                    render={
-                                                        <Button
-                                                            type="button"
-                                                            variant="outline"
-                                                            size="sm"
-                                                            aria-label={`Remove room ${room.number}`}
-                                                        />
-                                                    }
-                                                >
-                                                    {room.number}
-                                                    <X data-icon="inline-end" />
-                                                </PopoverTrigger>
-                                                <PopoverContent
-                                                    align="start"
-                                                    className="w-64"
-                                                >
-                                                    <PopoverDescription>
-                                                        Remove room{' '}
-                                                        {room.number}?
-                                                    </PopoverDescription>
-                                                    <Button
-                                                        type="button"
-                                                        variant="destructive"
-                                                        size="sm"
-                                                        onClick={() =>
-                                                            router.delete(
-                                                                RoomController.destroy.url(
-                                                                    {
-                                                                        room: room.id,
-                                                                    },
-                                                                ),
-                                                                {
-                                                                    preserveScroll: true,
-                                                                },
-                                                            )
-                                                        }
-                                                    >
-                                                        Remove
-                                                    </Button>
-                                                </PopoverContent>
-                                            </Popover>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        ))}
-                    </section>
-                )}
-
-                <p className="text-sm text-muted-foreground">
-                    After you go live, you can add floors, suffixes and more
-                    rooms in Settings, under Rooms.
-                </p>
+                        <p className="text-sm text-muted-foreground">
+                            Pick a type, then click rooms. Shift-click marks
+                            every room between.
+                        </p>
+                    </div>
+                    <RoomTypePicker
+                        tiles={tiles}
+                        value={selected}
+                        onValueChange={setSelected}
+                        bedsPerRoom={beds}
+                        onBedsPerRoomChange={(id, value) =>
+                            setBeds((current) => ({ ...current, [id]: value }))
+                        }
+                        bedErrors={bedErrors}
+                        maxBeds={maxBeds}
+                        disabled={locked}
+                    />
+                    <div className="flex flex-wrap justify-end gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            aria-pressed={marking}
+                            disabled={locked || listed.length === 0}
+                            focusableWhenDisabled
+                            onClick={() => {
+                                setMarking(!marking);
+                                setMarked(null);
+                            }}
+                        >
+                            {marking ? 'Tap the last room' : 'Mark a run'}
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            disabled={locked || listed.length === 0}
+                            focusableWhenDisabled
+                            onClick={() =>
+                                assign(
+                                    listed.map((room) => room.number),
+                                    selected,
+                                )
+                            }
+                        >
+                            Set all to selected type
+                        </Button>
+                    </div>
+                    {sections.length > 0 ? (
+                        <RoomGrid
+                            sections={sections}
+                            marked={marked}
+                            disabled={locked}
+                            onRoomClick={clickRoom}
+                        />
+                    ) : (
+                        <p className="text-sm text-muted-foreground">
+                            Rooms show here once you enter their numbers.
+                        </p>
+                    )}
+                </section>
             </StepForm>
+            <AlertDialog open={confirming} onOpenChange={setConfirming}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>
+                            Archive{' '}
+                            {plural(pending?.numbers.length ?? 0, 'room')}?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Save archives{' '}
+                            {plural(pending?.numbers.length ?? 0, 'room')}:{' '}
+                            {pending?.numbers.join(', ')}.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            disabled={saving}
+                            focusableWhenDisabled
+                            onClick={() => {
+                                if (pending !== null) {
+                                    submit(pending.parsed, pending.onSaved);
+                                }
+
+                                setConfirming(false);
+                            }}
+                        >
+                            {saving && <Spinner />}
+                            Save and archive
+                        </Button>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
             <UnsavedChangesDialog
                 guard={guard}
                 name="Rooms"
-                saving={form.processing}
-                onSave={() => save(guard.proceed)}
+                saving={saving}
+                onSave={() => void save(guard.proceed)}
             />
         </>
     );

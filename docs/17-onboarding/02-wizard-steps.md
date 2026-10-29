@@ -233,15 +233,15 @@ Two plain sections, one after the other: **Room numbers** and **Room types**. Ea
 
 **Returning to the step**
 
-- Saved rooms load into their group rows. The server sends each row's numbers as text, with runs of numbers joined into ranges (`102-134`), and each room's type.
+- Saved rooms load into their group rows. The server sends each row's numbers as text, with runs of numbers joined into ranges (`102-134`), and each room's type. With groups, active rooms that have no group load as a last row with no name; it needs a name on save.
 - The numbers field is the full list for the group. Removing a saved number archives that room on save (`ArchiveRoom`). Moving a saved number to another row changes its group. Save asks first when rooms will be archived (AlertDialog: "Save archives 3 rooms: 105, 106, 107.").
-- A saved room's type can change on the grid until go-live, through the guards of `UpdateRoom`.
+- A saved room's type can change on the grid until go-live, through the guards of `RoomRequest` (see [Changing a room's type](../05-rooms/02-rooms-and-groups.md#changing-a-rooms-type)). `SaveRoomsRequest` runs them and shows the refusal on the room's row.
 - Saved groups stay as rows and cannot be removed here, so a property that has groups always uses groups.
 
 **Save and check**
 
 - One submit, one transaction (`SaveOnboardingRooms` through `SaveRoomsRequest`): create or rename the groups, archive removed rooms, create new rooms with their type and group (`GenerateRooms`), change type or group of saved rooms (`UpdateRoom`), then `GenerateBeds` with Beds per room for every room of a bed-sold type that has no active bed. A refusal rolls everything back and shows an error toast.
-- `SaveRoomsRequest`: `use_groups`; `groups` with a row `key`, `id`, `name` and `numbers`; `types` with a room `number` and `room_type_id`; `beds_per_room` keyed by bed-sold `room_type_id`. Errors show per row (`groups.{n}.numbers`, `groups.{n}.name`, `beds_per_room.{id}`). A number taken between the preview and the save shows on its row.
+- `SaveRoomsRequest`: `use_groups`; `groups` with a row `key`, `id`, `name` and `numbers`; `types` with a room `number` and `room_type_id`; `beds_per_room` keyed by bed-sold `room_type_id`. Errors show per row (`groups.{n}.numbers`, `groups.{n}.name`, `beds_per_room.{id}`). At least one room number is needed. The save matches typed numbers to the saved rooms, so no number is taken by another room; if `GenerateRooms` still finds one, nothing is saved and an error toast shows.
 - The server parses the numbers again on save. It never trusts the preview.
 - Check: Done when every active room type (sold by room or by bed) has at least one active room and every room of a bed-sold type has at least one active bed. In progress when some do. Not started when none do.
 

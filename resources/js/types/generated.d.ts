@@ -1724,6 +1724,17 @@ value: string,
 label: string,
 description: string,
 };
+export type OnboardingRoomData = {
+number: string,
+roomTypeId: number,
+beds: number,
+};
+export type OnboardingRoomGroupRowData = {
+key: string,
+id: number | null,
+name: string,
+numbers: string,
+};
 export type OnboardingRoomTypeData = {
 id: number,
 name: string,
@@ -1731,6 +1742,12 @@ sellUnit: App.Enums.SellUnit,
 maxAdults: number,
 maxChildren: number,
 hasRooms: boolean,
+};
+export type OnboardingRoomTypeTileData = {
+id: number,
+name: string,
+sellUnit: App.Enums.SellUnit,
+bedsPerRoom: number,
 };
 export type OnboardingStaffData = {
 id: number,

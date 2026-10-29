@@ -30,7 +30,7 @@ rooms          id, property_id, room_type_id, room_group_id (nullable),
 
 ## Changing a room's type
 
-A room changes type in two places: the room edit on Settings > Rooms (`UpdateRoom`), and the Rooms tab of the [room type page](01-room-types.md#rooms-tab) (`AssignRoomTypeRooms`). Both apply the same guards:
+A room changes type in three places: the room edit on Settings > Rooms (`UpdateRoom`), the Rooms tab of the [room type page](01-room-types.md#rooms-tab) (`AssignRoomTypeRooms`), and the onboarding [Rooms table](../17-onboarding/02-wizard-steps.md#rooms-table) (`SaveRoomsRequest`, then `UpdateRoom`). All apply the same guards:
 
 - The new room type is active.
 - A room with beds cannot move into a type that sells rooms.
