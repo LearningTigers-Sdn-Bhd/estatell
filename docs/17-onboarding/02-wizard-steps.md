@@ -161,7 +161,7 @@ Setup started (another section is no longer Not started):
 
 Client feedback: room types are mixed along a corridor (101 Queen, 102 Twin, 103 Twin, 104 Queen), so one range per room type needed about 40 single-room ranges for a 65-room property. The step asks for the numbers first, the way they run on each floor, and then for each room's type on a grid.
 
-Two plain sections, one after the other: **Room numbers** and **Room types**. Each is a `<section>` with a heading, a hint and its content in a `flex flex-col` with `gap`. There is no card and no border around a section. A `Separator` divides them.
+Two plain sections, one after the other: **Room numbers** and **Room types**. Each is a `<section>` with a heading, a hint and its content in a `flex flex-col` with `gap`. There is no card, no border around a section and no divider between them.
 
 ```
  Room numbers                                [ No groups | ● Use groups ]
@@ -175,8 +175,8 @@ Two plain sections, one after the other: **Room numbers** and **Room types**. Ea
  ├──────────────┴──────────────────────────────────────┴───────┴────┤
  │ Total: 67 rooms                                   [+ Add group]  │
  └──────────────────────────────────────────────────────────────────┘
- Examples: 101-110 · 202-216, 218-234 · G1-G4 · Villa 3 · 01-08
- ─────────────────────────────────────────────────────────────────────
+ Examples: [101-110] [202-216, 218-234] [G1-G4] [Villa 3] [01-08]
+
  Room types
  Pick a type, then click rooms. Shift-click marks every room between.
  ╭─────────────────────────────╮ ╭─────────────────────────────╮ ╭─────────────────────────────╮
@@ -211,10 +211,11 @@ Two plain sections, one after the other: **Room numbers** and **Room types**. Ea
 - A fully empty row is ignored on save, not an error. A row with numbers needs a group name when Use groups is on.
 - Group names follow `RoomGroupRequest` (unique, case-insensitive). Table order sets the group position, which `AutoAssignRooms` uses first.
 - At phone width each row stacks: name, numbers, then count and remove.
+- The examples under the table are outline `Badge`s, one per example, with no separator characters.
 
 **Room types**
 
-- `RoomTypePicker` (`components/pms/onboarding/`): one tile per active room type, in Room types order. It is built like `ChoiceCards`: `RadioGroup`, `RadioGroupItem` and `FieldLabel`, so arrow keys move between tiles and one tile is selected. The first room type starts selected.
+- `RoomTypePicker` (`components/pms/onboarding/`): one tile per active room type, in Room types order. Each tile is one card: the border, hover and selected background sit on the card, the radio label fills it, and a bed-sold tile's Beds per room row sits at the bottom of the same card. Each tile keeps its own height. The "Sold by bed" `Badge` sits on the name line. It is built like `ChoiceCards`: `RadioGroup`, `RadioGroupItem` and `FieldLabel`, so arrow keys move between tiles and one tile is selected. The first room type starts selected.
 - A tile shows the category colour swatch, the full name, the short label and the rooms count. 1 column on a phone, 2 from `sm`, 3 from `lg`.
 - A bed-sold tile adds a "Sold by bed" `Badge`, the bed total and a **Beds per room** `Input` (1 to 50, the `GenerateBeds` count). The input sits under the radio inside the same tile, never inside the radio label. An invalid count shows "Enter 1 to 50 beds." and blocks Save.
 - Beds per room is not stored (beds have no stored capacity). It starts at the bed count of the type's first saved room with beds, or 4.

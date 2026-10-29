@@ -18,10 +18,10 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FieldError } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
 import { Spinner } from '@/components/ui/spinner';
 import {
     Table,
@@ -52,6 +52,8 @@ type Parsed = { numbers: string[]; repeated: string[]; error: string | null };
 type Pending = { numbers: string[]; parsed: Parsed[]; onSaved?: () => void };
 
 const FORM_ID = 'rooms-form';
+
+const EXAMPLES = ['101-110', '202-216, 218-234', 'G1-G4', 'Villa 3', '01-08'];
 
 const lower = (number: string) => number.toLowerCase();
 
@@ -619,13 +621,15 @@ export default function Rooms({
                             </TableFooter>
                         </Table>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                        Examples: 101-110 · 202-216, 218-234 · G1-G4 · Villa 3 ·
-                        01-08
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                        <span>Examples:</span>
+                        {EXAMPLES.map((example) => (
+                            <Badge key={example} variant="outline">
+                                {example}
+                            </Badge>
+                        ))}
+                    </div>
                 </section>
-
-                <Separator />
 
                 <section
                     className="flex flex-col gap-3"

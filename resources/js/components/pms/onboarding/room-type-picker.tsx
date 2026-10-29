@@ -51,60 +51,52 @@ export function RoomTypePicker({
                 value={String(value)}
                 onValueChange={(next) => onValueChange(Number(next))}
                 disabled={disabled}
-                className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+                className="grid items-start gap-3 sm:grid-cols-2 lg:grid-cols-3"
             >
                 {tiles.map((tile) => (
                     <div
                         key={tile.id}
-                        className="flex flex-col overflow-hidden rounded-lg border has-data-checked:border-primary"
+                        className="flex flex-col rounded-lg border transition-colors hover:bg-muted/50 has-data-checked:border-primary/30 has-data-checked:bg-primary/5 has-[[data-slot=radio-group-item]:focus-visible]:border-ring has-[[data-slot=radio-group-item]:focus-visible]:ring-3 has-[[data-slot=radio-group-item]:focus-visible]:ring-ring/50"
                     >
                         <FieldLabel
                             htmlFor={`room-type-${tile.id}`}
-                            className="flex-1 rounded-none border-0"
+                            className="w-full flex-1 cursor-pointer items-start gap-3 p-3"
                         >
-                            <Field
-                                orientation="horizontal"
-                                className="items-start"
-                            >
-                                <RadioGroupItem
-                                    id={`room-type-${tile.id}`}
-                                    value={String(tile.id)}
-                                    className="mt-0.5"
-                                />
-                                <span
-                                    aria-hidden
-                                    className={cn(
-                                        'mt-0.5 size-4 shrink-0 rounded-sm',
-                                        tile.colorClass,
-                                    )}
-                                />
-                                <FieldContent>
-                                    <span className="text-sm font-medium">
-                                        {tile.name}
-                                    </span>
+                            <RadioGroupItem
+                                id={`room-type-${tile.id}`}
+                                value={String(tile.id)}
+                                className="mt-0.5"
+                            />
+                            <span
+                                aria-hidden
+                                className={cn(
+                                    'mt-0.5 size-4 shrink-0 rounded-sm',
+                                    tile.colorClass,
+                                )}
+                            />
+                            <FieldContent>
+                                <span className="flex flex-wrap items-center gap-2 text-sm font-medium">
+                                    {tile.name}
                                     {tile.soldByBed && (
-                                        <Badge
-                                            variant="secondary"
-                                            className="w-fit"
-                                        >
+                                        <Badge variant="secondary">
                                             Sold by bed
                                         </Badge>
                                     )}
-                                    <span className="text-sm text-muted-foreground">
-                                        {tile.shortLabel} ·{' '}
-                                        {tile.rooms === 1
-                                            ? '1 room'
-                                            : `${tile.rooms} rooms`}
-                                        {tile.soldByBed &&
-                                            ` · ${tile.beds === 1 ? '1 bed' : `${tile.beds} beds`}`}
-                                    </span>
-                                </FieldContent>
-                            </Field>
+                                </span>
+                                <span className="text-sm font-normal text-muted-foreground">
+                                    {tile.shortLabel} ·{' '}
+                                    {tile.rooms === 1
+                                        ? '1 room'
+                                        : `${tile.rooms} rooms`}
+                                    {tile.soldByBed &&
+                                        ` · ${tile.beds === 1 ? '1 bed' : `${tile.beds} beds`}`}
+                                </span>
+                            </FieldContent>
                         </FieldLabel>
                         {tile.soldByBed && (
                             <Field
                                 orientation="horizontal"
-                                className="justify-end border-t px-4 py-2"
+                                className="justify-between border-t px-3 py-2"
                                 data-invalid={!!bedErrors[tile.id]}
                             >
                                 <FieldLabel
@@ -134,7 +126,7 @@ export function RoomTypePicker({
                             </Field>
                         )}
                         {tile.soldByBed && bedErrors[tile.id] && (
-                            <FieldError className="px-4 pb-2">
+                            <FieldError className="px-3 pb-2">
                                 {bedErrors[tile.id]}
                             </FieldError>
                         )}
