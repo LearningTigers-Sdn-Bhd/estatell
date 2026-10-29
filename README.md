@@ -129,6 +129,9 @@ You never migrate the test database yourself. `RefreshDatabase` rebuilds its sch
 | TypeScript check          | `npm run types:check`                                         |
 | Full CI check             | `composer run ci:check`                                       |
 | Build frontend            | `npm run build`                                               |
+| Dependency audit          | `composer audit && npm audit --omit=dev`                      |
+
+`.npmrc` blocks install scripts and refuses npm versions younger than 7 days (`min-release-age`). To take an urgent security release sooner, run `npm install <package>@<version> --min-release-age=0`. CI runs both audits in `.github/workflows/audit.yml` on every push, every pull request and once a day.
 
 ## Project structure
 
