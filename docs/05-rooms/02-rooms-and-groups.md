@@ -63,8 +63,9 @@ One read-only Service holds the assigned-nights check, and both paths call it.
 - A range keeps the zero padding of its from number (`01-08` gives `01` to `08`). A range that runs backwards is an error.
 - Any other part is one label (`Villa 3`, `101A`).
 - At most 200 numbers per list. A label repeated in the list is an error, ignoring case.
-- The result keeps the typed order. `RoomNumberGenerator` returns the numbers or the first error with the part that caused it. It never writes.
-- The reverse, `RoomNumberRanges`, joins a group's saved numbers into the shortest list of ranges (`102-134, 140`), so a saved group reads back as typed.
+- A number is at most 30 characters (the `RoomRequest` limit), and a range end at most 6 digits (the range mode limit).
+- The result keeps the typed order. `RoomNumberGenerator::parseList` returns the numbers or the first error with the part that caused it. It never writes.
+- The reverse, `RoomNumberRanges`, joins a group's saved numbers into the shortest list of ranges (`102-134, 140`), so a saved group reads back as typed. Neighbours join when they share a prefix and padding and count up by one. A range repeats its prefix on both ends (`G1-G4`).
 
 ## Room order
 
