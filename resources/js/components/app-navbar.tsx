@@ -1,10 +1,17 @@
 import { Link, usePage } from '@inertiajs/react';
+import { CircleHelp } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { AppearanceToggle } from '@/components/appearance-toggle';
 import { NavUser } from '@/components/nav-user';
 import { CommandPalette } from '@/components/pms/command-palette';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { buttonVariants } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useInitials } from '@/hooks/use-initials';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
@@ -27,7 +34,7 @@ export function AppNavbar({
     /** Where the app logo links. Defaults to the home redirect. */
     logoHref?: string;
 }) {
-    const { property: currentProperty } = usePage().props;
+    const { property: currentProperty, docsUrl } = usePage().props;
     const property = identity === 'property' ? currentProperty : null;
     const getInitials = useInitials();
 
@@ -82,6 +89,29 @@ export function AppNavbar({
                 )}
             </div>
             <div className="flex shrink-0 items-center gap-1">
+                {property && (
+                    <Tooltip>
+                        <TooltipTrigger
+                            render={
+                                <a
+                                    href={docsUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    aria-label="Help & docs"
+                                    className={buttonVariants({
+                                        variant: 'ghost',
+                                        size: 'icon',
+                                    })}
+                                />
+                            }
+                        >
+                            <CircleHelp />
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">
+                            Help & docs
+                        </TooltipContent>
+                    </Tooltip>
+                )}
                 <AppearanceToggle />
                 <NavUser />
             </div>

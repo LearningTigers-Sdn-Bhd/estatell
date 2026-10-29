@@ -14,6 +14,7 @@ declare module '@inertiajs/core' {
             impersonation: App.Data.Platform.ImpersonationData | null;
             supportTwoFactor: { required: boolean } | null;
             isDemo: boolean;
+            docsUrl: string;
             property: App.Data.Property.PropertySummaryData | null;
             businessDate: App.Data.NightAudit.BusinessDateData | null;
             adminNavigation: App.Data.Navigation.NavItemData[] | null;
