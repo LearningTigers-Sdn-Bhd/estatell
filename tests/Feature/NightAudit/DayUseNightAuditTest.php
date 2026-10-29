@@ -27,6 +27,7 @@ use App\Models\UnitAddOn;
 use App\Services\NightAudit\AuditReadiness;
 use App\Services\NightAudit\ReadinessAdvice;
 use App\Services\NightAudit\ReadinessItem;
+use Carbon\CarbonImmutable;
 
 /**
  * A live property trading on the day use date with one Confirmed day use unit (10:00 for 4 hours) and a 25.00 item.
@@ -47,10 +48,13 @@ function dayUseAuditDesk(): array
 }
 
 /**
+ * Run the audit just after midnight on the property's clock, once the day use date has ended.
+ *
  * @param  array<string, mixed>  $setup
  */
 function dayUseAuditRun(array $setup): void
 {
+    test()->travelTo(CarbonImmutable::parse($setup['date']->toDateString(), $setup['property']->settings->time_zone)->addDay()->setTime(0, 30));
     app(RunNightAudit::class)($setup['property'], AuditTrigger::Manual, $setup['user'], true, 'test');
 }
 

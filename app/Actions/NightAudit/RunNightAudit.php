@@ -31,7 +31,7 @@ class RunNightAudit
      * Auditing and the audit is Failed until the next run. A unit that one step cannot resolve becomes an exception
      * row and does not stop the run. A run that would start the audit is refused while `AuditReadiness::gate()` says so
      * (`business_date_not_ended` before the system date has passed the business date, `blocked_by_readiness` while a
-     * blocker is open), unless it is forced. A run that resumes a Failed audit is never blocked, because
+     * blocker is open). A forced run skips only the blockers, never the date. A run that resumes a Failed audit is never blocked, because
      * its steps are already under way. A forced run needs a reason. The route checks `night-audit.run` and
      * `night-audit.force`, and the readiness panel's blockers come with that panel. A null actor is the scheduler.
      * An open missed arrival or overdue departure exception whose unit has moved on (checked in, checked out, cancelled) is
@@ -47,7 +47,7 @@ class RunNightAudit
             return NightAuditResult::refused(NightAuditResult::REFUSAL_REASON_REQUIRED);
         }
 
-        $gate = $force ? null : $this->auditReadiness->gate($property);
+        $gate = $this->auditReadiness->gate($property, ignoreBlockers: $force);
 
         if ($gate !== null) {
             return NightAuditResult::refused($gate);

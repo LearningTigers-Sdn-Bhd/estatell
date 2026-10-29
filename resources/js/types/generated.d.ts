@@ -1427,6 +1427,18 @@ timeZone: string,
 auditTime: string,
 serverNow: string,
 };
+export type LastAuditData = {
+date: string,
+trigger: App.Enums.AuditTrigger,
+runBy: string | null,
+forced: boolean,
+completedDay: string,
+completedTime: string,
+};
+export type NextAutoAuditData = {
+day: string,
+time: string,
+};
 export type NightAuditProgressData = {
 date: string,
 status: App.Enums.AuditStatus,
@@ -1453,6 +1465,8 @@ dateEnded: boolean,
 summary: string,
 canForce: boolean,
 canViewPacket: boolean,
+lastAudit: App.Data.NightAudit.LastAuditData | null,
+nextAutoAudit: App.Data.NightAudit.NextAutoAuditData | null,
 };
 export type PackageNightAmountData = {
 id: number,

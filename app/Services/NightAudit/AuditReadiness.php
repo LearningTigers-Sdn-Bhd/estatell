@@ -48,10 +48,12 @@ class AuditReadiness
     }
 
     /**
-     * Why a run that would start the audit must be forced, or null when it may go ahead: the business date has not
-     * ended, or a blocker is open. A date that is already Auditing is under way, so nothing gates it.
+     * Why a run that would start the audit is refused, or null when it may go ahead: the business date has not ended,
+     * or a blocker is open. A forced run passes `$ignoreBlockers` and skips only the blockers: a day that has not ended
+     * is never closed, so the business date never runs ahead of the calendar. A date that is already Auditing is under
+     * way, so nothing gates it.
      */
-    public function gate(Property $property): ?string
+    public function gate(Property $property, bool $ignoreBlockers = false): ?string
     {
         if ($this->currentBusinessDate->get($property)?->status !== BusinessDateStatus::Open) {
             return null;
@@ -59,6 +61,10 @@ class AuditReadiness
 
         if (! $this->businessDateEnded($property)) {
             return NightAuditResult::REFUSAL_BUSINESS_DATE_NOT_ENDED;
+        }
+
+        if ($ignoreBlockers) {
+            return null;
         }
 
         return $this->blockers($property) === [] ? null : NightAuditResult::REFUSAL_BLOCKED_BY_READINESS;

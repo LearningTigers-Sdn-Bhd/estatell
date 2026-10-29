@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\NightAudit\RunNightAudit;
 use App\Enums\AuditExceptionType;
 use App\Enums\AuditTrigger;
 use App\Enums\MissedArrivalPolicy;
@@ -27,6 +28,7 @@ use App\Models\RoomType;
 use App\Models\TransactionCode;
 use App\Models\User;
 use App\Services\Packages\InclusionSplit;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Queue;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
@@ -427,22 +429,56 @@ test('the sidebar shows Run Night Audit as a sheet action to users with night-au
         ->assertInertia(fn (Assert $page) => $page->where('navigation.contexts.0.groups.1.label', 'Reservations'));
 });
 
-test('the sheet says the date has not ended, and a run is refused until it has or is forced', function () {
+test('the sheet says the date has not ended, and a run is refused until it has, forced or not', function () {
     Queue::fake();
     $setup = sheetSetup([PermissionEnum::NightAuditRun, PermissionEnum::NightAuditForce]);
     $setup['property']->settings->update(['time_zone' => 'UTC']);
     $this->travelTo(now()->setDate(2026, 10, 12)->setTime(23, 0));
+    $url = route('night-audit.run', $setup['property']->code);
 
     $this->actingAs($setup['user'])->getJson(route('night-audit.show', $setup['property']->code))
         ->assertJsonPath('dateEnded', false)
-        ->assertJsonPath('canForce', true);
-    $this->postJson(route('night-audit.run', $setup['property']->code))
+        ->assertJsonPath('canForce', true)
+        ->assertJsonPath('nextAutoAudit', null);
+    $this->postJson($url)
         ->assertUnprocessable()
-        ->assertJsonPath('errors.form.0', 'The business date has not ended yet. Force close if you are sure.');
+        ->assertJsonPath('errors.form.0', '12 Oct has not ended yet. Run the audit after midnight.');
+    $this->postJson($url, ['force' => true, 'reason' => 'Closing early'])
+        ->assertUnprocessable()
+        ->assertJsonPath('errors.form.0', '12 Oct has not ended yet. Run the audit after midnight.');
+
+    $setup['property']->settings->update(['auto_audit_enabled' => true, 'audit_time' => '00:00']);
+    $this->postJson($url, ['force' => true, 'reason' => 'Closing early'])
+        ->assertJsonPath('errors.form.0', '12 Oct has not ended yet. It closes automatically at 00:00 on 13 Oct.');
     Queue::assertNothingPushed();
 
-    $this->postJson(route('night-audit.run', $setup['property']->code), ['force' => true, 'reason' => 'Closing early'])->assertAccepted();
+    $this->travelTo(now()->setDate(2026, 10, 13)->setTime(0, 1));
+    $this->postJson($url)->assertAccepted();
     Queue::assertPushed(RunNightAuditJob::class);
+});
+
+test('the sheet names the last audit and when the automatic audit closes the current date', function () {
+    $setup = sheetSetup([PermissionEnum::NightAuditRun]);
+    $property = $setup['property'];
+    $property->settings->update(['time_zone' => 'Asia/Kuala_Lumpur', 'auto_audit_enabled' => true, 'audit_time' => '00:00']);
+    $this->travelTo(CarbonImmutable::parse('2026-10-13 00:00:05', 'Asia/Kuala_Lumpur'));
+    app(RunNightAudit::class)($property, AuditTrigger::Scheduled);
+    $this->travelTo(CarbonImmutable::parse('2026-10-13 00:48:00', 'Asia/Kuala_Lumpur'));
+
+    $this->actingAs($setup['user'])->getJson(route('night-audit.show', $property->code))
+        ->assertJsonPath('date', '2026-10-13')
+        ->assertJsonPath('dateEnded', false)
+        ->assertJsonPath('lastAudit.date', '2026-10-12')
+        ->assertJsonPath('lastAudit.trigger', 'scheduled')
+        ->assertJsonPath('lastAudit.runBy', null)
+        ->assertJsonPath('lastAudit.completedDay', '2026-10-13')
+        ->assertJsonPath('lastAudit.completedTime', '00:00')
+        ->assertJsonPath('nextAutoAudit.day', '2026-10-14')
+        ->assertJsonPath('nextAutoAudit.time', '00:00');
+
+    $property->settings->update(['audit_time' => '02:00']);
+
+    $this->getJson(route('night-audit.show', $property->code))->assertJsonPath('nextAutoAudit.time', '02:00');
 });
 
 test('check-in and check-out open Dialogs over the sheet for staff who may use them, and link otherwise', function () {
