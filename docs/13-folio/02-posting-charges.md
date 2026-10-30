@@ -49,7 +49,7 @@ All Actions return a result and write nothing on a refusal. Each one is one tran
 
 - The key is `manual:{uuid}`, sent by the form, so a double click never posts twice. A key that already exists returns the existing line and writes nothing, but only when the line's folio belongs to the unit's reservation. A key that belongs to another reservation is refused (`charge_not_found`), so a key never reveals another reservation's lines. Transfers stay inside one reservation, so a legitimate replay always passes.
 - The line description is the given `description`, or else the item name (the code name for a code with no item). It is copied at posting time.
-- It posts the charge line, then one Tax child line per `TaxCalculator` component (`parent_line_id`). `kind` is Charge for the charge and Tax for the children. `posting_date` is the business date.
+- It posts the charge line, then one Tax child line per `TaxCalculator` component (`parent_line_id`), in calculation order. `kind` is Charge for the charge and Tax for the children. Each tax line stores its `tax_base_amount`. `posting_date` is the business date.
 - With `unit_add_on_id`, the key is `addon:{id}`, `source_type` and `source_id` name the add-on, and `unit_add_ons.folio_line_id` is set to the charge line.
 - The target folio comes from `FolioRouter`.
 - Optional inputs from the [Manual Folio Editor](08-manual-folio.md#preview-and-post) only: `service_date` (refusal `service_date_invalid`), `tax_ids` (the chosen taxes replace the item's own) and `manual_batch_id`. Without them, `service_date` equals `posting_date`.

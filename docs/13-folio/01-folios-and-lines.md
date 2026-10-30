@@ -18,6 +18,7 @@ folio_lines    id, folio_id, transaction_code_id, kind (TransactionKind), descri
                quantity, unit_amount, amount (signed), posting_date, service_date,
                manual_batch_id (nullable), migrated (bool),
                source_type, source_id, parent_line_id (nullable),
+               tax_base_amount (nullable, Tax lines only),
                reversal_of_id (nullable), transfer_group_id (nullable),
                idempotency_key (unique), user_id, created_at
 ```
@@ -43,6 +44,7 @@ erDiagram
 - **Immutable**: lines are never updated or deleted. Corrections are reversal lines (`reversal_of_id`).
 - **Idempotent**: `idempotency_key` is unique, for example `night:{unit_night_id}`, `payment:{uuid}`, `addon:{id}`.
 - Tax and discount lines are children of the charge (`parent_line_id`).
+- `tax_base_amount` is the amount a percentage tax line was calculated on, stored at posting from `CalculatedTax::baseAmount` (see [Tax base](../06-catalogues/03-taxes.md#tax-base)). It is null for a flat tax and for tax lines posted before the column existed. A reversal stores the negative base.
 - Transfers are a reversal on the source plus a new line on the target, linked by `transfer_group_id`.
 - `description` and `kind` are copied at posting time.
 - **Source names the unit.** Every charge line sets `source_type` and `source_id` so the folio page can show its unit, also on a Master or Third party folio. A night and its inclusions name the unit night, an add-on names the add-on, and a manual charge or a policy fee names the reservation unit. A reversal and a transfer copy keep the source of their original line. A child line (tax, discount) has no source and takes its parent's. A payment has none. See [Posting charges](02-posting-charges.md#line-sources).
