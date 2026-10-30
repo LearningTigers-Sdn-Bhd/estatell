@@ -87,6 +87,20 @@ A PerGuest or PerGuestNight item can charge children less than adults, by [age g
 The item form selects the taxes that apply to the item. It writes the same `tax_transaction_code` pivot as the tax form (see [Taxes](03-taxes.md)).
 
 - Disabled taxes can be selected and show as inactive.
+- Under the multiselect, a **Preview** shows one item at its fixed price with the unsaved tax selection, in calculation order and with each percentage tax's base (see [Tax base](03-taxes.md#tax-base)). The page posts the selection to `settings.charge-items.preview`, which calls `TaxCalculator::calculateWithTaxes()`. With **Enter when charging**, the preview uses 100.00 and says so. A foreign-only tax shows a local and a foreign column, as on Room revenue.
+
+```
+┌ Taxes ─────────────────────────────────────────────────────────┐
+│ [Service charge ✕][Sales tax ✕]                            ⌄   │
+│                                                                │
+│ Preview for 1 × 30.00                                          │
+│   Breakfast          30.00                                     │
+│   Service charge      3.00   on 30.00                          │
+│   Sales tax 8%        2.64   on 33.00                          │
+│   Total              35.64                                     │
+└────────────────────────────────────────────────────────────────┘
+```
+
 - Room nights are not charge items. Their taxes are set on [Room revenue](06-room-revenue.md).
 
 ## Pages

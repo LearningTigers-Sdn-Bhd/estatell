@@ -276,7 +276,7 @@ Two plain sections, one after the other: **Room numbers** and **Room types**. Ea
 
 - Malaysia starts with the seeded SST and Tourism tax rows ("Your Malaysian taxes are ready. Turn on what you charge."). Other countries start with one empty row ("Add the taxes you charge guests.").
 - Columns: **On** (`enabled`), **Name**, **Rate** (amount and a % or currency menu = `rate_type`), **In price** (**Added on top** or **Included** = `is_inclusive`), **Applies to rooms**, **Reg. no.** (`registration_number`).
-- ⌄ opens row details: **Foreign guests only** ("not {country}") and **Collect at check-in**. A flat rate shows "per night" only when it applies to rooms. Otherwise the quantity comes from the charge item.
+- ⌄ opens row details: **Foreign guests only** ("not {country}"), **Collect at check-in** and, for a percentage tax, **Calculated on** (Price + a multiselect of the other rows, see [Tax base](../06-catalogues/03-taxes.md#tax-form)). The preview shows each tax's base ("on 110.00"). A flat rate shows "per night" only when it applies to rooms. Otherwise the quantity comes from the charge item.
 - The short code is not shown. It is derived from the name (VAT → `TAX_VAT`, a number added when taken) and editable in settings. To verify that `TaxRequest` accepts a derived code.
 - Preset rows have no remove button. They are turned off instead, because they own system posting codes. Custom rows can be removed. The last row stays while no taxes exist.
 - **Applies to rooms** saves through `UpdateRoomRevenueTaxes`, which links ROOM and every policy code that follows the Taxes tab. The header tooltip says "Also used for no-show, cancellation, early departure and late check-out charges."

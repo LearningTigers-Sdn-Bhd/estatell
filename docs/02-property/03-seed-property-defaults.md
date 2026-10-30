@@ -31,6 +31,7 @@ A strategy class per country replaces the `$countryCode !== 'MY'` checks in the 
 
 - Country options come from `App\Services\Guests\CountryOptions`, with Malaysia first. Basics prefills Malaysia.
 - "Foreign guests only" on a tax means a nationality other than the property's country.
+- No profile seeds [tax base](../06-catalogues/03-taxes.md#tax-base) links yet. `MalaysiaProfile` will once the service tax rule on service charges and council fees is confirmed.
 - Country, currency and time zone can change until go-live. See [Changing country](#changing-country).
 
 ## Changing country

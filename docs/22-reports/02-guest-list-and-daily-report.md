@@ -44,7 +44,7 @@ Tax                                          [Day | Month]  [Export ▾]
 └────────────┴──────────────┴───────┴────────────┴────────────┘
 ```
 
-- **Base** comes after Lines, visible by default. For each tax line, the base is its parent line **plus the Adjustment children of that parent**. `PostFolioCharge` posts the charge at its full price and a discount booked with it as an Adjustment child beside the tax, so the parent alone would overstate the base by the discount.
+- **Base** comes after Lines, visible by default. For each tax line, the base is its stored `tax_base_amount` when set. A tax calculated on other taxes has a base larger than its parent, so the parent cannot give it (see [Tax base](../06-catalogues/03-taxes.md#tax-base)). For older lines with no stored base, the base is its parent line **plus the Adjustment children of that parent**. `PostFolioCharge` posts the charge at its full price and a discount booked with it as an Adjustment child beside the tax, so the parent alone would overstate the base by the discount.
 - A reversal of a tax line has the reversal of the charge as its parent, so it reduces the base on the date it was posted. A tax line under a discount line (`ApplyDiscount`) has the negative discount as its parent, so the discount reduces the base.
 - A **flat tax** is one whose `taxes.rate_type` is `flat` (Tourism tax, per room night). `TaxReport` already finds the tax of each row. A flat tax, or a row whose tax cannot be found, shows "—". The total row sums only the percentage taxes.
 - The **Migrated from old system** table under the main table is not changed.

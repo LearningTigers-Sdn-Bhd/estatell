@@ -32,7 +32,25 @@ Two columns, no cards. They stack on narrow screens.
 
 - **Left, taxes**: a multiselect (`MultiCombobox`). Each option has the tax name and a description of the rule, for example "8.00% of the room price · added to the price · all guests". Taxes that are turned off can be chosen and say "Off, not added until it is turned on" in the description; they are skipped until they are turned on. **Save taxes** saves the selection.
 - **Right, posting preview**: a MYR 100.00 room night for a Malaysian guest and a foreign guest, because foreign-only taxes need a nationality. It updates while boxes are ticked: the page posts the unsaved selection to `settings.room-revenue.preview`, and `RoomRevenuePreview` calculates it with `TaxCalculator::calculateWithTaxes()`. Nothing is saved by the preview. Ticked taxes that are off show as "Off". When included taxes exceed the sample price, the preview shows a message instead of amounts.
+- The preview lists taxes in calculation order. A percentage tax shows its base under its name ("on 113.60"), see [Tax base](03-taxes.md#tax-base). When a base tax is not ticked here, a note says it is left out, for example "City fee is in its base but not applied here".
 - The browser never calculates tax; it only shows the server's numbers.
+
+```
+Taxes on room revenue                     │ What a guest pays for 1 night
+┌───────────────────────────────────────┐ │ ┌──────────────────────┬─────────┬─────────┐
+│ [Service charge ✕][City fee ✕]        │ │ │                      │ Local   │ Foreign │
+│ [Sales tax ✕][Levy ✕]             ⌄   │ │ ├──────────────────────┼─────────┼─────────┤
+└───────────────────────────────────────┘ │ │ Room                 │  100.00 │  100.00 │
+  Sales tax                               │ │ Service charge 10%   │   10.00 │   10.00 │
+  8.00% of price + Service charge +       │ │   on 100.00          │         │         │
+  City fee · added · all guests           │ │ City fee             │    3.60 │    3.60 │
+                                          │ │ Sales tax 8%         │    9.09 │    9.09 │
+                                          │ │   on 113.60          │         │         │
+                                          │ │ Levy 1%              │    1.09 │    1.09 │
+                                          │ │   on 109.09          │         │         │
+                                          │ │ Total                │  123.78 │  123.78 │
+                          [ Save taxes ]  │ └──────────────────────┴─────────┴─────────┘
+```
 
 ## Policies
 
@@ -80,7 +98,7 @@ A wider editor sits on the left, with a compact **Example** on the right. The ed
 - Cancellation shows the **Free cancellation window** for a paid policy. Other policies hide it.
 - Charge details use three columns on wide screens: Percent, Rate basis and Applies to. Free cancellation window follows when present. They use two columns at intermediate widths and stack on mobile. A single allowed scope appears as help under Percent. The current-rate explanation appears only when Current rate is selected.
 - The guest-facing policy keeps the language dropdown for English and Malay. The editor explains that changing the charge does not rewrite this text.
-- The **Example** title and sample-stay description sit inside one card. Cases have no nested cards or dividers. Each case explains the charge with server-provided arithmetic: unused nights for early departure, the percentage basis and multiplication, a fixed fee charged once, or why the charge is free. Paid cases show separate local and foreign breakdowns: charge excluding tax, each included or added tax, and the guest total. Included taxes are extracted before the breakdown, not added twice. A tax that does not apply says so. The browser formats the amounts but does not calculate them.
+- The **Example** title and sample-stay description sit inside one card. Cases have no nested cards or dividers. A percentage tax in a case shows its base ("on 55.00"), as on the Taxes tab. Each case explains the charge with server-provided arithmetic: unused nights for early departure, the percentage basis and multiplication, a fixed fee charged once, or why the charge is free. Paid cases show separate local and foreign breakdowns: charge excluding tax, each included or added tax, and the guest total. Included taxes are extracted before the breakdown, not added twice. A tax that does not apply says so. The browser formats the amounts but does not calculate them.
 - Pending edits show **Updating…** instead of old amounts. A failed preview shows a message instead of old amounts. Older responses cannot replace a newer example.
 - Mobile order: charge, taxes, example, guest-facing policy, save. The tab strip scrolls horizontally. The page uses the New booking fixed-footer pattern: the editor scrolls above `FormActions`, with the save status on the left and **Save policy** on the right. The action stays visible on desktop and mobile.
 - The editor resets when the property or policy URL changes. Preserved tab navigation must not carry another policy's form or example into the new tab. The existing unsaved-changes guard stays.
