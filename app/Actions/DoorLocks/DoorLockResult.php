@@ -2,6 +2,7 @@
 
 namespace App\Actions\DoorLocks;
 
+use App\Models\DoorCard;
 use App\Models\DoorPasscode;
 
 /**
@@ -22,21 +23,26 @@ final class DoorLockResult
 
     public const REFUSAL_UNCHANGEABLE = 'not_changeable';
 
+    public const REFUSAL_INVALID_CARD = 'invalid_card';
+
+    public const REFUSAL_CARD_IN_USE = 'card_in_use';
+
     private function __construct(
         public readonly ?string $refusal,
         public readonly ?string $message,
         public readonly ?DoorPasscode $passcode,
         public readonly ?string $warning,
+        public readonly ?DoorCard $card = null,
     ) {}
 
-    public static function done(?DoorPasscode $passcode = null, ?string $warning = null): self
+    public static function done(?DoorPasscode $passcode = null, ?string $warning = null, ?DoorCard $card = null): self
     {
-        return new self(null, null, $passcode, $warning);
+        return new self(null, null, $passcode, $warning, $card);
     }
 
-    public static function refused(string $refusal, ?string $message = null, ?DoorPasscode $passcode = null): self
+    public static function refused(string $refusal, ?string $message = null, ?DoorPasscode $passcode = null, ?DoorCard $card = null): self
     {
-        return new self($refusal, $message ?? self::messageFor($refusal), $passcode, null);
+        return new self($refusal, $message ?? self::messageFor($refusal), $passcode, null, $card);
     }
 
     public function isRefused(): bool
@@ -52,6 +58,8 @@ final class DoorLockResult
             self::REFUSAL_INVALID_CODE => __('A PIN is 4 to 9 digits.'),
             self::REFUSAL_WINDOW_PASSED => __('The PIN time window has already ended.'),
             self::REFUSAL_UNCHANGEABLE => __('This PIN can no longer be changed.'),
+            self::REFUSAL_INVALID_CARD => __('This card number is not valid.'),
+            self::REFUSAL_CARD_IN_USE => __('This card is already registered for another stay on this lock.'),
             default => __('TTLock refused the request.'),
         };
     }
