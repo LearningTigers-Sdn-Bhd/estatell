@@ -61,7 +61,7 @@
                     <td class="muted nowrap" style="width: 14%;">{{ $payment->date->format('j M') }}</td>
                     <td class="nowrap" style="width: 16%;">{{ $payment->receiptNumber }}</td>
                     <td>{{ $payment->text }}</td>
-                    <td class="num">{{ bccomp($payment->amount, '0', 2) < 0 ? '('.$money(ltrim($payment->amount, '-')).')' : $money($payment->amount) }}</td>
+                    <td class="num">{{ \Brick\Math\BigDecimal::of($payment->amount)->isNegative() ? '('.$money(ltrim($payment->amount, '-')).')' : $money($payment->amount) }}</td>
                 </tr>
             @endforeach
         </table>
