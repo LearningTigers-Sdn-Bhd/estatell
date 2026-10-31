@@ -6,7 +6,7 @@
     /** @var \App\Models\PrintSetting $settings */
     $money = fn (string $amount): string => number_format((float) $amount, 2);
     $cells = count($summary->strip);
-    $credit = $summary->balanceDue !== null && bccomp($summary->balanceDue, '0', 2) < 0;
+    $credit = $summary->balanceDue !== null && \Brick\Math\BigDecimal::of($summary->balanceDue)->isNegative();
 @endphp
 
 @section('title', __('Booking summary :reference', ['reference' => $summary->reference]))
@@ -60,7 +60,7 @@
                         <td class="muted nowrap" style="width: 14%;">{{ $payment->date->format('j M') }}</td>
                         <td class="nowrap" style="width: 16%;">{{ $payment->receiptNumber }}</td>
                         <td>{{ $payment->text }}</td>
-                        <td class="num">{{ bccomp($payment->amount, '0', 2) < 0 ? '('.$money(ltrim($payment->amount, '-')).')' : $money($payment->amount) }}</td>
+                        <td class="num">{{ \Brick\Math\BigDecimal::of($payment->amount)->isNegative() ? '('.$money(ltrim($payment->amount, '-')).')' : $money($payment->amount) }}</td>
                     </tr>
                 @endforeach
             </table>
