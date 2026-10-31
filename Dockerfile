@@ -7,7 +7,7 @@ FROM serversideup/php:${PHP_VERSION}-frankenphp-bookworm AS php-base
 
 USER root
 
-RUN install-php-extensions exif intl
+RUN install-php-extensions exif gd intl
 
 USER www-data
 
