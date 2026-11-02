@@ -4,119 +4,88 @@
 
 Fill guest details straight from the chip on a guest's MyKad. Staff insert the card into a USB reader at the front desk. The guest form fills in under 2 seconds, and staff check it before saving.
 
+The reader program is **MyKad Reader**, version 2.0.0 and later. It lives in its own repo, `LearningTigers-Sdn-Bhd/estatell-mykad-reader`. That repo holds the card, HTTP, packaging and tray docs. This page covers only the Estatell side.
+
 ## How it works
 
 ```
-Browser (estatell)  ──HTTP──▶  MyKad bridge on 127.0.0.1:9292  ──PC/SC──▶  ACR39U reader  ──▶  MyKad chip
+Browser (estatell)  ──HTTP──▶  MyKad Reader on 127.0.0.1:9292  ──PC/SC──▶  ACR39U reader  ──▶  MyKad chip
 ```
 
-- The browser cannot talk to a USB card reader. A small local program, the **bridge** (`tools/mykad-bridge/mykad_bridge.py`), does it and serves the result over HTTP on `127.0.0.1:9292`.
-- The bridge selects the JPN application on the chip with APDU commands. It reads the name, IC number, birth date, gender, address and portrait.
-- It maps the address state to the LHDN state code, the same codes as `EInvoice::MalaysiaStates`.
-- The bridge only listens on `127.0.0.1`. Other machines on the hotel network cannot reach it.
+- The browser cannot talk to a USB card reader. MyKad Reader runs on the front-desk computer and serves the card as JSON on `127.0.0.1:9292`.
+- It listens only on `127.0.0.1`, answers only allowed origins (Estatell and its demo), and has no pairing and no token.
+- Estatell polls `GET /status` every 2.5 seconds. When a card appears, it calls `GET /read` and fills the active form.
+- The server still validates and stores everything. MyKad Reader only fills the form.
+
+API fields, error codes and security: see the reader repo, [HTTP API](https://github.com/LearningTigers-Sdn-Bhd/estatell-mykad-reader/blob/main/docs/02-bridge/01-http-api.md).
 
 ## Hardware
 
-| Item    | Supported                                                                                                                  |
-| ------- | -------------------------------------------------------------------------------------------------------------------------- |
-| Readers | ACS ACR39U and other USB CCID contact readers. No driver is needed on Windows 10+ or macOS (to verify on a clean machine). |
-| OS      | Windows 10+ (x64, and Arm through emulation), macOS 11+ (Apple Silicon and Intel)                                          |
-
-## Bridge endpoints
-
-| Route                          | What                                                                |
-| ------------------------------ | ------------------------------------------------------------------- |
-| `GET /status` (`/`, `/health`) | Whether a reader is attached and a card is present                  |
-| `GET` or `POST /read`          | Read the card. Returns the fields above as JSON, portrait as base64 |
-
-`/status` also returns the bridge `version`.
-
-The bridge sends Chrome Private Network Access headers, so an HTTPS page can call `127.0.0.1`.
-
-## Security
-
-- **Allowed origins only.** The bridge answers `https://app.estatell.com`, `https://demo.estatell.com`, and any `localhost`, `127.0.0.1` or `*.test` origin for development. Any other `Origin` gets `403` before the card is touched, so another website open in the browser cannot read a card. Add origins with the `ESTATELL_BRIDGE_ORIGINS` environment variable (comma separated).
-- **Host check.** A `Host` other than `127.0.0.1:9292` or `localhost:9292` gets `403`. This blocks DNS rebinding.
-- **Logs** never hold card data, only requests and errors. Windows: `%LOCALAPPDATA%\Estatell\estatell-mykad-bridge.log`. macOS: `~/Library/Logs/estatell-mykad-bridge.log`. Capped at 1 MB plus 2 old files.
+| Item    | Supported                                                                 |
+| ------- | ------------------------------------------------------------------------- |
+| Readers | ACS ACR39U and other USB CCID contact readers. No driver is needed.       |
+| OS      | Windows 10 and 11, macOS 15 or later. Other systems show "not supported". |
 
 ## In the app
 
 - `useMykadReader` (`resources/js/hooks/use-mykad-reader.ts`) polls `/status`. When a card is inserted, it reads the card and fills the active form.
-- `MykadScanner` (`resources/js/components/pms/mykad-scanner.tsx`) shows the status: Ready, No reader, or Bridge offline.
-- When the bridge is offline, **Install Bridge** offers the file for the staff member's OS (`bridgeDownload()`): the `.exe` on Windows, the `.pkg` on macOS, the zip elsewhere.
-- When `/status` reports a version older than `REQUIRED_BRIDGE_VERSION` (or none, as in 1.0), the scanner shows **Install update**. Scanning still works. Bump both versions together when a bridge change needs the new build.
-- Touchpoints: the check-in dialog, the guests section on New reservation and Walk-in, the reservation Guests tab, the registration card, and the guest document sheet.
+- `MyKadScanner` (`resources/js/components/pms/mykad-scanner.tsx`) is a status chip. It has no settings page and no download button. An admin installs MyKad Reader and it works.
+- The chip is on every screen that has the MyKad box: the check-in dialog, the guests section on New reservation and Walk-in, the reservation Guests tab, the registration card, and the guest document sheet.
 - When staff add a document from a scan, the portrait becomes the `id_front` file. See [Identity documents](02-identity-documents.md).
-- The server still validates and stores everything. The bridge only fills the form.
 
-## Install on a front-desk PC
+### Chip states
 
-### One-click installer
+| State                     | Chip                                            | On click                                       |
+| ------------------------- | ----------------------------------------------- | ---------------------------------------------- |
+| Reader ready              | ● Ready for MyKad                               | —                                              |
+| Reading                   | Reading the card…                               | —                                              |
+| No reader                 | ○ Plug in card reader                           | Opens `mykad-reader-problems` in the user docs |
+| `/status` does not answer | ○ MyKad Reader isn't running                    | Opens `set-up-mykad-reader` in the user docs   |
+| Update required (1.x)     | ⚠ Update required                               | Opens the download for this computer           |
+| Other system              | ○ MyKad Reader isn't supported on this computer | —                                              |
 
-Staff click **Install Bridge**, open the file once, and forget it. No Python and no terminal.
+"Update required" means the `version` in `/status` is lower than `REQUIRED_BRIDGE_VERSION` (`2.0.0`). A 1.x reader has no `code` on `/read`, so the hook falls back to its `error` text.
 
-| OS      | File                       | What it does                                                                                                                                                                                                                                                    |
-| ------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Windows | `estatell-mykad-setup.exe` | One admin prompt. Installs to `Program Files\Estatell MyKad Bridge`. Adds `EstatellMyKadBridge` to `HKLM\Software\Microsoft\Windows\CurrentVersion\Run`, so the bridge starts hidden for every user at login. Starts at once. Uninstall from Apps & features.   |
-| macOS   | `estatell-mykad.pkg`       | Admin password once. Installs to `/Library/Application Support/Estatell/MyKadBridge`. Adds `/Library/LaunchAgents/com.estatell.mykad-bridge.plist` (`RunAtLoad`, `KeepAlive` on crash), so it starts for every user and restarts after a crash. Starts at once. |
+### Read errors
 
-Why this approach:
+The hook maps the `code` from `/read` to Estatell's own words. `error` is for logs only.
 
-- **Python is bundled** (PyInstaller), so the PC needs nothing installed first.
-- **Per machine, at login**: front desks often share a PC between staff accounts. The bridge runs in the user's session, where the card reader is reliably available. A Windows service runs in session 0 and is harder to debug.
-- **One instance.** If port 9292 is taken, a new copy exits with code 0. launchd does not restart a clean exit. On Windows the bridge claims the port with `SO_EXCLUSIVEADDRUSE`, so two copies cannot share it.
-- **Updates**: opening a newer installer stops the old bridge, replaces it and starts the new one.
+| `code`        | Message                                                                 |
+| ------------- | ----------------------------------------------------------------------- |
+| `no_reader`   | Plug the card reader into this computer.                                |
+| `no_card`     | Insert the MyKad, chip first and face up.                               |
+| `busy`        | Still reading the last card. Try again in a moment.                     |
+| `read_failed` | The card couldn't be read. Take it out and insert it again.             |
+| `forbidden`   | MyKad Reader refused this page. Fix this ↗ (links to the problems page) |
 
-Uninstall:
+### Downloads
 
-- Windows: Settings → Apps → Estatell MyKad Bridge.
-- macOS: `sudo "/Library/Application Support/Estatell/MyKadBridge/uninstall.sh"`.
+`bridgeDownload()` gives the link for the staff member's OS. The links never change; GitHub serves the newest release:
 
-### First install warnings (unsigned)
+| OS      | Link                                                                                                                |
+| ------- | ------------------------------------------------------------------------------------------------------------------- |
+| Windows | `https://github.com/LearningTigers-Sdn-Bhd/estatell-mykad-reader/releases/latest/download/estatell-mykad-setup.exe` |
+| macOS   | `https://github.com/LearningTigers-Sdn-Bhd/estatell-mykad-reader/releases/latest/download/estatell-mykad.pkg`       |
 
-The installers are not code signed. Staff see a warning the first time:
+### User docs links
 
-| OS      | What staff do                                                                                                                                 |
-| ------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Windows | SmartScreen "Windows protected your PC": click **More info → Run anyway**. Some antivirus tools flag unsigned PyInstaller programs; allow it. |
-| macOS   | "cannot be opened": open **System Settings → Privacy & Security** and click **Open Anyway**, then open the pkg again.                         |
+| Page                                                                                | Used for           |
+| ----------------------------------------------------------------------------------- | ------------------ |
+| `https://docs.estatell.com/en/docs/guests/identity-documents/set-up-mykad-reader`   | Install or restart |
+| `https://docs.estatell.com/en/docs/guests/identity-documents/mykad-reader-problems` | Problems           |
 
-### Manual fallback
+### Words on screen
 
-`public/downloads/mykad-bridge.zip` holds `mykad_bridge.py` and `run_bridge.bat` / `run_bridge.sh`. They need Python 3.8+, install `pyscard` on first run, and stop when the window closes. Use them on Linux or to troubleshoot.
+Screens are for hotel owners and staff. Say "MyKad Reader", not "bridge". Never show origin, CORS, port, localhost, code signing or "403".
 
-## Build and release
+## Release rules
 
-Files live in `tools/mykad-bridge/`:
-
-| File                                  | Purpose                                                                    |
-| ------------------------------------- | -------------------------------------------------------------------------- |
-| `mykad_bridge.py`                     | The bridge. `__version__` is the release version.                          |
-| `packaging/requirements-build.txt`    | Pinned PyInstaller and pyscard. Build time only.                           |
-| `packaging/windows/installer.iss`     | Inno Setup script for the `.exe`.                                          |
-| `packaging/macos/build.sh`            | PyInstaller and `pkgbuild` for the `.pkg`. Also runs locally on a Mac.     |
-| `packaging/macos/*.plist`, `scripts/` | LaunchAgent, preinstall (stop old bridge), postinstall (start new bridge). |
-| `packaging/macos/uninstall.sh`        | Installed next to the bridge.                                              |
-| `.github/workflows/mykad-bridge.yml`  | CI build.                                                                  |
-
-PyInstaller cannot cross-compile, so CI builds each OS on its own runner:
-
-- **Windows** (`windows-latest`): Python 3.12, PyInstaller `--onedir --noconsole`, then Inno Setup 6.
-- **macOS** (`macos-latest`): the python.org Python 3.12 (universal2), PyInstaller `--target-arch universal2`, then `pkgbuild`. One pkg runs on Apple Silicon and Intel Macs.
-- Both smoke test the built program: `/status` returns a version, and a foreign origin gets `403`.
-
-Tools and licences: PyInstaller is GPL with an exception that allows shipping closed apps. Inno Setup is free for commercial use; since 6.5.0 the author asks commercial users to buy a licence, but it is not required. `pkgbuild` ships with macOS.
-
-To release:
-
-1. Bump `__version__` in `mykad_bridge.py`. If the app needs the new build, also bump `REQUIRED_BRIDGE_VERSION` in `use-mykad-reader.ts`.
-2. In GitHub → Actions → **mykad-bridge** → **Run workflow**, pick the branch.
-3. The `publish` job copies `estatell-mykad-setup.exe` and `estatell-mykad.pkg` into `public/downloads/`, rebuilds `mykad-bridge.zip`, and commits them to that branch.
-
-Pull requests that touch `tools/mykad-bridge/` run the build and smoke tests without publishing.
+- Ship this change in the same Estatell release as MyKad Reader 2.0.0, and not before 2.0.0 is released. Until then, staff with 1.x would be told to update to a version that does not exist.
+- The repo `estatell-mykad-reader` must be public before release. Hotels download from its GitHub Releases without a login.
+- A release build of MyKad Reader refuses `localhost` and `*.test` origins unless `ESTATELL_BRIDGE_ORIGINS` lists them. For local development, use a debug build or set that variable.
+- To require a newer reader later, bump `REQUIRED_BRIDGE_VERSION` in the same Estatell release.
 
 ## Open
 
-- Run the workflow once so `public/downloads/` holds the installers. Until then the Install Bridge button returns 404 on Windows and macOS.
-- Test both installers on a clean Windows and macOS PC: no driver needed for the ACR39U, start at login, update over an older version, uninstall.
-- Code signing is out of scope for now.
+- Remove the Python bridge once 2.0.0 is released: `tools/mykad-bridge/`, `.github/workflows/mykad-bridge.yml`, and the files in `public/downloads/`. See the [checklist](../checklist.md).
+- Test on a real reader: ready, no reader, reader unplugged mid-use, 1.x reader, `forbidden`.
