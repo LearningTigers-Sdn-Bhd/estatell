@@ -9,9 +9,10 @@ The things staff can post to a folio: extra bed, breakfast, laundry, parking, bo
 ```
 charge_items    id, property_id, transaction_code_id (unique), name, description,
                 default_amount (nullable), charging_unit (ChargingUnit), allow_override,
-                auto_add (default false), needs_child_price_review (default false),
-                position, active, timestamps
+                auto_add (default false), auto_add_channels (default false),
+                needs_child_price_review (default false), position, active, timestamps
                 CHECK auto_add needs default_amount
+                CHECK auto_add_channels needs auto_add
 charge_item_child_prices
                 id, charge_item_id, property_age_group_id,
                 pricing (AgeBandPricing), value (nullable), timestamps
@@ -81,6 +82,7 @@ A PerGuest or PerGuestNight item can charge children less than adults, by [age g
 - Turning it on or off never changes existing bookings.
 - On a fare that any boat departure uses, the switch is disabled with "Added by boat trips", because the boat trip adds it, and the request refuses `auto_add` on (see [Boat settings](../24-boats/01-boat-settings.md#on-the-charge-items-page)).
 - Where it applies is in [Add-ons](../12-reservations/04-add-ons.md#added-automatically).
+- **Also add to channel bookings** (`auto_add_channels`, default off) adds the item to OTA bookings too, for a fee the guest pays at the property, such as a jetty fee. It needs Add to every new booking (database CHECK): the switch is disabled until that is on, and turning that off turns it off. The list badge reads "Auto, channels too".
 
 ## Taxes
 
@@ -107,6 +109,7 @@ Charge items use a list, a short **New charge item** Dialog and a full edit page
 | Charged                  | Per item                                                                     |
 | Taxes                    | None                                                                         |
 | Add to every new booking | Off                                                                          |
+| Also add to channels     | Off                                                                          |
 | Position                 | The end of the active list                                                   |
 
 **Edit page sections**, in two columns from the `lg` breakpoint (Details on the left, Pricing on the right, Taxes on its own row below) and one column below it, max 1024 px:
@@ -117,7 +120,7 @@ Details        Name, Code, Category, Description
 Pricing        Charged (charging unit), Price: Fixed amount or Enter when charging,
                Allow other amount when charging
 Children       One row per age group: Free, % or Fixed (per guest items only)
-New bookings   Add to every new booking
+New bookings   Add to every new booking, Also add to channel bookings
 Taxes          The taxes multiselect
 ```
 

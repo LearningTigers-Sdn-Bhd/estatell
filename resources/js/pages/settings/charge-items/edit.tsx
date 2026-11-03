@@ -105,6 +105,7 @@ export default function ChargeItemEdit({
         active: chargeItem.active,
         tax_ids: chargeItem.taxIds.map(String),
         auto_add: chargeItem.autoAdd,
+        auto_add_channels: chargeItem.autoAddChannels,
         child_prices: childPrices.map((price) => ({
             property_age_group_id: price.ageGroupId,
             pricing: price.pricing as string,
@@ -128,6 +129,7 @@ export default function ChargeItemEdit({
                 default_amount: '',
                 allow_override: true,
                 auto_add: false,
+                auto_add_channels: false,
                 child_prices: data.child_prices.map((price) =>
                     price.pricing === 'percent'
                         ? { ...price, pricing: 'free', value: '' }
@@ -145,7 +147,13 @@ export default function ChargeItemEdit({
         <Switch
             id="charge-item-auto-add"
             checked={form.data.auto_add}
-            onCheckedChange={(checked) => form.setData('auto_add', checked)}
+            onCheckedChange={(checked) =>
+                form.setData((data) => ({
+                    ...data,
+                    auto_add: checked,
+                    auto_add_channels: checked ? data.auto_add_channels : false,
+                }))
+            }
             disabled={enteredWhenCharging || autoAddLocked}
         />
     );
@@ -479,6 +487,35 @@ export default function ChargeItemEdit({
                                     </FieldDescription>
                                     <FieldError>
                                         {form.errors.auto_add}
+                                    </FieldError>
+                                </FieldContent>
+                            </Field>
+                            <Field
+                                orientation="horizontal"
+                                data-invalid={!!errors.auto_add_channels}
+                            >
+                                <Switch
+                                    id="charge-item-auto-add-channels"
+                                    checked={form.data.auto_add_channels}
+                                    onCheckedChange={(checked) =>
+                                        form.setData(
+                                            'auto_add_channels',
+                                            checked,
+                                        )
+                                    }
+                                    disabled={!form.data.auto_add}
+                                />
+                                <FieldContent>
+                                    <FieldLabel htmlFor="charge-item-auto-add-channels">
+                                        Also add to channel bookings
+                                    </FieldLabel>
+                                    <FieldDescription>
+                                        {form.data.auto_add
+                                            ? 'Add it to bookings from Booking.com, Agoda and other channels too. The guest pays it here; the channel price does not change.'
+                                            : 'Turn on Add to every new booking first.'}
+                                    </FieldDescription>
+                                    <FieldError>
+                                        {errors.auto_add_channels}
                                     </FieldError>
                                 </FieldContent>
                             </Field>

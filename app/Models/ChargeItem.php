@@ -24,6 +24,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property ChargingUnit $charging_unit
  * @property bool $allow_override
  * @property bool $auto_add
+ * @property bool $auto_add_channels
  * @property bool $needs_child_price_review
  * @property int $position
  * @property bool $active
@@ -32,7 +33,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 #[Fillable([
     'transaction_code_id', 'name', 'description', 'default_amount', 'charging_unit',
-    'allow_override', 'auto_add', 'needs_child_price_review', 'position', 'active',
+    'allow_override', 'auto_add', 'auto_add_channels', 'needs_child_price_review', 'position', 'active',
 ])]
 class ChargeItem extends Model
 {
@@ -47,6 +48,7 @@ class ChargeItem extends Model
             'charging_unit' => ChargingUnit::class,
             'allow_override' => 'boolean',
             'auto_add' => 'boolean',
+            'auto_add_channels' => 'boolean',
             'needs_child_price_review' => 'boolean',
             'position' => 'integer',
             'active' => 'boolean',

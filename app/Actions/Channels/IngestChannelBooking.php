@@ -7,6 +7,7 @@ use App\Actions\FrontDesk\CancelUnits;
 use App\Actions\FrontDesk\ChangeUnitDates;
 use App\Actions\Guests\CreateGuest;
 use App\Actions\Reservations\AddUnit;
+use App\Actions\Reservations\AddUnitAddOn;
 use App\Actions\Reservations\AttachGuest;
 use App\Actions\Reservations\ChangeNightPrice;
 use App\Actions\Reservations\CreateReservation;
@@ -33,6 +34,7 @@ use App\Services\Channels\ChannelRevisionRefused;
 use App\Services\Channels\Channex\ChannexRequestFailed;
 use App\Services\Channels\Channex\ChannexRetryLater;
 use App\Services\Guests\GuestMatcher;
+use App\Services\Reservations\AutoAddOns;
 use App\Services\Staff\PropertyOwners;
 use Brick\Math\BigDecimal;
 use Brick\Math\RoundingMode;
@@ -56,6 +58,8 @@ class IngestChannelBooking
         private AutoAssignBookedUnit $autoAssignBookedUnit,
         private AttachGuest $attachGuest,
         private PostOtaCollectedPayment $postOtaCollectedPayment,
+        private AutoAddOns $autoAddOns,
+        private AddUnitAddOn $addUnitAddOn,
     ) {}
 
     /**
@@ -182,6 +186,7 @@ class IngestChannelBooking
         foreach ($result->reservation->units()->orderBy('id')->get() as $unit) {
             ($this->attachGuest)($actor, $unit, $booker);
             ($this->autoAssignBookedUnit)($actor, $unit);
+            $this->addChannelAddOns($actor, $unit);
         }
 
         return $result->reservation;
@@ -319,6 +324,19 @@ class IngestChannelBooking
             }
 
             ($this->autoAssignBookedUnit)($actor, $result->unit->refresh());
+            $this->addChannelAddOns($actor, $result->unit);
+        }
+    }
+
+    /**
+     * Add the charge items that go on every channel booking (`auto_add_channels`), such as a jetty fee the guest pays
+     * at the property. They are added after the unit, one by one, so an add-on the unit refuses is skipped: an OTA
+     * booking is always accepted. See docs/12-reservations/04-add-ons.md#added-automatically.
+     */
+    private function addChannelAddOns(User $actor, ReservationUnit $unit): void
+    {
+        foreach ($this->autoAddOns->forChannelUnit($unit->property) as $addOn) {
+            ($this->addUnitAddOn)($actor, $unit, $addOn);
         }
     }
 

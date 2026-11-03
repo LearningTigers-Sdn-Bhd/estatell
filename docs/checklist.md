@@ -100,6 +100,22 @@ Staff feedback: a 02:00 to 12:00 walk-in entered at 15:00 could not be booked, a
 - [x] `feat(front-desk): pick the plan when checking out as day use` — `CheckOutAsDayUseQuote` quotes every active Day use plan on the room type and picks the first that prices the stay, else No plan; `rate_plan_id` (`rate_plan_not_linked`) and `no_plan` on the request; an explicit plan that cannot price refuses with its quote refusal; No plan keeps `rate_plan_id`; `planOptions`, `perNightPlanName` and `planNote` in the preview; tests for the default, the fallback to No plan, an explicit plan, a refused explicit plan and no Day use plan. Docs: [Check out as day use](18-front-desk/01-check-in-and-check-out.md#check-out-as-day-use).
 - [x] `feat(front-desk): add the plan select and time group to the day use check-out dialog` — the Plan select with disabled plans and their reasons, No plan with "Keeps …", the ⓘ note, the staff choice kept across previews, no select without a Day use plan, `amount_required` shown only after save, "Reason (optional)", the Start · Hours · End input group and the Charged line. Needs: pick the plan when checking out as day use. Docs: [Check out as day use](18-front-desk/01-check-in-and-check-out.md#check-out-as-day-use).
 
+### Sand Bay gaps
+
+Branch `feat/sandbay-gaps`. Plan: `~/Code/Jesselton-Pixel/docs/estatell/sandbay/2026-11-03-sandbay-gaps-plan.md`.
+
+- [x] `feat(catalogues): add auto add-ons to channel bookings` — `charge_items.auto_add_channels` with its CHECK, the "Also add to channel bookings" switch and badge, `AutoAddOns::forChannelUnit()`, `IngestChannelBooking` adds them to new and added rooms and skips a refused one. Docs: [Charge items](06-catalogues/02-charge-items.md#add-to-every-new-booking), [Add-ons](12-reservations/04-add-ons.md#added-automatically).
+- [ ] `feat(rates): take a long-stay amount per guest or per room`
+- [ ] `feat(folio): let the guest pay collected taxes on company bookings`
+- [ ] `feat(reservations): change a unit's guests`
+- [ ] `feat(rates): limit a rate plan by rooms per booking`
+- [ ] `feat(boats): add boats and crew to the manifest`
+- [ ] `feat(reports): add the housekeeping items report`
+- [ ] `feat(reports): add the house status report`
+- [ ] `feat(city-ledger): add the agent payment schedule`
+- [ ] `feat(portal): upload a payment proof`
+- [ ] `feat(notifications): remind agents of payment deadlines`
+
 ## Next
 
 Needed for go-live.

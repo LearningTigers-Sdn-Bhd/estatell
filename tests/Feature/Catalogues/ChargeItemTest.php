@@ -614,3 +614,29 @@ test('Transport is a charge item category, so a boat fare can be made on this pa
     expect($chargeItem->transactionCode->category)->toBe(TransactionCategory::Transport)
         ->and(TransactionCategory::chargeItemOptions())->toContain(['value' => 'transport', 'label' => 'Transport']);
 });
+
+test('an auto-add item can also be added to channel bookings, and turning auto-add off turns it off', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    $item = ChargeItem::factory()->for($property)->create(['default_amount' => '10.00', 'charging_unit' => ChargingUnit::PerGuest, 'auto_add' => true]);
+    $url = route('settings.charge-items.update', [$property->code, $item]);
+
+    $this->actingAs($owner)->put($url, chargeItemPayloadFor($item, ['auto_add' => true, 'auto_add_channels' => true]))->assertSessionHasNoErrors();
+
+    expect($item->refresh()->auto_add_channels)->toBeTrue();
+
+    $this->put($url, chargeItemPayloadFor($item, ['active' => true]))->assertSessionHasNoErrors();
+
+    expect($item->refresh()->auto_add_channels)->toBeTrue();
+
+    $this->put($url, chargeItemPayloadFor($item, ['auto_add' => false, 'auto_add_channels' => true]))->assertSessionHasNoErrors();
+
+    expect($item->refresh()->auto_add)->toBeFalse()
+        ->and($item->auto_add_channels)->toBeFalse();
+});
+
+test('the database keeps channel bookings off for an item that is not added to every booking', function () {
+    $item = ChargeItem::factory()->create(['default_amount' => '10.00']);
+
+    expect(fn () => $item->forceFill(['auto_add_channels' => true])->save())->toThrow(QueryException::class);
+});

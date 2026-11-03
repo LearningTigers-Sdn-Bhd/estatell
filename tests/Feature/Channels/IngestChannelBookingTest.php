@@ -2,14 +2,17 @@
 
 use App\Actions\Channels\IngestChannelBooking;
 use App\Actions\Channels\StoreChannelRevision;
+use App\Enums\ChargingUnit;
 use App\Enums\ReservationStatus;
 use App\Enums\SystemTransactionCode;
 use App\Enums\UnitStatus;
 use App\Models\ChannelBookingRevision;
+use App\Models\ChargeItem;
 use App\Models\Guest;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\TransactionCode;
+use App\Models\UnitAddOn;
 use App\Notifications\ChannelBookingCancelled;
 use App\Notifications\ChannelBookingReceived;
 use Illuminate\Support\Facades\DB;
@@ -432,4 +435,57 @@ test('a room added by a modified revision gets the booker as its primary guest',
     expect($reservation->units()->count())->toBe(2)
         ->and($added->guests()->sole()->guest_id)->toBe($reservation->booker_guest_id)
         ->and($added->guests()->sole()->is_primary)->toBeTrue();
+});
+
+test('a new OTA booking gets the items added to channel bookings, and not the other auto-add items', function () {
+    $setup = channelBookingSetup();
+    fakeChannexAck();
+    $jetty = ChargeItem::factory()->for($setup['property'])->create([
+        'name' => 'Tourist Jetty Fee', 'default_amount' => '10.00', 'charging_unit' => ChargingUnit::PerGuest,
+        'auto_add' => true, 'auto_add_channels' => true,
+    ]);
+    ChargeItem::factory()->for($setup['property'])->create([
+        'name' => 'Cleaning fee', 'default_amount' => '30.00', 'charging_unit' => ChargingUnit::PerStay, 'auto_add' => true,
+    ]);
+
+    [, $result] = ingest($setup);
+
+    $addOns = UnitAddOn::query()->get();
+    expect($result->ok)->toBeTrue()
+        ->and($addOns)->toHaveCount(1)
+        ->and($addOns[0]->charge_item_id)->toBe($jetty->id)
+        ->and($addOns[0]->quantity)->toBe(2)
+        ->and($addOns[0]->unit_amount)->toBe('10.00');
+});
+
+test('a room added by a modified revision gets the items added to channel bookings', function () {
+    $setup = channelBookingSetup();
+    fakeChannexAck();
+    ChargeItem::factory()->for($setup['property'])->create([
+        'default_amount' => '10.00', 'charging_unit' => ChargingUnit::PerGuest, 'auto_add' => true, 'auto_add_channels' => true,
+    ]);
+    ingest($setup);
+
+    ingest($setup, ['status' => 'modified', 'rooms' => [channelRevisionRoom(), channelRevisionRoom()]]);
+
+    $units = Reservation::query()->sole()->units()->withCount('addOns')->orderBy('id')->get();
+    expect($units->pluck('add_ons_count')->all())->toBe([1, 1]);
+});
+
+test('an OTA booking is still saved when an item for channel bookings refuses the room', function () {
+    $setup = channelBookingSetup();
+    fakeChannexAck();
+    ChargeItem::factory()->for($setup['property'])->create([
+        'default_amount' => '10.00', 'charging_unit' => ChargingUnit::PerGuestNight, 'auto_add' => true, 'auto_add_channels' => true,
+    ]);
+
+    [, $result] = ingest($setup, [
+        'arrival_date' => '2026-10-01',
+        'departure_date' => '2026-10-02',
+        'rooms' => [channelRevisionRoom(['checkin_date' => '2026-10-01', 'checkout_date' => '2026-10-02', 'amount' => '100.00'])],
+    ]);
+
+    expect($result->ok)->toBeTrue()
+        ->and(Reservation::query()->count())->toBe(1)
+        ->and(UnitAddOn::query()->count())->toBe(0);
 });
