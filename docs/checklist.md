@@ -23,7 +23,7 @@ The booking engine is the current build. The channel manager and the wastays rep
 
 Planned on 2026-11-03. Docs: [Booking engine](28-booking-engine/01-overview.md). Commission fees must be built before real money is collected. Before that, also answer the "to verify" list in the overview.
 
-- [ ] `feat(booking-engine): add the feature flag and booking site settings` — `BookingEngine`, `property_booking_sites`, `properties.slug`, the three permissions and the General tab. Docs: [Settings](28-booking-engine/07-settings-and-permissions.md).
+- [x] `feat(booking-engine): add the feature flag and booking site settings` — `BookingEngine`, `property_booking_sites`, `properties.slug`, the three permissions and the General tab. Docs: [Settings](28-booking-engine/07-settings-and-permissions.md).
 - [ ] `feat(rooms): upload room type photos` — the upload UI on the room type page, on a public disk. Docs: [Room photos](28-booking-engine/06-content-registries.md#room-photos).
 - [ ] `feat(booking-engine): add the amenity registry` — admin pages, link tables, the Content tab and the room type picker. Docs: [Amenities](28-booking-engine/06-content-registries.md#amenities).
 - [ ] `feat(booking-engine): add the nearby place registry` — `GoogleMapsLink`, property location, admin review, suggestions and the rejection notice. Docs: [Nearby places](28-booking-engine/06-content-registries.md#nearby-places).

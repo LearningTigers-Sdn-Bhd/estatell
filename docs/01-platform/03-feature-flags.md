@@ -16,7 +16,7 @@ Turn optional capabilities on or off per property, without code changes. The fir
 - Features are class-based, one class per feature, for example `App\Features\ChannelManager`, with a `#[Name]` (`channel-manager`) so a class rename keeps the stored rows.
 - A feature's `resolve(Property)` returns the default (off). Later it can resolve from a plan or tier.
 - `PlatformFeature` enum lists the features admins manage: `label()`, `description()`, `featureClass()`.
-- A feature whose routes must return 404 when off uses its own small middleware, because `EnsureFeaturesAreActive::whenInactive()` is global. First case: `Boats` (see [Boat settings](../24-boats/01-boat-settings.md#feature-flag)). `ChannelManager` does the same for its owner and admin routes. There is no upsell page.
+- A feature whose routes must return 404 when off uses its own small middleware, because `EnsureFeaturesAreActive::whenInactive()` is global. First case: `Boats` (see [Boat settings](../24-boats/01-boat-settings.md#feature-flag)). `ChannelManager` does the same for its owner and admin routes. `BookingEngine` does the same for Settings › Booking website (`booking-engine` middleware). There is no upsell page.
 
 ## Admin UI
 
@@ -39,4 +39,4 @@ Turn optional capabilities on or off per property, without code changes. The fir
 | `ChannelManager` | Off     | [Channels](../21-channels/) module                                                                                                                                                                                                |
 | `Boats`          | Off     | [Boats](../24-boats/) module                                                                                                                                                                                                      |
 | `Kiosks`         | Off     | [Kiosks](../28-api-access/02-kiosks.md): the Kiosks settings page, kiosk pairing and the kiosk API. While off, the settings routes answer 404, a pairing code is refused and a paired kiosk's token gets `401 kiosk_unauthorized` |
-| `BookingEngine`  | Off     | [Booking engine](../28-booking-engine/) module (planned)                                                                                                                                                                          |
+| `BookingEngine`  | Off     | [Booking engine](../28-booking-engine/) module                                                                                                                                                                                    |

@@ -25,6 +25,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property int $id
  * @property int|null $partner_id
  * @property string $code
+ * @property string|null $slug
  * @property string|null $document_prefix
  * @property string $name
  * @property PropertyType|null $type
@@ -40,6 +41,9 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property string|null $legal_name
  * @property string|null $registration_number
  * @property string|null $tin
+ * @property string|null $latitude
+ * @property string|null $longitude
+ * @property string|null $google_maps_url
  * @property CarbonImmutable|null $onboarding_started_at
  * @property CarbonImmutable|null $onboarding_last_activity_at
  * @property int $onboarding_reminder_stage
@@ -360,6 +364,12 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
     public function kiosks(): HasMany
     {
         return $this->hasMany(Kiosk::class);
+    }
+
+    /** @return HasOne<PropertyBookingSite, $this> */
+    public function bookingSite(): HasOne
+    {
+        return $this->hasOne(PropertyBookingSite::class);
     }
 
     /** @return HasOne<DoorLockConnection, $this> */

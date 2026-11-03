@@ -5,6 +5,7 @@ use App\Http\Middleware\BlockDuringImpersonation;
 use App\Http\Middleware\BlockOnDemo;
 use App\Http\Middleware\EnsureAccountingIsActive;
 use App\Http\Middleware\EnsureBoatsIsActive;
+use App\Http\Middleware\EnsureBookingEngineIsActive;
 use App\Http\Middleware\EnsureChannelManagerIsActive;
 use App\Http\Middleware\EnsureDoorLocksAreActive;
 use App\Http\Middleware\EnsureEmailIsVerified;
@@ -63,6 +64,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'accounting' => EnsureAccountingIsActive::class,
             'door-locks' => EnsureDoorLocksAreActive::class,
             'kiosks' => EnsureKiosksAreActive::class,
+            'booking-engine' => EnsureBookingEngineIsActive::class,
             'channels' => EnsureChannelManagerIsActive::class,
             'live' => EnsurePropertyIsLive::class,
             'onboarding.activity' => TrackOnboardingActivity::class,
@@ -82,6 +84,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureAccountingIsActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureDoorLocksAreActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureKiosksAreActive::class);
+        $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureBookingEngineIsActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureChannelManagerIsActive::class);
 
         $middleware->web(append: [

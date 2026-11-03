@@ -51,6 +51,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Booking website address
+    |--------------------------------------------------------------------------
+    |
+    | The base address of the booking microsite. A property's site is at this
+    | address plus its slug. See docs/28-booking-engine/08-microsite.md.
+    |
+    */
+
+    'booking_site_url' => env('BOOKING_SITE_URL', 'https://booking.estatell.com'),
+
+    /*
+    |--------------------------------------------------------------------------
     | MyKad Reader download
     |--------------------------------------------------------------------------
     |

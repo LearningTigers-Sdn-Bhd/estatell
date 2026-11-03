@@ -6,6 +6,7 @@ use App\Http\Controllers\ApiAccess\KioskController;
 use App\Http\Controllers\Boats\BoatController;
 use App\Http\Controllers\Boats\BoatDepartureController;
 use App\Http\Controllers\Boats\BoatFareController;
+use App\Http\Controllers\BookingEngine\BookingWebsiteController;
 use App\Http\Controllers\Catalogues\ChargeItemController;
 use App\Http\Controllers\Catalogues\DiscountController;
 use App\Http\Controllers\Catalogues\PaymentMethodController;
@@ -210,6 +211,17 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::post('passcodes', [DoorLockSettingsController::class, 'storePasscode'])->name('passcodes.store');
         Route::post('passcodes/{doorPasscode}/revoke', [DoorLockSettingsController::class, 'revoke'])->name('passcodes.revoke');
         Route::post('passcodes/{doorPasscode}/retry', [DoorLockSettingsController::class, 'retry'])->name('passcodes.retry');
+    });
+
+    Route::prefix('booking-website')->name('booking-website.')->middleware('booking-engine')->scopeBindings()->group(function () {
+        Route::middleware('can:'.PermissionEnum::BookingWebsiteManage->value)->group(function () {
+            Route::get('/', [BookingWebsiteController::class, 'general'])->name('general');
+            Route::put('/', [BookingWebsiteController::class, 'updateGeneral'])->name('general.update');
+        });
+        Route::middleware('can:'.PermissionEnum::BookingWebsitePublish->value)->group(function () {
+            Route::post('publish', [BookingWebsiteController::class, 'publish'])->name('publish');
+            Route::post('unpublish', [BookingWebsiteController::class, 'unpublish'])->name('unpublish');
+        });
     });
 
     Route::prefix('accounting')->name('accounting.')->middleware(['accounting', 'can:'.PermissionEnum::SettingsManage->value])->scopeBindings()->group(function () {

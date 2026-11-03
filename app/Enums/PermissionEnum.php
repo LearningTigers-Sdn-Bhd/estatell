@@ -68,6 +68,9 @@ enum PermissionEnum: string
     case HousekeepingUpdate = 'housekeeping.update';
     case HousekeepingInspect = 'housekeeping.inspect';
     case HousekeepingEditTimes = 'housekeeping.edit-times';
+    case BookingWebsiteManage = 'booking-website.manage';
+    case BookingWebsitePublish = 'booking-website.publish';
+    case BookingWebsiteApi = 'booking-website.api';
 
     public function label(): string
     {
@@ -132,6 +135,9 @@ enum PermissionEnum: string
             self::HousekeepingUpdate => __('Update room status, assignments and flags'),
             self::HousekeepingInspect => __('Mark rooms as inspected'),
             self::HousekeepingEditTimes => __('Correct housekeeping IN and OUT times'),
+            self::BookingWebsiteManage => __('Edit the booking website settings'),
+            self::BookingWebsitePublish => __('Publish or unpublish the booking website'),
+            self::BookingWebsiteApi => __('Manage the booking API token and return addresses'),
         };
     }
 
@@ -156,6 +162,7 @@ enum PermissionEnum: string
             self::NightAuditRun, self::NightAuditForce, self::NightAuditReceiveReport => __('Night audit'),
             self::ReportsView => __('Reports'),
             self::HousekeepingView, self::HousekeepingUpdate, self::HousekeepingInspect, self::HousekeepingEditTimes => __('Housekeeping'),
+            self::BookingWebsiteManage, self::BookingWebsitePublish, self::BookingWebsiteApi => __('Booking website'),
         };
     }
 

@@ -17,7 +17,9 @@ rate_plans               + bookable_online (bool, default false)
 ```
 
 - `BookingEngineMode`: Microsite, ApiOnly.
-- Slugs are lower case letters, digits and hyphens. A property gets one when the module is first set up. After publishing, only admins change it, because a change breaks links already shared.
+- Slugs are lower case letters, digits and hyphens, 3 to 50 characters. A property gets one from its name when the General tab is first opened (`SetUpBookingSite`, which also creates the `property_booking_sites` row as Microsite). Until it is published, the owner can edit it on the General tab. After publishing, only admins change it, because a change breaks links already shared.
+- `site_template_id` has no foreign key yet. The template registry item adds it.
+- **Built so far:** the flag, the tables, the three permissions, the General tab with Publish and Unpublish, and the checklist service (`BookingSiteChecklist`). Each later item adds its own checklist row. Not built yet: the admin switch for the mode, and the admin change of a published slug.
 
 ## Booking website settings
 
