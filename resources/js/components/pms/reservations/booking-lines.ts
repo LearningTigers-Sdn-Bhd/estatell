@@ -159,6 +159,14 @@ export function roomTypeOf(
     return roomTypes.find((type) => String(type.id) === line.room_type_id);
 }
 
+/** How many rooms the booking holds: its lines that are not dorm beds. Rooms per booking on a plan counts these. */
+export function roomsInBooking(
+    lines: BookingLine[],
+    roomTypes: RoomTypeOption[],
+): number {
+    return lines.filter((line) => !roomTypeOf(line, roomTypes)?.isBed).length;
+}
+
 /** How many units a line adds: one for each bed of a dorm line, otherwise one. */
 export function unitsInLine(
     line: BookingLine,
@@ -519,13 +527,31 @@ export function plansFor(
     roomTypeId: string,
     companyId: string,
     dayUse = false,
+    roomCount: number | null = null,
+    keepPlanId = '',
 ): App.Data.Reservations.RatePlanOptionData[] {
     return plans.filter(
         (plan) =>
             plan.isDayUse === dayUse &&
             (roomTypeId === '' ||
                 plan.roomTypeIds.includes(Number(roomTypeId))) &&
-            planOpenToCompany(plan, companyId),
+            planOpenToCompany(plan, companyId) &&
+            (String(plan.id) === keepPlanId || planFitsRooms(plan, roomCount)),
+    );
+}
+
+/**
+ * Whether a plan with Rooms per booking (FIT and group rates) fits a booking of `roomCount` rooms. With no count
+ * (the Add unit Sheet), every plan fits and the server checks.
+ */
+export function planFitsRooms(
+    plan: App.Data.Reservations.RatePlanOptionData,
+    roomCount: number | null,
+): boolean {
+    return (
+        roomCount === null ||
+        ((plan.minRooms === null || roomCount >= plan.minRooms) &&
+            (plan.maxRooms === null || roomCount <= plan.maxRooms))
     );
 }
 

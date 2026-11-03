@@ -86,6 +86,8 @@ export function DetailsForm({
         day_use_max_hours: String(ratePlan.dayUseMaxHours ?? ''),
         day_use_from: ratePlan.dayUseFrom ?? '',
         day_use_until: ratePlan.dayUseUntil ?? '',
+        min_rooms: ratePlan.minRooms === null ? '' : String(ratePlan.minRooms),
+        max_rooms: ratePlan.maxRooms === null ? '' : String(ratePlan.maxRooms),
     });
     const guard = useUnsavedChanges(form.isDirty);
     const basis = ratePlan.pricingBasis;
@@ -95,6 +97,7 @@ export function DetailsForm({
         basis === 'per_room' ||
         (isPackage && ratePlan.packageUnit === 'per_room');
     const period = isPackage ? 'Per stay' : 'Per night';
+    const hasRoomLimits = basis !== 'per_bed' && !isDayUse;
 
     const save = (onSaved?: () => void) => {
         form.put(update.url({ ratePlan: ratePlan.id }), {
@@ -146,6 +149,66 @@ export function DetailsForm({
                     </FieldDescription>
                     <FieldError>{form.errors.description}</FieldError>
                 </Field>
+                {hasRoomLimits && (
+                    <Field
+                        data-invalid={
+                            !!form.errors.min_rooms || !!form.errors.max_rooms
+                        }
+                    >
+                        <FieldLabel htmlFor="min_rooms">
+                            Rooms per booking
+                        </FieldLabel>
+                        <div className="flex items-center gap-2">
+                            <Input
+                                id="min_rooms"
+                                aria-label="Fewest rooms"
+                                type="number"
+                                min="1"
+                                max="200"
+                                inputMode="numeric"
+                                placeholder="Any"
+                                className="w-24"
+                                value={form.data.min_rooms}
+                                onChange={(event) =>
+                                    form.setData(
+                                        'min_rooms',
+                                        event.target.value,
+                                    )
+                                }
+                                aria-invalid={!!form.errors.min_rooms}
+                            />
+                            <span className="text-sm text-muted-foreground">
+                                to
+                            </span>
+                            <Input
+                                id="max_rooms"
+                                aria-label="Most rooms"
+                                type="number"
+                                min="1"
+                                max="200"
+                                inputMode="numeric"
+                                placeholder="Any"
+                                className="w-24"
+                                value={form.data.max_rooms}
+                                onChange={(event) =>
+                                    form.setData(
+                                        'max_rooms',
+                                        event.target.value,
+                                    )
+                                }
+                                aria-invalid={!!form.errors.max_rooms}
+                            />
+                        </div>
+                        <FieldDescription>
+                            For FIT and group rates, for example 1 to 4 rooms,
+                            or 5 and more. Leave empty for any number of rooms.
+                            Channel bookings ignore it.
+                        </FieldDescription>
+                        <FieldError>
+                            {form.errors.min_rooms ?? form.errors.max_rooms}
+                        </FieldError>
+                    </Field>
+                )}
                 {isPackage && (
                     <Field data-invalid={!!form.errors.fixed_nights}>
                         <FieldLabel htmlFor="fixed_nights">Nights</FieldLabel>

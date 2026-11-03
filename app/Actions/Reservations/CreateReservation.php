@@ -93,9 +93,11 @@ class CreateReservation
                     'created_by' => $actor->id,
                 ])->save();
 
+                $roomCount = count(array_filter($data->units, fn (NewUnitData $line): bool => $line->stayType === StayType::Overnight && $roomTypes->get($line->roomTypeId)?->sell_unit === SellUnit::Room));
+
                 foreach ($data->units as $index => $line) {
                     foreach (range(1, $this->unitCount($roomTypes->get($line->roomTypeId), $line, $index)) as $ignored) {
-                        $result = ($this->addUnit)($actor, $reservation, $line, $index, $fromChannel, $allowPastArrival);
+                        $result = ($this->addUnit)($actor, $reservation, $line, $index, $fromChannel, $allowPastArrival, $roomCount);
 
                         if ($result->isRefused()) {
                             throw new ReservationRefused($result);

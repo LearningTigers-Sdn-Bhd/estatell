@@ -635,3 +635,19 @@ test('the settings sidebar lists rate plans under Rates', function () {
             ->where('navigation.contexts.3.groups.2.items.0.title', 'Rate plans')
             ->where('navigation.contexts.3.groups.2.items.0.active', true));
 });
+
+test('rooms per booking is saved on the details, empty means no limit, and the most cannot be below the fewest', function () {
+    [$owner, $property] = ratePlanOwner();
+    $plan = RatePlan::factory()->for($property)->perGuest()->create();
+    $url = route('settings.rate-plans.update', [$property->code, $plan]);
+
+    $this->actingAs($owner)->put($url, ['name' => $plan->name, 'single_supplement' => '0', 'min_rooms' => '5', 'max_rooms' => ''])->assertSessionHasNoErrors();
+
+    expect($plan->refresh()->min_rooms)->toBe(5)->and($plan->max_rooms)->toBeNull();
+
+    $this->put($url, ['name' => $plan->name, 'single_supplement' => '0', 'min_rooms' => '5', 'max_rooms' => '4'])->assertSessionHasErrors('max_rooms');
+
+    $this->put($url, ['name' => $plan->name, 'single_supplement' => '0', 'min_rooms' => '', 'max_rooms' => ''])->assertSessionHasNoErrors();
+
+    expect($plan->refresh()->min_rooms)->toBeNull();
+});

@@ -48,6 +48,7 @@ import {
     emptyLine,
     nightsBetween,
     plansFor,
+    roomsInBooking,
     totalUnits,
     unitOptions,
 } from '@/components/pms/reservations/booking-lines';
@@ -538,6 +539,7 @@ export default function ReservationCreate({
         )?.[1];
     const roomTypes = addUnitOptions.roomTypes;
     const units = totalUnits(data.lines, roomTypes);
+    const roomCount = roomsInBooking(data.lines, roomTypes);
     const unitChoices = unitOptions(data.lines, roomTypes);
 
     const unitCapacities = unitChoices.map((unit) => unit.capacity).join(',');
@@ -1851,6 +1853,9 @@ export default function ReservationCreate({
                                                                         }
                                                                         companyId={
                                                                             data.company_id
+                                                                        }
+                                                                        roomCount={
+                                                                            roomCount
                                                                         }
                                                                         arrival={
                                                                             data.arrival_date

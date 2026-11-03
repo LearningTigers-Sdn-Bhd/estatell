@@ -1,8 +1,10 @@
 <?php
 
+use App\Actions\Reservations\AddUnit;
 use App\Actions\Reservations\CreateReservation;
 use App\Actions\Reservations\ReservationResult;
 use App\Data\Reservations\NewReservationData;
+use App\Data\Reservations\NewUnitData;
 use App\Enums\BillingMode;
 use App\Enums\BookingSourceType;
 use App\Enums\SystemTransactionCode;
@@ -450,4 +452,48 @@ test('a refused add-on rolls back the whole booking and does not use up the refe
         ->and($result->lineIndex)->toBe(1)
         ->and(UnitAddOn::query()->count())->toBe(0);
     expectNothingCreated();
+});
+
+test('a rate with rooms per booking is offered only to bookings with that many rooms', function () {
+    $setup = createSetup(rooms: 6);
+    $setup['plan']->update(['min_rooms' => 1, 'max_rooms' => 4]);
+    $group = RatePlan::factory()->for($setup['property'])->create(['name' => 'Group Rate', 'min_rooms' => 5]);
+    $group->roomTypes()->attach($setup['roomType']);
+
+    for ($night = 0; $night < 2; $night++) {
+        Rate::factory()->create(['rate_plan_id' => $group->id, 'room_type_id' => $setup['roomType']->id, 'date' => $setup['arrival']->addDays($night)->toDateString(), 'amount' => '80.00']);
+    }
+
+    $groupLine = fn (): array => roomLine($setup, overrides: ['ratePlanId' => $group->id]);
+
+    $tooFew = createReservation($setup, [$groupLine(), $groupLine(), $groupLine()]);
+    expect($tooFew->refusal)->toBe(ReservationResult::REFUSAL_ROOMS_BELOW_MIN)->and($tooFew->lineIndex)->toBe(0);
+    expectNothingCreated();
+
+    $tooMany = createReservation($setup, array_fill(0, 5, roomLine($setup)));
+    expect($tooMany->refusal)->toBe(ReservationResult::REFUSAL_ROOMS_ABOVE_MAX);
+    expectNothingCreated();
+
+    expect(createReservation($setup, array_fill(0, 4, roomLine($setup)))->isRefused())->toBeFalse()
+        ->and(createReservation($setup, [$groupLine(), $groupLine()], ['bookingSource' => BookingSourceFactory::otaFor($setup['property']->id)], fromChannel: true)->isRefused())->toBeFalse();
+});
+
+test('a dorm bed does not count as a room for rooms per booking', function () {
+    $setup = createSetup();
+    $setup['plan']->update(['min_rooms' => 2]);
+
+    $result = createReservation($setup, [roomLine($setup), bedLine($setup, 2)]);
+
+    expect($result->refusal)->toBe(ReservationResult::REFUSAL_ROOMS_BELOW_MIN);
+});
+
+test('adding a room checks the rooms the reservation will have', function () {
+    $setup = createSetup(rooms: 6);
+    $reservation = createReservation($setup, array_fill(0, 4, roomLine($setup)))->reservation;
+    $setup['plan']->update(['max_rooms' => 4]);
+
+    $result = app(AddUnit::class)($setup['user'], $reservation, NewUnitData::from(roomLine($setup)));
+
+    expect($result->refusal)->toBe(ReservationResult::REFUSAL_ROOMS_ABOVE_MAX)
+        ->and($reservation->units()->count())->toBe(4);
 });

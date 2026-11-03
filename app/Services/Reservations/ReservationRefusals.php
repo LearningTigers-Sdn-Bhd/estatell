@@ -223,6 +223,8 @@ class ReservationRefusals
             ReservationResult::REFUSAL_COMPANY_NOT_AVAILABLE => ['company_id', __('This company is not available. Pick an active company.')],
             ReservationResult::REFUSAL_RATE_PLAN_NOT_LINKED_TO_COMPANY => ['rate_plan_id', __('This rate plan is for certain companies only. Pick one of them on the reservation first.')],
             ReservationResult::REFUSAL_COMPANY_PLAN_CONFLICT => ['company_id', __('Units use plans only the old company can book.')],
+            ReservationResult::REFUSAL_ROOMS_BELOW_MIN => ['rate_plan_id', __('This rate needs more rooms in one booking. Pick another rate.')],
+            ReservationResult::REFUSAL_ROOMS_ABOVE_MAX => ['rate_plan_id', __('This rate is for fewer rooms in one booking. Pick the group rate.')],
             ReservationResult::REFUSAL_CREDIT_LIMIT_EXCEEDED => ['credit_override_reason', __('This company is over its credit limit.')],
             ReservationResult::REFUSAL_MASTER_HAS_PAYMENTS => ['company_id', __('Refund the :amount payment on the Master folio first, then change the company.', ['amount' => $detail])],
             ReservationResult::REFUSAL_MASTER_HAS_AR_INVOICE => ['company_id', __('Void invoice :number first, then change the company.', ['number' => $detail])],

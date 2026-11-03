@@ -445,3 +445,33 @@ test('a migrated stay quote leaves the nights before go-live out of its totals',
         )?.unitTotal,
     ).toBe('80.00');
 });
+
+test('a plan with rooms per booking shows only when the booking has that many rooms, and a picked plan stays', () => {
+    const plan = (
+        id: number,
+        minRooms: number | null,
+        maxRooms: number | null,
+    ) =>
+        ({
+            id,
+            name: `P${id}`,
+            roomTypeIds: [1],
+            fixedNights: null,
+            companyAccess: 'everyone',
+            companyAtDesk: true,
+            companyIds: [],
+            companyMarket: 'all',
+            marketCompanyIds: [],
+            isDayUse: false,
+            minRooms,
+            maxRooms,
+        }) as unknown as App.Data.Reservations.RatePlanOptionData;
+    const plans = [plan(1, null, null), plan(2, 1, 4), plan(3, 5, null)];
+    const ids = (rooms: number | null, keep = '') =>
+        plansFor(plans, '1', '', false, rooms, keep).map((one) => one.id);
+
+    expect(ids(3)).toEqual([1, 2]);
+    expect(ids(5)).toEqual([1, 3]);
+    expect(ids(5, '2')).toEqual([1, 2, 3]);
+    expect(ids(null)).toEqual([1, 2, 3]);
+});

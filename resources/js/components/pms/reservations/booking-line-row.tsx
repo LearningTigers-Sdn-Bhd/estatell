@@ -66,6 +66,7 @@ export function BookingLineRow({
     onQuote,
     goLiveDate = null,
     walkIn = false,
+    roomCount = null,
 }: {
     index: number;
     line: BookingLine;
@@ -86,10 +87,19 @@ export function BookingLineRow({
     goLiveDate?: string | null;
     /** A walk-in: the pickers mark rooms that are not ready. */
     walkIn?: boolean;
+    /** Rooms in the booking: plans with Rooms per booking that do not fit are hidden, except the one picked. */
+    roomCount?: number | null;
 }) {
     const roomType = roomTypeOf(line, options.roomTypes);
     const isBed = roomType?.isBed === true;
-    const plans = plansFor(options.ratePlans, line.room_type_id, companyId);
+    const plans = plansFor(
+        options.ratePlans,
+        line.room_type_id,
+        companyId,
+        false,
+        roomCount,
+        line.rate_plan_id,
+    );
     const quotable = isQuotable(line, arrival, departure);
     const { quote: quoted, loading } = useBookingQuote(
         line,

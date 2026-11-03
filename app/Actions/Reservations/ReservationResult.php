@@ -55,6 +55,10 @@ class ReservationResult
 
     public const REFUSAL_COMPANY_PLAN_CONFLICT = 'company_plan_conflict';
 
+    public const REFUSAL_ROOMS_BELOW_MIN = 'rooms_below_min';
+
+    public const REFUSAL_ROOMS_ABOVE_MAX = 'rooms_above_max';
+
     public const REFUSAL_CREDIT_LIMIT_EXCEEDED = 'credit_limit_exceeded';
 
     public const REFUSAL_MASTER_HAS_PAYMENTS = 'master_has_payments';

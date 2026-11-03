@@ -17,6 +17,7 @@ rate_plans              id, property_id, name, description, pricing_basis (Prici
                         early_departure_policy (EarlyDeparturePolicy),
                         company_access (CompanyAccess, default Everyone),
                         company_at_desk, company_in_portal (booleans, default true),
+                        min_rooms, max_rooms (nullable, 1–200),
                         position, archived_at, timestamps
 rate_plan_room_types    id, rate_plan_id, room_type_id, timestamps
                         unique (rate_plan_id, room_type_id)
@@ -187,6 +188,23 @@ Unlinking a room type with no future reservations deletes the pair's future `rat
 
 A plan or pair synced to Channex but not mapped on an active OTA is removed from Channex first, then archived or unlinked. See [Archive guard](../21-channels/02-mappings-and-capability.md#archive-guard).
 
+## Rooms per booking
+
+FIT and group rates: a plan can say how many rooms a booking needs to use it. Sand Bay sets FIT to 1–4 rooms and GROUP to 5 or more. GROUP has its own prices or follows FIT with a percent off as a [derived plan](04-derived-rate-plans.md). wastays had no such rule.
+
+| Plan                       | Min rooms | Max rooms | 3-room booking | 6-room booking |
+| -------------------------- | --------- | --------- | -------------- | -------------- |
+| Malaysian Agent Rate (FIT) | 1         | 4         | Offered        | Not offered    |
+| Malaysian Agent Group Rate | 5         | —         | Not offered    | Offered        |
+| Basic Rate (no limit)      | —         | —         | Offered        | Offered        |
+
+- **Columns:** `rate_plans.min_rooms` and `max_rooms`, nullable (no limit), 1–200, CHECK min ≤ max. Set on the Details tab as **Rooms per booking: from [ ] to [ ]**. Not offered on Per bed and Day use plans.
+- **Count:** the rooms of the booking that hold inventory on a Room room type, on any plan. A dorm bed does not count.
+- **Booking form:** `plansFor()` hides a plan whose range does not hold the booking's room count (`roomsInBooking()`), from `minRooms` and `maxRooms` on `RatePlanOptionData`, with no request. A plan already picked on a line stays in its list, so the server's message shows on the line.
+- **Server:** `AddUnit` refuses `rooms_below_min` ("This rate needs more rooms in one booking. Pick another rate.") or `rooms_above_max` ("This rate is for fewer rooms in one booking. Pick the group rate."). `CreateReservation` passes the room count of the whole booking; Add unit counts the reservation's live rooms plus the new one. The company portal books through `CreateReservation`, so the same check applies.
+- **Channels:** ignored (`fromChannel`).
+- **Later changes:** a room cancelled or added later does not re-check the other rooms, which keep their plan and price.
+
 ## Long-stay discounts
 
 "Stay at least N nights, get X off", on one rate plan.
@@ -245,7 +263,7 @@ A full page with tab links (one URL per tab): **Details · Room types · Pricing
 
 | Tab           | Content                                                                                                                                             |
 | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Details       | Name, description (shown to guests and company users), extra guest charges, single supplement                                                       |
+| Details       | Name, description (shown to guests and company users), rooms per booking, extra guest charges, single supplement                                    |
 | Room types    | A checkbox per room type. Room types of the other family are shown disabled, with the reason in a tooltip.                                          |
 | Pricing rules | Step 1: "Set prices directly" or "Follow another plan". Package plans show package prices instead, or follow a package with a percent.              |
 | Saved prices  | Read only. The rate calendar for this plan alone, for every plan type. See [Saved prices tab](02-daily-rates-and-restrictions.md#saved-prices-tab). |
