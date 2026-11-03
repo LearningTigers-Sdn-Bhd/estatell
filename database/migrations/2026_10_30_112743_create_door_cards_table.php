@@ -22,9 +22,10 @@ return new class extends Migration
             $table->timestamp('ends_at');
             $table->text('error')->nullable();
             $table->timestamp('revoked_at')->nullable();
-            $table->string('idempotency_key')->unique();
+            $table->string('idempotency_key');
             $table->timestamps();
 
+            $table->unique(['property_id', 'idempotency_key']);
             $table->index(['property_id', 'card_number']);
             $table->index('reservation_unit_id');
         });

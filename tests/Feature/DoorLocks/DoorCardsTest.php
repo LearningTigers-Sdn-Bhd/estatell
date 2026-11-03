@@ -103,6 +103,35 @@ it('refuses a card that is live on the same lock for another key, but allows it 
     expect(registerCard($lock, key: 'card:2')->isRefused())->toBeFalse();
 });
 
+it('keeps the same key apart in two properties', function () {
+    ['lock' => $first] = doorLockSetup(gateway: true);
+    ['lock' => $second] = doorLockSetup(gateway: true);
+    fakeTtlock();
+
+    $one = registerCard($first);
+    $two = registerCard($second);
+
+    expect($two->isRefused())->toBeFalse()
+        ->and($two->card->is($one->card))->toBeFalse()
+        ->and(DoorCard::query()->count())->toBe(2);
+});
+
+it('refuses, not fails, when another request takes the card between the check and the save', function () {
+    ['lock' => $lock] = doorLockSetup(gateway: true);
+    fakeTtlock();
+    DoorCard::creating(function () use ($lock): void {
+        DoorCard::factory()->createQuietly(['door_lock_id' => $lock->id, 'card_number' => 231890151]);
+    });
+
+    try {
+        $result = registerCard($lock);
+    } finally {
+        DoorCard::getEventDispatcher()->forget('eloquent.creating: '.DoorCard::class);
+    }
+
+    expect($result->refusal)->toBe(DoorLockResult::REFUSAL_CARD_IN_USE)->and(ttlockCalls('identityCard'))->toBe(0);
+});
+
 it('saves a TTLock failure on the row as Failed and tries again on repeat', function () {
     ['lock' => $lock] = doorLockSetup(gateway: true);
     Http::fake(['*/v3/identityCard/add' => Http::sequence()->push(['errcode' => -2012, 'errmsg' => 'lock offline'])->push(['cardId' => 7002])]);
