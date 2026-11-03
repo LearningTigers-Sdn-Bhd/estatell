@@ -4230,6 +4230,12 @@ petsAllowed: boolean,
 termsDocumentId: number | null,
 archived: boolean,
 };
+export type RoomTypePhotoData = {
+id: number,
+name: string,
+url: string,
+thumbUrl: string,
+};
 export type RoomTypeRoomChoiceData = {
 id: number,
 number: string,

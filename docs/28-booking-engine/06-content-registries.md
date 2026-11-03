@@ -88,7 +88,7 @@ Source: [Maps Embed API usage and billing](https://developers.google.com/maps/do
 
 ## Room photos
 
-The `photos` collection already exists on room types. The upload UI goes on the room type page. Images the guest sees use a public disk, because the media library's default disk is private.
+The `photos` collection on room types has an upload UI: the Photos tab of the room type page (see [Room types](../05-rooms/01-room-types.md)). Images the guest sees use the public media disk, because the media library's default disk is private. `MEDIA_PUBLIC_DISK` is `public` locally and `r2-public` in production: a separate public R2 bucket (`R2_PUBLIC_BUCKET`) served on a custom domain (`R2_PUBLIC_URL`, for example `https://media.estatell.com`). It reuses the `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` and `R2_ENDPOINT` of the private disk, and the endpoint must have no bucket name in it.
 
 ## Admin routes
 

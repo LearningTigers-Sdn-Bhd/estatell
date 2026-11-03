@@ -33,6 +33,7 @@ use App\Http\Controllers\Rooms\BedController;
 use App\Http\Controllers\Rooms\RoomController;
 use App\Http\Controllers\Rooms\RoomGroupController;
 use App\Http\Controllers\Rooms\RoomTypeController;
+use App\Http\Controllers\Rooms\RoomTypePhotoController;
 use App\Http\Controllers\Staff\RoleController;
 use App\Http\Controllers\Staff\StaffBulkAddController;
 use App\Http\Controllers\Staff\StaffController;
@@ -97,6 +98,7 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::middleware('can:'.PermissionEnum::RoomsView->value)->scopeBindings()->group(function () {
             Route::get('{roomType}', [RoomTypeController::class, 'edit'])->name('edit');
             Route::get('{roomType}/rooms', [RoomTypeController::class, 'editRooms'])->name('rooms.edit');
+            Route::get('{roomType}/photos', [RoomTypePhotoController::class, 'edit'])->name('photos.edit');
         });
 
         Route::middleware('can:'.PermissionEnum::RoomsManage->value)->scopeBindings()->group(function () {
@@ -104,6 +106,9 @@ Route::prefix('settings')->name('settings.')->group(function () {
             Route::put('order', [RoomTypeController::class, 'reorder'])->name('reorder');
             Route::put('{roomType}', [RoomTypeController::class, 'update'])->name('update');
             Route::put('{roomType}/rooms', [RoomTypeController::class, 'updateRooms'])->name('rooms.update');
+            Route::post('{roomType}/photos', [RoomTypePhotoController::class, 'store'])->name('photos.store');
+            Route::put('{roomType}/photos/order', [RoomTypePhotoController::class, 'reorder'])->name('photos.reorder');
+            Route::delete('{roomType}/photos/{photo}', [RoomTypePhotoController::class, 'destroy'])->whereNumber('photo')->name('photos.destroy');
             Route::post('{roomType}/archive', [RoomTypeController::class, 'archive'])->name('archive');
             Route::post('{roomType}/restore', [RoomTypeController::class, 'restore'])->name('restore');
         });

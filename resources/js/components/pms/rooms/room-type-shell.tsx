@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { Bed, FileText } from 'lucide-react';
+import { Bed, FileText, Images } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { PageHeader } from '@/components/pms/page-header';
 import { ArchiveRoomTypeButton } from '@/components/pms/rooms/archive-room-type-button';
@@ -8,11 +8,12 @@ import type { TabLink } from '@/components/pms/tab-links';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { edit, index, restore } from '@/routes/settings/room-types';
+import { edit as editPhotos } from '@/routes/settings/room-types/photos';
 import { edit as editRooms } from '@/routes/settings/room-types/rooms';
 
 type RoomType = App.Data.Rooms.RoomTypeData;
 
-export type RoomTypeTab = 'details' | 'rooms';
+export type RoomTypeTab = 'details' | 'rooms' | 'photos';
 
 export function roomTypeBreadcrumbs(roomType: RoomType) {
     return [
@@ -57,6 +58,12 @@ export function RoomTypeShell({
             label: `Rooms (${roomCount})`,
             icon: Bed,
             href: editRooms.url({ roomType: roomType.id }),
+        },
+        {
+            value: 'photos',
+            label: 'Photos',
+            icon: Images,
+            href: editPhotos.url({ roomType: roomType.id }),
         },
     ];
 
