@@ -67,7 +67,7 @@ test('card read', function () {
         ->waitForText('No ID documents yet');
     $page->script(mykadBridgeStub(['reader_connected' => true, 'reader_name' => 'ACR39U', 'card_present' => true, 'version' => '2.0.0'], withCard: true));
     $page->click('Add document')
-        ->waitForText('Ready for MyKad')
+        ->waitForText('Take the card out')
         ->wait(1);
 
     $this->shoot($page, 'card-read', frame: '[role="dialog"]');

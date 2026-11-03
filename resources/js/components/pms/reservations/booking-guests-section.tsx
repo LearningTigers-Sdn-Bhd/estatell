@@ -7,6 +7,13 @@ import { GuestAutocompleteField } from '@/components/pms/guests/guest-autocomple
 import { GuestDetailsFields } from '@/components/pms/guests/guest-details-fields';
 import type { GuestDetails } from '@/components/pms/guests/guest-details-fields';
 import { MyKadScanner } from '@/components/pms/mykad-scanner';
+import { GuestMykadToggle } from '@/components/pms/reservations/guest-mykad-toggle';
+import { isEmptyGuest } from '@/components/pms/reservations/guest-mykad';
+import {
+    useGuestMykadRow,
+    useMykadTarget,
+} from '@/components/pms/reservations/use-guest-mykad';
+import type { MykadTargetControls } from '@/components/pms/reservations/use-guest-mykad';
 import {
     emptyGuest,
     guestLabel,
@@ -38,9 +45,9 @@ type Errors = Record<string, string | undefined>;
 
 const NOT_STAYING = '';
 
-/** The columns of a guest row from `lg`: chevron, name, phone, stays in and remove. */
+/** The columns of a guest row from `lg`: chevron and MyKad toggle, name, phone, stays in and remove. */
 const GUEST_COLUMNS =
-    'lg:grid-cols-[2rem_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.2fr)_2rem]';
+    'lg:grid-cols-[4.25rem_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.2fr)_2rem]';
 
 /** The fields of a guest row that sit in the main row. An error elsewhere opens the row. */
 const MAIN_ROW_FIELDS = ['full_name', 'phone', 'stays_in'];
@@ -65,6 +72,7 @@ function GuestRow({
     guests,
     units,
     canManageGuests,
+    mykadTarget,
     countries,
     genders,
     locales,
@@ -77,6 +85,7 @@ function GuestRow({
     guests: BookingGuest[];
     units: UnitOption[];
     canManageGuests: boolean;
+    mykadTarget: MykadTargetControls;
     countries: EnumOption[];
     genders: EnumOption[];
     locales: EnumOption[];
@@ -97,6 +106,13 @@ function GuestRow({
             !MAIN_ROW_FIELDS.includes(key.slice(prefix.length)),
     );
     const label = guestLabel(guest, index);
+    const mykad = useGuestMykadRow({
+        rowKey: guest.key,
+        values: guest,
+        target: mykadTarget,
+        apply: onChange,
+        onFilled: () => setOpen(true),
+    });
 
     const checkForDuplicates = () => {
         if (guest.guest === null) {
@@ -143,6 +159,7 @@ function GuestRow({
             }}
             onChange={(field, value) => onChange({ [field]: value })}
             onPick={(picked) => {
+                mykad.forget();
                 onChange(linkGuest(guest, picked));
             }}
             onUnlink={() => onChange(unlinkGuest(guest))}
@@ -155,19 +172,28 @@ function GuestRow({
                     className="flex flex-col"
                 >
                     <div className={`grid gap-3 p-3 ${GUEST_COLUMNS}`}>
-                        <CollapsibleTrigger
-                            render={
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon-sm"
-                                    aria-label={`${open || hiddenError ? 'Hide' : 'Show'} the details of ${label}`}
-                                    className="group/row max-lg:justify-self-start"
+                        <div className="flex items-start gap-1">
+                            <CollapsibleTrigger
+                                render={
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        aria-label={`${open || hiddenError ? 'Hide' : 'Show'} the details of ${label}`}
+                                        className="group/row"
+                                    />
+                                }
+                            >
+                                <ChevronRight className="transition-transform group-data-[panel-open]/row:rotate-90" />
+                            </CollapsibleTrigger>
+                            {canManageGuests && (
+                                <GuestMykadToggle
+                                    label={label}
+                                    state={mykad.state}
+                                    onPress={mykad.press}
                                 />
-                            }
-                        >
-                            <ChevronRight className="transition-transform group-data-[panel-open]/row:rotate-90" />
-                        </CollapsibleTrigger>
+                            )}
+                        </div>
                         {parts.name}
                         {parts.phone}
                         <Field data-invalid={!!error('stays_in')}>
@@ -226,22 +252,6 @@ function GuestRow({
 
                     <CollapsibleContent>
                         <div className="flex flex-col gap-4 px-3 pb-3 lg:px-14">
-                            <MyKadScanner
-                                onScan={(card) => {
-                                    onChange({
-                                        full_name: card.name,
-                                        nationality_code: 'MY',
-                                        date_of_birth: card.date_of_birth,
-                                        gender: card.gender,
-                                        address_line1: card.address_line1,
-                                        address_line2: card.address_line2,
-                                        postal_code: card.postal_code,
-                                        city: card.city,
-                                        state: card.state,
-                                        country_code: 'MY',
-                                    });
-                                }}
-                            />
                             {parts.linked}
                             {parts.notes}
 
@@ -292,6 +302,7 @@ function GuestRow({
                                     <DuplicateWarning
                                         criteria={checked}
                                         onUse={(match) => {
+                                            mykad.forget();
                                             onChange(linkGuest(guest, match));
                                         }}
                                         onDismiss={() => setDismissed(criteria)}
@@ -333,65 +344,79 @@ export function BookingGuestsSection({
     onChange: (guests: BookingGuest[]) => void;
 }) {
     const empty = unitsWithoutGuest(guests, units.length);
+    const mykadTarget = useMykadTarget(
+        canManageGuests
+            ? guests.map((guest) => ({
+                  key: guest.key,
+                  empty: isEmptyGuest(guest),
+              }))
+            : [],
+    );
 
     return (
-        <div className="rounded-lg border">
-            <GuestsHeader />
-            <div className="divide-y">
-                {guests.map((guest, index) => (
-                    <GuestRow
-                        key={guest.key}
-                        index={index}
-                        guest={guest}
-                        guests={guests}
-                        units={units}
-                        canManageGuests={canManageGuests}
-                        countries={countries}
-                        genders={genders}
-                        locales={locales}
-                        errors={errors}
-                        onChange={(patch) =>
-                            onChange(
-                                guests.map((one) =>
-                                    one.key === guest.key
-                                        ? { ...one, ...patch }
-                                        : one,
+        <div className="flex flex-col gap-2">
+            {canManageGuests && <MyKadScanner className="justify-end" />}
+            <div className="rounded-lg border">
+                <GuestsHeader />
+                <div className="divide-y">
+                    {guests.map((guest, index) => (
+                        <GuestRow
+                            key={guest.key}
+                            index={index}
+                            guest={guest}
+                            guests={guests}
+                            units={units}
+                            canManageGuests={canManageGuests}
+                            mykadTarget={mykadTarget}
+                            countries={countries}
+                            genders={genders}
+                            locales={locales}
+                            errors={errors}
+                            onChange={(patch) =>
+                                onChange(
+                                    guests.map((one) =>
+                                        one.key === guest.key
+                                            ? { ...one, ...patch }
+                                            : one,
+                                    ),
+                                )
+                            }
+                            onRemove={() =>
+                                onChange(
+                                    guests.filter(
+                                        (one) => one.key !== guest.key,
+                                    ),
+                                )
+                            }
+                        />
+                    ))}
+                </div>
+                <div className="flex items-center justify-between gap-3 rounded-b-lg border-t bg-muted/50 px-3 py-2">
+                    <FieldDescription>
+                        {units.length === 0
+                            ? 'Add a room or bed line first.'
+                            : empty === 0
+                              ? 'Every unit has a guest.'
+                              : `${empty} ${empty === 1 ? 'unit' : 'units'} without a guest`}
+                    </FieldDescription>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        disabled={guests.length >= 20}
+                        onClick={() =>
+                            onChange([
+                                ...guests,
+                                emptyGuest(
+                                    firstUnitWithSpace(guests, units),
+                                    defaultNationalityCode,
                                 ),
-                            )
+                            ])
                         }
-                        onRemove={() =>
-                            onChange(
-                                guests.filter((one) => one.key !== guest.key),
-                            )
-                        }
-                    />
-                ))}
-            </div>
-            <div className="flex items-center justify-between gap-3 rounded-b-lg border-t bg-muted/50 px-3 py-2">
-                <FieldDescription>
-                    {units.length === 0
-                        ? 'Add a room or bed line first.'
-                        : empty === 0
-                          ? 'Every unit has a guest.'
-                          : `${empty} ${empty === 1 ? 'unit' : 'units'} without a guest`}
-                </FieldDescription>
-                <Button
-                    type="button"
-                    variant="outline"
-                    disabled={guests.length >= 20}
-                    onClick={() =>
-                        onChange([
-                            ...guests,
-                            emptyGuest(
-                                firstUnitWithSpace(guests, units),
-                                defaultNationalityCode,
-                            ),
-                        ])
-                    }
-                >
-                    <Plus data-icon="inline-start" />
-                    Add guest
-                </Button>
+                    >
+                        <Plus data-icon="inline-start" />
+                        Add guest
+                    </Button>
+                </div>
             </div>
         </div>
     );
