@@ -5,9 +5,13 @@ namespace App\Http\Controllers\BookingEngine;
 use App\Actions\BookingEngine\PublishBookingSite;
 use App\Actions\BookingEngine\SaveBookingWebsiteGeneral;
 use App\Actions\BookingEngine\SetUpBookingSite;
+use App\Actions\BookingEngine\SyncPropertyAmenities;
 use App\Actions\BookingEngine\UnpublishBookingSite;
+use App\Data\BookingEngine\AmenityPickerData;
 use App\Data\BookingEngine\BookingWebsiteGeneralData;
+use App\Enums\AmenityType;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\BookingEngine\SaveBookingWebsiteContentRequest;
 use App\Http\Requests\BookingEngine\SaveBookingWebsiteGeneralRequest;
 use App\Models\Property;
 use App\Services\BookingEngine\BookingSiteChecklist;
@@ -37,6 +41,25 @@ class BookingWebsiteController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Booking website saved.')]);
 
         return to_route('settings.booking-website.general', $property);
+    }
+
+    /**
+     * The Content tab: the property amenities. Nearby places join it with the nearby place registry.
+     */
+    public function content(Property $property): Response
+    {
+        return Inertia::render('settings/booking-website/content', [
+            'amenities' => AmenityPickerData::forType(AmenityType::Property, $property->amenities()->get()),
+        ]);
+    }
+
+    public function updateContent(SaveBookingWebsiteContentRequest $request, Property $property, SyncPropertyAmenities $syncPropertyAmenities): RedirectResponse
+    {
+        Inertia::flash('toast', $syncPropertyAmenities($request->user(), $property, $request->amenityIds())
+            ? ['type' => 'success', 'message' => __('Content saved.')]
+            : ['type' => 'error', 'message' => __('The amenity list changed. Reload the page and try again.')]);
+
+        return to_route('settings.booking-website.content', $property);
     }
 
     public function publish(Request $request, Property $property, SetUpBookingSite $setUpBookingSite, PublishBookingSite $publishBookingSite): RedirectResponse

@@ -17,7 +17,7 @@ class DemoSeeder extends Seeder
     {
         self::password();
 
-        $this->call([OtaChannelSeeder::class, PearlsideSeeder::class, BorenoSeeder::class]);
+        $this->call([OtaChannelSeeder::class, AmenitySeeder::class, PearlsideSeeder::class, BorenoSeeder::class]);
     }
 
     /**

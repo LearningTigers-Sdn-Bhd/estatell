@@ -102,6 +102,14 @@ class RoomType extends Model implements HasMedia
     }
 
     /**
+     * @return BelongsToMany<Amenity, $this>
+     */
+    public function amenities(): BelongsToMany
+    {
+        return $this->belongsToMany(Amenity::class, 'room_type_amenities');
+    }
+
+    /**
      * @param  Builder<RoomType>  $query
      */
     public function scopeActive(Builder $query): void

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AmenityController;
 use App\Http\Controllers\Admin\MailEventController;
 use App\Http\Controllers\Admin\OtaChannelController;
 use App\Http\Controllers\Admin\OwnerSetupLinkController;
@@ -81,6 +82,11 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
     Route::put('channels/order', [OtaChannelController::class, 'reorder'])->middleware('support.2fa')->name('channels.reorder');
     Route::put('channels/{channel}', [OtaChannelController::class, 'update'])->whereNumber('channel')->middleware('support.2fa')->name('channels.update');
     Route::put('channels/{channel}/active', [OtaChannelController::class, 'active'])->whereNumber('channel')->middleware('support.2fa')->name('channels.active.update');
+    Route::get('amenities', [AmenityController::class, 'index'])->name('amenities.index');
+    Route::post('amenities', [AmenityController::class, 'store'])->middleware('support.2fa')->name('amenities.store');
+    Route::put('amenities/order', [AmenityController::class, 'reorder'])->middleware('support.2fa')->name('amenities.reorder');
+    Route::put('amenities/{amenity}', [AmenityController::class, 'update'])->whereNumber('amenity')->middleware('support.2fa')->name('amenities.update');
+    Route::put('amenities/{amenity}/active', [AmenityController::class, 'active'])->whereNumber('amenity')->middleware('support.2fa')->name('amenities.active.update');
     Route::get('settings', [PlatformSettingsController::class, 'edit'])->name('settings.edit');
     Route::put('settings', [PlatformSettingsController::class, 'update'])->middleware('support.2fa')->name('settings.update');
     Route::get('settings/channels', [PlatformSettingsController::class, 'channels'])->name('settings.channels');

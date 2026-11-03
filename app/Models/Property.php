@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -364,6 +365,12 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
     public function kiosks(): HasMany
     {
         return $this->hasMany(Kiosk::class);
+    }
+
+    /** @return BelongsToMany<Amenity, $this> */
+    public function amenities(): BelongsToMany
+    {
+        return $this->belongsToMany(Amenity::class, 'property_amenities');
     }
 
     /** @return HasOne<PropertyBookingSite, $this> */

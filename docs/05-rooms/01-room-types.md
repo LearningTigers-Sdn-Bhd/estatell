@@ -29,6 +29,7 @@ room_types    id, property_id, name, description, sell_unit (SellUnit),
 - A room type has no base price. Prices live only in [daily rates](../08-rates/02-daily-rates-and-restrictions.md).
 - `terms_document_id` selects the registration terms for guests in this room type. Null means the property default (see [Terms resolution](../16-registration/03-terms-resolution-and-locales.md)).
 - Photos use media library. No `photo_order` array columns. Staff upload them on the **Photos** tab of the room type page (`rooms.manage` to change, `rooms.view` to see). Up to 10 photos, JPEG, PNG or WebP, 5 MB each. Drag to reorder; the first photo is the cover. Each photo gets a `thumb` (400 px) and a `web` (1600 px) conversion. Photos live on the public media disk (`MEDIA_PUBLIC_DISK`: `public` locally, `r2-public` in production). Archived room types are read-only.
+- Amenities use the shared list (see [Amenities](../28-booking-engine/06-content-registries.md#amenities)). Staff tick them on the **Amenities** tab (`rooms.manage` to change, `rooms.view` to see). Archived room types are read-only.
 - Names are unique per property among active room types, ignoring case. An archived room type frees its name.
 - `terms_document_id` has a foreign key to `terms_documents` (null on delete). The room type form has a **Terms document** Select, shown when the property has a second document. See [Terms documents](../16-registration/02-terms-documents-and-presets.md#ui).
 - Archive hides a room type without deleting it. Restore puts it at the end of the list, and is refused when an active room type has the same name. The guard against future reservations arrives with reservations. A room type mapped on an active OTA cannot be archived (see [Archive guard](../21-channels/02-mappings-and-capability.md#archive-guard)).
@@ -54,10 +55,12 @@ Settings > Room types (`settings.room-types.index`) lists active room types with
 
 The page copies the rate plan editor: a shell with a header and tab links. Each tab is its own URL and loads only its own data.
 
-| Tab     | Route                            | Page                                  |
-| ------- | -------------------------------- | ------------------------------------- |
-| Details | `settings.room-types.edit`       | `pages/settings/room-types/edit.tsx`  |
-| Rooms   | `settings.room-types.rooms.edit` | `pages/settings/room-types/rooms.tsx` |
+| Tab       | Route                                | Page                                      |
+| --------- | ------------------------------------ | ----------------------------------------- |
+| Details   | `settings.room-types.edit`           | `pages/settings/room-types/edit.tsx`      |
+| Rooms     | `settings.room-types.rooms.edit`     | `pages/settings/room-types/rooms.tsx`     |
+| Photos    | `settings.room-types.photos.edit`    | `pages/settings/room-types/photos.tsx`    |
+| Amenities | `settings.room-types.amenities.edit` | `pages/settings/room-types/amenities.tsx` |
 
 ```
 Settings › Room types › Deluxe King

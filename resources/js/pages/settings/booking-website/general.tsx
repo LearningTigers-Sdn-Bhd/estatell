@@ -1,7 +1,7 @@
 import { Form, Head } from '@inertiajs/react';
 import { Check, Copy, ExternalLink, X } from 'lucide-react';
 import BookingWebsiteController from '@/actions/App/Http/Controllers/BookingEngine/BookingWebsiteController';
-import { PageHeader } from '@/components/pms/page-header';
+import { BookingWebsiteShell } from '@/components/pms/booking-website/booking-website-shell';
 import { SettingsInput } from '@/components/pms/settings/form-fields';
 import { SettingsSection } from '@/components/pms/settings-section';
 import { StatusBadge } from '@/components/pms/status-badge';
@@ -34,13 +34,11 @@ export default function BookingWebsiteGeneral({
     return (
         <>
             <Head title="Booking website" />
-            <div className="flex flex-1 flex-col gap-6 p-4">
-                <PageHeader
-                    title="Booking website"
-                    description={`Let guests book and pay online. Mode: ${general.modeLabel}.`}
-                    badge={<StatusBadge status={general.status} />}
-                />
-
+            <BookingWebsiteShell
+                description={`Let guests book and pay online. Mode: ${general.modeLabel}.`}
+                badge={<StatusBadge status={general.status} />}
+                activeTab="general"
+            >
                 <div className="grid gap-6 lg:grid-cols-3">
                     <div className="flex flex-col gap-4 lg:col-span-2">
                         <SettingsSection
@@ -186,7 +184,7 @@ export default function BookingWebsiteGeneral({
                         </CardContent>
                     </Card>
                 </div>
-            </div>
+            </BookingWebsiteShell>
         </>
     );
 }

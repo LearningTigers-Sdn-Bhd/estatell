@@ -14,7 +14,10 @@ room_type_amenities   room_type_id, amenity_id    unique pair
 ```
 
 - `AmenityType`: Property, Room.
-- The list is global, like `ota_channels`. Link tables replace the jsonb arrays wastays used. The wastays seed list is the starting data.
+- The list is global, like `ota_channels`. Link tables replace the jsonb arrays wastays used. The wastays seed list is the starting data: `AmenitySeeder` loads `database/seeders/data/amenities.json` (487 rows, 301 Property and 186 Room) and is safe to run again.
+- A name is unique per type, ignoring case. The type never changes after an amenity is added, because properties already link to it. `icon` keeps the wastays icon key for the microsite; no screen edits it yet.
+- The pickers are plain tick boxes grouped by category, in list order. A ticked retired amenity shows a "Retired" badge until it is unticked.
+- Saving refuses an id that is the wrong type, unknown, or retired and not already ticked, and writes nothing. Room amenities cannot change on an archived room type. Every change is logged (`property.amenities_changed`, `room_type.amenities_changed`, `amenity.*`).
 - A retired amenity (`active` off) leaves the pickers and stays on properties until they untick it.
 
 | Who   | Does                                      | Where                     |
@@ -92,4 +95,4 @@ The `photos` collection on room types has an upload UI: the Photos tab of the ro
 
 ## Admin routes
 
-`/admin/amenities` (`admin.amenities.*`) and `/admin/nearby-places` (`admin.nearby-places.*`). Writes need `support.2fa`.
+`/admin/amenities` (`admin.amenities.*`, built: a Type filter and search, up and down buttons within the filtered rows, and a dialog to add or edit) and `/admin/nearby-places` (`admin.nearby-places.*`). Writes need `support.2fa`.

@@ -178,6 +178,18 @@ summary: string,
 };
 }
 namespace BookingEngine {
+export type AmenityData = {
+id: number,
+name: string,
+type: App.Enums.AmenityType,
+typeLabel: string,
+category: string,
+active: boolean,
+};
+export type AmenityPickerData = {
+amenities: App.Data.BookingEngine.AmenityData[],
+selectedIds: number[],
+};
 export type BookingSiteChecklistItemData = {
 key: string,
 label: string,
@@ -4422,6 +4434,8 @@ export type AccountingProvider = 'qne' | 'bukku';
 export type AccountingSetupStatus = 'not-connected' | 'needs-attention' | 'ready' | 'live';
 export type AccountingSyncStatus = 'pending' | 'pushed' | 'failed' | 'skipped';
 export type AgeBandPricing = 'free' | 'percent' | 'fixed';
+export type ApiTokenKind = 'kiosk' | 'integration';
+export type AmenityType = 'property' | 'room';
 export type ArInvoiceStatus = 'open' | 'settled' | 'void';
 export type ArInvoiceType = 'invoice' | 'credit_note';
 export type AriChangeKind = 'availability' | 'rates' | 'restrictions';
