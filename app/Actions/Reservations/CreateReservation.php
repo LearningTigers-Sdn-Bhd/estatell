@@ -31,13 +31,14 @@ class CreateReservation
         private CreditCheck $creditCheck,
         private RecordCreditOverride $recordCreditOverride,
         private StayChargeTotal $stayChargeTotal,
+        private SetReservationPaymentSchedule $setPaymentSchedule,
     ) {}
 
     /**
      * Create a reservation and its units in one transaction.
      *
      * A Bed room type line adds one unit for each bed. A reservation is all overnight or all day use (`stay_types_mixed`), and day use never comes from a channel. When any line is refused, nothing is saved, the reference
-     * number is not used up, nothing is logged, and the result names the line. `$fromChannel` and `$allowPastArrival` are passed to `AddUnit`. `SyncRoutingRules` runs when the units are in, so a company or a group reservation gets its Master folio and rules. See docs/12-reservations/02-group-bookings.md.
+     * number is not used up, nothing is logged, and the result names the line. `$fromChannel` and `$allowPastArrival` are passed to `AddUnit`. A company that pays per booking gives the reservation its payment deadlines (`SetReservationPaymentSchedule`, not for channel bookings). `SyncRoutingRules` runs when the units are in, so a company or a group reservation gets its Master folio and rules. See docs/12-reservations/02-group-bookings.md.
      */
     public function __invoke(User $actor, Property $property, NewReservationData $data, bool $fromChannel = false, bool $allowPastArrival = false): ReservationResult
     {
@@ -106,6 +107,10 @@ class CreateReservation
                 }
 
                 $this->checkCredit($actor, $reservation, $data);
+
+                if (! $fromChannel) {
+                    ($this->setPaymentSchedule)($reservation);
+                }
 
                 ($this->syncRoutingRules)($reservation);
 

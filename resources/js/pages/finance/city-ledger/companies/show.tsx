@@ -247,6 +247,52 @@ function CreditFields({
                     description="Days the company has to pay an invoice."
                 />
             </div>
+            <div className={billing === '0' ? 'contents' : 'hidden'}>
+                <SettingsSwitch
+                    name="payment_schedule_enabled"
+                    label="Payment schedule"
+                    checked={company.paymentScheduleEnabled}
+                    disabled={readOnly}
+                    error={errors.payment_schedule_enabled}
+                    description="Ask for a deposit soon after booking and the rest before arrival, with reminders. Turn off for a trusted agent. Empty terms below follow Settings, Agent payments."
+                />
+                <SettingsInput
+                    name="agent_deposit_percent"
+                    label="Deposit (%)"
+                    type="number"
+                    min={1}
+                    max={100}
+                    placeholder="Property default"
+                    value={company.agentDepositPercent}
+                    disabled={readOnly}
+                    error={errors.agent_deposit_percent}
+                    description="Share of the whole booking paid first."
+                />
+                <SettingsInput
+                    name="agent_deposit_hours"
+                    label="Deposit due within (hours)"
+                    type="number"
+                    min={1}
+                    max={8760}
+                    placeholder="Property default"
+                    value={company.agentDepositHours}
+                    disabled={readOnly}
+                    error={errors.agent_deposit_hours}
+                    description="For example 72 for 3 days after booking."
+                />
+                <SettingsInput
+                    name="agent_full_payment_days"
+                    label="Full payment (days before arrival)"
+                    type="number"
+                    min={1}
+                    max={365}
+                    placeholder="Property default"
+                    value={company.agentFullPaymentDays}
+                    disabled={readOnly}
+                    error={errors.agent_full_payment_days}
+                    description="When the whole booking must be paid."
+                />
+            </div>
             <SettingsSwitch
                 name="pays_collected_taxes"
                 label="Company pays tourism tax"

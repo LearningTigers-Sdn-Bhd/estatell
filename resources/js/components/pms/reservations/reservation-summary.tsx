@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import {
+    CalendarClock,
     BedDouble,
     Building2,
     CalendarArrowDown,
@@ -25,6 +26,7 @@ import type { ReactNode } from 'react';
 import { BookingSourceBadge } from '@/components/pms/booking-source-badge';
 import { DateText } from '@/components/pms/date-text';
 import { MoneyText } from '@/components/pms/money-text';
+import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { show as showCompany } from '@/routes/finance/city-ledger/companies';
@@ -60,11 +62,13 @@ function Row({
 export function ReservationSummary({
     reservation,
     money,
+    paymentSchedule = null,
     canViewCompany,
     currency,
 }: {
     reservation: Reservation;
     money: Money;
+    paymentSchedule?: App.Data.Reservations.PaymentScheduleData | null;
     canViewCompany: boolean;
     currency: App.Data.Property.CurrencyData | null;
 }) {
@@ -173,6 +177,61 @@ export function ReservationSummary({
                     </span>
                 </Row>
             </dl>
+            {paymentSchedule !== null && (
+                <>
+                    <Separator />
+                    <section className="flex flex-col gap-2">
+                        <h2 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                            <CalendarClock aria-hidden className="size-4" />
+                            Payment schedule
+                        </h2>
+                        <ul className="flex flex-col gap-1.5 text-sm">
+                            {paymentSchedule.stages.map((stage) => (
+                                <li
+                                    key={stage.label}
+                                    className="flex items-start justify-between gap-3"
+                                >
+                                    <span className="flex flex-col">
+                                        <span>{stage.label}</span>
+                                        <span className="text-xs text-muted-foreground">
+                                            by{' '}
+                                            {new Date(
+                                                stage.dueAt,
+                                            ).toLocaleString(undefined, {
+                                                day: 'numeric',
+                                                month: 'short',
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                            })}
+                                        </span>
+                                    </span>
+                                    <span className="flex flex-col items-end">
+                                        <MoneyText
+                                            amount={stage.amount}
+                                            currency={currency}
+                                        />
+                                        <Badge
+                                            variant={
+                                                stage.status === 'overdue'
+                                                    ? 'destructive'
+                                                    : stage.status === 'paid'
+                                                      ? 'secondary'
+                                                      : 'outline'
+                                            }
+                                        >
+                                            {stage.status === 'paid'
+                                                ? 'Paid'
+                                                : stage.status === 'overdue'
+                                                  ? 'Overdue'
+                                                  : 'Due'}
+                                        </Badge>
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+                    </section>
+                </>
+            )}
             <Separator />
             <dl className="flex flex-col gap-2">
                 {reservation.unitCount > 1 && (

@@ -12,6 +12,7 @@ use App\Http\Controllers\Catalogues\RoomRevenueController;
 use App\Http\Controllers\Catalogues\RoomRevenueDayUseController;
 use App\Http\Controllers\Catalogues\RoomRevenuePolicyController;
 use App\Http\Controllers\Catalogues\TaxController;
+use App\Http\Controllers\CityLedger\AgentPaymentTermsController;
 use App\Http\Controllers\DoorLocks\DoorLockSettingsController;
 use App\Http\Controllers\Meals\MealPeriodController;
 use App\Http\Controllers\Onboarding\RecommendedItemDismissalController;
@@ -164,6 +165,11 @@ Route::prefix('settings')->name('settings.')->group(function () {
             Route::post('/', [BoatFareController::class, 'store'])->name('store');
             Route::put('{chargeItem}', [BoatFareController::class, 'update'])->name('update');
         });
+    });
+
+    Route::middleware('can:'.PermissionEnum::SettingsManage->value)->group(function () {
+        Route::get('agent-payments', [AgentPaymentTermsController::class, 'edit'])->name('agent-payments.edit');
+        Route::put('agent-payments', [AgentPaymentTermsController::class, 'update'])->name('agent-payments.update');
     });
 
     Route::prefix('taxes')->name('taxes.')->middleware('can:'.PermissionEnum::SettingsManage->value)->scopeBindings()->group(function () {

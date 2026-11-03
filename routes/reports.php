@@ -2,6 +2,7 @@
 
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Reports\ActivityLogController;
+use App\Http\Controllers\Reports\AgentPaymentsReportController;
 use App\Http\Controllers\Reports\ArrivalsReportController;
 use App\Http\Controllers\Reports\BoatDepartureRunController;
 use App\Http\Controllers\Reports\BoatManifestReportController;
@@ -49,6 +50,7 @@ Route::prefix('reports')->name('reports.')->middleware(['can:'.PermissionEnum::R
     Route::get('police-report', PoliceReportController::class)->name('police-report');
     Route::get('housekeeping-items', HousekeepingItemsReportController::class)->name('housekeeping-items');
     Route::get('house-status', HouseStatusReportController::class)->name('house-status');
+    Route::get('agent-payments', AgentPaymentsReportController::class)->name('agent-payments');
     Route::get('boat-manifest', BoatManifestReportController::class)->name('boat-manifest');
     Route::put('boat-manifest/runs', [BoatDepartureRunController::class, 'update'])->middleware(['boats', 'can:'.PermissionEnum::ReservationsManage->value])->name('boat-manifest.runs');
     Route::get('night-audit-history', NightAuditHistoryReportController::class)->name('night-audit-history');

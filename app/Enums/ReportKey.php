@@ -11,6 +11,7 @@ use App\Data\Reports\ReportTotals;
 use App\Features\Boats;
 use App\Models\Property;
 use App\Models\Tax;
+use App\Services\Reports\AgentPaymentsReport;
 use App\Services\Reports\ArrivalsReport;
 use App\Services\Reports\BoatManifestReport;
 use App\Services\Reports\CheckedOutReport;
@@ -64,6 +65,8 @@ enum ReportKey: string
     case HousekeepingItems = 'housekeeping-items';
 
     case HouseStatus = 'house-status';
+
+    case AgentPayments = 'agent-payments';
     case BoatManifest = 'boat-manifest';
     case CheckedOut = 'checked-out';
     case DailyRevenue = 'daily-revenue';
@@ -89,6 +92,7 @@ enum ReportKey: string
             self::HousekeepingTasks => __('Housekeeping tasks'),
             self::HousekeepingItems => __('Housekeeping items'),
             self::HouseStatus => __('House status'),
+            self::AgentPayments => __('Agent payments due'),
             self::BoatManifest => __('Boat manifest'),
             self::CheckedOut => __('Checked out'),
             self::DailyRevenue => __('Daily revenue'),
@@ -101,7 +105,7 @@ enum ReportKey: string
         return match ($this) {
             self::Arrivals, self::Departures, self::InHouse, self::PoliceReport, self::HousekeepingTasks, self::HousekeepingItems, self::HouseStatus, self::BoatManifest, self::CheckedOut => ReportCategory::FrontDesk,
             self::Occupancy, self::Revenue, self::Tax, self::NonNationalGuests, self::DailyRevenue, self::DailyCharges => ReportCategory::Revenue,
-            self::Payments, self::FolioLedger, self::OutstandingBalance, self::DepositLiability => ReportCategory::Finance,
+            self::Payments, self::FolioLedger, self::OutstandingBalance, self::DepositLiability, self::AgentPayments => ReportCategory::Finance,
             self::MealCounts => ReportCategory::Kitchen,
             self::NightAuditHistory => ReportCategory::Audit,
         };
@@ -111,7 +115,7 @@ enum ReportKey: string
     {
         return match ($this) {
             self::Arrivals, self::Departures, self::InHouse, self::Occupancy, self::Revenue, self::Payments, self::MealCounts, self::BoatManifest, self::HousekeepingItems, self::CheckedOut => PageOrientation::Portrait,
-            self::FolioLedger, self::Tax, self::NightAuditHistory, self::OutstandingBalance, self::DepositLiability, self::NonNationalGuests, self::PoliceReport, self::HousekeepingTasks, self::HouseStatus, self::DailyRevenue, self::DailyCharges => PageOrientation::Landscape,
+            self::FolioLedger, self::Tax, self::NightAuditHistory, self::OutstandingBalance, self::DepositLiability, self::NonNationalGuests, self::PoliceReport, self::HousekeepingTasks, self::HouseStatus, self::AgentPayments, self::DailyRevenue, self::DailyCharges => PageOrientation::Landscape,
         };
     }
 
@@ -136,6 +140,7 @@ enum ReportKey: string
             self::HousekeepingTasks => 'due',
             self::HousekeepingItems => 'room',
             self::HouseStatus => 'group',
+            self::AgentPayments => 'due_at',
             self::BoatManifest => 'departure',
             self::CheckedOut => '-balance',
         };
@@ -148,7 +153,7 @@ enum ReportKey: string
     {
         return match ($this) {
             self::Arrivals, self::Departures, self::FolioLedger, self::MealCounts, self::NonNationalGuests, self::PoliceReport, self::CheckedOut, self::DailyCharges => 31,
-            self::InHouse, self::OutstandingBalance, self::DepositLiability, self::HousekeepingTasks, self::HousekeepingItems, self::HouseStatus, self::BoatManifest => null,
+            self::InHouse, self::OutstandingBalance, self::DepositLiability, self::HousekeepingTasks, self::HousekeepingItems, self::HouseStatus, self::AgentPayments, self::BoatManifest => null,
             self::Occupancy, self::Revenue, self::Payments, self::Tax, self::NightAuditHistory, self::DailyRevenue => 366,
         };
     }
@@ -329,6 +334,15 @@ enum ReportKey: string
     public function columns(): array
     {
         return match ($this) {
+            self::AgentPayments => [
+                new ReportColumn('reservation', __('Reservation'), ColumnAlign::Left, true),
+                new ReportColumn('company', __('Agent'), ColumnAlign::Left, true),
+                new ReportColumn('arrival', __('Arrival'), ColumnAlign::Left, true),
+                new ReportColumn('stage', __('Stage'), ColumnAlign::Left, true),
+                new ReportColumn('amount_due', __('Amount due'), ColumnAlign::Right, true),
+                new ReportColumn('due_at', __('Due by'), ColumnAlign::Left, true),
+                new ReportColumn('status', __('Status'), ColumnAlign::Left, true),
+            ],
             self::HouseStatus => [
                 new ReportColumn('group', __('Group'), ColumnAlign::Left, true),
                 new ReportColumn('room', __('Room'), ColumnAlign::Left, true),
@@ -654,6 +668,7 @@ enum ReportKey: string
             self::HousekeepingTasks => 'bed',
             self::HousekeepingItems => 'spray-can',
             self::HouseStatus => 'layout-grid',
+            self::AgentPayments => 'wallet',
             self::BoatManifest => 'ship',
             self::CheckedOut => 'door-open',
             self::DailyRevenue => 'chart-column',
@@ -681,6 +696,7 @@ enum ReportKey: string
             self::HousekeepingTasks => app(HousekeepingTasksReport::class),
             self::HousekeepingItems => app(HousekeepingItemsReport::class),
             self::HouseStatus => app(HouseStatusReport::class),
+            self::AgentPayments => app(AgentPaymentsReport::class),
             self::BoatManifest => app(BoatManifestReport::class),
             self::CheckedOut => app(CheckedOutReport::class),
             self::DailyRevenue => app(DailyRevenueReport::class),

@@ -30,7 +30,7 @@ class CompanyRequest extends FormRequest
     private const array FIELDS = [
         'add' => ['name', 'type', 'market', 'contact_email', 'contact_phone', 'credit_limit', 'payment_terms_days', 'direct_bill_enabled', 'portal_email', 'portal_cancel_cutoff_days'],
         'details' => ['name', 'type', 'market', 'contact_email', 'contact_phone'],
-        'credit' => ['credit_limit', 'payment_terms_days', 'direct_bill_enabled', 'pays_collected_taxes'],
+        'credit' => ['credit_limit', 'payment_terms_days', 'direct_bill_enabled', 'pays_collected_taxes', 'payment_schedule_enabled', 'agent_deposit_percent', 'agent_deposit_hours', 'agent_full_payment_days'],
         'portal' => ['portal_email', 'portal_cancel_cutoff_days'],
         'billing' => [
             'brn', 'tin', 'sst_registration_number', 'billing_address_line1', 'billing_address_line2',
@@ -53,7 +53,11 @@ class CompanyRequest extends FormRequest
         }
 
         if ($this->section() === 'credit') {
-            $this->merge(['pays_collected_taxes' => $this->boolean('pays_collected_taxes')]);
+            $this->merge([
+                'pays_collected_taxes' => $this->boolean('pays_collected_taxes'),
+                'payment_schedule_enabled' => $this->boolean('payment_schedule_enabled'),
+                ...array_map(fn (mixed $value): mixed => filled($value) ? $value : null, $this->only(['agent_deposit_percent', 'agent_deposit_hours', 'agent_full_payment_days'])),
+            ]);
 
             return;
         }
@@ -80,9 +84,26 @@ class CompanyRequest extends FormRequest
         $current = $this->route('company');
 
         return array_intersect_key(
-            [...CompanyRules::for($this->property(), $current instanceof Company ? $current : null), 'pays_collected_taxes' => ['required', 'boolean']],
+            [...CompanyRules::for($this->property(), $current instanceof Company ? $current : null), ...self::creditRules()],
             array_flip(self::FIELDS[$this->section()]),
         );
+    }
+
+    /**
+     * The credit form's fields that only staff set: who pays tourism tax and the agent payment schedule, with the
+     * company's own terms (empty follows the property's).
+     *
+     * @return array<string, list<string>>
+     */
+    private static function creditRules(): array
+    {
+        return [
+            'pays_collected_taxes' => ['required', 'boolean'],
+            'payment_schedule_enabled' => ['required', 'boolean'],
+            'agent_deposit_percent' => ['nullable', 'integer', 'between:1,100'],
+            'agent_deposit_hours' => ['nullable', 'integer', 'between:1,8760'],
+            'agent_full_payment_days' => ['nullable', 'integer', 'between:1,365'],
+        ];
     }
 
     /**

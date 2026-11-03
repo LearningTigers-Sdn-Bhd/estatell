@@ -29,6 +29,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $notes
  * @property int $created_by
  * @property CarbonImmutable|null $cancellation_requested_at
+ * @property int|null $deposit_percent The agent payment schedule, set at booking (`SetReservationPaymentSchedule`): the deposit share.
+ * @property CarbonImmutable|null $deposit_due_at When the deposit (or the whole booking, with no full payment date) is due.
+ * @property CarbonImmutable|null $full_payment_due_at When the whole booking is due. Null with one stage.
  * @property int|null $cancellation_requested_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
@@ -50,6 +53,9 @@ class Reservation extends Model
             'status' => ReservationStatus::class,
             'billing_mode' => BillingMode::class,
             'cancellation_requested_at' => 'datetime',
+            'deposit_percent' => 'integer',
+            'deposit_due_at' => 'datetime',
+            'full_payment_due_at' => 'datetime',
         ];
     }
 

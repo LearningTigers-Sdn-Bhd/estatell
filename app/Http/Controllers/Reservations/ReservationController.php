@@ -6,6 +6,7 @@ use App\Data\CityLedger\ArInvoiceData;
 use App\Data\DoorLocks\UnitDoorPinsData;
 use App\Data\Folio\RoutingRulesData;
 use App\Data\Property\CurrencyData;
+use App\Data\Reservations\PaymentScheduleData;
 use App\Data\Reservations\ReservationActivityData;
 use App\Data\Reservations\ReservationAddOnData;
 use App\Data\Reservations\ReservationListItemData;
@@ -333,9 +334,12 @@ class ReservationController extends Controller
         $hasBoats = Feature::for($property)->active(Boats::class);
         $canManage = $user->can(PermissionEnum::ReservationsManage->value);
 
+        $money = ReservationMoneyData::fromSummary(app(BookingSummary::class)->for($property, $reservation));
+
         return Inertia::render('reservations/show', [
             'reservation' => $overview['reservation'],
-            'money' => ReservationMoneyData::fromSummary(app(BookingSummary::class)->for($property, $reservation)),
+            'money' => $money,
+            'paymentSchedule' => PaymentScheduleData::forReservation($reservation, $money),
             'units' => $overview['units'],
             'tab' => $tab,
             'autoAssignRooms' => (bool) $property->settings?->auto_assign_rooms,

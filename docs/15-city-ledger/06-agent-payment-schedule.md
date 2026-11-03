@@ -1,0 +1,66 @@
+# Agent payment schedule
+
+## Purpose
+
+A travel agent that pays per booking (not direct billing) pays a deposit soon after booking and the rest before arrival. Sand Bay's terms, the wastays default: **50% within 72 hours, the whole booking 30 days before arrival**. The property sets the terms once, and a company can have its own or none. This copies wastays' `Bookings::PaymentSchedule` and `Bookings::PaymentHold`.
+
+## Data model
+
+```
+property_settings   agent_deposit_percent (default 50, 1–100), agent_deposit_hours (default 72, 1–8760),
+                    agent_full_payment_days (default 30, 1–365)
+companies           payment_schedule_enabled (default true), agent_deposit_percent, agent_deposit_hours,
+                    agent_full_payment_days (nullable: the property's)
+reservations        deposit_percent (nullable), deposit_due_at (nullable), full_payment_due_at (nullable)
+                    CHECK deposit_percent and deposit_due_at set together; full_payment_due_at needs deposit_due_at
+```
+
+The reservation stores the **deadlines only**. The amounts are always worked out from the whole booking total and the payments, never stored.
+
+## Who gets a schedule
+
+`AgentPaymentTerms` (`app/Services/CityLedger/`) gives the terms of a company: none for a company with direct billing (it is invoiced after the stay, as wastays' direct-bill agents) or with **Payment schedule** off. `SetReservationPaymentSchedule` (Action) sets the deadlines when:
+
+- `CreateReservation` saves a desk or portal booking with such a company (never a channel booking), or
+- `UpdateReservationCompany` puts such a company on a reservation that has no deadlines yet (booked "now").
+
+A reservation that has deadlines keeps them: a later change of terms never moves a promise.
+
+## Deadlines
+
+`AgentPaymentSchedule::deadlines()` (`app/Services/Reservations/`), the wastays rules:
+
+| Rule             | Detail                                                                                                                                             |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Wall-clock       | In the property time zone, not the business date                                                                                                   |
+| Deposit due      | Booked at + `agent_deposit_hours`, cut at arrival (the earliest arrival date at the check-in time), and never sooner than 30 minutes after booking |
+| Full payment due | The end of the day `agent_full_payment_days` before arrival                                                                                        |
+| One stage        | When that day is not after the deposit day, or the deposit is 100%: `deposit_percent` 100 and no `full_payment_due_at`                             |
+
+Example: booked 14 Oct 20:00 (Kuala Lumpur) for 20 Dec, 50/72/30: deposit 50% by 17 Oct 20:00, the rest by 20 Nov 23:59. Booked for 3 Nov: one stage, everything by 17 Oct 20:00.
+
+## Amounts and status
+
+- **Base (decided):** the whole booking: the folio lines that are not payments (charges, taxes, discounts) plus the Scheduled rows (nights, add-ons such as the jetty fee, taxes). **Paid:** the payment lines of the reservation's folios, net of refunds. Voided folios do not count.
+- **Deposit** = total × percent, rounded up to the sen. **Balance** = total − deposit.
+- A stage is **Paid** when the payments cover it (the deposit, then the whole total), **Overdue** after its due time, else **Due**.
+- The reservation page uses the Booking summary's Total and Paid (`stagesFrom()`), so the card and the summary agree.
+
+## Screens
+
+- **Settings › Agent payments** (`settings.agent-payments.edit|update`, `settings.manage`, Billing setup): Deposit (%), Deposit due within (hours), Full payment (days before arrival). `SaveAgentPaymentTerms` logs `agent_payment_terms.updated`.
+- **Company › Credit**, with **Pay at check-out**: **Payment schedule** (switch) and the three terms, empty for the property's.
+- **Reservation page:** a **Payment schedule** section in the summary card (`PaymentScheduleData`): each stage with its amount, "by 17 Oct, 20:00" and Paid, Due or Overdue.
+
+## Follow-up
+
+**Reports › Finance › Agent payments due** (`ReportKey::AgentPayments`, `AgentPaymentsReport`): the Confirmed and In-house agent bookings with a stage not paid yet, overdue first, then by due time. Columns: Reservation, Agent, Arrival, Stage, Amount due (what is still missing to cover that stage), Due by, Status. The total sums Amount due. Each reservation is priced on its own, which suits a property's open agent bookings.
+
+## Late deposit (decided)
+
+**Remind and list, never cancel automatically.** wastays cancels late bookings with a sweeper; estatell lists them here, and staff cancel the booking to release the rooms when they decide. Agents often pay by bank transfer that lands a day late, and a sweeper runs with nobody at the desk. An automatic release can come later as a property switch, off by default.
+
+## Still to build
+
+- Payment proof upload in the portal (`feat(portal): upload a payment proof`).
+- Emails to the agent: the schedule with the confirmation, a reminder a day before each deadline, an overdue notice (`feat(notifications): remind agents of payment deadlines`).

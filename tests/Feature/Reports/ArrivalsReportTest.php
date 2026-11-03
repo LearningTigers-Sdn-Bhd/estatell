@@ -284,6 +284,7 @@ test('the Reports navigation groups the reports by category and needs reports.vi
                         ['title' => 'Folio ledger', 'href' => "/p/{$property->code}/reports/folio-ledger", 'icon' => 'receipt', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
                         ['title' => 'Outstanding balance', 'href' => "/p/{$property->code}/reports/outstanding-balance", 'icon' => 'wallet', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
                         ['title' => 'Deposit liability', 'href' => "/p/{$property->code}/reports/deposit-liability", 'icon' => 'shield', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
+                        ['title' => 'Agent payments due', 'href' => "/p/{$property->code}/reports/agent-payments", 'icon' => 'wallet', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
                     ],
                 ],
                 [
