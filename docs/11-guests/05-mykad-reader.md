@@ -60,12 +60,12 @@ The hook maps the `code` from `/read` to Estatell's own words. `error` is for lo
 
 ### Downloads
 
-`bridgeDownload()` gives the link for the staff member's OS. The links never change; GitHub serves the newest release:
+`bridgeDownload()` gives the universal installer for the staff member's OS, so staff never choose a chip. Release file names hold the version, so `BRIDGE_DOWNLOAD_VERSION` pins the link. Update it, and the links in the user docs, with each release that hotels should download:
 
-| OS      | Link                                                                                                                |
-| ------- | ------------------------------------------------------------------------------------------------------------------- |
-| Windows | `https://github.com/LearningTigers-Sdn-Bhd/estatell-mykad-reader/releases/latest/download/estatell-mykad-setup.exe` |
-| macOS   | `https://github.com/LearningTigers-Sdn-Bhd/estatell-mykad-reader/releases/latest/download/estatell-mykad.pkg`       |
+| OS      | Link                                                                                                                              |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Windows | `https://github.com/LearningTigers-Sdn-Bhd/estatell-mykad-reader/releases/download/v2.0.0/estatell-mykad-reader-setup-v2.0.0.exe` |
+| macOS   | `https://github.com/LearningTigers-Sdn-Bhd/estatell-mykad-reader/releases/download/v2.0.0/estatell-mykad-reader-v2.0.0.pkg`       |
 
 ### User docs links
 

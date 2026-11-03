@@ -45,8 +45,10 @@ const DOCS_BASE_URL =
 export const MYKAD_SETUP_URL = `${DOCS_BASE_URL}/set-up-mykad-reader`;
 export const MYKAD_PROBLEMS_URL = `${DOCS_BASE_URL}/mykad-reader-problems`;
 
-const RELEASE_DOWNLOAD_URL =
-    'https://github.com/LearningTigers-Sdn-Bhd/estatell-mykad-reader/releases/latest/download';
+/** The MyKad Reader version staff download. Can be newer than REQUIRED_BRIDGE_VERSION. Update it with each release. */
+const BRIDGE_DOWNLOAD_VERSION = '2.0.0';
+
+const RELEASE_DOWNLOAD_URL = `https://github.com/LearningTigers-Sdn-Bhd/estatell-mykad-reader/releases/download/v${BRIDGE_DOWNLOAD_VERSION}`;
 
 export type BridgeDownload =
     | { href: string; filename: string; platform: 'windows' | 'macos' }
@@ -61,17 +63,21 @@ export function bridgeDownload(
         : navigator.userAgent,
 ): BridgeDownload {
     if (/Windows/i.test(userAgent)) {
+        const filename = `estatell-mykad-reader-setup-v${BRIDGE_DOWNLOAD_VERSION}.exe`;
+
         return {
-            href: `${RELEASE_DOWNLOAD_URL}/estatell-mykad-setup.exe`,
-            filename: 'estatell-mykad-setup.exe',
+            href: `${RELEASE_DOWNLOAD_URL}/${filename}`,
+            filename,
             platform: 'windows',
         };
     }
 
     if (/Macintosh|Mac OS X/i.test(userAgent)) {
+        const filename = `estatell-mykad-reader-v${BRIDGE_DOWNLOAD_VERSION}.pkg`;
+
         return {
-            href: `${RELEASE_DOWNLOAD_URL}/estatell-mykad.pkg`,
-            filename: 'estatell-mykad.pkg',
+            href: `${RELEASE_DOWNLOAD_URL}/${filename}`,
+            filename,
             platform: 'macos',
         };
     }
