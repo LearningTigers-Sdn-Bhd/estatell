@@ -208,6 +208,7 @@ export default function BookingWebsiteGeneral({
                             {general.published ? (
                                 <Form
                                     {...BookingWebsiteController.unpublish.form()}
+                                    className="flex justify-end"
                                 >
                                     {({ processing }) => (
                                         <Button
@@ -224,6 +225,7 @@ export default function BookingWebsiteGeneral({
                             ) : (
                                 <Form
                                     {...BookingWebsiteController.publish.form()}
+                                    className="flex justify-end"
                                 >
                                     {({ processing }) => (
                                         <Button
