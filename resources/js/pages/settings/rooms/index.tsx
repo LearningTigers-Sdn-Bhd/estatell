@@ -57,6 +57,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import {
     Field,
+    FieldDescription,
     FieldError,
     FieldGroup,
     FieldLabel,
@@ -123,6 +124,7 @@ function RoomFormDialog({
         number: room?.number ?? '',
         room_type_id: room ? String(room.roomTypeId) : '',
         room_group_id: room?.roomGroupId ? String(room.roomGroupId) : '',
+        print_label: room?.printLabel ?? '',
     });
 
     // A new room needs an active room type. An existing room may keep its archived one.
@@ -162,6 +164,26 @@ function RoomFormDialog({
                         autoFocus
                     />
                     <FieldError>{form.errors.number}</FieldError>
+                </Field>
+                <Field>
+                    <FieldLabel htmlFor="room-print-label">
+                        Print label (optional)
+                    </FieldLabel>
+                    <Input
+                        id="room-print-label"
+                        maxLength={12}
+                        placeholder="Room type label"
+                        value={form.data.print_label}
+                        onChange={(event) =>
+                            form.setData('print_label', event.target.value)
+                        }
+                        aria-invalid={!!form.errors.print_label}
+                    />
+                    <FieldDescription>
+                        Only when this room is set up differently from its room
+                        type, for example 1KING+TWIN. Printed on House status.
+                    </FieldDescription>
+                    <FieldError>{form.errors.print_label}</FieldError>
                 </Field>
                 <Field>
                     <FieldLabel htmlFor="room-type">Room type</FieldLabel>

@@ -23,6 +23,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property string $name
  * @property string|null $description
  * @property SellUnit $sell_unit
+ * @property string|null $print_label The short label printed on the House status report (KING, SKING). Null: the initials of the name.
  * @property int $max_adults
  * @property int $max_children
  * @property int $base_occupancy
@@ -36,7 +37,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property-read bool $rooms_exists Set by withExists('rooms').
  */
 #[Fillable([
-    'name', 'description', 'sell_unit', 'max_adults', 'max_children', 'base_occupancy',
+    'name', 'print_label', 'description', 'sell_unit', 'max_adults', 'max_children', 'base_occupancy',
     'smoking_allowed', 'pets_allowed', 'terms_document_id', 'position', 'archived_at',
 ])]
 class RoomType extends Model implements HasMedia

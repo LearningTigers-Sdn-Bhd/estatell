@@ -2911,6 +2911,20 @@ kind: string,
 staff: string | null,
 amount: string,
 };
+export type HouseStatusRow = {
+key: string,
+group: string,
+room: string,
+label: string,
+pax: number,
+flags: string[],
+remark: string | null,
+kind: string,
+group_key: string,
+group_order: (number| string)[],
+checked_out: boolean,
+warning: boolean,
+};
 export type HousekeepingItemRow = {
 key: string,
 room: string,
@@ -4001,6 +4015,7 @@ refused: string[],
 export type RoomData = {
 id: number,
 number: string,
+printLabel: string | null,
 roomTypeId: number,
 roomGroupId: number | null,
 archived: boolean,
@@ -4012,6 +4027,7 @@ name: string,
 export type RoomTypeData = {
 id: number,
 name: string,
+printLabel: string | null,
 description: string | null,
 sellUnit: App.Enums.SellUnit,
 maxAdults: number,
@@ -4322,7 +4338,7 @@ export type RegistrationCardStatus = 'draft' | 'signed' | 'void';
 export type ReportCategory = 'front-desk' | 'revenue' | 'finance' | 'kitchen' | 'audit';
 export type ReportDatePreset = 'today' | 'yesterday' | 'tomorrow' | 'next-7-days' | 'this-week' | 'last-week' | 'next-week' | 'this-month' | 'last-month' | 'this-year' | 'last-30-days';
 export type ReportGroup = 'day' | 'month' | 'method' | 'staff';
-export type ReportKey = 'arrivals' | 'departures' | 'in-house' | 'occupancy' | 'revenue' | 'payments' | 'folio-ledger' | 'tax' | 'meal-counts' | 'night-audit-history' | 'outstanding-balance' | 'deposit-liability' | 'non-national-guests' | 'police-report' | 'housekeeping-tasks' | 'housekeeping-items' | 'boat-manifest' | 'checked-out' | 'daily-revenue' | 'daily-charges';
+export type ReportKey = 'arrivals' | 'departures' | 'in-house' | 'occupancy' | 'revenue' | 'payments' | 'folio-ledger' | 'tax' | 'meal-counts' | 'night-audit-history' | 'outstanding-balance' | 'deposit-liability' | 'non-national-guests' | 'police-report' | 'housekeeping-tasks' | 'housekeeping-items' | 'house-status' | 'boat-manifest' | 'checked-out' | 'daily-revenue' | 'daily-charges';
 export type ReservationRoomBoxState = 'assigned' | 'unassigned' | 'auto_assign' | 'cancelled' | 'no_show';
 export type ReservationStatus = 'confirmed' | 'in_house' | 'completed' | 'cancelled';
 export type RevisionKind = 'new' | 'modified' | 'cancelled';

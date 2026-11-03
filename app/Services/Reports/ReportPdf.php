@@ -28,6 +28,17 @@ class ReportPdf
     public function make(Property $property, ReportKey $report, ReportFilters $filters, ReportLayoutData $layout, ?array $rowKeys = null, ?array $rows = null): DomPdf
     {
         $rows ??= $report->report()->rows($property, $filters, $rowKeys);
+        $service = $report->report();
+
+        if ($service instanceof HasPrintView) {
+            return $this->printedPdf->make($property, $service->printView(), [
+                'title' => $report->label(),
+                'dates' => $this->dates($filters),
+                'selectedOnly' => $rowKeys !== null,
+                ...$service->printData($property, $filters, $rows),
+            ], $layout->orientation->value);
+        }
+
         $sections = $report->sections($rows, $filters);
 
         if ($sections !== null && $rowKeys === null) {

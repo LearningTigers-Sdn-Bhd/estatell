@@ -13,6 +13,7 @@ class RoomData extends Data
     public function __construct(
         public int $id,
         public string $number,
+        public ?string $printLabel,
         public int $roomTypeId,
         public ?int $roomGroupId,
         public bool $archived,
@@ -23,6 +24,7 @@ class RoomData extends Data
         return new self(
             id: $room->id,
             number: $room->number,
+            printLabel: $room->print_label,
             roomTypeId: $room->room_type_id,
             roomGroupId: $room->room_group_id,
             archived: $room->archived_at !== null,

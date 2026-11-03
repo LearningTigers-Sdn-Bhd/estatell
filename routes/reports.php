@@ -12,6 +12,7 @@ use App\Http\Controllers\Reports\DepositLiabilityReportController;
 use App\Http\Controllers\Reports\FolioLedgerReportController;
 use App\Http\Controllers\Reports\GuestListController;
 use App\Http\Controllers\Reports\HousekeepingItemsReportController;
+use App\Http\Controllers\Reports\HouseStatusReportController;
 use App\Http\Controllers\Reports\InHouseReportController;
 use App\Http\Controllers\Reports\MealCountsReportController;
 use App\Http\Controllers\Reports\NightAuditHistoryReportController;
@@ -47,6 +48,7 @@ Route::prefix('reports')->name('reports.')->middleware(['can:'.PermissionEnum::R
     Route::get('non-national-guests', NonNationalGuestsReportController::class)->name('non-national-guests');
     Route::get('police-report', PoliceReportController::class)->name('police-report');
     Route::get('housekeeping-items', HousekeepingItemsReportController::class)->name('housekeeping-items');
+    Route::get('house-status', HouseStatusReportController::class)->name('house-status');
     Route::get('boat-manifest', BoatManifestReportController::class)->name('boat-manifest');
     Route::put('boat-manifest/runs', [BoatDepartureRunController::class, 'update'])->middleware(['boats', 'can:'.PermissionEnum::ReservationsManage->value])->name('boat-manifest.runs');
     Route::get('night-audit-history', NightAuditHistoryReportController::class)->name('night-audit-history');
