@@ -132,6 +132,32 @@ class TtlockApi
     }
 
     /**
+     * Register an IC card with the lock through its gateway. `$cardNumber` is the card UID as a big-endian decimal (`CardNumber`).
+     * Returns the TTLock card id. Uses `/v3/identityCard/add`, not `addForReversedCardNumber`, which stores a reversed number.
+     */
+    public function addCard(string $accessToken, int $lockId, int $cardNumber, string $name, CarbonInterface $startsAt, CarbonInterface $endsAt): int
+    {
+        $response = $this->post('/v3/identityCard/add', $accessToken, [
+            'lockId' => $lockId,
+            'cardNumber' => (string) $cardNumber,
+            'cardName' => $name,
+            'startDate' => $startsAt->getTimestampMs(),
+            'endDate' => $endsAt->getTimestampMs(),
+            'addType' => 2,
+        ], remote: true);
+
+        return (int) $response['cardId'];
+    }
+
+    /**
+     * Remove an IC card from the lock through its gateway.
+     */
+    public function deleteCard(string $accessToken, int $lockId, int $cardId): void
+    {
+        $this->post('/v3/identityCard/delete', $accessToken, ['lockId' => $lockId, 'cardId' => $cardId, 'deleteType' => 2], remote: true);
+    }
+
+    /**
      * Open the door through the gateway.
      */
     public function unlock(string $accessToken, int $lockId): void

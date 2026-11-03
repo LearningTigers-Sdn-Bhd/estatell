@@ -646,6 +646,16 @@ With **Room charges and tax** ticked, the tax rows hide, because the full bill a
 - The Dialog counts seven fields at most: Without card, Nationality, Room charges, the deposit box, Collect now, Method and Reference.
 - **Any tax can be collected at check-in**, not only Tourism tax. Each enabled tax with **Collect at check-in** gets its own row. `CheckInCollection` sums only the tax rows of the room nights (`night:{n}:tax:{id}`), so a flagged tax on an add-on or a rate plan inclusion is left out (see [Open](#open-walk-in)).
 
+### Self check-in payment
+
+`SelfCheckInPayment` (`app/Services/FrontDesk/`) answers one question for the kiosk: does the unit folio already hold what Collect now would take? It reads only and writes nothing. `isPaidEnough($unit)` is true when `shortfall($unit)` is `0.00`. See the kiosk decision D19.
+
+- **Due** is the Collect at check-in taxes plus the security deposit, both from `CheckInCollection` (taxes hidden when the room charges go to a Master folio).
+- **Held** is the Completed payments on the unit's own folios minus their refunds (a void is a refund). Counted by amount, not by purpose: a deposit before arrival is an Advance. Voided folios, Pending and Failed payments, and payments on a Master folio do not count.
+- **Deposit not due** (already held, or the property sets none): SecurityDeposit payments are left out of Held, so a held deposit does not also pay the taxes.
+- Nothing due is enough. An overpayment is enough.
+- Still open: the exact deposit rule with the client, and a unit with a company that pays the bill.
+
 ### Walk-in check-in
 
 The booking form in Walk-in mode books, checks in and collects in one save. The form, the Payment section and the toast are in [Booking form: Walk-in](../12-reservations/05-booking-form.md#walk-in).

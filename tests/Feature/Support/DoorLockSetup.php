@@ -63,6 +63,8 @@ function fakeTtlock(): void
         '*/v3/keyboardPwd/get' => Http::response(['keyboardPwd' => '482913', 'keyboardPwdId' => 9001]),
         '*/v3/keyboardPwd/add' => Http::response(['keyboardPwdId' => 9002]),
         '*/v3/keyboardPwd/delete' => Http::response(['errcode' => 0]),
+        '*/v3/identityCard/add' => Http::response(['cardId' => 7001]),
+        '*/v3/identityCard/delete' => Http::response(['errcode' => 0]),
         '*/v3/lock/unlock' => Http::response(['errcode' => 0]),
     ]);
 }
