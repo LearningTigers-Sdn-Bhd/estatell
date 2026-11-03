@@ -1,5 +1,5 @@
 import { Form, Head } from '@inertiajs/react';
-import { Check, Copy, ExternalLink, X } from 'lucide-react';
+import { Check, Copy, ExternalLink, Globe, X } from 'lucide-react';
 import BookingWebsiteController from '@/actions/App/Http/Controllers/BookingEngine/BookingWebsiteController';
 import { BookingWebsiteShell } from '@/components/pms/booking-website/booking-website-shell';
 import { SettingsInput } from '@/components/pms/settings/form-fields';
@@ -13,8 +13,26 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import {
+    Field,
+    FieldDescription,
+    FieldError,
+    FieldLabel,
+} from '@/components/ui/field';
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupButton,
+    InputGroupInput,
+    InputGroupText,
+} from '@/components/ui/input-group';
 import { Spinner } from '@/components/ui/spinner';
 import { toast } from '@/components/ui/toast';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useClipboard } from '@/hooks/use-clipboard';
 
 export default function BookingWebsiteGeneral({
@@ -57,22 +75,84 @@ export default function BookingWebsiteGeneral({
                                             value={general.slug}
                                         />
                                     )}
-                                    <SettingsInput
-                                        name={
-                                            general.slugLocked
-                                                ? 'slug-shown'
-                                                : 'slug'
-                                        }
-                                        label="Web address"
-                                        value={general.slug}
-                                        disabled={general.slugLocked}
-                                        description={
-                                            general.slugLocked
-                                                ? `${general.baseUrl}/ . Only support can change it after you publish.`
-                                                : `${general.baseUrl}/ followed by this name. Lower case letters, digits and hyphens.`
-                                        }
-                                        error={errors.slug}
-                                    />
+                                    <Field data-invalid={!!errors.slug}>
+                                        <FieldLabel htmlFor="slug">
+                                            Web address
+                                        </FieldLabel>
+                                        <InputGroup>
+                                            <InputGroupAddon>
+                                                <Globe aria-hidden />
+                                                <InputGroupText className="whitespace-nowrap max-sm:hidden">
+                                                    {general.baseUrl}/
+                                                </InputGroupText>
+                                            </InputGroupAddon>
+                                            <InputGroupInput
+                                                id="slug"
+                                                name={
+                                                    general.slugLocked
+                                                        ? 'slug-shown'
+                                                        : 'slug'
+                                                }
+                                                defaultValue={general.slug}
+                                                placeholder="e.g. sand-bay"
+                                                autoComplete="off"
+                                                disabled={general.slugLocked}
+                                                aria-invalid={!!errors.slug}
+                                            />
+                                            <InputGroupAddon align="inline-end">
+                                                <Tooltip>
+                                                    <TooltipTrigger
+                                                        render={
+                                                            <InputGroupButton
+                                                                size="icon-xs"
+                                                                aria-label="Copy link"
+                                                                onClick={
+                                                                    copyAddress
+                                                                }
+                                                            />
+                                                        }
+                                                    >
+                                                        <Copy />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        Copy link
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                                <Tooltip>
+                                                    <TooltipTrigger
+                                                        render={
+                                                            <a
+                                                                href={
+                                                                    general.webAddress
+                                                                }
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                aria-label="Open site"
+                                                                className={buttonVariants(
+                                                                    {
+                                                                        variant:
+                                                                            'ghost',
+                                                                        size: 'icon-xs',
+                                                                    },
+                                                                )}
+                                                            />
+                                                        }
+                                                    >
+                                                        <ExternalLink />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        Open site
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </InputGroupAddon>
+                                        </InputGroup>
+                                        <FieldDescription>
+                                            {general.slugLocked
+                                                ? 'Only support can change it after you publish.'
+                                                : 'Lower case letters, digits and hyphens.'}
+                                        </FieldDescription>
+                                        <FieldError>{errors.slug}</FieldError>
+                                    </Field>
                                     <SettingsInput
                                         name="google_maps_url"
                                         label="Google Maps link"
@@ -81,27 +161,6 @@ export default function BookingWebsiteGeneral({
                                         description="Paste the link of your property on Google Maps."
                                         error={errors.google_maps_url}
                                     />
-                                    <div className="flex flex-wrap gap-2">
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            onClick={copyAddress}
-                                        >
-                                            <Copy data-icon="inline-start" />
-                                            Copy link
-                                        </Button>
-                                        <a
-                                            href={general.webAddress}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className={buttonVariants({
-                                                variant: 'outline',
-                                            })}
-                                        >
-                                            <ExternalLink data-icon="inline-start" />
-                                            Open site
-                                        </a>
-                                    </div>
                                 </>
                             )}
                         </SettingsSection>
