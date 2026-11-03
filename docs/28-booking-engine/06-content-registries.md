@@ -97,4 +97,4 @@ The `photos` collection on room types has an upload UI: the Photos tab of the ro
 
 ## Admin routes
 
-`/admin/amenities` (`admin.amenities.*`, built: a Type filter and search, up and down buttons within the filtered rows, and a dialog to add or edit) and `/admin/nearby-places` (`admin.nearby-places.*`, built: a status filter and search, with Approve and Reject buttons). Writes need `support.2fa`.
+`/admin/amenities` (`admin.amenities.*`, built: All, Property and Room tabs (the open tab is in the URL as `?type=`, default All) and search, up and down buttons within the filtered rows, and a dialog to add or edit) and `/admin/nearby-places` (`admin.nearby-places.*`, built: a status filter and search, with Approve and Reject buttons). Writes need `support.2fa`.

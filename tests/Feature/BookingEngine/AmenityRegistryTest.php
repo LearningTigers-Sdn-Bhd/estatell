@@ -52,7 +52,17 @@ test('admins see every amenity in list order', function () {
             ->where('amenities.0.name', 'Pool')
             ->where('amenities.1.type', 'room')
             ->where('amenities.2.active', false)
-            ->has('typeOptions', 2));
+            ->has('typeOptions', 2)
+            ->where('type', 'all'));
+});
+
+test('the type tab comes from the URL and falls back to all', function () {
+    $admin = User::factory()->admin()->create();
+
+    $this->actingAs($admin)->get(route('admin.amenities.index', ['type' => 'room']))
+        ->assertInertia(fn (Assert $page) => $page->where('type', 'room'));
+    $this->actingAs($admin)->get(route('admin.amenities.index', ['type' => 'nonsense']))
+        ->assertInertia(fn (Assert $page) => $page->where('type', 'all'));
 });
 
 test('property staff cannot open the admin list', function () {

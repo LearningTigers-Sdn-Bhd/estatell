@@ -14,6 +14,7 @@ use App\Http\Requests\Admin\ReorderAmenitiesRequest;
 use App\Http\Requests\Admin\SetAmenityActiveRequest;
 use App\Models\Amenity;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -24,14 +25,16 @@ class AmenityController extends Controller
 {
     /**
      * List every amenity, retired or not. The list is bounded (about 500), so it loads once and the browser filters it.
+     * The open type tab lives in the URL (`?type=room`, or `all`) so it survives a refresh.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
         return Inertia::render('admin/amenities/index', [
             'amenities' => Amenity::query()->ordered()->get()
                 ->map(fn (Amenity $amenity): AmenityData => AmenityData::fromModel($amenity))
                 ->values(),
             'typeOptions' => AmenityType::options(),
+            'type' => AmenityType::tryFrom($request->string('type')->toString())?->value ?? 'all',
         ]);
     }
 

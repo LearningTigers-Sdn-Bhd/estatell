@@ -1,13 +1,23 @@
 import { Head, router } from '@inertiajs/react';
-import { ChevronDown, ChevronUp, Plus } from 'lucide-react';
+import {
+    BedDouble,
+    Building2,
+    ChevronDown,
+    ChevronUp,
+    List,
+    ListChecks,
+    Plus,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { AmenityDialog } from '@/components/pms/amenities/amenity-dialog';
+import { EmptyState } from '@/components/pms/empty-state';
 import type { EnumOption } from '@/components/pms/enum-select';
-import { EnumSelect } from '@/components/pms/enum-select';
+import { FilterBar } from '@/components/pms/filter-bar';
 import { PageHeader } from '@/components/pms/page-header';
 import { StatusBadge } from '@/components/pms/status-badge';
+import { TabLinks } from '@/components/pms/tab-links';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
     Table,
     TableBody,
@@ -21,6 +31,14 @@ import { index, reorder } from '@/routes/admin/amenities';
 import { update as updateActive } from '@/routes/admin/amenities/active';
 
 type Amenity = App.Data.BookingEngine.AmenityData;
+
+const ALL = 'all';
+
+const typeIcons: Record<string, LucideIcon> = {
+    [ALL]: List,
+    property: Building2,
+    room: BedDouble,
+};
 
 /**
  * Swap an amenity with its neighbour in the rows on screen and send the whole order. The server checks that the ids are the full list.
@@ -51,13 +69,14 @@ function toggleAmenity(amenity: Amenity) {
 export default function AmenitiesIndex({
     amenities,
     typeOptions,
+    type,
 }: {
     amenities: Amenity[];
     typeOptions: EnumOption[];
+    type: string;
 }) {
     const [adding, setAdding] = useState(false);
     const [editing, setEditing] = useState<Amenity | null>(null);
-    const [type, setType] = useState(typeOptions[0]?.value ?? '');
     const [search, setSearch] = useState('');
 
     const visible = useMemo(() => {
@@ -65,12 +84,18 @@ export default function AmenitiesIndex({
 
         return amenities.filter(
             (amenity) =>
-                amenity.type === type &&
+                (type === ALL || amenity.type === type) &&
                 (term === '' ||
                     amenity.name.toLowerCase().includes(term) ||
                     amenity.category.toLowerCase().includes(term)),
         );
     }, [amenities, type, search]);
+
+    const typeLabels = useMemo(
+        () =>
+            new Map(typeOptions.map((option) => [option.value, option.label])),
+        [typeOptions],
+    );
 
     const categories = useMemo(
         () => [...new Set(amenities.map((amenity) => amenity.category))].sort(),
@@ -93,135 +118,178 @@ export default function AmenitiesIndex({
                     }
                 />
 
-                <div className="flex flex-wrap gap-2">
-                    <EnumSelect
-                        aria-label="Type"
-                        options={typeOptions}
-                        value={type}
-                        onValueChange={setType}
-                        className="w-40"
+                <TabLinks
+                    activeTab={type}
+                    panelWidth="full"
+                    className="gap-4"
+                    triggerClassName="min-w-0 px-0 mr-6"
+                    panelClassName="flex flex-col gap-4"
+                    tabs={[{ value: ALL, label: 'All' }, ...typeOptions].map(
+                        (option) => ({
+                            value: option.value,
+                            label: option.label,
+                            icon: typeIcons[option.value] ?? ListChecks,
+                            href: index({ query: { type: option.value } }),
+                        }),
+                    )}
+                >
+                    <FilterBar
+                        search={search}
+                        onSearchChange={setSearch}
+                        searchPlaceholder="Search by name or category"
                     />
-                    <Input
-                        aria-label="Search amenities"
-                        placeholder="Search by name or category"
-                        value={search}
-                        onChange={(event) => setSearch(event.target.value)}
-                        className="w-72"
-                    />
-                </div>
 
-                <div className="overflow-hidden rounded-lg border">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Amenity</TableHead>
-                                <TableHead>Category</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>
-                                    <span className="sr-only">Actions</span>
-                                </TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {visible.map((amenity, position) => (
-                                <TableRow key={amenity.id}>
-                                    <TableCell className="font-medium">
-                                        {amenity.name}
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground">
-                                        {amenity.category}
-                                    </TableCell>
-                                    <TableCell>
-                                        <StatusBadge
-                                            status={
-                                                amenity.active
-                                                    ? {
-                                                          value: 'on',
-                                                          label: 'On',
-                                                          tone: 'success',
-                                                      }
-                                                    : {
-                                                          value: 'retired',
-                                                          label: 'Retired',
-                                                          tone: 'neutral',
-                                                      }
-                                            }
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center justify-end gap-1">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon-sm"
-                                                aria-label={`Move ${amenity.name} up`}
-                                                disabled={position === 0}
-                                                onClick={() =>
-                                                    moveAmenity(
-                                                        amenities,
-                                                        visible,
-                                                        position,
-                                                        -1,
-                                                    )
-                                                }
-                                            >
-                                                <ChevronUp />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon-sm"
-                                                aria-label={`Move ${amenity.name} down`}
-                                                disabled={
-                                                    position ===
-                                                    visible.length - 1
-                                                }
-                                                onClick={() =>
-                                                    moveAmenity(
-                                                        amenities,
-                                                        visible,
-                                                        position,
-                                                        1,
-                                                    )
-                                                }
-                                            >
-                                                <ChevronDown />
-                                            </Button>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() =>
-                                                    setEditing(amenity)
-                                                }
-                                            >
-                                                Edit
-                                            </Button>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() =>
-                                                    toggleAmenity(amenity)
-                                                }
-                                            >
-                                                {amenity.active
-                                                    ? 'Retire'
-                                                    : 'Turn on'}
-                                            </Button>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                            {visible.length === 0 && (
+                    <div className="overflow-hidden rounded-lg border">
+                        <Table>
+                            <TableHeader>
                                 <TableRow>
-                                    <TableCell
-                                        colSpan={4}
-                                        className="text-center text-muted-foreground"
-                                    >
-                                        No amenities found.
-                                    </TableCell>
+                                    <TableHead>Amenity</TableHead>
+                                    {type === ALL && (
+                                        <TableHead>Type</TableHead>
+                                    )}
+                                    <TableHead>Category</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>
+                                        <span className="sr-only">Actions</span>
+                                    </TableHead>
                                 </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </div>
+                            </TableHeader>
+                            <TableBody>
+                                {visible.map((amenity, position) => (
+                                    <TableRow key={amenity.id}>
+                                        <TableCell className="font-medium">
+                                            {amenity.name}
+                                        </TableCell>
+                                        {type === ALL && (
+                                            <TableCell className="text-muted-foreground">
+                                                {typeLabels.get(amenity.type)}
+                                            </TableCell>
+                                        )}
+                                        <TableCell className="text-muted-foreground">
+                                            {amenity.category}
+                                        </TableCell>
+                                        <TableCell>
+                                            <StatusBadge
+                                                status={
+                                                    amenity.active
+                                                        ? {
+                                                              value: 'on',
+                                                              label: 'On',
+                                                              tone: 'success',
+                                                          }
+                                                        : {
+                                                              value: 'retired',
+                                                              label: 'Retired',
+                                                              tone: 'neutral',
+                                                          }
+                                                }
+                                            />
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center justify-end gap-1">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon-sm"
+                                                    aria-label={`Move ${amenity.name} up`}
+                                                    disabled={position === 0}
+                                                    onClick={() =>
+                                                        moveAmenity(
+                                                            amenities,
+                                                            visible,
+                                                            position,
+                                                            -1,
+                                                        )
+                                                    }
+                                                >
+                                                    <ChevronUp />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon-sm"
+                                                    aria-label={`Move ${amenity.name} down`}
+                                                    disabled={
+                                                        position ===
+                                                        visible.length - 1
+                                                    }
+                                                    onClick={() =>
+                                                        moveAmenity(
+                                                            amenities,
+                                                            visible,
+                                                            position,
+                                                            1,
+                                                        )
+                                                    }
+                                                >
+                                                    <ChevronDown />
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        setEditing(amenity)
+                                                    }
+                                                >
+                                                    Edit
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        toggleAmenity(amenity)
+                                                    }
+                                                >
+                                                    {amenity.active
+                                                        ? 'Retire'
+                                                        : 'Turn on'}
+                                                </Button>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                                {visible.length === 0 && (
+                                    <TableRow className="hover:bg-transparent">
+                                        <TableCell
+                                            colSpan={type === ALL ? 5 : 4}
+                                        >
+                                            {search.trim() === '' ? (
+                                                <EmptyState
+                                                    icon={ListChecks}
+                                                    title="No amenities yet"
+                                                    description="Add the first one so owners can pick it."
+                                                    action={
+                                                        <Button
+                                                            onClick={() =>
+                                                                setAdding(true)
+                                                            }
+                                                        >
+                                                            <Plus data-icon="inline-start" />
+                                                            Add amenity
+                                                        </Button>
+                                                    }
+                                                />
+                                            ) : (
+                                                <EmptyState
+                                                    icon={ListChecks}
+                                                    title="No amenities match your search"
+                                                    action={
+                                                        <Button
+                                                            variant="outline"
+                                                            onClick={() =>
+                                                                setSearch('')
+                                                            }
+                                                        >
+                                                            Clear search
+                                                        </Button>
+                                                    }
+                                                />
+                                            )}
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </TabLinks>
             </div>
 
             <AmenityDialog
