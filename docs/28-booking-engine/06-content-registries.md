@@ -20,17 +20,17 @@ room_type_amenities   room_type_id, amenity_id    unique pair
 - Saving refuses an id that is the wrong type, unknown, or retired and not already ticked, and writes nothing. Room amenities cannot change on an archived room type. Every change is logged (`property.amenities_changed`, `room_type.amenities_changed`, `amenity.*`).
 - A retired amenity (`active` off) leaves the pickers and stays on properties until they untick it.
 
-| Who   | Does                                      | Where                     |
-| ----- | ----------------------------------------- | ------------------------- |
-| Admin | Adds, edits, orders and retires amenities | Admin › Amenities         |
-| Owner | Ticks property amenities                  | Booking website › Content |
-| Owner | Ticks room amenities                      | Room type page            |
+| Who   | Does                                      | Where                       |
+| ----- | ----------------------------------------- | --------------------------- |
+| Admin | Adds, edits, orders and retires amenities | Admin › Amenities           |
+| Owner | Ticks property amenities                  | Booking website › Amenities |
+| Owner | Ticks room amenities                      | Room type page              |
 
 Left out for now: per-amenity details, such as opening hours and fees (a concierge page need), and a Channex sync. The Channex `facilities` field is optional. If it is needed later, add `amenities.channex_id`, as wastays had.
 
 ## Nearby places
 
-**Built.** The Content tab adds, describes, reorders and removes places, and suggests Approved ones. Admins review at `/admin/nearby-places`.
+**Built.** The Nearby places tab adds, describes, reorders and removes places, and suggests Approved ones. Admins review at `/admin/nearby-places`.
 
 ```
 nearby_places           id, name, latitude, longitude, google_maps_url,

@@ -7,6 +7,8 @@ use App\Actions\BookingEngine\LinkSuggestedNearbyPlace;
 use App\Actions\BookingEngine\RemovePropertyNearbyPlace;
 use App\Actions\BookingEngine\ReorderPropertyNearbyPlaces;
 use App\Actions\BookingEngine\UpdatePropertyNearbyPlace;
+use App\Data\BookingEngine\NearbyPlaceSuggestionData;
+use App\Data\BookingEngine\PropertyNearbyPlaceData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\BookingEngine\AddNearbyPlaceRequest;
 use App\Http\Requests\BookingEngine\ReorderNearbyPlacesRequest;
@@ -15,17 +17,27 @@ use App\Models\NearbyPlace;
 use App\Models\Property;
 use App\Services\BookingEngine\GoogleMapsLink;
 use App\Services\BookingEngine\InvalidMapsLink;
+use App\Services\BookingEngine\NearbyPlaceSuggestions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
+use Inertia\Response;
 
 /**
- * The nearby places on the Content tab of Settings > Booking website. See
+ * The nearby places on the Nearby places tab of Settings > Booking website. See
  * docs/28-booking-engine/06-content-registries.md#nearby-places.
  */
 class NearbyPlaceController extends Controller
 {
+    public function index(Property $property, NearbyPlaceSuggestions $suggestions): Response
+    {
+        return Inertia::render('settings/booking-website/nearby-places', [
+            'nearbyPlaces' => $property->nearbyPlaces()->get()->map(fn (NearbyPlace $place): PropertyNearbyPlaceData => PropertyNearbyPlaceData::fromModel($place))->values(),
+            'suggestions' => $suggestions->for($property)->map(fn (NearbyPlace $place): NearbyPlaceSuggestionData => NearbyPlaceSuggestionData::fromModel($place))->values(),
+        ]);
+    }
+
     public function store(AddNearbyPlaceRequest $request, Property $property, GoogleMapsLink $googleMapsLink, AddNearbyPlaceFromLink $addNearbyPlaceFromLink): RedirectResponse
     {
         try {
@@ -40,7 +52,7 @@ class NearbyPlaceController extends Controller
             ? ['type' => 'error', 'message' => __('This place is already on your list, or it cannot be added.')]
             : ['type' => 'success', 'message' => __(':name added.', ['name' => $place->name])]);
 
-        return to_route('settings.booking-website.content', $property);
+        return to_route('settings.booking-website.nearby-places', $property);
     }
 
     public function storeSuggested(Request $request, Property $property, NearbyPlace $nearbyPlace, LinkSuggestedNearbyPlace $linkSuggestedNearbyPlace): RedirectResponse
@@ -49,7 +61,7 @@ class NearbyPlaceController extends Controller
             ? ['type' => 'success', 'message' => __(':name added.', ['name' => $nearbyPlace->name])]
             : ['type' => 'error', 'message' => __('That place is no longer suggested. Reload the page and try again.')]);
 
-        return to_route('settings.booking-website.content', $property);
+        return to_route('settings.booking-website.nearby-places', $property);
     }
 
     public function update(UpdateNearbyPlaceRequest $request, Property $property, NearbyPlace $nearbyPlace, UpdatePropertyNearbyPlace $updatePropertyNearbyPlace): RedirectResponse
@@ -58,7 +70,7 @@ class NearbyPlaceController extends Controller
             ? ['type' => 'success', 'message' => __('Place saved.')]
             : ['type' => 'error', 'message' => __('That place is no longer on your list. Reload the page and try again.')]);
 
-        return to_route('settings.booking-website.content', $property);
+        return to_route('settings.booking-website.nearby-places', $property);
     }
 
     public function destroy(Request $request, Property $property, NearbyPlace $nearbyPlace, RemovePropertyNearbyPlace $removePropertyNearbyPlace): RedirectResponse
@@ -67,7 +79,7 @@ class NearbyPlaceController extends Controller
             ? ['type' => 'success', 'message' => __(':name removed.', ['name' => $nearbyPlace->name])]
             : ['type' => 'error', 'message' => __('That place is no longer on your list. Reload the page and try again.')]);
 
-        return to_route('settings.booking-website.content', $property);
+        return to_route('settings.booking-website.nearby-places', $property);
     }
 
     public function reorder(ReorderNearbyPlacesRequest $request, Property $property, ReorderPropertyNearbyPlaces $reorderPropertyNearbyPlaces): RedirectResponse
@@ -76,6 +88,6 @@ class NearbyPlaceController extends Controller
             Inertia::flash('toast', ['type' => 'error', 'message' => __('Your places changed. Reload the page and try again.')]);
         }
 
-        return to_route('settings.booking-website.content', $property);
+        return to_route('settings.booking-website.nearby-places', $property);
     }
 }

@@ -6,7 +6,7 @@ use App\Models\NearbyPlace;
 use Spatie\LaravelData\Data;
 
 /**
- * One nearby place on a property's Content tab. The status is left out, because owners never see it.
+ * One nearby place on a property's Nearby places tab. The status is left out, because owners never see it.
  */
 class PropertyNearbyPlaceData extends Data
 {

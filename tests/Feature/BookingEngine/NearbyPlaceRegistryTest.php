@@ -82,13 +82,13 @@ describe('GoogleMapsLink', function () {
     })->throws(InvalidMapsLink::class);
 });
 
-describe('owner Content tab', function () {
+describe('owner Nearby places tab', function () {
     it('adds a new place as Pending and reuses it for a second property', function () {
         ['owner' => $owner, 'property' => $property] = nearbyOwner();
         ['owner' => $otherOwner, 'property' => $otherProperty] = nearbyOwner();
 
         $this->actingAs($owner)->post(route('settings.booking-website.nearby-places.store', $property), ['google_maps_url' => PANGKOR_JETTY])
-            ->assertRedirect(route('settings.booking-website.content', $property));
+            ->assertRedirect(route('settings.booking-website.nearby-places', $property));
         $this->actingAs($otherOwner)->post(route('settings.booking-website.nearby-places.store', $otherProperty), ['google_maps_url' => PANGKOR_JETTY]);
 
         $place = NearbyPlace::query()->sole();
@@ -138,7 +138,7 @@ describe('owner Content tab', function () {
         $property->nearbyPlaces()->attach($second->id, ['position' => 2]);
         $property->nearbyPlaces()->attach($first->id, ['position' => 1, 'description' => 'Ferry to the island']);
 
-        $this->actingAs($owner)->get(route('settings.booking-website.content', $property))
+        $this->actingAs($owner)->get(route('settings.booking-website.nearby-places', $property))
             ->assertInertia(fn (Assert $page) => $page
                 ->has('nearbyPlaces', 2)
                 ->where('nearbyPlaces.0.name', 'Jetty')
@@ -191,6 +191,7 @@ describe('owner Content tab', function () {
         ['property' => $property] = nearbyOwner();
         $staff = User::factory()->for($property)->withPermissions([PermissionEnum::SettingsManage])->create();
 
+        $this->actingAs($staff)->get(route('settings.booking-website.nearby-places', $property))->assertForbidden();
         $this->actingAs($staff)->post(route('settings.booking-website.nearby-places.store', $property), ['google_maps_url' => PANGKOR_JETTY])->assertForbidden();
     });
 });
@@ -209,7 +210,7 @@ describe('suggestions', function () {
 
         expect($suggestions->pluck('name')->all())->toBe(['Nearer', 'Near']);
 
-        $this->actingAs($owner)->get(route('settings.booking-website.content', $property))
+        $this->actingAs($owner)->get(route('settings.booking-website.nearby-places', $property))
             ->assertInertia(fn (Assert $page) => $page->where('suggestions.0.name', 'Nearer')->where('suggestions.0.distance', '0.1 km')->where('suggestions.1.distance', '2.2 km'));
     });
 

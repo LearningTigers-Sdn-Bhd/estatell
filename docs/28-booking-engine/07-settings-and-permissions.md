@@ -19,20 +19,21 @@ rate_plans               + bookable_online (bool, default false)
 - `BookingEngineMode`: Microsite, ApiOnly.
 - Slugs are lower case letters, digits and hyphens, 3 to 50 characters. A property gets one from its name when the General tab is first opened (`SetUpBookingSite`, which also creates the `property_booking_sites` row as Microsite). Until it is published, the owner can edit it on the General tab. After publishing, only admins change it, because a change breaks links already shared.
 - `site_template_id` has no foreign key yet. The template registry item adds it.
-- **Built so far:** the flag, the tables, the three permissions, the General tab with Publish and Unpublish, the Content tab with property amenities and nearby places (about text comes later), the property location read from the Maps link, and the checklist service (`BookingSiteChecklist`) with the Template and Location rows. Each later item adds its own checklist row. Not built yet: the admin switch for the mode, and the admin change of a published slug.
+- **Built so far:** the flag, the tables, the three permissions, the General tab with Publish and Unpublish, the Amenities and Nearby places tabs, the property location read from the Maps link, and the checklist service (`BookingSiteChecklist`) with the Template and Location rows. Each later item adds its own checklist row. Not built yet: the about text on the General tab, the admin switch for the mode, and the admin change of a published slug.
 
 ## Booking website settings
 
 Settings › Booking website (`/p/{code}/settings/booking-website`, `settings.booking-website.*`) appears when the flag is on. Each tab is its own URL, controller method and page.
 
-| Tab     | Microsite | API only | Holds                                     | Permission                                                           |
-| ------- | --------- | -------- | ----------------------------------------- | -------------------------------------------------------------------- |
-| General | Yes       | Yes      | Status, checklist, web address, Maps link | `booking-website.manage`; publishing needs `booking-website.publish` |
-| Design  | Yes       | No       | Template, images, main colour             | `booking-website.manage`                                             |
-| Content | Yes       | Yes      | About text, amenities, nearby places      | `booking-website.manage`                                             |
-| Rates   | Yes       | Yes      | Which rate plans guests can book          | `booking-website.manage`                                             |
-| SEO     | Yes       | No       | Google title and description              | `booking-website.manage`                                             |
-| API     | No        | Yes      | Token, return addresses, docs link        | `booking-website.api`                                                |
+| Tab           | Microsite | API only | Holds                                                 | Permission                                                           |
+| ------------- | --------- | -------- | ----------------------------------------------------- | -------------------------------------------------------------------- |
+| General       | Yes       | Yes      | Status, checklist, web address, Maps link, about text | `booking-website.manage`; publishing needs `booking-website.publish` |
+| Design        | Yes       | No       | Template, images, main colour                         | `booking-website.manage`                                             |
+| Amenities     | Yes       | Yes      | Property amenities                                    | `booking-website.manage`                                             |
+| Nearby places | Yes       | Yes      | Add a place, suggestions, your places                 | `booking-website.manage`                                             |
+| Rates         | Yes       | Yes      | Which rate plans guests can book                      | `booking-website.manage`                                             |
+| SEO           | Yes       | No       | Google title and description                          | `booking-website.manage`                                             |
+| API           | No        | Yes      | Token, return addresses, docs link                    | `booking-website.api`                                                |
 
 ### General
 
@@ -42,6 +43,7 @@ Settings › Booking website (`/p/{code}/settings/booking-website`, `settings.bo
 │ Web address    booking.estatell.com/sand-bay           │
 │                [ Copy link ]  [ Open site ]            │
 │ Google Maps    [ e.g. https://www.google.com/maps/...] │
+│ About          [ e.g. A quiet beach resort in Pangkor ]│
 │                                                        │
 │ Before you publish                                     │
 │ ✓ Template chosen                                      │
@@ -73,14 +75,21 @@ The checklist is calculated from data. In API only mode, Publish becomes **Go li
 
 The rows follow the chosen template's [image slots](08-microsite.md#template-registry). Images are media on `PropertyBookingSite`, on a public disk, with the slot key as a custom property.
 
-### Content
+### Amenities
 
 ```
-┌─ Content ──────────────────────────────────────────────┐
-│ About          [ e.g. A quiet beach resort in Pangkor ]│
-│ Amenities      [✓] Wi-Fi  [✓] Pool  [ ] Gym  [✓] Parking│
-│                                                        │
-│ Nearby places                                          │
+┌─ Amenities ────────────────────────────────────────────┐
+│ [✓] Wi-Fi  [✓] Pool  [ ] Gym  [✓] Parking              │
+│                                      [ Save amenities ]│
+└────────────────────────────────────────────────────────┘
+```
+
+### Nearby places
+
+Each action saves on its own.
+
+```
+┌─ Nearby places ────────────────────────────────────────┐
 │ Google Maps link                                       │
 │ [ e.g. https://www.google.com/maps/place/Pangkor...  ] │
 │                                                [ Add ] │
@@ -90,7 +99,6 @@ The rows follow the chosen template's [image slots](08-microsite.md#template-reg
 │ Your places                                            │
 │ Pangkor Jetty          6.4 km                     ⋯    │
 │ Dutch Fort             3.8 km                     ⋯    │
-│                                                [ Save ]│
 └────────────────────────────────────────────────────────┘
 ```
 
@@ -137,11 +145,11 @@ Only active plans with `company_access` Everyone appear. Each switch saves `rate
 
 ## Permissions
 
-| Permission                | Allows                                                        | Default role |
-| ------------------------- | ------------------------------------------------------------- | ------------ |
-| `booking-website.manage`  | Edit General, Design, Content, Rates and SEO; pick a template | Owner        |
-| `booking-website.publish` | Publish or unpublish                                          | Owner        |
-| `booking-website.api`     | Manage the API token and return addresses                     | Owner        |
+| Permission                | Allows                                     | Default role |
+| ------------------------- | ------------------------------------------ | ------------ |
+| `booking-website.manage`  | Edit every tab except API; pick a template | Owner        |
+| `booking-website.publish` | Publish or unpublish                       | Owner        |
+| `booking-website.api`     | Manage the API token and return addresses  | Owner        |
 
 Each role can change in [Roles and permissions](../03-staff/02-roles-and-permissions.md). A migration syncs the three permissions.
 

@@ -153,7 +153,7 @@ test('reordering needs exactly the full list', function () {
     expect($third->refresh()->position)->toBe(1);
 });
 
-test('the Content tab lists active property amenities plus a retired one that is ticked', function () {
+test('the Amenities tab lists active property amenities plus a retired one that is ticked', function () {
     ['owner' => $owner, 'property' => $property] = amenityOwner();
     $pool = Amenity::factory()->create(['name' => 'Pool']);
     $sauna = Amenity::factory()->inactive()->create(['name' => 'Sauna']);
@@ -161,10 +161,10 @@ test('the Content tab lists active property amenities plus a retired one that is
     Amenity::factory()->room()->create(['name' => 'Balcony']);
     $property->amenities()->attach([$sauna->id]);
 
-    $this->actingAs($owner)->get(route('settings.booking-website.content', $property))
+    $this->actingAs($owner)->get(route('settings.booking-website.amenities', $property))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->component('settings/booking-website/content')
+            ->component('settings/booking-website/amenities')
             ->has('amenities.amenities', 2)
             ->where('amenities.amenities.0.name', 'Pool')
             ->where('amenities.amenities.1.name', 'Sauna')
@@ -173,47 +173,47 @@ test('the Content tab lists active property amenities plus a retired one that is
     expect($pool->id)->toBeInt();
 });
 
-test('saving the Content tab replaces the ticked amenities and logs the change', function () {
+test('saving the Amenities tab replaces the ticked amenities and logs the change', function () {
     ['owner' => $owner, 'property' => $property] = amenityOwner();
     [$pool, $gym] = Amenity::factory()->count(2)->create();
     $property->amenities()->attach($pool);
 
     $this->actingAs($owner)
-        ->put(route('settings.booking-website.content.update', $property), ['amenity_ids' => [$gym->id]])
-        ->assertRedirect(route('settings.booking-website.content', $property))
-        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Content saved.']);
+        ->put(route('settings.booking-website.amenities.update', $property), ['amenity_ids' => [$gym->id]])
+        ->assertRedirect(route('settings.booking-website.amenities', $property))
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Amenities saved.']);
 
     expect($property->amenities()->pluck('amenities.id')->all())->toBe([$gym->id]);
     expect(Activity::query()->where('event', 'property.amenities_changed')->count())->toBe(1);
 
-    $this->actingAs($owner)->put(route('settings.booking-website.content.update', $property), ['amenity_ids' => []]);
+    $this->actingAs($owner)->put(route('settings.booking-website.amenities.update', $property), ['amenity_ids' => []]);
 
     expect($property->amenities()->count())->toBe(0);
 });
 
-test('the Content tab refuses room amenities, retired ones not yet ticked and unknown ids', function () {
+test('the Amenities tab refuses room amenities, retired ones not yet ticked and unknown ids', function () {
     ['owner' => $owner, 'property' => $property] = amenityOwner();
     $room = Amenity::factory()->room()->create();
     $retired = Amenity::factory()->inactive()->create();
 
     foreach ([[$room->id], [$retired->id], [999999]] as $ids) {
         $this->actingAs($owner)
-            ->put(route('settings.booking-website.content.update', $property), ['amenity_ids' => $ids])
+            ->put(route('settings.booking-website.amenities.update', $property), ['amenity_ids' => $ids])
             ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'The amenity list changed. Reload the page and try again.']);
     }
 
     expect($property->amenities()->count())->toBe(0);
 });
 
-test('the Content tab needs the manage permission and the feature', function () {
+test('the Amenities tab needs the manage permission and the feature', function () {
     ['property' => $property] = amenityOwner();
     $staff = User::factory()->for($property)->withPermissions([PermissionEnum::SettingsManage])->create();
 
-    $this->actingAs($staff)->get(route('settings.booking-website.content', $property))->assertForbidden();
-    $this->actingAs($staff)->put(route('settings.booking-website.content.update', $property), ['amenity_ids' => []])->assertForbidden();
+    $this->actingAs($staff)->get(route('settings.booking-website.amenities', $property))->assertForbidden();
+    $this->actingAs($staff)->put(route('settings.booking-website.amenities.update', $property), ['amenity_ids' => []])->assertForbidden();
 
     Feature::for($property)->deactivate(BookingEngine::class);
-    $this->actingAs(User::factory()->owner()->create())->get(route('settings.booking-website.content', $property))->assertNotFound();
+    $this->actingAs(User::factory()->owner()->create())->get(route('settings.booking-website.amenities', $property))->assertNotFound();
 });
 
 test('room amenities save on the room type page and stay inside the property', function () {

@@ -226,8 +226,9 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::middleware('can:'.PermissionEnum::BookingWebsiteManage->value)->group(function () {
             Route::get('/', [BookingWebsiteController::class, 'general'])->name('general');
             Route::put('/', [BookingWebsiteController::class, 'updateGeneral'])->name('general.update');
-            Route::get('content', [BookingWebsiteController::class, 'content'])->name('content');
-            Route::put('content', [BookingWebsiteController::class, 'updateContent'])->name('content.update');
+            Route::get('amenities', [BookingWebsiteController::class, 'amenities'])->name('amenities');
+            Route::put('amenities', [BookingWebsiteController::class, 'updateAmenities'])->name('amenities.update');
+            Route::get('nearby-places', [NearbyPlaceController::class, 'index'])->name('nearby-places');
             Route::post('nearby-places', [NearbyPlaceController::class, 'store'])->name('nearby-places.store');
             Route::put('nearby-places/order', [NearbyPlaceController::class, 'reorder'])->name('nearby-places.reorder');
             Route::post('nearby-places/{nearbyPlace}/suggested', [NearbyPlaceController::class, 'storeSuggested'])->withoutScopedBindings()->whereNumber('nearbyPlace')->name('nearby-places.suggested');

@@ -6,7 +6,7 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * The "add a place" form on the Content tab. The route's `can:` middleware checks `booking-website.manage`.
+ * The "add a place" form on the Nearby places tab. The route's `can:` middleware checks `booking-website.manage`.
  */
 class AddNearbyPlaceRequest extends FormRequest
 {

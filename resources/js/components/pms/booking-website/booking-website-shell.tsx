@@ -1,11 +1,15 @@
-import { FileText, Sparkles } from 'lucide-react';
+import { FileText, MapPin, Sparkles } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { PageHeader } from '@/components/pms/page-header';
 import { TabLinks } from '@/components/pms/tab-links';
 import type { TabLink } from '@/components/pms/tab-links';
-import { content, general } from '@/routes/settings/booking-website';
+import {
+    amenities,
+    general,
+    nearbyPlaces,
+} from '@/routes/settings/booking-website';
 
-export type BookingWebsiteTab = 'general' | 'content';
+export type BookingWebsiteTab = 'general' | 'amenities' | 'nearby-places';
 
 /**
  * Header and tab links of Settings › Booking website. Each tab is its own page and URL, and loads only its own data.
@@ -29,10 +33,16 @@ export function BookingWebsiteShell({
             href: general.url(),
         },
         {
-            value: 'content',
-            label: 'Content',
+            value: 'amenities',
+            label: 'Amenities',
             icon: Sparkles,
-            href: content.url(),
+            href: amenities.url(),
+        },
+        {
+            value: 'nearby-places',
+            label: 'Nearby places',
+            icon: MapPin,
+            href: nearbyPlaces.url(),
         },
     ];
 

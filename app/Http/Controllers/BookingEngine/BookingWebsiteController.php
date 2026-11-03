@@ -9,18 +9,14 @@ use App\Actions\BookingEngine\SyncPropertyAmenities;
 use App\Actions\BookingEngine\UnpublishBookingSite;
 use App\Data\BookingEngine\AmenityPickerData;
 use App\Data\BookingEngine\BookingWebsiteGeneralData;
-use App\Data\BookingEngine\NearbyPlaceSuggestionData;
-use App\Data\BookingEngine\PropertyNearbyPlaceData;
 use App\Enums\AmenityType;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\BookingEngine\SaveBookingWebsiteContentRequest;
+use App\Http\Requests\BookingEngine\SaveBookingWebsiteAmenitiesRequest;
 use App\Http\Requests\BookingEngine\SaveBookingWebsiteGeneralRequest;
-use App\Models\NearbyPlace;
 use App\Models\Property;
 use App\Services\BookingEngine\BookingSiteChecklist;
 use App\Services\BookingEngine\GoogleMapsLink;
 use App\Services\BookingEngine\InvalidMapsLink;
-use App\Services\BookingEngine\NearbyPlaceSuggestions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -62,24 +58,22 @@ class BookingWebsiteController extends Controller
     }
 
     /**
-     * The Content tab: the property amenities and nearby places.
+     * The Amenities tab: the property amenities.
      */
-    public function content(Property $property, NearbyPlaceSuggestions $suggestions): Response
+    public function amenities(Property $property): Response
     {
-        return Inertia::render('settings/booking-website/content', [
+        return Inertia::render('settings/booking-website/amenities', [
             'amenities' => AmenityPickerData::forType(AmenityType::Property, $property->amenities()->get()),
-            'nearbyPlaces' => $property->nearbyPlaces()->get()->map(fn (NearbyPlace $place): PropertyNearbyPlaceData => PropertyNearbyPlaceData::fromModel($place))->values(),
-            'suggestions' => $suggestions->for($property)->map(fn (NearbyPlace $place): NearbyPlaceSuggestionData => NearbyPlaceSuggestionData::fromModel($place))->values(),
         ]);
     }
 
-    public function updateContent(SaveBookingWebsiteContentRequest $request, Property $property, SyncPropertyAmenities $syncPropertyAmenities): RedirectResponse
+    public function updateAmenities(SaveBookingWebsiteAmenitiesRequest $request, Property $property, SyncPropertyAmenities $syncPropertyAmenities): RedirectResponse
     {
         Inertia::flash('toast', $syncPropertyAmenities($request->user(), $property, $request->amenityIds())
-            ? ['type' => 'success', 'message' => __('Content saved.')]
+            ? ['type' => 'success', 'message' => __('Amenities saved.')]
             : ['type' => 'error', 'message' => __('The amenity list changed. Reload the page and try again.')]);
 
-        return to_route('settings.booking-website.content', $property);
+        return to_route('settings.booking-website.amenities', $property);
     }
 
     public function publish(Request $request, Property $property, SetUpBookingSite $setUpBookingSite, PublishBookingSite $publishBookingSite): RedirectResponse

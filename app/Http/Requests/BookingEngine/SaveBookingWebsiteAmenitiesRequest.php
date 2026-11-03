@@ -6,9 +6,9 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * The Content tab form. The route's `can:` middleware checks `booking-website.manage`.
+ * The Amenities tab form. The route's `can:` middleware checks `booking-website.manage`.
  */
-class SaveBookingWebsiteContentRequest extends FormRequest
+class SaveBookingWebsiteAmenitiesRequest extends FormRequest
 {
     public function authorize(): bool
     {
