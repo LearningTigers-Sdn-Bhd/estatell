@@ -179,15 +179,28 @@ export default function EInvoiceGuide() {
                                             All remaining taxpayers (up to
                                             RM5,000,000)
                                         </TableCell>
-                                        <TableCell>1 January 2026</TableCell>
+                                        <TableCell>
+                                            <div>1 January 2026</div>
+                                            <div className="text-xs text-muted-foreground">
+                                                Grace period until 31 Dec 2027
+                                                <br />
+                                                Full penalties start 1 Jan 2028
+                                            </div>
+                                        </TableCell>
                                         <TableCell>
                                             Budget hotels, homestays, bed &
                                             breakfasts, and small accommodation
-                                            providers.
+                                            providers. During the extended
+                                            transition period through 31
+                                            December 2027, consolidated
+                                            e-invoices are permitted, but single
+                                            stays over RM10,000 must be
+                                            individually e-invoiced in real
+                                            time.
                                         </TableCell>
                                         <TableCell>
                                             <Badge variant="secondary">
-                                                Mandated
+                                                Grace Period
                                             </Badge>
                                         </TableCell>
                                     </TableRow>

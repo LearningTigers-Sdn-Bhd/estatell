@@ -26,12 +26,13 @@ Automate statutory e-invoicing compliance with the Inland Revenue Board of Malay
 
 LHDN mandates electronic invoicing under Section 82C of the Income Tax Act 1967. Implementation phases:
 
-| Phase     | Effective Date | Annual Revenue Threshold                                                                                                               |
-| --------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Phase 1   | 1 August 2024  | Annual turnover > RM 100 million                                                                                                       |
-| Phase 2   | 1 January 2025 | Annual turnover RM 25 million to RM 100 million                                                                                        |
-| Phase 3   | 1 July 2025    | All taxpayers (including SMEs, micro-enterprises)                                                                                      |
-| Exemption | Permanent      | Annual revenue below **RM 3,000,000** (exemption threshold announced in Budget 2025; non-issuance permitted unless requested by buyer) |
+| Phase     | Effective Date | Annual Revenue Threshold                        | Details                                                                                                                                                                                                                                         |
+| --------- | -------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase 1   | 1 August 2024  | Annual turnover > RM 100 million                | Active enforcement                                                                                                                                                                                                                              |
+| Phase 2   | 1 January 2025 | Annual turnover RM 25 million to RM 100 million | Active enforcement                                                                                                                                                                                                                              |
+| Phase 3   | 1 July 2025    | Annual turnover RM 5 million to RM 25 million   | Mandated                                                                                                                                                                                                                                        |
+| Phase 4   | 1 January 2026 | All remaining taxpayers (up to RM 5 million)    | Extended transition/grace period until **31 December 2027**; full legal penalty enforcement begins **1 January 2028**. Monthly consolidation allowed during grace period, but single stays > RM 10,000 strictly require individual e-invoicing. |
+| Exemption | Permanent      | Annual revenue below **RM 3,000,000**           | Formally exempted from mandatory issuance (Budget 2025). Non-issuance permitted unless explicitly requested by the buyer.                                                                                                                       |
 
 ## Document Types & Classification Codes
 
