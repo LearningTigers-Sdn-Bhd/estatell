@@ -115,6 +115,12 @@ class Reservation extends Model
         return $this->hasMany(ReservationUnit::class);
     }
 
+    /** @return HasMany<PaymentProof, $this> The payment proofs the agent sent in the portal. */
+    public function paymentProofs(): HasMany
+    {
+        return $this->hasMany(PaymentProof::class);
+    }
+
     /**
      * @return HasMany<FolioRoutingRule, $this>
      */

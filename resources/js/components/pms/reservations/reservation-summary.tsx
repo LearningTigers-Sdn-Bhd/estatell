@@ -26,7 +26,8 @@ import type { ReactNode } from 'react';
 import { BookingSourceBadge } from '@/components/pms/booking-source-badge';
 import { DateText } from '@/components/pms/date-text';
 import { MoneyText } from '@/components/pms/money-text';
-import { Badge } from '@/components/ui/badge';
+import { PaymentProofReview } from '@/components/pms/payments/payment-proof-review';
+import { PaymentScheduleList } from '@/components/pms/payments/payment-schedule-list';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { show as showCompany } from '@/routes/finance/city-ledger/companies';
@@ -63,12 +64,16 @@ export function ReservationSummary({
     reservation,
     money,
     paymentSchedule = null,
+    paymentProofs = [],
+    proofPaymentMethods = [],
     canViewCompany,
     currency,
 }: {
     reservation: Reservation;
     money: Money;
     paymentSchedule?: App.Data.Reservations.PaymentScheduleData | null;
+    paymentProofs?: App.Data.Payments.PaymentProofData[];
+    proofPaymentMethods?: { value: string; label: string }[];
     canViewCompany: boolean;
     currency: App.Data.Property.CurrencyData | null;
 }) {
@@ -177,7 +182,7 @@ export function ReservationSummary({
                     </span>
                 </Row>
             </dl>
-            {paymentSchedule !== null && (
+            {(paymentSchedule !== null || paymentProofs.length > 0) && (
                 <>
                     <Separator />
                     <section className="flex flex-col gap-2">
@@ -185,50 +190,20 @@ export function ReservationSummary({
                             <CalendarClock aria-hidden className="size-4" />
                             Payment schedule
                         </h2>
-                        <ul className="flex flex-col gap-1.5 text-sm">
-                            {paymentSchedule.stages.map((stage) => (
-                                <li
-                                    key={stage.label}
-                                    className="flex items-start justify-between gap-3"
-                                >
-                                    <span className="flex flex-col">
-                                        <span>{stage.label}</span>
-                                        <span className="text-xs text-muted-foreground">
-                                            by{' '}
-                                            {new Date(
-                                                stage.dueAt,
-                                            ).toLocaleString(undefined, {
-                                                day: 'numeric',
-                                                month: 'short',
-                                                hour: '2-digit',
-                                                minute: '2-digit',
-                                            })}
-                                        </span>
-                                    </span>
-                                    <span className="flex flex-col items-end">
-                                        <MoneyText
-                                            amount={stage.amount}
-                                            currency={currency}
-                                        />
-                                        <Badge
-                                            variant={
-                                                stage.status === 'overdue'
-                                                    ? 'destructive'
-                                                    : stage.status === 'paid'
-                                                      ? 'secondary'
-                                                      : 'outline'
-                                            }
-                                        >
-                                            {stage.status === 'paid'
-                                                ? 'Paid'
-                                                : stage.status === 'overdue'
-                                                  ? 'Overdue'
-                                                  : 'Due'}
-                                        </Badge>
-                                    </span>
-                                </li>
-                            ))}
-                        </ul>
+                        {paymentSchedule !== null && (
+                            <PaymentScheduleList
+                                schedule={paymentSchedule}
+                                currency={currency}
+                            />
+                        )}
+                        {paymentProofs.length > 0 && (
+                            <PaymentProofReview
+                                reservationId={reservation.id}
+                                proofs={paymentProofs}
+                                methods={proofPaymentMethods}
+                                currency={currency}
+                            />
+                        )}
                     </section>
                 </>
             )}

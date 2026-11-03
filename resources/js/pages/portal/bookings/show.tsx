@@ -2,6 +2,7 @@ import { Head } from '@inertiajs/react';
 import { useState } from 'react';
 import { BookingCancelActions } from '@/components/pms/portal/booking-cancel-actions';
 import { BookingGuestsSheet } from '@/components/pms/portal/booking-guests-sheet';
+import { BookingPaymentSection } from '@/components/pms/portal/booking-payment-section';
 import { DateText } from '@/components/pms/date-text';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { MoneyText } from '@/components/pms/money-text';
@@ -19,12 +20,16 @@ export default function PortalBookingShow({
     companySuspended,
     idTypes,
     currency,
+    paymentSchedule,
+    paymentProofs,
 }: {
     booking: Booking;
     propertyCode: string;
     companySuspended: boolean;
     idTypes: EnumOption[];
     currency: App.Data.Property.CurrencyData | null;
+    paymentSchedule: App.Data.Reservations.PaymentScheduleData | null;
+    paymentProofs: App.Data.Payments.PaymentProofData[];
 }) {
     const [editing, setEditing] = useState(false);
     const [saves, setSaves] = useState(0);
@@ -80,6 +85,21 @@ export default function PortalBookingShow({
                         <MoneyText amount={booking.total} currency={currency} />
                     </Fact>
                 </dl>
+
+                <BookingPaymentSection
+                    propertyCode={propertyCode}
+                    reservationId={booking.id}
+                    schedule={paymentSchedule}
+                    proofs={paymentProofs}
+                    canUpload={
+                        !companySuspended &&
+                        paymentSchedule !== null &&
+                        paymentSchedule.stages.some(
+                            (stage) => stage.status !== 'paid',
+                        )
+                    }
+                    currency={currency}
+                />
 
                 <section className="flex flex-col gap-3">
                     <h2 className="text-base font-medium">Rooms</h2>

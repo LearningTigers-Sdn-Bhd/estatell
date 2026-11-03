@@ -1859,6 +1859,17 @@ isOldSystem: boolean,
 type: string | null,
 isOtaCollected: boolean,
 };
+export type PaymentProofData = {
+id: number,
+amount: string,
+reference: string | null,
+status: App.Enums.PaymentProofStatus,
+badge: App.Data.Shared.BadgeData,
+uploadedAt: string,
+uploadedBy: string,
+rejectReason: string | null,
+fileUrl: string,
+};
 export type PaymentQuoteData = {
 amount: string | null,
 surcharge: string | null,
@@ -4335,6 +4346,7 @@ export type PasscodeKind = 'generated' | 'custom';
 export type PasscodeMode = 'generated' | 'custom';
 export type PasscodeStatus = 'pending' | 'active' | 'failed' | 'revoked' | 'expired';
 export type PaymentMethodType = 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill' | 'old_system';
+export type PaymentProofStatus = 'submitted' | 'accepted' | 'rejected';
 export type PaymentPurpose = 'advance' | 'settlement' | 'security_deposit';
 export type PaymentReportStatus = 'pending' | 'completed' | 'failed' | 'voided';
 export type PaymentStage = 'before_arrival' | 'in_house' | 'departed';

@@ -6,13 +6,16 @@ use App\Actions\Portal\CancelPortalReservation;
 use App\Actions\Portal\PortalBookingResult;
 use App\Actions\Portal\RequestPortalCancellation;
 use App\Actions\Portal\UpdatePortalReservationGuests;
+use App\Data\Payments\PaymentProofData;
 use App\Data\Portal\PortalBookingRowData;
 use App\Data\Property\CurrencyData;
+use App\Data\Reservations\PaymentScheduleData;
 use App\Enums\CompanyStatus;
 use App\Enums\IdentityDocumentType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Portal\UpdatePortalGuestsRequest;
 use App\Models\CompanyUser;
+use App\Models\PaymentProof;
 use App\Models\Property;
 use App\Services\Portal\PortalBookingMessages;
 use App\Services\Portal\PortalBookings;
@@ -54,9 +57,17 @@ class PortalBookingController extends Controller
         $link = $this->link($request);
         $property->loadMissing('settings');
 
+        $booking = $bookings->find($link->company, $reservation);
+
         return Inertia::render('portal/bookings/show', [
             'propertyCode' => $property->code,
-            'booking' => $bookings->detail($link->company, $bookings->find($link->company, $reservation), $property),
+            'booking' => $bookings->detail($link->company, $booking, $property),
+            'paymentSchedule' => PaymentScheduleData::forReservation($booking),
+            'paymentProofs' => array_values(PaymentProof::query()->where('reservation_id', $booking->id)->with('uploader')->latest('id')->get()
+                ->map(fn (PaymentProof $proof): PaymentProofData => PaymentProofData::fromModel(
+                    $proof,
+                    route('portal.bookings.payment-proofs.file', ['property' => $property->code, 'reservation' => $booking->id, 'paymentProof' => $proof->id], absolute: false),
+                ))->all()),
             'companySuspended' => $link->company->status === CompanyStatus::Suspended,
             'idTypes' => IdentityDocumentType::options(),
             'currency' => CurrencyData::forProperty($property),

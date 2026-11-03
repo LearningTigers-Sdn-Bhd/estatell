@@ -18,6 +18,7 @@ use App\Http\Controllers\Reservations\ReservationGroupController;
 use App\Http\Controllers\Reservations\ReservationNightPriceController;
 use App\Http\Controllers\Reservations\ReservationOldFolioController;
 use App\Http\Controllers\Reservations\ReservationPaymentController;
+use App\Http\Controllers\Reservations\ReservationPaymentProofController;
 use App\Http\Controllers\Reservations\ReservationRoutingController;
 use App\Http\Controllers\Reservations\ReservationUnitAddOnController;
 use App\Http\Controllers\Reservations\ReservationUnitController;
@@ -110,7 +111,11 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                 Route::post('folio/move', [ReservationFolioMoveController::class, 'store'])->name('folio.move.store');
             });
 
+            Route::get('payment-proofs/{paymentProof}', [ReservationPaymentProofController::class, 'file'])->name('payment-proofs.file');
+
             Route::middleware('can:'.PermissionEnum::PaymentRecord->value)->group(function () {
+                Route::post('payment-proofs/{paymentProof}/accept', [ReservationPaymentProofController::class, 'accept'])->name('payment-proofs.accept');
+                Route::post('payment-proofs/{paymentProof}/reject', [ReservationPaymentProofController::class, 'reject'])->name('payment-proofs.reject');
                 Route::post('payments/quote', [ReservationPaymentController::class, 'quote'])->name('payments.quote');
                 Route::post('units/{unit}/payments', [ReservationPaymentController::class, 'storeForUnit'])->name('units.payments.store');
             });

@@ -60,7 +60,24 @@ Example: booked 14 Oct 20:00 (Kuala Lumpur) for 20 Dec, 50/72/30: deposit 50% by
 
 **Remind and list, never cancel automatically.** wastays cancels late bookings with a sweeper; estatell lists them here, and staff cancel the booking to release the rooms when they decide. Agents often pay by bank transfer that lands a day late, and a sweeper runs with nobody at the desk. An automatic release can come later as a property switch, off by default.
 
+## Payment proof
+
+The agent uploads a proof of a bank transfer on its booking in the company portal; staff check it and record the payment. A proof is never a payment by itself, so the ledger stays the only source of what was paid.
+
+```
+payment_proofs   id, property_id, reservation_id, uploaded_by (FK users), amount (> 0), reference (nullable, ≤ 100),
+                 status (PaymentProofStatus: submitted, accepted, rejected), reject_reason (nullable, ≤ 500),
+                 reviewed_by, reviewed_at, payment_id (nullable, FK payments), timestamps
+                 CHECK accepted needs payment_id; rejected needs reject_reason
+                 media: the `file` collection (jpg, png, webp or pdf), on the platform's private media disk
+```
+
+- **Portal** (`portal.bookings.payment-proofs.store`, throttled; `.file` to open one): the booking page gets a **Payment** section (`BookingPaymentSection`) with the schedule, the proofs sent (amount, reference, status, the reject reason) and a form: the file (image or PDF, ≤ 10 MB), Amount paid and Bank reference. The form shows while a stage is not paid and the company is not suspended. `UploadPaymentProof` refuses a cancelled or completed booking. The booking is found through the agent's company, so another company gets a 404.
+- **Schedule:** a stage that is not paid reads **Proof received** while a proof waits for staff.
+- **Staff**, in the reservation summary card (`PaymentProofReview`): each proof with its file link, who sent it and the reference. With `payment.record`: **Accept** (method, amount received, prefilled with the proof's amount) runs `AcceptPaymentProof`: `RecordPayment` as an Advance with the proof's reference and the key `proof:{id}`, on the open Master folio, else the first live room; the proof becomes Accepted and keeps the payment id. **Reject** asks for a reason the agent sees. A proof already checked refuses both.
+- Logs: `payment_proof.uploaded`, `payment_proof.accepted`, `payment_proof.rejected` on the reservation.
+- The reservation page reads proofs only for a reservation with a company, so other pages run no extra query.
+
 ## Still to build
 
-- Payment proof upload in the portal (`feat(portal): upload a payment proof`).
 - Emails to the agent: the schedule with the confirmation, a reminder a day before each deadline, an overdue notice (`feat(notifications): remind agents of payment deadlines`).
