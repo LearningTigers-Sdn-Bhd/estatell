@@ -119,15 +119,23 @@ test('a foreign-only tax is exempt for a booker of the property country and char
         ->assertJsonPath('totalWithoutRoomCharges', '116.00');
 });
 
-test('a company on Master folio pays hides the room charges and still shows the deposit', function () {
+test('a company on Master folio pays hides the room charges and still shows the deposit and the tax the guest pays', function () {
     $setup = walkInPaymentSetup();
     $company = Company::factory()->for($setup['property'])->create();
 
     $this->actingAs($setup['user'])->postJson(walkInPaymentUrl($setup), walkInPaymentBody($setup, ['company_id' => $company->id, 'billing_mode' => 'master_pays']))
         ->assertOk()
         ->assertJsonPath('roomChargesHidden', true)
-        ->assertJsonPath('taxes', [])
+        ->assertJsonPath('taxes', [['name' => 'Tourism tax', 'amount' => '32.00', 'exempt' => false]])
         ->assertJsonPath('deposit.total', '200.00')
+        ->assertJsonPath('totalWithRoomCharges', '232.00')
+        ->assertJsonPath('totalWithoutRoomCharges', '232.00');
+
+    $company->update(['pays_collected_taxes' => true]);
+
+    $this->postJson(walkInPaymentUrl($setup), walkInPaymentBody($setup, ['company_id' => $company->id, 'billing_mode' => 'master_pays']))
+        ->assertOk()
+        ->assertJsonPath('taxes', [])
         ->assertJsonPath('totalWithRoomCharges', '200.00')
         ->assertJsonPath('totalWithoutRoomCharges', '200.00');
 

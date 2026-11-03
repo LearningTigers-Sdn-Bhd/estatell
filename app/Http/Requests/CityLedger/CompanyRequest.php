@@ -30,7 +30,7 @@ class CompanyRequest extends FormRequest
     private const array FIELDS = [
         'add' => ['name', 'type', 'market', 'contact_email', 'contact_phone', 'credit_limit', 'payment_terms_days', 'direct_bill_enabled', 'portal_email', 'portal_cancel_cutoff_days'],
         'details' => ['name', 'type', 'market', 'contact_email', 'contact_phone'],
-        'credit' => ['credit_limit', 'payment_terms_days', 'direct_bill_enabled'],
+        'credit' => ['credit_limit', 'payment_terms_days', 'direct_bill_enabled', 'pays_collected_taxes'],
         'portal' => ['portal_email', 'portal_cancel_cutoff_days'],
         'billing' => [
             'brn', 'tin', 'sst_registration_number', 'billing_address_line1', 'billing_address_line2',
@@ -53,6 +53,8 @@ class CompanyRequest extends FormRequest
         }
 
         if ($this->section() === 'credit') {
+            $this->merge(['pays_collected_taxes' => $this->boolean('pays_collected_taxes')]);
+
             return;
         }
 
@@ -78,7 +80,7 @@ class CompanyRequest extends FormRequest
         $current = $this->route('company');
 
         return array_intersect_key(
-            CompanyRules::for($this->property(), $current instanceof Company ? $current : null),
+            [...CompanyRules::for($this->property(), $current instanceof Company ? $current : null), 'pays_collected_taxes' => ['required', 'boolean']],
             array_flip(self::FIELDS[$this->section()]),
         );
     }

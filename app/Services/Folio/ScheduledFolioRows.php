@@ -5,10 +5,12 @@ namespace App\Services\Folio;
 use App\Data\Folio\FolioRowData;
 use App\Data\Shared\BadgeData;
 use App\Enums\FolioRowTag;
+use App\Enums\FolioType;
 use App\Enums\StayType;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
+use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Property;
 use App\Models\Reservation;
@@ -44,13 +46,16 @@ class ScheduledFolioRows
         private NightChargeQuote $nightChargeQuote,
         private DayUseChargeQuote $dayUseChargeQuote,
         private FirstBusinessDate $firstBusinessDate,
+        private CollectedTaxPayer $collectedTaxPayer,
     ) {}
 
     /**
      * Each block also carries its transaction `code`, so the Move charges preview can route it again with proposed rules.
+     * The collected taxes the guest pays (`CollectedTaxPayer`) are a block of their own on the unit folio, marked
+     * `guestTax`: they stay with the guest, so Move charges never routes them.
      *
      * @param  array<int, string>  $unitLabels  Short unit label (room, or room type) by unit id.
-     * @return list<array{target: int|null, unit: int, date: string, code: TransactionCode, rows: list<FolioRowData>}>
+     * @return list<array{target: int|null, unit: int, date: string, code: TransactionCode, rows: list<FolioRowData>, guestTax?: true}>
      */
     public function forReservation(Property $property, Reservation $reservation, array $unitLabels): array
     {
@@ -82,6 +87,8 @@ class ScheduledFolioRows
             ->pluck('idempotency_key')
             ->flip();
         $resolve = $this->folioRouter->resolverFor($reservation);
+        $guestTaxIds = $this->collectedTaxPayer->resolverFor($reservation);
+        $unitFolioIds = null;
         $nationality = $reservation->booker->nationality_code;
         $goLive = $this->firstBusinessDate->date($property)?->toDateString();
         $blocks = [];
@@ -118,14 +125,29 @@ class ScheduledFolioRows
                     continue;
                 }
 
-                foreach ($quote->charges as $charge) {
+                foreach ($quote->charges as $index => $charge) {
+                    $target = $resolve($unit, $charge->code);
+                    $rows = $this->chargeRows($charge, $night->date->toDateString(), $charge->key === 'night:'.$night->id && $night->override_amount !== null, $label);
+                    $guestKeys = array_map(fn (int $taxId): string => $charge->key.':tax:'.$taxId, $index === 0 ? $guestTaxIds($unit, $target) : []);
                     $blocks[] = [
-                        'target' => $resolve($unit, $charge->code),
+                        'target' => $target,
                         'unit' => $unit->id,
                         'date' => $night->date->toDateString(),
                         'code' => $charge->code,
-                        'rows' => $this->chargeRows($charge, $night->date->toDateString(), $charge->key === 'night:'.$night->id && $night->override_amount !== null, $label),
+                        'rows' => array_values(array_filter($rows, fn (FolioRowData $row): bool => ! in_array($row->key, $guestKeys, true))),
                     ];
+                    $guestRows = array_values(array_filter($rows, fn (FolioRowData $row): bool => in_array($row->key, $guestKeys, true)));
+
+                    if ($guestRows !== []) {
+                        $blocks[] = [
+                            'target' => ($unitFolioIds ??= $this->unitFolioIds($reservation))[$unit->id] ?? null,
+                            'unit' => $unit->id,
+                            'date' => $night->date->toDateString(),
+                            'code' => $charge->code,
+                            'rows' => $guestRows,
+                            'guestTax' => true,
+                        ];
+                    }
                 }
             }
 
@@ -146,6 +168,19 @@ class ScheduledFolioRows
         usort($blocks, fn (array $a, array $b): int => [$a['date'], $a['unit']] <=> [$b['date'], $b['unit']]);
 
         return $blocks;
+    }
+
+    /**
+     * @return array<int, int> The unit folio id by unit id.
+     */
+    private function unitFolioIds(Reservation $reservation): array
+    {
+        return Folio::query()
+            ->where('reservation_id', $reservation->id)
+            ->where('type', FolioType::Unit)
+            ->oldest('id')
+            ->pluck('id', 'reservation_unit_id')
+            ->all();
     }
 
     /**

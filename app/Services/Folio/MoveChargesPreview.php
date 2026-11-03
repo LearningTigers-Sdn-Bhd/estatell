@@ -214,7 +214,10 @@ class MoveChargesPreview
             'openFolios' => $openFolios,
             'balances' => $balances,
             'charges' => $this->charges($openFolios, $unitLabels),
-            'blocks' => $this->scheduledRows->forReservation($property, $reservation, $unitLabels),
+            'blocks' => array_values(array_filter(
+                $this->scheduledRows->forReservation($property, $reservation, $unitLabels),
+                fn (array $block): bool => ! isset($block['guestTax']),
+            )),
             'unitLabels' => $unitLabels,
             'units' => $reservation->units()->orderBy('id')->get()->keyBy('id'),
         ];

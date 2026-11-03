@@ -27,6 +27,7 @@ import { SettingsSection } from '@/components/pms/settings-section';
 import {
     SettingsInput,
     SettingsSelect,
+    SettingsSwitch,
 } from '@/components/pms/settings/form-fields';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { TabLinks } from '@/components/pms/tab-links';
@@ -246,6 +247,14 @@ function CreditFields({
                     description="Days the company has to pay an invoice."
                 />
             </div>
+            <SettingsSwitch
+                name="pays_collected_taxes"
+                label="Company pays tourism tax"
+                checked={company.paysCollectedTaxes}
+                disabled={readOnly}
+                error={errors.pays_collected_taxes}
+                description="Off: the guest pays taxes collected at check-in (tourism tax) at the desk, even when the company pays the room. On: they go on the company's bill with the room."
+            />
         </>
     );
 }
