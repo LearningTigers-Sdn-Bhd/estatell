@@ -49,10 +49,25 @@ class ReservationFormOptions
 
         return new AddUnitOptionsData(
             roomTypes: array_values(RoomType::query()->where('property_id', $property->id)->active()->ordered()->get()
-                ->map(fn (RoomType $roomType): RoomTypeOptionData => RoomTypeOptionData::fromModel($roomType, $this->enteredPlanId($plans, $roomType)))->all()),
+                ->map(fn (RoomType $roomType): RoomTypeOptionData => RoomTypeOptionData::fromModel($roomType, $this->enteredPlanId($plans, $roomType->id)))->all()),
             ratePlans: array_values($plans
                 ->map(fn (RatePlan $ratePlan): RatePlanOptionData => RatePlanOptionData::fromModel($ratePlan, $companyIdsByMarket[$ratePlan->company_market->value] ?? []))->all()),
         );
+    }
+
+    /**
+     * The enter-price plan of every active room type that has one: room type id => plan id.
+     *
+     * @return array<int, int>
+     */
+    public function enteredPlanIds(Property $property): array
+    {
+        $plans = RatePlan::query()->where('property_id', $property->id)->active()->ordered()->with('roomTypes:id')->get();
+
+        return RoomType::query()->where('property_id', $property->id)->active()->pluck('id')
+            ->mapWithKeys(fn (int $roomTypeId): array => [$roomTypeId => $this->enteredPlanId($plans, $roomTypeId)])
+            ->filter()
+            ->all();
     }
 
     /**
@@ -60,11 +75,11 @@ class ReservationFormOptions
      *
      * @param  Collection<int, RatePlan>  $plans  Ordered by position, with `roomTypes` loaded.
      */
-    private function enteredPlanId(Collection $plans, RoomType $roomType): ?int
+    private function enteredPlanId(Collection $plans, int $roomTypeId): ?int
     {
         return $plans->first(fn (RatePlan $plan): bool => in_array($plan->pricing_basis, [PricingBasis::PerRoom, PricingBasis::PerGuest], true)
             && $plan->company_access === CompanyAccess::Everyone
-            && $plan->roomTypes->contains('id', $roomType->id))?->id;
+            && $plan->roomTypes->contains('id', $roomTypeId))?->id;
     }
 
     /**

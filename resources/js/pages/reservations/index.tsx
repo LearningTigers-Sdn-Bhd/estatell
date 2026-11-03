@@ -46,6 +46,7 @@ type Props = {
     currency: App.Data.Property.CurrencyData | null;
     hasReservations: boolean;
     canManage: boolean;
+    canImport: boolean;
 };
 
 const statusIcons: Record<string, LucideIcon> = {
@@ -66,6 +67,7 @@ export default function ReservationsIndex({
     currency,
     hasReservations,
     canManage,
+    canImport,
 }: Props) {
     const [view, setView] = useReservationView();
 
@@ -178,7 +180,11 @@ export default function ReservationsIndex({
             <div className="flex flex-1 flex-col gap-4 p-4">
                 <PageHeader
                     title="Reservations"
-                    actions={canManage ? <NewBookingMenu /> : undefined}
+                    actions={
+                        canManage ? (
+                            <NewBookingMenu canImport={canImport} />
+                        ) : undefined
+                    }
                 />
 
                 <TabLinks

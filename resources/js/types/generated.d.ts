@@ -3078,6 +3078,37 @@ export type AddUnitOptionsData = {
 roomTypes: App.Data.Reservations.RoomTypeOptionData[],
 ratePlans: App.Data.Reservations.RatePlanOptionData[],
 };
+export type ArrivalImportRowData = {
+line: number,
+resNo: string,
+groupNo: string,
+guest: string,
+room: string | null,
+roomType: string | null,
+arrival: string | null,
+arrivalTime: string | null,
+departure: string | null,
+departureTime: string | null,
+adults: number,
+children: number,
+total: string | null,
+deposit: string | null,
+company: string | null,
+source: string | null,
+boatIn: string | null,
+boatOut: string | null,
+notes: string | null,
+outcome: App.Enums.ArrivalImportOutcome,
+outcomeBadge: App.Data.Shared.BadgeData,
+problems: string[],
+roomTypeId: number | null,
+roomId: number | null,
+ratePlanId: number | null,
+companyId: number | null,
+bookingSourceId: number | null,
+boatInDepartureId: number | null,
+boatOutDepartureId: number | null,
+};
 export type BookingBackData = {
 href: string,
 label: string,
@@ -4081,6 +4112,7 @@ export type AgeBandPricing = 'free' | 'percent' | 'fixed';
 export type ArInvoiceStatus = 'open' | 'settled' | 'void';
 export type ArInvoiceType = 'invoice' | 'credit_note';
 export type AriChangeKind = 'availability' | 'rates' | 'restrictions';
+export type ArrivalImportOutcome = 'booking' | 'hold' | 'past_in_house' | 'past_checked_out' | 'skipped' | 'already_imported';
 export type AuditCheck = 'in_house_without_room' | 'arrival_not_checked_in' | 'departure_not_checked_out' | 'folio_open_after_check_out' | 'master_not_billed' | 'money_held_on_closed_booking' | 'carried_exception';
 export type AuditExceptionType = 'missed_arrival' | 'overdue_departure' | 'room_charge' | 'add_on' | 'unexpected_error';
 export type AuditFix = 'assign' | 'no-show' | 'extend';

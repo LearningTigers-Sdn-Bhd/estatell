@@ -106,6 +106,7 @@ class ReservationController extends Controller
             'currency' => $settings === null ? null : CurrencyData::fromCurrency($settings->currency),
             'hasReservations' => $property->reservations()->exists(),
             'canManage' => $request->user()->can(PermissionEnum::ReservationsManage->value),
+            'canImport' => $request->user()->can(PermissionEnum::ReservationsManage->value) && $request->user()->can(PermissionEnum::FolioManual->value),
         ]);
     }
 
