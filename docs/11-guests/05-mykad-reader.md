@@ -60,12 +60,14 @@ The hook maps the `code` from `/read` to Estatell's own words. `error` is for lo
 
 ### Downloads
 
-`bridgeDownload()` gives the universal installer for the staff member's OS, so staff never choose a chip. Release file names hold the version, so `BRIDGE_DOWNLOAD_VERSION` pins the link. Update it, and the links in the user docs, with each release that hotels should download:
+The check-in chip and the user docs link to two public Estatell addresses. They redirect to the universal installer of the version in `MYKAD_READER_VERSION`, so staff never choose a chip:
 
-| OS      | Link                                                                                                                              |
-| ------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Windows | `https://github.com/LearningTigers-Sdn-Bhd/estatell-mykad-reader/releases/download/v2.0.0/estatell-mykad-reader-setup-v2.0.0.exe` |
-| macOS   | `https://github.com/LearningTigers-Sdn-Bhd/estatell-mykad-reader/releases/download/v2.0.0/estatell-mykad-reader-v2.0.0.pkg`       |
+| OS      | Link                              |
+| ------- | --------------------------------- |
+| Windows | `/downloads/mykad-reader/windows` |
+| macOS   | `/downloads/mykad-reader/mac`     |
+
+For a new release, tag it in the reader repo, change `MYKAD_READER_VERSION` and restart Estatell. It can be newer than `REQUIRED_BRIDGE_VERSION`. A version with no GitHub release gives staff a 404 from GitHub.
 
 ### User docs links
 
@@ -87,5 +89,4 @@ Screens are for hotel owners and staff. Say "MyKad Reader", not "bridge". Never 
 
 ## Open
 
-- Remove the Python bridge once 2.0.0 is released: `tools/mykad-bridge/`, `.github/workflows/mykad-bridge.yml`, and the files in `public/downloads/`. See the [checklist](../checklist.md).
 - Test on a real reader: ready, no reader, reader unplugged mid-use, 1.x reader, `forbidden`.

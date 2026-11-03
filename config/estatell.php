@@ -49,4 +49,17 @@ return [
 
     'docs_url' => env('DOCS_URL', 'https://docs.estatell.com'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | MyKad Reader download
+    |--------------------------------------------------------------------------
+    |
+    | The released version that /downloads/mykad-reader/{platform} sends staff
+    | to. The check-in chip and the user docs both use that link. Tag the
+    | release first. See docs/11-guests/05-mykad-reader.md.
+    |
+    */
+
+    'mykad_reader_version' => env('MYKAD_READER_VERSION', '2.0.0'),
+
 ];

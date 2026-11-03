@@ -21,14 +21,10 @@ test('requires MyKad Reader 2.0.0', () => {
     expect(isOlderVersion('2.1.3', REQUIRED_BRIDGE_VERSION)).toBe(false);
 });
 
-test('downloads come from GitHub Releases and other systems have none', () => {
-    expect(windows.href).toBe(
-        'https://github.com/LearningTigers-Sdn-Bhd/estatell-mykad-reader/releases/download/v2.0.0/estatell-mykad-reader-setup-v2.0.0.exe',
-    );
-    expect(mac.href).toBe(
-        'https://github.com/LearningTigers-Sdn-Bhd/estatell-mykad-reader/releases/download/v2.0.0/estatell-mykad-reader-v2.0.0.pkg',
-    );
-    expect(other).toEqual({ href: null, filename: null, platform: 'other' });
+test('downloads use the link for this system and other systems have none', () => {
+    expect(windows.href).toBe('/downloads/mykad-reader/windows');
+    expect(mac.href).toBe('/downloads/mykad-reader/mac');
+    expect(other).toEqual({ href: null, platform: 'other' });
 });
 
 test('maps each read error code to Estatell wording', () => {
