@@ -227,7 +227,6 @@ function GuestRow({
                     <CollapsibleContent>
                         <div className="flex flex-col gap-4 px-3 pb-3 lg:px-14">
                             <MyKadScanner
-                                compact
                                 onScan={(card) => {
                                     onChange({
                                         full_name: card.name,

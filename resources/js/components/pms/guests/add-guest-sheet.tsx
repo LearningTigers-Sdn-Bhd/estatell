@@ -106,7 +106,6 @@ export function AddGuestSheet({
                     >
                         <FieldGroup className="flex-1 overflow-y-auto px-4">
                             <MyKadScanner
-                                compact
                                 onScan={(card) => {
                                     form.setData('full_name', card.name);
                                     form.setData('nationality_code', 'MY');

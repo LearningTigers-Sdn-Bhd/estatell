@@ -125,6 +125,14 @@ From wastays. Steps 1 to 4 run as two lanes in parallel after the shared commit:
 - [ ] `feat(reservations): preview the price in the Add unit Sheet` — reuse the booking form quote route. Docs: [Reservations list and reservation page](12-reservations/06-reservation-page.md#header).
 - [ ] `perf(reservations): build scheduled rows once on the folio tab` — the `money` prop (`BookingSummary`, added in `6730a71`) runs on every reservation tab and adds about 25 queries. On the folio tab it also builds `ScheduledFolioRows` a second time after `FolioStatement`, so the tab runs 63 queries (was under 30). Build the scheduled rows once in `renderTab`, pass them to `BookingSummary` and `FolioStatement`, and lower the `FolioTabTest` cap again. The card and PDF must keep the same numbers. Plan first: whether `money` should stay on every tab, be deferred with a skeleton, or read lighter totals. Docs: [Reservation page](12-reservations/06-reservation-page.md#header), [Booking summary](12-reservations/08-booking-summary.md).
 
+### 11 Guests: MyKad Reader 2.0.0
+
+From the [estatell-mykad-reader](https://github.com/LearningTigers-Sdn-Bhd/estatell-mykad-reader) repo, M2 and the Python removal. Both feature items ship in one Estatell release, at the same time as MyKad Reader 2.0.0 and not before. The repo must be public by then. Docs: [MyKad reader](11-guests/05-mykad-reader.md).
+
+- [x] `docs(guests): plan MyKad Reader 2.0.0` — rewrite `11-guests/05-mykad-reader.md` and add these items.
+- [x] `feat(guests): show MyKad Reader 2.0.0 status at check-in` — `useMykadReader` handles `code` (falls back to `error` for 1.x), `REQUIRED_BRIDGE_VERSION = '2.0.0'`; `MyKadScanner` becomes the status chip with links to the user docs; `bridgeDownload()` points to GitHub Releases and other systems show "not supported". No migration, route or permission. Needs: the docs item. Docs: [Chip states](11-guests/05-mykad-reader.md#chip-states).
+- [ ] `chore(guests): remove the Python MyKad bridge` — delete `tools/mykad-bridge/`, `.github/workflows/mykad-bridge.yml` and the files in `public/downloads/`. Needs: MyKad Reader 2.0.0 released and the chip item shipped. Docs: [MyKad reader](11-guests/05-mykad-reader.md#open).
+
 ## OpenCode
 
 Low-risk items for OpenCode: presentation, copy and small features with a spec. They do not touch money, the ledger or the onboarding chain, so they can run next to Claude and Codex work.

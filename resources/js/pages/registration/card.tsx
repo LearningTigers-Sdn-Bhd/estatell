@@ -179,7 +179,6 @@ function DraftCard({
                         {shown.has('identity_document') && (
                             <>
                                 <MyKadScanner
-                                    compact
                                     onScan={(card) => {
                                         form.setData(
                                             'identity_document_id',

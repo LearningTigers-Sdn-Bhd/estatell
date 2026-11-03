@@ -187,7 +187,6 @@ function CheckInForm({
                     <AuditPendingStrip pending={preview.auditPending} />
                     <AuditPendingNote pending={preview.auditPending} />
                     <MyKadScanner
-                        compact
                         onScan={(card) => {
                             if (preview.needsNationality) {
                                 form.setData(
