@@ -24,6 +24,9 @@ class BookingSiteChecklist
             $items[] = new BookingSiteChecklistItemData('template', __('Template chosen'), $chosen, $chosen ? null : __('No template chosen yet'));
         }
 
+        $located = $site->property->latitude !== null && $site->property->longitude !== null;
+        $items[] = new BookingSiteChecklistItemData('location', __('Location set'), $located, $located ? null : __('Paste your Google Maps link on the General tab'));
+
         return $items;
     }
 

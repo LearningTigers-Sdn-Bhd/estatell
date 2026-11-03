@@ -20,6 +20,7 @@ enum NotificationType: string
     case ChannelBookingCancelled = 'channel_booking_cancelled';
     case ChannelRemovalBlocked = 'channel_removal_blocked';
     case PaymentSlipReceived = 'payment_slip_received';
+    case NearbyPlaceRemoved = 'nearby_place_removed';
 
     public function label(): string
     {
@@ -40,6 +41,7 @@ enum NotificationType: string
             self::ChannelBookingCancelled => __('Channel booking cancelled'),
             self::ChannelRemovalBlocked => __('Archive blocked by a channel'),
             self::PaymentSlipReceived => __('Company payment slip'),
+            self::NearbyPlaceRemoved => __('Nearby place removed'),
         };
     }
 
@@ -50,7 +52,7 @@ enum NotificationType: string
     {
         return match ($this) {
             self::RegistrationCardLink => [NotificationChannel::Mail],
-            self::SupportAccessUsed => [NotificationChannel::Database],
+            self::SupportAccessUsed, self::NearbyPlaceRemoved => [NotificationChannel::Database],
             default => [NotificationChannel::Mail, NotificationChannel::Database],
         };
     }
@@ -68,7 +70,7 @@ enum NotificationType: string
 
         return match ($this) {
             self::RegistrationCardLink => false,
-            self::NightAuditFailed, self::SupportAccessUsed, self::GoLiveApproved, self::GoLiveRejected, self::PortalCancellationRequested, self::ChannelRemovalBlocked => $channel === NotificationChannel::Mail,
+            self::NightAuditFailed, self::SupportAccessUsed, self::NearbyPlaceRemoved, self::GoLiveApproved, self::GoLiveRejected, self::PortalCancellationRequested, self::ChannelRemovalBlocked => $channel === NotificationChannel::Mail,
             default => true,
         };
     }

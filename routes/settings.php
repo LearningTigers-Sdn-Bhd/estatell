@@ -7,6 +7,7 @@ use App\Http\Controllers\Boats\BoatController;
 use App\Http\Controllers\Boats\BoatDepartureController;
 use App\Http\Controllers\Boats\BoatFareController;
 use App\Http\Controllers\BookingEngine\BookingWebsiteController;
+use App\Http\Controllers\BookingEngine\NearbyPlaceController;
 use App\Http\Controllers\Catalogues\ChargeItemController;
 use App\Http\Controllers\Catalogues\DiscountController;
 use App\Http\Controllers\Catalogues\PaymentMethodController;
@@ -227,6 +228,11 @@ Route::prefix('settings')->name('settings.')->group(function () {
             Route::put('/', [BookingWebsiteController::class, 'updateGeneral'])->name('general.update');
             Route::get('content', [BookingWebsiteController::class, 'content'])->name('content');
             Route::put('content', [BookingWebsiteController::class, 'updateContent'])->name('content.update');
+            Route::post('nearby-places', [NearbyPlaceController::class, 'store'])->name('nearby-places.store');
+            Route::put('nearby-places/order', [NearbyPlaceController::class, 'reorder'])->name('nearby-places.reorder');
+            Route::post('nearby-places/{nearbyPlace}/suggested', [NearbyPlaceController::class, 'storeSuggested'])->withoutScopedBindings()->whereNumber('nearbyPlace')->name('nearby-places.suggested');
+            Route::put('nearby-places/{nearbyPlace}', [NearbyPlaceController::class, 'update'])->whereNumber('nearbyPlace')->name('nearby-places.update');
+            Route::delete('nearby-places/{nearbyPlace}', [NearbyPlaceController::class, 'destroy'])->whereNumber('nearbyPlace')->name('nearby-places.destroy');
         });
         Route::middleware('can:'.PermissionEnum::BookingWebsitePublish->value)->group(function () {
             Route::post('publish', [BookingWebsiteController::class, 'publish'])->name('publish');

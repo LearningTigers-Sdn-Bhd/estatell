@@ -36,12 +36,15 @@ Define every notification once, with its channels, defaults and recipients.
 | ChannelBookingCancelled     | On   | On            | Both       | Reservation staff (module 12 permission) |
 | ChannelRemovalBlocked       | On   | On, mandatory | Mail only  | The staff member who archived            |
 | ChannelHelpRequested        | On   | On, mandatory | Mail only  | Owner                                    |
+| NearbyPlaceRemoved          | No   | On, mandatory | No         | Owner                                    |
 
 `PortalBookingCreated`, `PortalBookingCancelled` and `PortalCancellationRequested` are built (`PortalReservationNotification`, sent by `NotifyReservationStaff` after the save). The recipients are the active staff of the property with `reservations.manage`; each message names the company and the reference and links to the reservation. The matrix check constraints list the three types.
 
 `GoLiveRequested` goes to platform admins and the partner, who have no property, so it skips the preference matrix and is always sent by mail and in-app. `CompanyLinkInvitation` does the same for company users, who also have no property: it is a plain notification class, not a `NotificationType` case, and always goes by mail and in-app. `GoLiveApproved` and `GoLiveRejected` are `NotificationType` cases for the owner.
 
 `ChannelBookingReceived` and `ChannelBookingCancelled` are built (`ChannelReservationNotification`, sent by `NotifyChannelReservationStaff` after the channel booking is saved). The recipients are the active staff of the property with `reservations.manage`; each message names the channel and the reference and links to the reservation. The matrix check constraints list the two types. `ChannelRemovalBlocked` is sent to the staff member who archived a room type or rate plan (or unlinked room types) when an OTA still used it at the channel manager, so it was not done; the estatell team has the same news as an alert. The matrix check constraints list it. `ChannelHelpRequested` is planned with the [Channels](../21-channels/) module and is sent when an admin asks the owner for help with a channel.
+
+`NearbyPlaceRemoved` is planned with the [Booking engine](../28-booking-engine/06-content-registries.md#nearby-places). It is in-app only. It is sent to the property's first active Owner when an admin rejects a nearby place, and it reads "Pangkor Jetty was removed from your nearby places." It stays in the notification list until the owner reads it. The matrix check constraints must list it.
 
 `SupportAccessUsed` (label "Money correction by support") is in-app only. It is sent once for each money correction (refund, void, credit note, allocation reversal) that support makes while viewing a property as its staff, right when the activity log entry is created (`NotifySupportMoneyCorrection`). The recipient is the property's first active Owner. It names the support user, the partner, the action, the amount and the reference. Starting and ending a session send nothing. The enum value stays `support_access_used`, so the check constraints are unchanged.
 

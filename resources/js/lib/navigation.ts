@@ -1,4 +1,5 @@
 import {
+    MapPin,
     Printer,
     Activity,
     Baby,
@@ -52,6 +53,7 @@ const icons: Record<string, LucideIcon> = {
     lock: Lock,
     globe: Globe,
     sparkles: Sparkles,
+    'map-pin': MapPin,
     mail: Mail,
     bed: Bed,
     'door-open': DoorOpen,

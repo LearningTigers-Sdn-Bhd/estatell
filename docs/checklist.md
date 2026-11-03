@@ -26,7 +26,7 @@ Planned on 2026-11-03. Docs: [Booking engine](28-booking-engine/01-overview.md).
 - [x] `feat(booking-engine): add the feature flag and booking site settings` — `BookingEngine`, `property_booking_sites`, `properties.slug`, the three permissions and the General tab. Docs: [Settings](28-booking-engine/07-settings-and-permissions.md).
 - [x] `feat(rooms): upload room type photos` — the upload UI on the room type page, on a public disk. Docs: [Room photos](28-booking-engine/06-content-registries.md#room-photos).
 - [x] `feat(booking-engine): add the amenity registry` — admin pages, link tables, the Content tab and the room type picker. Docs: [Amenities](28-booking-engine/06-content-registries.md#amenities).
-- [ ] `feat(booking-engine): add the nearby place registry` — `GoogleMapsLink`, property location, admin review, suggestions and the rejection notice. Docs: [Nearby places](28-booking-engine/06-content-registries.md#nearby-places).
+- [x] `feat(booking-engine): add the nearby place registry` — `GoogleMapsLink`, property location, admin review, suggestions and the rejection notice. Docs: [Nearby places](28-booking-engine/06-content-registries.md#nearby-places).
 - [ ] `feat(booking-engine): add the site template registry` — admin page, slots, and the Design and SEO tabs. Docs: [Template registry](28-booking-engine/08-microsite.md#template-registry).
 - [ ] `feat(booking-engine): choose online rate plans` — `rate_plans.bookable_online` and the Rates tab. Docs: [Rates](28-booking-engine/07-settings-and-permissions.md#rates).
 - [ ] `feat(booking-engine): add the content and offers API` — Sanctum (approved), token abilities, and the listing, site, content, calendar, offers and search endpoints. Docs: [API](28-booking-engine/02-api.md).

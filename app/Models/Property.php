@@ -367,6 +367,12 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
         return $this->hasMany(Kiosk::class);
     }
 
+    /** @return BelongsToMany<NearbyPlace, $this> */
+    public function nearbyPlaces(): BelongsToMany
+    {
+        return $this->belongsToMany(NearbyPlace::class, 'property_nearby_places')->withPivot(['description', 'position'])->withTimestamps()->orderByPivot('position');
+    }
+
     /** @return BelongsToMany<Amenity, $this> */
     public function amenities(): BelongsToMany
     {

@@ -30,6 +30,8 @@ Left out for now: per-amenity details, such as opening hours and fees (a concier
 
 ## Nearby places
 
+**Built.** The Content tab adds, describes, reorders and removes places, and suggests Approved ones. Admins review at `/admin/nearby-places`.
+
 ```
 nearby_places           id, name, latitude, longitude, google_maps_url,
                         fingerprint (unique), status (NearbyPlaceStatus),
@@ -62,11 +64,11 @@ Read name and coordinates from the link
 - Owners and guests never see the status.
 - Suggestions are Approved places within 25 km of the property, nearest first, at most 10.
 - Distance is straight-line km, such as "3.8 km". Travel times would need a paid Google API.
-- The notice reads: "Pangkor Jetty was removed from your nearby places."
+- The notice is an in-app notification, `NearbyPlaceRemoved`, sent to the property's first active Owner. It reads: "Pangkor Jetty was removed from your nearby places." It stays in the notification list until read. See [Notification types](../04-notifications/01-notification-types.md).
 
 ### Reading a Google Maps link
 
-`GoogleMapsLink` (a Service) ports the wastays parser (85 lines). It makes no Google API call and has no fee.
+`GoogleMapsLink` (a Service) ports the wastays parser (85 lines). It accepts `https` links on `google.com`, `www.google.com` and `maps.google.com`. The pin coordinates (`!3d..!4d..`) win over the map view (`@lat,lng`). It makes no Google API call and has no fee.
 
 | Input                                 | Result                                                                          |
 | ------------------------------------- | ------------------------------------------------------------------------------- |
@@ -78,7 +80,7 @@ The fingerprint is the normalized name and rounded coordinates, so the same plac
 
 ## Property location and map
 
-`properties` gains `latitude`, `longitude` and `google_maps_url`, set by pasting a Maps link in Booking website › General.
+`properties` gains `latitude`, `longitude` and `google_maps_url`, set by pasting a Maps link in Booking website › General. The link is read when it changes; removing it clears the coordinates. The checklist has a **Location set** row, and a site cannot be published without it.
 
 | Item             | Plan                                                                                                |
 | ---------------- | --------------------------------------------------------------------------------------------------- |
@@ -95,4 +97,4 @@ The `photos` collection on room types has an upload UI: the Photos tab of the ro
 
 ## Admin routes
 
-`/admin/amenities` (`admin.amenities.*`, built: a Type filter and search, up and down buttons within the filtered rows, and a dialog to add or edit) and `/admin/nearby-places` (`admin.nearby-places.*`). Writes need `support.2fa`.
+`/admin/amenities` (`admin.amenities.*`, built: a Type filter and search, up and down buttons within the filtered rows, and a dialog to add or edit) and `/admin/nearby-places` (`admin.nearby-places.*`, built: a status filter and search, with Approve and Reject buttons). Writes need `support.2fa`.

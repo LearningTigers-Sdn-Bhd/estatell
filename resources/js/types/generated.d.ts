@@ -178,6 +178,18 @@ summary: string,
 };
 }
 namespace BookingEngine {
+export type AdminNearbyPlaceData = {
+id: number,
+name: string,
+googleMapsUrl: string,
+status: App.Data.Shared.BadgeData,
+statusValue: App.Enums.NearbyPlaceStatus,
+propertiesCount: number,
+addedBy: string | null,
+createdAt: string,
+canApprove: boolean,
+canReject: boolean,
+};
 export type AmenityData = {
 id: number,
 name: string,
@@ -209,6 +221,17 @@ webAddress: string,
 googleMapsUrl: string | null,
 checklist: App.Data.BookingEngine.BookingSiteChecklistItemData[],
 canPublish: boolean,
+};
+export type NearbyPlaceSuggestionData = {
+id: number,
+name: string,
+distance: string,
+};
+export type PropertyNearbyPlaceData = {
+id: number,
+name: string,
+description: string | null,
+googleMapsUrl: string,
 };
 }
 namespace Catalogues {
@@ -4434,7 +4457,6 @@ export type AccountingProvider = 'qne' | 'bukku';
 export type AccountingSetupStatus = 'not-connected' | 'needs-attention' | 'ready' | 'live';
 export type AccountingSyncStatus = 'pending' | 'pushed' | 'failed' | 'skipped';
 export type AgeBandPricing = 'free' | 'percent' | 'fixed';
-export type ApiTokenKind = 'kiosk' | 'integration';
 export type AmenityType = 'property' | 'room';
 export type ArInvoiceStatus = 'open' | 'settled' | 'void';
 export type ArInvoiceType = 'invoice' | 'credit_note';
@@ -4509,8 +4531,9 @@ export type ManualRowType = 'charge' | 'payment' | 'refund';
 export type MediaDisk = 'local' | 'r2';
 export type MissedArrivalPolicy = 'mark_no_show' | 'keep_as_late_arrival';
 export type NavigationContext = 'front-desk' | 'finance' | 'reports' | 'settings';
+export type NearbyPlaceStatus = 'pending' | 'approved' | 'rejected';
 export type NotificationChannel = 'mail' | 'database';
-export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions' | 'night_audit_failed' | 'registration_card_link' | 'onboarding_reminder' | 'dorm_strategy_changed' | 'support_access_used' | 'go_live_approved' | 'go_live_rejected' | 'portal_booking_created' | 'portal_booking_cancelled' | 'portal_cancellation_requested' | 'channel_booking_received' | 'channel_booking_cancelled' | 'channel_removal_blocked' | 'payment_slip_received';
+export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions' | 'night_audit_failed' | 'registration_card_link' | 'onboarding_reminder' | 'dorm_strategy_changed' | 'support_access_used' | 'go_live_approved' | 'go_live_rejected' | 'portal_booking_created' | 'portal_booking_cancelled' | 'portal_cancellation_requested' | 'channel_booking_received' | 'channel_booking_cancelled' | 'channel_removal_blocked' | 'payment_slip_received' | 'nearby_place_removed';
 export type OldFolioMode = 'one_amount' | 'copy_line_by_line';
 export type OldFolioRowKind = 'room' | 'charge' | 'tax' | 'payment';
 export type OnboardingPhase = 'property' | 'rooms' | 'finance' | 'prices' | 'channels' | 'review';

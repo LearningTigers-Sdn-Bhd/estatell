@@ -50,6 +50,7 @@ test('notification types define their delivery rules', function (
     'channel booking received' => [NotificationType::ChannelBookingReceived, ['mail', 'database'], ['mail' => true, 'database' => true], 'reservations.manage'],
     'channel booking cancelled' => [NotificationType::ChannelBookingCancelled, ['mail', 'database'], ['mail' => true, 'database' => true], 'reservations.manage'],
     'channel removal blocked' => [NotificationType::ChannelRemovalBlocked, ['mail', 'database'], ['mail' => true, 'database' => false], null],
+    'nearby place removed' => [NotificationType::NearbyPlaceRemoved, ['database'], ['mail' => false, 'database' => false], null],
 ]);
 
 test('notification enums expose labelled options', function () {
@@ -73,6 +74,7 @@ test('notification enums expose labelled options', function () {
         ['value' => 'channel_booking_cancelled', 'label' => 'Channel booking cancelled'],
         ['value' => 'channel_removal_blocked', 'label' => 'Archive blocked by a channel'],
         ['value' => 'payment_slip_received', 'label' => 'Company payment slip'],
+        ['value' => 'nearby_place_removed', 'label' => 'Nearby place removed'],
     ]);
 });
 

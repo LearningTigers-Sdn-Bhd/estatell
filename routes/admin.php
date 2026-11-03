@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AmenityController;
 use App\Http\Controllers\Admin\MailEventController;
+use App\Http\Controllers\Admin\NearbyPlaceController;
 use App\Http\Controllers\Admin\OtaChannelController;
 use App\Http\Controllers\Admin\OwnerSetupLinkController;
 use App\Http\Controllers\Admin\PartnerBulkAddController;
@@ -87,6 +88,10 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
     Route::put('amenities/order', [AmenityController::class, 'reorder'])->middleware('support.2fa')->name('amenities.reorder');
     Route::put('amenities/{amenity}', [AmenityController::class, 'update'])->whereNumber('amenity')->middleware('support.2fa')->name('amenities.update');
     Route::put('amenities/{amenity}/active', [AmenityController::class, 'active'])->whereNumber('amenity')->middleware('support.2fa')->name('amenities.active.update');
+
+    Route::get('nearby-places', [NearbyPlaceController::class, 'index'])->name('nearby-places.index');
+    Route::put('nearby-places/{nearbyPlace}/approve', [NearbyPlaceController::class, 'approve'])->whereNumber('nearbyPlace')->middleware('support.2fa')->name('nearby-places.approve');
+    Route::put('nearby-places/{nearbyPlace}/reject', [NearbyPlaceController::class, 'reject'])->whereNumber('nearbyPlace')->middleware('support.2fa')->name('nearby-places.reject');
     Route::get('settings', [PlatformSettingsController::class, 'edit'])->name('settings.edit');
     Route::put('settings', [PlatformSettingsController::class, 'update'])->middleware('support.2fa')->name('settings.update');
     Route::get('settings/channels', [PlatformSettingsController::class, 'channels'])->name('settings.channels');

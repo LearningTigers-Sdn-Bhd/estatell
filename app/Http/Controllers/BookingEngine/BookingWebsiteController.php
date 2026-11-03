@@ -9,14 +9,21 @@ use App\Actions\BookingEngine\SyncPropertyAmenities;
 use App\Actions\BookingEngine\UnpublishBookingSite;
 use App\Data\BookingEngine\AmenityPickerData;
 use App\Data\BookingEngine\BookingWebsiteGeneralData;
+use App\Data\BookingEngine\NearbyPlaceSuggestionData;
+use App\Data\BookingEngine\PropertyNearbyPlaceData;
 use App\Enums\AmenityType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\BookingEngine\SaveBookingWebsiteContentRequest;
 use App\Http\Requests\BookingEngine\SaveBookingWebsiteGeneralRequest;
+use App\Models\NearbyPlace;
 use App\Models\Property;
 use App\Services\BookingEngine\BookingSiteChecklist;
+use App\Services\BookingEngine\GoogleMapsLink;
+use App\Services\BookingEngine\InvalidMapsLink;
+use App\Services\BookingEngine\NearbyPlaceSuggestions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -34,9 +41,20 @@ class BookingWebsiteController extends Controller
         ]);
     }
 
-    public function updateGeneral(SaveBookingWebsiteGeneralRequest $request, Property $property, SaveBookingWebsiteGeneral $saveBookingWebsiteGeneral): RedirectResponse
+    public function updateGeneral(SaveBookingWebsiteGeneralRequest $request, Property $property, SaveBookingWebsiteGeneral $saveBookingWebsiteGeneral, GoogleMapsLink $googleMapsLink): RedirectResponse
     {
-        $saveBookingWebsiteGeneral($property, $request->user(), $request->string('slug')->toString(), $request->filled('google_maps_url') ? $request->string('google_maps_url')->toString() : null);
+        $googleMapsUrl = $request->filled('google_maps_url') ? $request->string('google_maps_url')->toString() : null;
+        $place = null;
+
+        if ($googleMapsUrl !== null && ($googleMapsUrl !== $property->google_maps_url || $property->latitude === null)) {
+            try {
+                $place = $googleMapsLink->parse($googleMapsUrl);
+            } catch (InvalidMapsLink $exception) {
+                throw ValidationException::withMessages(['google_maps_url' => $exception->getMessage()]);
+            }
+        }
+
+        $saveBookingWebsiteGeneral($property, $request->user(), $request->string('slug')->toString(), $googleMapsUrl, $place);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Booking website saved.')]);
 
@@ -44,12 +62,14 @@ class BookingWebsiteController extends Controller
     }
 
     /**
-     * The Content tab: the property amenities. Nearby places join it with the nearby place registry.
+     * The Content tab: the property amenities and nearby places.
      */
-    public function content(Property $property): Response
+    public function content(Property $property, NearbyPlaceSuggestions $suggestions): Response
     {
         return Inertia::render('settings/booking-website/content', [
             'amenities' => AmenityPickerData::forType(AmenityType::Property, $property->amenities()->get()),
+            'nearbyPlaces' => $property->nearbyPlaces()->get()->map(fn (NearbyPlace $place): PropertyNearbyPlaceData => PropertyNearbyPlaceData::fromModel($place))->values(),
+            'suggestions' => $suggestions->for($property)->map(fn (NearbyPlace $place): NearbyPlaceSuggestionData => NearbyPlaceSuggestionData::fromModel($place))->values(),
         ]);
     }
 
