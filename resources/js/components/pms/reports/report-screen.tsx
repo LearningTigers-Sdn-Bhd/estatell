@@ -106,6 +106,8 @@ type Props<TRow extends { key: number | string }> = {
     embedded?: boolean;
     /** The name in the Layout Sheet title, such as "Guest list › Arrivals". Defaults to the title. */
     layoutLabel?: string;
+    /** Content between the header and the filters, such as the Boats and crew panel of the Boat manifest. */
+    aside?: ReactNode;
 };
 
 const MAX_SELECTED = 500;
@@ -156,6 +158,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
     query,
     embedded = false,
     layoutLabel,
+    aside = null,
 }: Props<TRow>) {
     const column = useMemo(() => dataTableColumns<TRow>(), []);
     const [draft, setDraft] = useState<Layout | null>(null);
@@ -443,6 +446,8 @@ export function ReportScreen<TRow extends { key: number | string }>({
                         {note}
                     </p>
                 )}
+
+                {aside}
 
                 <div className="flex flex-wrap items-center gap-2">
                     {isOneDate ? (

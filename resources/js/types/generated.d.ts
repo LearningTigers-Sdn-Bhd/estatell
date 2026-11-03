@@ -65,6 +65,12 @@ canRetry: boolean,
 };
 }
 namespace Boats {
+export type BoatData = {
+id: number,
+name: string,
+registration: string | null,
+active: boolean,
+};
 export type BoatDepartureData = {
 id: number,
 direction: App.Enums.BoatDirection,
@@ -85,6 +91,13 @@ leavesAt: string,
 propertyTime: string,
 pickupPoint: string | null,
 seats: number | null,
+};
+export type BoatDepartureRunData = {
+departureId: number,
+label: string,
+direction: string,
+boatId: number | null,
+crew: string | null,
 };
 export type BoatFareAgeGroupData = {
 ageGroupId: number,

@@ -2,10 +2,14 @@
 
 namespace App\Actions\Boats;
 
+use App\Actions\Reservations\AddUnitAddOn;
 use App\Data\Boats\BoatTripData;
+use App\Data\Reservations\NewAddOnData;
 use App\Enums\BoatDirection;
+use App\Enums\BoatMode;
 use App\Features\Boats;
 use App\Models\BoatDeparture;
+use App\Models\BoatTripAddOn;
 use App\Models\Property;
 use App\Models\ReservationUnit;
 use App\Models\UnitBoatTrip;
@@ -19,6 +23,7 @@ class SetBoatTrip
     public function __construct(
         private BoatTripAccess $boatTripAccess,
         private SyncBoatFare $syncBoatFare,
+        private AddUnitAddOn $addUnitAddOn,
     ) {}
 
     /**
@@ -111,6 +116,10 @@ class SetBoatTrip
             throw new BoatTripRefused((string) $fare->refusal);
         }
 
+        if ($data->mode === BoatMode::Charter && ! $fare->postedFareKept) {
+            $this->addCharterCharge($actor, $locked, $trip);
+        }
+
         activity()
             ->performedOn($locked->reservation)
             ->causedBy($actor)
@@ -129,5 +138,29 @@ class SetBoatTrip
             ->log('Boat trip set');
 
         return BoatTripResult::done($fare->postedFareKept);
+    }
+
+    /**
+     * A Charter trip adds the property's charter charge item once (`charter_charge_item_id`), linked to the trip like a
+     * fare, so changing or clearing the trip removes it while it is not charged. Nothing is added when no item is set or
+     * the item is off.
+     */
+    private function addCharterCharge(User $actor, ReservationUnit $unit, UnitBoatTrip $trip): void
+    {
+        $itemId = $unit->property->settings?->charter_charge_item_id;
+
+        if ($itemId === null) {
+            return;
+        }
+
+        $added = ($this->addUnitAddOn)($actor, $unit, new NewAddOnData(chargeItemId: $itemId));
+
+        if ($added->isRefused()) {
+            return;
+        }
+
+        foreach ($added->addOns as $addOn) {
+            BoatTripAddOn::query()->create(['unit_boat_trip_id' => $trip->id, 'unit_add_on_id' => $addOn->id]);
+        }
     }
 }

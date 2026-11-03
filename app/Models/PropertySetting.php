@@ -37,6 +37,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property bool $allow_support_money_corrections
  * @property WeekendNights $weekend_nights
  * @property int $migration_window_days
+ * @property int|null $charter_charge_item_id The charge item a Charter boat trip adds once (Sand Bay: Charter Boat RM280). Null: nothing is added.
  */
 #[Fillable([
     'currency', 'time_zone', 'default_locale', 'check_in_time', 'check_out_time',
@@ -44,7 +45,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'missed_arrival_policy', 'overdue_departure_policy',
     'registration_card_scope', 'card_required_for_check_in', 'id_document_retention_days',
     'security_deposit_amount', 'allow_support_access', 'allow_support_money_corrections', 'weekend_nights',
-    'migration_window_days',
+    'migration_window_days', 'charter_charge_item_id',
 ])]
 class PropertySetting extends Model
 {
@@ -69,6 +70,7 @@ class PropertySetting extends Model
             'allow_support_money_corrections' => 'boolean',
             'weekend_nights' => WeekendNights::class,
             'migration_window_days' => 'integer',
+            'charter_charge_item_id' => 'integer',
         ];
     }
 

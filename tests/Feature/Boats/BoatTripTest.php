@@ -8,15 +8,18 @@ use App\Actions\Boats\UpdateBoatDeparture;
 use App\Data\Boats\BoatTripData;
 use App\Enums\BoatDirection;
 use App\Enums\BoatMode;
+use App\Enums\ChargingUnit;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\UnitStatus;
 use App\Features\Boats;
 use App\Models\BoatDeparture;
 use App\Models\BusinessDate;
+use App\Models\ChargeItem;
 use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
+use App\Models\UnitAddOn;
 use App\Models\UnitBoatTrip;
 use App\Models\User;
 use App\Services\Boats\BoatSeats;
@@ -421,4 +424,29 @@ test('a day use unit cannot take a boat trip through the trip route, and nothing
 
     expect(UnitBoatTrip::query()->count())->toBe(0)
         ->and(Activity::query()->where('event', 'reservation.boat_trip_set')->count())->toBe(0);
+});
+
+test('a charter trip adds the charter charge once, and another mode removes it while it is not charged', function () {
+    $fixture = boatTripFixture();
+    $charter = ChargeItem::factory()->for($fixture['property'])->create(['name' => 'Charter Boat', 'default_amount' => '280.00', 'charging_unit' => ChargingUnit::PerItem]);
+    $fixture['property']->settings->update(['charter_charge_item_id' => $charter->id]);
+
+    boatTripSet($fixture, $fixture['unit'], BoatDirection::In, BoatMode::Charter, time: '10:30');
+
+    $addOn = UnitAddOn::query()->where('reservation_unit_id', $fixture['unit']->id)->sole();
+    expect($addOn->charge_item_id)->toBe($charter->id)
+        ->and($addOn->quantity)->toBe(1)
+        ->and($addOn->unit_amount)->toBe('280.00');
+
+    boatTripSet($fixture, $fixture['unit'], BoatDirection::In, BoatMode::Own, time: '10:30');
+
+    expect(UnitAddOn::query()->where('reservation_unit_id', $fixture['unit']->id)->count())->toBe(0);
+});
+
+test('a charter trip adds nothing when no charter charge is set', function () {
+    $fixture = boatTripFixture();
+
+    boatTripSet($fixture, $fixture['unit'], BoatDirection::In, BoatMode::Charter, time: '10:30');
+
+    expect(UnitAddOn::query()->count())->toBe(0);
 });

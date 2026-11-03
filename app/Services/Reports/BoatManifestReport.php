@@ -2,6 +2,7 @@
 
 namespace App\Services\Reports;
 
+use App\Data\Boats\BoatDepartureRunData;
 use App\Data\Reports\BoatManifestRow;
 use App\Data\Reports\ReportFilters;
 use App\Data\Reports\ReportSection;
@@ -12,6 +13,7 @@ use App\Enums\StayType;
 use App\Enums\Tone;
 use App\Enums\UnitStatus;
 use App\Models\BoatDeparture;
+use App\Models\BoatDepartureRun;
 use App\Models\Property;
 use App\Models\ReservationUnit;
 use App\Models\UnitBoatTrip;
@@ -124,8 +126,9 @@ class BoatManifestReport implements HasSections, HasTotals, Report
         $prefix = fn (BoatManifestRow $row): string => $filters->bothDirections
             ? BoatDirection::from($row->direction)->label().' · '
             : '';
+        $runs = $this->runLabels(array_values(array_filter(array_map(fn (BoatManifestRow $row): ?int => $row->boat_departure_id, $rows))), $filters->from);
 
-        return array_values(array_map(function (array $group) use ($prefix): ReportSection {
+        return array_values(array_map(function (array $group) use ($prefix, $runs): ReportSection {
             $first = $group[0];
             $keys = array_map(fn (BoatManifestRow $row): int => $row->key, $group);
             $guests = array_sum(array_map(fn (BoatManifestRow $row): int => $row->total, $group));
@@ -150,7 +153,7 @@ class BoatManifestReport implements HasSections, HasTotals, Report
             $limit = $first->seats;
 
             return new ReportSection(
-                title: $prefix($first).$first->departure,
+                title: $prefix($first).$first->departure.(isset($runs[$first->boat_departure_id]) ? ' · '.$runs[$first->boat_departure_id] : ''),
                 rowKeys: $keys,
                 subtotal: $limit === null
                     ? (string) $guests
@@ -158,6 +161,55 @@ class BoatManifestReport implements HasSections, HasTotals, Report
                 tone: $limit !== null && $guests > $limit ? Tone::Warning : null,
             );
         }, $groups));
+    }
+
+    /**
+     * The boat and crew of each departure on the date, as "SA10716 · Awang / Daus", by departure id.
+     *
+     * @param  list<int>  $departureIds
+     * @return array<int, string>
+     */
+    public function runLabels(array $departureIds, string $date): array
+    {
+        if ($departureIds === []) {
+            return [];
+        }
+
+        return BoatDepartureRun::query()
+            ->whereIn('boat_departure_id', array_unique($departureIds))
+            ->whereDate('date', $date)
+            ->with('boat')
+            ->get()
+            ->mapWithKeys(fn (BoatDepartureRun $run): array => [$run->boat_departure_id => implode(' · ', array_filter([$run->boat?->name, $run->crew]))])
+            ->all();
+    }
+
+    /**
+     * The departures of the date in the shown direction (or both), active ones and any a trip uses, with the boat and
+     * crew set for them, for the Boats and crew panel.
+     *
+     * @return list<BoatDepartureRunData>
+     */
+    public function runs(Property $property, ReportFilters $filters): array
+    {
+        $directions = $filters->bothDirections ? [BoatDirection::Out, BoatDirection::In] : [$filters->direction ?? BoatDirection::In];
+        $runs = BoatDepartureRun::query()->where('property_id', $property->id)->whereDate('date', $filters->from)->get()->keyBy('boat_departure_id');
+
+        return array_values(BoatDeparture::query()
+            ->where('property_id', $property->id)
+            ->whereIn('direction', array_map(fn (BoatDirection $direction): string => $direction->value, $directions))
+            ->where(fn ($query) => $query->where('active', true)->orWhereIn('id', $runs->keys()->all()))
+            ->orderBy('leaves_at')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (BoatDeparture $departure): BoatDepartureRunData => new BoatDepartureRunData(
+                $departure->id,
+                trim(($filters->bothDirections ? $departure->direction->label().' · ' : '').substr($departure->leaves_at, 0, 5).' '.($departure->pickup_point ?? '')),
+                $departure->direction->value,
+                $runs->get($departure->id)?->boat_id,
+                $runs->get($departure->id)?->crew,
+            ))
+            ->all());
     }
 
     /**

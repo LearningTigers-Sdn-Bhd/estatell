@@ -43,6 +43,20 @@ One row per trip: Confirmed, CheckedIn and CheckedOut units whose trip is on the
 - Each Scheduled group has a subtotal row: "14 / 20 seats" (or "14" with no limit). Over the limit uses the warning tone.
 - The total row sums adults, children and total for the whole date and direction.
 
+## Boats and crew
+
+The boat and crew of each departure on the date, as on Sand Bay's sheet ("SA10716", "Awang / Daus").
+
+```
+boat_departure_runs    id, property_id, boat_departure_id, date, boat_id (nullable, FK boats, restrict),
+                       crew (nullable, ≤ 120), timestamps
+                       unique (boat_departure_id, date); CHECK boat_id or crew is set
+```
+
+- A collapsible **Boats and crew** panel above the filters (`BoatsAndCrewPanel`, the report screen's `aside` slot) lists the date's departures in the shown direction (or both): active ones and any with a run. Each row has a Boat select (active boats, or "No boat") and a Crew input, with **Save**. Staff without `reservations.manage` see it read only.
+- `reports.boat-manifest.runs` (PUT, `boats` and `reservations.manage`) runs `SetBoatDepartureRun`: it saves the row, removes it when both are empty, refuses a boat that is not an active boat of the property, and logs `boat_departure_run.set`.
+- The section title of each departure ends with " · SA10716 · Awang / Daus" (`BoatManifestReport::runLabels()`), so the page, the PDF and the spreadsheet sections name them.
+
 ## PDF
 
 - Uses the printing settings letterhead, Portrait.
