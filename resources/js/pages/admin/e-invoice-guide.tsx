@@ -75,7 +75,7 @@ export default function EInvoiceGuide() {
                                 </CardTitle>
                             </div>
                             <a
-                                href="https://www.hasil.gov.my/en/e-invoice/implementation-timeline/"
+                                href="https://www.hasil.gov.my/en/e-invois/rujukan-pelaksanaan-e-invois/garis-panduan/"
                                 target="_blank"
                                 rel="noreferrer"
                                 className={buttonVariants({
@@ -235,7 +235,7 @@ export default function EInvoiceGuide() {
                                 </CardTitle>
                             </div>
                             <a
-                                href="https://www.hasil.gov.my/en/e-invoice/guidelines/"
+                                href="https://www.hasil.gov.my/wp-content/uploads/IRBM-e-Invoice-Specific-Guideline.pdf"
                                 target="_blank"
                                 rel="noreferrer"
                                 className={buttonVariants({
@@ -587,22 +587,66 @@ export default function EInvoiceGuide() {
                     <CardContent>
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                             <a
-                                href="https://www.hasil.gov.my/en/e-invoice/"
+                                href="https://www.hasil.gov.my/wp-content/uploads/IRBM-e-Invoice-Guideline.pdf"
                                 target="_blank"
                                 rel="noreferrer"
                                 className="group rounded-lg border p-4 transition-colors hover:border-primary/50 hover:bg-muted/40"
                             >
                                 <div className="mb-1 flex items-center justify-between">
                                     <span className="flex items-center gap-1.5 text-sm font-semibold group-hover:text-primary">
-                                        LHDN MyInvois Official Portal{' '}
+                                        IRBM e-Invoice Guideline (PDF){' '}
                                         <ArrowUpRight className="size-3.5" />
                                     </span>
-                                    <Badge variant="outline">Official</Badge>
+                                    <Badge variant="outline">General</Badge>
                                 </div>
                                 <p className="text-xs text-muted-foreground">
-                                    Main Inland Revenue Board of Malaysia portal
-                                    for tax updates, FAQs, taxpayer
-                                    registration, and policy announcements.
+                                    Official general guideline covering scope,
+                                    implementation phases, continuous
+                                    transaction control workflow, mandatory data
+                                    fields, and exemptions.
+                                </p>
+                            </a>
+
+                            <a
+                                href="https://www.hasil.gov.my/wp-content/uploads/IRBM-e-Invoice-Specific-Guideline.pdf"
+                                target="_blank"
+                                rel="noreferrer"
+                                className="group rounded-lg border p-4 transition-colors hover:border-primary/50 hover:bg-muted/40"
+                            >
+                                <div className="mb-1 flex items-center justify-between">
+                                    <span className="flex items-center gap-1.5 text-sm font-semibold group-hover:text-primary">
+                                        IRBM e-Invoice Specific Guideline (PDF){' '}
+                                        <ArrowUpRight className="size-3.5" />
+                                    </span>
+                                    <Badge variant="outline">Specific</Badge>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    Detailed treatments for hospitality and
+                                    tourism, consolidated monthly invoicing,
+                                    disbursements vs. reimbursements, and
+                                    cross-border transactions.
+                                </p>
+                            </a>
+
+                            <a
+                                href="https://www.hasil.gov.my/en/e-invois/rujukan-pelaksanaan-e-invois/garis-panduan/"
+                                target="_blank"
+                                rel="noreferrer"
+                                className="group rounded-lg border p-4 transition-colors hover:border-primary/50 hover:bg-muted/40"
+                            >
+                                <div className="mb-1 flex items-center justify-between">
+                                    <span className="flex items-center gap-1.5 text-sm font-semibold group-hover:text-primary">
+                                        LHDN Guidelines Portal (Hub){' '}
+                                        <ArrowUpRight className="size-3.5" />
+                                    </span>
+                                    <Badge variant="outline">
+                                        Official Hub
+                                    </Badge>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    Official repository of all published IRBM
+                                    e-Invoice guidelines, appendices, circulars,
+                                    and sector-specific FAQs.
                                 </p>
                             </a>
 
@@ -617,13 +661,38 @@ export default function EInvoiceGuide() {
                                         LHDN MyInvois Developer SDK{' '}
                                         <ArrowUpRight className="size-3.5" />
                                     </span>
-                                    <Badge variant="outline">Technical</Badge>
+                                    <Badge variant="outline">
+                                        Technical API
+                                    </Badge>
                                 </div>
                                 <p className="text-xs text-muted-foreground">
                                     Full API documentation, authentication
                                     OAuth2 specs, UBL 2.1 JSON/XML schemas,
                                     error code definitions, and Postman
                                     collections.
+                                </p>
+                            </a>
+
+                            <a
+                                href="https://sdk.myinvois.hasil.gov.my/signature/"
+                                target="_blank"
+                                rel="noreferrer"
+                                className="group rounded-lg border p-4 transition-colors hover:border-primary/50 hover:bg-muted/40"
+                            >
+                                <div className="mb-1 flex items-center justify-between">
+                                    <span className="flex items-center gap-1.5 text-sm font-semibold group-hover:text-primary">
+                                        Digital Signature Specifications{' '}
+                                        <ArrowUpRight className="size-3.5" />
+                                    </span>
+                                    <Badge variant="outline">
+                                        Security / X.509
+                                    </Badge>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    Cryptographic standards for X.509
+                                    certificates, Non-Repudiation, Document
+                                    Signing EKU, and RSA-SHA256 digital
+                                    signatures.
                                 </p>
                             </a>
 
@@ -644,26 +713,6 @@ export default function EInvoiceGuide() {
                                     Sandbox environment for taxpayers and ERP
                                     developers to validate document submission,
                                     verify TINs, and test QR verification links.
-                                </p>
-                            </a>
-
-                            <a
-                                href="https://www.hasil.gov.my/en/e-invoice/general-guidelines/"
-                                target="_blank"
-                                rel="noreferrer"
-                                className="group rounded-lg border p-4 transition-colors hover:border-primary/50 hover:bg-muted/40"
-                            >
-                                <div className="mb-1 flex items-center justify-between">
-                                    <span className="flex items-center gap-1.5 text-sm font-semibold group-hover:text-primary">
-                                        LHDN E-Invoice Guidelines v4.9 PDF{' '}
-                                        <ArrowUpRight className="size-3.5" />
-                                    </span>
-                                    <Badge variant="outline">Guideline</Badge>
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                    Comprehensive 100+ page official guidance on
-                                    transaction types, exemptions, self-billed
-                                    scenarios, and compliance rules.
                                 </p>
                             </a>
                         </div>
