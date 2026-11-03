@@ -23,6 +23,7 @@ class AdminNavigation
             new NavItemData(title: __('Settings'), href: route('admin.settings.edit', absolute: false), icon: 'settings', active: request()->routeIs('admin.settings.*')),
             new NavItemData(title: __('Channels'), href: route('admin.channels.index', absolute: false), icon: 'waypoints', active: request()->routeIs('admin.channels.*')),
             new NavItemData(title: __('Mail log'), href: route('admin.mail-events.index', absolute: false), icon: 'mail', active: request()->routeIs('admin.mail-events.*')),
+            new NavItemData(title: __('E-invoice guide'), href: route('admin.e-invoice-guide', absolute: false), icon: 'file-text', active: request()->routeIs('admin.e-invoice-guide*')),
             new NavItemData(title: __('Horizon'), href: route('horizon.index', absolute: false), icon: 'activity', external: true),
         ];
     }

@@ -1,4 +1,4 @@
-import { router } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import {
     Field,
     FieldContent,
@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/field';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import { eInvoiceGuide } from '@/routes/admin';
 import { update as updateFeature } from '@/routes/admin/properties/features';
 
 type PropertyFeature = App.Data.Platform.PropertyFeatureData;
@@ -47,6 +48,17 @@ export function PropertyFeatures({
                             <FieldLabel>{item.label}</FieldLabel>
                             <FieldDescription>
                                 {item.description}
+                                {item.feature === 'e-invoicing' && (
+                                    <>
+                                        {' '}
+                                        <Link
+                                            href={eInvoiceGuide()}
+                                            className="font-medium text-primary underline underline-offset-4 hover:text-primary/80"
+                                        >
+                                            Read official guide &rarr;
+                                        </Link>
+                                    </>
+                                )}
                             </FieldDescription>
                         </FieldContent>
                         <Badge variant={item.active ? 'secondary' : 'outline'}>
@@ -69,7 +81,20 @@ export function PropertyFeatures({
                         <FieldLabel htmlFor={`feature-${item.feature}`}>
                             {item.label}
                         </FieldLabel>
-                        <FieldDescription>{item.description}</FieldDescription>
+                        <FieldDescription>
+                            {item.description}
+                            {item.feature === 'e-invoicing' && (
+                                <>
+                                    {' '}
+                                    <Link
+                                        href={eInvoiceGuide()}
+                                        className="font-medium text-primary underline underline-offset-4 hover:text-primary/80"
+                                    >
+                                        Read official guide &rarr;
+                                    </Link>
+                                </>
+                            )}
+                        </FieldDescription>
                     </FieldContent>
                     <Switch
                         id={`feature-${item.feature}`}

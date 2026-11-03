@@ -3119,6 +3119,37 @@ export type AddUnitOptionsData = {
 roomTypes: App.Data.Reservations.RoomTypeOptionData[],
 ratePlans: App.Data.Reservations.RatePlanOptionData[],
 };
+export type ArrivalImportRowData = {
+line: number,
+resNo: string,
+groupNo: string,
+guest: string,
+room: string | null,
+roomType: string | null,
+arrival: string | null,
+arrivalTime: string | null,
+departure: string | null,
+departureTime: string | null,
+adults: number,
+children: number,
+total: string | null,
+deposit: string | null,
+company: string | null,
+source: string | null,
+boatIn: string | null,
+boatOut: string | null,
+notes: string | null,
+outcome: App.Enums.ArrivalImportOutcome,
+outcomeBadge: App.Data.Shared.BadgeData,
+problems: string[],
+roomTypeId: number | null,
+roomId: number | null,
+ratePlanId: number | null,
+companyId: number | null,
+bookingSourceId: number | null,
+boatInDepartureId: number | null,
+boatOutDepartureId: number | null,
+};
 export type BookingBackData = {
 href: string,
 label: string,
@@ -4126,6 +4157,7 @@ export type AgeBandPricing = 'free' | 'percent' | 'fixed';
 export type ArInvoiceStatus = 'open' | 'settled' | 'void';
 export type ArInvoiceType = 'invoice' | 'credit_note';
 export type AriChangeKind = 'availability' | 'rates' | 'restrictions';
+export type ArrivalImportOutcome = 'booking' | 'hold' | 'past_in_house' | 'past_checked_out' | 'skipped' | 'already_imported';
 export type AuditCheck = 'in_house_without_room' | 'arrival_not_checked_in' | 'departure_not_checked_out' | 'folio_open_after_check_out' | 'master_not_billed' | 'money_held_on_closed_booking' | 'carried_exception';
 export type AuditExceptionType = 'missed_arrival' | 'overdue_departure' | 'room_charge' | 'add_on' | 'unexpected_error';
 export type AuditFix = 'assign' | 'no-show' | 'extend';
@@ -4216,7 +4248,7 @@ export type PdfFont = 'office' | 'modern' | 'fancy' | 'handwritten';
 export type PdfFontSize = 'small' | 'medium' | 'large';
 export type PerformancePreset = '7d' | '30d' | 'month' | 'last-month' | '12m';
 export type PermissionEnum = 'settings.manage' | 'settings.ota-lists' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'reservations.change-price' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'folio.manual' | 'folio.view-manual-entries' | 'payment.record' | 'payment.refund' | 'payment.refund-other-method' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void' | 'front-desk.view' | 'front-desk.check-in' | 'front-desk.check-out' | 'front-desk.check-in-without-card' | 'front-desk.waive-fees' | 'front-desk.undo-check-in' | 'front-desk.undo-check-out' | 'night-audit.run' | 'night-audit.force' | 'night-audit.receive-report' | 'reports.view' | 'housekeeping.view' | 'housekeeping.update' | 'housekeeping.inspect';
-export type PlatformFeature = 'channel-manager' | 'boats' | 'accounting-integration' | 'door-locks';
+export type PlatformFeature = 'channel-manager' | 'boats' | 'accounting-integration' | 'door-locks' | 'e-invoicing';
 export type PolicyChargeMode = 'free' | 'fixed_amount' | 'percentage';
 export type PolicyRateBasis = 'booked_rate' | 'current_rate';
 export type PolicyScope = 'first_night' | 'whole_stay' | 'unused_nights' | 'one_charge';
