@@ -213,11 +213,33 @@ Planned after print customer documents (done). Plan first, with the official MyI
 - [ ] `feat(i18n): fill the Malay translations` — list the UI strings missing from `lang/ms.json` and draft the Malay. A Malay speaker reviews the wording before it ships.
 - [ ] `docs(ui): audit accessibility on the main pages` — labels, focus, contrast and keyboard use in Sheets and Dialogs. A findings list only, no code changes; the user picks the fixes.
 
+### 28 Booking engine
+
+Planned on 2026-11-03. Docs: [Booking engine](28-booking-engine/01-overview.md). Commission fees must be built before real money is collected. Before that, also answer the "to verify" list in the overview.
+
+- [ ] `feat(booking-engine): add the feature flag and booking site settings` — `BookingEngine`, `property_booking_sites`, `properties.slug`, the three permissions and the General tab. Docs: [Settings](28-booking-engine/07-settings-and-permissions.md).
+- [ ] `feat(rooms): upload room type photos` — the upload UI on the room type page, on a public disk. Docs: [Room photos](28-booking-engine/06-content-registries.md#room-photos).
+- [ ] `feat(booking-engine): add the amenity registry` — admin pages, link tables, the Content tab and the room type picker. Docs: [Amenities](28-booking-engine/06-content-registries.md#amenities).
+- [ ] `feat(booking-engine): add the nearby place registry` — `GoogleMapsLink`, property location, admin review, suggestions and the rejection notice. Docs: [Nearby places](28-booking-engine/06-content-registries.md#nearby-places).
+- [ ] `feat(booking-engine): add the site template registry` — admin page, slots, and the Design and SEO tabs. Docs: [Template registry](28-booking-engine/08-microsite.md#template-registry).
+- [ ] `feat(booking-engine): choose online rate plans` — `rate_plans.bookable_online` and the Rates tab. Docs: [Rates](28-booking-engine/07-settings-and-permissions.md#rates).
+- [ ] `feat(booking-engine): add the content and offers API` — Sanctum (approved), token abilities, and the listing, site, content, calendar, offers and search endpoints. Docs: [API](28-booking-engine/02-api.md).
+- [ ] `feat(reservations): allow a booking with no staff actor` — a null actor in `CreateBooking`, `AddUnit`, `CancelUnits` and `RecordPayment`, and the system Booking Engine source. Docs: [Confirmation](28-booking-engine/04-payment.md#confirmation), [Booking sources](12-reservations/11-booking-sources.md#booking-engine-source).
+- [ ] `feat(booking-engine): hold rooms during checkout` — `booking_holds`, `AvailabilityService` counting holds, the shared Collect at check-in rule, and the holds endpoints. Docs: [Checkout and hold](28-booking-engine/03-checkout-and-hold.md).
+- [ ] `feat(payments): take online payments through Curlec` — `CurlecGateway`, `gateway_payments`, the Online method, the webhook and `ConfirmBookingHold`. Docs: [Payment](28-booking-engine/04-payment.md).
+- [ ] `feat(booking-engine): email the guest and notify staff` — the notification types and the Manage booking link. Docs: [Confirmation](28-booking-engine/04-payment.md#confirmation).
+- [ ] `feat(payments): refund online payments through Curlec` — `gateway_refunds`, `RequestOnlineRefund`, the refund webhook and the folio changes. Docs: [Refund status](28-booking-engine/05-cancel-and-refund.md#refund-status).
+- [ ] `feat(booking-engine): let guests cancel online` — saved terms, the manage booking and cancellation endpoints, and `CancelBookingOnline`. Docs: [Cancel and refund](28-booking-engine/05-cancel-and-refund.md).
+- [ ] `feat(booking-engine): add API only mode` — per-property tokens, return addresses, hold limits, the API tab and the developer guide. Docs: [API only mode](28-booking-engine/09-api-only-mode.md).
+- [ ] `feat(demo): open the booking engine API on the demo` — the fixed test token and Curlec test keys. Docs: [Test mode](28-booking-engine/09-api-only-mode.md#test-mode).
+- [ ] In the `estatell-booking-microsite` repo: scaffold Astro, the booking steps, the first template, SEO and the map. Docs: [Microsite](28-booking-engine/08-microsite.md).
+
 ### WIP: not planned yet
 
 Topics on hold. Each one needs a planning session and its docs before it gets commit items. Do not build from these lines.
 
-- [ ] **Booking engine** — estatell stays the PMS core and sends property content to a separate booking engine app through an API (Sanctum): property and room type photos, amenities, nearby attractions, public rate plans and how policies are shown. Guests pay at the property.
+- [ ] **Commission fees** — BE, CM and self-check-in commissions per booking, payouts on due dates, a platform dashboard and a hotel owner page. Booking engine commission is 10%. Open: the payout cycle, the other rates, booking value by source, negative balances. It reads what the booking engine records, and the property pays Curlec's fees on a refund.
+- [ ] **new-wastays** — the OTA app. Its API endpoints come with the booking engine. Open: its commission, its rates and guest accounts.
 - [ ] **Concierge page** — like the booking engine, but for the guest's stay experience. After the booking engine.
 - [ ] **AI concierge** — can be turned on only when the concierge page is on. Admins hold the API key for now. After the concierge page.
 - [ ] **AroundThat programme** — recommends places from the AroundThat API. Later.

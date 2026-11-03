@@ -34,7 +34,7 @@ property_licences  id, property_id, issuer, number, expires_on (nullable), show_
 - Easy to say on the phone. Admin ⌘K searches by code, name or city.
 - Not a secret. Access is always checked by `EnsurePropertyAccess`; a code that does not belong to the user returns `404`.
 - Not the [document prefix](#document-prefix), which is a separate column.
-- `slug` is added later, only when the public booking engine needs it.
+- `slug` comes with the [booking engine](../28-booking-engine/07-settings-and-permissions.md#data-model), which also adds `latitude`, `longitude` and `google_maps_url`.
 - History: codes were plain numbers from the sequence `property_code_seq` until the partners change. The migration prefixed every existing code with `ES` (10142 → `ES10142`), seeded the `ES` counter with the highest number, and dropped the sequence. A second migration, before launch, renumbered every prefix from 1101 in creation order (`ES10142` → `ES1103`) and reset the counters. It refuses to run when a journal has been pushed to an accounting provider, because journal references include the code.
 
 ## Document prefix

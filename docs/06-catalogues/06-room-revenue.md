@@ -66,7 +66,7 @@ room_revenue_policies   id, property_id, code (SystemTransactionCode), charge_mo
 - A staff member with `front-desk.waive-fees` can choose **Do not charge** in the form. The reason is required and the choice is logged.
 - Free until: a cancellation made inside the window is free. Without it, every cancellation follows the charge settings.
 - Mapping from the old rules: no-show None is Free, FirstNight and FullStay are 100% of the booked rate; early departure ChargeUsedNights is Free and ChargeFull is 100% of the unused nights.
-- The policy applies at the moment of the action. A booking does not keep a copy of the policy. A snapshot waits for the confirmation document.
+- The policy applies at the moment of the action. A booking does not keep a copy of the policy, except a [booking engine booking](../28-booking-engine/05-cancel-and-refund.md#saved-terms), which keeps the cancellation terms the guest saw. A snapshot for other bookings waits for the confirmation document.
 - A late check-out is not charged by a catalogue item. The folio rule "charges from catalogue items only" is for manual posting.
 - `NO_SHOW` is still only posted when `missed_arrival_policy` marks the unit as a no-show.
 

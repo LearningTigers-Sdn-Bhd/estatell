@@ -216,6 +216,16 @@ Four commits after the docs commit, as in the [checklist](../checklist.md#next):
 3. **Manage booking sources.** The settings page and its Actions. Built; the navigation item sits in the Property group after OTA lists.
 4. **Add OTA lists to booking sources.** `EnsureOtaBookingSource` in `SaveOtaCredentials`.
 
+## Booking engine source
+
+Planned with the [booking engine](../28-booking-engine/01-overview.md).
+
+- A new case `BookingSourceType::BookingEngine`, label "Booking Engine". One system row per property, named "Booking Engine", in both modes. The code finds it by type.
+- The CHECK that limits `company` and `walk_in` to system rows also covers `booking_engine`.
+- Staff can change its badge, but cannot rename, turn off, reorder or delete it, like the other system rows.
+- It is not offered on the staff booking form, so reports count only real online bookings.
+- The backfill seeds it for every property. A property that already has a source with this name keeps that row, and the new row's name gets " (Online)" added, as OTA rows do in the existing [backfill](#backfill).
+
 ## Lessons from wastays
 
 - wastays had one global `booking_sources` list, managed by admins (`kind` = manual or ota). Hotels could not add WhatsApp or a business invitation.
