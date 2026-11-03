@@ -131,7 +131,7 @@ From the [estatell-mykad-reader](https://github.com/LearningTigers-Sdn-Bhd/estat
 
 - [x] `docs(guests): plan MyKad Reader 2.0.0` — rewrite `11-guests/05-mykad-reader.md` and add these items.
 - [x] `feat(guests): show MyKad Reader 2.0.0 status at check-in` — `useMykadReader` handles `code` (falls back to `error` for 1.x), `REQUIRED_BRIDGE_VERSION = '2.0.0'`; `MyKadScanner` becomes the status chip with links to the user docs; `bridgeDownload()` points to GitHub Releases and other systems show "not supported". No migration, route or permission. Needs: the docs item. Docs: [Chip states](11-guests/05-mykad-reader.md#chip-states).
-- [ ] `chore(guests): remove the Python MyKad bridge` — delete `tools/mykad-bridge/`, `.github/workflows/mykad-bridge.yml` and the files in `public/downloads/`. Needs: MyKad Reader 2.0.0 released and the chip item shipped. Docs: [MyKad reader](11-guests/05-mykad-reader.md#open).
+- [x] `chore(guests): remove the Python MyKad bridge` — delete `tools/mykad-bridge/`, `.github/workflows/mykad-bridge.yml` and the files in `public/downloads/`. Needs: MyKad Reader 2.0.0 released and the chip item shipped. Docs: [MyKad reader](11-guests/05-mykad-reader.md#open).
 
 ## OpenCode
 

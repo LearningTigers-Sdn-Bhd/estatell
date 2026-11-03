@@ -89,5 +89,4 @@ Screens are for hotel owners and staff. Say "MyKad Reader", not "bridge". Never 
 
 ## Open
 
-- Remove the Python bridge once 2.0.0 is released: `tools/mykad-bridge/`, `.github/workflows/mykad-bridge.yml`, and the files in `public/downloads/`. See the [checklist](../checklist.md).
 - Test on a real reader: ready, no reader, reader unplugged mid-use, 1.x reader, `forbidden`.
