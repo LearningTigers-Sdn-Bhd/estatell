@@ -8,6 +8,7 @@ use App\Data\Reports\ReportSection;
 use App\Data\Reports\ReportTotals;
 use App\Enums\BoatDirection;
 use App\Enums\BoatMode;
+use App\Enums\StayType;
 use App\Enums\Tone;
 use App\Enums\UnitStatus;
 use App\Models\BoatDeparture;
@@ -18,10 +19,10 @@ use App\Services\Reservations\ReservationRoomBox;
 use Illuminate\Support\Collection;
 
 /**
- * The boat trips of one date and direction, for the boat crew. A trip counts when its unit holds inventory (Confirmed,
- * Checked in or Checked out) and its stay date is the date: the arrival for Boat in, the departure for Boat out. Rows
- * follow the departures in time order, with the charter and own boat trips last. Subtotals use the same seats as
- * `BoatSeats`.
+ * The boat trips of one date and direction (or both), for the boat crew. A trip counts when its unit holds inventory
+ * (Confirmed, Checked in or Checked out) and its stay date is the date: the arrival for Boat in, the departure for Boat
+ * out. Rows follow the departures in time order, then the charter and own boat trips, then the units that arrive or
+ * leave with no trip set (Boat not set), so the desk can follow up. Subtotals use the same seats as `BoatSeats`.
  */
 class BoatManifestReport implements HasSections, HasTotals, Report
 {
@@ -31,38 +32,71 @@ class BoatManifestReport implements HasSections, HasTotals, Report
     ) {}
 
     /**
-     * @param  list<int|string>|null  $rowKeys  Trip ids.
+     * The rows of one direction, or of both with `bothDirections`, in time order: scheduled departures, then charter
+     * and own boat trips, then the units with no trip ("Boat not set").
+     *
+     * @param  list<int|string>|null  $rowKeys  Trip ids, and negative keys for units with no trip.
      * @return list<BoatManifestRow>
      */
     public function rows(Property $property, ReportFilters $filters, ?array $rowKeys = null): array
     {
-        $direction = $filters->direction ?? BoatDirection::In;
-        $trips = $this->trips($property, $filters->from, $direction);
-
-        if ($rowKeys !== null) {
-            $trips = $trips->only(array_map(intval(...), $rowKeys));
-        }
-
-        $tripByUnit = $trips->keyBy('reservation_unit_id');
+        $directions = $filters->bothDirections ? [BoatDirection::Out, BoatDirection::In] : [$filters->direction ?? BoatDirection::In];
+        $keys = $rowKeys === null ? null : array_map(intval(...), $rowKeys);
+        $rows = [];
         $positions = [];
 
-        $rows = $this->unitRows->rows(
-            ReservationUnit::query()
-                ->where('property_id', $property->id)
-                ->whereIn('id', $tripByUnit->keys()->all())
-                ->orderBy('id'),
-            null,
-            fn (array $unitIds): array => $direction === BoatDirection::In
-                ? $this->roomBox->assignmentsForUnits($unitIds)
-                : $this->roomBox->lastNightAssignmentsForUnits($unitIds),
-            function (ReservationUnit $unit, ?string $room) use ($tripByUnit, $direction, &$positions): BoatManifestRow {
-                $trip = $tripByUnit[$unit->id];
-                $time = $direction === BoatDirection::In ? $unit->arrival_time : $unit->departure_time;
-                $positions[$trip->id] = $this->position($trip, $time);
+        foreach ($directions as $direction) {
+            $trips = $this->trips($property, $filters->from, $direction);
 
-                return BoatManifestRow::fromModel($trip, $unit, $room);
-            },
-        );
+            if ($keys !== null) {
+                $trips = $trips->only($keys);
+            }
+
+            $tripByUnit = $trips->keyBy('reservation_unit_id');
+            $rooms = fn (array $unitIds): array => $direction === BoatDirection::In
+                ? $this->roomBox->assignmentsForUnits($unitIds)
+                : $this->roomBox->lastNightAssignmentsForUnits($unitIds);
+
+            $tripRows = $tripByUnit->isEmpty() ? [] : $this->unitRows->rows(
+                ReservationUnit::query()
+                    ->where('property_id', $property->id)
+                    ->whereIn('id', $tripByUnit->keys()->all())
+                    ->orderBy('id'),
+                null,
+                $rooms,
+                function (ReservationUnit $unit, ?string $room) use ($tripByUnit, $direction, &$positions): BoatManifestRow {
+                    $trip = $tripByUnit[$unit->id];
+                    $time = $direction === BoatDirection::In ? $unit->arrival_time : $unit->departure_time;
+                    $positions[$trip->id] = $this->position($trip, $time);
+
+                    return BoatManifestRow::fromModel($trip, $unit, $room);
+                },
+            );
+
+            $missing = $this->unitRows->rows(
+                ReservationUnit::query()
+                    ->where('property_id', $property->id)
+                    ->where($direction->tripDateColumn(), $filters->from)
+                    ->whereIn('status', array_map(fn (UnitStatus $status): string => $status->value, $direction->unitStatuses()))
+                    ->where('stay_type', StayType::Overnight->value)
+                    ->whereDoesntHave('boatTrips', fn ($trips) => $trips->where('direction', $direction->value))
+                    ->when($keys !== null, fn ($query) => $query->whereIn('id', array_map(
+                        fn (int $key): int => intdiv(-$key - ($direction === BoatDirection::Out ? 1 : 0), 2),
+                        array_values(array_filter($keys, fn (int $key): bool => $key < 0 && (-$key % 2 === 1) === ($direction === BoatDirection::Out))),
+                    )))
+                    ->orderBy('id'),
+                null,
+                $rooms,
+                function (ReservationUnit $unit, ?string $room) use ($direction, &$positions): BoatManifestRow {
+                    $row = BoatManifestRow::notSet($unit, $direction, $room);
+                    $positions[$row->key] = [2, $direction->value, $direction === BoatDirection::In ? $unit->arrival_time : $unit->departure_time, $unit->id];
+
+                    return $row;
+                },
+            );
+
+            array_push($rows, ...$tripRows, ...$missing);
+        }
 
         usort($rows, fn (BoatManifestRow $first, BoatManifestRow $second): int => $positions[$first->key] <=> $positions[$second->key]);
 
@@ -80,12 +114,30 @@ class BoatManifestReport implements HasSections, HasTotals, Report
         $groups = [];
 
         foreach ($rows as $row) {
-            $groups[$row->boat_departure_id === null ? 'front-desk' : $row->boat_departure_id][] = $row;
+            $groups[match (true) {
+                $row->not_set => 'not-set',
+                $row->boat_departure_id === null => 'front-desk',
+                default => 'departure-'.$row->boat_departure_id,
+            }][] = $row;
         }
 
-        return array_values(array_map(function (array $group): ReportSection {
+        $prefix = fn (BoatManifestRow $row): string => $filters->bothDirections
+            ? BoatDirection::from($row->direction)->label().' · '
+            : '';
+
+        return array_values(array_map(function (array $group) use ($prefix): ReportSection {
             $first = $group[0];
             $keys = array_map(fn (BoatManifestRow $row): int => $row->key, $group);
+            $guests = array_sum(array_map(fn (BoatManifestRow $row): int => $row->total, $group));
+
+            if ($first->not_set) {
+                return new ReportSection(
+                    title: __('Boat not set: follow up'),
+                    rowKeys: $keys,
+                    subtotal: trans_choice(':count guest|:count guests', $guests),
+                    tone: Tone::Warning,
+                );
+            }
 
             if ($first->boat_departure_id === null) {
                 return new ReportSection(
@@ -95,16 +147,15 @@ class BoatManifestReport implements HasSections, HasTotals, Report
                 );
             }
 
-            $taken = array_sum(array_map(fn (BoatManifestRow $row): int => $row->total, $group));
             $limit = $first->seats;
 
             return new ReportSection(
-                title: $first->departure,
+                title: $prefix($first).$first->departure,
                 rowKeys: $keys,
                 subtotal: $limit === null
-                    ? (string) $taken
-                    : __(':taken / :limit seats', ['taken' => $taken, 'limit' => $limit]),
-                tone: $limit !== null && $taken > $limit ? Tone::Warning : null,
+                    ? (string) $guests
+                    : __(':taken / :limit seats', ['taken' => $guests, 'limit' => $limit]),
+                tone: $limit !== null && $guests > $limit ? Tone::Warning : null,
             );
         }, $groups));
     }
@@ -120,6 +171,7 @@ class BoatManifestReport implements HasSections, HasTotals, Report
             'departure' => null,
             'unit' => null,
             'lead_guest' => null,
+            'agent' => null,
             'phone' => null,
             'adults' => array_sum(array_map(fn (BoatManifestRow $row): int => $row->adults, $rows)),
             'children' => array_sum(array_map(fn (BoatManifestRow $row): int => $row->children, $rows)),

@@ -323,6 +323,7 @@ enum ReportKey: string
                 new ReportColumn('departure', __('Departure'), ColumnAlign::Left, true),
                 new ReportColumn('unit', __('Room'), ColumnAlign::Left, true),
                 new ReportColumn('lead_guest', __('Lead guest'), ColumnAlign::Left, true),
+                new ReportColumn('agent', __('Agent'), ColumnAlign::Left, true),
                 new ReportColumn('phone', __('Phone'), ColumnAlign::Left, true),
                 new ReportColumn('adults', __('Adults'), ColumnAlign::Right, true),
                 new ReportColumn('children', __('Children'), ColumnAlign::Right, true),

@@ -12,6 +12,7 @@ use App\Enums\Tone;
 use App\Enums\UnitStatus;
 use App\Features\Boats;
 use App\Models\BoatDeparture;
+use App\Models\Company;
 use App\Models\Guest;
 use App\Models\Property;
 use App\Models\Reservation;
@@ -443,4 +444,47 @@ test('an empty date says there is no boat trip, and no departures says so with a
 
     $this->actingAs($owner)->get(manifestUrl($property, '?date=2026-10-20&direction=out'))
         ->assertInertia(fn (Assert $page) => $page->where('emptyTitle', 'No boat out trips on 20 Oct.'));
+});
+
+test('a unit that arrives with no boat set is listed to follow up, with its agent', function () {
+    [, $property] = manifestSetup();
+    $departure = manifestDeparture($property, BoatDirection::In, '09:00:00', '09:45:00');
+    $withTrip = manifestUnit($property);
+    manifestTrip($property, $withTrip, BoatDirection::In, $departure);
+    $missing = manifestUnit($property, [], 'Lim Pock Gin');
+    $missing->reservation->forceFill(['company_id' => Company::factory()->for($property)->create(['name' => 'Good Earth'])->id])->save();
+    manifestUnit($property, ['status' => UnitStatus::Cancelled], 'Cancelled Guest');
+
+    $rows = manifestRows($property, BoatDirection::In);
+    $sections = app(BoatManifestReport::class)->sections($rows, new ReportFilters(from: '2026-10-20', to: '2026-10-20', direction: BoatDirection::In));
+
+    expect(array_map(fn (BoatManifestRow $row): array => [$row->lead_guest, $row->agent, $row->not_set], $rows))->toBe([
+        ['Lead Guest', 'Direct booking', false],
+        ['Lim Pock Gin', 'Good Earth', true],
+    ])
+        ->and($rows[1]->key)->toBe(BoatManifestRow::notSetKey($missing->id, BoatDirection::In))
+        ->and(end($sections)->title)->toBe('Boat not set: follow up')
+        ->and(end($sections)->tone)->toBe(Tone::Warning);
+});
+
+test('Boat in and out together lists every departure of the date in time order', function () {
+    [$manager, $property] = manifestSetup();
+    $out = manifestDeparture($property, BoatDirection::Out, '08:00:00', '08:45:00');
+    $in = manifestDeparture($property, BoatDirection::In, '09:00:00', '09:45:00');
+    $leaving = manifestUnit($property, ['arrival_date' => '2026-10-18', 'departure_date' => '2026-10-20'], 'Tan Danping');
+    manifestTrip($property, $leaving, BoatDirection::Out, $out);
+    $arriving = manifestUnit($property, [], 'Wang Jue Ying');
+    manifestTrip($property, $arriving, BoatDirection::In, $in);
+    manifestTrip($property, $arriving, BoatDirection::Out, $out);
+
+    $filters = new ReportFilters(from: '2026-10-20', to: '2026-10-20', bothDirections: true);
+    $rows = app(BoatManifestReport::class)->rows($property, $filters);
+    $sections = app(BoatManifestReport::class)->sections($rows, $filters);
+
+    expect(array_map(fn (BoatManifestRow $row): string => $row->direction.' '.$row->lead_guest, $rows))->toBe(['out Tan Danping', 'in Wang Jue Ying'])
+        ->and(array_map(fn ($section): string => $section->title, $sections))->toBe(['Boat out · 08:00 Kuala Besut jetty → 08:45', 'Boat in · 09:00 Kuala Besut jetty → 09:45'])
+        ->and($filters->query(true)['direction'])->toBe('both');
+
+    $this->actingAs($manager)->get(manifestUrl($property, '?date=2026-10-20&direction=both'))
+        ->assertInertia(fn (Assert $page) => $page->where('direction', 'both')->has('rows.data', 2));
 });

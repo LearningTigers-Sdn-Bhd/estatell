@@ -49,10 +49,11 @@ class BoatManifestReportController extends Controller
             'to' => $filters->to,
             'maxRangeDays' => $key->maxRangeDays(),
             'currency' => CurrencyData::forProperty($property),
-            'direction' => $direction->value,
-            'directionOptions' => BoatDirection::options(),
+            'direction' => $filters->bothDirections ? 'both' : $direction->value,
+            'directionOptions' => [...BoatDirection::options(), ['value' => 'both', 'label' => __('Boat in and out')]],
             'emptyTitle' => match (true) {
                 ! $hasDepartures => __('No departures yet'),
+                $filters->bothDirections => __('No boat trips on :date.', ['date' => $date]),
                 $direction === BoatDirection::Out => __('No boat out trips on :date.', ['date' => $date]),
                 default => __('No boat in trips on :date.', ['date' => $date]),
             },

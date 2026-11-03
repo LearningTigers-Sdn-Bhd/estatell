@@ -4,14 +4,16 @@ namespace App\Data\Reports;
 
 use App\Enums\BoatDirection;
 use App\Enums\BoatMode;
+use App\Enums\BookingSourceType;
 use App\Models\ReservationUnit;
 use App\Models\UnitBoatTrip;
 use Spatie\LaravelData\Data;
 
 /**
  * One trip of the Boat manifest: a unit's Boat in or Boat out on the date. The property names are the column keys of
- * `ReportKey::BoatManifest`. `key` is the trip id. `boat_departure_id` and `seats` group the row into its departure
- * (null for a charter or own boat trip). They are not columns.
+ * `ReportKey::BoatManifest`. `key` is the trip id, or for a unit with no trip in that direction ("Boat not set") a
+ * negative key from `notSetKey()`. `boat_departure_id`, `seats`, `direction` and `not_set` group the row into its
+ * section. They are not columns. `agent` is the company, else "Direct booking", else the booking source.
  */
 class BoatManifestRow extends Data implements ReportRow
 {
@@ -20,6 +22,7 @@ class BoatManifestRow extends Data implements ReportRow
         public string $departure,
         public string $unit,
         public string $lead_guest,
+        public string $agent,
         public ?string $phone,
         public int $adults,
         public int $children,
@@ -28,7 +31,55 @@ class BoatManifestRow extends Data implements ReportRow
         public ?string $note,
         public ?int $boat_departure_id,
         public ?int $seats,
+        public string $direction = 'in',
+        public bool $not_set = false,
     ) {}
+
+    /**
+     * The row key of a unit with no trip in `$direction`: negative, so it never meets a trip id, and different for
+     * Boat in and Boat out of the same unit.
+     */
+    public static function notSetKey(int $unitId, BoatDirection $direction): int
+    {
+        return -($unitId * 2 + ($direction === BoatDirection::Out ? 1 : 0));
+    }
+
+    /**
+     * The row of a unit that arrives (Boat in) or leaves (Boat out) on the date with no trip set, for the desk to
+     * follow up.
+     */
+    public static function notSet(ReservationUnit $unit, BoatDirection $direction, ?string $room): self
+    {
+        $occupant = ($unit->guests->firstWhere('is_primary', true) ?? $unit->guests->first())->guest ?? $unit->reservation->booker;
+
+        return new self(
+            key: self::notSetKey($unit->id, $direction),
+            departure: __('Not set · :time', ['time' => substr($direction === BoatDirection::In ? $unit->arrival_time : $unit->departure_time, 0, 5)]),
+            unit: $room ?? $unit->roomType->name,
+            lead_guest: $occupant->full_name,
+            agent: self::agentOf($unit),
+            phone: $occupant->phone,
+            adults: $unit->adults,
+            children: $unit->children,
+            total: $unit->adults + $unit->children,
+            reservation: $unit->reservation->reference,
+            note: null,
+            boat_departure_id: null,
+            seats: null,
+            direction: $direction->value,
+            not_set: true,
+        );
+    }
+
+    private static function agentOf(ReservationUnit $unit): string
+    {
+        $reservation = $unit->reservation;
+
+        return $reservation->company?->name
+            ?? ($reservation->bookingSource === null || $reservation->bookingSource->type === BookingSourceType::Direct || $reservation->bookingSource->type === BookingSourceType::WalkIn
+                ? __('Direct booking')
+                : $reservation->bookingSource->name);
+    }
 
     /**
      * @return array<string, string>
@@ -39,6 +90,7 @@ class BoatManifestRow extends Data implements ReportRow
             'departure' => $this->departure,
             'unit' => $this->unit,
             'lead_guest' => $this->lead_guest,
+            'agent' => $this->agent,
             'phone' => $this->phone ?? '',
             'adults' => (string) $this->adults,
             'children' => (string) $this->children,
@@ -57,6 +109,7 @@ class BoatManifestRow extends Data implements ReportRow
             'departure' => $this->departure,
             'unit' => $this->unit,
             'lead_guest' => $this->lead_guest,
+            'agent' => $this->agent,
             'phone' => $this->phone ?? '',
             'adults' => $this->adults,
             'children' => $this->children,
@@ -88,6 +141,7 @@ class BoatManifestRow extends Data implements ReportRow
                 : ($trip->mode === BoatMode::Charter ? __('Charter :time', ['time' => $time]) : __('Own :time', ['time' => $time])),
             unit: $room ?? $unit->roomType->name,
             lead_guest: $occupant->full_name,
+            agent: self::agentOf($unit),
             phone: $occupant->phone,
             adults: $unit->adults,
             children: $unit->children,
@@ -96,6 +150,7 @@ class BoatManifestRow extends Data implements ReportRow
             note: $trip->note,
             boat_departure_id: $isScheduled ? $departure->id : null,
             seats: $isScheduled ? $departure->seats : null,
+            direction: $trip->direction->value,
         );
     }
 }

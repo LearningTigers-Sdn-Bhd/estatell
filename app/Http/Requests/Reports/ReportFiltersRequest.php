@@ -66,7 +66,7 @@ class ReportFiltersRequest extends FormRequest
                 'bucket' => ['nullable', Rule::enum(ChargeBucket::class)],
                 'search' => ['nullable', 'string', 'max:100'],
             ] : []),
-            ...($this->reportKey()->hasDirectionFilter() ? ['direction' => ['nullable', Rule::enum(BoatDirection::class)]] : []),
+            ...($this->reportKey()->hasDirectionFilter() ? ['direction' => ['nullable', Rule::in([...array_column(BoatDirection::cases(), 'value'), 'both'])]] : []),
             ...($groups === [] ? [] : ['group' => ['nullable', Rule::in(array_map(fn (ReportGroup $group): string => $group->value, $groups))]]),
         ];
     }
@@ -140,7 +140,7 @@ class ReportFiltersRequest extends FormRequest
             $date = $this->input('date');
             $date = is_string($date) && $date !== '' ? $date : $this->businessDate();
 
-            return new ReportFilters(from: $date, to: $date, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly(), foreignOnly: $this->foreignOnly(), direction: $this->direction(), bucket: $this->bucket(), search: $this->search());
+            return new ReportFilters(from: $date, to: $date, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly(), foreignOnly: $this->foreignOnly(), direction: $this->direction(), bucket: $this->bucket(), search: $this->search(), bothDirections: $this->bothDirections());
         }
 
         $from = $this->input('from');
@@ -150,7 +150,7 @@ class ReportFiltersRequest extends FormRequest
         $default = $this->businessDate();
         $defaultFrom = Date::parse($default)->subDays($this->reportKey()->defaultDays() - 1)->toDateString();
 
-        return new ReportFilters(from: $from ?? $to ?? $defaultFrom, to: $to ?? $from ?? $default, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly(), foreignOnly: $this->foreignOnly(), direction: $this->direction(), bucket: $this->bucket(), search: $this->search());
+        return new ReportFilters(from: $from ?? $to ?? $defaultFrom, to: $to ?? $from ?? $default, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly(), foreignOnly: $this->foreignOnly(), direction: $this->direction(), bucket: $this->bucket(), search: $this->search(), bothDirections: $this->bothDirections());
     }
 
     /**
@@ -177,16 +177,24 @@ class ReportFiltersRequest extends FormRequest
     }
 
     /**
-     * The direction of the Boat manifest: the `direction` in the URL, or Boat in when none is given. Other reports
-     * ignore it.
+     * The direction of the Boat manifest: the `direction` in the URL, or Boat in when none is given. Null with `both`.
+     * Other reports ignore it.
      */
     private function direction(): ?BoatDirection
     {
-        if (! $this->reportKey()->hasDirectionFilter()) {
+        if (! $this->reportKey()->hasDirectionFilter() || $this->bothDirections()) {
             return null;
         }
 
         return BoatDirection::tryFrom($this->string('direction')->toString()) ?? BoatDirection::In;
+    }
+
+    /**
+     * Whether the Boat manifest shows Boat in and Boat out together (`direction=both`).
+     */
+    private function bothDirections(): bool
+    {
+        return $this->reportKey()->hasDirectionFilter() && $this->string('direction')->toString() === 'both';
     }
 
     /**
