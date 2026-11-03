@@ -106,6 +106,7 @@ export default function ChargeItemEdit({
         tax_ids: chargeItem.taxIds.map(String),
         auto_add: chargeItem.autoAdd,
         auto_add_channels: chargeItem.autoAddChannels,
+        housekeeping_item: chargeItem.housekeepingItem,
         child_prices: childPrices.map((price) => ({
             property_age_group_id: price.ageGroupId,
             pricing: price.pricing as string,
@@ -517,6 +518,28 @@ export default function ChargeItemEdit({
                                     <FieldError>
                                         {errors.auto_add_channels}
                                     </FieldError>
+                                </FieldContent>
+                            </Field>
+                            <Field orientation="horizontal">
+                                <Switch
+                                    id="charge-item-housekeeping"
+                                    checked={form.data.housekeeping_item}
+                                    onCheckedChange={(checked) =>
+                                        form.setData(
+                                            'housekeeping_item',
+                                            checked,
+                                        )
+                                    }
+                                />
+                                <FieldContent>
+                                    <FieldLabel htmlFor="charge-item-housekeeping">
+                                        Show to housekeeping
+                                    </FieldLabel>
+                                    <FieldDescription>
+                                        List it on the Housekeeping items
+                                        report, so the room is set up: an extra
+                                        bed, a baby cot, a cake.
+                                    </FieldDescription>
                                 </FieldContent>
                             </Field>
                         </Section>

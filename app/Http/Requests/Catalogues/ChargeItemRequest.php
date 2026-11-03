@@ -124,6 +124,7 @@ class ChargeItemRequest extends FormRequest
                 },
             ],
             'auto_add_channels' => ['sometimes', 'boolean'],
+            'housekeeping_item' => ['sometimes', 'boolean'],
             'active' => [
                 'required', 'boolean',
                 function (string $attribute, mixed $value, Closure $fail) use ($current): void {

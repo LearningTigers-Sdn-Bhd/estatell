@@ -640,3 +640,13 @@ test('the database keeps channel bookings off for an item that is not added to e
 
     expect(fn () => $item->forceFill(['auto_add_channels' => true])->save())->toThrow(QueryException::class);
 });
+
+test('an item can be shown to housekeeping', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    $item = ChargeItem::factory()->for($property)->create(['default_amount' => '50.00', 'charging_unit' => ChargingUnit::PerStay]);
+
+    $this->actingAs($owner)->put(route('settings.charge-items.update', [$property->code, $item]), chargeItemPayloadFor($item, ['housekeeping_item' => true]))->assertSessionHasNoErrors();
+
+    expect($item->refresh()->housekeeping_item)->toBeTrue();
+});

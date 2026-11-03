@@ -176,6 +176,7 @@ chargingUnit: App.Enums.ChargingUnit,
 allowOverride: boolean,
 autoAdd: boolean,
 autoAddChannels: boolean,
+housekeepingItem: boolean,
 needsChildPriceReview: boolean,
 active: boolean,
 taxIds: number[],
@@ -2910,6 +2911,17 @@ kind: string,
 staff: string | null,
 amount: string,
 };
+export type HousekeepingItemRow = {
+key: string,
+room: string,
+guest: string,
+pax: number,
+item: string,
+quantity: number,
+action: string,
+arrival: string,
+departure: string,
+};
 export type HousekeepingTaskRow = {
 key: number,
 due: number,
@@ -4310,7 +4322,7 @@ export type RegistrationCardStatus = 'draft' | 'signed' | 'void';
 export type ReportCategory = 'front-desk' | 'revenue' | 'finance' | 'kitchen' | 'audit';
 export type ReportDatePreset = 'today' | 'yesterday' | 'tomorrow' | 'next-7-days' | 'this-week' | 'last-week' | 'next-week' | 'this-month' | 'last-month' | 'this-year' | 'last-30-days';
 export type ReportGroup = 'day' | 'month' | 'method' | 'staff';
-export type ReportKey = 'arrivals' | 'departures' | 'in-house' | 'occupancy' | 'revenue' | 'payments' | 'folio-ledger' | 'tax' | 'meal-counts' | 'night-audit-history' | 'outstanding-balance' | 'deposit-liability' | 'non-national-guests' | 'police-report' | 'housekeeping-tasks' | 'boat-manifest' | 'checked-out' | 'daily-revenue' | 'daily-charges';
+export type ReportKey = 'arrivals' | 'departures' | 'in-house' | 'occupancy' | 'revenue' | 'payments' | 'folio-ledger' | 'tax' | 'meal-counts' | 'night-audit-history' | 'outstanding-balance' | 'deposit-liability' | 'non-national-guests' | 'police-report' | 'housekeeping-tasks' | 'housekeeping-items' | 'boat-manifest' | 'checked-out' | 'daily-revenue' | 'daily-charges';
 export type ReservationRoomBoxState = 'assigned' | 'unassigned' | 'auto_assign' | 'cancelled' | 'no_show';
 export type ReservationStatus = 'confirmed' | 'in_house' | 'completed' | 'cancelled';
 export type RevisionKind = 'new' | 'modified' | 'cancelled';

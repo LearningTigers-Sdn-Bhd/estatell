@@ -23,6 +23,7 @@ use App\Services\Reports\HasBreakdown;
 use App\Services\Reports\HasNote;
 use App\Services\Reports\HasSections;
 use App\Services\Reports\HasTotals;
+use App\Services\Reports\HousekeepingItemsReport;
 use App\Services\Reports\HousekeepingTasksReport;
 use App\Services\Reports\InHouseReport;
 use App\Services\Reports\MealCountsReport;
@@ -58,6 +59,8 @@ enum ReportKey: string
     case NonNationalGuests = 'non-national-guests';
     case PoliceReport = 'police-report';
     case HousekeepingTasks = 'housekeeping-tasks';
+
+    case HousekeepingItems = 'housekeeping-items';
     case BoatManifest = 'boat-manifest';
     case CheckedOut = 'checked-out';
     case DailyRevenue = 'daily-revenue';
@@ -81,6 +84,7 @@ enum ReportKey: string
             self::NonNationalGuests => __('Non-national guests'),
             self::PoliceReport => __('Police report'),
             self::HousekeepingTasks => __('Housekeeping tasks'),
+            self::HousekeepingItems => __('Housekeeping items'),
             self::BoatManifest => __('Boat manifest'),
             self::CheckedOut => __('Checked out'),
             self::DailyRevenue => __('Daily revenue'),
@@ -91,7 +95,7 @@ enum ReportKey: string
     public function category(): ReportCategory
     {
         return match ($this) {
-            self::Arrivals, self::Departures, self::InHouse, self::PoliceReport, self::HousekeepingTasks, self::BoatManifest, self::CheckedOut => ReportCategory::FrontDesk,
+            self::Arrivals, self::Departures, self::InHouse, self::PoliceReport, self::HousekeepingTasks, self::HousekeepingItems, self::BoatManifest, self::CheckedOut => ReportCategory::FrontDesk,
             self::Occupancy, self::Revenue, self::Tax, self::NonNationalGuests, self::DailyRevenue, self::DailyCharges => ReportCategory::Revenue,
             self::Payments, self::FolioLedger, self::OutstandingBalance, self::DepositLiability => ReportCategory::Finance,
             self::MealCounts => ReportCategory::Kitchen,
@@ -102,7 +106,7 @@ enum ReportKey: string
     public function defaultOrientation(): PageOrientation
     {
         return match ($this) {
-            self::Arrivals, self::Departures, self::InHouse, self::Occupancy, self::Revenue, self::Payments, self::MealCounts, self::BoatManifest, self::CheckedOut => PageOrientation::Portrait,
+            self::Arrivals, self::Departures, self::InHouse, self::Occupancy, self::Revenue, self::Payments, self::MealCounts, self::BoatManifest, self::HousekeepingItems, self::CheckedOut => PageOrientation::Portrait,
             self::FolioLedger, self::Tax, self::NightAuditHistory, self::OutstandingBalance, self::DepositLiability, self::NonNationalGuests, self::PoliceReport, self::HousekeepingTasks, self::DailyRevenue, self::DailyCharges => PageOrientation::Landscape,
         };
     }
@@ -126,6 +130,7 @@ enum ReportKey: string
             self::DepositLiability, self::NonNationalGuests => 'arrival',
             self::PoliceReport => 'room',
             self::HousekeepingTasks => 'due',
+            self::HousekeepingItems => 'room',
             self::BoatManifest => 'departure',
             self::CheckedOut => '-balance',
         };
@@ -138,7 +143,7 @@ enum ReportKey: string
     {
         return match ($this) {
             self::Arrivals, self::Departures, self::FolioLedger, self::MealCounts, self::NonNationalGuests, self::PoliceReport, self::CheckedOut, self::DailyCharges => 31,
-            self::InHouse, self::OutstandingBalance, self::DepositLiability, self::HousekeepingTasks, self::BoatManifest => null,
+            self::InHouse, self::OutstandingBalance, self::DepositLiability, self::HousekeepingTasks, self::HousekeepingItems, self::BoatManifest => null,
             self::Occupancy, self::Revenue, self::Payments, self::Tax, self::NightAuditHistory, self::DailyRevenue => 366,
         };
     }
@@ -168,7 +173,7 @@ enum ReportKey: string
     {
         return match ($this) {
             self::MealCounts => [ReportDatePreset::Today, ReportDatePreset::Tomorrow, ReportDatePreset::Next7Days, ReportDatePreset::ThisWeek, ReportDatePreset::NextWeek],
-            self::BoatManifest => [ReportDatePreset::Today, ReportDatePreset::Tomorrow],
+            self::BoatManifest, self::HousekeepingItems => [ReportDatePreset::Today, ReportDatePreset::Tomorrow],
             default => null,
         };
     }
@@ -319,6 +324,15 @@ enum ReportKey: string
     public function columns(): array
     {
         return match ($this) {
+            self::HousekeepingItems => [
+                new ReportColumn('room', __('Room'), ColumnAlign::Left, true),
+                new ReportColumn('guest', __('Guest'), ColumnAlign::Left, true),
+                new ReportColumn('pax', __('Pax'), ColumnAlign::Right, true),
+                new ReportColumn('item', __('Item'), ColumnAlign::Left, true),
+                new ReportColumn('quantity', __('Qty'), ColumnAlign::Right, true),
+                new ReportColumn('action', __('Action'), ColumnAlign::Left, true),
+                new ReportColumn('stay', __('Stay'), ColumnAlign::Left, true),
+            ],
             self::BoatManifest => [
                 new ReportColumn('departure', __('Departure'), ColumnAlign::Left, true),
                 new ReportColumn('unit', __('Room'), ColumnAlign::Left, true),
@@ -625,6 +639,7 @@ enum ReportKey: string
             self::NonNationalGuests => 'users',
             self::PoliceReport => 'id-card',
             self::HousekeepingTasks => 'bed',
+            self::HousekeepingItems => 'spray-can',
             self::BoatManifest => 'ship',
             self::CheckedOut => 'door-open',
             self::DailyRevenue => 'chart-column',
@@ -650,6 +665,7 @@ enum ReportKey: string
             self::NonNationalGuests => app(NonNationalGuestsReport::class),
             self::PoliceReport => app(PoliceReport::class),
             self::HousekeepingTasks => app(HousekeepingTasksReport::class),
+            self::HousekeepingItems => app(HousekeepingItemsReport::class),
             self::BoatManifest => app(BoatManifestReport::class),
             self::CheckedOut => app(CheckedOutReport::class),
             self::DailyRevenue => app(DailyRevenueReport::class),

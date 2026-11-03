@@ -263,6 +263,7 @@ test('the Reports navigation groups the reports by category and needs reports.vi
                     'items' => [
                         ['title' => 'Guest list', 'href' => "/p/{$property->code}/reports/guest-list", 'icon' => 'users', 'external' => false, 'active' => true, 'action' => null, 'badge' => null],
                         ['title' => 'Police report', 'href' => "/p/{$property->code}/reports/police-report", 'icon' => 'id-card', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
+                        ['title' => 'Housekeeping items', 'href' => "/p/{$property->code}/reports/housekeeping-items", 'icon' => 'spray-can', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
                     ],
                 ],
                 [

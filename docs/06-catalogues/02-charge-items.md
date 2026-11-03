@@ -10,6 +10,7 @@ The things staff can post to a folio: extra bed, breakfast, laundry, parking, bo
 charge_items    id, property_id, transaction_code_id (unique), name, description,
                 default_amount (nullable), charging_unit (ChargingUnit), allow_override,
                 auto_add (default false), auto_add_channels (default false),
+                housekeeping_item (default false),
                 needs_child_price_review (default false), position, active, timestamps
                 CHECK auto_add needs default_amount
                 CHECK auto_add_channels needs auto_add
@@ -84,6 +85,8 @@ A PerGuest or PerGuestNight item can charge children less than adults, by [age g
 - Where it applies is in [Add-ons](../12-reservations/04-add-ons.md#added-automatically).
 - **Also add to channel bookings** (`auto_add_channels`, default off) adds the item to OTA bookings too, for a fee the guest pays at the property, such as a jetty fee. It needs Add to every new booking (database CHECK): the switch is disabled until that is on, and turning that off turns it off. The list badge reads "Auto, channels too".
 
+- **Show to housekeeping** (`housekeeping_item`) lists the item on the [Housekeeping items](../22-reports/03-house-status-and-items.md#housekeeping-items) report, so the room is set up (an extra bed, a baby cot).
+
 ## Taxes
 
 The item form selects the taxes that apply to the item. It writes the same `tax_transaction_code` pivot as the tax form (see [Taxes](03-taxes.md)).
@@ -120,7 +123,7 @@ Details        Name, Code, Category, Description
 Pricing        Charged (charging unit), Price: Fixed amount or Enter when charging,
                Allow other amount when charging
 Children       One row per age group: Free, % or Fixed (per guest items only)
-New bookings   Add to every new booking, Also add to channel bookings
+New bookings   Add to every new booking, Also add to channel bookings, Show to housekeeping
 Taxes          The taxes multiselect
 ```
 
