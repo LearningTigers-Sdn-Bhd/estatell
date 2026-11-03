@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\PermissionEnum;
+use App\Http\Controllers\Reservations\ArrivalImportController;
 use App\Http\Controllers\Reservations\BookingSummaryController;
 use App\Http\Controllers\Reservations\ReservationBoatTripController;
 use App\Http\Controllers\Reservations\ReservationBookerController;
@@ -36,6 +37,10 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
             Route::get('migrated', [ReservationBookingController::class, 'migrated'])->name('migrated');
             Route::get('old', [ReservationBookingController::class, 'old'])->name('old');
             Route::post('past', [ReservationBookingController::class, 'storePast'])->name('store-past');
+            Route::get('import', [ArrivalImportController::class, 'create'])->name('import');
+            Route::post('import/preview', [ArrivalImportController::class, 'preview'])->name('import.preview');
+            Route::post('import', [ArrivalImportController::class, 'store'])->name('import.store');
+            Route::get('import-template.{format}', [ArrivalImportController::class, 'template'])->name('import-template');
         });
         Route::get('free-units', [ReservationBookingController::class, 'freeUnits'])->name('free-units');
         Route::get('day-use-offers', [ReservationBookingController::class, 'dayUseOffers'])->name('day-use-offers');

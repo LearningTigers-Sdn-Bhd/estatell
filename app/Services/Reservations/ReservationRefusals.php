@@ -7,6 +7,7 @@ use App\Actions\Folio\FolioStatusResult;
 use App\Actions\Folio\PostingResult;
 use App\Actions\FrontDesk\UnitStayResult;
 use App\Actions\Reservations\AddOnResult;
+use App\Actions\Reservations\ArrivalImportResult;
 use App\Actions\Reservations\AssignmentResult;
 use App\Actions\Reservations\AttachGuestResult;
 use App\Actions\Reservations\BookingResult;
@@ -199,6 +200,9 @@ class ReservationRefusals
         $day = $date?->format('d M Y') ?? '';
 
         return match ($code) {
+            ArrivalImportResult::REFUSAL_HAS_PROBLEMS => [self::FORM, __('Some rows have problems. Fix the file and upload it again.')],
+            ArrivalImportResult::REFUSAL_NOTHING_TO_IMPORT => [self::FORM, __('Nothing to import: every row is skipped or already imported.')],
+            ArrivalImportResult::REFUSAL_NO_OLD_SYSTEM_METHOD => [self::FORM, __('This property has no Old system payment method, so deposits cannot be recorded.')],
             ReservationResult::REFUSAL_RESERVATION_CLOSED => [self::FORM, __('This reservation is closed, so it cannot change.')],
             ReservationResult::REFUSAL_BOOKING_SOURCE_NOT_AVAILABLE => ['booking_source_id', __('This booking source is not available. Pick another.')],
             ReservationResult::REFUSAL_COMPANY_NOT_AVAILABLE => ['company_id', __('This company is not available. Pick an active company.')],
