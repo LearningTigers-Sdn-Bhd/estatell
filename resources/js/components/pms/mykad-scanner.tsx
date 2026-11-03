@@ -10,9 +10,9 @@ import {
 import { cn } from '@/lib/utils';
 
 export type MyKadScannerProps = {
-    onScan: (data: MyKadData) => void;
+    /** Leave out to show the status only, as the guest tables do. */
+    onScan?: (data: MyKadData) => void;
     className?: string;
-    autoScan?: boolean;
 };
 
 const dotClass = {
@@ -25,14 +25,9 @@ const dotClass = {
 /**
  * One status chip for MyKad Reader. The form fills itself when a card goes in.
  */
-export function MyKadScanner({
-    onScan,
-    className,
-    autoScan = true,
-}: MyKadScannerProps) {
+export function MyKadScanner({ onScan, className }: MyKadScannerProps) {
     const { status, isBridgeOutdated, error, errorCode } = useMykadReader({
         onScan,
-        autoScan,
     });
 
     const chip = readerChip(status, isBridgeOutdated, bridgeDownload());

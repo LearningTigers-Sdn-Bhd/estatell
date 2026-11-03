@@ -27,6 +27,9 @@ import {
     GuestsHeader,
     SavedGuestRow,
 } from '@/components/pms/reservations/guest-table-row';
+import { MyKadScanner } from '@/components/pms/mykad-scanner';
+import { isEmptyGuest } from '@/components/pms/reservations/guest-mykad';
+import { useMykadTarget } from '@/components/pms/reservations/use-guest-mykad';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -139,6 +142,26 @@ export function GuestsTab({
               (draft) => (homes[draft.key] ?? draft.stays_in) === activeGroup,
           )
         : adding;
+    const shownReplacing = drafts.filter((draft) =>
+        shownRows.some(
+            (row, index) =>
+                replacements[draft.key]?.rowKey === rowKey(row, index),
+        ),
+    );
+    const mykadTarget = useMykadTarget(
+        canManage && canManageGuests
+            ? [
+                  ...shownRows.map((row, index) => ({
+                      key: rowKey(row, index),
+                      empty: false,
+                  })),
+                  ...[...shownReplacing, ...shownDrafts].map((draft) => ({
+                      key: draft.key,
+                      empty: isEmptyGuest(draft),
+                  })),
+              ]
+            : [],
+    );
     const empty = unitsWithoutGuest(guests, drafts);
     const inUnit = shownRows.filter((row) => row.name !== null).length;
     const summaryLabel = summaryHidden ? 'Show summary' : 'Hide summary';
@@ -303,26 +326,29 @@ export function GuestsTab({
                 ) : (
                     <span />
                 )}
-                <Tooltip>
-                    <TooltipTrigger
-                        render={
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                aria-label={summaryLabel}
-                                aria-pressed={summaryHidden}
-                                onClick={onToggleSummary}
-                            />
-                        }
-                    >
-                        {summaryHidden ? (
-                            <PanelRightOpen />
-                        ) : (
-                            <PanelRightClose />
-                        )}
-                    </TooltipTrigger>
-                    <TooltipContent>{summaryLabel}</TooltipContent>
-                </Tooltip>
+                <div className="flex items-center gap-2">
+                    {canManage && canManageGuests && <MyKadScanner />}
+                    <Tooltip>
+                        <TooltipTrigger
+                            render={
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    aria-label={summaryLabel}
+                                    aria-pressed={summaryHidden}
+                                    onClick={onToggleSummary}
+                                />
+                            }
+                        >
+                            {summaryHidden ? (
+                                <PanelRightOpen />
+                            ) : (
+                                <PanelRightClose />
+                            )}
+                        </TooltipTrigger>
+                        <TooltipContent>{summaryLabel}</TooltipContent>
+                    </Tooltip>
+                </div>
             </div>
             <div className="rounded-lg border text-sm">
                 <GuestsHeader showUnit={showUnit} />
@@ -344,6 +370,7 @@ export function GuestsTab({
                                     showUnit={false}
                                     replacing={replacements[replacing.key]}
                                     canManageGuests={canManageGuests}
+                                    mykadTarget={mykadTarget}
                                     countries={countries}
                                     genders={genders}
                                     locales={locales}
@@ -391,6 +418,7 @@ export function GuestsTab({
                                               (unit) => unit.id !== row.unitId,
                                           ))
                                 }
+                                mykadTarget={mykadTarget}
                                 countries={countries}
                                 genders={genders}
                                 locales={locales}
@@ -412,6 +440,7 @@ export function GuestsTab({
                             units={openUnits}
                             full={fullUnitIds(guests, drafts, units, draft.key)}
                             canManageGuests={canManageGuests}
+                            mykadTarget={mykadTarget}
                             countries={countries}
                             genders={genders}
                             locales={locales}

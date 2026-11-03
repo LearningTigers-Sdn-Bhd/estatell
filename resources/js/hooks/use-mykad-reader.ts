@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { download } from '@/routes/mykad-reader';
 
 export type MyKadData = {
@@ -23,19 +23,12 @@ export type ReaderStatus =
     | 'no_reader'
     | 'ready'
     | 'card_present'
+    | 'card_read'
     | 'reading'
     | 'error';
 
-export type UseMykadReaderOptions = {
-    bridgeUrl?: string;
-    pollInterval?: number;
-    enabled?: boolean;
-    autoScan?: boolean;
-    onScan?: (data: MyKadData) => void;
-};
-
-const DEFAULT_BRIDGE_URL = 'http://127.0.0.1:9292';
-const DEFAULT_POLL_INTERVAL = 2500;
+const BRIDGE_URL = 'http://127.0.0.1:9292';
+const POLL_INTERVAL = 2500;
 
 /** Oldest MyKad Reader the app works with. Keep in step with the version in the estatell-mykad-reader repo. */
 export const REQUIRED_BRIDGE_VERSION = '2.0.0';
@@ -144,6 +137,10 @@ export function readerChip(
         return { tone: 'busy', label: 'Reading the card…', href: null };
     }
 
+    if (status === 'card_read') {
+        return { tone: 'idle', label: 'Take the card out', href: null };
+    }
+
     return { tone: 'ready', label: 'Ready for MyKad', href: null };
 }
 
@@ -193,43 +190,108 @@ export function base64ToFile(
     }
 }
 
-export function useMykadReader({
-    bridgeUrl = DEFAULT_BRIDGE_URL,
-    pollInterval = DEFAULT_POLL_INTERVAL,
-    enabled = true,
-    autoScan = true,
-    onScan,
-}: UseMykadReaderOptions = {}) {
-    const [status, setStatus] = useState<ReaderStatus>('checking');
-    const [cardPresent, setCardPresent] = useState(false);
-    const [readerName, setReaderName] = useState<string | null>(null);
-    const [bridgeVersion, setBridgeVersion] = useState<string | null>(null);
-    const [error, setError] = useState<string | null>(null);
-    const [errorCode, setErrorCode] = useState<string | null>(null);
-    const [lastScannedData, setLastScannedData] = useState<MyKadData | null>(
-        null,
-    );
-    const [isScanning, setIsScanning] = useState(false);
+/** Who gets the next card. A dialog or sheet (`screen`) goes before the guest rows behind it (`row`). */
+export type ReaderClaimPriority = 'screen' | 'row';
 
-    const isScanningRef = useRef(false);
-    isScanningRef.current = isScanning;
-    const wasCardPresentRef = useRef(false);
-    const onScanRef = useRef(onScan);
-    onScanRef.current = onScan;
+export type ReaderSnapshot = {
+    status: ReaderStatus;
+    bridgeVersion: string | null;
+    error: string | null;
+    errorCode: string | null;
+};
 
-    const scan = useCallback(async (): Promise<MyKadData | null> => {
-        if (isScanningRef.current) return null;
+type ReaderClaim = {
+    onScan: (card: MyKadData) => void;
+    priority: ReaderClaimPriority;
+};
 
-        setIsScanning(true);
-        setStatus('reading');
-        setError(null);
-        setErrorCode(null);
+const INITIAL_SNAPSHOT: ReaderSnapshot = {
+    status: 'checking',
+    bridgeVersion: null,
+    error: null,
+    errorCode: null,
+};
+
+/** The card fields in the one shape the forms take. */
+function normalizeCard(raw: Record<string, any>): MyKadData {
+    const rawIc =
+        raw.raw_ic ||
+        raw.ic_number ||
+        (typeof raw.government_id === 'string'
+            ? raw.government_id.replace(/\D/g, '')
+            : '');
+
+    return {
+        name: raw.name || '',
+        ic_number: rawIc,
+        formatted_ic:
+            raw.government_id ||
+            raw.formatted_ic ||
+            (rawIc ? rawIc.replace(/^(\d{6})(\d{2})(\d{4})$/, '$1-$2-$3') : ''),
+        date_of_birth: raw.date_of_birth || raw.dob || '',
+        gender: raw.gender === 'female' ? 'female' : 'male',
+        nationality_code: 'MY',
+        address_line1:
+            raw.address_line1 || raw.address?.line1 || raw.home_address || '',
+        address_line2: raw.address_line2 || raw.address?.line2 || '',
+        city: raw.city || raw.address?.city || '',
+        state: raw.state_name || raw.state || raw.address?.state || '',
+        postal_code:
+            raw.postal_code || raw.postcode || raw.address?.postcode || '',
+        country_code: 'MY',
+        photo_base64: raw.photo_base64 || raw.photo || null,
+    };
+}
+
+/**
+ * One reader for the whole page: one poll, and one read for each card. A card goes to one claim only, and it must come
+ * out before it is read again. A card that went in with no claim is read as soon as a claim comes.
+ */
+export function createMykadReader() {
+    let snapshot = INITIAL_SNAPSHOT;
+    let claims: ReaderClaim[] = [];
+    let timer: ReturnType<typeof setInterval> | null = null;
+    let generation = 0;
+    let cardPresent = false;
+    let cardRead = false;
+    let reading = false;
+    const subscribers = new Set<() => void>();
+
+    const update = (patch: Partial<ReaderSnapshot>) => {
+        const next = { ...snapshot, ...patch };
+
+        if (
+            next.status === snapshot.status &&
+            next.bridgeVersion === snapshot.bridgeVersion &&
+            next.error === snapshot.error &&
+            next.errorCode === snapshot.errorCode
+        ) {
+            return;
+        }
+
+        snapshot = next;
+        subscribers.forEach((subscriber) => subscriber());
+    };
+
+    const currentClaim = (): ReaderClaim | undefined => {
+        const latestFirst = [...claims].reverse();
+
+        return (
+            latestFirst.find((claim) => claim.priority === 'screen') ??
+            latestFirst[0]
+        );
+    };
+
+    const read = async () => {
+        reading = true;
+        cardRead = true;
+        update({ status: 'reading', error: null, errorCode: null });
 
         try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 12000);
 
-            const res = await fetch(`${bridgeUrl}/read`, {
+            const res = await fetch(`${BRIDGE_URL}/read`, {
                 method: 'GET',
                 headers: { Accept: 'application/json' },
                 signal: controller.signal,
@@ -239,163 +301,203 @@ export function useMykadReader({
             const result = await res.json();
 
             if (!result.success || !result.data) {
-                setError(readErrorMessage(result.code, result.error));
-                setErrorCode(
-                    typeof result.code === 'string' ? result.code : null,
-                );
-                setStatus('error');
-                return null;
+                update({
+                    status: 'error',
+                    error: readErrorMessage(result.code, result.error),
+                    errorCode:
+                        typeof result.code === 'string' ? result.code : null,
+                });
+
+                return;
             }
 
-            const raw = result.data;
-            const dob = raw.date_of_birth || raw.dob || '';
-            const rawIc =
-                raw.raw_ic ||
-                raw.ic_number ||
-                (typeof raw.government_id === 'string'
-                    ? raw.government_id.replace(/\D/g, '')
-                    : '');
-            const formattedIc =
-                raw.government_id ||
-                raw.formatted_ic ||
-                (rawIc
-                    ? rawIc.replace(/^(\d{6})(\d{2})(\d{4})$/, '$1-$2-$3')
-                    : '');
-            const line1 =
-                raw.address_line1 ||
-                raw.address?.line1 ||
-                raw.home_address ||
-                '';
-            const line2 = raw.address_line2 || raw.address?.line2 || '';
-            const postcode =
-                raw.postal_code || raw.postcode || raw.address?.postcode || '';
-            const city = raw.city || raw.address?.city || '';
-            const state =
-                raw.state_name || raw.state || raw.address?.state || '';
-            const photo = raw.photo_base64 || raw.photo || null;
-
-            const normalized: MyKadData = {
-                name: raw.name || '',
-                ic_number: rawIc,
-                formatted_ic: formattedIc,
-                date_of_birth: dob,
-                gender: raw.gender === 'female' ? 'female' : 'male',
-                nationality_code: 'MY',
-                address_line1: line1,
-                address_line2: line2,
-                city,
-                state,
-                postal_code: postcode,
-                country_code: 'MY',
-                photo_base64: photo,
-            };
-
-            setLastScannedData(normalized);
-            setStatus('card_present');
-            setError(null);
-            onScanRef.current?.(normalized);
-            return normalized;
+            update({ status: 'card_read', error: null, errorCode: null });
+            currentClaim()?.onScan(normalizeCard(result.data));
         } catch (err: unknown) {
-            const message =
-                err instanceof Error && err.name === 'AbortError'
-                    ? 'Card read timed out. Please reconnect card.'
-                    : 'Communication with card bridge failed.';
-            setError(message);
-            setStatus('error');
-            return null;
+            update({
+                status: 'error',
+                error:
+                    err instanceof Error && err.name === 'AbortError'
+                        ? 'Card read timed out. Please reconnect card.'
+                        : 'Communication with card bridge failed.',
+                errorCode: null,
+            });
         } finally {
-            setIsScanning(false);
+            reading = false;
         }
-    }, [bridgeUrl]);
+    };
 
-    const checkStatus = useCallback(async () => {
-        if (isScanningRef.current || !enabled) {
+    const readIfClaimed = () => {
+        if (
+            cardPresent &&
+            !cardRead &&
+            !reading &&
+            currentClaim() !== undefined
+        ) {
+            void read();
+        }
+    };
+
+    const forgetCard = () => {
+        cardPresent = false;
+        cardRead = false;
+    };
+
+    const poll = async () => {
+        if (reading) {
             return;
         }
+
+        const pollGeneration = generation;
 
         try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 2000);
 
-            const res = await fetch(`${bridgeUrl}/status`, {
+            const res = await fetch(`${BRIDGE_URL}/status`, {
                 method: 'GET',
                 headers: { Accept: 'application/json' },
                 signal: controller.signal,
             });
             clearTimeout(timeoutId);
 
-            if (!res.ok) {
-                setStatus('offline');
-                setCardPresent(false);
-                setReaderName(null);
-                wasCardPresentRef.current = false;
+            const data = res.ok ? await res.json() : null;
+
+            if (pollGeneration !== generation || reading) {
                 return;
             }
 
-            const data = await res.json();
-            setBridgeVersion(
-                typeof data.version === 'string' ? data.version : null,
-            );
+            if (data === null) {
+                forgetCard();
+                update({ status: 'offline' });
 
-            if (data.reader_connected) {
-                setReaderName(data.reader_name || 'ACR39U');
-                const present = Boolean(data.card_present);
-                setCardPresent(present);
-                setStatus(present ? 'card_present' : 'ready');
-
-                // A failed read stays on screen until the card comes out.
-                if (!present) {
-                    setError(null);
-                    setErrorCode(null);
-                }
-
-                // Auto-scan on card insertion if enabled
-                if (autoScan && present && !wasCardPresentRef.current) {
-                    wasCardPresentRef.current = true;
-                    void scan();
-                } else if (!present) {
-                    wasCardPresentRef.current = false;
-                }
-            } else {
-                setReaderName(null);
-                setCardPresent(false);
-                setStatus('no_reader');
-                setError(null);
-                setErrorCode(null);
-                wasCardPresentRef.current = false;
+                return;
             }
+
+            const bridgeVersion =
+                typeof data.version === 'string' ? data.version : null;
+
+            if (!data.reader_connected) {
+                forgetCard();
+                update({
+                    status: 'no_reader',
+                    bridgeVersion,
+                    error: null,
+                    errorCode: null,
+                });
+
+                return;
+            }
+
+            cardPresent = Boolean(data.card_present);
+
+            if (!cardPresent) {
+                // A failed read stays on screen until the card comes out.
+                forgetCard();
+                update({
+                    status: 'ready',
+                    bridgeVersion,
+                    error: null,
+                    errorCode: null,
+                });
+
+                return;
+            }
+
+            update({
+                status: cardRead ? 'card_read' : 'card_present',
+                bridgeVersion,
+            });
+            readIfClaimed();
         } catch {
-            setStatus('offline');
-            setCardPresent(false);
-            setReaderName(null);
-            wasCardPresentRef.current = false;
+            if (pollGeneration === generation && !reading) {
+                forgetCard();
+                update({ status: 'offline' });
+            }
         }
-    }, [autoScan, bridgeUrl, enabled, scan]);
+    };
 
-    useEffect(() => {
-        if (!enabled) return;
+    const stop = () => {
+        generation += 1;
 
-        void checkStatus();
-        const timer = setInterval(() => {
-            void checkStatus();
-        }, pollInterval);
-        return () => clearInterval(timer);
-    }, [checkStatus, enabled, pollInterval]);
+        if (timer !== null) {
+            clearInterval(timer);
+            timer = null;
+        }
+
+        forgetCard();
+        snapshot = INITIAL_SNAPSHOT;
+    };
 
     return {
-        status,
-        cardPresent,
-        readerName,
-        bridgeVersion,
+        getSnapshot: () => snapshot,
+        poll,
+        subscribe: (subscriber: () => void) => {
+            subscribers.add(subscriber);
+
+            if (timer === null) {
+                void poll();
+                timer = setInterval(() => void poll(), POLL_INTERVAL);
+            }
+
+            return () => {
+                subscribers.delete(subscriber);
+
+                if (subscribers.size === 0) {
+                    stop();
+                }
+            };
+        },
+        claim: (
+            onScan: (card: MyKadData) => void,
+            priority: ReaderClaimPriority,
+        ) => {
+            const claim = { onScan, priority };
+            claims = [...claims, claim];
+            readIfClaimed();
+
+            return () => {
+                claims = claims.filter((one) => one !== claim);
+            };
+        },
+    };
+}
+
+const reader = createMykadReader();
+
+export type UseMykadReaderOptions = {
+    onScan?: (data: MyKadData) => void;
+    /** False shows the status only, and this caller gets no card. */
+    listening?: boolean;
+    priority?: ReaderClaimPriority;
+};
+
+export function useMykadReader({
+    onScan,
+    listening = onScan !== undefined,
+    priority = 'screen',
+}: UseMykadReaderOptions = {}) {
+    const snapshot = useSyncExternalStore(
+        reader.subscribe,
+        reader.getSnapshot,
+        reader.getSnapshot,
+    );
+    const onScanRef = useRef(onScan);
+    onScanRef.current = onScan;
+
+    useEffect(() => {
+        if (!listening) {
+            return;
+        }
+
+        return reader.claim((card) => onScanRef.current?.(card), priority);
+    }, [listening, priority]);
+
+    return {
+        ...snapshot,
         isBridgeOutdated:
-            status !== 'offline' &&
-            status !== 'checking' &&
-            isOlderVersion(bridgeVersion, REQUIRED_BRIDGE_VERSION),
-        error,
-        errorCode,
-        lastScannedData,
-        isScanning,
-        checkStatus,
-        scan,
+            snapshot.status !== 'offline' &&
+            snapshot.status !== 'checking' &&
+            isOlderVersion(snapshot.bridgeVersion, REQUIRED_BRIDGE_VERSION),
     };
 }
