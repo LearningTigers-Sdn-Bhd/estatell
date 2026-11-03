@@ -18,7 +18,6 @@ import { DuplicateWarning } from '@/components/pms/guests/duplicate-warning';
 import { GuestAutocompleteField } from '@/components/pms/guests/guest-autocomplete-field';
 import { GuestDetailsFields } from '@/components/pms/guests/guest-details-fields';
 import type { GuestDetails } from '@/components/pms/guests/guest-details-fields';
-import { MyKadScanner } from '@/components/pms/mykad-scanner';
 import { StatusBadge } from '@/components/pms/status-badge';
 import {
     emptyGuest,
@@ -27,6 +26,9 @@ import {
     unlinkGuest,
 } from '@/components/pms/reservations/booking-guests';
 import type { BookingGuest } from '@/components/pms/reservations/booking-guests';
+import { GuestMykadToggle } from '@/components/pms/reservations/guest-mykad-toggle';
+import { useGuestMykadRow } from '@/components/pms/reservations/use-guest-mykad';
+import type { MykadTargetControls } from '@/components/pms/reservations/use-guest-mykad';
 import {
     ATTACHABLE_STATUSES,
     OPEN_STATUSES,
@@ -71,13 +73,13 @@ type Row = App.Data.Reservations.ReservationGuestData;
 type Unit = App.Data.Reservations.ReservationUnitOptionData;
 type Errors = Record<string, string | undefined>;
 
-/** The columns of a row from `lg`: chevron, guest, phone, stays in, role and the menu. */
+/** The columns of a row from `lg`: chevron and MyKad toggle, guest, phone, stays in, role and the menu. */
 const COLUMNS =
-    'lg:grid-cols-[2rem_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1fr)_2rem]';
+    'lg:grid-cols-[4.25rem_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1fr)_2rem]';
 
 /** The same without Stays in, for the Grouped view where the rail names the unit. */
 const COLUMNS_NO_UNIT =
-    'lg:grid-cols-[2rem_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_2rem]';
+    'lg:grid-cols-[4.25rem_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_2rem]';
 
 function columns(showUnit: boolean): string {
     return showUnit ? COLUMNS : COLUMNS_NO_UNIT;
@@ -261,6 +263,7 @@ export function SavedGuestRow({
     canEdit,
     canChange,
     canMove,
+    mykadTarget,
     countries,
     genders,
     locales,
@@ -282,6 +285,7 @@ export function SavedGuestRow({
     canChange: boolean;
     /** Move to unit, or Add to a unit for the booker who does not stay: another open unit to go to. */
     canMove: boolean;
+    mykadTarget: MykadTargetControls;
     countries: EnumOption[];
     genders: EnumOption[];
     locales: EnumOption[];
@@ -306,6 +310,16 @@ export function SavedGuestRow({
     const hiddenError = Object.keys(errors).some(
         (field) => !['full_name', 'phone'].includes(field),
     );
+    const mykad = useGuestMykadRow({
+        rowKey: rowId,
+        values,
+        target: mykadTarget,
+        apply: (fields) =>
+            setValues((current) =>
+                current === null ? current : { ...current, ...fields },
+            ),
+        onFilled: () => setOpen(true),
+    });
 
     useEffect(() => {
         onDirtyChange(rowId, dirty);
@@ -414,6 +428,7 @@ export function SavedGuestRow({
             onSuccess: () => {
                 setErrors({});
                 setBase(values);
+                mykad.forget();
             },
         });
     };
@@ -421,6 +436,7 @@ export function SavedGuestRow({
     const cancel = () => {
         setValues(base);
         setErrors({});
+        mykad.forget();
     };
 
     const idPrefix = `guest-${rowId}`;
@@ -466,19 +482,26 @@ export function SavedGuestRow({
                     <div
                         className={`grid items-start gap-3 p-3 ${columns(showUnit)}`}
                     >
-                        <CollapsibleTrigger
-                            render={
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon-sm"
-                                    aria-label={`${open || hiddenError ? 'Hide' : 'Show'} the details of ${row.name}`}
-                                    className="group/row max-lg:justify-self-start"
-                                />
-                            }
-                        >
-                            <ChevronRight className="transition-transform group-data-[panel-open]/row:rotate-90" />
-                        </CollapsibleTrigger>
+                        <div className="flex items-start gap-1">
+                            <CollapsibleTrigger
+                                render={
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        aria-label={`${open || hiddenError ? 'Hide' : 'Show'} the details of ${row.name}`}
+                                        className="group/row"
+                                    />
+                                }
+                            >
+                                <ChevronRight className="transition-transform group-data-[panel-open]/row:rotate-90" />
+                            </CollapsibleTrigger>
+                            <GuestMykadToggle
+                                label={row.name ?? 'this guest'}
+                                state={mykad.state}
+                                onPress={mykad.press}
+                            />
+                        </div>
                         <div className="flex flex-col gap-1">
                             {parts.name}
                             {billing}
@@ -505,30 +528,6 @@ export function SavedGuestRow({
 
                     <CollapsibleContent>
                         <div className="flex flex-col gap-4 px-3 pb-3 lg:px-14">
-                            <MyKadScanner
-                                onScan={(card) => {
-                                    setValues((current) =>
-                                        current === null
-                                            ? current
-                                            : {
-                                                  ...current,
-                                                  full_name: card.name,
-                                                  nationality_code: 'MY',
-                                                  date_of_birth:
-                                                      card.date_of_birth,
-                                                  gender: card.gender,
-                                                  address_line1:
-                                                      card.address_line1,
-                                                  address_line2:
-                                                      card.address_line2,
-                                                  postal_code: card.postal_code,
-                                                  city: card.city,
-                                                  state: card.state,
-                                                  country_code: 'MY',
-                                              },
-                                    );
-                                }}
-                            />
                             {parts.linked}
                             {parts.email}
                             <GuestDetailsFields
@@ -591,6 +590,7 @@ export function DraftGuestRow({
     showUnit = true,
     replacing,
     canManageGuests,
+    mykadTarget,
     countries,
     genders,
     locales,
@@ -611,6 +611,7 @@ export function DraftGuestRow({
         unitLabel: string;
     };
     canManageGuests: boolean;
+    mykadTarget: MykadTargetControls;
     countries: EnumOption[];
     genders: EnumOption[];
     locales: EnumOption[];
@@ -628,6 +629,13 @@ export function DraftGuestRow({
     );
     const picked = units.find((unit) => String(unit.id) === draft.stays_in);
     const label = draft.full_name.trim() || 'new guest';
+    const mykad = useGuestMykadRow({
+        rowKey: draft.key,
+        values: draft,
+        target: mykadTarget,
+        apply: onChange,
+        onFilled: () => setOpen(true),
+    });
 
     const checkForDuplicates = () => {
         if (draft.guest === null) {
@@ -708,7 +716,10 @@ export function DraftGuestRow({
                 guest_id: errors.guest_id,
             }}
             onChange={(field, value) => onChange({ [field]: value })}
-            onPick={(guest) => onChange(linkGuest(draft, guest))}
+            onPick={(guest) => {
+                mykad.forget();
+                onChange(linkGuest(draft, guest));
+            }}
             onUnlink={() => onChange(unlinkGuest(draft))}
             onLeave={checkForDuplicates}
         >
@@ -721,19 +732,28 @@ export function DraftGuestRow({
                     <div
                         className={`grid items-start gap-3 p-3 ${columns(showUnit)}`}
                     >
-                        <CollapsibleTrigger
-                            render={
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon-sm"
-                                    aria-label={`${open || hiddenError ? 'Hide' : 'Show'} the details of ${label}`}
-                                    className="group/row max-lg:justify-self-start"
+                        <div className="flex items-start gap-1">
+                            <CollapsibleTrigger
+                                render={
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon-sm"
+                                        aria-label={`${open || hiddenError ? 'Hide' : 'Show'} the details of ${label}`}
+                                        className="group/row"
+                                    />
+                                }
+                            >
+                                <ChevronRight className="transition-transform group-data-[panel-open]/row:rotate-90" />
+                            </CollapsibleTrigger>
+                            {canManageGuests && (
+                                <GuestMykadToggle
+                                    label={label}
+                                    state={mykad.state}
+                                    onPress={mykad.press}
                                 />
-                            }
-                        >
-                            <ChevronRight className="transition-transform group-data-[panel-open]/row:rotate-90" />
-                        </CollapsibleTrigger>
+                            )}
+                        </div>
                         {parts.name}
                         {parts.phone}
                         {showUnit && (
@@ -796,22 +816,6 @@ export function DraftGuestRow({
 
                     <CollapsibleContent>
                         <div className="flex flex-col gap-4 px-3 pb-3 lg:px-14">
-                            <MyKadScanner
-                                onScan={(card) => {
-                                    onChange({
-                                        full_name: card.name,
-                                        nationality_code: 'MY',
-                                        date_of_birth: card.date_of_birth,
-                                        gender: card.gender,
-                                        address_line1: card.address_line1,
-                                        address_line2: card.address_line2,
-                                        postal_code: card.postal_code,
-                                        city: card.city,
-                                        state: card.state,
-                                        country_code: 'MY',
-                                    });
-                                }}
-                            />
                             {replacing !== undefined && (
                                 <FieldDescription>
                                     Replacing {replacing.name} on{' '}
@@ -879,9 +883,10 @@ export function DraftGuestRow({
                                 criteria !== dismissed && (
                                     <DuplicateWarning
                                         criteria={checked}
-                                        onUse={(match) =>
-                                            onChange(linkGuest(draft, match))
-                                        }
+                                        onUse={(match) => {
+                                            mykad.forget();
+                                            onChange(linkGuest(draft, match));
+                                        }}
                                         onDismiss={() => setDismissed(criteria)}
                                     />
                                 )}

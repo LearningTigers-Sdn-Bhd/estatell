@@ -14,7 +14,7 @@ Browser (estatell)  ──HTTP──▶  MyKad Reader on 127.0.0.1:9292  ──P
 
 - The browser cannot talk to a USB card reader. MyKad Reader runs on the front-desk computer and serves the card as JSON on `127.0.0.1:9292`.
 - It listens only on `127.0.0.1`, answers only allowed origins (Estatell and its demo), and has no pairing and no token.
-- Estatell polls `GET /status` every 2.5 seconds. When a card appears, it calls `GET /read` and fills the active form.
+- Estatell polls `GET /status` every 2.5 seconds, once for the whole page. When a card appears, it calls `GET /read` once and fills one target.
 - The server still validates and stores everything. MyKad Reader only fills the form.
 
 API fields, error codes and security: see the reader repo, [HTTP API](https://github.com/LearningTigers-Sdn-Bhd/estatell-mykad-reader/blob/main/docs/02-bridge/01-http-api.md).
@@ -28,10 +28,34 @@ API fields, error codes and security: see the reader repo, [HTTP API](https://gi
 
 ## In the app
 
-- `useMykadReader` (`resources/js/hooks/use-mykad-reader.ts`) polls `/status`. When a card is inserted, it reads the card and fills the active form.
+- `useMykadReader` (`resources/js/hooks/use-mykad-reader.ts`) shares one reader across the page. It polls `/status` and gives each card to one target only.
 - `MyKadScanner` (`resources/js/components/pms/mykad-scanner.tsx`) is a status chip. It has no settings page and no download button. An admin installs MyKad Reader and it works.
-- The chip is on every screen that has the MyKad box: the check-in dialog, the guests section on New reservation and Walk-in, the reservation Guests tab, the registration card, and the guest document sheet.
+- The chip is on every screen that reads a MyKad: the check-in dialog, the Guests section on New reservation and Walk-in, the reservation Guests tab, the registration card, and the guest document sheet. A screen with guest rows shows one chip above the table.
 - When staff add a document from a scan, the portrait becomes the `id_front` file. See [Identity documents](02-identity-documents.md).
+
+### Guest rows
+
+New reservation, Walk-in and the reservation Guests tab have many guest rows. Each row has a MyKad toggle beside its chevron, so it shows when the row is collapsed.
+
+| Toggle | Meaning                      | On click                     | Tooltip                     |
+| ------ | ---------------------------- | ---------------------------- | --------------------------- |
+| Off    | Not the target               | Becomes the target           | Read MyKad for this guest   |
+| On     | The next card fills this row | Turns off                    | Stop reading for this guest |
+| Filled | Filled from a card           | Clears the scan and turns on | Clear and read another card |
+
+- One row is on at a time. The first empty row is on by default. A row is empty when it has no name and no linked guest.
+- A fill opens the row, then the toggle moves to the next empty row. With no empty row, it turns off.
+- A saved guest is never on by default, so a card replaces saved details only when staff chose that row.
+- Clear puts the card's fields back to their values before the scan: name, nationality, date of birth, gender and address. Phone, email, Stays in and notes stay. Edits to the card's fields after the scan are lost. There is no confirm, because staff can read the card again.
+- Taking the card out clears nothing. After a save, or after linking another guest, the row is no longer Filled.
+- Staff without `guests.manage` have no toggle and no chip, because they can only pick existing guests.
+
+### One target for each card
+
+- A card goes to one target, and it must come out before it is read again. The chip says "Take the card out" until then.
+- A card that went in with no target is read as soon as a row or screen becomes the target.
+- A dialog or sheet with a scanner takes the card ahead of the rows behind it. When it closes, the rows get the reader back.
+- A screen with one scanner has no toggle and no Clear. Its form fills when a card goes in.
 
 ### Chip states
 
@@ -39,6 +63,7 @@ API fields, error codes and security: see the reader repo, [HTTP API](https://gi
 | ------------------------- | ----------------------------------------------- | ---------------------------------------------- |
 | Reader ready              | ● Ready for MyKad                               | —                                              |
 | Reading                   | Reading the card…                               | —                                              |
+| Card read, still in       | ○ Take the card out                             | —                                              |
 | No reader                 | ○ Plug in card reader                           | Opens `mykad-reader-problems` in the user docs |
 | `/status` does not answer | ○ MyKad Reader isn't running                    | Opens `set-up-mykad-reader` in the user docs   |
 | Update required (1.x)     | ⚠ Update required                               | Opens the download for this computer           |
@@ -89,4 +114,4 @@ Screens are for hotel owners and staff. Say "MyKad Reader", not "bridge". Never 
 
 ## Open
 
-- Test on a real reader: ready, no reader, reader unplugged mid-use, 1.x reader, `forbidden`.
+- Test on a real reader: ready, no reader, reader unplugged mid-use, 1.x reader, `forbidden`, and two cards on a table with two empty guest rows.

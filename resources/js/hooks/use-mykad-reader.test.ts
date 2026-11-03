@@ -1,13 +1,18 @@
-import { expect, test } from 'vite-plus/test';
+import { afterEach, expect, test, vi } from 'vite-plus/test';
 import {
     MYKAD_PROBLEMS_URL,
     MYKAD_SETUP_URL,
     REQUIRED_BRIDGE_VERSION,
     bridgeDownload,
+    createMykadReader,
     isOlderVersion,
     readErrorMessage,
     readerChip,
 } from './use-mykad-reader';
+
+afterEach(() => {
+    vi.unstubAllGlobals();
+});
 
 const windows = bridgeDownload('Mozilla/5.0 (Windows NT 10.0; Win64; x64)');
 const mac = bridgeDownload('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)');
@@ -102,4 +107,137 @@ test('chip is ready or reading otherwise', () => {
     expect(readerChip('reading', false, windows)?.label).toBe(
         'Reading the card…',
     );
+});
+
+test('a read card asks staff to take it out', () => {
+    expect(readerChip('card_read', false, windows)?.label).toBe(
+        'Take the card out',
+    );
+});
+
+function stubBridge(status: { card_present: boolean }) {
+    const reads = vi.fn(() =>
+        Promise.resolve({
+            ok: true,
+            json: () =>
+                Promise.resolve({
+                    success: true,
+                    data: { name: 'NUR AISYAH', gender: 'female' },
+                }),
+        }),
+    );
+
+    vi.stubGlobal(
+        'fetch',
+        vi.fn((url: string) =>
+            url.endsWith('/read')
+                ? reads()
+                : Promise.resolve({
+                      ok: true,
+                      json: () =>
+                          Promise.resolve({
+                              reader_connected: true,
+                              version: '2.0.0',
+                              ...status,
+                          }),
+                  }),
+        ),
+    );
+
+    return reads;
+}
+
+async function settle() {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+test('one card goes to one claim and is read once', async () => {
+    const reads = stubBridge({ card_present: true });
+    const reader = createMykadReader();
+    const first = vi.fn();
+    const second = vi.fn();
+
+    reader.claim(first, 'row');
+    reader.claim(second, 'row');
+    await reader.poll();
+    await settle();
+    await reader.poll();
+    await settle();
+
+    expect(reads).toHaveBeenCalledTimes(1);
+    expect(first).not.toHaveBeenCalled();
+    expect(second).toHaveBeenCalledTimes(1);
+    expect(reader.getSnapshot().status).toBe('card_read');
+});
+
+test('a screen goes before the rows behind it, whichever came first', async () => {
+    stubBridge({ card_present: true });
+    const reader = createMykadReader();
+    const screen = vi.fn();
+    const row = vi.fn();
+
+    reader.claim(screen, 'screen');
+    reader.claim(row, 'row');
+    await reader.poll();
+    await settle();
+
+    expect(screen).toHaveBeenCalledTimes(1);
+    expect(row).not.toHaveBeenCalled();
+});
+
+test('a card with no claim is read when a claim comes', async () => {
+    const reads = stubBridge({ card_present: true });
+    const reader = createMykadReader();
+    const row = vi.fn();
+
+    await reader.poll();
+    expect(reads).not.toHaveBeenCalled();
+    expect(reader.getSnapshot().status).toBe('card_present');
+
+    reader.claim(row, 'row');
+    await settle();
+
+    expect(row).toHaveBeenCalledTimes(1);
+});
+
+test('a new claim does not read the same card again until it comes out', async () => {
+    const reads = stubBridge({ card_present: true });
+    const reader = createMykadReader();
+    const first = vi.fn();
+    const next = vi.fn();
+
+    const release = reader.claim(first, 'row');
+    await reader.poll();
+    await settle();
+    release();
+    reader.claim(next, 'row');
+    await reader.poll();
+    await settle();
+
+    expect(next).not.toHaveBeenCalled();
+
+    stubBridge({ card_present: false });
+    await reader.poll();
+    expect(reader.getSnapshot().status).toBe('ready');
+
+    const nextReads = stubBridge({ card_present: true });
+    await reader.poll();
+    await settle();
+
+    expect(reads).toHaveBeenCalledTimes(1);
+    expect(nextReads).toHaveBeenCalledTimes(1);
+    expect(next).toHaveBeenCalledTimes(1);
+});
+
+test('releasing the only claim stops the next card going anywhere', async () => {
+    const reads = stubBridge({ card_present: true });
+    const reader = createMykadReader();
+    const row = vi.fn();
+
+    reader.claim(row, 'row')();
+    await reader.poll();
+    await settle();
+
+    expect(reads).not.toHaveBeenCalled();
+    expect(row).not.toHaveBeenCalled();
 });
