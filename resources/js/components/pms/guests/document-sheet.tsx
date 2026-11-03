@@ -196,7 +196,6 @@ function DocumentSheetForm({
             <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
                 <FieldGroup className="flex-1 overflow-y-auto px-4">
                     <MyKadScanner
-                        compact
                         onScan={(card) => {
                             form.setData('type', 'mykad');
                             form.setData(

@@ -54,9 +54,9 @@ beforeEach(function () {
 test('reader ready', function () {
     $page = $this->open(route('guests.documents.index', [$this->property, $this->guest]))
         ->waitForText('No ID documents yet');
-    $page->script(mykadBridgeStub(['reader_connected' => true, 'reader_name' => 'ACR39U', 'card_present' => false, 'version' => '1.1.0']));
+    $page->script(mykadBridgeStub(['reader_connected' => true, 'reader_name' => 'ACR39U', 'card_present' => false, 'version' => '2.0.0']));
     $page->click('Add document')
-        ->waitForText('ACR39U ready')
+        ->waitForText('Ready for MyKad')
         ->wait(1);
 
     $this->shoot($page, 'reader-ready', frame: '[role="dialog"]');
@@ -65,21 +65,21 @@ test('reader ready', function () {
 test('card read', function () {
     $page = $this->open(route('guests.documents.index', [$this->property, $this->guest]))
         ->waitForText('No ID documents yet');
-    $page->script(mykadBridgeStub(['reader_connected' => true, 'reader_name' => 'ACR39U', 'card_present' => true, 'version' => '1.1.0'], withCard: true));
+    $page->script(mykadBridgeStub(['reader_connected' => true, 'reader_name' => 'ACR39U', 'card_present' => true, 'version' => '2.0.0'], withCard: true));
     $page->click('Add document')
-        ->waitForText('Scanned')
+        ->waitForText('Ready for MyKad')
         ->wait(1);
 
     $this->shoot($page, 'card-read', frame: '[role="dialog"]');
 });
 
-test('bridge update', function () {
+test('update required', function () {
     $page = $this->open(route('guests.documents.index', [$this->property, $this->guest]))
         ->waitForText('No ID documents yet');
     $page->script(mykadBridgeStub(['reader_connected' => true, 'reader_name' => 'ACR39U', 'card_present' => false, 'version' => '1.0.0']));
     $page->click('Add document')
-        ->waitForText('Bridge update available')
+        ->waitForText('Update required')
         ->wait(1);
 
-    $this->shoot($page, 'bridge-update', frame: '[role="dialog"]');
+    $this->shoot($page, 'update-required', frame: '[role="dialog"]');
 });

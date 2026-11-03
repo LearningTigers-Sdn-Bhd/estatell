@@ -1,3 +1,0 @@
-# Build-time only. Used by .github/workflows/mykad-bridge.yml and packaging/macos/build.sh.
-pyinstaller==6.22.3
-pyscard==2.3.1

@@ -506,7 +506,6 @@ export function SavedGuestRow({
                     <CollapsibleContent>
                         <div className="flex flex-col gap-4 px-3 pb-3 lg:px-14">
                             <MyKadScanner
-                                compact
                                 onScan={(card) => {
                                     setValues((current) =>
                                         current === null
@@ -798,7 +797,6 @@ export function DraftGuestRow({
                     <CollapsibleContent>
                         <div className="flex flex-col gap-4 px-3 pb-3 lg:px-14">
                             <MyKadScanner
-                                compact
                                 onScan={(card) => {
                                     onChange({
                                         full_name: card.name,

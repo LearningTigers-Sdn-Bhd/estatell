@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Guests\MykadReaderDownloadController;
 use App\Http\Controllers\HomeRedirectController;
 use App\Http\Controllers\Platform\CommandSearchController;
 use App\Http\Controllers\Platform\ImpersonationController;
@@ -15,6 +16,7 @@ use Symfony\Component\HttpFoundation\Response;
 Route::inertia('/', 'landing')->name('home');
 Route::inertia('terms-and-conditions', 'legal/terms')->name('terms');
 Route::inertia('privacy-policy', 'legal/privacy')->name('privacy');
+Route::get('downloads/mykad-reader/{platform}', MykadReaderDownloadController::class)->whereIn('platform', ['windows', 'mac'])->name('mykad-reader.download');
 
 Route::get('_preview/errors/{status}', function (Request $request, int $status): Response {
     abort_unless(app()->environment('local'), 404);

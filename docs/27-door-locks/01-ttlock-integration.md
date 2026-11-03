@@ -8,11 +8,12 @@ Give each checked-in stay a PIN for its room door, and take it away when the gue
 
 | Now                                                                        | Later                                                          |
 | -------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| TTLock locks (first test lock: Bastn C13), one TTLock account per property | Card and fingerprint registration                              |
+| TTLock locks (first test lock: Bastn C13), one TTLock account per property | Fingerprint registration, a staff screen for cards             |
 | Generated PINs (no gateway needed)                                         | Unlock log import (needs a gateway)                            |
 | Custom PINs chosen by staff (gateway needed, alert shown without one)      | Guest self check-in with a PIN sent by email or WhatsApp       |
 | Remote unlock from the screen (gateway needed, alert shown without one)    | eKey sharing                                                   |
 | PIN issued at check-in, removed at check-out, undo check-in and room move  | A scheduled retry of failed PINs (today staff press **Retry**) |
+| IC cards registered by UID through a gateway (backend only, no screen yet) |                                                                |
 | Behind the `DoorLocks` feature, off by default                             |                                                                |
 
 ## Feature gate
@@ -118,6 +119,27 @@ Source: [TTLock Open Platform](https://euopen.ttlock.com/document/doc?urlName=cl
 
 Still to check against the real account: the region host (`euapi.ttlock.com` against `api.sciener.com`), and `hasGateway` for the C13 once a gateway is paired.
 
+## IC cards
+
+Backend for the self check-in kiosk (D15 in the kiosk repo). Nothing is written to the card: the kiosk reads its UID and Estatell registers the UID with TTLock. Source: TTLock docs, Add IC card and Delete IC card, read on 2026-10-30.
+
+- **Card number.** The UID bytes in reader order, read as a big-endian decimal (`CardNumber`). UID `0D:D2:5C:E7` is `231890151`, as the TTLock app shows. Four and seven byte UIDs are accepted.
+- **Which endpoint.** `/v3/identityCard/add` stores the number as sent. `/v3/identityCard/addForReversedCardNumber` stores it reversed, and TTLock says to use `add` when a card added the other way does not open the lock. We use `add`.
+- **Gateway only.** `addType` 2 and `deleteType` 2 go through a gateway. Without one, register refuses (`gateway_required`) and writes nothing. Remove marks the card Revoked and warns that the lock still accepts it until `ends_at` (the cloud record is not deleted: `deleteType` 1 needs the app at the lock).
+- **To verify on a real lock:** that the lock opens for `add` with this byte order, how many cards a lock holds (the kiosk notes say 1000), and whether `date` skew or the 35 second remote timeout is enough through a gateway.
+
+```
+door_cards   id, property_id, door_lock_id, reservation_unit_id (nullable), card_number (bigint), ttlock_card_id (nullable),
+             status (PasscodeStatus), label, starts_at, ends_at, error (nullable), revoked_at (nullable),
+             idempotency_key (unique), timestamps
+```
+
+- A card is live (Pending or Active) once per lock and number (partial unique index). The same card can be registered again after it is Revoked.
+- `RegisterDoorCard` (lock, UID, label, window, idempotency key, unit): same rules as `IssueDoorPasscode`: a live row is returned as it is, a Failed row is tried again, a TTLock failure is saved as Failed. A card live on the lock under another key is refused (`card_in_use`). A bad UID is `invalid_card`.
+- `RemoveDoorCard`: deletes through the gateway and marks Revoked. A TTLock failure keeps the row.
+- `StayByCard` (`app/Services/DoorLocks/`): `find($property, $uid)` returns the unit of the newest Active card with a stay, or null. This is how check-out by card finds the stay. A Revoked, Failed or Pending card finds nothing.
+- Not built yet: choosing the lock and the window for a stay (the kiosk check-in Action will do it, as `SyncStayPasscodes` does for PINs), removing cards at check-out, and any staff screen.
+
 ## Actions and Jobs
 
 - `SaveDoorLockConnection`: signs in with the username and password, saves the tokens, never the password.
@@ -154,4 +176,4 @@ The Units tab of a reservation shows a **Door PIN** line on the unit panel (`Uni
 
 ## Tests
 
-`tests/Feature/DoorLocks/`: the password is not saved and tokens stay out of the page, a sync keeps links, a generated PIN is issued once for a stay (run twice, same row), a custom PIN is refused without a gateway, remote unlock is refused without a gateway, check-out revokes, a revoke without a gateway warns, the feature off returns 404, another property's lock returns 404. `TtlockClientTest` fakes HTTP and covers the token refresh, the form fields, and an `errcode` response.
+`tests/Feature/DoorLocks/`: the password is not saved and tokens stay out of the page, a sync keeps links, a generated PIN is issued once for a stay (run twice, same row), a custom PIN is refused without a gateway, a card is registered once, refused without a gateway and found by UID (`DoorCardsTest`), remote unlock is refused without a gateway, check-out revokes, a revoke without a gateway warns, the feature off returns 404, another property's lock returns 404. `TtlockClientTest` fakes HTTP and covers the token refresh, the form fields, and an `errcode` response.
