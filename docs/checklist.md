@@ -105,7 +105,7 @@ Staff feedback: a 02:00 to 12:00 walk-in entered at 15:00 could not be booked, a
 Branch `feat/sandbay-gaps`. Plan: `~/Code/Jesselton-Pixel/docs/estatell/sandbay/2026-11-03-sandbay-gaps-plan.md`.
 
 - [x] `feat(catalogues): add auto add-ons to channel bookings` — `charge_items.auto_add_channels` with its CHECK, the "Also add to channel bookings" switch and badge, `AutoAddOns::forChannelUnit()`, `IngestChannelBooking` adds them to new and added rooms and skips a refused one. Docs: [Charge items](06-catalogues/02-charge-items.md#add-to-every-new-booking), [Add-ons](12-reservations/04-add-ons.md#added-automatically).
-- [ ] `feat(rates): take a long-stay amount per guest or per room`
+- [x] `feat(rates): take a long-stay amount per guest or per room` — `rate_plan_stay_discounts.per_room`, the Taken off column on PerGuest plans, `StayDiscount` takes the Amount once per room, kept by Copy discounts and the preview. Sand Bay's imported rules stay per guest. Docs: [Long-stay discounts](08-rates/01-rate-plans.md#long-stay-discounts).
 - [ ] `feat(folio): let the guest pay collected taxes on company bookings`
 - [ ] `feat(reservations): change a unit's guests`
 - [ ] `feat(rates): limit a rate plan by rooms per booking`

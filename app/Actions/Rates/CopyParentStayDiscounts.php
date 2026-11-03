@@ -31,6 +31,7 @@ class CopyParentStayDiscounts
                     'min_nights' => $discount->min_nights,
                     'discount_type' => $discount->discount_type->value,
                     'value' => $discount->value,
+                    'per_room' => $discount->per_room,
                     'from_night' => $discount->from_night,
                 ])
                 ->all());

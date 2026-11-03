@@ -32,8 +32,14 @@ type Row = {
     min_nights: string;
     discount_type: string;
     value: string;
+    per_room: boolean;
     from_night: string;
 };
+
+const takenOffOptions: Option[] = [
+    { value: 'guest', label: 'Each guest' },
+    { value: 'room', label: 'The room' },
+];
 
 const unitLabels: Record<string, string> = {
     per_room: 'room',
@@ -66,6 +72,7 @@ export function DiscountsForm({
             min_nights: String(discount.minNights),
             discount_type: discount.discountType,
             value: discount.value,
+            per_room: discount.perRoom,
             from_night: String(discount.fromNight),
         })),
     });
@@ -73,6 +80,7 @@ export function DiscountsForm({
     const rows = form.data.discounts;
     const errors = form.errors as Record<string, string | undefined>;
     const unit = unitLabels[ratePlan.pricingBasis] ?? 'room';
+    const canTakeOffPerRoom = ratePlan.pricingBasis === 'per_guest';
 
     const setRow = (index: number, values: Partial<Row>) => {
         form.setData(
@@ -90,6 +98,7 @@ export function DiscountsForm({
                 min_nights: '',
                 discount_type: 'percent',
                 value: '',
+                per_room: false,
                 from_night: '1',
             },
         ]);
@@ -174,6 +183,9 @@ export function DiscountsForm({
                                 <TableHead>Minimum nights</TableHead>
                                 <TableHead>Discount</TableHead>
                                 <TableHead>Value</TableHead>
+                                {canTakeOffPerRoom && (
+                                    <TableHead>Taken off</TableHead>
+                                )}
                                 <TableHead>From night</TableHead>
                                 <TableHead className="w-12">
                                     <span className="sr-only">Remove</span>
@@ -284,6 +296,33 @@ export function DiscountsForm({
                                             {errors[`discounts.${index}.value`]}
                                         </FieldError>
                                     </TableCell>
+                                    {canTakeOffPerRoom && (
+                                        <TableCell className="align-top">
+                                            {row.discount_type === 'amount' ? (
+                                                <EnumSelect
+                                                    aria-label="Taken off"
+                                                    className="w-36"
+                                                    options={takenOffOptions}
+                                                    value={
+                                                        row.per_room
+                                                            ? 'room'
+                                                            : 'guest'
+                                                    }
+                                                    onValueChange={(value) =>
+                                                        setRow(index, {
+                                                            per_room:
+                                                                value ===
+                                                                'room',
+                                                        })
+                                                    }
+                                                />
+                                            ) : (
+                                                <span className="flex h-8 items-center text-muted-foreground">
+                                                    Night total
+                                                </span>
+                                            )}
+                                        </TableCell>
+                                    )}
                                     <TableCell className="align-top">
                                         <InputGroup className="w-32">
                                             <InputGroupAddon>

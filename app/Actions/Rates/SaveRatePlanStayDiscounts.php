@@ -15,7 +15,10 @@ class SaveRatePlanStayDiscounts
      *
      * Returns false for an archived plan or a Package plan. A save that changes nothing is not logged.
      *
-     * @param  list<array{min_nights: int, discount_type: string, value: string|int|float, from_night: int}>  $discounts
+     * Amount rules on a PerGuest plan keep `per_room` (an Amount once per room, not per guest). Every other rule
+     * stores false.
+     *
+     * @param  list<array{min_nights: int, discount_type: string, value: string|int|float, per_room?: bool, from_night: int}>  $discounts
      */
     public function __invoke(User $actor, RatePlan $ratePlan, array $discounts): bool
     {
@@ -30,9 +33,11 @@ class SaveRatePlanStayDiscounts
             $changed = false;
 
             foreach ($discounts as $discount) {
+                $type = StayDiscountType::from($discount['discount_type']);
                 $attributes = [
-                    'discount_type' => StayDiscountType::from($discount['discount_type']),
+                    'discount_type' => $type,
                     'value' => number_format((float) $discount['value'], 2, '.', ''),
+                    'per_room' => $type === StayDiscountType::Amount && $ratePlan->pricing_basis === PricingBasis::PerGuest && ($discount['per_room'] ?? false),
                     'from_night' => $discount['from_night'],
                 ];
                 $row = $existing->get($discount['min_nights']);
@@ -43,6 +48,7 @@ class SaveRatePlanStayDiscounts
                 } elseif (
                     $row->discount_type !== $attributes['discount_type']
                     || $row->value !== $attributes['value']
+                    || $row->per_room !== $attributes['per_room']
                     || $row->from_night !== $attributes['from_night']
                 ) {
                     $row->update($attributes);

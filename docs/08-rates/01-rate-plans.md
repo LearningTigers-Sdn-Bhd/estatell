@@ -25,7 +25,7 @@ rate_plan_child_prices  id, rate_plan_id, property_age_group_id,
                         unique (rate_plan_id, property_age_group_id)
 rate_plan_stay_discounts
                         id, rate_plan_id, min_nights, discount_type (StayDiscountType),
-                        value, from_night, timestamps
+                        value, per_room (default false), from_night, timestamps
                         unique (rate_plan_id, min_nights)
 ```
 
@@ -202,6 +202,7 @@ A plan or pair synced to Channex but not mapped on an active OTA is removed from
 - A night never goes below zero.
 - `RateQuoteService` applies the rule after the pricing strategy, because a night's price depends on the stay length (see [Pricing strategies](03-pricing-strategies.md)).
 - A Percent is taken off the night total (base, extra guests and children, and supplement) and rounded half up. An Amount is taken off per guest (adults and children) on PerGuest plans, per bed on PerBed plans and per room on PerRoom plans.
+- **Taken off** (PerGuest plans, Amount rules only): **Each guest** (default, as wastays) or **The room** (`per_room`), which takes the Amount once per room each night. Example, 2 adults, 3 nights at RM1,250, "2+ nights, RM200 off from night 2": each guest gives 1,250 + 850 + 850 = RM2,950; the room gives 1,250 + 1,050 + 1,050 = RM3,350. `SaveRatePlanStayDiscounts` stores `per_room` false on every other rule and plan. The Discounts tab shows the column only on PerGuest plans; a Percent row reads "Night total".
 - Direct bookings only. Long-stay discounts are never sent to the channel manager.
 - `SaveRatePlanStayDiscounts` saves the whole list in one transaction and matches rows by `min_nights`. It refuses an archived or Package plan. A save that changes nothing is not logged. The database checks `min_nights` ≥ 2, `from_night` from 1 to `min_nights`, Percent 1–100 and Amount above 0.
 - Example: "3+ nights, 20% off from night 2". A 3-night stay at RM200 a night costs 200 + 160 + 160 = RM520.

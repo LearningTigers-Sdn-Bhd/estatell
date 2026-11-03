@@ -2571,6 +2571,7 @@ export type RatePlanStayDiscountData = {
 minNights: number,
 discountType: App.Enums.StayDiscountType,
 value: string,
+perRoom: boolean,
 fromNight: number,
 };
 export type RatePricingRoomTypeData = {
