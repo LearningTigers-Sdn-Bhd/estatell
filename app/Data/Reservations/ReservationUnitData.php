@@ -21,7 +21,7 @@ use Spatie\LaravelData\Data;
  * `canChangePrice` shows Change price on the night table, and `chargedNightIds` marks the nights already charged.
  * `boatIn` and `boatOut` are the boat trips, read when `boatTrips` is loaded (otherwise null), and `canSetBoatIn` and
  * `canSetBoatOut` say whether the unit panel shows Change for them. `hasPriceOverride` shows the price override note,
- * with `priceOverrideReason` when one was given.
+ * with `priceOverrideReason` when one was given. `canChangeGuests` shows Change on the Guests row.
  */
 class ReservationUnitData extends Data
 {
@@ -61,13 +61,14 @@ class ReservationUnitData extends Data
         public bool $canSetBoatIn = false,
         public bool $canSetBoatOut = false,
         public bool $hasPriceOverride = false,
+        public bool $canChangeGuests = false,
     ) {}
 
     /**
      * @param  list<UnitActionData>  $actions
      * @param  list<int>  $chargedNightIds
      */
-    public static function fromModel(ReservationUnit $unit, bool $canViewGuest, ?string $overrideReason, ?string $overrideBy, array $actions = [], bool $canChangePrice = false, array $chargedNightIds = [], bool $canSetBoatIn = false, bool $canSetBoatOut = false, bool $hasPriceOverride = false): self
+    public static function fromModel(ReservationUnit $unit, bool $canViewGuest, ?string $overrideReason, ?string $overrideBy, array $actions = [], bool $canChangePrice = false, array $chargedNightIds = [], bool $canSetBoatIn = false, bool $canSetBoatOut = false, bool $hasPriceOverride = false, bool $canChangeGuests = false): self
     {
         $isDayUse = $unit->stay_type === StayType::DayUse;
         $trips = $unit->relationLoaded('boatTrips') ? $unit->boatTrips : collect();
@@ -108,6 +109,7 @@ class ReservationUnitData extends Data
             canSetBoatIn: $canSetBoatIn,
             canSetBoatOut: $canSetBoatOut,
             hasPriceOverride: $hasPriceOverride,
+            canChangeGuests: $canChangeGuests,
         );
     }
 }

@@ -20,6 +20,8 @@ use App\Enums\Locale;
 use App\Enums\ManualFolioReason;
 use App\Enums\PermissionEnum;
 use App\Enums\ReservationStatus;
+use App\Enums\SellUnit;
+use App\Enums\StayType;
 use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
 use App\Features\Boats;
@@ -290,6 +292,10 @@ class ReservationController extends Controller
             canSetBoatIn: $canManageBoats && $boatAccess->refusalFor($unit, BoatDirection::In) === null,
             canSetBoatOut: $canManageBoats && $boatAccess->refusalFor($unit, BoatDirection::Out) === null,
             hasPriceOverride: $override !== null,
+            canChangeGuests: $user->can(PermissionEnum::ReservationsManage->value)
+                && in_array($unit->status, [UnitStatus::Confirmed, UnitStatus::CheckedIn], true)
+                && $unit->stay_type === StayType::Overnight
+                && $unit->roomType->sell_unit === SellUnit::Room,
         );
     }
 

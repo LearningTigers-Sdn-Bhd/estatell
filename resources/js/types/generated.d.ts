@@ -3713,6 +3713,7 @@ boatOut: App.Data.Boats.UnitBoatTripData | null,
 canSetBoatIn: boolean,
 canSetBoatOut: boolean,
 hasPriceOverride: boolean,
+canChangeGuests: boolean,
 };
 export type ReservationUnitOptionData = {
 id: number,
@@ -3852,6 +3853,23 @@ nightTotal: string,
 lines: App.Data.Reservations.UnitPendingLineData[],
 balanceIfStayed: string,
 stayed: boolean,
+};
+export type UnitPartyNightData = {
+date: string,
+was: string,
+will: string,
+charged: boolean,
+overridden: boolean,
+changes: boolean,
+};
+export type UnitPartyPreviewData = {
+nights: App.Data.Reservations.UnitPartyNightData[],
+before: string,
+after: string,
+difference: string,
+fromChannel: boolean,
+hasCharged: boolean,
+error: string | null,
 };
 export type UnitPendingLineData = {
 description: string,

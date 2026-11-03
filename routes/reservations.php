@@ -21,6 +21,7 @@ use App\Http\Controllers\Reservations\ReservationPaymentController;
 use App\Http\Controllers\Reservations\ReservationRoutingController;
 use App\Http\Controllers\Reservations\ReservationUnitAddOnController;
 use App\Http\Controllers\Reservations\ReservationUnitController;
+use App\Http\Controllers\Reservations\ReservationUnitPartyController;
 use App\Http\Controllers\Reservations\ReservationUnitStayController;
 use Illuminate\Support\Facades\Route;
 
@@ -190,6 +191,8 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                 Route::post('no-show', [ReservationUnitStayController::class, 'noShow'])->name('no-show');
                 Route::post('reinstate/preview', [ReservationUnitStayController::class, 'reinstatePreview'])->name('reinstate-preview');
                 Route::post('reinstate', [ReservationUnitStayController::class, 'reinstate'])->name('reinstate');
+                Route::post('party/preview', [ReservationUnitPartyController::class, 'preview'])->name('party.preview');
+                Route::put('party', [ReservationUnitPartyController::class, 'store'])->name('party');
                 Route::post('dates/preview', [ReservationUnitStayController::class, 'datesPreview'])->name('dates-preview');
                 Route::put('dates', [ReservationUnitStayController::class, 'changeDates'])->name('dates');
                 Route::post('early-check-out', [ReservationUnitStayController::class, 'earlyCheckOut'])->middleware('can:'.PermissionEnum::FrontDeskCheckOut->value)->name('early-check-out');

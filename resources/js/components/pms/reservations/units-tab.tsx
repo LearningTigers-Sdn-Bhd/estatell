@@ -19,6 +19,7 @@ import { EnumSelect } from '@/components/pms/enum-select';
 import { Badge } from '@/components/ui/badge';
 import { MoneyText } from '@/components/pms/money-text';
 import { ChangeBoatTripDialog } from '@/components/pms/reservations/change-boat-trip-dialog';
+import { ChangeGuestsDialog } from '@/components/pms/reservations/change-guests-dialog';
 import { ChangeNightPriceDialog } from '@/components/pms/reservations/change-night-price-dialog';
 import { UnitActionsMenu } from '@/components/pms/reservations/unit-actions-menu';
 import { StatusBadge } from '@/components/pms/status-badge';
@@ -270,6 +271,7 @@ export function UnitsTab({
 }) {
     const [ticked, setTicked] = useState<number[]>([]);
     const [changingPrice, setChangingPrice] = useState(false);
+    const [changingGuests, setChangingGuests] = useState(false);
     const [boatChange, setBoatChange] = useState<{
         direction: App.Enums.BoatDirection;
         open: boolean;
@@ -383,7 +385,18 @@ export function UnitsTab({
                         {roomText(unit, autoAssignRooms)}
                     </Detail>
                     <Detail icon={Users} label="Guests">
-                        {guestsText(unit)}
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                            <span>{guestsText(unit)}</span>
+                            {unit.canChangeGuests && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setChangingGuests(true)}
+                                >
+                                    Change
+                                </Button>
+                            )}
+                        </div>
                     </Detail>
                 </div>
                 {doorPins !== null && <DoorPins pins={doorPins} />}
@@ -541,6 +554,16 @@ export function UnitsTab({
                         departures={boatDepartures}
                     />
                 )}
+            {unit.canChangeGuests && (
+                <ChangeGuestsDialog
+                    open={changingGuests}
+                    onOpenChange={setChangingGuests}
+                    reservationId={reservationId}
+                    unit={unit}
+                    canChangePrice={unit.canChangePrice}
+                    currency={currency}
+                />
+            )}
             {unit.canChangePrice && (
                 <ChangeNightPriceDialog
                     open={changingPrice}

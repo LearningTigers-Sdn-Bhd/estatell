@@ -82,6 +82,21 @@ class ReservationRefusals
     }
 
     /**
+     * The message of a refused Change guests: its own codes, else the shared unit and quote messages.
+     */
+    public function partyMessage(string $code): string
+    {
+        return match ($code) {
+            UnitPartyChangePreview::REFUSAL_UNIT_NOT_OPEN => __('Only a confirmed or checked-in room can change its guests.'),
+            UnitPartyChangePreview::REFUSAL_DAY_USE => __('A day use booking keeps its guests. Cancel it and book again.'),
+            UnitPartyChangePreview::REFUSAL_BED_UNIT => __('A bed takes one guest. Add or remove beds instead.'),
+            UnitPartyChangePreview::REFUSAL_TOO_MANY_GUESTS => __('This room type takes fewer guests.'),
+            UnitPartyChangePreview::REFUSAL_NOTHING_CHANGED => __('The guests are the same as now.'),
+            default => (string) array_values($this->unitErrors($code))[0],
+        };
+    }
+
+    /**
      * The errors of the boat trip Dialog, keyed by field. `unit_not_open` is shared with other Actions, so the boat
      * trip messages stay here and do not change the shared list.
      *
