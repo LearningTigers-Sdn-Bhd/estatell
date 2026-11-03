@@ -1,5 +1,5 @@
 import { Head, useForm } from '@inertiajs/react';
-import { Cloud, Cpu, FileText, Globe, RefreshCw, Shield } from 'lucide-react';
+import { Cloud, Cpu, ExternalLink, Globe, Plug, Shield } from 'lucide-react';
 import { useState } from 'react';
 import EInvoiceSettingsController from '@/actions/App/Http/Controllers/Property/EInvoiceSettingsController';
 import { ChoiceCards } from '@/components/pms/choice-cards';
@@ -10,10 +10,29 @@ import {
     SettingsSwitch,
 } from '@/components/pms/settings/form-fields';
 import { SettingsSection } from '@/components/pms/settings-section';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { StatusBadge } from '@/components/pms/status-badge';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
+import {
+    Field,
+    FieldDescription,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+    FieldLegend,
+    FieldSet,
+} from '@/components/ui/field';
 import { Spinner } from '@/components/ui/spinner';
-import { test as testRoute } from '@/routes/settings/e-invoice';
+import { Textarea } from '@/components/ui/textarea';
+import { profile } from '@/routes/settings';
+import { edit, test as testRoute } from '@/routes/settings/e-invoice';
 
 type SettingData = {
     enabled: boolean;
@@ -68,450 +87,594 @@ export default function EInvoiceSettings({
     malaysiaStates,
     propertyDefaults,
 }: Props) {
-    const [testing, setTesting] = useState(false);
     const [apiEnvironment, setApiEnvironment] = useState(
         setting?.api_environment ?? 'sandbox',
     );
     const testForm = useForm({});
 
-    const handleTestConnection = () => {
-        setTesting(true);
-        testForm.post(testRoute.url(), {
-            onFinish: () => setTesting(false),
-        });
-    };
+    const isConfigured = Boolean(
+        setting?.client_id && setting?.has_client_secret,
+    );
+    const portalUrl =
+        apiEnvironment === 'production'
+            ? 'https://myinvois.hasil.gov.my'
+            : 'https://preprod-myinvois.hasil.gov.my';
 
     return (
-        <div className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6">
-            <Head title="LHDN MyInvois E-Invoice Settings" />
+        <>
+            <Head title="E-Invoicing" />
 
-            <PageHeader
-                title="E-Invoicing (LHDN MyInvois)"
-                description="Configure Malaysia Inland Revenue Board (IRBM / LHDN) MyInvois Continuous Transaction Control integration, credentials, and digital signing."
-                actions={
-                    <a
-                        href="/admin/e-invoice-guide"
-                        target="_blank"
-                        rel="noreferrer"
-                        className={buttonVariants({
-                            variant: 'outline',
-                            size: 'sm',
-                        })}
-                    >
-                        <FileText className="mr-1.5 size-4" />
-                        Official Guidelines & Docs
-                    </a>
-                }
-            />
+            <div className="flex flex-col gap-4 p-4">
+                <PageHeader
+                    title="E-Invoicing"
+                    description="Connect your property to the Inland Revenue Board of Malaysia (LHDN / IRBM) MyInvois gateway for Continuous Transaction Control (CTC)."
+                />
 
-            <SettingsSection
-                guardUnsavedChanges
-                form={EInvoiceSettingsController.update.form()}
-                title="Service Status & Environment"
-                description="Enable continuous e-invoicing for this property and select the targeted LHDN gateway."
-                submitLabel="Save Changes"
-                contentClassName="space-y-6"
-            >
-                {(errors) => (
-                    <>
-                        <SettingsSwitch
-                            name="enabled"
-                            label="Enable LHDN MyInvois e-invoicing"
-                            description="When active, valid guest folios and AR invoices can be filed directly to LHDN MyInvois."
-                            checked={setting?.enabled ?? false}
-                            error={errors.enabled}
-                        />
+                <div className="grid gap-6 lg:grid-cols-3">
+                    <div className="flex flex-col gap-4 lg:col-span-2">
+                        <SettingsSection
+                            guardUnsavedChanges
+                            form={EInvoiceSettingsController.update.form()}
+                            title="Connection & Tax Profile"
+                            description="API credentials, environment, and supplier identity transmitted on every e-invoice submission."
+                            submitLabel="Save settings"
+                            contentClassName="flex flex-col gap-6"
+                        >
+                            {(errors) => (
+                                <>
+                                    <FieldSet>
+                                        <FieldLegend>
+                                            Environment & Automation
+                                        </FieldLegend>
+                                        <ChoiceCards
+                                            id="api_environment"
+                                            name="api_environment"
+                                            legend="Gateway environment"
+                                            columns={3}
+                                            choices={[
+                                                {
+                                                    value: 'mock',
+                                                    label: 'Mock',
+                                                    description:
+                                                        'Local simulator for sandbox development and fast tests.',
+                                                    icon: Cpu,
+                                                },
+                                                {
+                                                    value: 'sandbox',
+                                                    label: 'Sandbox',
+                                                    description:
+                                                        'LHDN Pre-production environment for integration testing.',
+                                                    icon: Cloud,
+                                                },
+                                                {
+                                                    value: 'production',
+                                                    label: 'Production',
+                                                    description:
+                                                        'LHDN Live gateway for legally binding statutory e-invoices.',
+                                                    icon: Globe,
+                                                },
+                                            ]}
+                                            value={apiEnvironment}
+                                            onValueChange={setApiEnvironment}
+                                            error={errors.api_environment}
+                                        />
 
-                        <div className="space-y-2">
-                            <ChoiceCards
-                                id="api_environment"
-                                name="api_environment"
-                                legend="Gateway Environment"
-                                value={apiEnvironment}
-                                onValueChange={setApiEnvironment}
-                                columns={3}
-                                choices={[
-                                    {
-                                        value: 'mock',
-                                        label: 'Mock',
-                                        description:
-                                            'Deterministic local test responses without external HTTP calls.',
-                                        icon: Cpu,
-                                    },
-                                    {
-                                        value: 'sandbox',
-                                        label: 'Sandbox',
-                                        description:
-                                            'LHDN Pre-production sandbox (preprod-api.myinvois.hasil.gov.my).',
-                                        icon: Cloud,
-                                    },
-                                    {
-                                        value: 'production',
-                                        label: 'Production',
-                                        description:
-                                            'Live LHDN Production API (api.myinvois.hasil.gov.my).',
-                                        icon: Globe,
-                                    },
-                                ]}
-                            />
-                        </div>
+                                        <div className="grid gap-4 md:grid-cols-2">
+                                            <SettingsSwitch
+                                                bordered
+                                                name="enabled"
+                                                label="Enable e-invoicing"
+                                                checked={
+                                                    setting?.enabled ?? false
+                                                }
+                                                description="Transmit eligible guest folios and AR invoices to LHDN MyInvois."
+                                                error={errors.enabled}
+                                            />
+                                            <SettingsSwitch
+                                                bordered
+                                                name="auto_submit_on_checkout"
+                                                label="Submit upon checkout"
+                                                checked={
+                                                    setting?.auto_submit_on_checkout ??
+                                                    false
+                                                }
+                                                description="Automatically submit e-invoices when a reservation folio is closed."
+                                                error={
+                                                    errors.auto_submit_on_checkout
+                                                }
+                                            />
+                                            <div className="md:col-span-2">
+                                                <SettingsSwitch
+                                                    bordered
+                                                    name="consolidation_enabled"
+                                                    label="Monthly B2C consolidation"
+                                                    checked={
+                                                        setting?.consolidation_enabled ??
+                                                        true
+                                                    }
+                                                    description="Aggregate unconsolidated stays under RM10,000 on the 1st of each month with General Public TIN EI00000000010."
+                                                    error={
+                                                        errors.consolidation_enabled
+                                                    }
+                                                />
+                                            </div>
+                                        </div>
+                                    </FieldSet>
 
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            <SettingsSwitch
-                                name="auto_submit_on_checkout"
-                                label="Auto-file folio on checkout"
-                                description="Automatically submit the e-invoice to LHDN when closing the guest folio."
-                                checked={
-                                    setting?.auto_submit_on_checkout ?? false
-                                }
-                                error={errors.auto_submit_on_checkout}
-                                bordered
-                            />
+                                    <FieldSet>
+                                        <FieldLegend>
+                                            LHDN API Credentials
+                                        </FieldLegend>
+                                        <FieldGroup className="grid md:grid-cols-2">
+                                            <SettingsInput
+                                                name="client_id"
+                                                label="Client ID"
+                                                value={setting?.client_id ?? ''}
+                                                placeholder="From MyInvois Taxpayer Portal"
+                                                description="Generated in the MyInvois ERP integration profile."
+                                                error={errors.client_id}
+                                            />
+                                            <SettingsInput
+                                                name="client_secret"
+                                                label="Client Secret"
+                                                type="password"
+                                                value=""
+                                                placeholder={
+                                                    setting?.has_client_secret
+                                                        ? '•••••••• (Leave blank to keep saved secret)'
+                                                        : 'Paste secret here'
+                                                }
+                                                description="Stored encrypted with AES-256-GCM."
+                                                error={errors.client_secret}
+                                            />
+                                        </FieldGroup>
+                                    </FieldSet>
 
-                            <SettingsSwitch
-                                name="consolidation_enabled"
-                                label="Monthly consolidation"
-                                description="Automatically batch and file unconsolidated B2C stays on the 1st of each month (within 7 days)."
-                                checked={setting?.consolidation_enabled ?? true}
-                                error={errors.consolidation_enabled}
-                                bordered
-                            />
-                        </div>
+                                    <FieldSet>
+                                        <FieldLegend>
+                                            Supplier Tax Profile
+                                        </FieldLegend>
+                                        <FieldGroup className="grid md:grid-cols-2">
+                                            <SettingsInput
+                                                name="supplier_name"
+                                                label="Registered business name"
+                                                value={
+                                                    setting?.supplier_name ??
+                                                    propertyDefaults.legal_name
+                                                }
+                                                description="Must exactly match your SSM registration."
+                                                error={errors.supplier_name}
+                                            />
+                                            <SettingsInput
+                                                name="supplier_tin"
+                                                label="Tax Identification Number (TIN)"
+                                                value={
+                                                    setting?.supplier_tin ??
+                                                    propertyDefaults.tin
+                                                }
+                                                placeholder="e.g. C1234567890"
+                                                description="Your company income tax number (e.g. C or IG prefix)."
+                                                error={errors.supplier_tin}
+                                            />
+                                            <SettingsInput
+                                                name="supplier_sst_registration"
+                                                label="SST registration number (optional)"
+                                                value={
+                                                    setting?.supplier_sst_registration ??
+                                                    ''
+                                                }
+                                                placeholder="e.g. W10-1808-12345678"
+                                                description="Required if registered for Sales and Service Tax."
+                                                error={
+                                                    errors.supplier_sst_registration
+                                                }
+                                            />
+                                            <SettingsInput
+                                                name="supplier_ttx_registration"
+                                                label="Tourism Tax (TTx) number (optional)"
+                                                value={
+                                                    setting?.supplier_ttx_registration ??
+                                                    ''
+                                                }
+                                                placeholder="e.g. TTX-12345678"
+                                                description="Required if registered for Malaysian Tourism Tax."
+                                                error={
+                                                    errors.supplier_ttx_registration
+                                                }
+                                            />
+                                            <SettingsInput
+                                                name="supplier_msic_code"
+                                                label="MSIC code"
+                                                value={
+                                                    setting?.supplier_msic_code ??
+                                                    propertyDefaults.msic_code
+                                                }
+                                                description="5-digit code. Default 55101 for Hotels and resort hotels."
+                                                error={
+                                                    errors.supplier_msic_code
+                                                }
+                                            />
+                                            <SettingsInput
+                                                name="supplier_business_description"
+                                                label="Business activity description"
+                                                value={
+                                                    setting?.supplier_business_description ??
+                                                    propertyDefaults.business_description
+                                                }
+                                                description="Describes accommodation services."
+                                                error={
+                                                    errors.supplier_business_description
+                                                }
+                                            />
+                                        </FieldGroup>
+                                    </FieldSet>
 
-                        {setting?.effective_from && (
-                            <p className="text-xs text-muted-foreground">
-                                Active since{' '}
-                                <span className="font-medium text-foreground">
-                                    {new Date(
-                                        setting.effective_from,
-                                    ).toLocaleDateString('en-MY', {
-                                        day: '2-digit',
-                                        month: 'short',
-                                        year: 'numeric',
-                                    })}
-                                </span>
-                                . Folios paid prior to this date are excluded
-                                from retroactive filing.
-                            </p>
-                        )}
-                    </>
-                )}
-            </SettingsSection>
+                                    <FieldSet>
+                                        <FieldLegend>
+                                            Supplier Address & Contact
+                                        </FieldLegend>
+                                        <FieldGroup>
+                                            <SettingsInput
+                                                name="supplier_address_line1"
+                                                label="Address line 1"
+                                                value={
+                                                    setting?.supplier_address_line1 ??
+                                                    propertyDefaults.address_line1
+                                                }
+                                                error={
+                                                    errors.supplier_address_line1
+                                                }
+                                            />
+                                            <SettingsInput
+                                                name="supplier_address_line2"
+                                                label="Address line 2 (optional)"
+                                                value={
+                                                    setting?.supplier_address_line2 ??
+                                                    propertyDefaults.address_line2
+                                                }
+                                                error={
+                                                    errors.supplier_address_line2
+                                                }
+                                            />
+                                            <FieldGroup className="grid md:grid-cols-3">
+                                                <SettingsInput
+                                                    name="supplier_city"
+                                                    label="City"
+                                                    value={
+                                                        setting?.supplier_city ??
+                                                        propertyDefaults.city
+                                                    }
+                                                    error={errors.supplier_city}
+                                                />
+                                                <SettingsInput
+                                                    name="supplier_postal_code"
+                                                    label="Postal code"
+                                                    value={
+                                                        setting?.supplier_postal_code ??
+                                                        propertyDefaults.postal_code
+                                                    }
+                                                    error={
+                                                        errors.supplier_postal_code
+                                                    }
+                                                />
+                                                <SettingsSelect
+                                                    name="supplier_state_code"
+                                                    label="State"
+                                                    value={
+                                                        setting?.supplier_state_code ??
+                                                        propertyDefaults.state_code ??
+                                                        '12'
+                                                    }
+                                                    options={malaysiaStates}
+                                                    description="LHDN prescribed state code."
+                                                    error={
+                                                        errors.supplier_state_code
+                                                    }
+                                                />
+                                            </FieldGroup>
+                                            <FieldGroup className="grid md:grid-cols-2">
+                                                <SettingsInput
+                                                    name="supplier_email"
+                                                    label="Finance email"
+                                                    type="email"
+                                                    value={
+                                                        setting?.supplier_email ??
+                                                        propertyDefaults.contact_email
+                                                    }
+                                                    error={
+                                                        errors.supplier_email
+                                                    }
+                                                />
+                                                <SettingsInput
+                                                    name="supplier_phone"
+                                                    label="Finance phone"
+                                                    value={
+                                                        setting?.supplier_phone ??
+                                                        propertyDefaults.contact_phone
+                                                    }
+                                                    description="Formatted to E.164 (e.g. +60123456789)."
+                                                    error={
+                                                        errors.supplier_phone
+                                                    }
+                                                />
+                                            </FieldGroup>
+                                        </FieldGroup>
+                                    </FieldSet>
 
-            <SettingsSection
-                guardUnsavedChanges
-                form={EInvoiceSettingsController.update.form()}
-                title="LHDN MyInvois API Credentials"
-                description="Client ID and Client Secret generated for your ERP system in the MyInvois Taxpayer Portal."
-                submitLabel="Save Credentials"
-                contentClassName="space-y-4"
-            >
-                {(errors) => (
-                    <>
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            <SettingsInput
-                                name="client_id"
-                                label="Client ID"
-                                placeholder="e.g. 7f9b8c2a-..."
-                                value={setting?.client_id ?? ''}
-                                error={errors.client_id}
-                            />
+                                    <FieldSet>
+                                        <FieldLegend>
+                                            Digital Signing (v1.1)
+                                        </FieldLegend>
+                                        <SettingsSwitch
+                                            bordered
+                                            name="signature_enabled"
+                                            label="Sign payloads with digital certificate"
+                                            checked={
+                                                setting?.signature_enabled ??
+                                                false
+                                            }
+                                            description="Applies an XAdES enveloped signature with your X.509 certificate and RSA private key. Version 1.0 (unsigned) uses SHA-256 base64 digest."
+                                            error={errors.signature_enabled}
+                                        />
 
-                            <SettingsInput
-                                name="client_secret"
-                                label="Client Secret"
-                                type="password"
-                                placeholder={
-                                    setting?.has_client_secret
-                                        ? '••••••••••••••••'
-                                        : 'Paste new secret'
-                                }
-                                value=""
-                                error={errors.client_secret}
-                            />
-                        </div>
+                                        <FieldGroup>
+                                            <Field>
+                                                <FieldLabel htmlFor="signing_certificate">
+                                                    X.509 Signing Certificate
+                                                    (PEM format)
+                                                </FieldLabel>
+                                                <Textarea
+                                                    id="signing_certificate"
+                                                    name="signing_certificate"
+                                                    rows={4}
+                                                    placeholder="-----BEGIN CERTIFICATE-----&#10;...&#10;-----END CERTIFICATE-----"
+                                                    defaultValue={
+                                                        setting?.signing_certificate ??
+                                                        ''
+                                                    }
+                                                    aria-invalid={
+                                                        !!errors.signing_certificate
+                                                    }
+                                                />
+                                                <FieldDescription>
+                                                    Public certificate issued by
+                                                    a licensed Malaysian Trust
+                                                    Service Provider (e.g. Pos
+                                                    Digicert, MSC Trustgate).
+                                                </FieldDescription>
+                                                <FieldError>
+                                                    {errors.signing_certificate}
+                                                </FieldError>
+                                            </Field>
 
-                        <div className="flex items-center justify-between pt-2">
-                            <p className="text-xs text-muted-foreground">
-                                Credentials are encrypted at rest using AES-256
-                                GCM in the Estatell database.
-                            </p>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={handleTestConnection}
-                                disabled={testing}
-                            >
-                                {testing ? (
-                                    <>
-                                        <Spinner className="mr-1.5 size-4" />{' '}
-                                        Verifying...
-                                    </>
-                                ) : (
-                                    <>
-                                        <RefreshCw className="mr-1.5 size-4" />{' '}
-                                        Test LHDN Connection
-                                    </>
-                                )}
-                            </Button>
-                        </div>
-                    </>
-                )}
-            </SettingsSection>
+                                            <Field>
+                                                <FieldLabel htmlFor="signing_private_key">
+                                                    Private Key (PEM format)
+                                                </FieldLabel>
+                                                <Textarea
+                                                    id="signing_private_key"
+                                                    name="signing_private_key"
+                                                    rows={4}
+                                                    placeholder={
+                                                        setting?.has_signing_private_key
+                                                            ? '•••••••• (Private key is securely stored in database)'
+                                                            : '-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----'
+                                                    }
+                                                    defaultValue=""
+                                                    aria-invalid={
+                                                        !!errors.signing_private_key
+                                                    }
+                                                />
+                                                <FieldDescription>
+                                                    Stored encrypted with
+                                                    AES-256-GCM. Never exposed
+                                                    in responses or sent to
+                                                    third parties.
+                                                </FieldDescription>
+                                                <FieldError>
+                                                    {errors.signing_private_key}
+                                                </FieldError>
+                                            </Field>
 
-            <SettingsSection
-                guardUnsavedChanges
-                form={EInvoiceSettingsController.update.form()}
-                title="Supplier Tax & Business Profile"
-                description="Taxpayer identity sent in AccountingSupplierParty. Defaults to property company information if left blank."
-                submitLabel="Save Supplier Profile"
-                contentClassName="space-y-4"
-            >
-                {(errors) => (
-                    <>
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            <SettingsInput
-                                name="supplier_name"
-                                label="Legal Entity Name"
-                                placeholder={
-                                    propertyDefaults.legal_name ??
-                                    'Hotel Sdn Bhd'
-                                }
-                                value={setting?.supplier_name ?? ''}
-                                error={errors.supplier_name}
-                            />
-
-                            <SettingsInput
-                                name="supplier_tin"
-                                label="Tax Identification Number (TIN)"
-                                placeholder={
-                                    propertyDefaults.tin ?? 'C1234567890'
-                                }
-                                value={setting?.supplier_tin ?? ''}
-                                error={errors.supplier_tin}
-                            />
-                        </div>
-
-                        <div className="grid gap-4 sm:grid-cols-3">
-                            <SettingsInput
-                                name="supplier_msic_code"
-                                label="MSIC Code"
-                                placeholder={
-                                    propertyDefaults.msic_code ?? '55101'
-                                }
-                                value={setting?.supplier_msic_code ?? ''}
-                                error={errors.supplier_msic_code}
-                            />
-
-                            <SettingsInput
-                                name="supplier_sst_registration"
-                                label="SST Registration No."
-                                placeholder="e.g. S10-1808-31042523"
-                                value={setting?.supplier_sst_registration ?? ''}
-                                error={errors.supplier_sst_registration}
-                            />
-
-                            <SettingsInput
-                                name="supplier_ttx_registration"
-                                label="Tourism Tax Registration"
-                                placeholder="Optional"
-                                value={setting?.supplier_ttx_registration ?? ''}
-                                error={errors.supplier_ttx_registration}
-                            />
-                        </div>
-
-                        <SettingsInput
-                            name="supplier_business_description"
-                            label="Business Activity Description"
-                            placeholder={
-                                propertyDefaults.business_description ??
-                                'Hotels and resort accommodation'
-                            }
-                            value={setting?.supplier_business_description ?? ''}
-                            error={errors.supplier_business_description}
-                        />
-
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            <SettingsInput
-                                name="supplier_email"
-                                label="Contact Email"
-                                placeholder={
-                                    propertyDefaults.contact_email ??
-                                    'finance@hotel.com'
-                                }
-                                value={setting?.supplier_email ?? ''}
-                                error={errors.supplier_email}
-                            />
-
-                            <SettingsInput
-                                name="supplier_phone"
-                                label="Contact Phone"
-                                placeholder={
-                                    propertyDefaults.contact_phone ??
-                                    '+60123456789'
-                                }
-                                value={setting?.supplier_phone ?? ''}
-                                error={errors.supplier_phone}
-                            />
-                        </div>
-
-                        <div className="space-y-4 pt-2">
-                            <h4 className="text-sm font-semibold">
-                                Registered Business Address
-                            </h4>
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                <SettingsInput
-                                    name="supplier_address_line1"
-                                    label="Address Line 1"
-                                    placeholder={
-                                        propertyDefaults.address_line1 ?? ''
-                                    }
-                                    value={
-                                        setting?.supplier_address_line1 ?? ''
-                                    }
-                                    error={errors.supplier_address_line1}
-                                />
-                                <SettingsInput
-                                    name="supplier_address_line2"
-                                    label="Address Line 2 (Optional)"
-                                    placeholder={
-                                        propertyDefaults.address_line2 ?? ''
-                                    }
-                                    value={
-                                        setting?.supplier_address_line2 ?? ''
-                                    }
-                                    error={errors.supplier_address_line2}
-                                />
-                            </div>
-
-                            <div className="grid gap-4 sm:grid-cols-3">
-                                <SettingsInput
-                                    name="supplier_city"
-                                    label="City"
-                                    placeholder={propertyDefaults.city ?? ''}
-                                    value={setting?.supplier_city ?? ''}
-                                    error={errors.supplier_city}
-                                />
-                                <SettingsInput
-                                    name="supplier_postal_code"
-                                    label="Postal Code"
-                                    placeholder={
-                                        propertyDefaults.postal_code ?? ''
-                                    }
-                                    value={setting?.supplier_postal_code ?? ''}
-                                    error={errors.supplier_postal_code}
-                                />
-                                <SettingsSelect
-                                    name="supplier_state_code"
-                                    label="State (LHDN Code)"
-                                    value={
-                                        setting?.supplier_state_code ??
-                                        propertyDefaults.state_code ??
-                                        '12'
-                                    }
-                                    options={malaysiaStates}
-                                    error={errors.supplier_state_code}
-                                />
-                            </div>
-                        </div>
-                    </>
-                )}
-            </SettingsSection>
-
-            <SettingsSection
-                guardUnsavedChanges
-                form={EInvoiceSettingsController.update.form()}
-                title="Cryptographic Document Signing (v1.1)"
-                description="Sign UBL documents using an X.509 certificate issued by an approved Malaysian Certification Authority."
-                submitLabel="Save Certificate"
-                contentClassName="space-y-4"
-            >
-                {(errors) => (
-                    <>
-                        <Alert>
-                            <Shield className="size-4" />
-                            <AlertTitle>
-                                v1.0 vs v1.1 Signing Profile
-                            </AlertTitle>
-                            <AlertDescription>
-                                Unsigned submissions (v1.0) are fully accepted
-                                by LHDN for API taxpayers today. If your
-                                corporate policy requires v1.1 digital signing,
-                                upload your X.509 Certificate and Private Key
-                                below.
-                            </AlertDescription>
-                        </Alert>
-
-                        <SettingsSwitch
-                            name="signature_enabled"
-                            label="Enable RSA-SHA256 Digital Signatures (v1.1)"
-                            description="Embed XAdES digital signature envelope with certificate digest into UBLExtensions."
-                            checked={setting?.signature_enabled ?? false}
-                            error={errors.signature_enabled}
-                        />
-
-                        <div className="space-y-2">
-                            <label
-                                htmlFor="signing_certificate"
-                                className="text-sm font-medium"
-                            >
-                                X.509 Certificate (PEM format)
-                            </label>
-                            <textarea
-                                id="signing_certificate"
-                                name="signing_certificate"
-                                rows={4}
-                                className="w-full rounded-md border border-input bg-transparent px-3 py-2 font-mono text-xs shadow-xs placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-hidden"
-                                placeholder="-----BEGIN CERTIFICATE-----&#10;MIID...&#10;-----END CERTIFICATE-----"
-                                defaultValue={
-                                    setting?.signing_certificate ?? ''
-                                }
-                            />
-                            {errors.signing_certificate && (
-                                <p className="text-xs text-destructive">
-                                    {errors.signing_certificate}
-                                </p>
+                                            <SettingsInput
+                                                name="signing_passphrase"
+                                                label="Private key passphrase (optional)"
+                                                type="password"
+                                                placeholder="Leave blank if private key has no passphrase"
+                                                value=""
+                                                error={
+                                                    errors.signing_passphrase
+                                                }
+                                            />
+                                        </FieldGroup>
+                                    </FieldSet>
+                                </>
                             )}
-                        </div>
+                        </SettingsSection>
+                    </div>
 
-                        <div className="space-y-2">
-                            <label
-                                htmlFor="signing_private_key"
-                                className="text-sm font-medium"
-                            >
-                                Private Key (PEM format)
-                            </label>
-                            <textarea
-                                id="signing_private_key"
-                                name="signing_private_key"
-                                rows={4}
-                                className="w-full rounded-md border border-input bg-transparent px-3 py-2 font-mono text-xs shadow-xs placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-hidden"
-                                placeholder={
-                                    setting?.has_signing_private_key
-                                        ? '•••••••• (Private key is securely stored)'
-                                        : '-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----'
-                                }
-                                defaultValue=""
-                            />
-                            {errors.signing_private_key && (
-                                <p className="text-xs text-destructive">
-                                    {errors.signing_private_key}
+                    <div className="flex flex-col gap-4">
+                        <Card className="h-fit">
+                            <CardHeader>
+                                <CardTitle>Status</CardTitle>
+                                <CardDescription>
+                                    Connection readiness and active mode.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="flex flex-col gap-4">
+                                <dl className="flex flex-col gap-3 text-sm">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <dt className="text-muted-foreground">
+                                            Status
+                                        </dt>
+                                        <dd>
+                                            <StatusBadge
+                                                status={{
+                                                    value: setting?.enabled
+                                                        ? 'active'
+                                                        : 'inactive',
+                                                    label: setting?.enabled
+                                                        ? 'Active'
+                                                        : 'Disabled',
+                                                    tone: setting?.enabled
+                                                        ? 'success'
+                                                        : 'neutral',
+                                                }}
+                                            />
+                                        </dd>
+                                    </div>
+
+                                    <div className="flex items-center justify-between gap-3">
+                                        <dt className="text-muted-foreground">
+                                            Environment
+                                        </dt>
+                                        <dd>
+                                            <Badge
+                                                variant="outline"
+                                                className="capitalize"
+                                            >
+                                                {setting?.api_environment ??
+                                                    apiEnvironment}
+                                            </Badge>
+                                        </dd>
+                                    </div>
+
+                                    <div className="flex items-center justify-between gap-3">
+                                        <dt className="text-muted-foreground">
+                                            Credentials
+                                        </dt>
+                                        <dd>
+                                            <Badge
+                                                variant={
+                                                    isConfigured
+                                                        ? 'outline'
+                                                        : 'secondary'
+                                                }
+                                            >
+                                                {isConfigured
+                                                    ? 'Configured'
+                                                    : 'Not set'}
+                                            </Badge>
+                                        </dd>
+                                    </div>
+
+                                    <div className="flex items-center justify-between gap-3">
+                                        <dt className="text-muted-foreground">
+                                            Signing
+                                        </dt>
+                                        <dd>
+                                            <Badge variant="outline">
+                                                {setting?.signature_enabled
+                                                    ? 'v1.1 Signed'
+                                                    : 'v1.0 Standard'}
+                                            </Badge>
+                                        </dd>
+                                    </div>
+
+                                    {setting?.effective_from && (
+                                        <div className="flex items-center justify-between gap-3">
+                                            <dt className="text-muted-foreground">
+                                                Effective since
+                                            </dt>
+                                            <dd className="tabular-nums">
+                                                {new Date(
+                                                    setting.effective_from,
+                                                ).toLocaleDateString('en-GB', {
+                                                    day: '2-digit',
+                                                    month: 'short',
+                                                    year: 'numeric',
+                                                })}
+                                            </dd>
+                                        </div>
+                                    )}
+                                </dl>
+
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    disabled={
+                                        !isConfigured || testForm.processing
+                                    }
+                                    focusableWhenDisabled
+                                    onClick={() =>
+                                        testForm.post(testRoute.url(), {
+                                            preserveScroll: true,
+                                        })
+                                    }
+                                >
+                                    {testForm.processing ? (
+                                        <Spinner />
+                                    ) : (
+                                        <Plug />
+                                    )}
+                                    Test connection
+                                </Button>
+
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    render={
+                                        <a
+                                            href={portalUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                        />
+                                    }
+                                >
+                                    <ExternalLink />
+                                    Open MyInvois Portal
+                                </Button>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                                    <Shield className="size-4 text-primary" />
+                                    Compliance Guidelines
+                                </CardTitle>
+                                <CardDescription>
+                                    Malaysian LHDN rules for hospitality.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="flex flex-col gap-3 text-xs text-muted-foreground">
+                                <p>
+                                    • <strong>72-Hour Window:</strong> LHDN
+                                    allows cancellations strictly within 72
+                                    hours of validation. Any later corrections
+                                    must be filed as a Credit Note (02).
                                 </p>
-                            )}
-                        </div>
-
-                        <SettingsInput
-                            name="signing_passphrase"
-                            label="Private Key Passphrase (if encrypted)"
-                            type="password"
-                            placeholder="Optional passphrase"
-                            value=""
-                            error={errors.signing_passphrase}
-                        />
-                    </>
-                )}
-            </SettingsSection>
-        </div>
+                                <p>
+                                    • <strong>B2C Consolidation:</strong> Stays
+                                    where guests do not request an invoice can
+                                    be consolidated monthly within 7 days of
+                                    month-end with General Public TIN
+                                    EI00000000010.
+                                </p>
+                                <p>
+                                    • <strong>RM10,000 Rule:</strong> Any
+                                    transaction exceeding RM10,000 cannot be
+                                    consolidated and must be individually
+                                    e-invoiced in real time.
+                                </p>
+                                <p>
+                                    • <strong>Exemption:</strong> Operators with
+                                    annual turnover under RM3,000,000 are exempt
+                                    from mandatory issuance unless requested by
+                                    a buyer.
+                                </p>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
+            </div>
+        </>
     );
 }
+
+EInvoiceSettings.layout = {
+    breadcrumbs: [
+        { title: 'Settings', href: profile() },
+        { title: 'E-invoicing', href: edit() },
+    ],
+};
