@@ -115,7 +115,7 @@ Branch `feat/sandbay-gaps`. Plan: `~/Code/Jesselton-Pixel/docs/estatell/sandbay/
 - [x] `feat(reports): add the house status report` — `room_types.print_label` and `rooms.print_label` with their form fields, `ReportKey::HouseStatus`, `HouseStatusReport` (boat time groups, Boat not set, Room move, OCC, Management, EXTRA BED and TL flags, remarks), `HasPrintView` in `ReportPdf` and the grid `pdf/house-status.blade.php`. Docs: [House status](22-reports/03-house-status-and-items.md#house-status).
 - [x] `feat(city-ledger): add the agent payment schedule` — property terms (Settings › Agent payments) and company overrides, `AgentPaymentTerms`, `AgentPaymentSchedule`, `SetReservationPaymentSchedule` from `CreateReservation` and `UpdateReservationCompany`, the reservation deadline columns, the Payment schedule card, the Agent payments due report. Docs: [Agent payment schedule](15-city-ledger/06-agent-payment-schedule.md).
 - [x] `feat(portal): upload a payment proof` — `payment_proofs` with its media file, `PaymentProofStatus`, `UploadPaymentProof` and the portal Payment section, `AcceptPaymentProof` (records the payment) and `RejectPaymentProof` in the reservation summary, Proof received on the schedule. Docs: [Payment proof](15-city-ledger/06-agent-payment-schedule.md#payment-proof).
-- [ ] `feat(notifications): remind agents of payment deadlines`
+- [x] `feat(notifications): remind agents of payment deadlines` — `AgentPaymentReminder` (schedule, reminder, overdue) to the company email and active portal logins, `SendAgentPaymentReminders` with `agent_payment_reminders` so each is sent once, `agent-payments:send-reminders` every 15 minutes. Docs: [Reminders](15-city-ledger/06-agent-payment-schedule.md#reminders).
 
 ## Next
 

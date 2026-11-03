@@ -52,6 +52,8 @@ Define every notification once, with its channels, defaults and recipients.
 - `shouldSend()` checks again when the queued job runs.
 - The constructor calls `afterCommit()`.
 
+Messages to people outside the property's staff do not use it: `CompanyLinkInvitation` (a company user) and `AgentPaymentReminder` (a travel agent's payment schedule, reminders and overdue notices, sent on demand by mail to the company's email and portal logins; see [Agent payment schedule](../15-city-ledger/06-agent-payment-schedule.md#reminders)).
+
 ## Storage
 
 In-app notifications use the framework `notifications` table. Its `data` column is json and is allowed.

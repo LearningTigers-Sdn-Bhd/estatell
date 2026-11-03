@@ -78,6 +78,16 @@ payment_proofs   id, property_id, reservation_id, uploaded_by (FK users), amount
 - Logs: `payment_proof.uploaded`, `payment_proof.accepted`, `payment_proof.rejected` on the reservation.
 - The reservation page reads proofs only for a reservation with a company, so other pages run no extra query.
 
-## Still to build
+## Reminders
 
-- Emails to the agent: the schedule with the confirmation, a reminder a day before each deadline, an overdue notice (`feat(notifications): remind agents of payment deadlines`).
+`agent-payments:send-reminders` runs every 15 minutes (`routes/console.php`, on one server) and calls `SendAgentPaymentReminders`. For each Confirmed or In-house booking with a schedule, it emails `AgentPaymentReminder` (mail only, queued, on demand):
+
+| Email      | When                                                   | Says                                                          |
+| ---------- | ------------------------------------------------------ | ------------------------------------------------------------- |
+| `schedule` | The first run after booking, unless it is already paid | Every stage with its amount and due time                      |
+| `reminder` | The first stage not paid is due within 24 hours        | "Please pay MYR 500.00 by 17 Oct 2026, 20:00", and the stages |
+| `overdue`  | That stage's time has passed                           | It is not paid yet: pay now or send a proof                   |
+
+- **To:** the company's contact email and the emails of its active portal logins. With none, nothing is sent and the next run tries again.
+- **Once each:** `agent_payment_reminders` (reservation, stage: `all`, `deposit`, `balance` or `full`, kind, `sent_at`, unique) records each email sent. A reminder or notice is per stage, so the balance gets its own.
+- Times print in the property time zone. Each email links to the booking in the company portal, where the agent uploads a proof.
