@@ -101,4 +101,16 @@ class ArInvoice extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+
+    /** @return HasMany<EInvoiceSubmission, $this> */
+    public function eInvoiceSubmissions(): HasMany
+    {
+        return $this->hasMany(EInvoiceSubmission::class);
+    }
+
+    /** @return HasOne<EInvoiceSubmission, $this> */
+    public function latestEInvoiceSubmission(): HasOne
+    {
+        return $this->hasOne(EInvoiceSubmission::class)->latestOfMany();
+    }
 }

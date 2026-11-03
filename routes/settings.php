@@ -15,6 +15,7 @@ use App\Http\Controllers\DoorLocks\DoorLockSettingsController;
 use App\Http\Controllers\Meals\MealPeriodController;
 use App\Http\Controllers\Onboarding\RecommendedItemDismissalController;
 use App\Http\Controllers\Property\AgeGroupController;
+use App\Http\Controllers\Property\EInvoiceSettingsController;
 use App\Http\Controllers\Property\NotificationSettingController;
 use App\Http\Controllers\Property\OtaListSettingsController;
 use App\Http\Controllers\Property\PrintSettingsController;
@@ -206,6 +207,12 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::post('test', [AccountingSettingsController::class, 'test'])->name('test');
         Route::post('billing/sync', [AccountingSettingsController::class, 'syncBilling'])->name('billing.sync');
         Route::post('syncs/{accountingSync}/retry', [AccountingSettingsController::class, 'retry'])->name('retry');
+    });
+
+    Route::prefix('e-invoice')->name('e-invoice.')->middleware('can:'.PermissionEnum::SettingsManage->value)->group(function () {
+        Route::get('/', [EInvoiceSettingsController::class, 'edit'])->name('edit');
+        Route::put('/', [EInvoiceSettingsController::class, 'update'])->name('update');
+        Route::post('test', [EInvoiceSettingsController::class, 'test'])->name('test');
     });
 
     Route::prefix('ota-lists')->name('ota-lists.')->middleware('can:'.PermissionEnum::SettingsOtaLists->value)->group(function () {

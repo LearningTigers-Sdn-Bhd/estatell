@@ -8,6 +8,7 @@ use App\Enums\PermissionEnum;
 use App\Features\AccountingIntegration;
 use App\Features\Boats;
 use App\Features\DoorLocks;
+use App\Features\EInvoicing;
 use App\Models\Property;
 use App\Models\User;
 use Laravel\Pennant\Feature;
@@ -48,6 +49,12 @@ class SettingsNavigation
                     href: route('settings.accounting.edit', ['property' => $property->code], absolute: false),
                     icon: 'calculator',
                     active: request()->routeIs('settings.accounting.*'),
+                ) : null,
+                $user->can(PermissionEnum::SettingsManage->value) && Feature::for($property)->active(EInvoicing::class) ? new NavItemData(
+                    title: __('E-Invoice'),
+                    href: route('settings.e-invoice.edit', ['property' => $property->code], absolute: false),
+                    icon: 'file-text',
+                    active: request()->routeIs('settings.e-invoice.*'),
                 ) : null,
                 $user->can(PermissionEnum::SettingsManage->value) && Feature::for($property)->active(DoorLocks::class) ? new NavItemData(
                     title: __('Door locks'),

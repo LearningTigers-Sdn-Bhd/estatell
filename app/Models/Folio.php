@@ -116,4 +116,20 @@ class Folio extends Model
     {
         return $this->hasMany(Payment::class);
     }
+
+    /**
+     * @return HasMany<EInvoiceSubmission, $this>
+     */
+    public function eInvoiceSubmissions(): HasMany
+    {
+        return $this->hasMany(EInvoiceSubmission::class);
+    }
+
+    /**
+     * @return HasOne<EInvoiceSubmission, $this>
+     */
+    public function latestEInvoiceSubmission(): HasOne
+    {
+        return $this->hasOne(EInvoiceSubmission::class)->latestOfMany();
+    }
 }

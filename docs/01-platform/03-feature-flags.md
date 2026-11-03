@@ -34,10 +34,10 @@ Turn optional capabilities on or off per property, without code changes. The fir
 
 ## Current features
 
-| Feature                 | Default | Unlocks                                           |
-| ----------------------- | ------- | ------------------------------------------------- |
-| `ChannelManager`        | Off     | [Channels](../21-channels/) module                |
-| `Boats`                 | Off     | [Boats](../24-boats/) module                      |
-| `AccountingIntegration` | Off     | [Accounting](../26-accounting/) daily journal sync|
-| `DoorLocks`             | Off     | [Door locks](../27-door-locks/) TTLock PINs       |
-| `EInvoicing`            | Off     | LHDN MyInvois e-invoicing for folios & AR         |
+| Feature                 | Default | Unlocks                                            |
+| ----------------------- | ------- | -------------------------------------------------- |
+| `ChannelManager`        | Off     | [Channels](../21-channels/) module                 |
+| `Boats`                 | Off     | [Boats](../24-boats/) module                       |
+| `AccountingIntegration` | Off     | [Accounting](../26-accounting/) daily journal sync |
+| `DoorLocks`             | Off     | [Door locks](../27-door-locks/) TTLock PINs        |
+| `EInvoicing`            | Off     | LHDN MyInvois e-invoicing for folios & AR          |
