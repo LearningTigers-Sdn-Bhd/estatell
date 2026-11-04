@@ -64,6 +64,17 @@ pushedAt: string | null,
 canRetry: boolean,
 };
 }
+namespace ApiAccess {
+export type KioskData = {
+id: number,
+name: string,
+deviceName: string | null,
+status: App.Data.Shared.BadgeData,
+pairedAt: string | null,
+lastUsedAt: string | null,
+canRevoke: boolean,
+};
+}
 namespace Boats {
 export type BoatDepartureData = {
 id: number,
@@ -4154,6 +4165,7 @@ export type AccountingProvider = 'qne' | 'bukku';
 export type AccountingSetupStatus = 'not-connected' | 'needs-attention' | 'ready' | 'live';
 export type AccountingSyncStatus = 'pending' | 'pushed' | 'failed' | 'skipped';
 export type AgeBandPricing = 'free' | 'percent' | 'fixed';
+export type ApiTokenKind = 'kiosk' | 'integration';
 export type ArInvoiceStatus = 'open' | 'settled' | 'void';
 export type ArInvoiceType = 'invoice' | 'credit_note';
 export type AriChangeKind = 'availability' | 'rates' | 'restrictions';
@@ -4217,6 +4229,7 @@ export type IdentityDocumentType = 'mykad' | 'passport' | 'other';
 export type ImpersonationReason = 'onboarding_help' | 'support' | 'setup_check';
 export type InclusionEnd = 'departure_day' | 'night_before_departure';
 export type InclusionStart = 'arrival_day' | 'day_after_arrival';
+export type KioskStatus = 'awaiting_pairing' | 'paired' | 'code_expired' | 'revoked';
 export type Locale = 'en' | 'ms';
 export type MailStatus = 'sent' | 'delivered' | 'bounced' | 'complained' | 'failed' | 'suppressed';
 export type ManualFolioReason = 'paper_folio' | 'missed_charge' | 'missed_payment' | 'old_system' | 'fix_mistake' | 'other';

@@ -55,6 +55,12 @@ class SettingsNavigation
                     icon: 'lock',
                     active: request()->routeIs('settings.door-locks.*'),
                 ) : null,
+                $user->can(PermissionEnum::SettingsManage->value) ? new NavItemData(
+                    title: __('Kiosks'),
+                    href: route('settings.kiosks.index', ['property' => $property->code], absolute: false),
+                    icon: 'tablet',
+                    active: request()->routeIs('settings.kiosks.*'),
+                ) : null,
                 $user->can(PermissionEnum::SettingsOtaLists->value) ? new NavItemData(
                     title: __('OTA lists'),
                     href: route('settings.ota-lists.edit', ['property' => $property->code], absolute: false),
