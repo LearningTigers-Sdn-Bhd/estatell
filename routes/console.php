@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\ApiAccess\PruneIdempotencyKeys;
 use App\Actions\Guests\PurgeExpiredIdentityScans;
 use App\Actions\Notifications\PruneMailEvents;
 use Illuminate\Foundation\Inspiring;
@@ -52,6 +53,8 @@ Schedule::command('horizon:snapshot')->everyFiveMinutes();
 Schedule::call(fn (): int => app(PurgeExpiredIdentityScans::class)())->name('purge-expired-identity-scans')->dailyAt('03:30')->onOneServer();
 
 Schedule::call(fn (): int => app(PruneMailEvents::class)())->name('prune-mail-events')->dailyAt('03:45')->onOneServer();
+
+Schedule::call(fn (): int => app(PruneIdempotencyKeys::class)())->name('prune-api-idempotency-keys')->hourly()->onOneServer();
 
 Schedule::command('night-audit:dispatch-scheduled')->everyFiveMinutes()->withoutOverlapping()->onOneServer();
 
