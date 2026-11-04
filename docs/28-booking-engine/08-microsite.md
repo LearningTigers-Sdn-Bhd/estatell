@@ -57,13 +57,20 @@ Admin › Booking website templates (`/admin/site-templates`, `admin.site-templa
 
 ```
 site_templates        id, key (unique), name, type (SiteTemplateType),
-                      property_id (nullable), status (SiteTemplateStatus), timestamps
+                      property_id (nullable), status (SiteTemplateStatus),
+                      allows_main_color (bool), preview_url (nullable), timestamps
                       CHECK: a Custom template has a property; a Standard one has none
 site_template_slots   id, site_template_id, key, label, required, position, timestamps
                       unique (site_template_id, key)
 ```
 
 - `SiteTemplateType`: Standard, Custom. `SiteTemplateStatus`: Draft, Available, Retired.
+- Status moves: Draft to Available; Available to Draft or Retired; Retired to Available.
+- The key, type and property are set when the template is added and never change, because sites use them. An admin can change the name, preview link and slots.
+- `allows_main_color` says whether the Design tab offers the main colour. When it is off, a saved colour is cleared. The seeded templates allow it.
+- `preview_url` is where an admin checks a Draft before making it Available. The microsite repo does not exist yet, so it is a plain link.
+- `SiteTemplateSeeder` adds `island-resort` and `city-hotel` as Draft Standard templates, each with a required Hero image slot and optional Logo and About image slots. The demo seeder runs it. On production an admin runs it once, or adds the rows by hand.
+- Removing a slot from a template leaves the uploaded images in storage. They show again if the key comes back.
 
 ```
 Developer adds template code to the microsite repo and deploys

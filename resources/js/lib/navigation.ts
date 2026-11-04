@@ -1,4 +1,5 @@
 import {
+    LayoutTemplate,
     MapPin,
     Printer,
     Activity,
@@ -54,6 +55,7 @@ const icons: Record<string, LucideIcon> = {
     globe: Globe,
     sparkles: Sparkles,
     'map-pin': MapPin,
+    'layout-template': LayoutTemplate,
     mail: Mail,
     bed: Bed,
     'door-open': DoorOpen,

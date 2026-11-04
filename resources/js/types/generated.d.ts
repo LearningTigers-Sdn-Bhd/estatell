@@ -215,6 +215,17 @@ label: string,
 done: boolean,
 detail: string | null,
 };
+export type BookingWebsiteDesignData = {
+siteTemplateId: number | null,
+allowsMainColor: boolean,
+mainColor: string | null,
+templates: {
+value: string,
+label: string,
+}[],
+slots: App.Data.BookingEngine.SiteImageSlotData[],
+imageMaxKb: number,
+};
 export type BookingWebsiteGeneralData = {
 mode: string,
 modeLabel: string,
@@ -228,6 +239,12 @@ webAddress: string,
 googleMapsUrl: string | null,
 checklist: App.Data.BookingEngine.BookingSiteChecklistItemData[],
 canPublish: boolean,
+};
+export type BookingWebsiteSeoData = {
+seoTitle: string | null,
+seoDescription: string | null,
+propertyName: string,
+webAddress: string,
 };
 export type NearbyPlaceSuggestionData = {
 id: number,
@@ -246,6 +263,37 @@ googleMapsUrl: string,
 active: boolean,
 distance: string | null,
 distanceKm: number | null,
+};
+export type SiteImageSlotData = {
+key: string,
+label: string,
+required: boolean,
+fileName: string | null,
+url: string | null,
+thumbUrl: string | null,
+};
+export type SiteTemplateData = {
+id: number,
+key: string,
+name: string,
+type: App.Enums.SiteTemplateType,
+typeLabel: string,
+propertyId: number | null,
+propertyLabel: string | null,
+status: App.Data.Shared.BadgeData,
+allowsMainColor: boolean,
+previewUrl: string | null,
+slots: App.Data.BookingEngine.SiteTemplateSlotData[],
+sitesCount: number,
+transitions: {
+value: string,
+label: string,
+}[],
+};
+export type SiteTemplateSlotData = {
+key: string,
+label: string,
+required: boolean,
 };
 }
 namespace Catalogues {
@@ -4600,6 +4648,8 @@ export type RoomBlockRefusal = 'unavailable' | 'ended' | 'blocked' | 'has_stay';
 export type RoomDayState = 'arriving' | 'in_house' | 'departing' | 'vacant' | 'blocked';
 export type RoutingRuleSource = 'billing_mode' | 'manual';
 export type SellUnit = 'room' | 'bed';
+export type SiteTemplateStatus = 'draft' | 'available' | 'retired';
+export type SiteTemplateType = 'standard' | 'custom';
 export type SpreadsheetFormat = 'csv' | 'xlsx';
 export type StayDiscountType = 'percent' | 'amount';
 export type StayType = 'overnight' | 'day_use';

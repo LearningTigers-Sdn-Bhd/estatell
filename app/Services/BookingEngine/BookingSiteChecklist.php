@@ -5,10 +5,11 @@ namespace App\Services\BookingEngine;
 use App\Data\BookingEngine\BookingSiteChecklistItemData;
 use App\Enums\BookingEngineMode;
 use App\Models\PropertyBookingSite;
+use App\Models\SiteTemplateSlot;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
- * The "Before you publish" rows, calculated from data. Each later booking engine item adds its own row here (hero image,
- * room photos, public rate plan, payment setup). Microsite shows the template row; API only leaves it out.
+ * The "Before you publish" rows, calculated from data. Each later booking engine item adds its own row here (room photos, public rate plan, payment setup). Microsite shows the template row; API only leaves it out.
  */
 class BookingSiteChecklist
 {
@@ -22,12 +23,32 @@ class BookingSiteChecklist
         if ($site->mode === BookingEngineMode::Microsite) {
             $chosen = $site->site_template_id !== null;
             $items[] = new BookingSiteChecklistItemData('template', __('Template chosen'), $chosen, $chosen ? null : __('No template chosen yet'));
+
+            if ($chosen) {
+                $missing = $this->missingImageLabels($site);
+                $items[] = new BookingSiteChecklistItemData('images', __('Required images added'), $missing === [], $missing === [] ? null : __('Add: :images', ['images' => implode(', ', $missing)]));
+            }
         }
 
         $located = $site->property->latitude !== null && $site->property->longitude !== null;
         $items[] = new BookingSiteChecklistItemData('location', __('Location set'), $located, $located ? null : __('Paste your Google Maps link on the General tab'));
 
         return $items;
+    }
+
+    /**
+     * The labels of the required slots of the chosen template that have no image.
+     *
+     * @return list<string>
+     */
+    private function missingImageLabels(PropertyBookingSite $site): array
+    {
+        $filled = $site->getMedia(PropertyBookingSite::IMAGES)->map(fn (Media $media): string => (string) $media->getCustomProperty('slot'))->all();
+
+        return array_values($site->siteTemplate()->firstOrFail()->slots()->where('required', true)->get()
+            ->reject(fn (SiteTemplateSlot $slot): bool => in_array($slot->key, $filled, true))
+            ->map(fn (SiteTemplateSlot $slot): string => $slot->label)
+            ->all());
     }
 
     public function isComplete(PropertyBookingSite $site): bool

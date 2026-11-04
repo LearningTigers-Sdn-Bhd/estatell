@@ -226,6 +226,12 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::middleware('can:'.PermissionEnum::BookingWebsiteManage->value)->group(function () {
             Route::get('/', [BookingWebsiteController::class, 'general'])->name('general');
             Route::put('/', [BookingWebsiteController::class, 'updateGeneral'])->name('general.update');
+            Route::get('design', [BookingWebsiteController::class, 'design'])->name('design');
+            Route::put('design', [BookingWebsiteController::class, 'updateDesign'])->name('design.update');
+            Route::post('design/images/{slot}', [BookingWebsiteController::class, 'uploadImage'])->where('slot', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('design.images.store');
+            Route::delete('design/images/{slot}', [BookingWebsiteController::class, 'removeImage'])->where('slot', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('design.images.destroy');
+            Route::get('seo', [BookingWebsiteController::class, 'seo'])->name('seo');
+            Route::put('seo', [BookingWebsiteController::class, 'updateSeo'])->name('seo.update');
             Route::get('amenities', [BookingWebsiteController::class, 'amenities'])->name('amenities');
             Route::put('amenities', [BookingWebsiteController::class, 'updateAmenities'])->name('amenities.update');
             Route::get('nearby-places', [NearbyPlaceController::class, 'index'])->name('nearby-places');

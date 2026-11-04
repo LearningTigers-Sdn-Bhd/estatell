@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\PropertyGoLiveController;
 use App\Http\Controllers\Admin\PropertyOtaListController;
 use App\Http\Controllers\Admin\PropertyPartnerController;
 use App\Http\Controllers\Admin\PropertyStatusController;
+use App\Http\Controllers\Admin\SiteTemplateController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group(function () {
@@ -99,6 +100,10 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
     Route::put('nearby-places/{nearbyPlace}', [NearbyPlaceController::class, 'update'])->whereNumber('nearbyPlace')->middleware('support.2fa')->name('nearby-places.update');
     Route::put('nearby-places/{nearbyPlace}/approve', [NearbyPlaceController::class, 'approve'])->whereNumber('nearbyPlace')->middleware('support.2fa')->name('nearby-places.approve');
     Route::put('nearby-places/{nearbyPlace}/reject', [NearbyPlaceController::class, 'reject'])->whereNumber('nearbyPlace')->middleware('support.2fa')->name('nearby-places.reject');
+    Route::get('site-templates', [SiteTemplateController::class, 'index'])->name('site-templates.index');
+    Route::post('site-templates', [SiteTemplateController::class, 'store'])->middleware('support.2fa')->name('site-templates.store');
+    Route::put('site-templates/{siteTemplate}', [SiteTemplateController::class, 'update'])->whereNumber('siteTemplate')->middleware('support.2fa')->name('site-templates.update');
+    Route::put('site-templates/{siteTemplate}/status', [SiteTemplateController::class, 'status'])->whereNumber('siteTemplate')->middleware('support.2fa')->name('site-templates.status.update');
     Route::get('settings', [PlatformSettingsController::class, 'edit'])->name('settings.edit');
     Route::put('settings', [PlatformSettingsController::class, 'update'])->middleware('support.2fa')->name('settings.update');
     Route::get('settings/channels', [PlatformSettingsController::class, 'channels'])->name('settings.channels');
