@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\Api\Kiosk\BookingController;
 use App\Http\Controllers\Api\Kiosk\MeController;
 use App\Http\Controllers\Api\Kiosk\PairController;
+use App\Http\Controllers\Api\Kiosk\StayController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -14,5 +16,12 @@ Route::prefix('kiosk/v1')->name('api.kiosk.v1.')->group(function () {
 
     Route::middleware(['api.token:kiosk:*', 'throttle:api-token'])->group(function () {
         Route::get('me', MeController::class)->name('me');
+        Route::post('bookings/find', [BookingController::class, 'find'])->name('bookings.find');
+
+        // Writes: a repeated `Idempotency-Key` gets the first answer again.
+        Route::middleware('api.idempotent')->group(function () {
+            Route::post('stays/{id}/identity', [StayController::class, 'identity'])->name('stays.identity');
+            Route::post('stays/{id}/guest', [StayController::class, 'guest'])->name('stays.guest');
+        });
     });
 });

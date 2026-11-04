@@ -6,12 +6,12 @@ One credential layer for everything that calls Estatell without a staff session.
 
 ## Scope
 
-| Now                                                        | Later                                                         |
-| ---------------------------------------------------------- | ------------------------------------------------------------- |
-| `api_tokens` table, hashed tokens, scopes, revoke          | `integration` tokens, scope choice, API-key screen, `/api/v1` |
-| Kiosk pairing: code, `POST /pair`, `GET /me`               | Every other endpoint of the kiosk contract                    |
-| Bearer middleware `api.token:{scope}`, rate limits, errors | Idempotency storage, per-token IP allow list                  |
-| Staff screen `Settings → Kiosks`: list, add, revoke        | Regenerate a pairing code (today: revoke and add again)       |
+| Now                                                        | Later                                                                                                                                 |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `api_tokens` table, hashed tokens, scopes, revoke          | `integration` tokens, scope choice, API-key screen, `/api/v1`                                                                         |
+| Kiosk pairing: code, `POST /pair`, `GET /me`               | The rest of the kiosk contract after [find, ID and guest](02-kiosk-check-in-endpoints.md)                                             |
+| Bearer middleware `api.token:{scope}`, rate limits, errors | Per-token IP allow list. Idempotency is built, see [kiosk check-in](02-kiosk-check-in-endpoints.md#idempotency-for-every-kiosk-write) |
+| Staff screen `Settings → Kiosks`: list, add, revoke        | Regenerate a pairing code (today: revoke and add again)                                                                               |
 
 The kiosk contract is `docs/KIOSK_API.md` in the estatell-kiosk repo. This file does not change it.
 

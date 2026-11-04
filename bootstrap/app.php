@@ -16,6 +16,7 @@ use App\Http\Middleware\EnsurePropertyIsLive;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\LogoutDeactivatedUsers;
+use App\Http\Middleware\ReplayIdempotentRequest;
 use App\Http\Middleware\RequireSupportTwoFactor;
 use App\Http\Middleware\TrackOnboardingActivity;
 use App\Http\Responses\ApiError;
@@ -52,6 +53,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'api.token' => AuthenticateApiToken::class,
+            'api.idempotent' => ReplayIdempotentRequest::class,
             'block.impersonation' => BlockDuringImpersonation::class,
             'support.2fa' => RequireSupportTwoFactor::class,
             'boats' => EnsureBoatsIsActive::class,
