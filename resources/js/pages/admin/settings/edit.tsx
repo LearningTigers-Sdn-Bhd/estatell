@@ -127,7 +127,6 @@ export default function PlatformSettings({
 
                 <TabLinks
                     activeTab={activeTab}
-                    scrollable
                     tabs={[
                         {
                             value: 'general',
