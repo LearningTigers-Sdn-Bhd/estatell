@@ -3,6 +3,7 @@
 use App\Enums\Gender;
 use App\Enums\IdentityDocumentType;
 use App\Models\ApiToken;
+use App\Models\BusinessDate;
 use App\Models\Guest;
 use App\Models\GuestIdentityDocument;
 use App\Models\Property;
@@ -255,4 +256,28 @@ it('refuses a missing, wrong or wrong-scope token', function () {
     ApiToken::query()->update(['scopes' => 'v1:read']);
     kioskPost("/stays/{$unit->id}/identity", kioskMyKadBody())->assertUnauthorized()->assertJsonPath('error.code', 'kiosk_unauthorized');
     expect(GuestIdentityDocument::query()->exists())->toBeFalse();
+});
+
+it('does not write to a stay outside the check-in window, and answers like a missing stay', function (array $unit) {
+    ['unit' => $stay, 'guest' => $guest] = kioskStaySetup($unit);
+    $missing = kioskPost('/stays/999999/identity', kioskMyKadBody());
+
+    $identity = kioskPost("/stays/{$stay->id}/identity", kioskMyKadBody());
+    $correction = kioskPost("/stays/{$stay->id}/guest", ['full_name' => 'Someone Else']);
+
+    $identity->assertNotFound()->assertJsonPath('error.code', 'booking_not_found');
+    expect($identity->json())->toBe($missing->json())
+        ->and($correction->json())->toBe($missing->json())
+        ->and(GuestIdentityDocument::query()->where('guest_id', $guest->id)->exists())->toBeFalse()
+        ->and($guest->refresh()->full_name)->toBe('Aisha Rahman');
+})->with([
+    'arrival not reached' => [['arrival_date' => '2026-10-15', 'departure_date' => '2026-10-17']],
+    'stay already over' => [['arrival_date' => '2026-10-12', 'departure_date' => '2026-10-14']],
+]);
+
+it('does not write to any stay while the property has no open business date', function () {
+    ['unit' => $stay, 'property' => $property] = kioskStaySetup();
+    BusinessDate::query()->where('property_id', $property->id)->delete();
+
+    kioskPost("/stays/{$stay->id}/identity", kioskMyKadBody())->assertNotFound()->assertJsonPath('error.code', 'booking_not_found');
 });

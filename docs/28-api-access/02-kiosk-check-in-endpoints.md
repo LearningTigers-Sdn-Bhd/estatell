@@ -14,7 +14,7 @@ All need `kiosk:*`, are scoped to the token's property and answer with the [erro
 | `POST /api/kiosk/v1/stays/{id}/identity` | `{ kind, number, full_name, nationality, date_of_birth?, gender?, expires_on? }` | `{ accepted, nationality_required }`                                                  |
 | `POST /api/kiosk/v1/stays/{id}/guest`    | `{ full_name?, nationality? }`                                                   | `{ accepted }`                                                                        |
 
-A **stay** is a reservation unit (`stay_id` is its id). Only a Confirmed stay can be found or changed.
+A **stay** is a reservation unit (`stay_id` is its id). Only a Confirmed stay **inside its check-in window** can be found or changed. The window is one rule, `KioskStays::window()`, shared by the reference lookup and the by-id lookup: the business date is open, the stay day (`StayDay`, as in `CheckInUnit`) is on or after the arrival date, and the stay has not ended. The two writes by id answer a stay outside the window with `booking_not_found`, the same as a missing stay or one of another property.
 
 ## Find a booking
 
@@ -25,6 +25,10 @@ A **stay** is a reservation unit (`stay_id` is its id). Only a Confirmed stay ca
 - **No QR token exists in Estatell** (no booking token, no pre-check-in link). A `qr_token` therefore always answers `booking_not_found`. Add it here when Estatell issues one.
 - `guest_name` is the stay's primary guest, or the booker when it has none. `unit_type` is the room type name.
 - `steps_required.registration_card` is the property setting `card_required_for_check_in`. `steps_required.id` is true when the registration card field `identity_document` is **Required** (the default). Estatell has no separate pre-check-in settings.
+
+## Guessing protection
+
+`bookings/find` counts every lookup that does not find an open booking (unknown reference, early arrival, ended stay, body with no reference) as a failure of the kiosk token (`KioskLookupLockout`, cache, per token). After 10 failures within 5 minutes the token gets `429 rate_limited` with `Retry-After` for every lookup, found or not, so the answer says nothing about whether a reference exists. A found booking clears the count. This sits on top of the `api-token` limit (120 a minute).
 
 ## Take the ID
 
@@ -71,6 +75,7 @@ The ID comes from the reader to the API and is stored as normal guest data (numb
 
 ## Open
 
+- Not done, needs a contract or product decision: masking `guest_name`, a second factor for a lookup (for example last name or phone), a lookup token between `find` and the writes. Guessing `stay_id` values inside the window is limited only by the `api-token` limit.
 - A reservation with several stays: the kiosk gets the first to arrive.
 - A QR token needs an Estatell decision (what it is, where it is shown).
 - `Accept-Language` is not applied to API messages yet.

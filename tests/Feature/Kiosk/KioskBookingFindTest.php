@@ -7,6 +7,7 @@ use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\RegistrationCardFieldSetting;
 use App\Models\ReservationUnit;
+use App\Services\Kiosk\KioskLookupLockout;
 
 require_once __DIR__.'/../Support/KioskSetup.php';
 
@@ -114,4 +115,68 @@ it('refuses a token without the kiosk scope', function () {
     ApiToken::query()->update(['scopes' => 'v1:read']);
 
     kioskPost('/bookings/find', ['reference' => 'R-100'])->assertUnauthorized()->assertJsonPath('error.code', 'kiosk_unauthorized');
+});
+
+it('locks a kiosk out after repeated failed lookups, whatever it asks, and keeps the answer the same', function () {
+    kioskStaySetup();
+
+    foreach (range(1, KioskLookupLockout::MAX_FAILURES) as $guess) {
+        kioskPost('/bookings/find', ['reference' => "X-{$guess}"])->assertNotFound();
+    }
+
+    $existing = kioskPost('/bookings/find', ['reference' => 'R-100']);
+    $unknown = kioskPost('/bookings/find', ['reference' => 'X-999']);
+
+    $existing->assertStatus(429)->assertJsonPath('error.code', 'rate_limited')->assertHeader('Retry-After');
+    expect($existing->json())->toBe($unknown->json());
+});
+
+it('lets the kiosk look up again once the lockout runs out', function () {
+    kioskStaySetup();
+
+    foreach (range(1, KioskLookupLockout::MAX_FAILURES) as $guess) {
+        kioskPost('/bookings/find', ['reference' => "X-{$guess}"]);
+    }
+    kioskPost('/bookings/find', ['reference' => 'R-100'])->assertStatus(429);
+
+    $this->travel(KioskLookupLockout::DECAY_SECONDS + 1)->seconds();
+
+    kioskPost('/bookings/find', ['reference' => 'R-100'])->assertOk();
+});
+
+it('clears the failure count when a booking is found', function () {
+    kioskStaySetup();
+    $almost = KioskLookupLockout::MAX_FAILURES - 1;
+
+    foreach (range(1, $almost) as $guess) {
+        kioskPost('/bookings/find', ['reference' => "X-{$guess}"]);
+    }
+    kioskPost('/bookings/find', ['reference' => 'R-100'])->assertOk();
+    foreach (range(1, $almost) as $guess) {
+        kioskPost('/bookings/find', ['reference' => "Y-{$guess}"])->assertNotFound();
+    }
+
+    kioskPost('/bookings/find', ['reference' => 'R-100'])->assertOk();
+});
+
+it('counts an early arrival as a failed lookup too, so it cannot be used to confirm references', function () {
+    kioskStaySetup(['arrival_date' => '2026-10-15', 'departure_date' => '2026-10-17']);
+
+    foreach (range(1, KioskLookupLockout::MAX_FAILURES) as $ignored) {
+        kioskPost('/bookings/find', ['reference' => 'R-100'])->assertStatus(409);
+    }
+
+    kioskPost('/bookings/find', ['reference' => 'R-100'])->assertStatus(429);
+});
+
+it('keeps the lockout per kiosk', function () {
+    ['property' => $property] = kioskStaySetup();
+    ApiToken::factory()->for($property)->withToken('est_live_secondkioskaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')->create();
+
+    foreach (range(1, KioskLookupLockout::MAX_FAILURES) as $guess) {
+        kioskPost('/bookings/find', ['reference' => "X-{$guess}"]);
+    }
+
+    kioskPost('/bookings/find', ['reference' => 'R-100'])->assertStatus(429);
+    kioskPost('/bookings/find', ['reference' => 'R-100'], 'est_live_secondkioskaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')->assertOk();
 });

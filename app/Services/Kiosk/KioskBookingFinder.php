@@ -4,10 +4,7 @@ namespace App\Services\Kiosk;
 
 use App\Enums\FieldVisibility;
 use App\Enums\RegistrationCardField;
-use App\Enums\StayType;
 use App\Models\Property;
-use App\Services\FrontDesk\StayDay;
-use App\Services\NightAudit\CurrentBusinessDate;
 
 /**
  * Finds the booking a guest types or scans at the kiosk and says whether the guest may start check-in today. It uses the
@@ -17,11 +14,7 @@ use App\Services\NightAudit\CurrentBusinessDate;
  */
 class KioskBookingFinder
 {
-    public function __construct(
-        private KioskStays $stays,
-        private CurrentBusinessDate $currentBusinessDate,
-        private StayDay $stayDay,
-    ) {}
+    public function __construct(private KioskStays $stays) {}
 
     public function byReference(Property $property, string $reference): KioskBookingLookup
     {
@@ -31,22 +24,14 @@ class KioskBookingFinder
             return KioskBookingLookup::refused(KioskBookingLookup::BOOKING_NOT_FOUND);
         }
 
-        $businessDate = $this->currentBusinessDate->date($property);
+        $window = $this->stays->window($stay);
 
-        if ($businessDate === null) {
-            return KioskBookingLookup::refused(KioskBookingLookup::NOT_OPEN);
-        }
-
-        $day = $this->stayDay->forCheckIn($stay, $businessDate)->toDateString();
-        $arrival = $stay->arrival_date->toDateString();
-        $ended = $stay->stay_type === StayType::DayUse ? $day > $arrival : $day >= $stay->departure_date->toDateString();
-
-        if ($ended) {
-            return KioskBookingLookup::refused(KioskBookingLookup::BOOKING_NOT_FOUND);
-        }
-
-        if ($day < $arrival) {
-            return KioskBookingLookup::refused(KioskBookingLookup::ARRIVAL_NOT_REACHED);
+        if ($window !== KioskStays::OPEN) {
+            return KioskBookingLookup::refused(match ($window) {
+                KioskStays::EARLY => KioskBookingLookup::ARRIVAL_NOT_REACHED,
+                KioskStays::NOT_LIVE => KioskBookingLookup::NOT_OPEN,
+                default => KioskBookingLookup::BOOKING_NOT_FOUND,
+            });
         }
 
         $stay->loadMissing(['reservation', 'roomType']);
