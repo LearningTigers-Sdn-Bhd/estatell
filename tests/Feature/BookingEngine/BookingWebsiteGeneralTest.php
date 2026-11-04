@@ -8,6 +8,7 @@ use App\Models\Property;
 use App\Models\PropertyBookingSite;
 use App\Models\RatePlan;
 use App\Models\RoomType;
+use App\Models\SiteTemplate;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
@@ -195,7 +196,7 @@ it('refuses to publish while the template is missing, and writes nothing', funct
 it('publishes and unpublishes once the checklist is done and logs who did it', function () {
     ['owner' => $owner, 'property' => $property] = bookingWebsiteSetup();
     app(SetUpBookingSite::class)($property);
-    $property->bookingSite->forceFill(['site_template_id' => 1])->save();
+    $property->bookingSite->forceFill(['site_template_id' => SiteTemplate::factory()->create()->id])->save();
 
     $this->actingAs($owner)->post(route('settings.booking-website.publish', $property))->assertRedirect();
     expect($property->bookingSite()->first()->published_at)->toBeNull();
@@ -260,9 +261,8 @@ it('needs the publish permission to publish', function () {
 it('shows the Booking website item in the settings sidebar only when the flag is on', function () {
     ['owner' => $owner, 'property' => $property] = bookingWebsiteSetup();
     $other = bookingWebsiteSetup(feature: false);
+    $itemTitles = fn ($response): array => data_get($response->viewData('page'), 'props.navigation.contexts.*.groups.*.items.*.title');
 
-    $this->actingAs($owner)->get(route('settings.profile', $property))
-        ->assertSee('Booking website', false);
-    $this->actingAs($other['owner'])->get(route('settings.profile', $other['property']))
-        ->assertDontSee('Booking website', false);
+    expect($itemTitles($this->actingAs($owner)->get(route('settings.profile', $property))))->toContain('Booking website')
+        ->and($itemTitles($this->actingAs($other['owner'])->get(route('settings.profile', $other['property']))))->not->toContain('Booking website');
 });
