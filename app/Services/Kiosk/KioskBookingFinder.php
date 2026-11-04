@@ -4,6 +4,7 @@ namespace App\Services\Kiosk;
 
 use App\Enums\FieldVisibility;
 use App\Enums\RegistrationCardField;
+use App\Enums\UnitStatus;
 use App\Models\Property;
 
 /**
@@ -24,7 +25,9 @@ class KioskBookingFinder
             return KioskBookingLookup::refused(KioskBookingLookup::BOOKING_NOT_FOUND);
         }
 
-        $window = $this->stays->window($stay);
+        $window = $stay->status === UnitStatus::CheckedIn
+            ? ($this->stays->checkOutWindow($stay) ? KioskStays::OPEN : KioskStays::ENDED)
+            : $this->stays->window($stay);
 
         if ($window !== KioskStays::OPEN) {
             return KioskBookingLookup::refused(match ($window) {

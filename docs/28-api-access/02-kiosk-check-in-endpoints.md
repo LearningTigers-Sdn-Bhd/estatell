@@ -14,12 +14,12 @@ All need `kiosk:*`, are scoped to the token's property and answer with the [erro
 | `POST /api/kiosk/v1/stays/{id}/identity` | `{ kind, number, full_name, nationality, date_of_birth?, gender?, expires_on? }` | `{ accepted, nationality_required }`                                                  |
 | `POST /api/kiosk/v1/stays/{id}/guest`    | `{ full_name?, nationality? }`                                                   | `{ accepted }`                                                                        |
 
-A **stay** is a reservation unit (`stay_id` is its id). Only a Confirmed stay **inside its check-in window** can be found or changed. The window is one rule, `KioskStays::window()`, shared by the reference lookup and the by-id lookup: the business date is open, the stay day (`StayDay`, as in `CheckInUnit`) is on or after the arrival date, and the stay has not ended. The two writes by id answer a stay outside the window with `booking_not_found`, the same as a missing stay or one of another property.
+A **stay** is a reservation unit (`stay_id` is its id). A Confirmed stay **inside its check-in window** can be found or changed. A CheckedIn stay can also be found for check-out inside the [departure window](03-kiosk-signing-check-in-and-keys.md#check-out); its ID and guest details cannot be changed here. The window is one rule, `KioskStays::window()`, shared by the reference lookup and the by-id lookup: the business date is open, the stay day (`StayDay`, as in `CheckInUnit`) is on or after the arrival date, and the stay has not ended. The two writes by id answer a stay outside the window with `booking_not_found`, the same as a missing stay or one of another property.
 
 ## Find a booking
 
 - `reference` matches `reservations.reference` of the property, ignoring letter case and spaces at the ends. A reservation with several stays gives the one that arrives first (open: let the guest pick).
-- `booking_not_found` (404): no such reference, another property's booking, a stay that is not Confirmed, a stay whose last night has passed, or a body with no `reference`.
+- `booking_not_found` (404): no such reference, another property's booking, a stay that is neither Confirmed nor CheckedIn, a stay whose last night has passed, or a body with no `reference`.
 - `arrival_not_reached` (409): the stay day is before the arrival date. It uses the same rule as `CheckInUnit` (`StayDay`, business date), so a guest who arrives after midnight while the night audit is pending is not turned away.
 - A property with no open business date answers `server_error` (409): nobody can check in yet.
 - **No QR token exists in Estatell** (no booking token, no pre-check-in link). A `qr_token` therefore always answers `booking_not_found`. Add it here when Estatell issues one.

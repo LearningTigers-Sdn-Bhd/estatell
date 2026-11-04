@@ -158,7 +158,11 @@ class TtlockApi
      */
     public function deleteCard(string $accessToken, int $lockId, int $cardId): void
     {
-        $this->post('/v3/identityCard/delete', $accessToken, ['lockId' => $lockId, 'cardId' => $cardId, 'deleteType' => 2], remote: true);
+        $response = $this->post('/v3/identityCard/delete', $accessToken, ['lockId' => $lockId, 'cardId' => $cardId, 'deleteType' => 2], remote: true);
+
+        if (! isset($response['errcode']) || (int) $response['errcode'] !== 0) {
+            throw TtlockException::unreachable();
+        }
     }
 
     /**

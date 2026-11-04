@@ -5,6 +5,7 @@ namespace App\Actions\Kiosk;
 use App\Actions\DoorLocks\RegisterDoorCard;
 use App\Enums\PasscodeKind;
 use App\Enums\PasscodeStatus;
+use App\Enums\UnitStatus;
 use App\Features\DoorLocks;
 use App\Models\DoorCard;
 use App\Models\ReservationUnit;
@@ -50,7 +51,9 @@ class RegisterStayCard
 
     private function register(ReservationUnit $stay, string $uid, int $number): KioskCardResult
     {
-        if (! Feature::for($stay->property)->active(DoorLocks::class) || $stay->property->doorLockConnection?->enabled !== true) {
+        $stay->refresh();
+
+        if ($stay->status !== UnitStatus::CheckedIn || ! Feature::for($stay->property)->active(DoorLocks::class) || $stay->property->doorLockConnection?->enabled !== true) {
             return KioskCardResult::refused('lock_unavailable');
         }
 

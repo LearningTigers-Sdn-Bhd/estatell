@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\Kiosk\BookingController;
 use App\Http\Controllers\Api\Kiosk\CheckInController;
+use App\Http\Controllers\Api\Kiosk\CheckOutController;
 use App\Http\Controllers\Api\Kiosk\ConfigController;
 use App\Http\Controllers\Api\Kiosk\KeyController;
 use App\Http\Controllers\Api\Kiosk\MeController;
@@ -19,6 +20,8 @@ Route::prefix('kiosk/v1')->name('api.kiosk.v1.')->group(function () {
     Route::post('pair', PairController::class)->middleware('throttle:api-pair')->name('pair');
 
     Route::middleware(['api.token:kiosk:*', 'throttle:api-token'])->group(function () {
+        Route::post('cards/lookup', [CheckOutController::class, 'lookup'])->name('cards.lookup');
+        Route::get('stays/{id}/folio', [CheckOutController::class, 'folio'])->name('stays.folio');
         Route::get('me', MeController::class)->name('me');
         Route::get('config', ConfigController::class)->name('config');
         Route::get('stays/{id}/eligibility', [CheckInController::class, 'eligibility'])->name('stays.eligibility');
@@ -28,6 +31,7 @@ Route::prefix('kiosk/v1')->name('api.kiosk.v1.')->group(function () {
 
         // Writes: a repeated `Idempotency-Key` gets the first answer again.
         Route::middleware('api.idempotent')->group(function () {
+            Route::post('stays/{id}/check-out', [CheckOutController::class, 'checkOut'])->name('stays.check-out');
             Route::post('stays/{id}/identity', [StayController::class, 'identity'])->name('stays.identity');
             Route::post('stays/{id}/guest', [StayController::class, 'guest'])->name('stays.guest');
             Route::post('stays/{id}/cards', [KeyController::class, 'card'])->name('stays.cards');

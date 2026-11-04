@@ -14,7 +14,7 @@ use Illuminate\Http\Request;
 
 /**
  * Base of the kiosk controllers that work on a stay by its id. The lookup is the one rule of every by-id call: the
- * stay must be in the token's property and inside its check-in window, and an id that does not qualify answers
+ * stay must be in the token's property and inside the caller's check-in or check-out window; an id that does not qualify answers
  * `booking_not_found`, the same for a missing stay, another property's stay and one outside the window. Ids are
  * guessable, so each lookup takes an attempt from the token's lockout (the one `bookings/find` uses) and gives it back
  * when it finds a stay: a token that keeps missing is answered `rate_limited` whatever it asks.
@@ -34,7 +34,7 @@ abstract class KioskStayController extends Controller
      * @param  bool  $kioskCheckInOnly  A stay that is already CheckedIn counts only when a kiosk checked it in, so a
      *                                  guessed id cannot reach the room or key of a guest the front desk checked in.
      */
-    protected function stay(Request $request, string $id, array $statuses = [UnitStatus::Confirmed], bool $kioskCheckInOnly = false): ReservationUnit|JsonResponse
+    protected function stay(Request $request, string $id, array $statuses = [UnitStatus::Confirmed], bool $kioskCheckInOnly = false, bool $checkOut = false): ReservationUnit|JsonResponse
     {
         $token = $this->token($request);
 
@@ -42,9 +42,13 @@ abstract class KioskStayController extends Controller
             return ApiError::response('rate_limited', __('Too many requests. Wait a moment and try again.'), 429, ['Retry-After' => (string) $this->lockout->retryAfter($token)]);
         }
 
-        $stay = ctype_digit($id) ? $this->stays->find($token->property, (int) $id, $statuses) : null;
+        $stay = ctype_digit($id) ? $this->stays->find($token->property, (int) $id, $statuses, $checkOut) : null;
 
         if ($stay !== null && $kioskCheckInOnly && $stay->status === UnitStatus::CheckedIn && ! $this->stays->checkedInByKiosk($stay)) {
+            $stay = null;
+        }
+
+        if ($stay !== null && $stay->status === UnitStatus::CheckedOut && ! $this->stays->checkedOutByKiosk($stay, $token)) {
             $stay = null;
         }
 

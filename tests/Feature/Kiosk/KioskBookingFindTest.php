@@ -84,7 +84,7 @@ it('answers arrival_not_reached before the arrival day', function () {
         ->assertJsonPath('error.code', 'arrival_not_reached');
 });
 
-it('does not find a stay that is checked in, cancelled or already over', function (array $unit) {
+it('does not find a stay that is not ready to arrive or depart, cancelled or already over', function (array $unit) {
     kioskStaySetup($unit);
 
     kioskPost('/bookings/find', ['reference' => 'R-100'])->assertNotFound()->assertJsonPath('error.code', 'booking_not_found');
