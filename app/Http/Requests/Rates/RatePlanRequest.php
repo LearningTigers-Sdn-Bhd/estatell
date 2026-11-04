@@ -86,6 +86,7 @@ class RatePlanRequest extends FormRequest
                     },
                 ],
             ]),
+            'bookable_online' => ['sometimes', 'boolean'],
             ...match ($current->pricing_basis) {
                 PricingBasis::PerRoom => ['extra_adult_amount' => $amount, 'extra_child_amount' => $amount],
                 PricingBasis::PerGuest => ['single_supplement' => $amount],

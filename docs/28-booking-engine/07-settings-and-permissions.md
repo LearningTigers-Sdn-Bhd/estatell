@@ -19,7 +19,7 @@ rate_plans               + bookable_online (bool, default false)
 - `BookingEngineMode`: Microsite, ApiOnly.
 - Slugs are lower case letters, digits and hyphens, 3 to 50 characters. A property gets one from its name when the General tab is first opened (`SetUpBookingSite`, which also creates the `property_booking_sites` row as Microsite). Until it is published, the owner can edit it on the General tab. After publishing, only admins change it, because a change breaks links already shared.
 - `site_template_id` is a foreign key to `site_templates`, and a template in use cannot be deleted.
-- **Built so far:** the flag, the tables, the three permissions, the General tab with Publish and Unpublish, the Amenities and Nearby places tabs, the property location read from the Maps link, and the checklist service (`BookingSiteChecklist`) with the Template, Required images and Location rows, the [template registry](08-microsite.md#template-registry), and the Design and SEO tabs. Each later item adds its own checklist row. Not built yet: the about text on the General tab, the admin switch for the mode, and the admin change of a published slug.
+- **Built so far:** the flag, the tables, the three permissions, the General tab with Publish and Unpublish, the Amenities and Nearby places tabs, the property location read from the Maps link, and the checklist service (`BookingSiteChecklist`) with the Template, Required images and Location rows, the [template registry](08-microsite.md#template-registry), the Design and SEO tabs, and the Rates tab with the Public rate plan row. Each later item adds its own checklist row. Not built yet: the about text on the General tab, the admin switch for the mode, and the admin change of a published slug.
 
 ## Booking website settings
 
@@ -133,7 +133,12 @@ One table. Each action saves on its own. On places come first, in the owner's or
 └────────────────────────────────────────────────────────┘
 ```
 
-Only active plans with `company_access` Everyone appear. Each switch saves `rate_plans.bookable_online` at once.
+Only active, nightly plans with `company_access` Everyone appear (`RatePlan::scopeOfferableOnline`), in the Rate plans order. Package plans are listed. Each switch saves `rate_plans.bookable_online` at once (`SetRatePlanBookableOnline`, route `settings.booking-website.rates.update`).
+
+- The same switch is a **Book online** column on Settings › Rates › Rate plans, and a **Book online** switch inside the Details tab form (saved with Save details, and a refusal stops the save). They show only when the flag is on and the user has `booking-website.manage`, and it is disabled for a plan the Rates tab would not list. The list column saves at once. Both use `SetRatePlanBookableOnline`, so the same rules apply. Without the permission, the Details form ignores the field.
+- A plan can only be turned on if it is listed. A plan that is later archived or made company-only stays flagged, but guests never see it. Readers use `scopeBookableOnline`, which checks active, nightly, Everyone and the flag.
+- On a published site, turning off the last bookable plan is refused with an error toast. On an unpublished site the owner can turn every plan off.
+- The Public rate plan row on the General tab is done when at least one plan is bookable.
 
 ### SEO
 

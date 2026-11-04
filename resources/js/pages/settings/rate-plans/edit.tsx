@@ -13,11 +13,13 @@ export default function RatePlanEdit({
     currency,
     nightsLockedReason,
     groupRateOptions,
+    onlineBooking,
 }: {
     ratePlan: RatePlan;
     currency: App.Data.Property.CurrencyData;
     nightsLockedReason: string | null;
     groupRateOptions: EnumOption[];
+    onlineBooking: boolean;
 }) {
     return (
         <>
@@ -28,6 +30,7 @@ export default function RatePlanEdit({
                     currency={currency}
                     nightsLockedReason={nightsLockedReason}
                     groupRateOptions={groupRateOptions}
+                    onlineBooking={onlineBooking}
                 />
             </RatePlanShell>
         </>

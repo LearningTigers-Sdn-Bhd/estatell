@@ -240,6 +240,12 @@ googleMapsUrl: string | null,
 checklist: App.Data.BookingEngine.BookingSiteChecklistItemData[],
 canPublish: boolean,
 };
+export type BookingWebsiteRatePlanData = {
+id: number,
+name: string,
+bookableOnline: boolean,
+roomTypeNames: string[],
+};
 export type BookingWebsiteSeoData = {
 seoTitle: string | null,
 seoDescription: string | null,
@@ -2744,6 +2750,8 @@ archived: boolean,
 status: App.Data.Shared.BadgeData,
 isDerived: boolean,
 checkChildPrices: boolean,
+bookableOnline: boolean,
+offerableOnline: boolean,
 roomTypeIds: number[],
 roomTypeNames: string[],
 };
@@ -4534,6 +4542,7 @@ export type AuditTrigger = 'scheduled' | 'manual';
 export type BillingMode = 'master_pays' | 'master_pays_all' | 'each_pays';
 export type BoatDirection = 'in' | 'out';
 export type BoatMode = 'scheduled' | 'charter' | 'own';
+export type BookableOnlineResult = 'saved' | 'not-available' | 'last-plan';
 export type BookingEngineMode = 'microsite' | 'api-only';
 export type BookingSourceIcon = 'phone' | 'message-circle' | 'mail' | 'globe' | 'users' | 'handshake' | 'briefcase-business' | 'building-2' | 'footprints' | 'ticket' | 'megaphone' | 'star';
 export type BookingSourceType = 'direct' | 'ota' | 'company' | 'walk_in';

@@ -1,4 +1,4 @@
-import { FileText, MapPin, Palette, Search, Sparkles } from 'lucide-react';
+import { FileText, MapPin, Palette, Search, Sparkles, Tag } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { PageHeader } from '@/components/pms/page-header';
 import { TabLinks } from '@/components/pms/tab-links';
@@ -8,6 +8,7 @@ import {
     design,
     general,
     nearbyPlaces,
+    rates,
     seo,
 } from '@/routes/settings/booking-website';
 
@@ -16,6 +17,7 @@ export type BookingWebsiteTab =
     | 'design'
     | 'amenities'
     | 'nearby-places'
+    | 'rates'
     | 'seo';
 
 /**
@@ -56,6 +58,12 @@ export function BookingWebsiteShell({
             label: 'Nearby places',
             icon: MapPin,
             href: nearbyPlaces.url(),
+        },
+        {
+            value: 'rates',
+            label: 'Rates',
+            icon: Tag,
+            href: rates.url(),
         },
         {
             value: 'seo',

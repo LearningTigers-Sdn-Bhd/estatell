@@ -8,23 +8,29 @@ use App\Actions\BookingEngine\SaveBookingWebsiteDesign;
 use App\Actions\BookingEngine\SaveBookingWebsiteGeneral;
 use App\Actions\BookingEngine\SaveBookingWebsiteSeo;
 use App\Actions\BookingEngine\SetPropertyAmenity;
+use App\Actions\BookingEngine\SetRatePlanBookableOnline;
 use App\Actions\BookingEngine\SetUpBookingSite;
 use App\Actions\BookingEngine\UnpublishBookingSite;
 use App\Actions\BookingEngine\UploadSiteImage;
 use App\Data\BookingEngine\AmenityPickerData;
 use App\Data\BookingEngine\BookingWebsiteDesignData;
 use App\Data\BookingEngine\BookingWebsiteGeneralData;
+use App\Data\BookingEngine\BookingWebsiteRatePlanData;
 use App\Data\BookingEngine\BookingWebsiteSeoData;
 use App\Enums\AmenityType;
+use App\Enums\BookableOnlineResult;
 use App\Enums\BookingEngineMode;
+use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\BookingEngine\SaveBookingWebsiteDesignRequest;
 use App\Http\Requests\BookingEngine\SaveBookingWebsiteGeneralRequest;
 use App\Http\Requests\BookingEngine\SaveBookingWebsiteSeoRequest;
 use App\Http\Requests\BookingEngine\SetAmenityRequest;
+use App\Http\Requests\BookingEngine\SetRatePlanBookableRequest;
 use App\Http\Requests\BookingEngine\UploadSiteImageRequest;
 use App\Models\Property;
 use App\Models\PropertyBookingSite;
+use App\Models\RatePlan;
 use App\Services\BookingEngine\BookingSiteChecklist;
 use App\Services\BookingEngine\GoogleMapsLink;
 use App\Services\BookingEngine\InvalidMapsLink;
@@ -84,6 +90,32 @@ class BookingWebsiteController extends Controller
     {
         if (! $setPropertyAmenity($request->user(), $property, $request->integer('amenity_id'), $request->boolean('active'))) {
             Inertia::flash('toast', ['type' => 'error', 'message' => __('The amenity list changed. Reload the page and try again.')]);
+        }
+
+        return back();
+    }
+
+    /**
+     * The Rates tab: the rate plans guests can book online. Day use and company-only plans are not listed.
+     */
+    public function rates(Request $request, Property $property): Response
+    {
+        return Inertia::render('settings/booking-website/rates', [
+            'canManageRates' => $request->user()->can(PermissionEnum::SettingsManage->value),
+            'ratePlans' => BookingWebsiteRatePlanData::collect(
+                RatePlan::query()->where('property_id', $property->id)->offerableOnline()->with('roomTypes')->ordered()->get()
+                    ->map(fn (RatePlan $ratePlan): BookingWebsiteRatePlanData => BookingWebsiteRatePlanData::fromModel($ratePlan))
+                    ->all(),
+            ),
+        ]);
+    }
+
+    public function updateRates(SetRatePlanBookableRequest $request, Property $property, SetRatePlanBookableOnline $setRatePlanBookableOnline): RedirectResponse
+    {
+        $result = $setRatePlanBookableOnline($request->user(), $property, $request->integer('rate_plan_id'), $request->boolean('bookable'));
+
+        if ($result !== BookableOnlineResult::Saved) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => $result->message()]);
         }
 
         return back();

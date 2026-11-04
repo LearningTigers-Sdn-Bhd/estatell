@@ -6,6 +6,7 @@ use App\Enums\PermissionEnum;
 use App\Features\BookingEngine;
 use App\Models\Property;
 use App\Models\PropertyBookingSite;
+use App\Models\RatePlan;
 use App\Models\User;
 use Illuminate\Support\Facades\Http;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -65,7 +66,9 @@ it('sets up the site with a slug from the property name on first visit', functio
             ->where('general.checklist.0.key', 'template')
             ->where('general.checklist.0.done', false)
             ->where('general.checklist.1.key', 'location')
-            ->where('general.checklist.1.done', false));
+            ->where('general.checklist.1.done', false)
+            ->where('general.checklist.2.key', 'rates')
+            ->where('general.checklist.2.done', false));
 
     expect($property->refresh()->slug)->toBe('sand-bay-resort')
         ->and(PropertyBookingSite::query()->where('property_id', $property->id)->count())->toBe(1);
@@ -193,6 +196,11 @@ it('publishes and unpublishes once the checklist is done and logs who did it', f
     $property->forceFill(['latitude' => 4.2105, 'longitude' => 101.9758])->save();
 
     $this->actingAs($owner)->post(route('settings.booking-website.publish', $property))->assertRedirect();
+    expect($property->bookingSite()->first()->published_at)->toBeNull();
+
+    RatePlan::factory()->for($property)->bookableOnline()->create();
+
+    $this->actingAs($owner)->post(route('settings.booking-website.publish', $property))->assertRedirect();
     expect($property->bookingSite()->first()->published_at)->not->toBeNull();
 
     $this->actingAs($owner)->post(route('settings.booking-website.publish', $property))->assertRedirect();
@@ -207,9 +215,10 @@ it('lets API only go live with no template row', function () {
     ['owner' => $owner, 'property' => $property] = bookingWebsiteSetup();
     $property->forceFill(['latitude' => 4.2105, 'longitude' => 101.9758])->save();
     PropertyBookingSite::factory()->apiOnly()->for($property)->create();
+    RatePlan::factory()->for($property)->bookableOnline()->create();
 
     $this->actingAs($owner)->get(route('settings.booking-website.general', $property))
-        ->assertInertia(fn (Assert $page) => $page->where('general.mode', 'api-only')->where('general.canPublish', true)->has('general.checklist', 1));
+        ->assertInertia(fn (Assert $page) => $page->where('general.mode', 'api-only')->where('general.canPublish', true)->has('general.checklist', 2));
 
     $this->actingAs($owner)->post(route('settings.booking-website.publish', $property))->assertRedirect();
 

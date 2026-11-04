@@ -5,6 +5,7 @@ namespace App\Services\BookingEngine;
 use App\Data\BookingEngine\BookingSiteChecklistItemData;
 use App\Enums\BookingEngineMode;
 use App\Models\PropertyBookingSite;
+use App\Models\RatePlan;
 use App\Models\SiteTemplateSlot;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
@@ -32,6 +33,9 @@ class BookingSiteChecklist
 
         $located = $site->property->latitude !== null && $site->property->longitude !== null;
         $items[] = new BookingSiteChecklistItemData('location', __('Location set'), $located, $located ? null : __('Paste your Google Maps link on the General tab'));
+
+        $hasPlan = RatePlan::query()->where('property_id', $site->property_id)->bookableOnline()->exists();
+        $items[] = new BookingSiteChecklistItemData('rates', __('Public rate plan'), $hasPlan, $hasPlan ? null : __('Turn on a rate plan on the Rates tab'));
 
         return $items;
     }
