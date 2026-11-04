@@ -24,6 +24,7 @@ import { FilterBar } from '@/components/pms/filter-bar';
 import { PageHeader } from '@/components/pms/page-header';
 import { PaginationFooter } from '@/components/pms/pagination-footer';
 import { TabLinks } from '@/components/pms/tab-links';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -220,7 +221,22 @@ export default function AmenitiesIndex({
                         { value: CATEGORIES, label: 'Categories' },
                     ].map((option) => ({
                         value: option.value,
-                        label: option.label,
+                        label: (
+                            <>
+                                {option.label}
+                                <Badge
+                                    variant="secondary"
+                                    className="tabular-nums"
+                                >
+                                    {option.value === CATEGORIES
+                                        ? categories.length
+                                        : amenities.filter(
+                                              (amenity) =>
+                                                  amenity.type === option.value,
+                                          ).length}
+                                </Badge>
+                            </>
+                        ),
                         icon: tabIcons[option.value] ?? ListChecks,
                         href: index({
                             query: {
