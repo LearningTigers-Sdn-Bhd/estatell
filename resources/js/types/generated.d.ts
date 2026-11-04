@@ -261,6 +261,24 @@ googleMapsUrl: string,
 distance: string,
 distanceKm: number,
 };
+export type NewBookingHoldData = {
+arrival: string,
+departure: string,
+total: string,
+guestName: string,
+guestEmail: string,
+guestPhone: string,
+guestNationality: string,
+specialRequests: string | null,
+lines: App.Data.BookingEngine.NewBookingHoldLineData[],
+guestIp: string | null,
+};
+export type NewBookingHoldLineData = {
+roomTypeId: number,
+ratePlanId: number,
+adults: number,
+childAges: number[],
+};
 export type PropertyNearbyPlaceData = {
 id: number,
 name: string,
@@ -4536,7 +4554,6 @@ export type AccountingSetupStatus = 'not-connected' | 'needs-attention' | 'ready
 export type AccountingSyncStatus = 'pending' | 'pushed' | 'failed' | 'skipped';
 export type AgeBandPricing = 'free' | 'percent' | 'fixed';
 export type AmenityType = 'property' | 'room';
-export type ApiTokenKind = 'kiosk' | 'integration';
 export type ArInvoiceStatus = 'open' | 'settled' | 'void';
 export type ArInvoiceType = 'invoice' | 'credit_note';
 export type AriChangeKind = 'availability' | 'rates' | 'restrictions';
@@ -4554,6 +4571,7 @@ export type BoatMode = 'scheduled' | 'charter' | 'own';
 export type BookableOnlineResult = 'saved' | 'not-available' | 'last-plan';
 export type BookingClientType = 'microsite' | 'api-only' | 'demo';
 export type BookingEngineMode = 'microsite' | 'api-only';
+export type BookingHoldStatus = 'held' | 'paid' | 'confirmed' | 'expired';
 export type BookingSourceIcon = 'phone' | 'message-circle' | 'mail' | 'globe' | 'users' | 'handshake' | 'briefcase-business' | 'building-2' | 'footprints' | 'ticket' | 'megaphone' | 'star';
 export type BookingSourceType = 'direct' | 'ota' | 'company' | 'walk_in' | 'booking_engine';
 export type BusinessDateStatus = 'open' | 'auditing' | 'closed';

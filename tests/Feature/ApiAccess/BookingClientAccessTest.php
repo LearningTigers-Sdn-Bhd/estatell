@@ -136,7 +136,7 @@ it('refuses an API only client with no property, and a microsite client with one
 it('creates the microsite client with its token once', function () {
     expect(Artisan::call('booking-engine:create-microsite-client'))->toBe(0);
     $client = BookingClient::query()->sole();
-    expect($client->tokens()->sole()->abilities)->toBe([BookingClient::ABILITY_LISTING, BookingClient::ABILITY_SITE, BookingClient::ABILITY_CONTENT]);
+    expect($client->tokens()->sole()->abilities)->toBe([BookingClient::ABILITY_LISTING, BookingClient::ABILITY_SITE, BookingClient::ABILITY_CONTENT, BookingClient::ABILITY_CHECKOUT]);
 
     expect(Artisan::call('booking-engine:create-microsite-client'))->toBe(1);
     expect(BookingClient::query()->count())->toBe(1);

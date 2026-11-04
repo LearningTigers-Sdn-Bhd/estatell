@@ -31,8 +31,17 @@ enum BookingClientType: string
     public function abilities(): array
     {
         return match ($this) {
-            self::Microsite => [BookingClient::ABILITY_LISTING, BookingClient::ABILITY_SITE, BookingClient::ABILITY_CONTENT],
-            self::ApiOnly, self::Demo => [BookingClient::ABILITY_CONTENT],
+            self::Microsite => [BookingClient::ABILITY_LISTING, BookingClient::ABILITY_SITE, BookingClient::ABILITY_CONTENT, BookingClient::ABILITY_CHECKOUT],
+            self::ApiOnly, self::Demo => [BookingClient::ABILITY_CONTENT, BookingClient::ABILITY_CHECKOUT],
         };
+    }
+
+    /**
+     * Whether a hold needs the `X-Guest-IP` header. estatell runs the microsite, so it can trust and demand the value.
+     * Another client's value is only an extra limit.
+     */
+    public function requiresGuestIp(): bool
+    {
+        return $this === self::Microsite;
     }
 }

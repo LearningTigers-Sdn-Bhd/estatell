@@ -40,6 +40,8 @@ class BookingClient extends Model implements HasApiTokensContract
 
     public const string ABILITY_SEARCH = 'booking:search';
 
+    public const string ABILITY_CHECKOUT = 'booking:checkout';
+
     /**
      * @return array<string, mixed>
      */

@@ -1,6 +1,8 @@
 <?php
 
 use App\Actions\ApiAccess\PruneIdempotencyKeys;
+use App\Actions\BookingEngine\ExpireBookingHolds;
+use App\Actions\BookingEngine\PurgeBookingHoldGuestDetails;
 use App\Actions\Guests\PurgeExpiredIdentityScans;
 use App\Actions\Notifications\PruneMailEvents;
 use App\Jobs\ExpireDoorCredentials;
@@ -57,6 +59,10 @@ Schedule::call(fn (): int => app(PurgeExpiredIdentityScans::class)())->name('pur
 Schedule::call(fn (): int => app(PruneMailEvents::class)())->name('prune-mail-events')->dailyAt('03:45')->onOneServer();
 
 Schedule::call(fn (): int => app(PruneIdempotencyKeys::class)())->name('prune-api-idempotency-keys')->hourly()->onOneServer();
+
+Schedule::call(fn (): int => app(ExpireBookingHolds::class)())->name('expire-booking-holds')->everyMinute()->withoutOverlapping()->onOneServer();
+
+Schedule::call(fn (): int => app(PurgeBookingHoldGuestDetails::class)())->name('purge-booking-hold-guest-details')->dailyAt('03:50')->onOneServer();
 
 Schedule::command('night-audit:dispatch-scheduled')->everyFiveMinutes()->withoutOverlapping()->onOneServer();
 

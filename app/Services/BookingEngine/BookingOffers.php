@@ -3,6 +3,7 @@
 namespace App\Services\BookingEngine;
 
 use App\Actions\Reservations\ReservationResult;
+use App\Data\BookingEngine\NewBookingHoldLineData;
 use App\Enums\SellUnit;
 use App\Enums\SystemTransactionCode;
 use App\Models\Property;
@@ -16,6 +17,8 @@ use App\Services\Rates\RateQuoteService;
 use App\Services\Rates\RestrictionCheck;
 use App\Services\Reservations\ReservationRefusals;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 
 /**
  * What a guest can book for a stay: each active room type of each public rate plan, for one room with the party, or one
@@ -44,14 +47,9 @@ class BookingOffers
      */
     public function forStay(Property $property, CarbonImmutable $arrival, CarbonImmutable $departure, int $adults, array $childAges, ?string $nationality): array
     {
-        $plans = RatePlan::query()
-            ->where('property_id', $property->id)
-            ->bookableOnline()
-            ->ordered()
-            ->with(['inclusions.chargeItem.transactionCode', 'roomTypes' => fn ($roomTypes) => $roomTypes->active()->ordered()])
-            ->get();
+        $plans = $this->plans($property)->get();
         $nights = $this->availability->nightsForRoomTypes($plans->flatMap(fn (RatePlan $plan) => $plan->roomTypes)->unique('id')->all(), $arrival, $departure);
-        $policy = RoomRevenuePolicy::query()->where('property_id', $property->id)->where('code', SystemTransactionCode::CancellationRevenue)->first();
+        $policy = $this->cancellationPolicy($property);
         $context = $this->onlineStayPrice->context($property);
         $nationality = filled($nationality) ? $nationality : $property->country_code;
         $offers = [];
@@ -63,6 +61,48 @@ class BookingOffers
         }
 
         return $offers;
+    }
+
+    /**
+     * The offer of each line a guest chose, in order, with the same rules as `forStay()`. A line is null when its plan is
+     * not sold online or does not sell its room type.
+     *
+     * @param  list<NewBookingHoldLineData>  $lines
+     * @return list<BookingOffer|null>
+     */
+    public function forLines(Property $property, CarbonImmutable $arrival, CarbonImmutable $departure, array $lines, string $nationality): array
+    {
+        /** @var Collection<int, RatePlan> $plans */
+        $plans = $this->plans($property)->whereKey(array_map(fn (NewBookingHoldLineData $line): int => $line->ratePlanId, $lines))->get()->keyBy('id');
+        $nights = $this->availability->nightsForRoomTypes($plans->flatMap(fn (RatePlan $plan) => $plan->roomTypes)->unique('id')->all(), $arrival, $departure);
+        $policy = $this->cancellationPolicy($property);
+        $context = $this->onlineStayPrice->context($property);
+
+        return array_map(function (NewBookingHoldLineData $line) use ($plans, $nights, $policy, $context, $arrival, $departure, $nationality): ?BookingOffer {
+            $plan = $plans->get($line->ratePlanId);
+            $roomType = $plan?->roomTypes->firstWhere('id', $line->roomTypeId);
+
+            return $plan === null || $roomType === null
+                ? null
+                : $this->offer($context, $plan, $roomType, $nights[$roomType->id] ?? [], $policy, $arrival, $departure, $line->adults, $line->childAges, $nationality);
+        }, $lines);
+    }
+
+    /**
+     * @return Builder<RatePlan>
+     */
+    private function plans(Property $property): Builder
+    {
+        return RatePlan::query()
+            ->where('property_id', $property->id)
+            ->bookableOnline()
+            ->ordered()
+            ->with(['inclusions.chargeItem.transactionCode', 'roomTypes' => fn ($roomTypes) => $roomTypes->active()->ordered()]);
+    }
+
+    private function cancellationPolicy(Property $property): ?RoomRevenuePolicy
+    {
+        return RoomRevenuePolicy::query()->where('property_id', $property->id)->where('code', SystemTransactionCode::CancellationRevenue)->first();
     }
 
     /**

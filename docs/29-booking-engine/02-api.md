@@ -25,7 +25,7 @@ The one API behind the microsite, API only websites and, later, new-wastays. It 
 
 The marketplace endpoints are built and tested now, and nothing calls them until new-wastays exists. No token has the `booking:search` ability yet.
 
-**Built:** listing, marketplace, microsite, and content and search. Checkout and Manage booking are planned.
+**Built:** listing, marketplace, microsite, content and search, and holds. `holds/{token}/payment` and Manage booking are planned.
 
 ## What each returns
 
@@ -67,6 +67,26 @@ The body of `offers` and `search` is the stay and the party of one room.
 - `calendar` is a guide, one night at a time. A package plan opens a date but gives no nightly price. `offers` decides whether a stay can be booked.
 - `search` returns the lowest `pay_online` total, and leaves out a property with nothing to sell.
 
+## Checkout
+
+The body of `POST properties/{code}/holds`:
+
+| Field                                          | Rule                                                                               |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `arrival`, `departure`                         | As in `offers`                                                                     |
+| `total`                                        | Required, the online total the guest saw, with up to 2 decimals                    |
+| `guest.name`                                   | Required, up to 150 characters                                                     |
+| `guest.email`                                  | Required                                                                           |
+| `guest.phone`                                  | Required. Without a country code, it is read as a number of the property's country |
+| `guest.nationality`                            | Required, a 2-letter country code in capitals                                      |
+| `special_requests`                             | Optional, up to 1000 characters                                                    |
+| `lines`                                        | Required, 1 to 50. One line is one room or bed                                     |
+| `lines.*.room_type_id`, `lines.*.rate_plan_id` | Required, from the offer                                                           |
+| `lines.*.adults`                               | Required, 1 to 50. A bed ignores the party                                         |
+| `lines.*.child_ages`                           | Optional, each from 0 to 17                                                        |
+
+Send the guest's address in the `X-Guest-IP` header. The answer holds `token`, `status`, `expires_at`, `online_total` and `pay_at_property`, and no guest details. Reading or releasing a hold returns the same without `pay_at_property`. See [Checkout and hold](03-checkout-and-hold.md).
+
 ## Access
 
 Laravel Sanctum, on the same [token layer](../28-api-access/01-api-tokens.md) as kiosks, with one token for each client. Sanctum is already installed. The token's `booking:*` abilities decide which endpoints it reaches, and its owner decides which properties. The owner is a `BookingClient` with a type and an optional property: see [Booking engine microsite](../28-api-access/04-booking-engine-microsite.md).
@@ -106,5 +126,5 @@ A client reaches only the holds it made. Another client's hold token answers 404
 
 - Routes in `routes/api.php`, under `/api/booking/v1`, with names under `api.booking.v1.`. They use `api.token:{scope}`, never `auth:sanctum`: see [Traps](../28-api-access/01-api-tokens.md#traps).
 - Controllers in `app/Http/Controllers/Api/Booking/`, thin, returning Eloquent API Resources without the `data` wrapper.
-- Services in `app/Services/BookingEngine/`: `BookingClientReach`, `BookingContent`, `BookingCalendar`, `BookingOffers`, `OnlineStayPrice`, `BookingSearch` and `BookingWindow`.
+- Services in `app/Services/BookingEngine/`: `BookingClientReach`, `BookingContent`, `BookingCalendar`, `BookingOffers`, `OnlineStayPrice`, `BookingSearch`, `BookingWindow`, `HeldUnits` and `BookingHoldLimits`.
 - Every query is scoped by `property_id`, taken from the path and checked against the token.

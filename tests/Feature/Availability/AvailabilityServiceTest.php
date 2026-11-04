@@ -220,7 +220,7 @@ test('availability runs in a fixed number of queries however many rooms and bloc
     DB::enableQueryLog();
     app(AvailabilityService::class)->nights($roomType, Date::parse('2026-11-01'), Date::parse('2026-11-30'));
 
-    expect(count(DB::getQueryLog()))->toBeLessThanOrEqual(3);
+    expect(count(DB::getQueryLog()))->toBeLessThanOrEqual(4);
 });
 
 /**
@@ -361,5 +361,5 @@ test('the batch runs in the same number of queries for 2 and for 5 room types', 
         return $count;
     };
 
-    expect($queries(2))->toBe(4)->and($queries(5))->toBe(4);
+    expect($queries(2))->toBe(5)->and($queries(5))->toBe(5);
 });

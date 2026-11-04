@@ -42,16 +42,16 @@ booking_hold_line_children  id, booking_hold_line_id, age
 
 `CreateBookingHold` takes the property, the chosen lines, the guest details and the total the guest saw.
 
-| Check, in order                                                            | Refusal                               |
-| -------------------------------------------------------------------------- | ------------------------------------- |
-| Name, email, phone, nationality and the lines are valid (the Form Request) | a field error                         |
-| A Microsite request has `X-Guest-IP`                                       | `guest_ip_required`                   |
-| The arrival is today or later, and at most 6 months ahead                  | `outside_window`                      |
-| Each plan is public and active, and sells the room type                    | `plan_not_available`                  |
-| The party fits, the stay can be priced, and restrictions pass              | the same code as a blocked offer      |
-| Rooms are free on every night for all lines of the room type               | `not_available`                       |
-| The [open hold limits](#open-hold-limits) allow it                         | `hold_limit_reached`                  |
-| The total equals the total now                                             | `price_changed`, with `current_total` |
+| Check, in order                                                              | Refusal                               |
+| ---------------------------------------------------------------------------- | ------------------------------------- |
+| Name, email, phone, nationality and the lines are valid (the Form Request)   | a field error                         |
+| A Microsite request has a valid `X-Guest-IP`                                 | `guest_ip_required`                   |
+| The arrival is today or later, and at most 6 months ahead                    | `outside_window`                      |
+| Each plan is sold online and sells the room type                             | `plan_not_available`                  |
+| The party fits, the stay can be priced, a room is free and restrictions pass | the same code as a blocked offer      |
+| Rooms are free for all lines of the room type                                | `not_available`                       |
+| The [open hold limits](#open-hold-limits) allow it                           | `hold_limit_reached`                  |
+| The total equals the total now                                               | `price_changed`, with `current_total` |
 
 - From the plan check on, the checks run under the room type lock. They use `BookingOffers`, so offers and holds follow the same rules.
 - The room type rows are locked together, in id order, so holds and staff bookings cannot sell the same room twice.
@@ -63,10 +63,10 @@ booking_hold_line_children  id, booking_hold_line_id, age
 
 ## Open hold limits
 
-| Limit        | Rule                                                                 | Counts                                        |
-| ------------ | -------------------------------------------------------------------- | --------------------------------------------- |
-| Per property | At most half of the property's rooms and beds, rounded up, minimum 2 | Lines of open holds, including the new hold's |
-| Per guest IP | At most 3 open holds                                                 | Open holds with the same `guest_ip_hash`      |
+| Limit        | Rule                                                                 | Counts                                                   |
+| ------------ | -------------------------------------------------------------------- | -------------------------------------------------------- |
+| Per property | At most half of the property's rooms and beds, rounded up, minimum 2 | Lines of open holds, including the new hold's            |
+| Per guest IP | At most 3 open holds                                                 | Open holds of the property with the same `guest_ip_hash` |
 
 - An open hold is Held with `expires_at` in the future, or Paid.
 - `guest_ip_hash` is an HMAC of the address with the app key, so the address itself is not stored.

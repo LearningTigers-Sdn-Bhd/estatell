@@ -100,6 +100,11 @@ class AppServiceProvider extends ServiceProvider
             return [Limit::perMinute(20)->by('kiosk-walk-in-token:'.($kiosk instanceof Kiosk ? $kiosk->id : 'none')),
                 Limit::perMinute(40)->by('kiosk-walk-in-ip:'.(string) $request->ip())];
         });
+        RateLimiter::for('api-booking-holds', function (Request $request): Limit {
+            $client = $request->attributes->get('booking_client');
+
+            return Limit::perMinute(30)->by('booking-holds:'.$client->currentAccessToken()->getKey().':'.mb_strtolower((string) $request->route('code')));
+        });
         RateLimiter::for('api-token', function (Request $request): Limit {
             $kiosk = $request->attributes->get('kiosk');
             $client = $request->attributes->get('booking_client');
