@@ -6,13 +6,13 @@
         "icon": "24_hour_front_desk"
     },
     {
-        "name": "ADA Accessible",
+        "name": "Ablution area",
         "type": "property",
         "category": "General",
-        "icon": "ada_accessible"
+        "icon": null
     },
     {
-        "name": "Adult only",
+        "name": "Adults only",
         "type": "property",
         "category": "General",
         "icon": "adult_only"
@@ -24,34 +24,34 @@
         "icon": "air_conditioning"
     },
     {
-        "name": "All Spaces Non-Smoking (public and private)",
-        "type": "property",
-        "category": "General",
-        "icon": "all_spaces_non_smoking_public_and_private"
-    },
-    {
         "name": "ATM on site",
         "type": "property",
         "category": "General",
         "icon": "atm_on_site"
     },
     {
-        "name": "Bridal Suite",
+        "name": "Bridal suite",
         "type": "property",
         "category": "General",
         "icon": "bridal_suite"
     },
     {
-        "name": "Cable Hookups",
+        "name": "Business centre",
         "type": "property",
         "category": "General",
-        "icon": "cable_hookups"
+        "icon": "business_center"
     },
     {
-        "name": "Chapel/shrine",
+        "name": "Chapel or shrine",
         "type": "property",
         "category": "General",
         "icon": "chapel_shrine"
+    },
+    {
+        "name": "Co-working space",
+        "type": "property",
+        "category": "General",
+        "icon": null
     },
     {
         "name": "Designated smoking area",
@@ -60,40 +60,28 @@
         "icon": "designated_smoking_area"
     },
     {
-        "name": "Dirt Roads",
+        "name": "Family floors",
         "type": "property",
         "category": "General",
-        "icon": "dirt_roads"
+        "icon": null
     },
     {
-        "name": "Elevators",
-        "type": "property",
-        "category": "General",
-        "icon": "elevators"
-    },
-    {
-        "name": "Family Rooms",
+        "name": "Family rooms",
         "type": "property",
         "category": "General",
         "icon": "family_rooms"
     },
     {
-        "name": "Gasoline Nearby",
+        "name": "Female-only floors",
         "type": "property",
         "category": "General",
-        "icon": "gasoline_nearby"
+        "icon": null
     },
     {
-        "name": "General Store",
+        "name": "Free Wi-Fi in public areas",
         "type": "property",
         "category": "General",
-        "icon": "general_store"
-    },
-    {
-        "name": "Gravel Roads",
-        "type": "property",
-        "category": "General",
-        "icon": "gravel_roads"
+        "icon": null
     },
     {
         "name": "Heating",
@@ -102,196 +90,22 @@
         "icon": "heating"
     },
     {
-        "name": "Hypoallergenic room available",
+        "name": "Hypoallergenic rooms",
         "type": "property",
         "category": "General",
         "icon": "hypoallergenic_room_available"
     },
     {
-        "name": "Invoices Provided",
+        "name": "Invoices provided",
         "type": "property",
         "category": "General",
         "icon": "invoices_provided"
     },
     {
-        "name": "Back-in RV Sites",
+        "name": "Lift",
         "type": "property",
-        "category": "Parking",
-        "icon": "back_in_rv_sites"
-    },
-    {
-        "name": "Beachfront",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "beachfront"
-    },
-    {
-        "name": "Beauty Services",
-        "type": "property",
-        "category": "Services",
-        "icon": "beauty_services"
-    },
-    {
-        "name": "Board games/puzzles",
-        "type": "property",
-        "category": "Activities",
-        "icon": "board_games_puzzles"
-    },
-    {
-        "name": "Book/DVD/Music library for children",
-        "type": "property",
-        "category": "Services",
-        "icon": "book_dvd_music_library_for_children"
-    },
-    {
-        "name": "Children television networks",
-        "type": "property",
-        "category": "Services",
-        "icon": "children_television_networks"
-    },
-    {
-        "name": "Breakfast takeaway containers",
-        "type": "property",
-        "category": "Food And Drink",
-        "icon": "breakfast_takeaway_containers"
-    },
-    {
-        "name": "Clubhouse",
-        "type": "property",
-        "category": "Activities",
-        "icon": "clubhouse"
-    },
-    {
-        "name": "Community Fire Pit",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "community_fire_pit"
-    },
-    {
-        "name": "Community Restrooms",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "community_restrooms"
-    },
-    {
-        "name": "Community Showers",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "community_showers"
-    },
-    {
-        "name": "Community Water Fountain",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "community_water_fountain"
-    },
-    {
-        "name": "Entertainment Staff",
-        "type": "property",
-        "category": "Activities",
-        "icon": "entertainment_staff"
-    },
-    {
-        "name": "Dinner",
-        "type": "property",
-        "category": "Food And Drink",
-        "icon": "dinner"
-    },
-    {
-        "name": "Fire Pit",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "fire_pit"
-    },
-    {
-        "name": "Fitness",
-        "type": "property",
-        "category": "Activities",
-        "icon": "fitness"
-    },
-    {
-        "name": "Foot bath",
-        "type": "property",
-        "category": "Services",
-        "icon": "foot_bath"
-    },
-    {
-        "name": "Hair dresser-beautician",
-        "type": "property",
-        "category": "Services",
-        "icon": "hair_dresser_beautician"
-    },
-    {
-        "name": "Heated pool",
-        "type": "property",
-        "category": "Activities",
-        "icon": "heated_pool"
-    },
-    {
-        "name": "Hike / Bike Campsites",
-        "type": "property",
-        "category": "Activities",
-        "icon": "hike_bike_campsites"
-    },
-    {
-        "name": "Hot Spring Bath",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "hot_spring_bath"
-    },
-    {
-        "name": "Housekeeping - daily",
-        "type": "property",
-        "category": "Services",
-        "icon": "housekeeping_daily"
-    },
-    {
-        "name": "Indoor play area",
-        "type": "property",
-        "category": "Activities",
-        "icon": "indoor_play_area"
-    },
-    {
-        "name": "Kid meals",
-        "type": "property",
-        "category": "Food And Drink",
-        "icon": "kid_meals"
-    },
-    {
-        "name": "Jacuzzi (Hot Tub)",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "jacuzzi_hot_tub"
-    },
-    {
-        "name": "Indoor pool",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "indoor_pool"
-    },
-    {
-        "name": "Kid-friendly buffet",
-        "type": "property",
-        "category": "Food And Drink",
-        "icon": "kid_friendly_buffet"
-    },
-    {
-        "name": "Kids' club",
-        "type": "property",
-        "category": "Activities",
-        "icon": "kids_club"
-    },
-    {
-        "name": "Kids pool",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "kids_pool"
-    },
-    {
-        "name": "Laundry Facilities",
-        "type": "property",
-        "category": "Services",
-        "icon": "laundry_facilities"
+        "category": "General",
+        "icon": "elevators"
     },
     {
         "name": "Minimarket on site",
@@ -306,100 +120,166 @@
         "icon": "non_smoking_rooms"
     },
     {
-        "name": "Paved Roads",
+        "name": "Non-smoking throughout",
         "type": "property",
         "category": "General",
-        "icon": "paved_roads"
+        "icon": "all_spaces_non_smoking_public_and_private"
     },
     {
-        "name": "Property is wheel chair accessible",
+        "name": "Prayer times displayed",
         "type": "property",
         "category": "General",
-        "icon": "property_is_wheel_chair_accessible"
+        "icon": null
     },
     {
-        "name": "Rooms/Facilities for Disabled",
+        "name": "Shops on site",
         "type": "property",
         "category": "General",
-        "icon": "rooms_facilities_for_disabled"
+        "icon": "shops_on_site"
     },
     {
-        "name": "Shower",
-        "type": "property",
-        "category": "General",
-        "icon": "shower"
-    },
-    {
-        "name": "Soundproof-rooms",
+        "name": "Soundproof rooms",
         "type": "property",
         "category": "General",
         "icon": "soundproof_rooms"
     },
     {
-        "name": "Toilet",
+        "name": "Surau (prayer room)",
         "type": "property",
         "category": "General",
-        "icon": "toilet"
+        "icon": null
     },
     {
-        "name": "Trek-in > 1.5m",
-        "type": "property",
-        "category": "General",
-        "icon": "trek_in_1_5m"
-    },
-    {
-        "name": "Viproom facilities",
+        "name": "VIP room facilities",
         "type": "property",
         "category": "General",
         "icon": "viproom_facilities"
     },
     {
-        "name": "WiFi",
+        "name": "Wi-Fi",
         "type": "property",
         "category": "General",
         "icon": "wifi"
     },
     {
-        "name": "24-hour security",
+        "name": "Bike parking",
         "type": "property",
-        "category": "Safety And Security",
-        "icon": "24_hour_security"
+        "category": "Parking",
+        "icon": "bike_parking"
     },
     {
-        "name": "Auditory Guidance",
+        "name": "EV charging station",
         "type": "property",
-        "category": "Safety And Security",
-        "icon": "auditory_guidance"
+        "category": "Parking",
+        "icon": "electric_vehicle_charging_station"
     },
     {
-        "name": "Bathroom emergency pull cord",
+        "name": "Free parking",
         "type": "property",
-        "category": "Safety And Security",
-        "icon": "bathroom_emergency_pull_cord"
+        "category": "Parking",
+        "icon": null
     },
     {
-        "name": "Carbon monoxide detector",
+        "name": "Indoor parking",
         "type": "property",
-        "category": "Safety And Security",
-        "icon": "carbon_monoxide_detector"
+        "category": "Parking",
+        "icon": "indoor_parking"
     },
     {
-        "name": "Lunch",
+        "name": "Paid parking",
         "type": "property",
-        "category": "Food And Drink",
-        "icon": "lunch"
+        "category": "Parking",
+        "icon": null
     },
     {
-        "name": "Massage chair",
+        "name": "Secured parking",
         "type": "property",
-        "category": "Services",
-        "icon": "massage_chair"
+        "category": "Parking",
+        "icon": "secured_parking"
     },
     {
-        "name": "Newspaper",
+        "name": "Street parking",
         "type": "property",
-        "category": "Services",
-        "icon": "newspaper"
+        "category": "Parking",
+        "icon": "street_parking"
+    },
+    {
+        "name": "Valet parking",
+        "type": "property",
+        "category": "Parking",
+        "icon": "valet_parking"
+    },
+    {
+        "name": "Adults-only pool",
+        "type": "property",
+        "category": "Outdoors",
+        "icon": null
+    },
+    {
+        "name": "BBQ area",
+        "type": "property",
+        "category": "Outdoors",
+        "icon": "bbq_picnic_area"
+    },
+    {
+        "name": "Beach access",
+        "type": "property",
+        "category": "Outdoors",
+        "icon": null
+    },
+    {
+        "name": "Beachfront",
+        "type": "property",
+        "category": "Outdoors",
+        "icon": "beachfront"
+    },
+    {
+        "name": "Fence around pool",
+        "type": "property",
+        "category": "Outdoors",
+        "icon": "fence_around_pool"
+    },
+    {
+        "name": "Fire pit",
+        "type": "property",
+        "category": "Outdoors",
+        "icon": "fire_pit"
+    },
+    {
+        "name": "Garden",
+        "type": "property",
+        "category": "Outdoors",
+        "icon": "garden"
+    },
+    {
+        "name": "Heated pool",
+        "type": "property",
+        "category": "Outdoors",
+        "icon": "heated_pool"
+    },
+    {
+        "name": "Indoor swimming pool",
+        "type": "property",
+        "category": "Outdoors",
+        "icon": "indoor_pool"
+    },
+    {
+        "name": "Infinity pool",
+        "type": "property",
+        "category": "Outdoors",
+        "icon": "infinity_pool"
+    },
+    {
+        "name": "Kids' pool",
+        "type": "property",
+        "category": "Outdoors",
+        "icon": "kids_pool"
+    },
+    {
+        "name": "Lifeguard",
+        "type": "property",
+        "category": "Outdoors",
+        "icon": null
     },
     {
         "name": "Open-air bath",
@@ -408,10 +288,46 @@
         "icon": "open_air_bath"
     },
     {
-        "name": "Packed Lunches",
+        "name": "Outdoor furniture",
         "type": "property",
-        "category": "Food And Drink",
-        "icon": "packed_lunches"
+        "category": "Outdoors",
+        "icon": "outdoor_furniture"
+    },
+    {
+        "name": "Outdoor swimming pool",
+        "type": "property",
+        "category": "Outdoors",
+        "icon": "outdoor_pool"
+    },
+    {
+        "name": "Picnic area",
+        "type": "property",
+        "category": "Outdoors",
+        "icon": "picnic_area"
+    },
+    {
+        "name": "Playground",
+        "type": "property",
+        "category": "Outdoors",
+        "icon": "playground"
+    },
+    {
+        "name": "Plunge pool",
+        "type": "property",
+        "category": "Outdoors",
+        "icon": "plunge_pool"
+    },
+    {
+        "name": "Pool bar",
+        "type": "property",
+        "category": "Outdoors",
+        "icon": "pool_bar"
+    },
+    {
+        "name": "Pool cover",
+        "type": "property",
+        "category": "Outdoors",
+        "icon": "pool_cover"
     },
     {
         "name": "Pool towels",
@@ -420,94 +336,46 @@
         "icon": "pool_towels"
     },
     {
-        "name": "Propane Refilling Station",
-        "type": "property",
-        "category": "Services",
-        "icon": "propane_refilling_station"
-    },
-    {
-        "name": "Public bath",
+        "name": "Pool with view",
         "type": "property",
         "category": "Outdoors",
-        "icon": "public_bath"
+        "icon": "pool_with_view"
     },
     {
-        "name": "RV Hookup",
-        "type": "property",
-        "category": "Parking",
-        "icon": "rv_hookup"
-    },
-    {
-        "name": "RV Sanitation",
-        "type": "property",
-        "category": "Parking",
-        "icon": "rv_sanitation"
-    },
-    {
-        "name": "Shared lounge/TV area",
-        "type": "property",
-        "category": "Services",
-        "icon": "shared_lounge_tv_area"
-    },
-    {
-        "name": "Ski-to-door access",
-        "type": "property",
-        "category": "Activities",
-        "icon": "ski_to_door_access"
-    },
-    {
-        "name": "Souvenir/Gift Shop",
-        "type": "property",
-        "category": "Services",
-        "icon": "souvenir_gift_shop"
-    },
-    {
-        "name": "Spa Facilities",
-        "type": "property",
-        "category": "Activities",
-        "icon": "spa_facilities"
-    },
-    {
-        "name": "Spa lounge/relaxation area",
-        "type": "property",
-        "category": "Activities",
-        "icon": "spa_lounge_relaxation_area"
-    },
-    {
-        "name": "Spa & Wellness Centre",
-        "type": "property",
-        "category": "Activities",
-        "icon": "spa_wellness_centre"
-    },
-    {
-        "name": "Spa/wellness packages",
-        "type": "property",
-        "category": "Activities",
-        "icon": "spa_wellness_packages"
-    },
-    {
-        "name": "Special Diet Menus (on request)",
-        "type": "property",
-        "category": "Food And Drink",
-        "icon": "special_diet_menus_on_request"
-    },
-    {
-        "name": "Steam room",
+        "name": "Private beach area",
         "type": "property",
         "category": "Outdoors",
-        "icon": "steam_room"
+        "icon": "private_beach_area"
     },
     {
-        "name": "Strollers",
+        "name": "Rooftop pool",
         "type": "property",
-        "category": "Services",
-        "icon": "strollers"
+        "category": "Outdoors",
+        "icon": "rooftop_pool"
+    },
+    {
+        "name": "Salt-water pool",
+        "type": "property",
+        "category": "Outdoors",
+        "icon": "salt_water_pool"
+    },
+    {
+        "name": "Shallow end pool",
+        "type": "property",
+        "category": "Outdoors",
+        "icon": "shallow_end_pool"
     },
     {
         "name": "Sun loungers or beach chairs",
         "type": "property",
         "category": "Outdoors",
         "icon": "sun_loungers_or_beach_chairs"
+    },
+    {
+        "name": "Sun terrace",
+        "type": "property",
+        "category": "Outdoors",
+        "icon": "sun_terrace"
     },
     {
         "name": "Sun umbrellas",
@@ -522,22 +390,10 @@
         "icon": "swimming_pool_toys"
     },
     {
-        "name": "Vending Machine (drinks)",
-        "type": "property",
-        "category": "Food And Drink",
-        "icon": "vending_machine_drinks"
-    },
-    {
-        "name": "Vending Machine(snacks)",
-        "type": "property",
-        "category": "Food And Drink",
-        "icon": "vending_machine_snacks"
-    },
-    {
-        "name": "Waterfront",
+        "name": "Terrace",
         "type": "property",
         "category": "Outdoors",
-        "icon": "waterfront"
+        "icon": "terrace"
     },
     {
         "name": "Water slide",
@@ -546,22 +402,346 @@
         "icon": "water_slide"
     },
     {
+        "name": "Waterfront",
+        "type": "property",
+        "category": "Outdoors",
+        "icon": "waterfront"
+    },
+    {
+        "name": "Beauty services",
+        "type": "property",
+        "category": "Spa and wellness",
+        "icon": "beauty_services"
+    },
+    {
+        "name": "Body treatments",
+        "type": "property",
+        "category": "Spa and wellness",
+        "icon": "body_treatments"
+    },
+    {
+        "name": "Facial treatments",
+        "type": "property",
+        "category": "Spa and wellness",
+        "icon": "facial_treatments"
+    },
+    {
+        "name": "Female-only facility hours",
+        "type": "property",
+        "category": "Spa and wellness",
+        "icon": null
+    },
+    {
+        "name": "Fitness or spa locker rooms",
+        "type": "property",
+        "category": "Spa and wellness",
+        "icon": "fitness_spa_locker_rooms"
+    },
+    {
+        "name": "Hair salon",
+        "type": "property",
+        "category": "Spa and wellness",
+        "icon": "hair_dresser_beautician"
+    },
+    {
+        "name": "Hot spring bath",
+        "type": "property",
+        "category": "Spa and wellness",
+        "icon": "hot_spring_bath"
+    },
+    {
+        "name": "Jacuzzi",
+        "type": "property",
+        "category": "Spa and wellness",
+        "icon": "jacuzzi_hot_tub"
+    },
+    {
+        "name": "Make-up services",
+        "type": "property",
+        "category": "Spa and wellness",
+        "icon": "make_up_services"
+    },
+    {
+        "name": "Manicure and pedicure",
+        "type": "property",
+        "category": "Spa and wellness",
+        "icon": "manicure"
+    },
+    {
+        "name": "Massage",
+        "type": "property",
+        "category": "Spa and wellness",
+        "icon": "massage"
+    },
+    {
+        "name": "Massage chair",
+        "type": "property",
+        "category": "Spa and wellness",
+        "icon": "massage_chair"
+    },
+    {
+        "name": "Personal trainer",
+        "type": "property",
+        "category": "Spa and wellness",
+        "icon": "personal_trainer"
+    },
+    {
+        "name": "Sauna",
+        "type": "property",
+        "category": "Spa and wellness",
+        "icon": "sauna"
+    },
+    {
+        "name": "Solarium",
+        "type": "property",
+        "category": "Spa and wellness",
+        "icon": "solarium"
+    },
+    {
+        "name": "Spa",
+        "type": "property",
+        "category": "Spa and wellness",
+        "icon": "spa_facilities"
+    },
+    {
+        "name": "Spa lounge",
+        "type": "property",
+        "category": "Spa and wellness",
+        "icon": "spa_lounge_relaxation_area"
+    },
+    {
+        "name": "Spa packages",
+        "type": "property",
+        "category": "Spa and wellness",
+        "icon": "spa_wellness_packages"
+    },
+    {
+        "name": "Steam room",
+        "type": "property",
+        "category": "Spa and wellness",
+        "icon": "steam_room"
+    },
+    {
+        "name": "Waxing",
+        "type": "property",
+        "category": "Spa and wellness",
+        "icon": "waxing_services"
+    },
+    {
+        "name": "24-hour room service",
+        "type": "property",
+        "category": "Services",
+        "icon": null
+    },
+    {
         "name": "Access to health care professionals",
         "type": "property",
         "category": "Services",
         "icon": "access_to_health_care_professionals"
     },
     {
-        "name": "Baby safety gates",
-        "type": "property",
-        "category": "General",
-        "icon": "baby_safety_gates"
-    },
-    {
-        "name": "Shuttle Service",
+        "name": "Airport shuttle (free)",
         "type": "property",
         "category": "Services",
-        "icon": "shuttle_service"
+        "icon": "airport_shuttle_free"
+    },
+    {
+        "name": "Airport shuttle (paid)",
+        "type": "property",
+        "category": "Services",
+        "icon": "airport_shuttle_service_surcharge"
+    },
+    {
+        "name": "Babysitting",
+        "type": "property",
+        "category": "Services",
+        "icon": "baby_sitting"
+    },
+    {
+        "name": "Baggage storage",
+        "type": "property",
+        "category": "Services",
+        "icon": "baggage_storage"
+    },
+    {
+        "name": "Bike rental",
+        "type": "property",
+        "category": "Services",
+        "icon": "bike_rental"
+    },
+    {
+        "name": "Car rental",
+        "type": "property",
+        "category": "Services",
+        "icon": "car_rental"
+    },
+    {
+        "name": "Cashless payment",
+        "type": "property",
+        "category": "Services",
+        "icon": "cashless_payment_available"
+    },
+    {
+        "name": "Concierge desk",
+        "type": "property",
+        "category": "Services",
+        "icon": "concierge_desk"
+    },
+    {
+        "name": "Contactless check-in and check-out",
+        "type": "property",
+        "category": "Services",
+        "icon": "contactless_check_in_out"
+    },
+    {
+        "name": "Currency exchange",
+        "type": "property",
+        "category": "Services",
+        "icon": "currency_exchange"
+    },
+    {
+        "name": "Daily housekeeping",
+        "type": "property",
+        "category": "Services",
+        "icon": "housekeeping_daily"
+    },
+    {
+        "name": "Doctor on call",
+        "type": "property",
+        "category": "Services",
+        "icon": null
+    },
+    {
+        "name": "Dry cleaning",
+        "type": "property",
+        "category": "Services",
+        "icon": "dry_cleaning"
+    },
+    {
+        "name": "Early check-in",
+        "type": "property",
+        "category": "Services",
+        "icon": null
+    },
+    {
+        "name": "Express check-in and check-out",
+        "type": "property",
+        "category": "Services",
+        "icon": "express_check_in_check_out"
+    },
+    {
+        "name": "Grocery shopping service",
+        "type": "property",
+        "category": "Services",
+        "icon": "grocery_shopping_service_available"
+    },
+    {
+        "name": "Ironing service",
+        "type": "property",
+        "category": "Services",
+        "icon": "ironing_service"
+    },
+    {
+        "name": "Late check-out",
+        "type": "property",
+        "category": "Services",
+        "icon": null
+    },
+    {
+        "name": "Laundry service",
+        "type": "property",
+        "category": "Services",
+        "icon": "laundry"
+    },
+    {
+        "name": "Library",
+        "type": "property",
+        "category": "Services",
+        "icon": "library"
+    },
+    {
+        "name": "Meeting and banquet facilities",
+        "type": "property",
+        "category": "Services",
+        "icon": "meeting_banquet_facilities"
+    },
+    {
+        "name": "Mobile check-in",
+        "type": "property",
+        "category": "Services",
+        "icon": null
+    },
+    {
+        "name": "Newspapers",
+        "type": "property",
+        "category": "Services",
+        "icon": "newspaper"
+    },
+    {
+        "name": "Opt out of daily cleaning",
+        "type": "property",
+        "category": "Services",
+        "icon": "opt_out_from_daily_room_cleaning"
+    },
+    {
+        "name": "Private car service",
+        "type": "property",
+        "category": "Services",
+        "icon": null
+    },
+    {
+        "name": "Private check-in and check-out",
+        "type": "property",
+        "category": "Services",
+        "icon": "private_check_in_check_out"
+    },
+    {
+        "name": "Room service",
+        "type": "property",
+        "category": "Services",
+        "icon": "room_service"
+    },
+    {
+        "name": "Self check-in",
+        "type": "property",
+        "category": "Services",
+        "icon": null
+    },
+    {
+        "name": "Self-service laundry",
+        "type": "property",
+        "category": "Services",
+        "icon": "laundry_facilities"
+    },
+    {
+        "name": "Shared lounge",
+        "type": "property",
+        "category": "Services",
+        "icon": "shared_lounge_tv_area"
+    },
+    {
+        "name": "Shuttle service (free)",
+        "type": "property",
+        "category": "Services",
+        "icon": "shuttle_service_free"
+    },
+    {
+        "name": "Shuttle service (paid)",
+        "type": "property",
+        "category": "Services",
+        "icon": "shuttle_service_surcharge"
+    },
+    {
+        "name": "Souvenir shop",
+        "type": "property",
+        "category": "Services",
+        "icon": "souvenir_gift_shop"
+    },
+    {
+        "name": "Strollers",
+        "type": "property",
+        "category": "Services",
+        "icon": "strollers"
     },
     {
         "name": "Ticket service",
@@ -570,286 +750,22 @@
         "icon": "ticket_service"
     },
     {
-        "name": "Carbon monoxide source",
-        "type": "property",
-        "category": "Safety And Security",
-        "icon": "carbon_monoxide_source"
-    },
-    {
-        "name": "CCTV in common areas",
-        "type": "property",
-        "category": "Safety And Security",
-        "icon": "cctv_in_common_areas"
-    },
-    {
-        "name": "CCTV outside property",
-        "type": "property",
-        "category": "Safety And Security",
-        "icon": "cctv_outside_property"
-    },
-    {
-        "name": "Fire extinguishers",
-        "type": "property",
-        "category": "Safety And Security",
-        "icon": "fire_extinguishers"
-    },
-    {
-        "name": "First aid kit available",
-        "type": "property",
-        "category": "Safety And Security",
-        "icon": "first_aid_kit_available"
-    },
-    {
-        "name": "Key access",
-        "type": "property",
-        "category": "Safety And Security",
-        "icon": "key_access"
-    },
-    {
-        "name": "Key card access",
-        "type": "property",
-        "category": "Safety And Security",
-        "icon": "key_card_access"
-    },
-    {
-        "name": "Lockers",
-        "type": "property",
-        "category": "Safety And Security",
-        "icon": "lockers"
-    },
-    {
-        "name": "Safe",
-        "type": "property",
-        "category": "Safety And Security",
-        "icon": "safe"
-    },
-    {
-        "name": "Security alarm",
-        "type": "property",
-        "category": "Safety And Security",
-        "icon": "security_alarm"
-    },
-    {
-        "name": "Smoke alarms",
-        "type": "property",
-        "category": "Safety And Security",
-        "icon": "smoke_alarms"
-    },
-    {
-        "name": "Toilet with grab rails",
-        "type": "property",
-        "category": "Safety And Security",
-        "icon": "toilet_with_grab_rails"
-    },
-    {
-        "name": "20 Amps",
-        "type": "room",
-        "category": "In Room",
-        "icon": "20_amps"
-    },
-    {
-        "name": "Contactless check-in/out",
+        "name": "Tour desk",
         "type": "property",
         "category": "Services",
-        "icon": "contactless_check_in_out"
+        "icon": "tour_desk"
     },
     {
-        "name": "Delivered food is securely covered",
-        "type": "property",
-        "category": "Food And Drink",
-        "icon": "delivered_food_is_securely_covered"
-    },
-    {
-        "name": "Face masks for guests available",
+        "name": "Towels changed on request",
         "type": "property",
         "category": "Services",
-        "icon": "face_masks_for_guests_available"
+        "icon": "towels_changed_upon_request"
     },
     {
-        "name": "Fence around pool",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "fence_around_pool"
-    },
-    {
-        "name": "Guest accommodation sealed after cleaning",
+        "name": "Turndown service",
         "type": "property",
         "category": "Services",
-        "icon": "guest_accommodation_sealed_after_cleaning"
-    },
-    {
-        "name": "Guest accomodation cleaning can be avoided on request",
-        "type": "property",
-        "category": "Services",
-        "icon": "guest_accomodation_cleaning_can_be_avoided_on_request"
-    },
-    {
-        "name": "Hand sanitiser in guest accommodation and key areas",
-        "type": "property",
-        "category": "Services",
-        "icon": "hand_sanitiser_in_guest_accommodation_and_key_areas"
-    },
-    {
-        "name": "Higher level toilet",
-        "type": "property",
-        "category": "General",
-        "icon": "higher_level_toilet"
-    },
-    {
-        "name": "In-room dining options available",
-        "type": "property",
-        "category": "Food And Drink",
-        "icon": "in_room_dining_options_available"
-    },
-    {
-        "name": "Linens, towels and laundry washed in accordance with local authorities guidelines",
-        "type": "property",
-        "category": "Services",
-        "icon": "linens_towels_and_laundry_washed_in_accordance_with_local_authorities_guidelines"
-    },
-    {
-        "name": "Low bathroom sink",
-        "type": "property",
-        "category": "General",
-        "icon": "low_bathroom_sink"
-    },
-    {
-        "name": "Mobile app for room service",
-        "type": "property",
-        "category": "Services",
-        "icon": "mobile_app_for_room_service"
-    },
-    {
-        "name": "Physical distancing following guidelines from local authorities",
-        "type": "property",
-        "category": "Services",
-        "icon": "physical_distancing_following_guidelines_from_local_authorities"
-    },
-    {
-        "name": "Physical distancing in dining areas",
-        "type": "property",
-        "category": "Food And Drink",
-        "icon": "physical_distancing_in_dining_areas"
-    },
-    {
-        "name": "Pool cover",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "pool_cover"
-    },
-    {
-        "name": "Process in place to check health of guests",
-        "type": "property",
-        "category": "Services",
-        "icon": "process_in_place_to_check_health_of_guests"
-    },
-    {
-        "name": "Property is cleaned by professional cleaning companies",
-        "type": "property",
-        "category": "Services",
-        "icon": "property_is_cleaned_by_professional_cleaning_companies"
-    },
-    {
-        "name": "Screens or physical barriers placed between staff and guests in appropriate areas",
-        "type": "property",
-        "category": "Services",
-        "icon": "screens_or_physical_barriers_placed_between_staff_and_guests_in_appropriate_areas"
-    },
-    {
-        "name": "Shared stationery such as printed menus, magazines, pens, and paper removed",
-        "type": "property",
-        "category": "Services",
-        "icon": "shared_stationery_such_as_printed_menus_magazines_pens_and_paper_removed"
-    },
-    {
-        "name": "Staff follow all safety protocols as directed by local authorities",
-        "type": "property",
-        "category": "Services",
-        "icon": "staff_follow_all_safety_protocols_as_directed_by_local_authorities"
-    },
-    {
-        "name": "Thermometers for guests provided by property",
-        "type": "property",
-        "category": "Services",
-        "icon": "thermometers_for_guests_provided_by_property"
-    },
-    {
-        "name": "Use of cleaning chemicals that are effective against Coronavirus",
-        "type": "property",
-        "category": "Services",
-        "icon": "use_of_cleaning_chemicals_that_are_effective_against_coronavirus"
-    },
-    {
-        "name": "Bar",
-        "type": "property",
-        "category": "Food And Drink",
-        "icon": "bar"
-    },
-    {
-        "name": "Bottle of water",
-        "type": "property",
-        "category": "Food And Drink",
-        "icon": "bottle_of_water"
-    },
-    {
-        "name": "Breakfast",
-        "type": "property",
-        "category": "Food And Drink",
-        "icon": "breakfast"
-    },
-    {
-        "name": "Breakfast in the room",
-        "type": "property",
-        "category": "Food And Drink",
-        "icon": "breakfast_in_the_room"
-    },
-    {
-        "name": "Chocolate/Cookies",
-        "type": "property",
-        "category": "Food And Drink",
-        "icon": "chocolate_cookies"
-    },
-    {
-        "name": "Drinking Water",
-        "type": "property",
-        "category": "Food And Drink",
-        "icon": "drinking_water"
-    },
-    {
-        "name": "Fruits",
-        "type": "property",
-        "category": "Food And Drink",
-        "icon": "fruits"
-    },
-    {
-        "name": "On-site coffee house",
-        "type": "property",
-        "category": "Food And Drink",
-        "icon": "on_site_coffee_house"
-    },
-    {
-        "name": "Restaurant",
-        "type": "property",
-        "category": "Food And Drink",
-        "icon": "restaurant"
-    },
-    {
-        "name": "Shared Kitchen",
-        "type": "property",
-        "category": "Food And Drink",
-        "icon": "shared_kitchen"
-    },
-    {
-        "name": "Snack bar",
-        "type": "property",
-        "category": "Food And Drink",
-        "icon": "snack_bar"
-    },
-    {
-        "name": "Wine/Champagne",
-        "type": "property",
-        "category": "Food And Drink",
-        "icon": "wine_champagne"
+        "icon": null
     },
     {
         "name": "Aerobics",
@@ -864,22 +780,10 @@
         "icon": "archery"
     },
     {
-        "name": "Badminton equipment",
+        "name": "Badminton",
         "type": "property",
         "category": "Activities",
         "icon": "badminton_equipment"
-    },
-    {
-        "name": "Beach",
-        "type": "property",
-        "category": "Activities",
-        "icon": "beach"
-    },
-    {
-        "name": "Bicycle rentals",
-        "type": "property",
-        "category": "Activities",
-        "icon": "bicycle_rentals"
     },
     {
         "name": "Bike tours",
@@ -888,7 +792,7 @@
         "icon": "bike_tours"
     },
     {
-        "name": "Billiard",
+        "name": "Billiards",
         "type": "property",
         "category": "Activities",
         "icon": "billiard"
@@ -898,6 +802,12 @@
         "type": "property",
         "category": "Activities",
         "icon": "bingo"
+    },
+    {
+        "name": "Board games and puzzles",
+        "type": "property",
+        "category": "Activities",
+        "icon": "board_games_puzzles"
     },
     {
         "name": "Bowling",
@@ -918,7 +828,13 @@
         "icon": "casino"
     },
     {
-        "name": "Cooking class",
+        "name": "Clubhouse",
+        "type": "property",
+        "category": "Activities",
+        "icon": "clubhouse"
+    },
+    {
+        "name": "Cooking classes",
         "type": "property",
         "category": "Activities",
         "icon": "cooking_class"
@@ -942,7 +858,13 @@
         "icon": "diving"
     },
     {
-        "name": "Evening Entertainment",
+        "name": "Entertainment staff",
+        "type": "property",
+        "category": "Activities",
+        "icon": "entertainment_staff"
+    },
+    {
+        "name": "Evening entertainment",
         "type": "property",
         "category": "Activities",
         "icon": "evening_entertainment"
@@ -954,10 +876,22 @@
         "icon": "fishing"
     },
     {
+        "name": "Fitness centre",
+        "type": "property",
+        "category": "Activities",
+        "icon": "fitness_center"
+    },
+    {
         "name": "Fitness classes",
         "type": "property",
         "category": "Activities",
         "icon": "fitness_classes"
+    },
+    {
+        "name": "Free bikes",
+        "type": "property",
+        "category": "Activities",
+        "icon": "bikes_available_free"
     },
     {
         "name": "Game room",
@@ -966,7 +900,7 @@
         "icon": "game_room"
     },
     {
-        "name": "Golf Course (within 2 miles)",
+        "name": "Golf course nearby",
         "type": "property",
         "category": "Activities",
         "icon": "golf_course_within_2_miles"
@@ -978,10 +912,16 @@
         "icon": "hiking"
     },
     {
-        "name": "Horseback riding",
+        "name": "Horse riding",
         "type": "property",
         "category": "Activities",
         "icon": "horseback_riding"
+    },
+    {
+        "name": "Indoor play area",
+        "type": "property",
+        "category": "Activities",
+        "icon": "indoor_play_area"
     },
     {
         "name": "Karaoke",
@@ -990,16 +930,28 @@
         "icon": "karaoke"
     },
     {
-        "name": "Live music/performance",
+        "name": "Kids' club",
+        "type": "property",
+        "category": "Activities",
+        "icon": "kids_club"
+    },
+    {
+        "name": "Live music",
         "type": "property",
         "category": "Activities",
         "icon": "live_music_performance"
     },
     {
-        "name": "Live sports events (broadcast)",
+        "name": "Live sports on TV",
         "type": "property",
         "category": "Activities",
         "icon": "live_sports_events_broadcast"
+    },
+    {
+        "name": "Local culture tours",
+        "type": "property",
+        "category": "Activities",
+        "icon": "tour_or_class_about_local_culture"
     },
     {
         "name": "Minigolf",
@@ -1014,115 +966,13 @@
         "icon": "movie_nights"
     },
     {
-        "name": "Visual aids: Tactile Signs",
-        "type": "property",
-        "category": "General",
-        "icon": "visual_aids_tactile_signs"
-    },
-    {
-        "name": "Accessible parking",
-        "type": "property",
-        "category": "Parking",
-        "icon": "accessible_parking"
-    },
-    {
-        "name": "Community BBQ/Grill",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "community_bbq_grill"
-    },
-    {
-        "name": "Fire Ring / Grill",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "fire_ring_grill"
-    },
-    {
-        "name": "Picnic area",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "picnic_area"
-    },
-    {
-        "name": "Picnic Table",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "picnic_table"
-    },
-    {
-        "name": "Room service",
-        "type": "property",
-        "category": "Services",
-        "icon": "room_service"
-    },
-    {
-        "name": "Happy hour",
-        "type": "property",
-        "category": "Food And Drink",
-        "icon": "happy_hour"
-    },
-    {
-        "name": "Indoor Swimming Pool (all year)",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "indoor_swimming_pool_all_year"
-    },
-    {
-        "name": "Indoor Swimming Pool (seasonal)",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "indoor_swimming_pool_seasonal"
-    },
-    {
-        "name": "Outdoor Swimming Pool (all year)",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "outdoor_swimming_pool_all_year"
-    },
-    {
-        "name": "Outdoor Swimming Pool (seasonal)",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "outdoor_swimming_pool_seasonal"
-    },
-    {
-        "name": "Pub crawls",
+        "name": "Nightclub or DJ",
         "type": "property",
         "category": "Activities",
-        "icon": "pub_crawls"
+        "icon": "nightclub_dj"
     },
     {
-        "name": "Ski equipment hire (on site)",
-        "type": "property",
-        "category": "Activities",
-        "icon": "ski_equipment_hire_on_site"
-    },
-    {
-        "name": "Skiing",
-        "type": "property",
-        "category": "Activities",
-        "icon": "skiing"
-    },
-    {
-        "name": "Ski pass vendor",
-        "type": "property",
-        "category": "Activities",
-        "icon": "ski_pass_vendor"
-    },
-    {
-        "name": "Ski school",
-        "type": "property",
-        "category": "Activities",
-        "icon": "ski_school"
-    },
-    {
-        "name": "Ski storage",
-        "type": "property",
-        "category": "Activities",
-        "icon": "ski_storage"
-    },
-    {
-        "name": "Snorkeling",
+        "name": "Snorkelling",
         "type": "property",
         "category": "Activities",
         "icon": "snorkeling"
@@ -1146,34 +996,16 @@
         "icon": "table_tennis"
     },
     {
-        "name": "Temporary art galleries",
-        "type": "property",
-        "category": "Activities",
-        "icon": "temporary_art_galleries"
-    },
-    {
         "name": "Tennis court",
         "type": "property",
         "category": "Activities",
         "icon": "tennis_court"
     },
     {
-        "name": "Tennis equipment",
-        "type": "property",
-        "category": "Activities",
-        "icon": "tennis_equipment"
-    },
-    {
         "name": "Themed dinner nights",
         "type": "property",
         "category": "Activities",
         "icon": "themed_dinner_nights"
-    },
-    {
-        "name": "Tour or class about local culture",
-        "type": "property",
-        "category": "Activities",
-        "icon": "tour_or_class_about_local_culture"
     },
     {
         "name": "Walking tours",
@@ -1188,10 +1020,16 @@
         "icon": "water_park"
     },
     {
-        "name": "Water Sport Facilities (on site)",
+        "name": "Water sports",
         "type": "property",
         "category": "Activities",
         "icon": "water_sport_facilities_on_site"
+    },
+    {
+        "name": "Watercraft rental",
+        "type": "property",
+        "category": "Activities",
+        "icon": null
     },
     {
         "name": "Windsurfing",
@@ -1206,490 +1044,262 @@
         "icon": "yoga_classes"
     },
     {
-        "name": "Airport shuttle (free)",
+        "name": "Bar",
         "type": "property",
-        "category": "Services",
-        "icon": "airport_shuttle_free"
+        "category": "Food and drink",
+        "icon": "bar"
     },
     {
-        "name": "Airport shuttle service (surcharge)",
+        "name": "Breakfast",
         "type": "property",
-        "category": "Services",
-        "icon": "airport_shuttle_service_surcharge"
+        "category": "Food and drink",
+        "icon": "breakfast"
     },
     {
-        "name": "Baby sitting",
+        "name": "Breakfast buffet",
         "type": "property",
-        "category": "Services",
-        "icon": "baby_sitting"
+        "category": "Food and drink",
+        "icon": null
     },
     {
-        "name": "Back massage",
+        "name": "Breakfast in the room",
         "type": "property",
-        "category": "Services",
-        "icon": "back_massage"
+        "category": "Food and drink",
+        "icon": "breakfast_in_the_room"
     },
     {
-        "name": "Baggage Storage",
+        "name": "Breakfast takeaway",
         "type": "property",
-        "category": "Services",
-        "icon": "baggage_storage"
+        "category": "Food and drink",
+        "icon": "breakfast_takeaway_containers"
     },
     {
-        "name": "Body scrub",
+        "name": "Coffee house on site",
         "type": "property",
-        "category": "Services",
-        "icon": "body_scrub"
+        "category": "Food and drink",
+        "icon": "on_site_coffee_house"
     },
     {
-        "name": "Body Treatments",
+        "name": "Dinner",
         "type": "property",
-        "category": "Services",
-        "icon": "body_treatments"
+        "category": "Food and drink",
+        "icon": "dinner"
     },
     {
-        "name": "Body wrap",
+        "name": "Drinking water",
         "type": "property",
-        "category": "Services",
-        "icon": "body_wrap"
+        "category": "Food and drink",
+        "icon": "drinking_water"
     },
     {
-        "name": "Car rental",
+        "name": "Free breakfast",
         "type": "property",
-        "category": "Services",
-        "icon": "car_rental"
+        "category": "Food and drink",
+        "icon": null
     },
     {
-        "name": "Concierge desk",
+        "name": "Halal food",
         "type": "property",
-        "category": "Services",
-        "icon": "concierge_desk"
+        "category": "Food and drink",
+        "icon": null
     },
     {
-        "name": "Couples massage",
+        "name": "Halal-certified restaurant",
         "type": "property",
-        "category": "Services",
-        "icon": "couples_massage"
+        "category": "Food and drink",
+        "icon": null
     },
     {
-        "name": "Currency exchange",
+        "name": "Happy hour",
         "type": "property",
-        "category": "Services",
-        "icon": "currency_exchange"
+        "category": "Food and drink",
+        "icon": "happy_hour"
     },
     {
-        "name": "Dry cleaning",
+        "name": "Kid-friendly buffet",
         "type": "property",
-        "category": "Services",
-        "icon": "dry_cleaning"
+        "category": "Food and drink",
+        "icon": "kid_friendly_buffet"
     },
     {
-        "name": "Events ticket service",
+        "name": "Kids' meals",
         "type": "property",
-        "category": "Services",
-        "icon": "events_ticket_service"
+        "category": "Food and drink",
+        "icon": "kid_meals"
     },
     {
-        "name": "Express Check-in/Check-out",
+        "name": "Lunch",
         "type": "property",
-        "category": "Services",
-        "icon": "express_check_in_check_out"
+        "category": "Food and drink",
+        "icon": "lunch"
     },
     {
-        "name": "Facial treatments",
+        "name": "No alcohol served",
         "type": "property",
-        "category": "Services",
-        "icon": "facial_treatments"
+        "category": "Food and drink",
+        "icon": null
     },
     {
-        "name": "Foot massage",
+        "name": "Packed lunches",
         "type": "property",
-        "category": "Services",
-        "icon": "foot_massage"
+        "category": "Food and drink",
+        "icon": "packed_lunches"
     },
     {
-        "name": "Full body massage",
+        "name": "Restaurant",
         "type": "property",
-        "category": "Services",
-        "icon": "full_body_massage"
+        "category": "Food and drink",
+        "icon": "restaurant"
     },
     {
-        "name": "Hair colouring",
+        "name": "Shared kitchen",
         "type": "property",
-        "category": "Services",
-        "icon": "hair_colouring"
+        "category": "Food and drink",
+        "icon": "shared_kitchen"
     },
     {
-        "name": "Hair cut",
+        "name": "Snack bar",
         "type": "property",
-        "category": "Services",
-        "icon": "hair_cut"
+        "category": "Food and drink",
+        "icon": "snack_bar"
     },
     {
-        "name": "Hair styling",
+        "name": "Special diet menus",
         "type": "property",
-        "category": "Services",
-        "icon": "hair_styling"
+        "category": "Food and drink",
+        "icon": "special_diet_menus_on_request"
     },
     {
-        "name": "Hair treatments",
+        "name": "Vending machine",
         "type": "property",
-        "category": "Services",
-        "icon": "hair_treatments"
+        "category": "Food and drink",
+        "icon": "vending_machine_drinks"
     },
     {
-        "name": "Hand massage",
+        "name": "24-hour security",
         "type": "property",
-        "category": "Services",
-        "icon": "hand_massage"
+        "category": "Safety and security",
+        "icon": "24_hour_security"
     },
     {
-        "name": "Head massage",
+        "name": "Carbon monoxide detector",
         "type": "property",
-        "category": "Services",
-        "icon": "head_massage"
+        "category": "Safety and security",
+        "icon": "carbon_monoxide_detector"
     },
     {
-        "name": "Private beach area",
+        "name": "CCTV in common areas",
         "type": "property",
-        "category": "Outdoors",
-        "icon": "private_beach_area"
+        "category": "Safety and security",
+        "icon": "cctv_in_common_areas"
     },
     {
-        "name": "Ski Shuttle",
+        "name": "CCTV outside property",
         "type": "property",
-        "category": "Services",
-        "icon": "ski_shuttle"
+        "category": "Safety and security",
+        "icon": "cctv_outside_property"
     },
     {
-        "name": "Bikes available (free)",
+        "name": "Fire extinguishers",
         "type": "property",
-        "category": "Activities",
-        "icon": "bikes_available_free"
+        "category": "Safety and security",
+        "icon": "fire_extinguishers"
     },
     {
-        "name": "Business center",
+        "name": "First aid kit",
         "type": "property",
-        "category": "General",
-        "icon": "business_center"
+        "category": "Safety and security",
+        "icon": "first_aid_kit_available"
     },
     {
-        "name": "Fitness Center",
+        "name": "Key access",
         "type": "property",
-        "category": "Activities",
-        "icon": "fitness_center"
+        "category": "Safety and security",
+        "icon": "key_access"
     },
     {
-        "name": "Grocery shopping service available",
+        "name": "Key card access",
         "type": "property",
-        "category": "Food And Drink",
-        "icon": "grocery_shopping_service_available"
+        "category": "Safety and security",
+        "icon": "key_card_access"
     },
     {
-        "name": "Ironing service",
+        "name": "Key card for room electricity",
         "type": "property",
-        "category": "Services",
-        "icon": "ironing_service"
+        "category": "Safety and security",
+        "icon": "keycard_for_room_electricity"
     },
     {
-        "name": "Laundry",
+        "name": "Lockers",
         "type": "property",
-        "category": "Services",
-        "icon": "laundry"
+        "category": "Safety and security",
+        "icon": "lockers"
     },
     {
-        "name": "Light therapy",
+        "name": "Safe",
         "type": "property",
-        "category": "Services",
-        "icon": "light_therapy"
+        "category": "Safety and security",
+        "icon": "safe"
     },
     {
-        "name": "Make up services",
+        "name": "Security alarm",
         "type": "property",
-        "category": "Services",
-        "icon": "make_up_services"
+        "category": "Safety and security",
+        "icon": "security_alarm"
     },
     {
-        "name": "Manicure",
+        "name": "Smoke alarms",
         "type": "property",
-        "category": "Services",
-        "icon": "manicure"
+        "category": "Safety and security",
+        "icon": "smoke_alarms"
     },
     {
-        "name": "Massage",
+        "name": "Accessible lift",
         "type": "property",
-        "category": "Services",
-        "icon": "massage"
+        "category": "Accessibility",
+        "icon": null
     },
     {
-        "name": "Meeting/Banquet Facilities",
+        "name": "Accessible parking",
         "type": "property",
-        "category": "Services",
-        "icon": "meeting_banquet_facilities"
+        "category": "Accessibility",
+        "icon": "accessible_parking"
     },
     {
-        "name": "Neck massage",
+        "name": "Accessible pool",
         "type": "property",
-        "category": "Services",
-        "icon": "neck_massage"
+        "category": "Accessibility",
+        "icon": null
     },
     {
-        "name": "Pedicure",
+        "name": "Auditory guidance",
         "type": "property",
-        "category": "Services",
-        "icon": "pedicure"
+        "category": "Accessibility",
+        "icon": "auditory_guidance"
     },
     {
-        "name": "Public transport tickets",
+        "name": "Braille signs",
         "type": "property",
-        "category": "Services",
-        "icon": "public_transport_tickets"
+        "category": "Accessibility",
+        "icon": "visual_aids_braille"
     },
     {
-        "name": "Shoeshine",
+        "name": "Rooms for guests with disabilities",
         "type": "property",
-        "category": "Services",
-        "icon": "shoeshine"
+        "category": "Accessibility",
+        "icon": "rooms_facilities_for_disabled"
     },
     {
-        "name": "Shuttle Service (free)",
+        "name": "Tactile signs",
         "type": "property",
-        "category": "Services",
-        "icon": "shuttle_service_free"
+        "category": "Accessibility",
+        "icon": "visual_aids_tactile_signs"
     },
     {
-        "name": "Shuttle Service (surcharge)",
+        "name": "Wheelchair accessible",
         "type": "property",
-        "category": "Services",
-        "icon": "shuttle_service_surcharge"
-    },
-    {
-        "name": "Tour Desk",
-        "type": "property",
-        "category": "Services",
-        "icon": "tour_desk"
-    },
-    {
-        "name": "Trash Service",
-        "type": "property",
-        "category": "Services",
-        "icon": "trash_service"
-    },
-    {
-        "name": "Trouser press",
-        "type": "property",
-        "category": "Services",
-        "icon": "trouser_press"
-    },
-    {
-        "name": "Waxing services",
-        "type": "property",
-        "category": "Services",
-        "icon": "waxing_services"
-    },
-    {
-        "name": "BBQ/Picnic area",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "bbq_picnic_area"
-    },
-    {
-        "name": "Garden",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "garden"
-    },
-    {
-        "name": "Infinity pool",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "infinity_pool"
-    },
-    {
-        "name": "Kids' outdoor play equipment",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "kids_outdoor_play_equipment"
-    },
-    {
-        "name": "Outdoor fireplace",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "outdoor_fireplace"
-    },
-    {
-        "name": "Outdoor furniture",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "outdoor_furniture"
-    },
-    {
-        "name": "Outdoor pool",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "outdoor_pool"
-    },
-    {
-        "name": "Playground",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "playground"
-    },
-    {
-        "name": "Plunge pool",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "plunge_pool"
-    },
-    {
-        "name": "Pool bar",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "pool_bar"
-    },
-    {
-        "name": "Pool with view",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "pool_with_view"
-    },
-    {
-        "name": "Rooftop pool",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "rooftop_pool"
-    },
-    {
-        "name": "Salt-water pool",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "salt_water_pool"
-    },
-    {
-        "name": "Shallow end pool",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "shallow_end_pool"
-    },
-    {
-        "name": "Sun terrace",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "sun_terrace"
-    },
-    {
-        "name": "Swimming pool",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "swimming_pool"
-    },
-    {
-        "name": "Terrace",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "terrace"
-    },
-    {
-        "name": "30 Amps",
-        "type": "room",
-        "category": "In Room",
-        "icon": "30_amps"
-    },
-    {
-        "name": "Nightclub/DJ",
-        "type": "property",
-        "category": "Activities",
-        "icon": "nightclub_dj"
-    },
-    {
-        "name": "Sauna",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "sauna"
-    },
-    {
-        "name": "Shops (on site)",
-        "type": "property",
-        "category": "General",
-        "icon": "shops_on_site"
-    },
-    {
-        "name": "Solarium",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "solarium"
-    },
-    {
-        "name": "Turkish/ Steam Bath",
-        "type": "property",
-        "category": "Outdoors",
-        "icon": "turkish_steam_bath"
-    },
-    {
-        "name": "Valet parking",
-        "type": "property",
-        "category": "Parking",
-        "icon": "valet_parking"
-    },
-    {
-        "name": "Property removed all, or never offered, plastic cups",
-        "type": "property",
-        "category": "Food And Drink",
-        "icon": "property_removed_all_or_never_offered_plastic_cups"
-    },
-    {
-        "name": "Property removed all, or never offered, plastic cutlery and tableware",
-        "type": "property",
-        "category": "Food And Drink",
-        "icon": "property_removed_all_or_never_offered_plastic_cutlery_and_tableware"
-    },
-    {
-        "name": "Bike parking",
-        "type": "property",
-        "category": "Parking",
-        "icon": "bike_parking"
-    },
-    {
-        "name": "Electric vehicle charging station",
-        "type": "property",
-        "category": "Parking",
-        "icon": "electric_vehicle_charging_station"
-    },
-    {
-        "name": "Bike rental",
-        "type": "property",
-        "category": "Services",
-        "icon": "bike_rental"
-    },
-    {
-        "name": "Opt-out from daily room cleaning",
-        "type": "property",
-        "category": "Services",
-        "icon": "opt_out_from_daily_room_cleaning"
-    },
-    {
-        "name": "Indoor parking",
-        "type": "property",
-        "category": "Parking",
-        "icon": "indoor_parking"
-    },
-    {
-        "name": "Pull-Thru RV Sites",
-        "type": "property",
-        "category": "Parking",
-        "icon": "pull_thru_rv_sites"
-    },
-    {
-        "name": "Secured parking",
-        "type": "property",
-        "category": "Parking",
-        "icon": "secured_parking"
-    },
-    {
-        "name": "Street parking",
-        "type": "property",
-        "category": "Parking",
-        "icon": "street_parking"
+        "category": "Accessibility",
+        "icon": "property_is_wheel_chair_accessible"
     },
     {
         "name": "Pet basket",
@@ -1704,22 +1314,394 @@
         "icon": "pet_bowls"
     },
     {
-        "name": "Pet Friendly",
+        "name": "Pet-friendly",
         "type": "property",
         "category": "Pets",
         "icon": "pet_friendly"
     },
     {
-        "name": "Pets Allowed",
+        "name": "Energy-efficient lighting",
         "type": "property",
-        "category": "Pets",
-        "icon": "pets_allowed"
+        "category": "Sustainability",
+        "icon": null
     },
     {
-        "name": "Accessible by Lift",
+        "name": "No single-use plastics",
+        "type": "property",
+        "category": "Sustainability",
+        "icon": "property_removed_all_or_never_offered_single_use_plastic_toiletries"
+    },
+    {
+        "name": "Refillable water stations",
+        "type": "property",
+        "category": "Sustainability",
+        "icon": "refillable_water_stations"
+    },
+    {
+        "name": "Waste reduction programme",
+        "type": "property",
+        "category": "Sustainability",
+        "icon": null
+    },
+    {
+        "name": "Water conservation programme",
+        "type": "property",
+        "category": "Sustainability",
+        "icon": null
+    },
+    {
+        "name": "Alarm clock",
         "type": "room",
-        "category": "General",
-        "icon": "accessible_by_lift"
+        "category": "In room",
+        "icon": "alarm_clock"
+    },
+    {
+        "name": "Allergy-free",
+        "type": "room",
+        "category": "In room",
+        "icon": "allergy_free"
+    },
+    {
+        "name": "Carpeted floor",
+        "type": "room",
+        "category": "In room",
+        "icon": "carpeted_floor"
+    },
+    {
+        "name": "Ceiling fan",
+        "type": "room",
+        "category": "In room",
+        "icon": null
+    },
+    {
+        "name": "Child safety socket covers",
+        "type": "room",
+        "category": "In room",
+        "icon": null
+    },
+    {
+        "name": "Clothes drying rack",
+        "type": "room",
+        "category": "In room",
+        "icon": "clothes_drying_rack"
+    },
+    {
+        "name": "Clothes rack",
+        "type": "room",
+        "category": "In room",
+        "icon": "clothes_rack"
+    },
+    {
+        "name": "Computer",
+        "type": "room",
+        "category": "In room",
+        "icon": "computer"
+    },
+    {
+        "name": "Desk",
+        "type": "room",
+        "category": "In room",
+        "icon": "desk"
+    },
+    {
+        "name": "Dressing room",
+        "type": "room",
+        "category": "In room",
+        "icon": "dressing_room"
+    },
+    {
+        "name": "Earplugs",
+        "type": "room",
+        "category": "In room",
+        "icon": "earplugs"
+    },
+    {
+        "name": "Electric blankets",
+        "type": "room",
+        "category": "In room",
+        "icon": "electric_blankets"
+    },
+    {
+        "name": "Extra-long beds",
+        "type": "room",
+        "category": "In room",
+        "icon": "extra_long_beds_2_meter"
+    },
+    {
+        "name": "Fan",
+        "type": "room",
+        "category": "In room",
+        "icon": "fan"
+    },
+    {
+        "name": "Feather pillow",
+        "type": "room",
+        "category": "In room",
+        "icon": "feather_pillow"
+    },
+    {
+        "name": "Flat-screen TV",
+        "type": "room",
+        "category": "In room",
+        "icon": "flat_screen_tv"
+    },
+    {
+        "name": "Game console",
+        "type": "room",
+        "category": "In room",
+        "icon": "game_console"
+    },
+    {
+        "name": "Hypoallergenic pillow",
+        "type": "room",
+        "category": "In room",
+        "icon": "hypoallergenic_pillow"
+    },
+    {
+        "name": "Interconnecting rooms",
+        "type": "room",
+        "category": "In room",
+        "icon": "interconnecting_room_s_available"
+    },
+    {
+        "name": "Iron",
+        "type": "room",
+        "category": "In room",
+        "icon": "clothing_iron"
+    },
+    {
+        "name": "Laptop",
+        "type": "room",
+        "category": "In room",
+        "icon": "laptop"
+    },
+    {
+        "name": "Linen",
+        "type": "room",
+        "category": "In room",
+        "icon": "linen"
+    },
+    {
+        "name": "Mobile room key",
+        "type": "room",
+        "category": "In room",
+        "icon": null
+    },
+    {
+        "name": "Mosquito net",
+        "type": "room",
+        "category": "In room",
+        "icon": "mosquito_net"
+    },
+    {
+        "name": "Non-feather pillow",
+        "type": "room",
+        "category": "In room",
+        "icon": "non_feather_pillow"
+    },
+    {
+        "name": "Pajamas",
+        "type": "room",
+        "category": "In room",
+        "icon": "pajamas"
+    },
+    {
+        "name": "Pay-per-view channels",
+        "type": "room",
+        "category": "In room",
+        "icon": "pay_per_view_channels"
+    },
+    {
+        "name": "Pillow menu",
+        "type": "room",
+        "category": "In room",
+        "icon": null
+    },
+    {
+        "name": "Prayer mat",
+        "type": "room",
+        "category": "In room",
+        "icon": null
+    },
+    {
+        "name": "Private curtain",
+        "type": "room",
+        "category": "In room",
+        "icon": "private_curtain"
+    },
+    {
+        "name": "Qibla direction",
+        "type": "room",
+        "category": "In room",
+        "icon": null
+    },
+    {
+        "name": "Quran",
+        "type": "room",
+        "category": "In room",
+        "icon": null
+    },
+    {
+        "name": "Radio",
+        "type": "room",
+        "category": "In room",
+        "icon": "radio"
+    },
+    {
+        "name": "Reading light",
+        "type": "room",
+        "category": "In room",
+        "icon": "reading_light"
+    },
+    {
+        "name": "Rollaway bed",
+        "type": "room",
+        "category": "In room",
+        "icon": "rollaway_bed"
+    },
+    {
+        "name": "Satellite channels",
+        "type": "room",
+        "category": "In room",
+        "icon": "satellite_channels"
+    },
+    {
+        "name": "Seating area",
+        "type": "room",
+        "category": "In room",
+        "icon": "seating_area"
+    },
+    {
+        "name": "Slippers",
+        "type": "room",
+        "category": "In room",
+        "icon": "slippers"
+    },
+    {
+        "name": "Smart lighting",
+        "type": "room",
+        "category": "In room",
+        "icon": null
+    },
+    {
+        "name": "Smart lock",
+        "type": "room",
+        "category": "In room",
+        "icon": null
+    },
+    {
+        "name": "Smart thermostat",
+        "type": "room",
+        "category": "In room",
+        "icon": null
+    },
+    {
+        "name": "Smart TV",
+        "type": "room",
+        "category": "In room",
+        "icon": null
+    },
+    {
+        "name": "Smartphone",
+        "type": "room",
+        "category": "In room",
+        "icon": "smartphone"
+    },
+    {
+        "name": "Socket near the bed",
+        "type": "room",
+        "category": "In room",
+        "icon": "socket_near_the_bed"
+    },
+    {
+        "name": "Sofa",
+        "type": "room",
+        "category": "In room",
+        "icon": "sofa"
+    },
+    {
+        "name": "Sofa bed",
+        "type": "room",
+        "category": "In room",
+        "icon": "sofa_bed"
+    },
+    {
+        "name": "Soundproofing",
+        "type": "room",
+        "category": "In room",
+        "icon": "soundproofing"
+    },
+    {
+        "name": "Streaming service",
+        "type": "room",
+        "category": "In room",
+        "icon": "streaming_service_such_as_netflix"
+    },
+    {
+        "name": "Tablet",
+        "type": "room",
+        "category": "In room",
+        "icon": "ipad"
+    },
+    {
+        "name": "Telephone",
+        "type": "room",
+        "category": "In room",
+        "icon": "telephone"
+    },
+    {
+        "name": "Telephone for hearing impaired",
+        "type": "room",
+        "category": "In room",
+        "icon": null
+    },
+    {
+        "name": "Tiled or marble floor",
+        "type": "room",
+        "category": "In room",
+        "icon": "tiled_marble_floor"
+    },
+    {
+        "name": "Tumble dryer",
+        "type": "room",
+        "category": "In room",
+        "icon": "tumble_dryer_machine"
+    },
+    {
+        "name": "TV",
+        "type": "room",
+        "category": "In room",
+        "icon": "tv"
+    },
+    {
+        "name": "USB charging ports",
+        "type": "room",
+        "category": "In room",
+        "icon": null
+    },
+    {
+        "name": "Voice assistant",
+        "type": "room",
+        "category": "In room",
+        "icon": null
+    },
+    {
+        "name": "Wardrobe",
+        "type": "room",
+        "category": "In room",
+        "icon": "wardrobe_closet"
+    },
+    {
+        "name": "Washing machine",
+        "type": "room",
+        "category": "In room",
+        "icon": "washing_machine"
+    },
+    {
+        "name": "Wooden floor",
+        "type": "room",
+        "category": "In room",
+        "icon": "wooden_parquet_floor"
     },
     {
         "name": "Adapter",
@@ -1728,16 +1710,16 @@
         "icon": "adapter"
     },
     {
-        "name": "Air purifiers available",
-        "type": "room",
-        "category": "General",
-        "icon": "air_purifiers_available"
-    },
-    {
-        "name": "Airconditioning",
+        "name": "Air conditioning",
         "type": "room",
         "category": "General",
         "icon": "airconditioning"
+    },
+    {
+        "name": "Air purifier",
+        "type": "room",
+        "category": "General",
+        "icon": "air_purifiers_available"
     },
     {
         "name": "Baby safety gates",
@@ -1746,28 +1728,16 @@
         "icon": "baby_safety_gates"
     },
     {
-        "name": "Board games/puzzles",
+        "name": "Board games and puzzles",
         "type": "room",
         "category": "General",
         "icon": "board_games_puzzles"
     },
     {
-        "name": "Book/DVD/Music library for children",
+        "name": "Children's books and music",
         "type": "room",
         "category": "General",
         "icon": "book_dvd_music_library_for_children"
-    },
-    {
-        "name": "Children crib/cots",
-        "type": "room",
-        "category": "General",
-        "icon": "children_crib_cots"
-    },
-    {
-        "name": "Children highchair",
-        "type": "room",
-        "category": "General",
-        "icon": "children_highchair"
     },
     {
         "name": "Cleaning products",
@@ -1776,16 +1746,16 @@
         "icon": "cleaning_products"
     },
     {
+        "name": "Cot",
+        "type": "room",
+        "category": "General",
+        "icon": "children_crib_cots"
+    },
+    {
         "name": "Detached",
         "type": "room",
         "category": "General",
         "icon": "detached"
-    },
-    {
-        "name": "Electronic key card access",
-        "type": "room",
-        "category": "General",
-        "icon": "electronic_key_card_access"
     },
     {
         "name": "Entire property on ground floor",
@@ -1794,28 +1764,10 @@
         "icon": "entire_property_on_ground_floor"
     },
     {
-        "name": "Entire unit wheelchair accessible",
-        "type": "room",
-        "category": "General",
-        "icon": "entire_unit_wheelchair_accessible"
-    },
-    {
-        "name": "Executive Lounge Access",
+        "name": "Executive lounge access",
         "type": "room",
         "category": "General",
         "icon": "executive_lounge_access"
-    },
-    {
-        "name": "Fax",
-        "type": "room",
-        "category": "General",
-        "icon": "fax"
-    },
-    {
-        "name": "Hand sanitiser",
-        "type": "room",
-        "category": "General",
-        "icon": "hand_sanitiser"
     },
     {
         "name": "Heating",
@@ -1824,25 +1776,31 @@
         "icon": "heating"
     },
     {
-        "name": "Internet facilities",
+        "name": "High chair",
         "type": "room",
         "category": "General",
-        "icon": "internet_facilities"
+        "icon": "children_highchair"
     },
     {
-        "name": "Metal keys access",
+        "name": "Key card access",
+        "type": "room",
+        "category": "General",
+        "icon": "electronic_key_card_access"
+    },
+    {
+        "name": "Metal key access",
         "type": "room",
         "category": "General",
         "icon": "metal_keys_access"
     },
     {
-        "name": "Portable Wifi",
+        "name": "Portable Wi-Fi",
         "type": "room",
         "category": "General",
         "icon": "portable_wifi"
     },
     {
-        "name": "Private Entrance",
+        "name": "Private entrance",
         "type": "room",
         "category": "General",
         "icon": "private_entrance"
@@ -1854,7 +1812,7 @@
         "icon": "private_flat_in_block_of_flats"
     },
     {
-        "name": "Sauna",
+        "name": "Private sauna",
         "type": "room",
         "category": "General",
         "icon": "sauna"
@@ -1866,448 +1824,34 @@
         "icon": "semi_detached"
     },
     {
-        "name": "Single-room air conditioning for guest accommodation",
-        "type": "room",
-        "category": "General",
-        "icon": "single_room_air_conditioning_for_guest_accommodation"
-    },
-    {
-        "name": "Upper floor reachable by lift",
+        "name": "Upper floor by lift",
         "type": "room",
         "category": "General",
         "icon": "upper_floor_reachable_by_lift"
     },
     {
-        "name": "Upper floor reachable by stairs only",
+        "name": "Upper floor by stairs only",
         "type": "room",
         "category": "General",
         "icon": "upper_floor_reachable_by_stairs_only"
     },
     {
-        "name": "Wake Up Service",
+        "name": "Wake-up service",
         "type": "room",
         "category": "General",
         "icon": "wake_up_service"
     },
     {
-        "name": "Wake Up Service/Alarm-clock",
+        "name": "Wheelchair accessible",
         "type": "room",
         "category": "General",
-        "icon": "wake_up_service_alarm_clock"
+        "icon": "entire_unit_wheelchair_accessible"
     },
     {
-        "name": "Wireless internet",
+        "name": "Wi-Fi",
         "type": "room",
         "category": "General",
         "icon": "wireless_internet"
-    },
-    {
-        "name": "100 Amps",
-        "type": "room",
-        "category": "In Room",
-        "icon": "100_amps"
-    },
-    {
-        "name": "Property removed all, or never offered, plastic straws",
-        "type": "property",
-        "category": "Food And Drink",
-        "icon": "property_removed_all_or_never_offered_plastic_straws"
-    },
-    {
-        "name": "Property removed all, or never offered, plastic water bottles",
-        "type": "property",
-        "category": "Food And Drink",
-        "icon": "property_removed_all_or_never_offered_plastic_water_bottles"
-    },
-    {
-        "name": "Property removed all, or never offered, single-use plastic toiletries",
-        "type": "property",
-        "category": "Food And Drink",
-        "icon": "property_removed_all_or_never_offered_single_use_plastic_toiletries"
-    },
-    {
-        "name": "Refillable water stations",
-        "type": "property",
-        "category": "Food And Drink",
-        "icon": "refillable_water_stations"
-    },
-    {
-        "name": "Towels Changed Upon Request",
-        "type": "property",
-        "category": "Services",
-        "icon": "towels_changed_upon_request"
-    },
-    {
-        "name": "50 Amps",
-        "type": "room",
-        "category": "In Room",
-        "icon": "50_amps"
-    },
-    {
-        "name": "Alarm Clock",
-        "type": "room",
-        "category": "In Room",
-        "icon": "alarm_clock"
-    },
-    {
-        "name": "Allergy-Free",
-        "type": "room",
-        "category": "In Room",
-        "icon": "allergy_free"
-    },
-    {
-        "name": "Blu-ray player",
-        "type": "room",
-        "category": "In Room",
-        "icon": "blu_ray_player"
-    },
-    {
-        "name": "Cable channels",
-        "type": "room",
-        "category": "In Room",
-        "icon": "cable_channels"
-    },
-    {
-        "name": "Carpeted Floor",
-        "type": "room",
-        "category": "In Room",
-        "icon": "carpeted_floor"
-    },
-    {
-        "name": "CD-Player",
-        "type": "room",
-        "category": "In Room",
-        "icon": "cd_player"
-    },
-    {
-        "name": "Clothes drying rack",
-        "type": "room",
-        "category": "In Room",
-        "icon": "clothes_drying_rack"
-    },
-    {
-        "name": "Clothes Rack",
-        "type": "room",
-        "category": "In Room",
-        "icon": "clothes_rack"
-    },
-    {
-        "name": "Clothing Iron",
-        "type": "room",
-        "category": "In Room",
-        "icon": "clothing_iron"
-    },
-    {
-        "name": "Computer",
-        "type": "room",
-        "category": "In Room",
-        "icon": "computer"
-    },
-    {
-        "name": "Desk",
-        "type": "room",
-        "category": "In Room",
-        "icon": "desk"
-    },
-    {
-        "name": "Dressing room",
-        "type": "room",
-        "category": "In Room",
-        "icon": "dressing_room"
-    },
-    {
-        "name": "DVD-Player",
-        "type": "room",
-        "category": "In Room",
-        "icon": "dvd_player"
-    },
-    {
-        "name": "Earplugs",
-        "type": "room",
-        "category": "In Room",
-        "icon": "earplugs"
-    },
-    {
-        "name": "Electric blankets",
-        "type": "room",
-        "category": "In Room",
-        "icon": "electric_blankets"
-    },
-    {
-        "name": "Extra long beds (> 2 meter)",
-        "type": "room",
-        "category": "In Room",
-        "icon": "extra_long_beds_2_meter"
-    },
-    {
-        "name": "Fan",
-        "type": "room",
-        "category": "In Room",
-        "icon": "fan"
-    },
-    {
-        "name": "Feather pillow",
-        "type": "room",
-        "category": "In Room",
-        "icon": "feather_pillow"
-    },
-    {
-        "name": "Fireplace",
-        "type": "room",
-        "category": "In Room",
-        "icon": "fireplace"
-    },
-    {
-        "name": "Flat-screen TV",
-        "type": "room",
-        "category": "In Room",
-        "icon": "flat_screen_tv"
-    },
-    {
-        "name": "Game Console",
-        "type": "room",
-        "category": "In Room",
-        "icon": "game_console"
-    },
-    {
-        "name": "Game Console - Nintendo Wii",
-        "type": "room",
-        "category": "In Room",
-        "icon": "game_console_nintendo_wii"
-    },
-    {
-        "name": "Game Console - PS2",
-        "type": "room",
-        "category": "In Room",
-        "icon": "game_console_ps2"
-    },
-    {
-        "name": "Game Console - PS3",
-        "type": "room",
-        "category": "In Room",
-        "icon": "game_console_ps3"
-    },
-    {
-        "name": "Game console - PS4",
-        "type": "room",
-        "category": "In Room",
-        "icon": "game_console_ps4"
-    },
-    {
-        "name": "Game console - Wii U",
-        "type": "room",
-        "category": "In Room",
-        "icon": "game_console_wii_u"
-    },
-    {
-        "name": "Game Console - Xbox 360",
-        "type": "room",
-        "category": "In Room",
-        "icon": "game_console_xbox_360"
-    },
-    {
-        "name": "Game console - Xbox One",
-        "type": "room",
-        "category": "In Room",
-        "icon": "game_console_xbox_one"
-    },
-    {
-        "name": "Hypoallergenic pillow",
-        "type": "room",
-        "category": "In Room",
-        "icon": "hypoallergenic_pillow"
-    },
-    {
-        "name": "Interconnecting Room(s) available",
-        "type": "room",
-        "category": "In Room",
-        "icon": "interconnecting_room_s_available"
-    },
-    {
-        "name": "iPad",
-        "type": "room",
-        "category": "In Room",
-        "icon": "ipad"
-    },
-    {
-        "name": "iPod Docking Station",
-        "type": "room",
-        "category": "In Room",
-        "icon": "ipod_docking_station"
-    },
-    {
-        "name": "Ironing facilities",
-        "type": "room",
-        "category": "In Room",
-        "icon": "ironing_facilities"
-    },
-    {
-        "name": "Laptop",
-        "type": "room",
-        "category": "In Room",
-        "icon": "laptop"
-    },
-    {
-        "name": "Linen",
-        "type": "room",
-        "category": "In Room",
-        "icon": "linen"
-    },
-    {
-        "name": "Mosquito Net",
-        "type": "room",
-        "category": "In Room",
-        "icon": "mosquito_net"
-    },
-    {
-        "name": "Non-feather pillow",
-        "type": "room",
-        "category": "In Room",
-        "icon": "non_feather_pillow"
-    },
-    {
-        "name": "Pajamas",
-        "type": "room",
-        "category": "In Room",
-        "icon": "pajamas"
-    },
-    {
-        "name": "Pay-per-view Channels",
-        "type": "room",
-        "category": "In Room",
-        "icon": "pay_per_view_channels"
-    },
-    {
-        "name": "Private curtain",
-        "type": "room",
-        "category": "In Room",
-        "icon": "private_curtain"
-    },
-    {
-        "name": "Radio",
-        "type": "room",
-        "category": "In Room",
-        "icon": "radio"
-    },
-    {
-        "name": "Reading light",
-        "type": "room",
-        "category": "In Room",
-        "icon": "reading_light"
-    },
-    {
-        "name": "Rollaway bed",
-        "type": "room",
-        "category": "In Room",
-        "icon": "rollaway_bed"
-    },
-    {
-        "name": "Satellite Channels",
-        "type": "room",
-        "category": "In Room",
-        "icon": "satellite_channels"
-    },
-    {
-        "name": "Seating area",
-        "type": "room",
-        "category": "In Room",
-        "icon": "seating_area"
-    },
-    {
-        "name": "Slippers",
-        "type": "room",
-        "category": "In Room",
-        "icon": "slippers"
-    },
-    {
-        "name": "Smartphone",
-        "type": "room",
-        "category": "In Room",
-        "icon": "smartphone"
-    },
-    {
-        "name": "Socket near the bed",
-        "type": "room",
-        "category": "In Room",
-        "icon": "socket_near_the_bed"
-    },
-    {
-        "name": "Sofa",
-        "type": "room",
-        "category": "In Room",
-        "icon": "sofa"
-    },
-    {
-        "name": "Sofa bed",
-        "type": "room",
-        "category": "In Room",
-        "icon": "sofa_bed"
-    },
-    {
-        "name": "Soundproofing",
-        "type": "room",
-        "category": "In Room",
-        "icon": "soundproofing"
-    },
-    {
-        "name": "Streaming service (such as Netflix)",
-        "type": "room",
-        "category": "In Room",
-        "icon": "streaming_service_such_as_netflix"
-    },
-    {
-        "name": "Telephone",
-        "type": "room",
-        "category": "In Room",
-        "icon": "telephone"
-    },
-    {
-        "name": "Tiled / Marble floor",
-        "type": "room",
-        "category": "In Room",
-        "icon": "tiled_marble_floor"
-    },
-    {
-        "name": "Trouser Press",
-        "type": "room",
-        "category": "In Room",
-        "icon": "trouser_press"
-    },
-    {
-        "name": "TV",
-        "type": "room",
-        "category": "In Room",
-        "icon": "tv"
-    },
-    {
-        "name": "Video",
-        "type": "room",
-        "category": "In Room",
-        "icon": "video"
-    },
-    {
-        "name": "Video Games",
-        "type": "room",
-        "category": "In Room",
-        "icon": "video_games"
-    },
-    {
-        "name": "Wardrobe/Closet",
-        "type": "room",
-        "category": "In Room",
-        "icon": "wardrobe_closet"
-    },
-    {
-        "name": "Wooden / Parquet floor",
-        "type": "room",
-        "category": "In Room",
-        "icon": "wooden_parquet_floor"
-    },
-    {
-        "name": "Yukata",
-        "type": "room",
-        "category": "In Room",
-        "icon": "yukata"
     },
     {
         "name": "Adapted bath",
@@ -2316,13 +1860,13 @@
         "icon": "adapted_bath"
     },
     {
-        "name": "Additional Bathroom",
+        "name": "Additional bathroom",
         "type": "room",
         "category": "Bathroom",
         "icon": "additional_bathroom"
     },
     {
-        "name": "Additional Toilet",
+        "name": "Additional toilet",
         "type": "room",
         "category": "Bathroom",
         "icon": "additional_toilet"
@@ -2334,22 +1878,16 @@
         "icon": "bath"
     },
     {
-        "name": "Bath or Shower",
+        "name": "Bath or shower",
         "type": "room",
         "category": "Bathroom",
         "icon": "bath_or_shower"
     },
     {
-        "name": "Bath-robe",
+        "name": "Bathrobe",
         "type": "room",
         "category": "Bathroom",
         "icon": "bath_robe"
-    },
-    {
-        "name": "Bathroom emergency pull cord",
-        "type": "room",
-        "category": "Bathroom",
-        "icon": "bathroom_emergency_pull_cord"
     },
     {
         "name": "Bidet",
@@ -2370,7 +1908,13 @@
         "icon": "conditioner"
     },
     {
-        "name": "Free Toiletries",
+        "name": "Emergency pull cord",
+        "type": "room",
+        "category": "Bathroom",
+        "icon": "bathroom_emergency_pull_cord"
+    },
+    {
+        "name": "Free toiletries",
         "type": "room",
         "category": "Bathroom",
         "icon": "free_toiletries"
@@ -2382,7 +1926,7 @@
         "icon": "guest_toilet"
     },
     {
-        "name": "Hair Dryer",
+        "name": "Hair dryer",
         "type": "room",
         "category": "Bathroom",
         "icon": "hair_dryer"
@@ -2394,7 +1938,7 @@
         "icon": "higher_level_toilet"
     },
     {
-        "name": "Hot Tub",
+        "name": "Hot tub",
         "type": "room",
         "category": "Bathroom",
         "icon": "hot_tub"
@@ -2406,22 +1950,46 @@
         "icon": "low_bathroom_sink"
     },
     {
-        "name": "Roll in shower",
+        "name": "Private bathroom",
+        "type": "room",
+        "category": "Bathroom",
+        "icon": null
+    },
+    {
+        "name": "Rainfall shower",
+        "type": "room",
+        "category": "Bathroom",
+        "icon": null
+    },
+    {
+        "name": "Refillable toiletry dispensers",
+        "type": "room",
+        "category": "Bathroom",
+        "icon": null
+    },
+    {
+        "name": "Roll-in shower",
         "type": "room",
         "category": "Bathroom",
         "icon": "roll_in_shower"
     },
     {
-        "name": "Shared Bathroom",
+        "name": "Separate toilet area",
         "type": "room",
         "category": "Bathroom",
-        "icon": "shared_bathroom"
+        "icon": null
     },
     {
         "name": "Shampoo",
         "type": "room",
         "category": "Bathroom",
         "icon": "shampoo"
+    },
+    {
+        "name": "Shared bathroom",
+        "type": "room",
+        "category": "Bathroom",
+        "icon": "shared_bathroom"
     },
     {
         "name": "Shower",
@@ -2442,7 +2010,7 @@
         "icon": "shower_chair"
     },
     {
-        "name": "Spa Bath",
+        "name": "Spa bath",
         "type": "room",
         "category": "Bathroom",
         "icon": "spa_bath"
@@ -2478,16 +2046,22 @@
         "icon": "towels"
     },
     {
-        "name": "Towels/Linens at surcharge",
+        "name": "Towels at a charge",
         "type": "room",
         "category": "Bathroom",
         "icon": "towels_linens_at_surcharge"
     },
     {
-        "name": "Walk in shower",
+        "name": "Walk-in shower",
         "type": "room",
         "category": "Bathroom",
         "icon": "walk_in_shower"
+    },
+    {
+        "name": "Water hose",
+        "type": "room",
+        "category": "Bathroom",
+        "icon": null
     },
     {
         "name": "Balcony",
@@ -2500,18 +2074,6 @@
         "type": "room",
         "category": "Outside",
         "icon": "barbecue"
-    },
-    {
-        "name": "Big Rig Friendly",
-        "type": "room",
-        "category": "Outside",
-        "icon": "big_rig_friendly"
-    },
-    {
-        "name": "Dump Station",
-        "type": "room",
-        "category": "Outside",
-        "icon": "dump_station"
     },
     {
         "name": "Heated pool",
@@ -2550,36 +2112,6 @@
         "icon": "plunge_pool"
     },
     {
-        "name": "Fire extinguishers",
-        "type": "room",
-        "category": "Security",
-        "icon": "fire_extinguishers"
-    },
-    {
-        "name": "Laptop Safe Box",
-        "type": "room",
-        "category": "Security",
-        "icon": "laptop_safe_box"
-    },
-    {
-        "name": "Lockers",
-        "type": "room",
-        "category": "Security",
-        "icon": "lockers"
-    },
-    {
-        "name": "Safe Deposit Box",
-        "type": "room",
-        "category": "Security",
-        "icon": "safe_deposit_box"
-    },
-    {
-        "name": "Carbon monoxide source",
-        "type": "room",
-        "category": "Security",
-        "icon": "carbon_monoxide_source"
-    },
-    {
         "name": "Pool cover",
         "type": "room",
         "category": "Outside",
@@ -2598,7 +2130,7 @@
         "icon": "pool_with_view"
     },
     {
-        "name": "Private Pool",
+        "name": "Private pool",
         "type": "room",
         "category": "Outside",
         "icon": "private_pool"
@@ -2610,28 +2142,22 @@
         "icon": "rooftop_pool"
     },
     {
+        "name": "Rubbish bins",
+        "type": "room",
+        "category": "Outside",
+        "icon": "trash_cans"
+    },
+    {
         "name": "Salt-water pool",
         "type": "room",
         "category": "Outside",
         "icon": "salt_water_pool"
     },
     {
-        "name": "Sewer Hookups",
-        "type": "room",
-        "category": "Outside",
-        "icon": "sewer_hookups"
-    },
-    {
-        "name": "Shallow end",
+        "name": "Shallow end pool",
         "type": "room",
         "category": "Outside",
         "icon": "shallow_end"
-    },
-    {
-        "name": "Slide Outs",
-        "type": "room",
-        "category": "Outside",
-        "icon": "slide_outs"
     },
     {
         "name": "Terrace",
@@ -2640,28 +2166,40 @@
         "icon": "terrace"
     },
     {
-        "name": "Trash cans",
+        "name": "Carbon monoxide detector",
         "type": "room",
-        "category": "Outside",
-        "icon": "trash_cans"
+        "category": "Security",
+        "icon": "carbon_monoxide_detector"
     },
     {
-        "name": "Tumble dryer (machine)",
+        "name": "Fire extinguishers",
         "type": "room",
-        "category": "Outside",
-        "icon": "tumble_dryer_machine"
+        "category": "Security",
+        "icon": "fire_extinguishers"
     },
     {
-        "name": "Washing machine",
+        "name": "Laptop safe",
         "type": "room",
-        "category": "Outside",
-        "icon": "washing_machine"
+        "category": "Security",
+        "icon": "laptop_safe_box"
     },
     {
-        "name": "Water Hookups",
+        "name": "Lockers",
         "type": "room",
-        "category": "Outside",
-        "icon": "water_hookups"
+        "category": "Security",
+        "icon": "lockers"
+    },
+    {
+        "name": "Safe deposit box",
+        "type": "room",
+        "category": "Security",
+        "icon": "safe_deposit_box"
+    },
+    {
+        "name": "Smoke detectors",
+        "type": "room",
+        "category": "Security",
+        "icon": "fire_alarms_or_smoke_detectors"
     },
     {
         "name": "Bottle of water",
@@ -2670,25 +2208,25 @@
         "icon": "bottle_of_water"
     },
     {
-        "name": "Chocolate/cookies",
+        "name": "Chocolate or cookies",
         "type": "room",
         "category": "Kitchen",
         "icon": "chocolate_cookies"
     },
     {
-        "name": "Coffee Machine",
+        "name": "Coffee machine",
         "type": "room",
         "category": "Kitchen",
         "icon": "coffee_machine"
     },
     {
-        "name": "Coffee/Tea maker",
+        "name": "Coffee or tea maker",
         "type": "room",
         "category": "Kitchen",
         "icon": "coffee_tea_maker"
     },
     {
-        "name": "Dining Area",
+        "name": "Dining area",
         "type": "room",
         "category": "Kitchen",
         "icon": "dining_area"
@@ -2706,7 +2244,7 @@
         "icon": "dishwasher"
     },
     {
-        "name": "Electric Kettle",
+        "name": "Electric kettle",
         "type": "room",
         "category": "Kitchen",
         "icon": "electric_kettle"
@@ -2716,6 +2254,12 @@
         "type": "room",
         "category": "Kitchen",
         "icon": "fruits"
+    },
+    {
+        "name": "Full kitchen",
+        "type": "room",
+        "category": "Kitchen",
+        "icon": null
     },
     {
         "name": "Kitchenette",
@@ -2766,25 +2310,31 @@
         "icon": "toaster"
     },
     {
+        "name": "Water filter",
+        "type": "room",
+        "category": "Kitchen",
+        "icon": null
+    },
+    {
         "name": "Wine glasses",
         "type": "room",
         "category": "Kitchen",
         "icon": "wine_glasses"
     },
     {
-        "name": "Wine/champagne",
+        "name": "Wine or champagne",
         "type": "room",
         "category": "Kitchen",
         "icon": "wine_champagne"
     },
     {
-        "name": "City View",
+        "name": "City view",
         "type": "room",
         "category": "View",
         "icon": "city_view"
     },
     {
-        "name": "Garden View",
+        "name": "Garden view",
         "type": "room",
         "category": "View",
         "icon": "garden_view"
@@ -2796,25 +2346,25 @@
         "icon": "inner_courtyard_view"
     },
     {
-        "name": "Lake View",
+        "name": "Lake view",
         "type": "room",
         "category": "View",
         "icon": "lake_view"
     },
     {
-        "name": "Landmark View",
+        "name": "Landmark view",
         "type": "room",
         "category": "View",
         "icon": "landmark_view"
     },
     {
-        "name": "Mountain View",
+        "name": "Mountain view",
         "type": "room",
         "category": "View",
         "icon": "mountain_view"
     },
     {
-        "name": "Pool View",
+        "name": "Pool view",
         "type": "room",
         "category": "View",
         "icon": "pool_view"
@@ -2826,99 +2376,15 @@
         "icon": "quiet_street_view"
     },
     {
-        "name": "River View",
+        "name": "River view",
         "type": "room",
         "category": "View",
         "icon": "river_view"
     },
     {
-        "name": "Sea View",
+        "name": "Sea view",
         "type": "room",
         "category": "View",
         "icon": "sea_view"
-    },
-    {
-        "name": "Airport Shuttle (surcharge)",
-        "type": "property",
-        "category": "Services",
-        "icon": "airport_shuttle_surcharge"
-    },
-    {
-        "name": "Fitness/spa locker rooms",
-        "type": "property",
-        "category": "Services",
-        "icon": "fitness_spa_locker_rooms"
-    },
-    {
-        "name": "Library",
-        "type": "property",
-        "category": "Services",
-        "icon": "library"
-    },
-    {
-        "name": "Private Check-in/Check-out",
-        "type": "property",
-        "category": "Services",
-        "icon": "private_check_in_check_out"
-    },
-    {
-        "name": "All plates, cutlery, glasses and other tableware have been sanitised",
-        "type": "property",
-        "category": "Food And Drink",
-        "icon": "all_plates_cutlery_glasses_and_other_tableware_have_been_sanitised"
-    },
-    {
-        "name": "Cashless payment available",
-        "type": "property",
-        "category": "Services",
-        "icon": "cashless_payment_available"
-    },
-    {
-        "name": "Guest accommodation is disinfected between stays",
-        "type": "property",
-        "category": "Services",
-        "icon": "guest_accommodation_is_disinfected_between_stays"
-    },
-    {
-        "name": "Keycard for room electricity",
-        "type": "property",
-        "category": "Safety And Security",
-        "icon": "keycard_for_room_electricity"
-    },
-    {
-        "name": "Visual aids: Braille",
-        "type": "property",
-        "category": "General",
-        "icon": "visual_aids_braille"
-    },
-    {
-        "name": "Personal trainer",
-        "type": "property",
-        "category": "Services",
-        "icon": "personal_trainer"
-    },
-    {
-        "name": "Carbon monoxide detector",
-        "type": "room",
-        "category": "Security",
-        "icon": "carbon_monoxide_detector"
-    },
-    {
-        "name": "Fire alarms or smoke detectors",
-        "type": "room",
-        "category": "Security",
-        "icon": "fire_alarms_or_smoke_detectors"
-    },
-    {
-        "name": "Property removed all, or never offered, plastic bottles for non-water drinks",
-        "type": "property",
-        "category": "Food And Drink",
-        "icon": "property_removed_all_or_never_offered_plastic_bottles_for_non_water_drinks"
-    },
-    {
-        "name": "Property removed all, or never offered, plastic stirrers",
-        "type": "property",
-        "category": "Food And Drink",
-        "icon": "property_removed_all_or_never_offered_plastic_stirrers"
     }
 ]

@@ -26,18 +26,16 @@ type Amenity = App.Data.BookingEngine.AmenityData;
 
 /**
  * Adds an amenity when none is passed, and edits the name and category of the given one otherwise.
- * The type is set when an amenity is added and never changes, because properties already link to it.
+ * The categories are those of one type, so the type follows the open tab and never changes.
  */
 export function AmenityDialog({
     amenity,
-    typeOptions,
     categories,
     open,
     onOpenChange,
 }: {
     amenity?: Amenity;
-    typeOptions: EnumOption[];
-    categories: string[];
+    categories: EnumOption[];
     open: boolean;
     onOpenChange: (open: boolean) => void;
 }) {
@@ -53,12 +51,12 @@ export function AmenityDialog({
                     <DialogDescription>
                         {amenity
                             ? 'The type does not change, so properties keep what they ticked.'
-                            : 'The new amenity goes to the end of the list. Owners can pick it at once.'}
+                            : 'The new amenity goes to the end of its category. Owners can pick it at once.'}
                     </DialogDescription>
                 </DialogHeader>
                 <Form
                     {...form}
-                    options={{ preserveScroll: true }}
+                    options={{ preserveScroll: true, preserveState: true }}
                     onSuccess={() => onOpenChange(false)}
                     className="flex flex-col gap-4"
                 >
@@ -80,46 +78,35 @@ export function AmenityDialog({
                                     />
                                     <FieldError>{errors.name}</FieldError>
                                 </Field>
-                                {!amenity && (
-                                    <Field data-invalid={!!errors.type}>
-                                        <FieldLabel htmlFor="amenity-type">
-                                            Type
-                                        </FieldLabel>
-                                        <EnumSelect
-                                            id="amenity-type"
-                                            name="type"
-                                            options={typeOptions}
-                                            defaultValue={typeOptions[0]?.value}
-                                            aria-invalid={!!errors.type}
-                                        />
-                                        <FieldError>{errors.type}</FieldError>
-                                    </Field>
-                                )}
-                                <Field data-invalid={!!errors.category}>
+                                <Field
+                                    data-invalid={!!errors.amenity_category_id}
+                                >
                                     <FieldLabel htmlFor="amenity-category">
                                         Category
                                     </FieldLabel>
-                                    <Input
+                                    <EnumSelect
                                         id="amenity-category"
-                                        name="category"
-                                        list="amenity-categories"
-                                        defaultValue={amenity?.category ?? ''}
-                                        placeholder="e.g. Outdoors"
-                                        autoComplete="off"
-                                        aria-invalid={!!errors.category}
+                                        name="amenity_category_id"
+                                        options={categories}
+                                        defaultValue={
+                                            amenity
+                                                ? String(amenity.categoryId)
+                                                : categories[0]?.value
+                                        }
+                                        placeholder="Choose a category"
+                                        aria-invalid={
+                                            !!errors.amenity_category_id
+                                        }
                                     />
-                                    <datalist id="amenity-categories">
-                                        {categories.map((category) => (
-                                            <option
-                                                key={category}
-                                                value={category}
-                                            />
-                                        ))}
-                                    </datalist>
-                                    <FieldDescription>
-                                        Pickers group amenities by category.
-                                    </FieldDescription>
-                                    <FieldError>{errors.category}</FieldError>
+                                    {categories.length === 0 && (
+                                        <FieldDescription>
+                                            Add a category first on the
+                                            Categories tab.
+                                        </FieldDescription>
+                                    )}
+                                    <FieldError>
+                                        {errors.amenity_category_id}
+                                    </FieldError>
                                 </Field>
                             </FieldGroup>
                             <DialogFooter>

@@ -4,6 +4,7 @@ use App\Enums\AmenityType;
 use App\Enums\PermissionEnum;
 use App\Features\BookingEngine;
 use App\Models\Amenity;
+use App\Models\AmenityCategory;
 use App\Models\Property;
 use App\Models\RoomType;
 use App\Models\User;
@@ -27,21 +28,27 @@ test('the seeder loads the wastays list once and keeps admin changes on a second
     $this->seed(AmenitySeeder::class);
 
     $count = Amenity::query()->count();
+    $categoryCount = AmenityCategory::query()->count();
     $wifi = Amenity::query()->where('name', '24-hour front desk')->firstOrFail();
     $wifi->update(['active' => false, 'position' => 9999]);
+    $wifi->category()->firstOrFail()->update(['name' => 'Renamed by admin']);
 
     $this->seed(AmenitySeeder::class);
 
-    expect($count)->toBeGreaterThan(400)
+    expect($count)->toBeGreaterThan(300)
         ->and(Amenity::query()->count())->toBe($count)
+        ->and(AmenityCategory::query()->count())->toBe($categoryCount)
         ->and($wifi->refresh()->active)->toBeFalse()
-        ->and($wifi->position)->toBe(9999);
+        ->and($wifi->position)->toBe(9999)
+        ->and($wifi->category->name)->toBe('Renamed by admin');
 });
 
-test('admins see every amenity in list order', function () {
-    Amenity::factory()->create(['name' => 'Pool']);
-    Amenity::factory()->room()->create(['name' => 'Balcony']);
-    Amenity::factory()->inactive()->create(['name' => 'Sauna']);
+test('admins see every amenity by category order, then by position inside it', function () {
+    $outdoors = AmenityCategory::factory()->create(['name' => 'Outdoors', 'position' => 2]);
+    $general = AmenityCategory::factory()->create(['name' => 'General', 'position' => 1]);
+    Amenity::factory()->inCategory($outdoors)->create(['name' => 'Pool', 'position' => 1]);
+    Amenity::factory()->inCategory($general)->inactive()->create(['name' => 'Sauna', 'position' => 3]);
+    Amenity::factory()->inCategory($general)->create(['name' => 'Lift', 'position' => 2]);
 
     $this->actingAs(User::factory()->admin()->create())
         ->get(route('admin.amenities.index'))
@@ -49,20 +56,36 @@ test('admins see every amenity in list order', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('admin/amenities/index')
             ->has('amenities', 3)
-            ->where('amenities.0.name', 'Pool')
-            ->where('amenities.1.type', 'room')
-            ->where('amenities.2.active', false)
+            ->where('amenities.0.name', 'Lift')
+            ->where('amenities.0.category', 'General')
+            ->where('amenities.1.name', 'Sauna')
+            ->where('amenities.1.active', false)
+            ->where('amenities.2.name', 'Pool')
+            ->has('categories', 2)
+            ->where('categories.0.name', 'General')
+            ->where('categories.0.amenitiesCount', 2)
             ->has('typeOptions', 2)
-            ->where('type', 'all'));
+            ->where('tab', 'property'));
 });
 
-test('the type tab comes from the URL and falls back to all', function () {
+test('the open tab comes from the URL and falls back to property', function () {
     $admin = User::factory()->admin()->create();
 
-    $this->actingAs($admin)->get(route('admin.amenities.index', ['type' => 'room']))
-        ->assertInertia(fn (Assert $page) => $page->where('type', 'room'));
-    $this->actingAs($admin)->get(route('admin.amenities.index', ['type' => 'nonsense']))
-        ->assertInertia(fn (Assert $page) => $page->where('type', 'all'));
+    foreach (['room' => 'room', 'categories' => 'categories', 'nonsense' => 'property'] as $tab => $expected) {
+        $this->actingAs($admin)->get(route('admin.amenities.index', ['tab' => $tab]))
+            ->assertInertia(fn (Assert $page) => $page->where('tab', $expected));
+    }
+});
+
+test('the list page comes from the URL and is never below one', function () {
+    $admin = User::factory()->admin()->create();
+
+    foreach ([2 => 2, 0 => 1, -3 => 1] as $page => $expected) {
+        $this->actingAs($admin)->get(route('admin.amenities.index', ['tab' => 'room', 'page' => $page]))
+            ->assertInertia(fn (Assert $inertia) => $inertia
+                ->where('page', $expected)
+                ->where('listUrl', route('admin.amenities.index', ['tab' => 'room'])));
+    }
 });
 
 test('property staff cannot open the admin list', function () {
@@ -72,58 +95,185 @@ test('property staff cannot open the admin list', function () {
 test('writes need two factor', function () {
     config(['estatell.support_require_two_factor' => true]);
 
-    $this->actingAs(User::factory()->admin()->create())
-        ->post(route('admin.amenities.store'), ['name' => 'Pool', 'type' => 'property', 'category' => 'Outdoors'])
+    $category = AmenityCategory::factory()->create();
+    $admin = User::factory()->admin()->create();
+
+    $this->actingAs($admin)
+        ->post(route('admin.amenities.store'), ['name' => 'Pool', 'amenity_category_id' => $category->id])
         ->assertRedirect()
         ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'Two-factor required for this action.']);
+    $this->actingAs($admin)
+        ->delete(route('admin.amenities.categories.destroy', $category))
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'Two-factor required for this action.']);
+
+    expect(Amenity::query()->count())->toBe(0)->and($category->fresh())->not->toBeNull();
+});
+
+test('adding an amenity takes the type from its category, stays on the open tab and logs it', function () {
+    Amenity::factory()->create(['name' => 'Pool']);
+    $category = AmenityCategory::factory()->room()->create(['name' => 'Bathroom']);
+    $admin = User::factory()->admin()->withTwoFactor()->create();
+    $openTab = route('admin.amenities.index', ['tab' => 'room']);
+
+    $this->actingAs($admin)->from($openTab)
+        ->post(route('admin.amenities.store'), ['name' => '  Bathtub ', 'amenity_category_id' => $category->id])
+        ->assertRedirect($openTab)
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Bathtub added.']);
+
+    $bathtub = Amenity::query()->where('name', 'Bathtub')->firstOrFail();
+
+    expect($bathtub->position)->toBe(2)
+        ->and($bathtub->active)->toBeTrue()
+        ->and($bathtub->type)->toBe(AmenityType::Room)
+        ->and($bathtub->amenity_category_id)->toBe($category->id);
+    expect(Activity::query()->where('event', 'amenity.created')->count())->toBe(1);
+});
+
+test('adding an amenity needs a category that exists', function () {
+    $admin = User::factory()->admin()->withTwoFactor()->create();
+
+    foreach ([[], ['amenity_category_id' => 999999]] as $category) {
+        $this->actingAs($admin)
+            ->post(route('admin.amenities.store'), ['name' => 'Pool', ...$category])
+            ->assertSessionHasErrors('amenity_category_id');
+    }
 
     expect(Amenity::query()->count())->toBe(0);
 });
 
-test('adding an amenity puts it last and logs it', function () {
-    Amenity::factory()->create(['name' => 'Pool']);
-    $admin = User::factory()->admin()->withTwoFactor()->create();
-
-    $this->actingAs($admin)
-        ->post(route('admin.amenities.store'), ['name' => '  Gym ', 'type' => 'property', 'category' => 'Activities'])
-        ->assertRedirect(route('admin.amenities.index'))
-        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Gym added.']);
-
-    $gym = Amenity::query()->where('name', 'Gym')->firstOrFail();
-
-    expect($gym->position)->toBe(2)->and($gym->active)->toBeTrue()->and($gym->type)->toBe(AmenityType::Property);
-    expect(Activity::query()->where('event', 'amenity.created')->count())->toBe(1);
-});
-
 test('a name already used by the same type is refused, but another type may reuse it', function () {
     Amenity::factory()->create(['name' => 'Heating']);
+    $property = AmenityCategory::factory()->create();
+    $room = AmenityCategory::factory()->room()->create();
     $admin = User::factory()->admin()->withTwoFactor()->create();
 
     $this->actingAs($admin)
-        ->post(route('admin.amenities.store'), ['name' => 'heating', 'type' => 'property', 'category' => 'General'])
+        ->post(route('admin.amenities.store'), ['name' => 'heating', 'amenity_category_id' => $property->id])
         ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'An amenity with this name already exists for this type.']);
 
     $this->actingAs($admin)
-        ->post(route('admin.amenities.store'), ['name' => 'Heating', 'type' => 'room', 'category' => 'In Room'])
+        ->post(route('admin.amenities.store'), ['name' => 'Heating', 'amenity_category_id' => $room->id])
         ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Heating added.']);
 
     expect(Amenity::query()->count())->toBe(2);
 });
 
-test('editing changes the name and category but never the type', function () {
-    $amenity = Amenity::factory()->room()->create(['name' => 'Balkony', 'category' => 'Outside']);
+test('editing changes the name and category but refuses a category of the other type', function () {
+    $outside = AmenityCategory::factory()->room()->create(['name' => 'Outside']);
+    $view = AmenityCategory::factory()->room()->create(['name' => 'View']);
+    $propertyCategory = AmenityCategory::factory()->create();
+    $amenity = Amenity::factory()->inCategory($outside)->create(['name' => 'Balkony']);
     $admin = User::factory()->admin()->withTwoFactor()->create();
 
     $this->actingAs($admin)
-        ->put(route('admin.amenities.update', $amenity), ['name' => 'Balcony', 'category' => 'View', 'type' => 'property'])
-        ->assertSessionHasErrors('type');
+        ->put(route('admin.amenities.update', $amenity), ['name' => 'Balcony', 'amenity_category_id' => $propertyCategory->id])
+        ->assertSessionHasErrors('amenity_category_id');
+
+    expect($amenity->refresh()->amenity_category_id)->toBe($outside->id);
 
     $this->actingAs($admin)
-        ->put(route('admin.amenities.update', $amenity), ['name' => 'Balcony', 'category' => 'View'])
+        ->put(route('admin.amenities.update', $amenity), ['name' => 'Balcony', 'amenity_category_id' => $view->id])
         ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Amenity saved.']);
 
-    expect($amenity->refresh()->name)->toBe('Balcony')->and($amenity->category)->toBe('View')->and($amenity->type)->toBe(AmenityType::Room);
+    expect($amenity->refresh()->name)->toBe('Balcony')
+        ->and($amenity->amenity_category_id)->toBe($view->id)
+        ->and($amenity->type)->toBe(AmenityType::Room);
     expect(Activity::query()->where('event', 'amenity.updated')->count())->toBe(1);
+});
+
+test('adding a category puts it last, and a name is unique per type ignoring case', function () {
+    AmenityCategory::factory()->create(['name' => 'General']);
+    $admin = User::factory()->admin()->withTwoFactor()->create();
+
+    $this->actingAs($admin)
+        ->post(route('admin.amenities.categories.store'), ['name' => 'general', 'type' => 'property'])
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'A category with this name already exists for this type.']);
+
+    $this->actingAs($admin)
+        ->post(route('admin.amenities.categories.store'), ['name' => ' General ', 'type' => 'room'])
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'General added.']);
+
+    $room = AmenityCategory::query()->where('type', 'room')->firstOrFail();
+
+    expect(AmenityCategory::query()->count())->toBe(2)->and($room->position)->toBe(2);
+    expect(Activity::query()->where('event', 'amenity_category.created')->count())->toBe(1);
+});
+
+test('renaming a category moves every amenity with it and never changes the type', function () {
+    $category = AmenityCategory::factory()->create(['name' => 'Food And Drink']);
+    AmenityCategory::factory()->create(['name' => 'General']);
+    $amenity = Amenity::factory()->inCategory($category)->create();
+    $admin = User::factory()->admin()->withTwoFactor()->create();
+
+    $this->actingAs($admin)
+        ->put(route('admin.amenities.categories.update', $category), ['name' => 'Dining', 'type' => 'room'])
+        ->assertSessionHasErrors('type');
+    $this->actingAs($admin)
+        ->put(route('admin.amenities.categories.update', $category), ['name' => 'general'])
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'A category with this name already exists for this type.']);
+
+    expect($category->refresh()->name)->toBe('Food And Drink');
+
+    $this->actingAs($admin)
+        ->put(route('admin.amenities.categories.update', $category), ['name' => 'Dining'])
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Category saved.']);
+
+    expect($amenity->refresh()->category->name)->toBe('Dining');
+    expect(Activity::query()->where('event', 'amenity_category.updated')->count())->toBe(1);
+});
+
+test('a category can only be deleted when no amenity uses it, retired ones included', function () {
+    $category = AmenityCategory::factory()->create(['name' => 'Pets']);
+    $amenity = Amenity::factory()->inCategory($category)->inactive()->create();
+    $admin = User::factory()->admin()->withTwoFactor()->create();
+
+    $this->actingAs($admin)
+        ->delete(route('admin.amenities.categories.destroy', $category))
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'Pets still has amenities. Move them first.']);
+
+    expect($category->fresh())->not->toBeNull();
+    expect(Activity::query()->where('event', 'amenity_category.deleted')->count())->toBe(0);
+
+    $amenity->delete();
+
+    $this->actingAs($admin)
+        ->delete(route('admin.amenities.categories.destroy', $category))
+        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Pets deleted.']);
+
+    expect($category->fresh())->toBeNull();
+    expect(Activity::query()->where('event', 'amenity_category.deleted')->count())->toBe(1);
+});
+
+test('reordering categories needs exactly the full list and changes the picker order', function () {
+    ['owner' => $owner, 'property' => $property] = amenityOwner();
+    $first = AmenityCategory::factory()->create(['name' => 'First']);
+    $second = AmenityCategory::factory()->create(['name' => 'Second']);
+    Amenity::factory()->inCategory($first)->create(['name' => 'Pool']);
+    Amenity::factory()->inCategory($second)->create(['name' => 'Gym']);
+    $admin = User::factory()->admin()->withTwoFactor()->create();
+
+    $this->actingAs($admin)->put(route('admin.amenities.categories.reorder'), ['order' => [$first->id]])
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'The categories changed. Reload the page and try again.']);
+
+    expect($first->refresh()->position)->toBe(1);
+
+    $this->actingAs($admin)->put(route('admin.amenities.categories.reorder'), ['order' => [$second->id, $first->id]]);
+
+    $this->actingAs($owner)->get(route('settings.booking-website.amenities', $property))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('amenities.amenities.0.name', 'Gym')
+            ->where('amenities.amenities.0.category', 'Second')
+            ->where('amenities.amenities.1.name', 'Pool'));
+});
+
+test('property staff cannot change categories', function () {
+    $category = AmenityCategory::factory()->create();
+
+    $this->actingAs(User::factory()->owner()->create())
+        ->delete(route('admin.amenities.categories.destroy', $category))
+        ->assertNotFound();
+
+    expect($category->fresh())->not->toBeNull();
 });
 
 test('retiring and bringing back an amenity logs once and refuses a repeat', function () {

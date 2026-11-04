@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * An item on the shared amenity list (Wi-Fi, pool, balcony). The list is global; platform admins keep it, and
@@ -17,14 +18,15 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $id
  * @property string $name
  * @property AmenityType $type
- * @property string $category
+ * @property int $amenity_category_id
  * @property string|null $icon
  * @property int $position
  * @property bool $active
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
+ * @property-read AmenityCategory $category
  */
-#[Fillable(['name', 'type', 'category', 'icon', 'position', 'active'])]
+#[Fillable(['name', 'type', 'amenity_category_id', 'icon', 'position', 'active'])]
 class Amenity extends Model
 {
     /** @use HasFactory<AmenityFactory> */
@@ -40,6 +42,14 @@ class Amenity extends Model
             'position' => 'integer',
             'active' => 'boolean',
         ];
+    }
+
+    /**
+     * @return BelongsTo<AmenityCategory, $this>
+     */
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(AmenityCategory::class, 'amenity_category_id');
     }
 
     /**
@@ -59,10 +69,15 @@ class Amenity extends Model
     }
 
     /**
+     * List order: by category, then by position inside it.
+     *
      * @param  Builder<Amenity>  $query
      */
     public function scopeOrdered(Builder $query): void
     {
-        $query->orderBy('position')->orderBy('id');
+        $query->orderBy(AmenityCategory::query()->select('position')->whereColumn('amenity_categories.id', 'amenities.amenity_category_id'))
+            ->orderBy('amenities.amenity_category_id')
+            ->orderBy('amenities.position')
+            ->orderBy('amenities.id');
     }
 }

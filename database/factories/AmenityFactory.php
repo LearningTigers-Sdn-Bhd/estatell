@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Enums\AmenityType;
 use App\Models\Amenity;
+use App\Models\AmenityCategory;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -19,7 +20,10 @@ class AmenityFactory extends Factory
         return [
             'name' => fake()->unique()->words(2, true),
             'type' => AmenityType::Property,
-            'category' => 'General',
+            'amenity_category_id' => fn (array $attributes): int => AmenityCategory::query()->firstOrCreate(
+                ['type' => $attributes['type'], 'name' => 'General'],
+                ['position' => ((int) AmenityCategory::query()->max('position')) + 1],
+            )->id,
             'icon' => null,
             'position' => fn (): int => ((int) Amenity::query()->max('position')) + 1,
             'active' => true,
@@ -29,6 +33,11 @@ class AmenityFactory extends Factory
     public function room(): static
     {
         return $this->state(fn (array $attributes) => ['type' => AmenityType::Room]);
+    }
+
+    public function inCategory(AmenityCategory $category): static
+    {
+        return $this->state(fn (array $attributes) => ['type' => $category->type, 'amenity_category_id' => $category->id]);
     }
 
     public function inactive(): static

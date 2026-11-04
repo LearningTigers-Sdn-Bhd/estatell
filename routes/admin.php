@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AmenityCategoryController;
 use App\Http\Controllers\Admin\AmenityController;
 use App\Http\Controllers\Admin\MailEventController;
 use App\Http\Controllers\Admin\NearbyPlaceController;
@@ -88,6 +89,10 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
     Route::put('amenities/order', [AmenityController::class, 'reorder'])->middleware('support.2fa')->name('amenities.reorder');
     Route::put('amenities/{amenity}', [AmenityController::class, 'update'])->whereNumber('amenity')->middleware('support.2fa')->name('amenities.update');
     Route::put('amenities/{amenity}/active', [AmenityController::class, 'active'])->whereNumber('amenity')->middleware('support.2fa')->name('amenities.active.update');
+    Route::post('amenities/categories', [AmenityCategoryController::class, 'store'])->middleware('support.2fa')->name('amenities.categories.store');
+    Route::put('amenities/categories/order', [AmenityCategoryController::class, 'reorder'])->middleware('support.2fa')->name('amenities.categories.reorder');
+    Route::put('amenities/categories/{amenityCategory}', [AmenityCategoryController::class, 'update'])->whereNumber('amenityCategory')->middleware('support.2fa')->name('amenities.categories.update');
+    Route::delete('amenities/categories/{amenityCategory}', [AmenityCategoryController::class, 'destroy'])->whereNumber('amenityCategory')->middleware('support.2fa')->name('amenities.categories.destroy');
 
     Route::get('nearby-places', [NearbyPlaceController::class, 'index'])->name('nearby-places.index');
     Route::post('nearby-places', [NearbyPlaceController::class, 'store'])->middleware('support.2fa')->name('nearby-places.store');

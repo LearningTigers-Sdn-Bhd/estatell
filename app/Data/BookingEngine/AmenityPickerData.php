@@ -30,7 +30,7 @@ class AmenityPickerData extends Data
         $selectedIds = $selected->pluck('id')->all();
 
         return new self(
-            amenities: array_values(Amenity::query()->ofType($type)
+            amenities: array_values(Amenity::query()->with('category')->ofType($type)
                 ->where(fn ($query) => $query->where('active', true)->orWhereIn('id', $selectedIds))
                 ->ordered()->get()
                 ->map(fn (Amenity $amenity): AmenityData => AmenityData::fromModel($amenity))

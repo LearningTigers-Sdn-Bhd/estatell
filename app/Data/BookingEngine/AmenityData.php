@@ -8,6 +8,7 @@ use Spatie\LaravelData\Data;
 
 /**
  * One amenity on the shared list. The admin page shows all of them; the pickers show the ones a property or room type can tick.
+ * Needs the `category` relation loaded.
  */
 class AmenityData extends Data
 {
@@ -16,6 +17,7 @@ class AmenityData extends Data
         public string $name,
         public AmenityType $type,
         public string $typeLabel,
+        public int $categoryId,
         public string $category,
         public bool $active,
     ) {}
@@ -27,7 +29,8 @@ class AmenityData extends Data
             name: $amenity->name,
             type: $amenity->type,
             typeLabel: $amenity->type->label(),
-            category: $amenity->category,
+            categoryId: $amenity->amenity_category_id,
+            category: $amenity->category->name,
             active: $amenity->active,
         );
     }

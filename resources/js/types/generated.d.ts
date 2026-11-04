@@ -190,11 +190,18 @@ createdAt: string,
 canApprove: boolean,
 canReject: boolean,
 };
+export type AmenityCategoryData = {
+id: number,
+name: string,
+type: App.Enums.AmenityType,
+amenitiesCount: number,
+};
 export type AmenityData = {
 id: number,
 name: string,
 type: App.Enums.AmenityType,
 typeLabel: string,
+categoryId: number,
 category: string,
 active: boolean,
 };

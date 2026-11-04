@@ -16,6 +16,19 @@ The shared PHP base stage installs `exif` for Spatie Media Library and `intl` fo
 
 `APP_ENV=production` turns on `DB::prohibitDestructiveCommands` (`AppServiceProvider::configureDefaults`), so `migrate:fresh`, `db:wipe` and similar commands refuse to run.
 
+## Amenity list
+
+Deploy first, so the amenity migrations run. Then run this command once in the production `web` container:
+
+```sh
+php artisan db:seed --class=AmenitySeeder --force --no-interaction
+```
+
+- Data: the shared list from `database/seeders/data/amenities.json`. See [Amenities](../28-booking-engine/06-content-registries.md#amenities).
+- It is safe to run again. Existing amenities keep the changes admins made, and no row is removed.
+- An amenity an admin renamed comes back under its old name if the command runs again. Retire the extra row if this happens.
+- Do not run plain `db:seed` in production. `DatabaseSeeder` also creates a `test@example.com` user.
+
 ## Boreno Hotel for internal use
 
 Boreno can also exist in production as a normal property with the full sample data. It has no internal flag or schema changes. The public demo remains separate.

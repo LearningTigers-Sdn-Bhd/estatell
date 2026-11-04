@@ -7,24 +7,29 @@ Give both booking modes the same property content: amenities, nearby places and 
 ## Amenities
 
 ```
-amenities             id, name, type (AmenityType), category, icon,
+amenity_categories    id, type (AmenityType), name, position, timestamps
+                      unique (type, name)
+amenities             id, name, type (AmenityType), amenity_category_id, icon,
                       position, active, timestamps
 property_amenities    property_id, amenity_id     unique pair
 room_type_amenities   room_type_id, amenity_id    unique pair
 ```
 
 - `AmenityType`: Property, Room.
-- The list is global, like `ota_channels`. Link tables replace the jsonb arrays wastays used. The wastays seed list is the starting data: `AmenitySeeder` loads `database/seeders/data/amenities.json` (487 rows, 301 Property and 186 Room) and is safe to run again.
+- The list is global, like `ota_channels`. Link tables replace the jsonb arrays wastays used. The starting data is the wastays seed list, cleaned for Malaysia (no RV, ski or COVID-era rows, duplicates merged), plus rows from Google hotel attributes, Booking.com room amenity codes and Malaysian Muslim-friendly hotel material, such as surau, halal food, prayer mat and qibla direction. `AmenitySeeder` loads `database/seeders/data/amenities.json` (398 rows, 225 Property and 173 Room, in 18 categories) and is safe to run again. Each new row has no icon yet.
 - A name is unique per type, ignoring case. The type never changes after an amenity is added, because properties already link to it. `icon` keeps the wastays icon key for the microsite; no screen edits it yet.
-- The pickers are plain tick boxes grouped by category, in list order. A ticked retired amenity shows a "Retired" badge until it is unticked.
-- Saving refuses an id that is the wrong type, unknown, or retired and not already ticked, and writes nothing. Room amenities cannot change on an archived room type. Every change is logged (`property.amenities_changed`, `room_type.amenities_changed`, `amenity.*`).
+- Each type has its own categories, so Property "General" and Room "General" are two rows. A new amenity takes its type from its category, and an amenity can only move to a category of its own type. A category's name is unique per type, ignoring case, and its type never changes. A category can only be deleted when no amenity uses it, retired ones included.
+- The list order is the category position, then the amenity position inside it. The pickers and the admin page both follow it.
+- The pickers are plain tick boxes grouped by category. A category with nothing to show stays hidden. A ticked retired amenity shows a "Retired" badge until it is unticked.
+- Saving refuses an id that is the wrong type, unknown, or retired and not already ticked, and writes nothing. Room amenities cannot change on an archived room type. Every change is logged (`property.amenities_changed`, `room_type.amenities_changed`, `amenity.*`, `amenity_category.*`).
 - A retired amenity (`active` off) leaves the pickers and stays on properties until they untick it.
 
-| Who   | Does                                      | Where                       |
-| ----- | ----------------------------------------- | --------------------------- |
-| Admin | Adds, edits, orders and retires amenities | Admin › Amenities           |
-| Owner | Ticks property amenities                  | Booking website › Amenities |
-| Owner | Ticks room amenities                      | Room type page              |
+| Who   | Does                                         | Where                          |
+| ----- | -------------------------------------------- | ------------------------------ |
+| Admin | Adds, edits, orders and retires amenities    | Admin › Amenities              |
+| Admin | Adds, renames, orders and deletes categories | Admin › Amenities › Categories |
+| Owner | Ticks property amenities                     | Booking website › Amenities    |
+| Owner | Ticks room amenities                         | Room type page                 |
 
 Left out for now: per-amenity details, such as opening hours and fees (a concierge page need), and a Channex sync. The Channex `facilities` field is optional. If it is needed later, add `amenities.channex_id`, as wastays had.
 
@@ -120,4 +125,4 @@ The `photos` collection on room types has an upload UI: the Photos tab of the ro
 
 ## Admin routes
 
-`/admin/amenities` (`admin.amenities.*`, built: All, Property and Room tabs (the open tab is in the URL as `?type=`, default All) and search, up and down buttons within the filtered rows, and a dialog to add or edit) and `/admin/nearby-places` (`admin.nearby-places.*`, built: All, Pending, Approved and Rejected tabs (the open tab is in the URL as `?status=`, default All) and search, an Add place dialog, and a row menu with Edit name, Approve and Reject). Writes need `support.2fa`.
+`/admin/amenities` (`admin.amenities.*`, built: Property, Room and Categories tabs (the open tab is in the URL as `?tab=`, default Property). The Property and Room tabs have search and a Grouped or List toggle. Grouped shows a row for each category that opens and closes, all closed at first, with up and down buttons inside it. Searching opens every group with a match and hides the buttons. List is flat with a Category column and no move buttons, 50 rows a page (`?view=list&page=`), and shows all matches while searching. Changing the view makes no request and goes back to the first page. The whole list still loads once, and the browser cuts the page. A dialog adds or edits, and saving stays on the open tab) and `/admin/nearby-places` (`admin.nearby-places.*`, built: All, Pending, Approved and Rejected tabs (the open tab is in the URL as `?status=`, default All) and search, an Add place dialog, and a row menu with Edit name, Approve and Reject). Writes need `support.2fa`.
