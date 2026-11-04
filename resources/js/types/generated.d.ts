@@ -2793,6 +2793,7 @@ amount_due: string,
 due_at: string,
 status: string,
 time_zone: string,
+overdue: boolean,
 };
 export type ArrivalRow = {
 key: number,
@@ -3145,6 +3146,7 @@ direction: App.Enums.BoatDirection | null,
 bucket: App.Enums.ChargeBucket | null,
 search: string | null,
 bothDirections: boolean,
+boatNotSet: boolean,
 };
 export type ReportLayoutColumnData = {
 key: string,

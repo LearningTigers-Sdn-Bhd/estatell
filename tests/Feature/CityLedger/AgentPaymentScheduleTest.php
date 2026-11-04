@@ -4,13 +4,16 @@ use App\Actions\Reservations\CreateReservation;
 use App\Data\Reports\AgentPaymentDueRow;
 use App\Data\Reports\ReportFilters;
 use App\Data\Reservations\NewReservationData;
+use App\Enums\PolicyScope;
 use App\Enums\SystemTransactionCode;
+use App\Models\BusinessDate;
 use App\Models\Company;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\PropertySetting;
 use App\Models\Rate;
 use App\Models\Reservation;
+use App\Models\RoomRevenuePolicy;
 use App\Models\TransactionCode;
 use App\Models\User;
 use App\Services\Reports\AgentPaymentsReport;
@@ -138,6 +141,35 @@ test('the report lists the bookings still owing a stage, overdue first, and the 
 
     $this->actingAs($setup['user'])->get(route('reservations.show', [$setup['property']->code, $later]))
         ->assertInertia(fn (Assert $page) => $page->where('paymentSchedule.stages.0.label', 'Deposit 50%')->where('paymentSchedule.stages.0.amount', '500.00')->where('paymentSchedule.stages.1.status', 'due'));
+});
+
+test('an overdue booking offers Release rooms, which cancels it from the report', function () {
+    $setup = agentScheduleSetup();
+    BusinessDate::factory()->create(['property_id' => $setup['property']->id, 'date' => '2026-10-14']);
+    TransactionCode::factory()->for($setup['property'])->system(SystemTransactionCode::CancellationRevenue)->create();
+    RoomRevenuePolicy::factory()->for($setup['property'])->fixed('0.00')->forCode(SystemTransactionCode::CancellationRevenue, PolicyScope::WholeStay)->create();
+    $late = agentBook($setup);
+    $late->forceFill(['deposit_due_at' => '2026-10-13 00:00:00'])->save();
+    $onTime = agentBook($setup);
+    $report = route('reports.agent-payments', [$setup['property']->code, 'from' => '2026-10-14', 'to' => '2026-10-14']);
+
+    $this->actingAs($setup['user'])->get($report)->assertInertia(fn (Assert $page) => $page
+        ->where('canRelease', true)
+        ->where('rows.data.0.reservation_id', $late->id)
+        ->where('rows.data.0.overdue', true)
+        ->where('rows.data.1.overdue', false));
+
+    $this->from($report)->post(route('reservations.cancel', [$setup['property']->code, $late]), [
+        'unit_ids' => $late->units()->pluck('id')->all(),
+        'reason' => 'Deposit 50% not paid by the due time',
+        'do_not_charge' => '0',
+    ])->assertSessionHasNoErrors()->assertRedirect($report);
+
+    expect($late->units()->first()->status->value)->toBe('cancelled')
+        ->and($onTime->units()->first()->status->value)->toBe('confirmed');
+
+    $viewer = User::factory()->for($setup['property'])->withPermissions(['reports.view'])->create();
+    $this->actingAs($viewer)->get($report)->assertInertia(fn (Assert $page) => $page->where('canRelease', false));
 });
 
 test('owners save the property terms and a company its own', function () {

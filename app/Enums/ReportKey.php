@@ -234,6 +234,15 @@ enum ReportKey: string
     }
 
     /**
+     * Whether the report takes `?no_boat` (the units with no boat trip in their direction, so the desk can follow
+     * up). Other reports ignore it.
+     */
+    public function hasBoatNotSetFilter(): bool
+    {
+        return $this === self::Arrivals || $this === self::Departures;
+    }
+
+    /**
      * Whether the report takes `?direction` (Boat in or Boat out). Other reports ignore it.
      */
     public function hasDirectionFilter(): bool

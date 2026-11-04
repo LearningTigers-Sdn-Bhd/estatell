@@ -43,8 +43,9 @@ class AgentPaymentsReport implements HasTotals, Report
 
         foreach ($reservations as $reservation) {
             $next = $this->schedule->nextDue($reservation, $now);
+            $firstArrival = $reservation->getAttribute('first_arrival');
 
-            if ($next === null || $reservation->first_arrival === null) {
+            if ($next === null || ! is_string($firstArrival)) {
                 continue;
             }
 
@@ -53,7 +54,7 @@ class AgentPaymentsReport implements HasTotals, Report
                 reservation_id: $reservation->id,
                 reservation: $reservation->reference,
                 company: $reservation->company->name ?? '',
-                arrival: CarbonImmutable::parse($reservation->first_arrival)->toDateString(),
+                arrival: CarbonImmutable::parse($firstArrival)->toDateString(),
                 stage: match ($next['kind']) {
                     'deposit' => __('Deposit :percent%', ['percent' => $reservation->deposit_percent]),
                     'balance' => __('Balance'),
@@ -63,10 +64,11 @@ class AgentPaymentsReport implements HasTotals, Report
                 due_at: $next['due_at']->toIso8601String(),
                 status: $next['overdue'] ? __('Overdue') : __('Due'),
                 time_zone: $zone,
+                overdue: $next['overdue'],
             );
         }
 
-        usort($rows, fn (AgentPaymentDueRow $first, AgentPaymentDueRow $second): int => [$first->status !== __('Overdue'), $first->due_at] <=> [$second->status !== __('Overdue'), $second->due_at]);
+        usort($rows, fn (AgentPaymentDueRow $first, AgentPaymentDueRow $second): int => [! $first->overdue, $first->due_at] <=> [! $second->overdue, $second->due_at]);
 
         return $rows;
     }

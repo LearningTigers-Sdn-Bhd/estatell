@@ -8,6 +8,7 @@ use App\Enums\ChargeBucket;
 use App\Enums\ReportGroup;
 use App\Enums\ReportKey;
 use App\Enums\TabbedReport;
+use App\Features\Boats;
 use App\Models\Property;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Property\PropertyToday;
@@ -16,6 +17,7 @@ use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Validation\Rule;
+use Laravel\Pennant\Feature;
 use LogicException;
 
 /**
@@ -32,6 +34,8 @@ use LogicException;
  * `ChargeBucket`) and `search` (at most 100 characters). Other reports ignore them.
  * A report with a foreign filter (`ReportKey::hasForeignFilter()`, the Police report) also takes `foreign` (1 for foreign
  * guests only). Other reports ignore it.
+ * A report with a Boat not set filter (`ReportKey::hasBoatNotSetFilter()`, Arrivals and Departures) also takes `no_boat`
+ * (1 for the units with no boat trip in their direction). It applies only when the property uses boats.
  * The report is the `{report}` route parameter, or the slug after `reports.` in the route name. On a `TabbedReport`
  * page it is the report of the `?tab` (the first tab when the value is not a tab).
  */
@@ -62,6 +66,7 @@ class ReportFiltersRequest extends FormRequest
                 'refunds' => ['nullable', 'boolean'],
             ] : []),
             ...($this->reportKey()->hasForeignFilter() ? ['foreign' => ['nullable', 'boolean']] : []),
+            ...($this->reportKey()->hasBoatNotSetFilter() ? ['no_boat' => ['nullable', 'boolean']] : []),
             ...($this->reportKey()->hasChargeFilters() ? [
                 'bucket' => ['nullable', Rule::enum(ChargeBucket::class)],
                 'search' => ['nullable', 'string', 'max:100'],
@@ -140,7 +145,7 @@ class ReportFiltersRequest extends FormRequest
             $date = $this->input('date');
             $date = is_string($date) && $date !== '' ? $date : $this->businessDate();
 
-            return new ReportFilters(from: $date, to: $date, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly(), foreignOnly: $this->foreignOnly(), direction: $this->direction(), bucket: $this->bucket(), search: $this->search(), bothDirections: $this->bothDirections());
+            return new ReportFilters(from: $date, to: $date, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly(), foreignOnly: $this->foreignOnly(), direction: $this->direction(), bucket: $this->bucket(), search: $this->search(), bothDirections: $this->bothDirections(), boatNotSet: $this->boatNotSet());
         }
 
         $from = $this->input('from');
@@ -150,7 +155,7 @@ class ReportFiltersRequest extends FormRequest
         $default = $this->businessDate();
         $defaultFrom = Date::parse($default)->subDays($this->reportKey()->defaultDays() - 1)->toDateString();
 
-        return new ReportFilters(from: $from ?? $to ?? $defaultFrom, to: $to ?? $from ?? $default, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly(), foreignOnly: $this->foreignOnly(), direction: $this->direction(), bucket: $this->bucket(), search: $this->search(), bothDirections: $this->bothDirections());
+        return new ReportFilters(from: $from ?? $to ?? $defaultFrom, to: $to ?? $from ?? $default, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly(), foreignOnly: $this->foreignOnly(), direction: $this->direction(), bucket: $this->bucket(), search: $this->search(), bothDirections: $this->bothDirections(), boatNotSet: $this->boatNotSet());
     }
 
     /**
@@ -223,6 +228,11 @@ class ReportFiltersRequest extends FormRequest
     private function foreignOnly(): bool
     {
         return $this->reportKey()->hasForeignFilter() && $this->boolean('foreign');
+    }
+
+    private function boatNotSet(): bool
+    {
+        return $this->reportKey()->hasBoatNotSetFilter() && $this->boolean('no_boat') && Feature::for($this->property())->active(Boats::class);
     }
 
     /**

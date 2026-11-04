@@ -20,7 +20,7 @@ class AgentPaymentsReportController extends Controller
 {
     /**
      * The Agent payments due page: the agent bookings that still owe a stage of their payment schedule, sorted and paged on
-     * the server. See docs/15-city-ledger/06-agent-payment-schedule.md#follow-up.
+     * the server. An overdue row offers **Release rooms** (the Cancel reservation Dialog) to staff who manage reservations. See docs/15-city-ledger/06-agent-payment-schedule.md#follow-up.
      */
     public function __invoke(ReportFiltersRequest $request, Property $property, ReportPage $reportPage, ReportLayoutResolver $layoutResolver): Response
     {
@@ -49,6 +49,8 @@ class AgentPaymentsReportController extends Controller
             'to' => $filters->to,
             'maxRangeDays' => $key->maxRangeDays(),
             'presets' => $key->datePresets(),
+            'canRelease' => $request->user()->can(PermissionEnum::ReservationsManage->value),
+            'canWaiveFees' => $request->user()->can(PermissionEnum::FrontDeskWaiveFees->value),
             'currency' => CurrencyData::forProperty($property),
         ]);
     }

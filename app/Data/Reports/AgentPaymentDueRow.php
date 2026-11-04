@@ -7,7 +7,7 @@ use Spatie\LaravelData\Data;
 
 /**
  * One reservation of the Agent payments due report: the first stage of its payment schedule that is not paid yet.
- * The property names are the column keys of `ReportKey::AgentPayments`. `key` is the reservation id. `due_at` is ISO.
+ * The property names are the column keys of `ReportKey::AgentPayments`. `key` is the reservation id. `due_at` is ISO. `overdue` shows **Release rooms** on the page.
  */
 class AgentPaymentDueRow extends Data implements ReportRow
 {
@@ -22,6 +22,7 @@ class AgentPaymentDueRow extends Data implements ReportRow
         public string $due_at,
         public string $status,
         public string $time_zone,
+        public bool $overdue = false,
     ) {}
 
     /**

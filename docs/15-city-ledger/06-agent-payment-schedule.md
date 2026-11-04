@@ -56,9 +56,11 @@ Example: booked 14 Oct 20:00 (Kuala Lumpur) for 20 Dec, 50/72/30: deposit 50% by
 
 **Reports › Finance › Agent payments due** (`ReportKey::AgentPayments`, `AgentPaymentsReport`): the Confirmed and In-house agent bookings with a stage not paid yet, overdue first, then by due time. Columns: Reservation, Agent, Arrival, Stage, Amount due (what is still missing to cover that stage), Due by, Status. The total sums Amount due. Each reservation is priced on its own, which suits a property's open agent bookings.
 
+The Reservation cell opens the booking. An overdue row has **Release rooms** for staff with `reservations.manage`: it opens the reservation page's **Cancel reservation** Dialog (the same preview, cancellation fees, Do not charge for `front-desk.waive-fees`, and Remove add-ons) with the reason "Deposit 50% not paid by the due time" filled in. The booking leaves the list once cancelled. No email goes to the agent yet.
+
 ## Late deposit (decided)
 
-**Remind and list, never cancel automatically.** wastays cancels late bookings with a sweeper; estatell lists them here, and staff cancel the booking to release the rooms when they decide. Agents often pay by bank transfer that lands a day late, and a sweeper runs with nobody at the desk. An automatic release can come later as a property switch, off by default.
+**Remind and list, never cancel automatically.** wastays cancels late bookings with a sweeper; estatell lists them here, and staff release the rooms with **Release rooms** on the overdue row when they decide. Agents often pay by bank transfer that lands a day late, and a sweeper runs with nobody at the desk. An automatic release can come later as a property switch, off by default.
 
 ## Payment proof
 

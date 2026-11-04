@@ -117,6 +117,8 @@ Branch `feat/sandbay-gaps`. Plan: `~/Code/Jesselton-Pixel/docs/estatell/sandbay/
 - [x] `feat(portal): upload a payment proof` — `payment_proofs` with its media file, `PaymentProofStatus`, `UploadPaymentProof` and the portal Payment section, `AcceptPaymentProof` (records the payment) and `RejectPaymentProof` in the reservation summary, Proof received on the schedule. Docs: [Payment proof](15-city-ledger/06-agent-payment-schedule.md#payment-proof).
 - [x] `feat(notifications): remind agents of payment deadlines` — `AgentPaymentReminder` (schedule, reminder, overdue) to the company email and active portal logins, `SendAgentPaymentReminders` with `agent_payment_reminders` so each is sent once, `agent-payments:send-reminders` every 15 minutes. Docs: [Reminders](15-city-ledger/06-agent-payment-schedule.md#reminders).
 
+- [x] `feat(reports): filter boats not set and release overdue agent bookings` — Boat not set on Guest list › Arrivals and Departures (`?no_boat=1`, `ReportFilters::$boatNotSet`, `ReportKey::hasBoatNotSetFilter()`), and Release rooms on overdue rows of Agent payments due (`AgentPaymentDueRow::$overdue`, the Cancel reservation Dialog with a reason). Docs: [Guest list](22-reports/02-guest-list-and-daily-report.md#3-guest-list), [Follow-up](15-city-ledger/06-agent-payment-schedule.md#follow-up).
+
 ## Next
 
 Needed for go-live.

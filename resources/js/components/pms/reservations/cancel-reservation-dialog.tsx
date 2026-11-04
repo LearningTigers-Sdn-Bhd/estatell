@@ -25,8 +25,13 @@ type Preview = App.Data.Reservations.CancelAllPreviewData;
 type Props = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    reservation: App.Data.Reservations.ReservationData;
+    reservation: Pick<
+        App.Data.Reservations.ReservationData,
+        'id' | 'reference' | 'title' | 'companyName'
+    >;
     canWaiveFees: boolean;
+    /** The reason the form starts with, such as "Deposit not paid" from Agent payments due. */
+    defaultReason?: string;
     currency: App.Data.Property.CurrencyData | null;
 };
 
@@ -39,6 +44,7 @@ function CancelReservationForm({
     reservation,
     canWaiveFees,
     currency,
+    defaultReason = '',
 }: Props) {
     const key = { reservation: reservation.id };
     const { preview, reload } = useUnitPreview<Preview>(
@@ -48,7 +54,7 @@ function CancelReservationForm({
     const [picked, setPicked] = useState<number[] | null>(null);
     const form = useForm({
         do_not_charge: false,
-        reason: '',
+        reason: defaultReason,
         remove_add_ons: false,
     });
     const { data } = form;
