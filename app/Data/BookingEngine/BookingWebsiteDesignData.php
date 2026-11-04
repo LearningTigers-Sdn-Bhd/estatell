@@ -2,7 +2,9 @@
 
 namespace App\Data\BookingEngine;
 
+use App\Data\Property\PropertyPhotoData;
 use App\Enums\SiteTemplateType;
+use App\Models\Property;
 use App\Models\PropertyBookingSite;
 use App\Models\SiteTemplate;
 use App\Models\SiteTemplateSlot;
@@ -18,6 +20,7 @@ class BookingWebsiteDesignData extends Data
     /**
      * @param  list<array{value: string, label: string}>  $templates
      * @param  list<SiteImageSlotData>  $slots
+     * @param  list<PropertyPhotoData>  $albumPhotos
      */
     public function __construct(
         public ?int $siteTemplateId,
@@ -26,6 +29,7 @@ class BookingWebsiteDesignData extends Data
         public array $templates,
         public array $slots,
         public int $imageMaxKb,
+        public array $albumPhotos,
     ) {}
 
     public static function fromSite(PropertyBookingSite $site): self
@@ -52,6 +56,9 @@ class BookingWebsiteDesignData extends Data
                 ->map(fn (SiteTemplateSlot $slot): SiteImageSlotData => SiteImageSlotData::fromModels($slot, $images->get($slot->key)))
                 ->all()),
             imageMaxKb: PropertyBookingSite::IMAGE_MAX_KB,
+            albumPhotos: array_values($site->property->getMedia(Property::PHOTOS)
+                ->map(fn (Media $media): PropertyPhotoData => PropertyPhotoData::fromModel($media))
+                ->all()),
         );
     }
 }

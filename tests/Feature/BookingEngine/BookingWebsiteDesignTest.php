@@ -161,6 +161,70 @@ test('removing an image empties the slot and a second removal is refused', funct
     expect($site->refresh()->getMedia(PropertyBookingSite::IMAGES))->toHaveCount(0);
 });
 
+test('choosing from the album copies the photo into the slot, and album changes leave the website alone', function () {
+    ['owner' => $owner, 'property' => $property, 'site' => $site] = designSetup();
+    $site->update(['site_template_id' => templateWithSlots()->id]);
+    $beach = $property->addMedia(UploadedFile::fake()->image('beach.jpg'))->toMediaCollection(Property::PHOTOS);
+    $pool = $property->addMedia(UploadedFile::fake()->image('pool.jpg'))->toMediaCollection(Property::PHOTOS);
+    $copy = fn (int $photo) => $this->actingAs($owner)->post(route('settings.booking-website.design.images.copy', [$property, 'hero']), ['photo' => $photo]);
+
+    $this->actingAs($owner)->get(route('settings.booking-website.design', $property))
+        ->assertInertia(fn (Assert $page) => $page->has('design.albumPhotos', 2)->where('design.albumPhotos.0.id', $beach->id)->where('canManageAlbum', true));
+
+    $copy($beach->id)->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Image saved.']);
+    $copy($pool->id)->assertInertiaFlash('toast.type', 'success');
+
+    $image = $site->refresh()->getFirstMedia(PropertyBookingSite::IMAGES);
+
+    expect($site->getMedia(PropertyBookingSite::IMAGES))->toHaveCount(1)
+        ->and($image->getCustomProperty('slot'))->toBe('hero')
+        ->and($image->id)->not->toBe($pool->id)
+        ->and($image->disk)->toBe('public')
+        ->and(Activity::query()->where('event', 'booking-website.image-copied')->count())->toBe(2);
+
+    Storage::disk('public')->assertExists($image->getPathRelativeToRoot());
+
+    $pool->delete();
+
+    expect($property->refresh()->getMedia(Property::PHOTOS))->toHaveCount(1)
+        ->and($site->refresh()->getMedia(PropertyBookingSite::IMAGES))->toHaveCount(1);
+
+    Storage::disk('public')->assertExists($image->getPathRelativeToRoot());
+});
+
+test('choosing from the album refuses a missing slot and another property\'s photo', function () {
+    ['owner' => $owner, 'property' => $property, 'site' => $site] = designSetup();
+    $site->update(['site_template_id' => templateWithSlots()->id]);
+    $photo = $property->addMedia(UploadedFile::fake()->image('beach.jpg'))->toMediaCollection(Property::PHOTOS);
+    $foreign = Property::factory()->create()->addMedia(UploadedFile::fake()->image('other.jpg'))->toMediaCollection(Property::PHOTOS);
+    $logo = $property->addMedia(UploadedFile::fake()->image('logo.png'))->toMediaCollection(Property::LOGO);
+    $url = fn (string $slot) => route('settings.booking-website.design.images.copy', [$property, $slot]);
+    $refusal = ['type' => 'error', 'message' => 'The photo or image slot is no longer there. Reload the page and try again.'];
+
+    $this->actingAs($owner)->post($url('missing'), ['photo' => $photo->id])->assertInertiaFlash('toast', $refusal);
+    $this->actingAs($owner)->post($url('hero'), ['photo' => $foreign->id])->assertInertiaFlash('toast', $refusal);
+    $this->actingAs($owner)->post($url('hero'), ['photo' => $logo->id])->assertInertiaFlash('toast', $refusal);
+    $this->actingAs($owner)->post($url('hero'), [])->assertSessionHasErrors('photo');
+
+    expect($site->refresh()->getMedia(PropertyBookingSite::IMAGES))->toHaveCount(0)
+        ->and(Activity::query()->where('event', 'booking-website.image-copied')->exists())->toBeFalse();
+});
+
+test('choosing from the album needs the manage permission, and only album managers get the album link', function () {
+    ['property' => $property, 'site' => $site] = designSetup();
+    $site->update(['site_template_id' => templateWithSlots()->id]);
+    $photo = $property->addMedia(UploadedFile::fake()->image('beach.jpg'))->toMediaCollection(Property::PHOTOS);
+    $designer = User::factory()->for($property)->withPermissions([PermissionEnum::BookingWebsiteManage])->create();
+    $other = User::factory()->for($property)->withPermissions([PermissionEnum::SettingsManage])->create();
+    $url = route('settings.booking-website.design.images.copy', [$property, 'hero']);
+
+    $this->actingAs($other)->post($url, ['photo' => $photo->id])->assertForbidden();
+
+    $this->actingAs($designer)->get(route('settings.booking-website.design', $property))
+        ->assertInertia(fn (Assert $page) => $page->has('design.albumPhotos', 1)->where('canManageAlbum', false));
+    $this->actingAs($designer)->post($url, ['photo' => $photo->id])->assertInertiaFlash('toast.type', 'success');
+});
+
 test('the checklist asks for the required images of the chosen template', function () {
     ['site' => $site] = designSetup();
     $checklist = app(BookingSiteChecklist::class);

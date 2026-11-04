@@ -4,13 +4,15 @@ namespace App\Services\BookingEngine;
 
 use App\Data\BookingEngine\BookingSiteChecklistItemData;
 use App\Enums\BookingEngineMode;
+use App\Models\Property;
 use App\Models\PropertyBookingSite;
 use App\Models\RatePlan;
+use App\Models\RoomType;
 use App\Models\SiteTemplateSlot;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
- * The "Before you publish" rows, calculated from data. Each later booking engine item adds its own row here (room photos, public rate plan, payment setup). Microsite shows the template row; API only leaves it out.
+ * The "Before you publish" rows, calculated from data. Each later booking engine item adds its own row here (payment setup). Microsite shows the template row; API only leaves it out.
  */
 class BookingSiteChecklist
 {
@@ -30,6 +32,16 @@ class BookingSiteChecklist
                 $items[] = new BookingSiteChecklistItemData('images', __('Required images added'), $missing === [], $missing === [] ? null : __('Add: :images', ['images' => implode(', ', $missing)]));
             }
         }
+
+        $hasPhotos = $site->property->getMedia(Property::PHOTOS)->isNotEmpty();
+        $items[] = new BookingSiteChecklistItemData('property-photos', __('Property photos'), $hasPhotos, $hasPhotos ? null : __('Add a photo on Settings, Details, Photos'));
+
+        $withoutPhotos = RoomType::query()
+            ->where('property_id', $site->property_id)
+            ->active()
+            ->whereDoesntHave('media', fn ($query) => $query->where('collection_name', RoomType::PHOTOS))
+            ->count();
+        $items[] = new BookingSiteChecklistItemData('room-photos', __('Room photos'), $withoutPhotos === 0, $withoutPhotos === 0 ? null : trans_choice('{1} :count room type has no photos|[2,*] :count room types have no photos', $withoutPhotos));
 
         $located = $site->property->latitude !== null && $site->property->longitude !== null;
         $items[] = new BookingSiteChecklistItemData('location', __('Location set'), $located, $located ? null : __('Paste your Google Maps link on the General tab'));

@@ -14,8 +14,10 @@ import {
 
 export default function BookingWebsiteDesign({
     design,
+    canManageAlbum,
 }: {
     design: App.Data.BookingEngine.BookingWebsiteDesignData;
+    canManageAlbum: boolean;
 }) {
     return (
         <>
@@ -81,7 +83,9 @@ export default function BookingWebsiteDesign({
                             <p className="text-sm text-muted-foreground">
                                 JPEG, PNG or WebP, up to{' '}
                                 {Math.round(design.imageMaxKb / 1024)} MB each.
-                                Each image saves as soon as you pick it.
+                                Choose a photo from your album, or upload one
+                                for the website only. Each image saves as soon
+                                as you pick it.
                             </p>
                         </header>
                         {design.siteTemplateId === null ? (
@@ -98,6 +102,8 @@ export default function BookingWebsiteDesign({
                                     <SiteImageSlotRow
                                         key={slot.key}
                                         slot={slot}
+                                        albumPhotos={design.albumPhotos}
+                                        canManageAlbum={canManageAlbum}
                                     />
                                 ))}
                             </ul>

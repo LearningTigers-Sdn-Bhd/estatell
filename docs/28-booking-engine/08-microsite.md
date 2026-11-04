@@ -69,7 +69,7 @@ site_template_slots   id, site_template_id, key, label, required, position, time
 - The key, type and property are set when the template is added and never change, because sites use them. An admin can change the name, preview link and slots.
 - `allows_main_color` says whether the Design tab offers the main colour. When it is off, a saved colour is cleared. The seeded templates allow it.
 - `preview_url` is where an admin checks a Draft before making it Available. The microsite repo does not exist yet, so it is a plain link.
-- `SiteTemplateSeeder` adds `island-resort` and `city-hotel` as Draft Standard templates, each with a required Hero image slot and optional Logo and About image slots. The demo seeder runs it. On production an admin runs it once, or adds the rows by hand.
+- `SiteTemplateSeeder` adds `island-resort` and `city-hotel` as Draft Standard templates, each with a required Hero image slot and optional Logo, About image and Icon slots. The Icon is the small image in the browser tab, and a site with none uses the plain estatell icon from the microsite. The demo seeder runs it. On production an admin runs it once, or adds the rows by hand.
 - Each template sets its own slots, because its code decides which images it can show. There are no system default slots.
 - Removing a slot from a template leaves the uploaded images in storage. They show again if the key comes back.
 

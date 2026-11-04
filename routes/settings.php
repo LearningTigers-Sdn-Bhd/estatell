@@ -236,6 +236,7 @@ Route::prefix('settings')->name('settings.')->group(function () {
             Route::get('design', [BookingWebsiteController::class, 'design'])->name('design');
             Route::put('design', [BookingWebsiteController::class, 'updateDesign'])->name('design.update');
             Route::post('design/images/{slot}', [BookingWebsiteController::class, 'uploadImage'])->where('slot', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('design.images.store');
+            Route::post('design/images/{slot}/from-album', [BookingWebsiteController::class, 'copyImage'])->where('slot', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('design.images.copy');
             Route::delete('design/images/{slot}', [BookingWebsiteController::class, 'removeImage'])->where('slot', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('design.images.destroy');
             Route::get('seo', [BookingWebsiteController::class, 'seo'])->name('seo');
             Route::put('seo', [BookingWebsiteController::class, 'updateSeo'])->name('seo.update');

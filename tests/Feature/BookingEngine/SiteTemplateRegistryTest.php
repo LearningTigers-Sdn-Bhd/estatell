@@ -17,7 +17,7 @@ test('the seeder adds two draft templates once', function () {
     $this->seed(SiteTemplateSeeder::class);
 
     expect(SiteTemplate::query()->count())->toBe(2)
-        ->and(SiteTemplate::query()->where('key', 'island-resort')->firstOrFail()->slots)->toHaveCount(3)
+        ->and(SiteTemplate::query()->where('key', 'island-resort')->firstOrFail()->slots)->toHaveCount(4)
         ->and(SiteTemplate::query()->where('key', 'city-hotel')->firstOrFail()->status)->toBe(SiteTemplateStatus::Available);
 });
 

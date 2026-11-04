@@ -225,6 +225,7 @@ label: string,
 }[],
 slots: App.Data.BookingEngine.SiteImageSlotData[],
 imageMaxKb: number,
+albumPhotos: App.Data.Property.PropertyPhotoData[],
 };
 export type BookingWebsiteGeneralData = {
 mode: string,

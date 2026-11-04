@@ -1,6 +1,7 @@
 import { router } from '@inertiajs/react';
-import { ImageIcon, Trash2, Upload } from 'lucide-react';
+import { ImageIcon, Images, Trash2, Upload } from 'lucide-react';
 import { useRef, useState } from 'react';
+import { AlbumPhotoDialog } from '@/components/pms/booking-website/album-photo-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FieldError } from '@/components/ui/field';
@@ -13,11 +14,21 @@ import {
 type Slot = App.Data.BookingEngine.SiteImageSlotData;
 
 /**
- * One image slot of the chosen template. The file uploads as soon as it is picked, and Remove empties the slot at once.
+ * One image slot of the chosen template. The owner picks an album photo or uploads a file. Both save at once, and Remove
+ * empties the slot at once.
  */
-export function SiteImageSlotRow({ slot }: { slot: Slot }) {
+export function SiteImageSlotRow({
+    slot,
+    albumPhotos,
+    canManageAlbum,
+}: {
+    slot: Slot;
+    albumPhotos: App.Data.Property.PropertyPhotoData[];
+    canManageAlbum: boolean;
+}) {
     const fileInput = useRef<HTMLInputElement>(null);
     const [busy, setBusy] = useState(false);
+    const [choosing, setChoosing] = useState(false);
     const [error, setError] = useState<string>();
 
     const upload = (file: File) => {
@@ -55,7 +66,7 @@ export function SiteImageSlotRow({ slot }: { slot: Slot }) {
 
     return (
         <li className="flex flex-col gap-2 rounded-lg border p-3">
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
                 <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted">
                     {slot.thumbUrl ? (
                         <img
@@ -70,7 +81,7 @@ export function SiteImageSlotRow({ slot }: { slot: Slot }) {
                         />
                     )}
                 </div>
-                <div className="flex min-w-0 flex-1 flex-col gap-1">
+                <div className="flex min-w-40 flex-1 flex-col gap-1">
                     <span className="flex items-center gap-2 text-sm font-medium">
                         {slot.label}
                         {slot.required && (
@@ -96,7 +107,18 @@ export function SiteImageSlotRow({ slot }: { slot: Slot }) {
                         }
                     }}
                 />
-                <div className="flex items-center gap-1">
+                <div className="flex flex-wrap items-center gap-1">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={busy}
+                        focusableWhenDisabled
+                        onClick={() => setChoosing(true)}
+                    >
+                        <Images data-icon="inline-start" />
+                        Choose from album
+                    </Button>
                     <Button
                         type="button"
                         variant="outline"
@@ -128,6 +150,13 @@ export function SiteImageSlotRow({ slot }: { slot: Slot }) {
                 </div>
             </div>
             <FieldError>{error}</FieldError>
+            <AlbumPhotoDialog
+                open={choosing}
+                onOpenChange={setChoosing}
+                slot={slot}
+                photos={albumPhotos}
+                canManageAlbum={canManageAlbum}
+            />
         </li>
     );
 }

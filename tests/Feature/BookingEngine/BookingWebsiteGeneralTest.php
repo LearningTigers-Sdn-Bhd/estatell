@@ -7,8 +7,11 @@ use App\Features\BookingEngine;
 use App\Models\Property;
 use App\Models\PropertyBookingSite;
 use App\Models\RatePlan;
+use App\Models\RoomType;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Pennant\Feature;
 use Spatie\Activitylog\Models\Activity;
@@ -65,10 +68,14 @@ it('sets up the site with a slug from the property name on first visit', functio
             ->where('general.canPublish', false)
             ->where('general.checklist.0.key', 'template')
             ->where('general.checklist.0.done', false)
-            ->where('general.checklist.1.key', 'location')
+            ->where('general.checklist.1.key', 'property-photos')
             ->where('general.checklist.1.done', false)
-            ->where('general.checklist.2.key', 'rates')
-            ->where('general.checklist.2.done', false));
+            ->where('general.checklist.2.key', 'room-photos')
+            ->where('general.checklist.2.done', true)
+            ->where('general.checklist.3.key', 'location')
+            ->where('general.checklist.3.done', false)
+            ->where('general.checklist.4.key', 'rates')
+            ->where('general.checklist.4.done', false));
 
     expect($property->refresh()->slug)->toBe('sand-bay-resort')
         ->and(PropertyBookingSite::query()->where('property_id', $property->id)->count())->toBe(1);
@@ -201,6 +208,20 @@ it('publishes and unpublishes once the checklist is done and logs who did it', f
     RatePlan::factory()->for($property)->bookableOnline()->create();
 
     $this->actingAs($owner)->post(route('settings.booking-website.publish', $property))->assertRedirect();
+    expect($property->bookingSite()->first()->published_at)->toBeNull();
+
+    Storage::fake('public');
+    $property->addMedia(UploadedFile::fake()->image('beach.jpg'))->toMediaCollection(Property::PHOTOS);
+
+    $roomType = RoomType::factory()->for($property)->create();
+
+    $this->actingAs($owner)->post(route('settings.booking-website.publish', $property))->assertRedirect();
+    expect($property->bookingSite()->first()->published_at)->toBeNull();
+
+    $roomType->addMedia(UploadedFile::fake()->image('bed.jpg'))->toMediaCollection(RoomType::PHOTOS);
+    RoomType::factory()->for($property)->archived()->create();
+
+    $this->actingAs($owner)->post(route('settings.booking-website.publish', $property))->assertRedirect();
     expect($property->bookingSite()->first()->published_at)->not->toBeNull();
 
     $this->actingAs($owner)->post(route('settings.booking-website.publish', $property))->assertRedirect();
@@ -216,9 +237,11 @@ it('lets API only go live with no template row', function () {
     $property->forceFill(['latitude' => 4.2105, 'longitude' => 101.9758])->save();
     PropertyBookingSite::factory()->apiOnly()->for($property)->create();
     RatePlan::factory()->for($property)->bookableOnline()->create();
+    Storage::fake('public');
+    $property->addMedia(UploadedFile::fake()->image('beach.jpg'))->toMediaCollection(Property::PHOTOS);
 
     $this->actingAs($owner)->get(route('settings.booking-website.general', $property))
-        ->assertInertia(fn (Assert $page) => $page->where('general.mode', 'api-only')->where('general.canPublish', true)->has('general.checklist', 2));
+        ->assertInertia(fn (Assert $page) => $page->where('general.mode', 'api-only')->where('general.canPublish', true)->has('general.checklist', 4));
 
     $this->actingAs($owner)->post(route('settings.booking-website.publish', $property))->assertRedirect();
 

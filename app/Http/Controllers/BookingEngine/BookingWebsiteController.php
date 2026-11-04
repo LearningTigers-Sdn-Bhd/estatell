@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\BookingEngine;
 
+use App\Actions\BookingEngine\CopyAlbumPhotoToSite;
 use App\Actions\BookingEngine\PublishBookingSite;
 use App\Actions\BookingEngine\RemoveSiteImage;
 use App\Actions\BookingEngine\SaveBookingWebsiteDesign;
@@ -22,6 +23,7 @@ use App\Enums\BookableOnlineResult;
 use App\Enums\BookingEngineMode;
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\BookingEngine\CopyAlbumPhotoRequest;
 use App\Http\Requests\BookingEngine\SaveBookingWebsiteDesignRequest;
 use App\Http\Requests\BookingEngine\SaveBookingWebsiteGeneralRequest;
 use App\Http\Requests\BookingEngine\SaveBookingWebsiteSeoRequest;
@@ -124,12 +126,13 @@ class BookingWebsiteController extends Controller
     /**
      * The Design tab: template, main colour and one image per slot of the saved template. Microsite only.
      */
-    public function design(Property $property, SetUpBookingSite $setUpBookingSite): Response
+    public function design(Request $request, Property $property, SetUpBookingSite $setUpBookingSite): Response
     {
         $site = $this->micrositeOrFail($setUpBookingSite($property));
 
         return Inertia::render('settings/booking-website/design', [
             'design' => BookingWebsiteDesignData::fromSite($site->load(['property', 'siteTemplate.slots'])),
+            'canManageAlbum' => $request->user()->can(PermissionEnum::SettingsManage->value),
         ]);
     }
 
@@ -151,6 +154,17 @@ class BookingWebsiteController extends Controller
         Inertia::flash('toast', $uploadSiteImage($site, $request->user(), $slot, $request->file('image'))
             ? ['type' => 'success', 'message' => __('Image saved.')]
             : ['type' => 'error', 'message' => __('The template has no such image slot. Reload the page and try again.')]);
+
+        return back();
+    }
+
+    public function copyImage(CopyAlbumPhotoRequest $request, Property $property, string $slot, SetUpBookingSite $setUpBookingSite, CopyAlbumPhotoToSite $copyAlbumPhotoToSite): RedirectResponse
+    {
+        $site = $this->micrositeOrFail($setUpBookingSite($property));
+
+        Inertia::flash('toast', $copyAlbumPhotoToSite($site, $request->user(), $slot, $request->photoId())
+            ? ['type' => 'success', 'message' => __('Image saved.')]
+            : ['type' => 'error', 'message' => __('The photo or image slot is no longer there. Reload the page and try again.')]);
 
         return back();
     }

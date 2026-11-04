@@ -20,6 +20,7 @@ class SiteTemplateSeeder extends Seeder
             ['key' => 'hero', 'label' => 'Hero image', 'required' => true],
             ['key' => 'logo', 'label' => 'Logo', 'required' => false],
             ['key' => 'about', 'label' => 'About image', 'required' => false],
+            ['key' => 'icon', 'label' => 'Icon', 'required' => false],
         ];
 
         foreach (['island-resort' => 'Island resort', 'city-hotel' => 'City hotel'] as $key => $name) {
