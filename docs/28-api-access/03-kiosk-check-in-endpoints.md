@@ -58,7 +58,7 @@ A **stay** is a reservation unit (`stay_id` is its id). A Confirmed stay **insid
 
 New kiosk write routes go in the `api.idempotent` group in `routes/api.php`.
 
-Planned for the [booking engine](../29-booking-engine/02-api.md#rules): the same middleware also serves booking clients.
+The same middleware also serves [booking clients](../29-booking-engine/02-api.md#rules).
 
 | Item     | Change                                                                                                                                                              |
 | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
