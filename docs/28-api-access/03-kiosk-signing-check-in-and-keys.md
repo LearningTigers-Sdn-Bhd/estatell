@@ -18,3 +18,28 @@ The second half of the kiosk contract (`docs/KIOSK_API.md` in the estatell-kiosk
 - `signature_png` is a PNG as plain base64 or a `data:image/png;base64,` URL. `SignRegistrationCard` checks the prefix, the PNG magic bytes and the size, then stores it as the card's signature media like the staff flow.
 - A card that is already signed answers `signed: true` again and writes nothing, so a retry without a key is safe.
 - The signature, terms and name never appear in a log or an exception message.
+
+## By-id lookups and the lockout
+
+Every call with `{id}` goes through `KioskStayController::stay()`. It takes an attempt from the token's lockout ([`KioskLookupLockout`](02-kiosk-check-in-endpoints.md#guessing-protection), the same counter `bookings/find` uses), looks the stay up with `KioskStays::find` (token's property, right status, inside the check-in window) and gives the attempt back when it finds one. A miss, another property's stay and a stay outside the window are the same `booking_not_found` and the same failure. After 10 misses in 5 minutes the token gets `429 rate_limited` for every call that looks up a stay. `identity`, `guest`, the registration card and everything below use it. A body that fails validation is answered before the lookup (`accepted: false`, `signed: false`) and does not count.
+
+## Eligibility and check-in
+
+| Call                                       | Returns                                                                                   |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| `GET /api/kiosk/v1/stays/{id}/eligibility` | `{ eligible: true }` or `{ eligible: false, reason }`                                     |
+| `POST /api/kiosk/v1/stays/{id}/check-in`   | `{ room: { number }, key_mode }`                                                          |
+| `GET /api/kiosk/v1/config`                 | `{ property_name, languages, key_mode, walk_in_enabled, idle_timeout_seconds, currency }` |
+
+- **Paid enough** is the rule that already exists: `SelfCheckInPayment` (decision D19, see [Check-in and check-out](../18-front-desk/01-check-in-and-check-out.md)). The unit folio must hold completed payments, minus refunds, that cover the taxes flagged _Collect at check-in_ plus the security deposit. `KioskEligibility` returns `deposit_not_paid` when it does not. No rule was invented.
+- `balance_not_settled` is **not** returned at check-in: Estatell has no other balance condition before arrival. It is used at check-out. `arrival_not_reached` is not returned by `eligibility` either: a stay outside its window answers `booking_not_found` like every by-id call, and `bookings/find` already tells the kiosk when check-in opens.
+- **Check-in** is `CheckInUnit`, called with **no actor** (the chain of actions it calls now accepts a null actor, as the night audit already did for room charges). Its checks are the front desk's: registration card (`card_required_for_check_in`), nationality (`nationality_required`), arrival (`arrival_not_reached`), a room for tonight (`AutoAssignRooms` when the property has it on). The kiosk adds the paid-enough check first, so nothing is written for a guest who still owes. It never skips the card and never overrides a credit limit. `deposit_not_paid` and the others answer `409` with the contract code. Anything the guest cannot fix (no room ready, credit limit, no open business date) answers `server_error` (409) and writes nothing.
+- A **stay the kiosk already checked in** answers the same room again, without a second check-in. The kiosk's own check-in is marked with the activity `kiosk.checked_in` (kiosk id only). A stay checked in by the front desk is `booking_not_found` here, so a guessed id never shows a room.
+- `room.number` is the room of the check-in night (a bed counts as its room). Estatell keeps no walking directions for a room, so `directions` is always left out.
+- `key_mode` is the property's kiosk setting.
+
+## Kiosk settings
+
+Table `property_settings` has three new columns: `kiosk_key_mode` (`pin`, `card` or `both`, default `pin`, `KioskKeyMode`), `kiosk_walk_in_enabled` (default off) and `kiosk_idle_timeout_seconds` (15 to 600, default 60, a database CHECK). Staff change them on `Settings → Kiosks` (`PUT /p/{code}/settings/kiosks/settings`, `settings.kiosks.update`, permission `settings.manage`, `UpdateKioskSettings`, log `api-access.kiosk-settings-updated` with the field names).
+
+`GET /config` reads them. `languages` are the languages Estatell has terms for (`en`, `ms`; no Chinese terms exist yet). `currency` is the property currency.

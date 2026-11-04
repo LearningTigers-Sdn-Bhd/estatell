@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Api\Kiosk\BookingController;
+use App\Http\Controllers\Api\Kiosk\CheckInController;
+use App\Http\Controllers\Api\Kiosk\ConfigController;
 use App\Http\Controllers\Api\Kiosk\MeController;
 use App\Http\Controllers\Api\Kiosk\PairController;
 use App\Http\Controllers\Api\Kiosk\RegistrationCardController;
@@ -17,6 +19,8 @@ Route::prefix('kiosk/v1')->name('api.kiosk.v1.')->group(function () {
 
     Route::middleware(['api.token:kiosk:*', 'throttle:api-token'])->group(function () {
         Route::get('me', MeController::class)->name('me');
+        Route::get('config', ConfigController::class)->name('config');
+        Route::get('stays/{id}/eligibility', [CheckInController::class, 'eligibility'])->name('stays.eligibility');
         Route::get('stays/{id}/registration-card', [RegistrationCardController::class, 'show'])->name('stays.registration-card');
         Route::post('bookings/find', [BookingController::class, 'find'])->name('bookings.find');
 
@@ -24,6 +28,7 @@ Route::prefix('kiosk/v1')->name('api.kiosk.v1.')->group(function () {
         Route::middleware('api.idempotent')->group(function () {
             Route::post('stays/{id}/identity', [StayController::class, 'identity'])->name('stays.identity');
             Route::post('stays/{id}/guest', [StayController::class, 'guest'])->name('stays.guest');
+            Route::post('stays/{id}/check-in', [CheckInController::class, 'checkIn'])->name('stays.check-in');
             Route::post('stays/{id}/registration-card/sign', [RegistrationCardController::class, 'sign'])->name('stays.registration-card.sign');
         });
     });

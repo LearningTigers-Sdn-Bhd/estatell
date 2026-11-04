@@ -4,10 +4,14 @@ namespace App\Http\Controllers\ApiAccess;
 
 use App\Actions\ApiAccess\CreateKioskPairing;
 use App\Actions\ApiAccess\RevokeApiToken;
+use App\Actions\ApiAccess\UpdateKioskSettings;
 use App\Data\ApiAccess\KioskData;
+use App\Data\ApiAccess\KioskSettingsData;
 use App\Enums\ApiTokenKind;
+use App\Enums\KioskKeyMode;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ApiAccess\StoreKioskRequest;
+use App\Http\Requests\ApiAccess\UpdateKioskSettingsRequest;
 use App\Models\ApiToken;
 use App\Models\Property;
 use Illuminate\Http\RedirectResponse;
@@ -21,7 +25,24 @@ class KioskController extends Controller
     {
         return Inertia::render('settings/kiosks/index', [
             'kiosks' => $property->apiTokens()->where('kind', ApiTokenKind::Kiosk)->latest('id')->get()->map(KioskData::fromModel(...)),
+            'settings' => KioskSettingsData::fromSettings($property->settings),
+            'keyModes' => KioskKeyMode::options(),
         ]);
+    }
+
+    public function update(UpdateKioskSettingsRequest $request, Property $property, UpdateKioskSettings $updateKioskSettings): RedirectResponse
+    {
+        $updateKioskSettings(
+            $request->user(),
+            $property,
+            KioskKeyMode::from($request->validated('key_mode')),
+            $request->boolean('walk_in_enabled'),
+            (int) $request->validated('idle_timeout_seconds'),
+        );
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Kiosk settings saved.')]);
+
+        return to_route('settings.kiosks.index', $property);
     }
 
     /**

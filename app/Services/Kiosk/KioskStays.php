@@ -10,6 +10,7 @@ use App\Models\ReservationUnit;
 use App\Models\UnitGuest;
 use App\Services\FrontDesk\StayDay;
 use App\Services\NightAudit\CurrentBusinessDate;
+use Spatie\Activitylog\Models\Activity;
 
 /**
  * Finds the stay a kiosk works on and the guest who checks in. A stay is a reservation unit that is still Confirmed
@@ -55,17 +56,27 @@ class KioskStays
     }
 
     /**
-     * @return ReservationUnit|null The Confirmed stay with that id in the property, only while its window is open.
-     *                              A stay outside the window is the same as a missing one.
+     * @param  list<UnitStatus>  $statuses  The statuses the caller can work on (default: Confirmed, before check-in).
+     * @return ReservationUnit|null The stay with that id in the property, only while its window is open. A stay
+     *                              outside the window or in another status is the same as a missing one.
      */
-    public function find(Property $property, int $id): ?ReservationUnit
+    public function find(Property $property, int $id, array $statuses = [UnitStatus::Confirmed]): ?ReservationUnit
     {
         $stay = ReservationUnit::query()
             ->where('property_id', $property->id)
-            ->where('status', UnitStatus::Confirmed)
+            ->whereIn('status', $statuses)
             ->find($id);
 
         return $stay !== null && $this->window($stay) === self::OPEN ? $stay : null;
+    }
+
+    /**
+     * Whether a kiosk checked this stay in (`KioskCheckIn` logs `kiosk.checked_in`). Reads that hand out a key or a
+     * room number to a stay that is already in-house only serve stays the kiosk itself checked in.
+     */
+    public function checkedInByKiosk(ReservationUnit $stay): bool
+    {
+        return Activity::query()->where('event', 'kiosk.checked_in')->forSubject($stay)->exists();
     }
 
     /**
@@ -104,5 +115,29 @@ class KioskStays
     public function primaryUnitGuest(ReservationUnit $unit): ?UnitGuest
     {
         return $unit->guests()->where('is_primary', true)->first();
+    }
+
+    /**
+     * The number of the room the stay sleeps in on its check-in day (a bed counts as its room). Null when none is assigned.
+     */
+    public function roomNumber(ReservationUnit $unit): ?string
+    {
+        if ($unit->stay_type === StayType::DayUse) {
+            return $unit->dayUse()->with('room')->first()?->room?->number;
+        }
+
+        $businessDate = $this->currentBusinessDate->date($unit->property()->firstOrFail());
+        $night = $unit->nights()
+            ->with(['room', 'bed.room'])
+            ->where(fn ($query) => $query->whereNotNull('room_id')->orWhereNotNull('bed_id'))
+            ->when($businessDate !== null, fn ($query) => $query->whereDate('date', $this->stayDay->forCheckIn($unit, $businessDate)->toDateString()))
+            ->orderBy('date')
+            ->first();
+
+        if ($night === null) {
+            return null;
+        }
+
+        return ($night->room_id === null ? $night->bed->room : $night->room)->number;
     }
 }

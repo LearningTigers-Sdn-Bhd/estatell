@@ -61,7 +61,7 @@ class CheckInUnit
      * `$asOf` is the moment the guest really checked in, for a past stay entered late (`CreatePastStay`): it sets
      * `checked_in_at`, and the arrival, the end of the stay and the room are checked on that day, not on the business date. Permissions are checked by the route. See docs/18-front-desk/01-check-in-and-check-out.md.
      */
-    public function __invoke(User $actor, ReservationUnit $unit, bool $withoutCard = false, ?string $creditOverrideReason = null, ?CarbonImmutable $asOf = null): UnitStayResult
+    public function __invoke(?User $actor, ReservationUnit $unit, bool $withoutCard = false, ?string $creditOverrideReason = null, ?CarbonImmutable $asOf = null): UnitStayResult
     {
         try {
             return DB::transaction(function () use ($actor, $unit, $withoutCard, $creditOverrideReason, $asOf): UnitStayResult {
@@ -179,7 +179,7 @@ class CheckInUnit
      *
      * @throws UnitStayRefused when an add-on is refused by `PostCharge`
      */
-    private function postAddOns(User $actor, ReservationUnit $unit, Collection $addOns): void
+    private function postAddOns(?User $actor, ReservationUnit $unit, Collection $addOns): void
     {
         foreach ($addOns as $addOn) {
             $result = ($this->postCharge)($actor, $unit, new NewChargeData(
@@ -200,7 +200,7 @@ class CheckInUnit
     /**
      * @throws UnitStayRefused when a missed night is refused by `PostMissedNights`
      */
-    private function postMissedNights(User $actor, ReservationUnit $unit): void
+    private function postMissedNights(?User $actor, ReservationUnit $unit): void
     {
         $result = ($this->postMissedNights)($actor, $unit);
 
@@ -212,7 +212,7 @@ class CheckInUnit
     /**
      * @throws UnitStayRefused when the block is refused by `PostDayUseBlock`
      */
-    private function postBlock(User $actor, ReservationUnit $unit, string $today, ?string $serviceDate): void
+    private function postBlock(?User $actor, ReservationUnit $unit, string $today, ?string $serviceDate): void
     {
         $result = ($this->postDayUseBlock)($actor, $unit, $today, $serviceDate);
 

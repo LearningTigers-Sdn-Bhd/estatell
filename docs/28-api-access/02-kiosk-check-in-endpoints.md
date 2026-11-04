@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The first three calls of the kiosk flow: find the booking, take the ID, take the guest's corrections. They sit on the [token layer](01-api-tokens-and-kiosk-pairing.md) and follow the contract `docs/KIOSK_API.md` in the estatell-kiosk repo. This file does not change the contract. The registration card, eligibility, check-in, keys, walk-in and check-out come later.
+The first three calls of the kiosk flow: find the booking, take the ID, take the guest's corrections. They sit on the [token layer](01-api-tokens-and-kiosk-pairing.md) and follow the contract `docs/KIOSK_API.md` in the estatell-kiosk repo. This file does not change the contract. The registration card, eligibility, check-in, keys, check-out and walk-in are in [the next file](03-kiosk-signing-check-in-and-keys.md).
 
 ## Calls
 
@@ -75,7 +75,7 @@ The ID comes from the reader to the API and is stored as normal guest data (numb
 
 ## Open
 
-- Not done, needs a contract or product decision: masking `guest_name`, a second factor for a lookup (for example last name or phone), a lookup token between `find` and the writes. Guessing `stay_id` values inside the window is limited only by the `api-token` limit.
+- Not done, needs a contract or product decision: masking `guest_name`, a second factor for a lookup (for example last name or phone), a lookup token between `find` and the writes. Guessing `stay_id` values inside the window is limited by the same lockout as the reference lookup, see [By-id lookups](03-kiosk-signing-check-in-and-keys.md#by-id-lookups-and-the-lockout).
 - A reservation with several stays: the kiosk gets the first to arrive.
 - A QR token needs an Estatell decision (what it is, where it is shown).
 - `Accept-Language` is not applied to API messages yet.

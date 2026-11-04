@@ -74,6 +74,11 @@ pairedAt: string | null,
 lastUsedAt: string | null,
 canRevoke: boolean,
 };
+export type KioskSettingsData = {
+keyMode: string,
+walkInEnabled: boolean,
+idleTimeoutSeconds: number,
+};
 }
 namespace Boats {
 export type BoatDepartureData = {
@@ -1363,6 +1368,15 @@ reason: string | null,
 export type HousekeepingStaffData = {
 id: number,
 name: string,
+};
+}
+namespace Kiosk {
+export type KioskIdentityData = {
+document: App.Data.Guests.IdentityDocumentInputData,
+fullName: string,
+nationalityCode: string | null,
+dateOfBirth: string | null,
+gender: App.Enums.Gender | null,
 };
 }
 namespace Meals {
@@ -4229,6 +4243,7 @@ export type IdentityDocumentType = 'mykad' | 'passport' | 'other';
 export type ImpersonationReason = 'onboarding_help' | 'support' | 'setup_check';
 export type InclusionEnd = 'departure_day' | 'night_before_departure';
 export type InclusionStart = 'arrival_day' | 'day_after_arrival';
+export type KioskKeyMode = 'pin' | 'card' | 'both';
 export type KioskStatus = 'awaiting_pairing' | 'paired' | 'code_expired' | 'revoked';
 export type Locale = 'en' | 'ms';
 export type MailStatus = 'sent' | 'delivered' | 'bounced' | 'complained' | 'failed' | 'suppressed';
