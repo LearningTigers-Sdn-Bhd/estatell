@@ -95,12 +95,13 @@ To verify at build: the event ID header and the exact refund event names.
 
 `ConfirmBookingHold` runs in one transaction, once per order.
 
-1. Create a new guest from the hold's details. `GuestMatcher` is not used to merge; staff merge later.
-2. Create the booking through `CreateBooking`, with the Booking Engine source and each line's plan and price.
-3. Save the [cancellation terms](05-cancel-and-refund.md#saved-terms) shown to the guest.
-4. Post the payment on the folio.
-5. Mark the hold Confirmed and link the reservation.
-6. After commit: email the guest the confirmation and Manage booking link, and notify staff.
+1. Mark the hold Confirmed. This comes first because a Paid hold counts in availability, so `AddUnit` would otherwise refuse the hold's own rooms. Other requests still see it as Paid until the commit, so nobody can take the rooms.
+2. Create a new guest from the hold's details. `GuestMatcher` is not used to merge; staff merge later.
+3. Create the booking through `CreateBooking`, with the Booking Engine source and each line's plan and price.
+4. Save the [cancellation terms](05-cancel-and-refund.md#saved-terms) shown to the guest.
+5. Post the payment on the folio.
+6. Link the reservation to the hold.
+7. After commit: email the guest the confirmation and Manage booking link, and notify staff.
 
 A guest is not a `User`, so the actor is null in `CreateBooking`, `AddUnit`, `CancelUnits` and `RecordPayment`, and in the Actions they call.
 

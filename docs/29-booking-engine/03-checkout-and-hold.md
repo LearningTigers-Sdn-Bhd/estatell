@@ -15,17 +15,21 @@ Offer ──► Guest details ──► Hold (20 minutes) ──► Payment ─�
 ## Data model
 
 ```
-booking_holds        id, property_id, token (unique), status (BookingHoldStatus),
-                     arrival_date, departure_date, total_amount, expires_at,
-                     guest_name, guest_email, guest_phone, guest_nationality,
-                     special_requests (nullable), reservation_id (nullable),
-                     timestamps
-booking_hold_lines   id, booking_hold_id, room_type_id, rate_plan_id,
-                     adults, child_ages, amount, position, timestamps
+booking_holds               id, property_id, booking_client_id, token (unique),
+                            status (BookingHoldStatus), arrival_date, departure_date,
+                            total_amount, expires_at, guest_name, guest_email,
+                            guest_phone, guest_nationality, special_requests,
+                            guest_ip_hash, reservation_id (nullable), timestamps
+booking_hold_lines          id, booking_hold_id, room_type_id, rate_plan_id,
+                            adults, amount, position, timestamps
+booking_hold_line_children  id, booking_hold_line_id, age
 ```
 
-- One line is one room or bed, as a reservation unit is.
-- Guest details are encrypted like guest records, and removed once the hold has been expired for 30 days. A guest record exists only after a booking is confirmed.
+- One line is one room or bed, as a reservation unit is. One child row is one child, as in `reservation_unit_children`.
+- `booking_client_id` is the client that made the hold. Only that client can read or release it.
+- Guest details use Laravel's `encrypted` cast, because nothing searches them and most holds never become bookings. Guest records are different: their email and phone stay plaintext for search.
+- A guest record exists only after a booking is confirmed.
+- The purge empties the guest fields and `guest_ip_hash`, so those columns are nullable. They are required when a hold is created.
 - `BookingHoldStatus`: Held, Paid, Confirmed, Expired, with `label()`, `tone()` and `canTransitionTo()`.
 
 | From    | To                 |
@@ -38,25 +42,48 @@ booking_hold_lines   id, booking_hold_id, room_type_id, rate_plan_id,
 
 `CreateBookingHold` takes the property, the chosen lines, the guest details and the total the guest saw.
 
-| Check, in order                                           | Refusal                |
-| --------------------------------------------------------- | ---------------------- |
-| The arrival is today or later, and at most 6 months ahead | `outside_window`       |
-| Each plan is public and active, and sells the room type   | `plan_not_available`   |
-| Restrictions pass (`RestrictionCheck`)                    | the restriction reason |
-| Rooms are free on every night, under the room type lock   | `not_available`        |
-| The stay can be priced                                    | the quote refusal      |
-| The total equals the total now                            | `price_changed`        |
-| Name, email, phone and nationality are valid              | a field error          |
+| Check, in order                                                            | Refusal                               |
+| -------------------------------------------------------------------------- | ------------------------------------- |
+| Name, email, phone, nationality and the lines are valid (the Form Request) | a field error                         |
+| A Microsite request has `X-Guest-IP`                                       | `guest_ip_required`                   |
+| The arrival is today or later, and at most 6 months ahead                  | `outside_window`                      |
+| Each plan is public and active, and sells the room type                    | `plan_not_available`                  |
+| The party fits, the stay can be priced, and restrictions pass              | the same code as a blocked offer      |
+| Rooms are free on every night for all lines of the room type               | `not_available`                       |
+| The [open hold limits](#open-hold-limits) allow it                         | `hold_limit_reached`                  |
+| The total equals the total now                                             | `price_changed`, with `current_total` |
 
-The room type rows are locked in id order, as `AddUnit` does, so holds and staff bookings cannot sell the same room twice.
+- From the plan check on, the checks run under the room type lock. They use `BookingOffers`, so offers and holds follow the same rules.
+- The room type rows are locked together, in id order, so holds and staff bookings cannot sell the same room twice.
+- `AddUnit` locks one room type per line, in line order, so a booking with several room types can rarely deadlock with a hold. The hold's transaction retries, so the guest does not see an error.
+
+## Release a hold
+
+`DELETE /holds/{token}` lets a guest who goes back free their room at once. `ReleaseBookingHold` marks a Held hold Expired. Any other status refuses with `hold_not_open`. A guest who still pays after releasing follows [Paid after the hold expired](04-payment.md#paid-after-the-hold-expired).
+
+## Open hold limits
+
+| Limit        | Rule                                                                 | Counts                                        |
+| ------------ | -------------------------------------------------------------------- | --------------------------------------------- |
+| Per property | At most half of the property's rooms and beds, rounded up, minimum 2 | Lines of open holds, including the new hold's |
+| Per guest IP | At most 3 open holds                                                 | Open holds with the same `guest_ip_hash`      |
+
+- An open hold is Held with `expires_at` in the future, or Paid.
+- `guest_ip_hash` is an HMAC of the address with the app key, so the address itself is not stored.
+- The property limit also caps one online booking. A 10-room hotel takes at most 5 rooms in one hold.
+
+See [Limits](../28-api-access/04-booking-engine-microsite.md#limits) for how the header is trusted.
 
 ## Holds and availability
 
-- `AvailabilityService` subtracts the lines of holds that are Held with `expires_at` in the future, and of holds that are Paid.
-- The expiry time alone decides. A hold past `expires_at` stops counting at once, so availability stays right with no job running, including on the demo environment.
-- A scheduled job marks old holds Expired and purges guest details. It is tidying only.
-- A change in held rooms changes what is sent to channels, because ARI reads `AvailabilityService`. An expiry with no job running may reach channels late, so the job also triggers an ARI update for the affected dates.
+- `AvailabilityService` subtracts the lines of holds that are Held with `expires_at` in the future, and of holds that are Paid. It gets them from the `HeldUnits` Service of this module, in one query. `NightAvailability` shows them as `held`.
+- The expiry time alone decides. A hold past `expires_at` stops counting at once, so availability stays right with no job running, including on the demo environment. `GET /holds/{token}` also shows such a hold as Expired.
+- `ExpireBookingHolds` runs every minute and marks old holds Expired. It is tidying only.
+- `PurgeBookingHoldGuestDetails` runs daily. It empties the guest details of holds that have been Expired or Confirmed for 30 days.
+- A change in held rooms changes what is sent to channels, because ARI reads `AvailabilityService`. Creating, releasing and expiring a hold each fire `InventoryChanged` for the affected room types and dates. An expiry with no job running may reach channels late.
 - Overselling can still happen between an OTA booking and the 10–30 second ARI delay. OTA bookings are always accepted and flagged as overbooked, as today.
+- Staff cannot see holds. A room can look free on the Stay View but refuse a new booking with "not available" for up to 20 minutes.
+- Night audit statistics use total minus blocked, so holds do not change them.
 
 ## Guest details
 

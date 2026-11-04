@@ -54,14 +54,15 @@ Each later client with a booking purpose, such as new-wastays, adds a type and a
 
 ## Limits
 
-| Limit                 | Rule                                                                                                   |
-| --------------------- | ------------------------------------------------------------------------------------------------------ |
-| API calls             | 120 per minute per token and property, so one busy hotel cannot slow other microsites                  |
-| API calls, no code    | 120 per minute per token, on a route with no property in the path, such as `holds/{token}`             |
-| Open holds, property  | A cap for every client. This is the real protection against a bug or abuse holding every room          |
-| Open holds, guest IP  | Counted from the `X-Guest-IP` header, because the request IP is always the client's server             |
-| Header from Microsite | Trusted, because estatell runs the microsite. A hold with no header is refused                         |
-| Header from others    | Optional. An API only or demo client's value is only an extra limit, because estatell cannot verify it |
+| Limit                 | Rule                                                                                                                                |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| API calls             | 120 per minute per token and property, so one busy hotel cannot slow other microsites                                               |
+| API calls, no code    | 120 per minute per token, on a route with no property in the path, such as `holds/{token}`                                          |
+| Hold writes           | 30 per minute per token and property, on top of the limit above                                                                     |
+| Open holds, property  | Half of the property's rooms and beds, rounded up, minimum 2. This is the real protection against a bug or abuse holding every room |
+| Open holds, guest IP  | 3, counted from the `X-Guest-IP` header, because the request IP is always the client's server                                       |
+| Header from Microsite | Trusted, because estatell runs the microsite. A hold with no header is refused                                                      |
+| Header from others    | Optional. An API only or demo client's value is only an extra limit, because estatell cannot verify it                              |
 
 ## Rules that stay
 

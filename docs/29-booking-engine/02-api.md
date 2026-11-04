@@ -18,6 +18,7 @@ The one API behind the microsite, API only websites and, later, new-wastays. It 
 | Checkout        | `POST /api/booking/v1/properties/{code}/holds`       | Yes           | Yes      | Yes         |
 |                 | `POST /api/booking/v1/holds/{token}/payment`         | Yes           | Yes      | Yes         |
 |                 | `GET /api/booking/v1/holds/{token}`                  | Yes           | Yes      | Yes         |
+|                 | `DELETE /api/booking/v1/holds/{token}`               | Yes           | Yes      | Yes         |
 | Manage booking  | `GET /api/booking/v1/bookings/{token}`               | Yes           | Yes      | Yes         |
 |                 | `GET /api/booking/v1/bookings/{token}/cancellation`  | Yes           | Yes      | Yes         |
 |                 | `POST /api/booking/v1/bookings/{token}/cancellation` | Yes           | Yes      | Yes         |
@@ -28,21 +29,22 @@ The marketplace endpoints are built and tested now, and nothing calls them until
 
 ## What each returns
 
-| Endpoint                | Returns                                                                                                                               |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `properties`            | Code, slug, name and city of the properties the token can reach                                                                       |
-| `search`                | The lowest price per property for the dates and party                                                                                 |
-| `sites/{slug}`          | Property code, template key, image slots, main colour, SEO title and description                                                      |
-| `properties/{code}`     | Name, address, coordinates, Maps link, album photos (cover first), about text, amenities, nearby places, check-in times, policies     |
-| `room-types`            | Name, description, photos, amenities, guest limits, how it is sold                                                                    |
-| `calendar`              | Lowest one-night price before tax and closed dates for each date, at most 62 days at a time                                           |
-| `offers`                | Room types, public rate plans, rooms left, `pay_online` and `pay_at_property` with tax lines, cancellation terms, or a blocked reason |
-| `holds` (POST)          | Hold token, expiry, online total, amount to pay at the property                                                                       |
-| `holds/{token}/payment` | Curlec `key_id`, `order_id`, amount, callback address, checkout timeout                                                               |
-| `holds/{token}` (GET)   | Held, Paid, Confirmed or Expired; the booking token once Confirmed                                                                    |
-| `bookings/{token}`      | Dates, rooms, guest, amount paid, status, refund status, cancellation terms                                                           |
-| `cancellation` (GET)    | Whether it can be cancelled online, the fee, tax on the fee, the refund amount                                                        |
-| `cancellation` (POST)   | The new status and the refund amount                                                                                                  |
+| Endpoint                 | Returns                                                                                                                               |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `properties`             | Code, slug, name and city of the properties the token can reach                                                                       |
+| `search`                 | The lowest price per property for the dates and party                                                                                 |
+| `sites/{slug}`           | Property code, template key, image slots, main colour, SEO title and description                                                      |
+| `properties/{code}`      | Name, address, coordinates, Maps link, album photos (cover first), about text, amenities, nearby places, check-in times, policies     |
+| `room-types`             | Name, description, photos, amenities, guest limits, how it is sold                                                                    |
+| `calendar`               | Lowest one-night price before tax and closed dates for each date, at most 62 days at a time                                           |
+| `offers`                 | Room types, public rate plans, rooms left, `pay_online` and `pay_at_property` with tax lines, cancellation terms, or a blocked reason |
+| `holds` (POST)           | Hold token, expiry, online total, amount to pay at the property                                                                       |
+| `holds/{token}/payment`  | Curlec `key_id`, `order_id`, amount, callback address, checkout timeout                                                               |
+| `holds/{token}` (GET)    | Held, Paid, Confirmed or Expired; the booking token once Confirmed                                                                    |
+| `holds/{token}` (DELETE) | The hold with its new status, Expired                                                                                                 |
+| `bookings/{token}`       | Dates, rooms, guest, amount paid, status, refund status, cancellation terms                                                           |
+| `cancellation` (GET)     | Whether it can be cancelled online, the fee, tax on the fee, the refund amount                                                        |
+| `cancellation` (POST)    | The new status and the refund amount                                                                                                  |
 
 ## Offers
 
@@ -78,20 +80,23 @@ Laravel Sanctum, on the same [token layer](../28-api-access/01-api-tokens.md) as
 
 A property the token cannot reach, one with the flag off, or a suspended one returns 404 `property_not_found`. A booking made before the flag went off still works through its booking token.
 
-| Ability           | Endpoints                                | Microsite | API only, Demo |
-| ----------------- | ---------------------------------------- | --------- | -------------- |
-| `booking:listing` | `properties`                             | Yes       | No             |
-| `booking:site`    | `sites/{slug}`                           | Yes       | No             |
-| `booking:content` | `properties/{code}` and the routes below | Yes       | Yes            |
-| `booking:search`  | `search`                                 | No        | No             |
+| Ability            | Endpoints                                | Microsite | API only, Demo |
+| ------------------ | ---------------------------------------- | --------- | -------------- |
+| `booking:listing`  | `properties`                             | Yes       | No             |
+| `booking:site`     | `sites/{slug}`                           | Yes       | No             |
+| `booking:content`  | `properties/{code}` and the routes below | Yes       | Yes            |
+| `booking:search`   | `search`                                 | No        | No             |
+| `booking:checkout` | `holds` and `holds/{token}`              | Yes       | Yes            |
 
-Sanctum matches abilities exactly, so `booking:*` is not a wildcard. The type's abilities are in `BookingClientType::abilities()`.
+Sanctum matches abilities exactly, so `booking:*` is not a wildcard. The type's abilities are in `BookingClientType::abilities()`. A token made before `booking:checkout` existed does not have it, so it must be made again.
+
+A client reaches only the holds it made. Another client's hold token answers 404 `hold_not_found`.
 
 ## Rules
 
-- **Never trusted.** Availability, price, tax and the refund are worked out again on each write. A changed price refuses the hold with `price_changed` and the current offer.
+- **Never trusted.** Availability, price, tax and the refund are worked out again on each write. A changed price refuses the hold with `price_changed` and `current_total`, inside `error`.
 - **Server only.** Tokens stay on the client's server, and the API allows no browser calls (no CORS). React parts of the microsite call its own server routes.
-- **Idempotent writes.** Creating a hold, starting a payment and cancelling take an `Idempotency-Key` header. A repeat returns the first result.
+- **Idempotent writes.** Creating a hold, starting a payment and cancelling take an `Idempotency-Key` header. A repeat returns the first result, including a refusal, so a client sends a new key for each new attempt. See [Idempotency](../28-api-access/03-kiosk-check-in-endpoints.md#idempotency-for-every-kiosk-write).
 - **Rate limits.** Per token and property, tighter on writes than reads, with limits on open holds per property and per guest IP. See [Limits](../28-api-access/04-booking-engine-microsite.md#limits).
 - **Guest tokens.** Hold and booking tokens are long and random. A booking number alone opens nothing.
 - **Not exposed.** Folios, guest search, staff data and commission.
