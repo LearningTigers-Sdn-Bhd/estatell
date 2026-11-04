@@ -55,7 +55,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | The base address of the booking microsite. A property's site is at this
-    | address plus its slug. See docs/28-booking-engine/08-microsite.md.
+    | address plus its slug. See docs/29-booking-engine/08-microsite.md.
     |
     */
 

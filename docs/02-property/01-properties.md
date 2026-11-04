@@ -34,7 +34,7 @@ property_licences  id, property_id, issuer, number, expires_on (nullable), show_
 - Easy to say on the phone. Admin ⌘K searches by code, name or city.
 - Not a secret. Access is always checked by `EnsurePropertyAccess`; a code that does not belong to the user returns `404`.
 - Not the [document prefix](#document-prefix), which is a separate column.
-- `slug` comes with the [booking engine](../28-booking-engine/07-settings-and-permissions.md#data-model), which also adds `latitude`, `longitude` and `google_maps_url`.
+- `slug` comes with the [booking engine](../29-booking-engine/07-settings-and-permissions.md#data-model), which also adds `latitude`, `longitude` and `google_maps_url`.
 - History: codes were plain numbers from the sequence `property_code_seq` until the partners change. The migration prefixed every existing code with `ES` (10142 → `ES10142`), seeded the `ES` counter with the highest number, and dropped the sequence. A second migration, before launch, renumbered every prefix from 1101 in creation order (`ES10142` → `ES1103`) and reset the counters. It refuses to run when a journal has been pushed to an accounting provider, because journal references include the code.
 
 ## Document prefix
@@ -143,9 +143,9 @@ The property's own photo album, on the Details page, **Photos** tab (`/p/{code}/
 - The tab shares `PhotoGrid` (`components/pms/photo-grid.tsx`) with the room type Photos tab.
 - Each action saves at once, so the tab has no Save button. `UploadPropertyPhotos`, `ReorderPropertyPhotos` and `RemovePropertyPhoto` (`app/Actions/Property/`) each log `property.updated`, with `photos` or `photo_order` as the change.
 - The album does not depend on the booking website. It has no feature flag and the tab shows in both booking modes.
-- Onboarding does not ask for photos, and they are not on the [Recommended checklist](../17-onboarding/03-go-live.md#recommended-checklist). The [Booking website checklist](../28-booking-engine/07-settings-and-permissions.md#general) asks for them before publishing.
+- Onboarding does not ask for photos, and they are not on the [Recommended checklist](../17-onboarding/03-go-live.md#recommended-checklist). The [Booking website checklist](../29-booking-engine/07-settings-and-permissions.md#general) asks for them before publishing.
 - The booking engine API returns these photos on `properties/{code}`.
-- The website's image slots keep their own copies. Changing the album never changes a slot. See [Design](../28-booking-engine/07-settings-and-permissions.md#design).
+- The website's image slots keep their own copies. Changing the album never changes a slot. See [Design](../29-booking-engine/07-settings-and-permissions.md#design).
 
 | Route                              | Name                      |
 | ---------------------------------- | ------------------------- |

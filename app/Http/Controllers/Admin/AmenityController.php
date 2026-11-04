@@ -21,7 +21,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * The shared amenity list. See docs/28-booking-engine/06-content-registries.md#amenities.
+ * The shared amenity list. See docs/29-booking-engine/06-content-registries.md#amenities.
  */
 class AmenityController extends Controller
 {

@@ -234,4 +234,4 @@ The build plan, as one commit per item, is in [checklist.md](checklist.md).
 | 26  | [Accounting](26-accounting/)         | Daily journal of each closed business date pushed to the accounting software (feature flag)               |
 | 27  | [Door locks](27-door-locks/)         | TTLock PINs per stay: generated or custom, issued at check-in, removed at check-out (feature flag)        |
 | 28  | [API access](28-api-access/)         | Sanctum API tokens, kiosk pairing, the first kiosk check-in calls, idempotency and the `/api` error shape |
-| 28  | [Booking engine](28-booking-engine/) | Guests book and pay online, on a microsite or through the API (feature flag, planned)                     |
+| 29  | [Booking engine](29-booking-engine/) | Guests book and pay online, on a microsite or through the API (feature flag, planned)                     |

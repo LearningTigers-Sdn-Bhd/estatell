@@ -16,7 +16,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 /**
- * The Categories tab of the shared amenity list. See docs/28-booking-engine/06-content-registries.md#amenities.
+ * The Categories tab of the shared amenity list. See docs/29-booking-engine/06-content-registries.md#amenities.
  */
 class AmenityCategoryController extends Controller
 {

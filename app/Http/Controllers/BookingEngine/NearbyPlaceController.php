@@ -28,7 +28,7 @@ use Inertia\Response;
 
 /**
  * The nearby places on the Nearby places tab of Settings > Booking website. See
- * docs/28-booking-engine/06-content-registries.md#nearby-places.
+ * docs/29-booking-engine/06-content-registries.md#nearby-places.
  */
 class NearbyPlaceController extends Controller
 {

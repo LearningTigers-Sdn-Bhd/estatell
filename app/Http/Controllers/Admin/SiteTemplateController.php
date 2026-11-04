@@ -18,7 +18,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * The booking website template registry. See docs/28-booking-engine/08-microsite.md#template-registry.
+ * The booking website template registry. See docs/29-booking-engine/08-microsite.md#template-registry.
  */
 class SiteTemplateController extends Controller
 {

@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Http;
 /**
  * Reads a place name and coordinates from a Google Maps link. It makes no Google API call. A short `maps.app.goo.gl`
  * link is followed through one redirect on the server, for that host only. See
- * docs/28-booking-engine/06-content-registries.md#reading-a-google-maps-link.
+ * docs/29-booking-engine/06-content-registries.md#reading-a-google-maps-link.
  */
 class GoogleMapsLink
 {

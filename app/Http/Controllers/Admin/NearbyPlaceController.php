@@ -21,7 +21,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Review of the shared nearby place list. See docs/28-booking-engine/06-content-registries.md#nearby-places.
+ * Review of the shared nearby place list. See docs/29-booking-engine/06-content-registries.md#nearby-places.
  */
 class NearbyPlaceController extends Controller
 {

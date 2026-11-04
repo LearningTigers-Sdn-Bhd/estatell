@@ -17,7 +17,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * The Amenities tab of the room type page. See docs/28-booking-engine/06-content-registries.md#amenities.
+ * The Amenities tab of the room type page. See docs/29-booking-engine/06-content-registries.md#amenities.
  */
 class RoomTypeAmenityController extends Controller
 {

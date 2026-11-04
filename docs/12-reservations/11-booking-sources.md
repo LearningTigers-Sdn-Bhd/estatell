@@ -218,7 +218,7 @@ Four commits after the docs commit, as in the [checklist](../checklist.md#next):
 
 ## Booking engine source
 
-Planned with the [booking engine](../28-booking-engine/01-overview.md).
+Planned with the [booking engine](../29-booking-engine/01-overview.md).
 
 - A new case `BookingSourceType::BookingEngine`, label "Booking Engine". One system row per property, named "Booking Engine", in both modes. The code finds it by type.
 - The CHECK that limits `company` and `walk_in` to system rows also covers `booking_engine`.

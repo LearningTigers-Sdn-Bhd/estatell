@@ -26,7 +26,7 @@ payments    id, property_id, folio_id, payment_method_id, amount,
 ## Enums
 
 - `PaymentPurpose`: Advance, Settlement, SecurityDeposit.
-- `PaymentStatus`: Pending, Completed, Failed. **Only Completed is created.** The planned [online gateway](../28-booking-engine/04-payment.md#data-model) tracks attempts in `gateway_payments` and writes a Completed row once the money is confirmed, because a payment row is never updated. The night audit's pending-payments blocker has nothing to block.
+- `PaymentStatus`: Pending, Completed, Failed. **Only Completed is created.** The planned [online gateway](../29-booking-engine/04-payment.md#data-model) tracks attempts in `gateway_payments` and writes a Completed row once the money is confirmed, because a payment row is never updated. The night audit's pending-payments blocker has nothing to block.
 
 ## Actions
 
@@ -272,7 +272,7 @@ Decisions made at build time (checklist item 21):
 
 ## Not in this item
 
-The Stay View Record payment button ([Stay View](../18-front-desk/03-stay-view.md)), the Cards and List money strip, and online payments, which are planned in the [booking engine](../28-booking-engine/04-payment.md).
+The Stay View Record payment button ([Stay View](../18-front-desk/03-stay-view.md)), the Cards and List money strip, and online payments, which are planned in the [booking engine](../29-booking-engine/04-payment.md).
 
 ## Lessons from wastays
 

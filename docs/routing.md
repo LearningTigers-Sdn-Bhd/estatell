@@ -73,7 +73,7 @@ URL shape, route groups, names and middleware for estatell. Wayfinder generates 
 | Company portal     | `/portal`, `/portal/properties`, `/portal/{code}`                             | `portal.`             | auth, verified (+ portal under `/portal/{code}`)                                         | `portal.php`       |
 | Guest-facing       | `/g`                                                                          | `guest.`              | signed                                                                                   | `guest.php`        |
 | Webhooks           | `/webhooks`                                                                   | `webhooks.`           | no CSRF, provider signature check                                                        | `webhooks.php`     |
-| Booking engine API | `/api/v1` (planned)                                                           | `api.`                | Sanctum token, abilities, rate limits. See [API](28-booking-engine/02-api.md)            | `api.php`          |
+| Booking engine API | `/api/v1` (planned)                                                           | `api.`                | Sanctum token, abilities, rate limits. See [API](29-booking-engine/02-api.md)            | `api.php`          |
 
 After login, an Owner of a non-live property is redirected to `/p/{their code}/onboarding/basics`. Other staff and live Owners go to the property dashboard.
 
@@ -234,4 +234,4 @@ The staff app has four contexts, chosen with links in the sidebar footer; the ot
 ## Later
 
 - **Short guest links**: `example.com/c/K7Q2MX` redirecting to the signed URL, backed by a `short_links` table, when cards are sent by WhatsApp or SMS.
-- **Public booking engine**: a separate microsite app at `booking.estatell.com/{slug}`, using `properties.slug` and the `/api/v1` API. See [Booking engine](28-booking-engine/01-overview.md).
+- **Public booking engine**: a separate microsite app at `booking.estatell.com/{slug}`, using `properties.slug` and the `/api/v1` API. See [Booking engine](29-booking-engine/01-overview.md).

@@ -20,7 +20,7 @@ use Inertia\Response;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
- * The Photos tab of the room type page. See docs/28-booking-engine/06-content-registries.md#room-photos.
+ * The Photos tab of the room type page. See docs/29-booking-engine/06-content-registries.md#room-photos.
  */
 class RoomTypePhotoController extends Controller
 {

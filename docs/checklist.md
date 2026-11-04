@@ -21,29 +21,29 @@ The booking engine is the current build. The channel manager and the wastays rep
 
 ### 28 Booking engine
 
-Planned on 2026-11-03. Docs: [Booking engine](28-booking-engine/01-overview.md). Commission fees must be built before real money is collected. Before that, also answer the "to verify" list in the overview.
+Planned on 2026-11-03. Docs: [Booking engine](29-booking-engine/01-overview.md). Commission fees must be built before real money is collected. Before that, also answer the "to verify" list in the overview.
 
-- [x] `feat(booking-engine): add the feature flag and booking site settings` — `BookingEngine`, `property_booking_sites`, `properties.slug`, the three permissions and the General tab. Docs: [Settings](28-booking-engine/07-settings-and-permissions.md).
-- [x] `feat(rooms): upload room type photos` — the upload UI on the room type page, on a public disk. Docs: [Room photos](28-booking-engine/06-content-registries.md#room-photos).
-- [x] `feat(booking-engine): add the amenity registry` — admin pages, link tables, the Content tab and the room type picker. Docs: [Amenities](28-booking-engine/06-content-registries.md#amenities).
-- [x] `feat(booking-engine): add the nearby place registry` — `GoogleMapsLink`, property location, admin review, suggestions and the rejection notice. Docs: [Nearby places](28-booking-engine/06-content-registries.md#nearby-places).
-- [x] `refactor(booking-engine): split Content into Amenities and Nearby places` — one tab, URL and page each; the about text moves to the General tab when it is built. Docs: [Settings](28-booking-engine/07-settings-and-permissions.md#booking-website-settings).
-- [x] `feat(booking-engine): manage amenity categories` — `amenity_categories` replaces the category text; a Categories tab; Property and Room tabs replace All, with a Grouped or List toggle. Docs: [Amenities](28-booking-engine/06-content-registries.md#amenities).
-- [x] `feat(booking-engine): use the amenity table on owner pages` — the Booking website and room type Amenities tabs get the admin table, and each switch saves at once. Docs: [Amenities](28-booking-engine/06-content-registries.md#amenities).
-- [x] `feat(booking-engine): add the site template registry` — admin page, slots, and the Design and SEO tabs. Docs: [Template registry](28-booking-engine/08-microsite.md#template-registry).
-- [x] `feat(booking-engine): choose online rate plans` — `rate_plans.bookable_online` and the Rates tab. Docs: [Rates](28-booking-engine/07-settings-and-permissions.md#rates).
+- [x] `feat(booking-engine): add the feature flag and booking site settings` — `BookingEngine`, `property_booking_sites`, `properties.slug`, the three permissions and the General tab. Docs: [Settings](29-booking-engine/07-settings-and-permissions.md).
+- [x] `feat(rooms): upload room type photos` — the upload UI on the room type page, on a public disk. Docs: [Room photos](29-booking-engine/06-content-registries.md#room-photos).
+- [x] `feat(booking-engine): add the amenity registry` — admin pages, link tables, the Content tab and the room type picker. Docs: [Amenities](29-booking-engine/06-content-registries.md#amenities).
+- [x] `feat(booking-engine): add the nearby place registry` — `GoogleMapsLink`, property location, admin review, suggestions and the rejection notice. Docs: [Nearby places](29-booking-engine/06-content-registries.md#nearby-places).
+- [x] `refactor(booking-engine): split Content into Amenities and Nearby places` — one tab, URL and page each; the about text moves to the General tab when it is built. Docs: [Settings](29-booking-engine/07-settings-and-permissions.md#booking-website-settings).
+- [x] `feat(booking-engine): manage amenity categories` — `amenity_categories` replaces the category text; a Categories tab; Property and Room tabs replace All, with a Grouped or List toggle. Docs: [Amenities](29-booking-engine/06-content-registries.md#amenities).
+- [x] `feat(booking-engine): use the amenity table on owner pages` — the Booking website and room type Amenities tabs get the admin table, and each switch saves at once. Docs: [Amenities](29-booking-engine/06-content-registries.md#amenities).
+- [x] `feat(booking-engine): add the site template registry` — admin page, slots, and the Design and SEO tabs. Docs: [Template registry](29-booking-engine/08-microsite.md#template-registry).
+- [x] `feat(booking-engine): choose online rate plans` — `rate_plans.bookable_online` and the Rates tab. Docs: [Rates](29-booking-engine/07-settings-and-permissions.md#rates).
 - [x] `feat(property): add the property photo album` — the `photos` collection on Property and the Photos tab on the Details page. Not in onboarding. Docs: [Photos](02-property/01-properties.md#photos).
-- [x] `feat(booking-engine): choose site images from the album` — Choose from album on the Design tab, which copies the photo into the slot, the Property photos and Room photos checklist rows, and an optional Icon slot on the seeded templates. Needs the album. Docs: [Design](28-booking-engine/07-settings-and-permissions.md#design).
-- [ ] `feat(booking-engine): add the content and offers API` — Sanctum (approved), token abilities, and the listing, site, content, calendar, offers and search endpoints. Docs: [API](28-booking-engine/02-api.md).
-- [ ] `feat(reservations): allow a booking with no staff actor` — a null actor in `CreateBooking`, `AddUnit`, `CancelUnits` and `RecordPayment`, and the system Booking Engine source. Docs: [Confirmation](28-booking-engine/04-payment.md#confirmation), [Booking sources](12-reservations/11-booking-sources.md#booking-engine-source).
-- [ ] `feat(booking-engine): hold rooms during checkout` — `booking_holds`, `AvailabilityService` counting holds, the shared Collect at check-in rule, and the holds endpoints. Docs: [Checkout and hold](28-booking-engine/03-checkout-and-hold.md).
-- [ ] `feat(payments): take online payments through Curlec` — `CurlecGateway`, `gateway_payments`, the Online method, the webhook and `ConfirmBookingHold`. Docs: [Payment](28-booking-engine/04-payment.md).
-- [ ] `feat(booking-engine): email the guest and notify staff` — the notification types and the Manage booking link. Docs: [Confirmation](28-booking-engine/04-payment.md#confirmation).
-- [ ] `feat(payments): refund online payments through Curlec` — `gateway_refunds`, `RequestOnlineRefund`, the refund webhook and the folio changes. Docs: [Refund status](28-booking-engine/05-cancel-and-refund.md#refund-status).
-- [ ] `feat(booking-engine): let guests cancel online` — saved terms, the manage booking and cancellation endpoints, and `CancelBookingOnline`. Docs: [Cancel and refund](28-booking-engine/05-cancel-and-refund.md).
-- [ ] `feat(booking-engine): add API only mode` — per-property tokens, return addresses, hold limits, the API tab and the developer guide. Docs: [API only mode](28-booking-engine/09-api-only-mode.md).
-- [ ] `feat(demo): open the booking engine API on the demo` — the fixed test token and Curlec test keys. Docs: [Test mode](28-booking-engine/09-api-only-mode.md#test-mode).
-- [ ] In the `estatell-booking-microsite` repo: scaffold Astro, the booking steps, the first template, SEO and the map. Docs: [Microsite](28-booking-engine/08-microsite.md).
+- [x] `feat(booking-engine): choose site images from the album` — Choose from album on the Design tab, which copies the photo into the slot, the Property photos and Room photos checklist rows, and an optional Icon slot on the seeded templates. Needs the album. Docs: [Design](29-booking-engine/07-settings-and-permissions.md#design).
+- [ ] `feat(booking-engine): add the content and offers API` — Sanctum (approved), token abilities, and the listing, site, content, calendar, offers and search endpoints. Docs: [API](29-booking-engine/02-api.md).
+- [ ] `feat(reservations): allow a booking with no staff actor` — a null actor in `CreateBooking`, `AddUnit`, `CancelUnits` and `RecordPayment`, and the system Booking Engine source. Docs: [Confirmation](29-booking-engine/04-payment.md#confirmation), [Booking sources](12-reservations/11-booking-sources.md#booking-engine-source).
+- [ ] `feat(booking-engine): hold rooms during checkout` — `booking_holds`, `AvailabilityService` counting holds, the shared Collect at check-in rule, and the holds endpoints. Docs: [Checkout and hold](29-booking-engine/03-checkout-and-hold.md).
+- [ ] `feat(payments): take online payments through Curlec` — `CurlecGateway`, `gateway_payments`, the Online method, the webhook and `ConfirmBookingHold`. Docs: [Payment](29-booking-engine/04-payment.md).
+- [ ] `feat(booking-engine): email the guest and notify staff` — the notification types and the Manage booking link. Docs: [Confirmation](29-booking-engine/04-payment.md#confirmation).
+- [ ] `feat(payments): refund online payments through Curlec` — `gateway_refunds`, `RequestOnlineRefund`, the refund webhook and the folio changes. Docs: [Refund status](29-booking-engine/05-cancel-and-refund.md#refund-status).
+- [ ] `feat(booking-engine): let guests cancel online` — saved terms, the manage booking and cancellation endpoints, and `CancelBookingOnline`. Docs: [Cancel and refund](29-booking-engine/05-cancel-and-refund.md).
+- [ ] `feat(booking-engine): add API only mode` — per-property tokens, return addresses, hold limits, the API tab and the developer guide. Docs: [API only mode](29-booking-engine/09-api-only-mode.md).
+- [ ] `feat(demo): open the booking engine API on the demo` — the fixed test token and Curlec test keys. Docs: [Test mode](29-booking-engine/09-api-only-mode.md#test-mode).
+- [ ] In the `estatell-booking-microsite` repo: scaffold Astro, the booking steps, the first template, SEO and the map. Docs: [Microsite](29-booking-engine/08-microsite.md).
 
 ### 18 Front desk
 

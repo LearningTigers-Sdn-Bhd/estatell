@@ -37,7 +37,7 @@ Date overlap uses `spatie/period`.
 - Overbooking is allowed only for channel bookings, and is flagged on the night audit readiness panel.
 - The service never locks. A writer that sells inventory (`AddUnit`) locks the room type row first, then checks `availableForStay()` in the same transaction.
 - The channel manager reads availability from this service when sending (see [ARI sync](../21-channels/04-ari-sync.md)).
-- Planned: the service also subtracts open [booking engine holds](../28-booking-engine/03-checkout-and-hold.md#holds-and-availability).
+- Planned: the service also subtracts open [booking engine holds](../29-booking-engine/03-checkout-and-hold.md#holds-and-availability).
 
 ## Future
 

@@ -24,7 +24,7 @@ Deploy first, so the amenity migrations run. Then run this command once in the p
 php artisan db:seed --class=AmenitySeeder --force --no-interaction
 ```
 
-- Data: the shared list from `database/seeders/data/amenities.json`. See [Amenities](../28-booking-engine/06-content-registries.md#amenities).
+- Data: the shared list from `database/seeders/data/amenities.json`. See [Amenities](../29-booking-engine/06-content-registries.md#amenities).
 - It is safe to run again. Existing amenities keep the changes admins made, and no row is removed.
 - An amenity an admin renamed comes back under its old name if the command runs again. Retire the extra row if this happens.
 - Do not run plain `db:seed` in production. `DatabaseSeeder` also creates a `test@example.com` user.

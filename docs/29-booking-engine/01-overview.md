@@ -4,7 +4,7 @@
 
 Let guests book and pay for a room online, on a property's microsite or on the owner's own website. estatell stays the source of truth for rooms, prices and money.
 
-**Status: in build.** Planned on 2026-11-03. The feature flag and the General tab are built. Build order is in the [checklist](../checklist.md#28-booking-engine).
+**Status: in build.** Planned on 2026-11-03. The feature flag and the General tab are built. Build order is in the [checklist](../checklist.md#29-booking-engine).
 
 ## Decisions
 
