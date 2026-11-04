@@ -118,35 +118,41 @@ The legal details, on the Details page, **Business licence** tab (`/p/{code}/set
 
 ## Photos
 
-The property's own photo album, on the Details page, **Photos** tab (`/p/{code}/settings/photos`, `settings.manage`). It is the third tab. Not built yet: see the [checklist](../checklist.md#28-booking-engine).
+The property's own photo album, on the Details page, **Photos** tab (`/p/{code}/settings/photos`, `settings.manage`). It is the third tab.
 
 ```
-┌ Property photos ──────────────── 12 of 30 ─ [ + Add photos ] ┐
-│ Photos of your property. Drag to reorder. The first is the   │
-│ cover.                                                       │
+┌ Property photos ─────────────────────────────────────────────┐
+│ Your property's own photos, such as the beach, lobby or pool.│
+│ JPEG, PNG or WebP, up to 5 MB each. Up to 20 photos.         │
 │                                                              │
-│ ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐            │
-│ │ beach │ │ lobby │ │ pool  │ │ cafe  │ │garden │            │
-│ │  [x]  │ │  [x]  │ │  [x]  │ │  [x]  │ │  [x]  │            │
-│ └───────┘ └───────┘ └───────┘ └───────┘ └───────┘            │
-│  Cover                                                       │
-│                                                              │
-│ JPEG, PNG or WebP, up to 5 MB each.                          │
+│ ┌───────┐ ┌───────┐ ┌───────┐ ┌╌╌╌╌╌╌╌╌╌┐                    │
+│ │ Cover │ │ lobby │ │ pool  │ ┆[Upload] ┆                    │
+│ │ [≡][x]│ │ [≡][x]│ │ [≡][x]│ ┆ 3 of 20 ┆                    │
+│ └───────┘ └───────┘ └───────┘ └╌╌╌╌╌╌╌╌╌┘                    │
+│ Drag to reorder. The first photo is the cover.               │
 └──────────────────────────────────────────────────────────────┘
 ```
 
-- A `photos` media collection on Property, on the public media disk (`MEDIA_PUBLIC_DISK`), because guests see the photos. Up to 30 photos, each with a `thumb` (400 px) and a `web` (1600 px) conversion. The rules match [room type photos](../05-rooms/01-room-types.md).
-- Each action saves at once, so the tab has no Save button. `UploadPropertyPhotos`, `ReorderPropertyPhotos` and `RemovePropertyPhoto` (`app/Actions/Property/`) each log `property.updated` with `photos`.
+| Photos  | What shows                                                                        |
+| ------- | --------------------------------------------------------------------------------- |
+| 0       | One dashed card: No photos yet and Upload photos                                  |
+| 1 to 19 | The photos and a small dashed upload card. From 2 photos, the drag hint shows too |
+| 20      | The photos and "20 of 20 photos", with no upload card                             |
+
+- A `photos` media collection on Property, on the public media disk (`MEDIA_PUBLIC_DISK`), because guests see the photos. Up to 20 photos, each with a `thumb` (400 px) and a `web` (1600 px) conversion. Each is JPEG, PNG or WebP, up to 5 MB.
+- The tab shares `PhotoGrid` (`components/pms/photo-grid.tsx`) with the room type Photos tab.
+- Each action saves at once, so the tab has no Save button. `UploadPropertyPhotos`, `ReorderPropertyPhotos` and `RemovePropertyPhoto` (`app/Actions/Property/`) each log `property.updated`, with `photos` or `photo_order` as the change.
 - The album does not depend on the booking website. It has no feature flag and the tab shows in both booking modes.
 - Onboarding does not ask for photos, and they are not on the [Recommended checklist](../17-onboarding/03-go-live.md#recommended-checklist). The [Booking website checklist](../28-booking-engine/07-settings-and-permissions.md#general) asks for them before publishing.
 - The booking engine API returns these photos on `properties/{code}`.
 - The website's image slots keep their own copies. Changing the album never changes a slot. See [Design](../28-booking-engine/07-settings-and-permissions.md#design).
 
-| Route                                   | Name                      |
-| --------------------------------------- | ------------------------- |
-| `GET`, `POST /p/{code}/settings/photos` | `settings.photos.*`       |
-| `PUT …/settings/photos/order`           | `settings.photos.reorder` |
-| `DELETE …/settings/photos/{photo}`      | `settings.photos.destroy` |
+| Route                              | Name                      |
+| ---------------------------------- | ------------------------- |
+| `GET /p/{code}/settings/photos`    | `settings.photos`         |
+| `POST /p/{code}/settings/photos`   | `settings.photos.store`   |
+| `PUT …/settings/photos/order`      | `settings.photos.reorder` |
+| `DELETE …/settings/photos/{photo}` | `settings.photos.destroy` |
 
 ## Rules
 

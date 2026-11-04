@@ -20,6 +20,7 @@ use Laravel\Pennant\Concerns\HasFeatures;
 use Laravel\Pennant\Contracts\FeatureScopeSerializeable;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * The tenant. `code` is issued by IssuePropertyCode (prefix plus number, for example ES1101) and never changes.
@@ -76,12 +77,35 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
      */
     public const array LOGO_MIME_TYPES = ['image/png', 'image/jpeg'];
 
+    public const string PHOTOS = 'photos';
+
+    public const int PHOTO_LIMIT = 20;
+
+    public const int PHOTO_MAX_KB = 5120;
+
+    public const array PHOTO_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp'];
+
+    public const array PHOTO_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+    /**
+     * Album photos are shown to guests, so they live on the public media disk.
+     */
     public function registerMediaCollections(): void
     {
         $this->addMediaCollection(self::LOGO)
             ->singleFile()
             ->acceptsMimeTypes(self::LOGO_MIME_TYPES)
             ->useDisk(app(PlatformSettings::class)->current()->media_disk->diskName());
+
+        $this->addMediaCollection(self::PHOTOS)
+            ->acceptsMimeTypes(self::PHOTO_MIME_TYPES)
+            ->useDisk(config('filesystems.public_media'));
+    }
+
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        $this->addMediaConversion('thumb')->performOnCollections(self::PHOTOS)->nonQueued()->width(400);
+        $this->addMediaConversion('web')->performOnCollections(self::PHOTOS)->nonQueued()->width(1600);
     }
 
     /**

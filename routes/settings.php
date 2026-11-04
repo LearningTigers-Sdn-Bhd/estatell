@@ -24,6 +24,7 @@ use App\Http\Controllers\Property\NotificationSettingController;
 use App\Http\Controllers\Property\OtaListSettingsController;
 use App\Http\Controllers\Property\PrintSettingsController;
 use App\Http\Controllers\Property\PropertyLogoController;
+use App\Http\Controllers\Property\PropertyPhotoController;
 use App\Http\Controllers\Property\PropertySettingsController;
 use App\Http\Controllers\Rates\RatePlanCompanyController;
 use App\Http\Controllers\Rates\RatePlanController;
@@ -56,6 +57,12 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::put('profile', [PropertySettingsController::class, 'updateProfile'])->name('profile.update');
         Route::get('business', [PropertySettingsController::class, 'business'])->name('business');
         Route::put('business', [PropertySettingsController::class, 'updateBusiness'])->name('business.update');
+        Route::get('photos', [PropertySettingsController::class, 'photos'])->name('photos');
+        Route::controller(PropertyPhotoController::class)->group(function () {
+            Route::post('photos', 'store')->name('photos.store');
+            Route::put('photos/order', 'reorder')->name('photos.reorder');
+            Route::delete('photos/{photo}', 'destroy')->whereNumber('photo')->name('photos.destroy');
+        });
         Route::get('/', [PropertySettingsController::class, 'edit'])->name('edit');
         Route::get('operations', [PropertySettingsController::class, 'operations'])->name('operations');
         Route::get('support', [PropertySettingsController::class, 'support'])->name('support');

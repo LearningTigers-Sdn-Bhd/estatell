@@ -2545,6 +2545,12 @@ number: string,
 expiresOn: string | null,
 showOnDocuments: boolean,
 };
+export type PropertyPhotoData = {
+id: number,
+name: string,
+url: string,
+thumbUrl: string,
+};
 export type PropertyProfileData = {
 name: string,
 legalName: string | null,

@@ -8,6 +8,7 @@ use App\Actions\Property\UpdatePropertySettings;
 use App\Data\Meals\MealPeriodData;
 use App\Data\Property\PropertyAgeGroupData;
 use App\Data\Property\PropertyBusinessData;
+use App\Data\Property\PropertyPhotoData;
 use App\Data\Property\PropertyProfileData;
 use App\Data\Property\PropertySettingsData;
 use App\Enums\Locale;
@@ -28,6 +29,7 @@ use App\Services\Property\SettingsLock;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class PropertySettingsController extends Controller
 {
@@ -76,6 +78,20 @@ class PropertySettingsController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Business details saved.')]);
 
         return to_route('settings.business', ['property' => $property->code]);
+    }
+
+    /**
+     * Settings page, Photos tab: the property album. Saved by `PropertyPhotoController`.
+     */
+    public function photos(Property $property, SettingsLock $settingsLock): Response
+    {
+        return $this->renderTab($property, $settingsLock, 'photos', [
+            'photos' => $property->getMedia(Property::PHOTOS)
+                ->map(fn (Media $media): PropertyPhotoData => PropertyPhotoData::fromModel($media))
+                ->values(),
+            'photoLimit' => Property::PHOTO_LIMIT,
+            'photoMaxKb' => Property::PHOTO_MAX_KB,
+        ]);
     }
 
     /**
@@ -151,7 +167,7 @@ class PropertySettingsController extends Controller
     /**
      * Each tab has its own URL, so the open tab survives a refresh. Only the open tab's options are sent.
      *
-     * @param  'profile'|'business'|'general'|'operations'|'support'|'age-groups'|'meal-periods'  $tab
+     * @param  'profile'|'business'|'photos'|'general'|'operations'|'support'|'age-groups'|'meal-periods'  $tab
      * @param  array<string, mixed>  $tabProps
      */
     private function renderTab(Property $property, SettingsLock $settingsLock, string $tab, array $tabProps = []): Response
