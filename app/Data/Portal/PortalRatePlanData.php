@@ -9,7 +9,8 @@ use Spatie\LaravelData\Data;
 
 /**
  * A rate plan the company can book, with the short line shown under its name and the room types it sells. `summary`
- * is "{n}-night package" for a package, the names of its inclusions, or "Room only".
+ * is "{n}-night package" for a package, the names of its inclusions, or "Room only". `minRooms`, `maxRooms` and
+ * `groupRatePlanId` let the page switch a booking to the group rate once it has more rooms than the plan allows.
  */
 class PortalRatePlanData extends Data
 {
@@ -21,6 +22,9 @@ class PortalRatePlanData extends Data
         public string $name,
         public string $summary,
         public array $roomTypeIds,
+        public ?int $minRooms = null,
+        public ?int $maxRooms = null,
+        public ?int $groupRatePlanId = null,
     ) {}
 
     /**
@@ -38,6 +42,14 @@ class PortalRatePlanData extends Data
             default => __('Room only'),
         };
 
-        return new self($ratePlan->id, $ratePlan->name, $summary, array_values($ratePlan->roomTypes->pluck('id')->map(intval(...))->all()));
+        return new self(
+            $ratePlan->id,
+            $ratePlan->name,
+            $summary,
+            array_values($ratePlan->roomTypes->pluck('id')->map(intval(...))->all()),
+            $ratePlan->pricing_basis === PricingBasis::PerBed ? null : $ratePlan->min_rooms,
+            $ratePlan->pricing_basis === PricingBasis::PerBed ? null : $ratePlan->max_rooms,
+            $ratePlan->group_rate_plan_id,
+        );
     }
 }

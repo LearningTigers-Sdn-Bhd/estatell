@@ -9,7 +9,7 @@ use App\Models\RatePlan;
 use Spatie\LaravelData\Data;
 
 /**
- * A rate plan to pick in the Add unit Sheet, with the room types it is sold for and who can use it at the front desk (`companyAccess`, `companyAtDesk` for All companies, `companyIds` for Only these companies, `companyMarket` and `marketCompanyIds` for a plan limited to local or international companies). `minRooms` and `maxRooms` are the rooms a booking needs to use the plan (null: no limit). `fixedNights` is set for a package, which sells a fixed stay length. A Day use plan has `isDayUse` and its hours range and Sold between window (`H:i`), and sells only day use lines; the other plans sell only overnight lines. Expects `roomTypes` to be loaded.
+ * A rate plan to pick in the Add unit Sheet, with the room types it is sold for and who can use it at the front desk (`companyAccess`, `companyAtDesk` for All companies, `companyIds` for Only these companies, `companyMarket` and `marketCompanyIds` for a plan limited to local or international companies). `minRooms` and `maxRooms` are the rooms a booking needs to use the plan (null: no limit), and `groupRatePlanId` the plan a larger booking switches to. `fixedNights` is set for a package, which sells a fixed stay length. A Day use plan has `isDayUse` and its hours range and Sold between window (`H:i`), and sells only day use lines; the other plans sell only overnight lines. Expects `roomTypes` to be loaded.
  */
 class RatePlanOptionData extends Data
 {
@@ -35,6 +35,7 @@ class RatePlanOptionData extends Data
         public ?string $dayUseUntil = null,
         public ?int $minRooms = null,
         public ?int $maxRooms = null,
+        public ?int $groupRatePlanId = null,
     ) {}
 
     /**
@@ -59,6 +60,7 @@ class RatePlanOptionData extends Data
             $ratePlan->day_use_until === null ? null : substr($ratePlan->day_use_until, 0, 5),
             $ratePlan->min_rooms,
             $ratePlan->max_rooms,
+            $ratePlan->group_rate_plan_id,
         );
     }
 }

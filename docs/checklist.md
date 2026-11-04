@@ -118,6 +118,7 @@ Branch `feat/sandbay-gaps`. Plan: `~/Code/Jesselton-Pixel/docs/estatell/sandbay/
 - [x] `feat(notifications): remind agents of payment deadlines` — `AgentPaymentReminder` (schedule, reminder, overdue) to the company email and active portal logins, `SendAgentPaymentReminders` with `agent_payment_reminders` so each is sent once, `agent-payments:send-reminders` every 15 minutes. Docs: [Reminders](15-city-ledger/06-agent-payment-schedule.md#reminders).
 
 - [x] `feat(reports): filter boats not set and release overdue agent bookings` — Boat not set on Guest list › Arrivals and Departures (`?no_boat=1`, `ReportFilters::$boatNotSet`, `ReportKey::hasBoatNotSetFilter()`), and Release rooms on overdue rows of Agent payments due (`AgentPaymentDueRow::$overdue`, the Cancel reservation Dialog with a reason). Docs: [Guest list](22-reports/02-guest-list-and-daily-report.md#3-guest-list), [Follow-up](15-city-ledger/06-agent-payment-schedule.md#follow-up).
+- [x] `feat(rates): switch a booking to the group rate` — `rate_plans.group_rate_plan_id` (Larger bookings use on the Details tab, validated against the group rate's Min rooms), `groupRateSwitch()` and `switchGroupRates()` on the staff booking form and the agent portal, which also hides plans that do not fit the room count. Docs: [Rooms per booking](08-rates/01-rate-plans.md#rooms-per-booking).
 
 ## Next
 

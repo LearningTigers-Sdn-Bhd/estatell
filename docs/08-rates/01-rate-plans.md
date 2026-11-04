@@ -198,10 +198,14 @@ FIT and group rates: a plan can say how many rooms a booking needs to use it. Sa
 | Malaysian Agent Group Rate | 5         | —         | Not offered    | Offered        |
 | Basic Rate (no limit)      | —         | —         | Offered        | Offered        |
 
+With **Larger bookings use: Malaysian Agent Group Rate** on the FIT plan, the 5th room moves every FIT room of the booking to the group rate.
+
 - **Columns:** `rate_plans.min_rooms` and `max_rooms`, nullable (no limit), 1–200, CHECK min ≤ max. Set on the Details tab as **Rooms per booking: from [ ] to [ ]**. Not offered on Per bed and Day use plans.
 - **Count:** the rooms of the booking that hold inventory on a Room room type, on any plan. A dorm bed does not count.
 - **Booking form:** `plansFor()` hides a plan whose range does not hold the booking's room count (`roomsInBooking()`), from `minRooms` and `maxRooms` on `RatePlanOptionData`, with no request. A plan already picked on a line stays in its list, so the server's message shows on the line.
 - **Server:** `AddUnit` refuses `rooms_below_min` ("This rate needs more rooms in one booking. Pick another rate.") or `rooms_above_max` ("This rate is for fewer rooms in one booking. Pick the group rate."). `CreateReservation` passes the room count of the whole booking; Add unit counts the reservation's live rooms plus the new one. The company portal books through `CreateReservation`, so the same check applies.
+- **Larger bookings use** (`rate_plans.group_rate_plan_id`, nullable, `nullOnDelete`; CHECK it is not the plan itself and the plan has a Max rooms). On the FIT plan, pick the group rate. The request accepts an active plan of the property, not Per bed or Day use, whose Min rooms is above this plan's Max rooms; the Select lists only plans with a Min rooms, as "Agent Group (from 5 rooms)". Clearing Max rooms clears the link.
+- **The switch** (`groupRateSwitch()` and `switchGroupRates()` in `booking-lines.ts`): when the booking's room count changes, a line whose plan no longer fits moves to the plan's group rate, or back to the FIT rate that names its plan when the booking shrinks. The new plan must fit the count, sell the line's room type and be bookable (open to the booking's company at the desk; listed for the agent in the portal). An Alert says "4 rooms moved to Agent Group for a booking of 5 rooms." Staff can pick another plan on a line afterwards; the switch runs again only when the room count changes. The portal counts the Rooms of each room line and also hides plans that do not fit. The server does not switch: it still refuses a plan that does not fit.
 - **Channels:** ignored (`fromChannel`).
 - **Later changes:** a room cancelled or added later does not re-check the other rooms, which keep their plan and price.
 

@@ -45,6 +45,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CompanyRateMarket $company_market
  * @property int|null $min_rooms The fewest rooms a booking needs to use this plan (FIT/GROUP rates). Null: no limit.
  * @property int|null $max_rooms The most rooms a booking can have to use this plan. Null: no limit.
+ * @property int|null $group_rate_plan_id The plan a booking with more than `max_rooms` rooms switches to (a FIT rate's group rate).
  * @property bool $needs_child_price_review
  * @property int $position
  * @property CarbonImmutable|null $archived_at
@@ -53,7 +54,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property-read RatePlan|null $parent
  */
 #[Fillable([
-    'name', 'description', 'pricing_basis', 'fixed_nights', 'package_unit', 'day_use_min_hours', 'day_use_max_hours', 'day_use_from', 'day_use_until', 'extra_adult_amount', 'extra_child_amount', 'single_supplement', 'min_rooms', 'max_rooms',
+    'name', 'description', 'pricing_basis', 'fixed_nights', 'package_unit', 'day_use_min_hours', 'day_use_max_hours', 'day_use_from', 'day_use_until', 'extra_adult_amount', 'extra_child_amount', 'single_supplement', 'min_rooms', 'max_rooms', 'group_rate_plan_id',
     'parent_rate_plan_id', 'derivation', 'derivation_value', 'early_departure_policy', 'needs_child_price_review', 'position', 'archived_at',
 ])]
 class RatePlan extends Model
@@ -81,6 +82,7 @@ class RatePlan extends Model
             'company_market' => CompanyRateMarket::class,
             'min_rooms' => 'integer',
             'max_rooms' => 'integer',
+            'group_rate_plan_id' => 'integer',
             'extra_adult_amount' => 'decimal:2',
             'extra_child_amount' => 'decimal:2',
             'single_supplement' => 'decimal:2',

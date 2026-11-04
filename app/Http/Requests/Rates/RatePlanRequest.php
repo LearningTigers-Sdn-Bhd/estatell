@@ -30,6 +30,7 @@ class RatePlanRequest extends FormRequest
             'day_use_until' => filled($this->input('day_use_until')) ? $this->input('day_use_until') : null,
             'min_rooms' => filled($this->input('min_rooms')) ? $this->input('min_rooms') : null,
             'max_rooms' => filled($this->input('max_rooms')) ? $this->input('max_rooms') : null,
+            'group_rate_plan_id' => filled($this->input('group_rate_plan_id')) ? $this->input('group_rate_plan_id') : null,
         ]);
     }
 
@@ -67,7 +68,23 @@ class RatePlanRequest extends FormRequest
             'description' => ['nullable', 'string', 'max:2000'],
             ...(in_array($current->pricing_basis, [PricingBasis::PerBed, PricingBasis::DayUse], true) ? [] : [
                 'min_rooms' => ['nullable', 'integer', 'between:1,200'],
-                'max_rooms' => ['nullable', 'integer', 'between:1,200', ...(filled($this->input('min_rooms')) ? ['gte:min_rooms'] : [])],
+                'max_rooms' => ['nullable', 'integer', 'between:1,200', ...(filled($this->input('min_rooms')) ? ['gte:min_rooms'] : []), 'required_with:group_rate_plan_id'],
+                'group_rate_plan_id' => [
+                    'nullable', 'integer',
+                    function (string $attribute, mixed $value, Closure $fail) use ($property, $current): void {
+                        $group = RatePlan::query()->where('property_id', $property->id)->active()->whereKeyNot($current->id)->find($value);
+
+                        if ($group === null || in_array($group->pricing_basis, [PricingBasis::PerBed, PricingBasis::DayUse], true)) {
+                            $fail(__('Pick another active rate plan of this property.'));
+
+                            return;
+                        }
+
+                        if ($group->min_rooms === null || $group->min_rooms <= (int) $this->input('max_rooms')) {
+                            $fail(__('Set Rooms per booking on :name to start above :max rooms first.', ['name' => $group->name, 'max' => (int) $this->input('max_rooms')]));
+                        }
+                    },
+                ],
             ]),
             ...match ($current->pricing_basis) {
                 PricingBasis::PerRoom => ['extra_adult_amount' => $amount, 'extra_child_amount' => $amount],

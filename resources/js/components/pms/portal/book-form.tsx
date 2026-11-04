@@ -1,6 +1,6 @@
 import { useForm } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { DatePicker } from '@/components/pms/date-picker';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { FormError } from '@/components/pms/form-error';
@@ -23,6 +23,11 @@ import {
 import type { BookGuest, BookLine } from '@/components/pms/portal/book-lines';
 import { BookSummary } from '@/components/pms/portal/book-summary';
 import { usePortalOffers } from '@/components/pms/portal/use-portal-offers';
+import {
+    planFitsRooms,
+    switchGroupRates,
+} from '@/components/pms/reservations/booking-lines';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
     Field,
@@ -113,6 +118,25 @@ export function BookForm({
     const isBed = (roomTypeId: string) =>
         roomTypeOf(roomTypeId)?.sellUnit === 'bed';
     const nights = nightsBetween(data.arrival_date, data.departure_date);
+    const roomCount = data.lines.reduce(
+        (sum, line) =>
+            isBed(line.room_type_id) ? sum : sum + unitCount(line, false),
+        0,
+    );
+    const [groupRateNote, setGroupRateNote] = useState<string | null>(null);
+
+    // A FIT rate with Larger bookings use moves its lines to the group rate once the booking outgrows it, and back
+    // when it shrinks, so the agent never books a rate the booking does not fit.
+    useEffect(() => {
+        const switched = switchGroupRates(data.lines, ratePlans, roomCount);
+
+        if (switched.count > 0) {
+            form.setData('lines', switched.lines);
+            setGroupRateNote(
+                `${switched.switchedTo} now applies: this booking has ${roomCount} rooms.`,
+            );
+        }
+    }, [roomCount]);
     const payload =
         nights > 0 && data.lines.some((line) => line.rate_plan_id !== '')
             ? {
@@ -353,7 +377,12 @@ export function BookForm({
                                         key={line.key}
                                         index={index}
                                         line={line}
-                                        ratePlans={ratePlans}
+                                        ratePlans={ratePlans.filter(
+                                            (plan) =>
+                                                String(plan.id) ===
+                                                    line.rate_plan_id ||
+                                                planFitsRooms(plan, roomCount),
+                                        )}
                                         roomTypes={roomTypes}
                                         offers={offers.lines?.[index] ?? null}
                                         loading={offers.lineLoading(index)}
@@ -401,6 +430,13 @@ export function BookForm({
                                 </Button>
                             </div>
                         </div>
+                        {groupRateNote && (
+                            <Alert>
+                                <AlertDescription>
+                                    {groupRateNote}
+                                </AlertDescription>
+                            </Alert>
+                        )}
                         <FieldError>{errors.lines}</FieldError>
                     </div>
                 </Section>

@@ -1,4 +1,6 @@
 import { useForm } from '@inertiajs/react';
+import { EnumSelect } from '@/components/pms/enum-select';
+import type { EnumOption } from '@/components/pms/enum-select';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
 import { Button } from '@/components/ui/button';
 import {
@@ -69,9 +71,12 @@ export function DetailsForm({
     ratePlan,
     currency,
     nightsLockedReason = null,
+    groupRateOptions = [],
 }: {
     ratePlan: RatePlan;
     currency: App.Data.Property.CurrencyData;
+    /** The plans a larger booking can switch to: active, with a fewest rooms set. */
+    groupRateOptions?: EnumOption[];
     /** Why the nights of a package cannot change, or null when they can. */
     nightsLockedReason?: string | null;
 }) {
@@ -88,6 +93,10 @@ export function DetailsForm({
         day_use_until: ratePlan.dayUseUntil ?? '',
         min_rooms: ratePlan.minRooms === null ? '' : String(ratePlan.minRooms),
         max_rooms: ratePlan.maxRooms === null ? '' : String(ratePlan.maxRooms),
+        group_rate_plan_id:
+            ratePlan.groupRatePlanId === null
+                ? ''
+                : String(ratePlan.groupRatePlanId),
     });
     const guard = useUnsavedChanges(form.isDirty);
     const basis = ratePlan.pricingBasis;
@@ -191,10 +200,14 @@ export function DetailsForm({
                                 className="w-24"
                                 value={form.data.max_rooms}
                                 onChange={(event) =>
-                                    form.setData(
-                                        'max_rooms',
-                                        event.target.value,
-                                    )
+                                    form.setData((data) => ({
+                                        ...data,
+                                        max_rooms: event.target.value,
+                                        group_rate_plan_id:
+                                            event.target.value === ''
+                                                ? ''
+                                                : data.group_rate_plan_id,
+                                    }))
                                 }
                                 aria-invalid={!!form.errors.max_rooms}
                             />
@@ -206,6 +219,33 @@ export function DetailsForm({
                         </FieldDescription>
                         <FieldError>
                             {form.errors.min_rooms ?? form.errors.max_rooms}
+                        </FieldError>
+                    </Field>
+                )}
+                {hasRoomLimits && (
+                    <Field data-invalid={!!form.errors.group_rate_plan_id}>
+                        <FieldLabel htmlFor="group_rate_plan_id">
+                            Larger bookings use
+                        </FieldLabel>
+                        <EnumSelect
+                            id="group_rate_plan_id"
+                            className="sm:max-w-sm"
+                            options={groupRateOptions}
+                            allLabel="No switch"
+                            disabled={form.data.max_rooms === ''}
+                            value={form.data.group_rate_plan_id}
+                            onValueChange={(value) =>
+                                form.setData('group_rate_plan_id', value)
+                            }
+                            aria-invalid={!!form.errors.group_rate_plan_id}
+                        />
+                        <FieldDescription>
+                            {form.data.max_rooms === ''
+                                ? 'Set the most rooms first.'
+                                : `A booking with more than ${form.data.max_rooms} rooms switches its rooms on this rate to the group rate, at the desk and in the agent portal, and back when it has fewer.`}
+                        </FieldDescription>
+                        <FieldError>
+                            {form.errors.group_rate_plan_id}
                         </FieldError>
                     </Field>
                 )}

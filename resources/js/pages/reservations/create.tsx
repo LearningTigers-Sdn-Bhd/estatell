@@ -49,6 +49,7 @@ import {
     nightsBetween,
     plansFor,
     roomsInBooking,
+    switchGroupRates,
     totalUnits,
     unitOptions,
 } from '@/components/pms/reservations/booking-lines';
@@ -541,6 +542,30 @@ export default function ReservationCreate({
     const units = totalUnits(data.lines, roomTypes);
     const roomCount = roomsInBooking(data.lines, roomTypes);
     const unitChoices = unitOptions(data.lines, roomTypes);
+
+    const [groupRateNote, setGroupRateNote] = useState<string | null>(null);
+
+    // A FIT rate with Larger bookings use moves its lines to the group rate once the booking outgrows it, and back when
+    // it shrinks. Staff can still pick another rate on any line afterwards.
+    useEffect(() => {
+        const switched = switchGroupRates(
+            form.data.lines,
+            plansFor(
+                addUnitOptions.ratePlans,
+                '',
+                form.data.company_id,
+                isDayUse,
+            ),
+            roomCount,
+        );
+
+        if (switched.count > 0) {
+            form.setData('lines', switched.lines);
+            setGroupRateNote(
+                `${switched.count === 1 ? '1 room' : `${switched.count} rooms`} moved to ${switched.switchedTo} for a booking of ${roomCount} rooms.`,
+            );
+        }
+    }, [roomCount]);
 
     const unitCapacities = unitChoices.map((unit) => unit.capacity).join(',');
     const previousUnitCount = useRef(0);
@@ -1945,6 +1970,13 @@ export default function ReservationCreate({
                                                     </Button>
                                                 </div>
                                             </div>
+                                            {groupRateNote && (
+                                                <Alert>
+                                                    <AlertDescription>
+                                                        {groupRateNote}
+                                                    </AlertDescription>
+                                                </Alert>
+                                            )}
                                             {warnings.length > 0 && (
                                                 <Alert>
                                                     <AlertDescription>
