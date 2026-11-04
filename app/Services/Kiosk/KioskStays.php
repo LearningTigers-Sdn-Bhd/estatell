@@ -7,6 +7,7 @@ use App\Enums\UnitStatus;
 use App\Models\Guest;
 use App\Models\Property;
 use App\Models\ReservationUnit;
+use App\Models\UnitGuest;
 use App\Services\FrontDesk\StayDay;
 use App\Services\NightAudit\CurrentBusinessDate;
 
@@ -94,5 +95,14 @@ class KioskStays
         $guest = $primary === null ? $unit->reservation()->firstOrFail()->booker()->first() : $primary->guest;
 
         return $guest !== null && $guest->merged_into_id === null && $guest->anonymized_at === null ? $guest : null;
+    }
+
+    /**
+     * The primary guest row of the stay: the one who signs the registration card. Null when the stay has none (the
+     * booker is then the guest, and no card is needed).
+     */
+    public function primaryUnitGuest(ReservationUnit $unit): ?UnitGuest
+    {
+        return $unit->guests()->where('is_primary', true)->first();
     }
 }
