@@ -43,3 +43,19 @@ Every call with `{id}` goes through `KioskStayController::stay()`. It takes an a
 Table `property_settings` has three new columns: `kiosk_key_mode` (`pin`, `card` or `both`, default `pin`, `KioskKeyMode`), `kiosk_walk_in_enabled` (default off) and `kiosk_idle_timeout_seconds` (15 to 600, default 60, a database CHECK). Staff change them on `Settings → Kiosks` (`PUT /p/{code}/settings/kiosks/settings`, `settings.kiosks.update`, permission `settings.manage`, `UpdateKioskSettings`, log `api-access.kiosk-settings-updated` with the field names).
 
 `GET /config` reads them. `languages` are the languages Estatell has terms for (`en`, `ms`; no Chinese terms exist yet). `currency` is the property currency.
+
+## Keys and cards
+
+| Call                                  | Sends     | Returns                                                 |
+| ------------------------------------- | --------- | ------------------------------------------------------- |
+| `GET /api/kiosk/v1/stays/{id}/key`    | none      | `{ pin: { status, code?, valid_from?, valid_until? } }` |
+| `POST /api/kiosk/v1/stays/{id}/cards` | `{ uid }` | `{ registered: true, valid_until }`                     |
+
+Both use the shared by-id lookup, require CheckedIn and a `kiosk.checked_in` marker within 30 minutes. A front-desk check-in, another property's stay and a missing stay all answer `booking_not_found`. The shared failed-lookup lockout applies.
+
+- `StayLocks` reads the locks of the stay's rooms, ordered by id. `SyncStayPasscodes` uses it too.
+- `KioskPin` reads the newest Pending, Active or Failed PIN whose end is still in the future on each lock. All must be Active to answer `ready`; any Failed answers `failed`, otherwise Pending answers `pending`. Without a row, it waits up to 120 seconds after check-in, then answers `failed`. No lock, door locks feature off or connection off answers `failed`. A PIN with no code also fails. Revoked and expired PINs are never served.
+- `ready` includes the first lock's code and RFC 3339 validity times. A multi-lock stay shows only that PIN. The response has `Cache-Control: no-store`. PINs never appear in activity logs.
+- `RegisterStayCard` uses `CardNumber` and `PasscodeWindow` to register the UID on every stay lock through `RegisterDoorCard`, from check-in to departure in the property's time zone. It uses `stay:{unit}:{lock}:card:{number}` as the domain idempotency key. Repeating with another HTTP key or another spelling of the same UID does not register again. Failed rows are retried; a Pending row fails closed.
+- Registration succeeds only when every card row is Active. Missing lock, disabled feature or connection, no gateway, TTLock failure or timeout, card in use and a fifth card on a stay lock answer `503 lock_unavailable`. That answer is never cached by the idempotency middleware. Registration is serialized per stay so simultaneous requests cannot bypass the four-card limit. HTTP errors and missing or invalid TTLock card IDs fail closed.
+- A malformed body or invalid UID answers `404 card_unknown`, without echoing the UID. The machine must hold the card until registration succeeds. Card deletion at check-out is part of the next milestone; no standalone delete endpoint exists in the contract.

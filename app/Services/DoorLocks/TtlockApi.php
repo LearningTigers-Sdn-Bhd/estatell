@@ -146,6 +146,10 @@ class TtlockApi
             'addType' => 2,
         ], remote: true);
 
+        if (! isset($response['cardId']) || ! is_numeric($response['cardId']) || (int) $response['cardId'] <= 0) {
+            throw TtlockException::unreachable();
+        }
+
         return (int) $response['cardId'];
     }
 
@@ -220,7 +224,7 @@ class TtlockApi
 
         $body = $response->json();
 
-        if (! is_array($body)) {
+        if (! $response->successful() || ! is_array($body)) {
             throw TtlockException::unreachable();
         }
 
