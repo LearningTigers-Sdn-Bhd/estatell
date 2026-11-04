@@ -90,6 +90,19 @@ Demo needs the flag on for its properties, the test token and Curlec test keys, 
 
 The developer guide is published with the API, and shows the demo address, the test token and the test payment details.
 
+## Page security
+
+The owner's developer adds Curlec's script tag and opens the checkout with the values from `POST holds/{token}/payment`. They need no Curlec account or keys, because estatell collects the money.
+
+estatell cannot secure the owner's page, so a script injected there has the same effects as on the [microsite](08-microsite.md#page-security). The developer guide must tell developers to:
+
+- Keep the API token on their server, and never send it to the browser.
+- Escape all content on their pages.
+- Use a strict Content Security Policy that allows Curlec's script.
+- Leave analytics, chat and other third-party scripts off the payment step.
+
+estatell's own protections still apply: only approved return addresses, a cap on open holds, and only the signed webhook creates a booking.
+
 ## Support boundary
 
 estatell supports the API, and the owner's developer supports their website. In API only mode, the owner's website collects guest data before it reaches estatell. The data processing terms must cover what the owner is responsible for.

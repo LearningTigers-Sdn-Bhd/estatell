@@ -51,6 +51,18 @@ Guest sees Sand Bay's site
 - React parts call the microsite's own `pages/api/` routes, which add the secret token. The browser never calls estatell.
 - Content and site settings are cached for a few minutes. Prices and availability are never cached.
 
+## Page security
+
+The payment page is the main target. A script injected into it cannot fake a booking or change the amount estatell charges, because only the signed webhook creates a booking and estatell sets the amount. It can still steal guest details, show a fake card form, or open checkout with an attacker's key so the guest pays the attacker.
+
+| Rule               | Detail                                                                                                                                 |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Escape all content | Hotel text stays escaped. Do not use `set:html` or `dangerouslySetInnerHTML` on it. Sanitise on the server if it ever needs formatting |
+| Content policy     | A strict Content Security Policy allows scripts only from the microsite and `checkout.razorpay.com`. Test Curlec's other domains       |
+| Payment step       | No analytics, chat or other third-party scripts, including in custom designs                                                           |
+| Return address     | Send guests only to the microsite or an approved owner address                                                                         |
+| Hold token         | Decide how the browser stores it, because a script on the page can read and use it                                                     |
+
 ## Template registry
 
 Admin › Booking website templates (`/admin/site-templates`, `admin.site-templates.*`). Writes need `support.2fa`.

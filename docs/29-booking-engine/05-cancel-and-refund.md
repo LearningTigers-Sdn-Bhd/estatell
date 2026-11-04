@@ -78,6 +78,10 @@ reservation_cancellation_terms
 2. On `refund.processed`, the job calls `RefundPayment`, which posts the refund line. For a group booking, one call for each unit's `payments` row.
 3. On `refund.failed`, the row becomes Failed. Staff and admins are alerted, and the credit stays on the folio until it is retried.
 
+Curlec also sends `refund.created` and `refund.speed_changed`, which estatell ignores. Refund events also fire for Curlec's auto-refunds on payments that were never captured. estatell has no `gateway_refunds` row for those, so the job marks the event processed and ignores it.
+
+This item also adds the automatic refund for a [late payment whose rooms are taken](04-payment.md#paid-after-the-hold-expired).
+
 While a refund is Pending, the folio and the guest's page show "Refund pending RM 216.00", and it counts against the amount left to refund. Curlec's normal refunds take 5–7 working days to reach the guest, so the cancel page and email say so.
 
 ## Rules for Online payments
@@ -101,4 +105,4 @@ While a refund is Pending, the folio and the guest's page show "Refund pending R
 - **The property pays both**, from its next payout. On a RM 432 card payment, a full refund costs RM 10.87 (RM 10.37 + RM 0.50).
 - On a partial refund, the property pays the RM 0.50, and the original fee stays covered by the commission on what it keeps. This is an assumption for Commission fees to confirm.
 
-Sources: [Normal refund fees](https://curlec.com/docs/payments/refunds/normal#refund-fees), [Refunds](https://curlec.com/docs/payments/refunds).
+Sources: [Normal refund fees](https://curlec.com/docs/payments/refunds/normal#refund-fees), [Refunds](https://curlec.com/docs/payments/refunds), [Refund webhook events](https://curlec.com/docs/webhooks/refunds).

@@ -21,7 +21,7 @@ The booking engine is the current build. The channel manager and the wastays rep
 
 ### 28 Booking engine
 
-Planned on 2026-11-03. Docs: [Booking engine](29-booking-engine/01-overview.md). Commission fees must be built before real money is collected. Before that, also answer the "to verify" list in the overview.
+Planned on 2026-11-03. Docs: [Booking engine](29-booking-engine/01-overview.md). Commission fees and the email, refund and guest cancel items below must be built before real money is collected. Before that, also answer the "to verify" list in the overview.
 
 - [x] `feat(booking-engine): add the feature flag and booking site settings` — `BookingEngine`, `property_booking_sites`, `properties.slug`, the three permissions and the General tab. Docs: [Settings](29-booking-engine/07-settings-and-permissions.md).
 - [x] `feat(rooms): upload room type photos` — the upload UI on the room type page, on a public disk. Docs: [Room photos](29-booking-engine/06-content-registries.md#room-photos).
@@ -39,13 +39,13 @@ Planned on 2026-11-03. Docs: [Booking engine](29-booking-engine/01-overview.md).
 - [x] `feat(reservations): allow a booking with no staff actor` — a null actor in `CreateBooking`, `AddUnit`, `CancelUnits` and `RecordPayment`, and the system Booking Engine source. Docs: [Confirmation](29-booking-engine/04-payment.md#confirmation), [Booking sources](12-reservations/11-booking-sources.md#booking-engine-source).
 - [x] `feat(api-access): replay idempotent requests for booking clients` — `booking_client_id` on `api_idempotency_keys`, either owner in `api.idempotent` and its classes, with kiosk behaviour unchanged. Docs: [Idempotency](28-api-access/03-kiosk-check-in-endpoints.md#idempotency-for-every-kiosk-write).
 - [x] `feat(booking-engine): hold rooms during checkout` — `booking_holds`, its lines and children, `HeldUnits` and `AvailabilityService` counting holds, the open hold limits with `X-Guest-IP`, the `booking:checkout` ability, create, read and release endpoints, and the expire and purge jobs. Needs: replay idempotent requests. Docs: [Checkout and hold](29-booking-engine/03-checkout-and-hold.md), [Limits](28-api-access/04-booking-engine-microsite.md#limits).
-- [ ] `feat(payments): take online payments through Curlec` — `CurlecGateway`, `gateway_payments`, the Online method, `POST holds/{token}/payment`, the webhook and `ConfirmBookingHold`. Docs: [Payment](29-booking-engine/04-payment.md).
-- [ ] `feat(booking-engine): email the guest and notify staff` — the notification types and the Manage booking link. Docs: [Confirmation](29-booking-engine/04-payment.md#confirmation).
-- [ ] `feat(payments): refund online payments through Curlec` — `gateway_refunds`, `RequestOnlineRefund`, the refund webhook and the folio changes. Docs: [Refund status](29-booking-engine/05-cancel-and-refund.md#refund-status).
-- [ ] `feat(booking-engine): let guests cancel online` — saved terms, the manage booking and cancellation endpoints, and `CancelBookingOnline`. Docs: [Cancel and refund](29-booking-engine/05-cancel-and-refund.md).
-- [ ] `feat(booking-engine): add API only mode` — per-property tokens on an API only `BookingClient`, return addresses, the API tab and the developer guide. Docs: [API only mode](29-booking-engine/09-api-only-mode.md).
+- [ ] `feat(payments): take online payments through Curlec` — `CurlecGateway`, `gateway_payments`, the Online method, `POST holds/{token}/payment`, the webhook and `ConfirmBookingHold`. Check automatic capture first. The email, automatic refund and saved terms come with later items, so a late payment whose rooms are taken alerts admins for now. Docs: [Payment](29-booking-engine/04-payment.md), [Build order](29-booking-engine/04-payment.md#build-order).
+- [ ] `feat(booking-engine): email the guest and notify staff` — the notification types, the Manage booking link and the after-commit step in `ConfirmBookingHold`. Docs: [Confirmation](29-booking-engine/04-payment.md#confirmation).
+- [ ] `feat(payments): refund online payments through Curlec` — `gateway_refunds`, `RequestOnlineRefund`, the refund webhook, ignoring Curlec's auto-refund events, the folio changes and the automatic refund for a late payment whose rooms are taken. Docs: [Refund status](29-booking-engine/05-cancel-and-refund.md#refund-status).
+- [ ] `feat(booking-engine): let guests cancel online` — saved terms and their step in `ConfirmBookingHold`, the manage booking and cancellation endpoints, and `CancelBookingOnline`. Docs: [Cancel and refund](29-booking-engine/05-cancel-and-refund.md).
+- [ ] `feat(booking-engine): add API only mode` — per-property tokens on an API only `BookingClient`, return addresses, the API tab and the developer guide with its page security rules. Docs: [API only mode](29-booking-engine/09-api-only-mode.md).
 - [ ] `feat(demo): open the booking engine API on the demo` — the fixed test token and Curlec test keys. Docs: [Test mode](29-booking-engine/09-api-only-mode.md#test-mode).
-- [ ] In the `estatell-booking-microsite` repo: scaffold Astro, the booking steps, the first template, SEO and the map. Docs: [Microsite](29-booking-engine/08-microsite.md).
+- [ ] In the `estatell-booking-microsite` repo: scaffold Astro, the booking steps, the first template, SEO, the map and the page security rules. Docs: [Microsite](29-booking-engine/08-microsite.md).
 
 ### 18 Front desk
 
