@@ -22,7 +22,7 @@ room_type_amenities   room_type_id, amenity_id    unique pair
 - The list order is the category position, then the amenity position inside it. The pickers and the admin page both follow it.
 - The pickers are plain tick boxes grouped by category. A category with nothing to show stays hidden. A ticked retired amenity shows a "Retired" badge until it is unticked.
 - Saving refuses an id that is the wrong type, unknown, or retired and not already ticked, and writes nothing. Room amenities cannot change on an archived room type. Every change is logged (`property.amenities_changed`, `room_type.amenities_changed`, `amenity.*`, `amenity_category.*`).
-- A retired amenity (`active` off) leaves the pickers and stays on properties until they untick it.
+- A retired amenity (`active` off) leaves the pickers and stays on properties until they untick it. Admins retire or bring back an amenity with the **Available** switch on its row, which saves at once.
 
 | Who   | Does                                         | Where                          |
 | ----- | -------------------------------------------- | ------------------------------ |

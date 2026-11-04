@@ -23,9 +23,9 @@ import { PageHeader } from '@/components/pms/page-header';
 import { PaginationFooter } from '@/components/pms/pagination-footer';
 import type { PaginationData } from '@/components/pms/pagination-footer';
 import { paginationUrl } from '@/components/pms/pagination-navigation';
-import { StatusBadge } from '@/components/pms/status-badge';
 import { TabLinks } from '@/components/pms/tab-links';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import {
     Table,
     TableBody,
@@ -84,14 +84,6 @@ function listPageUrl(listUrl: string, page: number): string {
     return url.href;
 }
 
-function toggleAmenity(amenity: Amenity) {
-    router.put(
-        updateActive.url(amenity.id),
-        { active: !amenity.active },
-        { preserveScroll: true, preserveState: true },
-    );
-}
-
 function AmenityRow({
     amenity,
     showCategory,
@@ -106,27 +98,45 @@ function AmenityRow({
     onMoveUp?: (() => void) | null;
     onMoveDown?: (() => void) | null;
 }) {
+    const [saving, setSaving] = useState(false);
+
+    /** Off retires the amenity. The switch flips at once and follows the server's answer. */
+    function saveActive(active: boolean) {
+        router
+            .optimistic<{ amenities: Amenity[] }>((props) => ({
+                amenities: props.amenities.map((item) =>
+                    item.id === amenity.id ? { ...item, active } : item,
+                ),
+            }))
+            .put(
+                updateActive.url(amenity.id),
+                { active },
+                {
+                    preserveScroll: true,
+                    preserveState: true,
+                    onStart: () => setSaving(true),
+                    onFinish: () => setSaving(false),
+                },
+            );
+    }
+
     return (
         <TableRow>
+            <TableCell>
+                <Switch
+                    size="sm"
+                    checked={amenity.active}
+                    disabled={saving}
+                    aria-label={`Make ${amenity.name} ${amenity.active ? 'unavailable' : 'available'}`}
+                    onCheckedChange={saveActive}
+                />
+            </TableCell>
             <TableCell className="font-medium">{amenity.name}</TableCell>
             {showCategory && (
                 <TableCell className="text-muted-foreground">
                     {amenity.category}
                 </TableCell>
             )}
-            <TableCell>
-                <StatusBadge
-                    status={
-                        amenity.active
-                            ? { value: 'on', label: 'On', tone: 'success' }
-                            : {
-                                  value: 'retired',
-                                  label: 'Retired',
-                                  tone: 'neutral',
-                              }
-                    }
-                />
-            </TableCell>
             <TableCell>
                 <div className="flex items-center justify-end gap-1">
                     {onMoveUp !== undefined && (
@@ -153,13 +163,6 @@ function AmenityRow({
                     )}
                     <Button variant="outline" size="sm" onClick={onEdit}>
                         Edit
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => toggleAmenity(amenity)}
-                    >
-                        {amenity.active ? 'Retire' : 'Turn on'}
                     </Button>
                 </div>
             </TableCell>
@@ -292,7 +295,7 @@ export default function AmenitiesIndex({
             <div className="flex flex-1 flex-col gap-6 p-4">
                 <PageHeader
                     title="Amenities"
-                    description="The shared list owners pick from. A retired amenity leaves the pickers and stays where it is already ticked."
+                    description="The shared list owners pick from. Turn an amenity off to retire it. It leaves the pickers and stays where it is already ticked."
                     actions={
                         <Button onClick={() => setAdding(true)}>
                             <Plus data-icon="inline-start" />
@@ -358,11 +361,11 @@ export default function AmenitiesIndex({
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
+                                            <TableHead>Available</TableHead>
                                             <TableHead>Amenity</TableHead>
                                             {view === 'list' && (
                                                 <TableHead>Category</TableHead>
                                             )}
-                                            <TableHead>Status</TableHead>
                                             <TableHead>
                                                 <span className="sr-only">
                                                     Actions
