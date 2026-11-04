@@ -15,13 +15,17 @@ class KioskEligibility
 {
     public const string DEPOSIT_NOT_PAID = 'deposit_not_paid';
 
-    public function __construct(private SelfCheckInPayment $payment) {}
+    public function __construct(private SelfCheckInPayment $payment, private KioskWalkInHolds $holds) {}
 
     /**
      * @return string|null Null when the guest may check in, else the reason code.
      */
     public function reason(ReservationUnit $stay): ?string
     {
+        if ($this->holds->expired($stay->property, $stay->id)) {
+            return 'hold_expired';
+        }
+
         return $this->payment->isPaidEnough($stay) ? null : self::DEPOSIT_NOT_PAID;
     }
 }

@@ -18,7 +18,7 @@ class CreateGuest
      * @param  array<string, mixed>  $attributes  Validated profile fields.
      * @param  list<string>  $tagNames
      */
-    public function __invoke(User $actor, Property $property, array $attributes, array $tagNames = []): Guest
+    public function __invoke(?User $actor, Property $property, array $attributes, array $tagNames = []): Guest
     {
         return DB::transaction(function () use ($actor, $property, $attributes, $tagNames): Guest {
             $guest = new Guest($attributes);

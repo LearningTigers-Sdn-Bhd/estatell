@@ -7,6 +7,7 @@ use App\Http\Responses\ApiError;
 use App\Services\ApiAccess\ApiTokenGate;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -23,6 +24,13 @@ class AuthenticateApiToken
         $token = $this->gate->find($request->bearerToken());
 
         if ($token === null || ! $this->gate->allows($token, $scope)) {
+            $key = 'api-token-rejections:'.(string) $request->ip();
+
+            if (RateLimiter::hit($key, 60) > 120) {
+                return ApiError::response('rate_limited', __('Too many requests. Wait a moment and try again.'), 429,
+                    ['Retry-After' => (string) RateLimiter::availableIn($key)]);
+            }
+
             return ApiError::response(
                 str_starts_with($scope, 'kiosk:') ? 'kiosk_unauthorized' : 'unauthorized',
                 __('This device is not signed in.'),

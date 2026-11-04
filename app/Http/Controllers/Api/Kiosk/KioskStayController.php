@@ -53,6 +53,10 @@ abstract class KioskStayController extends Controller
         }
 
         if ($stay === null) {
+            if (! $checkOut && ctype_digit($id) && $this->stays->expiredHold($token->property, (int) $id)) {
+                return ApiError::response('hold_expired', __('This room hold has expired. Please start again.'), 409);
+            }
+
             return $this->notFound();
         }
 

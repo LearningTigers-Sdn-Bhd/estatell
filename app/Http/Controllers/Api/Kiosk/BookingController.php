@@ -33,6 +33,7 @@ class BookingController extends Controller
 
         return match ($lookup->refusal) {
             null => new KioskBookingResource($lookup),
+            'hold_expired' => ApiError::response('hold_expired', __('This room hold has expired. Please start again.'), 409),
             KioskBookingLookup::ARRIVAL_NOT_REACHED => ApiError::response($lookup->refusal, __('Check-in is not open for this booking yet.'), 409),
             KioskBookingLookup::AMBIGUOUS => ApiError::response('server_error', __('Please see the front desk to find your stay.'), 409),
             KioskBookingLookup::NOT_OPEN => ApiError::response('server_error', __('Check-in is not open yet. Please see the front desk.'), 409),

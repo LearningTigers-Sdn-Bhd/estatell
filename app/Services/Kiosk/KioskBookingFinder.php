@@ -16,11 +16,15 @@ use App\Models\ReservationUnit;
  */
 class KioskBookingFinder
 {
-    public function __construct(private KioskStays $stays) {}
+    public function __construct(private KioskStays $stays, private KioskWalkInHolds $holds) {}
 
     public function byReference(Property $property, string $reference): KioskBookingLookup
     {
         $stays = $this->stays->byReference($property, $reference);
+
+        if ($stays->isEmpty() && $this->holds->expiredReference($property, $reference)) {
+            return KioskBookingLookup::refused('hold_expired');
+        }
 
         return $stays->count() > 1
             ? KioskBookingLookup::refused(KioskBookingLookup::AMBIGUOUS)
@@ -37,6 +41,10 @@ class KioskBookingFinder
 
         if ($stay === null) {
             return KioskBookingLookup::refused(KioskBookingLookup::BOOKING_NOT_FOUND);
+        }
+
+        if ($this->holds->expired($property, $stay->id)) {
+            return KioskBookingLookup::refused('hold_expired');
         }
 
         $window = $stay->status === UnitStatus::CheckedIn

@@ -1378,6 +1378,12 @@ nationalityCode: string | null,
 dateOfBirth: string | null,
 gender: App.Enums.Gender | null,
 };
+export type KioskWalkInData = {
+arrival: string,
+nights: number,
+adults: number,
+childAges: number[],
+};
 }
 namespace Meals {
 export type MealEntitlementData = {

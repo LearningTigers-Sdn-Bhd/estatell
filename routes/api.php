@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\Kiosk\MeController;
 use App\Http\Controllers\Api\Kiosk\PairController;
 use App\Http\Controllers\Api\Kiosk\RegistrationCardController;
 use App\Http\Controllers\Api\Kiosk\StayController;
+use App\Http\Controllers\Api\Kiosk\WalkInController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -29,8 +30,11 @@ Route::prefix('kiosk/v1')->name('api.kiosk.v1.')->group(function () {
         Route::get('stays/{id}/registration-card', [RegistrationCardController::class, 'show'])->name('stays.registration-card');
         Route::post('bookings/find', [BookingController::class, 'find'])->name('bookings.find');
 
+        Route::post('walk-in/quote', [WalkInController::class, 'quote'])->middleware('throttle:api-walk-in')->name('walk-in.quote');
+
         // Writes: a repeated `Idempotency-Key` gets the first answer again.
         Route::middleware('api.idempotent')->group(function () {
+            Route::post('walk-in/book', [WalkInController::class, 'book'])->middleware('throttle:api-walk-in')->name('walk-in.book');
             Route::post('stays/{id}/check-out', [CheckOutController::class, 'checkOut'])->name('stays.check-out');
             Route::post('stays/{id}/identity', [StayController::class, 'identity'])->name('stays.identity');
             Route::post('stays/{id}/guest', [StayController::class, 'guest'])->name('stays.guest');

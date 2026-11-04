@@ -34,7 +34,7 @@ class KioskStays
     /** The property has no open business date yet. */
     public const string NOT_LIVE = 'not_live';
 
-    public function __construct(private CurrentBusinessDate $currentBusinessDate, private StayDay $stayDay) {}
+    public function __construct(private CurrentBusinessDate $currentBusinessDate, private StayDay $stayDay, private KioskWalkInHolds $holds) {}
 
     /**
      * The one check-in window rule of the kiosk, the same as `CheckInUnit`: the stay day (`StayDay`, not the calendar
@@ -73,7 +73,12 @@ class KioskStays
             ->whereIn('status', $statuses)
             ->find($id);
 
-        return $stay !== null && ($checkOut ? $this->checkOutWindow($stay) : $this->window($stay) === self::OPEN) ? $stay : null;
+        return $stay !== null && ! $this->holds->expired($property, $stay->id) && ($checkOut ? $this->checkOutWindow($stay) : $this->window($stay) === self::OPEN) ? $stay : null;
+    }
+
+    public function expiredHold(Property $property, int $id): bool
+    {
+        return $this->holds->expired($property, $id);
     }
 
     public function checkOutWindow(ReservationUnit $stay): bool

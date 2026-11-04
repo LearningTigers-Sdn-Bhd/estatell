@@ -31,13 +31,14 @@ class CheckInStay
             return KioskCheckInResult::done($this->stays->roomNumber($stay));
         }
 
-        $reason = $this->eligibility->reason($stay);
-
-        if ($reason !== null) {
-            return KioskCheckInResult::refused($reason);
-        }
-
         $refusal = DB::transaction(function () use ($kiosk, $stay): ?string {
+            $stay = ReservationUnit::query()->where('property_id', $kiosk->property_id)->lockForUpdate()->findOrFail($stay->id);
+            $reason = $this->eligibility->reason($stay);
+
+            if ($reason !== null) {
+                return $reason;
+            }
+
             $result = ($this->checkInUnit)(null, $stay);
 
             if ($result->isRefused()) {

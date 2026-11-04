@@ -91,6 +91,12 @@ class AppServiceProvider extends ServiceProvider
     protected function configureApiRateLimiting(): void
     {
         RateLimiter::for('api-pair', fn (Request $request): Limit => Limit::perMinute(10)->by((string) $request->ip()));
+        RateLimiter::for('api-walk-in', function (Request $request): array {
+            $token = $request->attributes->get('api_token');
+
+            return [Limit::perMinute(20)->by('kiosk-walk-in-token:'.($token instanceof ApiToken ? $token->id : 'none')),
+                Limit::perMinute(40)->by('kiosk-walk-in-ip:'.(string) $request->ip())];
+        });
         RateLimiter::for('api-token', function (Request $request): Limit {
             $token = $request->attributes->get('api_token');
 

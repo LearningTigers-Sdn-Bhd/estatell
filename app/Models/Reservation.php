@@ -27,7 +27,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $booking_source_id
  * @property string|null $external_reference
  * @property string|null $notes
- * @property int $created_by
+ * @property int|null $created_by
  * @property CarbonImmutable|null $cancellation_requested_at
  * @property int|null $cancellation_requested_by
  * @property CarbonImmutable|null $created_at

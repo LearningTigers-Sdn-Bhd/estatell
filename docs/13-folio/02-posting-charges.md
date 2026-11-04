@@ -205,3 +205,5 @@ The room line has `source_type` and `source_id` set to the unit night. Discount 
 ## Lessons from wastays
 
 `folio_forecasted_charges` plus repair services (`repair_completed_nightly_charges`, `resolve_missing_nightly_charges`) existed because posting was not idempotent.
+
+Kiosk walk-in holds create their Unit folio when booked so staff can record the deposit before check-in. Other booking flows keep their existing lazy folio creation.

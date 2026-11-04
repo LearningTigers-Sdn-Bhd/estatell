@@ -40,13 +40,13 @@ Tokens look like `est_live_` plus 40 random characters. Pairing codes are 8 char
 
 ## Requests
 
-| Item        | Rule                                                                                                                                   |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Middleware  | `api.token:{scope}` (`AuthenticateApiToken`): finds the token by hash, refuses revoked, expired, unknown and suspended-property tokens |
-| Scope       | Exact match on the space-separated list. Kiosk routes need `kiosk:*`. A kiosk token never passes a `v1:*` route, and the reverse       |
-| Property    | Read from the token (`$request->attributes->get('api_token')->property`). Never from the URL or body                                   |
-| Rate limits | `api-pair`: 10 per minute per IP. `api-token`: 120 per minute per token                                                                |
-| Format      | JSON, snake_case, Eloquent API Resources without the `data` wrapper                                                                    |
+| Item        | Rule                                                                                                                                                                                         |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Middleware  | `api.token:{scope}` (`AuthenticateApiToken`): finds the token by hash, refuses revoked, expired, unknown and suspended-property tokens                                                       |
+| Scope       | Exact match on the space-separated list. Kiosk routes need `kiosk:*`. A kiosk token never passes a `v1:*` route, and the reverse                                                             |
+| Property    | Read from the token (`$request->attributes->get('api_token')->property`). Never from the URL or body                                                                                         |
+| Rate limits | `api-pair`: 10 per minute per IP. `api-token`: 120 per minute per token. Walk-in quote and book also share 20 per minute per token and 40 per IP (`api-walk-in`), after token authentication |
+| Format      | JSON, snake_case, Eloquent API Resources without the `data` wrapper                                                                                                                          |
 
 ## Errors
 
