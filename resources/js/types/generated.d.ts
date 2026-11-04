@@ -185,7 +185,7 @@ googleMapsUrl: string,
 status: App.Data.Shared.BadgeData,
 statusValue: App.Enums.NearbyPlaceStatus,
 propertiesCount: number,
-addedBy: string | null,
+addedBy: string,
 createdAt: string,
 canApprove: boolean,
 canReject: boolean,
@@ -225,13 +225,20 @@ canPublish: boolean,
 export type NearbyPlaceSuggestionData = {
 id: number,
 name: string,
+googleMapsUrl: string,
 distance: string,
+distanceKm: number,
 };
 export type PropertyNearbyPlaceData = {
 id: number,
 name: string,
+sharedName: string,
+displayName: string | null,
 description: string | null,
 googleMapsUrl: string,
+active: boolean,
+distance: string | null,
+distanceKm: number | null,
 };
 }
 namespace Catalogues {

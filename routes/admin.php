@@ -90,6 +90,8 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
     Route::put('amenities/{amenity}/active', [AmenityController::class, 'active'])->whereNumber('amenity')->middleware('support.2fa')->name('amenities.active.update');
 
     Route::get('nearby-places', [NearbyPlaceController::class, 'index'])->name('nearby-places.index');
+    Route::post('nearby-places', [NearbyPlaceController::class, 'store'])->middleware('support.2fa')->name('nearby-places.store');
+    Route::put('nearby-places/{nearbyPlace}', [NearbyPlaceController::class, 'update'])->whereNumber('nearbyPlace')->middleware('support.2fa')->name('nearby-places.update');
     Route::put('nearby-places/{nearbyPlace}/approve', [NearbyPlaceController::class, 'approve'])->whereNumber('nearbyPlace')->middleware('support.2fa')->name('nearby-places.approve');
     Route::put('nearby-places/{nearbyPlace}/reject', [NearbyPlaceController::class, 'reject'])->whereNumber('nearbyPlace')->middleware('support.2fa')->name('nearby-places.reject');
     Route::get('settings', [PlatformSettingsController::class, 'edit'])->name('settings.edit');

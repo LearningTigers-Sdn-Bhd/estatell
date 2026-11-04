@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 use Laravel\Pennant\Concerns\HasFeatures;
 use Laravel\Pennant\Contracts\FeatureScopeSerializeable;
 use Spatie\MediaLibrary\HasMedia;
@@ -54,6 +55,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  * @property-read PropertySetting|null $settings
+ * @property-read (Pivot&object{display_name: string|null})|null $pivot Set when loaded through NearbyPlace::properties(); holds this property's name for the place.
  */
 #[Fillable([
     'name', 'type', 'status',
@@ -370,7 +372,7 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
     /** @return BelongsToMany<NearbyPlace, $this> */
     public function nearbyPlaces(): BelongsToMany
     {
-        return $this->belongsToMany(NearbyPlace::class, 'property_nearby_places')->withPivot(['description', 'position'])->withTimestamps()->orderByPivot('position');
+        return $this->belongsToMany(NearbyPlace::class, 'property_nearby_places')->withPivot(['display_name', 'description', 'position', 'active'])->withTimestamps()->orderByPivot('position');
     }
 
     /** @return BelongsToMany<Amenity, $this> */

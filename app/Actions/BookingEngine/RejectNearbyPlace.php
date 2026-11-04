@@ -42,7 +42,7 @@ class RejectNearbyPlace
                 $owner = $this->owners->firstFor($property);
 
                 if ($owner !== null && $owner->deactivated_at === null) {
-                    $owner->notify(new NearbyPlaceRemoved($place->name, $property->name));
+                    $owner->notify(new NearbyPlaceRemoved($property->pivot->display_name ?? $place->name, $property->name));
                 }
             });
 

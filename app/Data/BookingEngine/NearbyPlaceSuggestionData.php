@@ -13,15 +13,21 @@ class NearbyPlaceSuggestionData extends Data
     public function __construct(
         public int $id,
         public string $name,
+        public string $googleMapsUrl,
         public string $distance,
+        public float $distanceKm,
     ) {}
 
     public static function fromModel(NearbyPlace $place): self
     {
+        $distanceKm = (float) $place->getAttribute('distance_km');
+
         return new self(
             id: $place->id,
             name: $place->name,
-            distance: __(':km km', ['km' => number_format((float) $place->getAttribute('distance_km'), 1)]),
+            googleMapsUrl: $place->google_maps_url,
+            distance: __(':km km', ['km' => number_format($distanceKm, 1)]),
+            distanceKm: $distanceKm,
         );
     }
 }

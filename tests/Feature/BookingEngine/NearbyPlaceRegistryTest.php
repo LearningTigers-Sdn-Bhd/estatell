@@ -165,6 +165,105 @@ describe('owner Nearby places tab', function () {
             ->and(NearbyPlace::query()->count())->toBe(2);
     });
 
+    it('shows the property\'s own name on that property only', function () {
+        ['owner' => $owner, 'property' => $property] = nearbyOwner();
+        ['owner' => $otherOwner, 'property' => $other] = nearbyOwner();
+        $place = NearbyPlace::factory()->create(['name' => 'Shared name']);
+        $property->nearbyPlaces()->attach($place->id, ['position' => 1]);
+        $other->nearbyPlaces()->attach($place->id, ['position' => 1]);
+
+        $this->actingAs($owner)->put(route('settings.booking-website.nearby-places.update', [$property, $place]), ['display_name' => '  My name ', 'description' => ''])->assertSessionHasNoErrors();
+
+        $this->actingAs($owner)->get(route('settings.booking-website.nearby-places', $property))
+            ->assertInertia(fn (Assert $page) => $page->where('nearbyPlaces.0.name', 'My name')->where('nearbyPlaces.0.sharedName', 'Shared name'));
+        $this->actingAs($otherOwner)->get(route('settings.booking-website.nearby-places', $other))
+            ->assertInertia(fn (Assert $page) => $page->where('nearbyPlaces.0.name', 'Shared name'));
+
+        expect($place->refresh()->name)->toBe('Shared name');
+    });
+
+    it('goes back to the shared name, and follows an admin rename, when the own name is empty or the same', function (string $displayName) {
+        ['owner' => $owner, 'property' => $property] = nearbyOwner();
+        $place = NearbyPlace::factory()->create(['name' => 'Shared name']);
+        $property->nearbyPlaces()->attach($place->id, ['position' => 1, 'display_name' => 'My name']);
+
+        $this->actingAs($owner)->put(route('settings.booking-website.nearby-places.update', [$property, $place]), ['display_name' => $displayName])->assertSessionHasNoErrors();
+        $this->actingAs(User::factory()->admin()->create())->put(route('admin.nearby-places.update', $place), ['name' => 'Renamed']);
+
+        $this->actingAs($owner)->get(route('settings.booking-website.nearby-places', $property))
+            ->assertInertia(fn (Assert $page) => $page->where('nearbyPlaces.0.name', 'Renamed')->where('nearbyPlaces.0.displayName', null));
+    })->with(['empty' => '', 'same as shared' => 'Shared name']);
+
+    it('keeps the own name when an admin renames the place', function () {
+        ['owner' => $owner, 'property' => $property] = nearbyOwner();
+        $place = NearbyPlace::factory()->create();
+        $property->nearbyPlaces()->attach($place->id, ['position' => 1, 'display_name' => 'My name']);
+
+        $this->actingAs(User::factory()->admin()->create())->put(route('admin.nearby-places.update', $place), ['name' => 'Renamed']);
+
+        $this->actingAs($owner)->get(route('settings.booking-website.nearby-places', $property))
+            ->assertInertia(fn (Assert $page) => $page->where('nearbyPlaces.0.name', 'My name')->where('nearbyPlaces.0.sharedName', 'Renamed'));
+    });
+
+    it('turns a place off and keeps its row and description', function () {
+        ['owner' => $owner, 'property' => $property] = nearbyOwner();
+        $place = NearbyPlace::factory()->status(NearbyPlaceStatus::Pending)->create();
+        $property->nearbyPlaces()->attach($place->id, ['position' => 1, 'description' => 'Ferry to the island']);
+
+        $this->actingAs($owner)->put(route('settings.booking-website.nearby-places.active.update', [$property, $place]), ['active' => false])->assertRedirect();
+
+        $this->actingAs($owner)->get(route('settings.booking-website.nearby-places', $property))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('nearbyPlaces.0.active', false)
+                ->where('nearbyPlaces.0.description', 'Ferry to the island')
+                ->has('suggestions', 0));
+
+        expect(Activity::query()->where('event', 'property.nearby_place_turned_off')->count())->toBe(1);
+    });
+
+    it('puts a place turned back on at the end of the list', function () {
+        ['owner' => $owner, 'property' => $property] = nearbyOwner();
+        [$a, $b] = NearbyPlace::factory()->count(2)->create();
+        $property->nearbyPlaces()->attach($a->id, ['position' => 1, 'active' => false]);
+        $property->nearbyPlaces()->attach($b->id, ['position' => 2]);
+
+        $this->actingAs($owner)->put(route('settings.booking-website.nearby-places.active.update', [$property, $a]), ['active' => true])->assertRedirect();
+
+        expect($property->nearbyPlaces()->pluck('nearby_places.id')->all())->toBe([$b->id, $a->id])
+            ->and($property->nearbyPlaces()->whereKey($a->id)->first()->pivot->active)->toBeTrue();
+    });
+
+    it('refuses a switch that changes nothing, or another property\'s place', function () {
+        ['owner' => $owner, 'property' => $property] = nearbyOwner();
+        ['property' => $other] = nearbyOwner();
+        $own = NearbyPlace::factory()->create();
+        $theirs = NearbyPlace::factory()->create();
+        $property->nearbyPlaces()->attach($own->id, ['position' => 1]);
+        $other->nearbyPlaces()->attach($theirs->id, ['position' => 1]);
+
+        $this->actingAs($owner)->put(route('settings.booking-website.nearby-places.active.update', [$property, $own]), ['active' => true])
+            ->assertInertiaFlash('toast.type', 'error');
+        $this->actingAs($owner)->put(route('settings.booking-website.nearby-places.active.update', [$property, $theirs]), ['active' => false])
+            ->assertNotFound();
+
+        expect($other->nearbyPlaces()->whereKey($theirs->id)->first()->pivot->active)->toBeTrue()
+            ->and(Activity::query()->where('event', 'like', 'property.nearby_place_turned_%')->exists())->toBeFalse();
+    });
+
+    it('sends the distance of own places, and none without a property location', function () {
+        ['owner' => $owner, 'property' => $property] = nearbyOwner(4.2105, 100.5535);
+        $place = NearbyPlace::factory()->at(4.2305, 100.5535)->create();
+        $property->nearbyPlaces()->attach($place->id, ['position' => 1]);
+
+        $this->actingAs($owner)->get(route('settings.booking-website.nearby-places', $property))
+            ->assertInertia(fn (Assert $page) => $page->where('nearbyPlaces.0.distance', '2.2 km'));
+
+        $property->forceFill(['latitude' => null, 'longitude' => null])->save();
+
+        $this->actingAs($owner)->get(route('settings.booking-website.nearby-places', $property))
+            ->assertInertia(fn (Assert $page) => $page->where('nearbyPlaces.0.distance', null));
+    });
+
     it('refuses a reorder that is not the full list', function () {
         ['owner' => $owner, 'property' => $property] = nearbyOwner();
         [$a, $b] = NearbyPlace::factory()->count(2)->create();
@@ -254,6 +353,116 @@ describe('admin review', function () {
                 ->where('places.1.canApprove', false));
     });
 
+    it('opens the status tab from the URL and falls back to all', function () {
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)->get(route('admin.nearby-places.index', ['status' => 'pending']))
+            ->assertInertia(fn (Assert $page) => $page->where('status', 'pending'));
+        $this->actingAs($admin)->get(route('admin.nearby-places.index', ['status' => 'unknown']))
+            ->assertInertia(fn (Assert $page) => $page->where('status', 'all'));
+    });
+
+    it('adds a new place as Approved, linked to no property and suggested nearby', function () {
+        ['owner' => $owner, 'property' => $property] = nearbyOwner();
+
+        $this->actingAs(User::factory()->admin()->create())
+            ->from(route('admin.nearby-places.index', ['status' => 'pending']))
+            ->post(route('admin.nearby-places.store'), ['google_maps_url' => PANGKOR_JETTY])
+            ->assertRedirect(route('admin.nearby-places.index', ['status' => 'pending']));
+
+        $place = NearbyPlace::query()->sole();
+
+        expect($place->status)->toBe(NearbyPlaceStatus::Approved)
+            ->and($place->created_by_property_id)->toBeNull()
+            ->and($place->properties()->count())->toBe(0)
+            ->and(app(NearbyPlaceSuggestions::class)->for($property)->pluck('id')->all())->toBe([$place->id])
+            ->and(Activity::query()->where('event', 'nearby-place.created')->count())->toBe(1);
+
+        $this->actingAs(User::factory()->admin()->create())->get(route('admin.nearby-places.index'))
+            ->assertInertia(fn (Assert $page) => $page->where('places.0.addedBy', 'Admin'));
+    });
+
+    it('approves a Pending place when it is added again', function () {
+        $mapsPlace = app(GoogleMapsLink::class)->parse(PANGKOR_JETTY);
+        $place = NearbyPlace::factory()->status(NearbyPlaceStatus::Pending)->create(['fingerprint' => $mapsPlace->fingerprint]);
+
+        $this->actingAs(User::factory()->admin()->create())->post(route('admin.nearby-places.store'), ['google_maps_url' => PANGKOR_JETTY])
+            ->assertInertiaFlash('toast.type', 'success');
+
+        expect($place->refresh()->status)->toBe(NearbyPlaceStatus::Approved)
+            ->and(NearbyPlace::query()->count())->toBe(1)
+            ->and(Activity::query()->where('event', 'nearby-place.approved')->count())->toBe(1);
+    });
+
+    it('changes nothing when an Approved or Rejected place is added again', function (NearbyPlaceStatus $status) {
+        $mapsPlace = app(GoogleMapsLink::class)->parse(PANGKOR_JETTY);
+        $place = NearbyPlace::factory()->status($status)->create(['fingerprint' => $mapsPlace->fingerprint]);
+
+        $this->actingAs(User::factory()->admin()->create())->post(route('admin.nearby-places.store'), ['google_maps_url' => PANGKOR_JETTY])
+            ->assertInertiaFlash('toast.type', 'error');
+
+        expect($place->refresh()->status)->toBe($status)
+            ->and(NearbyPlace::query()->count())->toBe(1)
+            ->and(Activity::query()->whereIn('event', ['nearby-place.created', 'nearby-place.approved'])->exists())->toBeFalse();
+    })->with([NearbyPlaceStatus::Approved, NearbyPlaceStatus::Rejected]);
+
+    it('shows a validation error for a link it cannot read', function () {
+        $this->actingAs(User::factory()->admin()->create())
+            ->post(route('admin.nearby-places.store'), ['google_maps_url' => 'https://www.google.com/maps/@4.2297,100.5535,17z'])
+            ->assertSessionHasErrors('google_maps_url');
+
+        expect(NearbyPlace::query()->exists())->toBeFalse();
+    });
+
+    it('renames a place for every property and keeps its fingerprint', function () {
+        ['owner' => $owner, 'property' => $property] = nearbyOwner();
+        $mapsPlace = app(GoogleMapsLink::class)->parse(PANGKOR_JETTY);
+        $place = NearbyPlace::factory()->create(['name' => $mapsPlace->name, 'fingerprint' => $mapsPlace->fingerprint]);
+        $property->nearbyPlaces()->attach($place->id, ['position' => 1]);
+        $tab = route('admin.nearby-places.index', ['status' => 'approved']);
+
+        $this->actingAs(User::factory()->admin()->create())->from($tab)
+            ->put(route('admin.nearby-places.update', $place), ['name' => '  Pangkor Ferry Terminal '])
+            ->assertRedirect($tab);
+
+        expect($place->refresh()->name)->toBe('Pangkor Ferry Terminal')
+            ->and($place->fingerprint)->toBe($mapsPlace->fingerprint)
+            ->and(Activity::query()->where('event', 'nearby-place.renamed')->sole()->properties['old_name'])->toBe($mapsPlace->name);
+
+        $this->actingAs($owner)->get(route('settings.booking-website.nearby-places', $property))
+            ->assertInertia(fn (Assert $page) => $page->where('nearbyPlaces.0.name', 'Pangkor Ferry Terminal'));
+    });
+
+    it('finds a renamed place when its link is pasted again', function () {
+        $mapsPlace = app(GoogleMapsLink::class)->parse(PANGKOR_JETTY);
+        $place = NearbyPlace::factory()->create(['name' => 'Pangkor Ferry Terminal', 'fingerprint' => $mapsPlace->fingerprint]);
+        ['owner' => $owner, 'property' => $property] = nearbyOwner();
+
+        $this->actingAs($owner)->post(route('settings.booking-website.nearby-places.store', $property), ['google_maps_url' => PANGKOR_JETTY]);
+
+        expect(NearbyPlace::query()->count())->toBe(1)
+            ->and($property->nearbyPlaces()->sole()->name)->toBe($place->name);
+    });
+
+    it('refuses an empty name and logs nothing for the same name', function () {
+        $place = NearbyPlace::factory()->create(['name' => 'Jetty']);
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)->put(route('admin.nearby-places.update', $place), ['name' => ' - '])->assertSessionHasErrors('name');
+        $this->actingAs($admin)->put(route('admin.nearby-places.update', $place), ['name' => 'Jetty'])->assertSessionHasNoErrors();
+
+        expect($place->refresh()->name)->toBe('Jetty')
+            ->and(Activity::query()->where('event', 'nearby-place.renamed')->exists())->toBeFalse();
+    });
+
+    it('stays on the open tab after a review', function () {
+        $place = NearbyPlace::factory()->status(NearbyPlaceStatus::Pending)->create();
+        $tab = route('admin.nearby-places.index', ['status' => 'pending']);
+
+        $this->actingAs(User::factory()->admin()->create())->from($tab)
+            ->put(route('admin.nearby-places.approve', $place))->assertRedirect($tab);
+    });
+
     it('approves a pending place', function () {
         $place = NearbyPlace::factory()->status(NearbyPlaceStatus::Pending)->create();
 
@@ -277,6 +486,17 @@ describe('admin review', function () {
             ->and($place->properties()->count())->toBe(0);
         Notification::assertSentTo($owner, NearbyPlaceRemoved::class, fn (NearbyPlaceRemoved $notification) => $notification->toArray($owner)['body'] === 'Pangkor Jetty was removed from your nearby places.');
         Notification::assertSentTo($otherOwner, NearbyPlaceRemoved::class);
+    });
+
+    it('names the place in the notice as the owner knows it', function () {
+        Notification::fake();
+        ['owner' => $owner, 'property' => $property] = nearbyOwner();
+        $place = NearbyPlace::factory()->create(['name' => 'Shared name']);
+        $property->nearbyPlaces()->attach($place->id, ['position' => 1, 'display_name' => 'My name']);
+
+        app(RejectNearbyPlace::class)(User::factory()->admin()->create(), $place);
+
+        Notification::assertSentTo($owner, NearbyPlaceRemoved::class, fn (NearbyPlaceRemoved $notification) => $notification->toArray($owner)['body'] === 'My name was removed from your nearby places.');
     });
 
     it('stores the notice in the owner\'s in-app list', function () {
@@ -304,7 +524,10 @@ describe('admin review', function () {
 
         $this->actingAs($owner)->get(route('admin.nearby-places.index'))->assertNotFound();
         $this->actingAs($owner)->put(route('admin.nearby-places.approve', $place))->assertNotFound();
+        $this->actingAs($owner)->post(route('admin.nearby-places.store'), ['google_maps_url' => PANGKOR_JETTY])->assertNotFound();
+        $this->actingAs($owner)->put(route('admin.nearby-places.update', $place), ['name' => 'Renamed'])->assertNotFound();
 
-        expect($place->refresh()->status)->toBe(NearbyPlaceStatus::Pending);
+        expect($place->refresh()->status)->toBe(NearbyPlaceStatus::Pending)
+            ->and(NearbyPlace::query()->count())->toBe(1);
     });
 });

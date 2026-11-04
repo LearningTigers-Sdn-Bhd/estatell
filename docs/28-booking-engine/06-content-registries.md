@@ -30,14 +30,15 @@ Left out for now: per-amenity details, such as opening hours and fees (a concier
 
 ## Nearby places
 
-**Built.** The Nearby places tab adds, describes, reorders and removes places, and suggests Approved ones. Admins review at `/admin/nearby-places`.
+**Built.** The Nearby places tab adds, describes, reorders and removes places, and suggests Approved ones. Admins add and review at `/admin/nearby-places`.
 
 ```
 nearby_places           id, name, latitude, longitude, google_maps_url,
                         fingerprint (unique), status (NearbyPlaceStatus),
                         created_by_property_id (nullable), timestamps
-property_nearby_places  id, property_id, nearby_place_id, description (nullable),
-                        position, timestamps
+property_nearby_places  id, property_id, nearby_place_id, display_name (nullable),
+                        description (nullable), position, active (default true),
+                        timestamps
                         unique (property_id, nearby_place_id)
 ```
 
@@ -61,10 +62,32 @@ Read name and coordinates from the link
 | Approved            | Yes                                            | Yes                 |
 | Rejected            | No: removed, and the owner gets a short notice | No                  |
 
+- "On the property's own site" applies only while the owner's switch is on. The switch sets `active`: an off place keeps its row and description, and the guest API must return only on places. A rejected place leaves the property even when it is off.
 - Owners and guests never see the status.
 - Suggestions are Approved places within 25 km of the property, nearest first, at most 10.
 - Distance is straight-line km, such as "3.8 km". Travel times would need a paid Google API.
 - The notice is an in-app notification, `NearbyPlaceRemoved`, sent to the property's first active Owner. It reads: "Pangkor Jetty was removed from your nearby places." It stays in the notification list until read. See [Notification types](../04-notifications/01-notification-types.md).
+
+### Admin adds a place
+
+The Add place dialog takes a Google Maps link. A link it cannot read shows the error in the dialog. Otherwise the dialog closes and admin stays on the open tab.
+
+| Place in the registry | Result                         | Toast                                                 |
+| --------------------- | ------------------------------ | ----------------------------------------------------- |
+| None                  | Added as Approved, no property | "Pangkor Jetty added."                                |
+| Pending               | Becomes Approved               | "Pangkor Jetty was pending. It is now approved."      |
+| Approved              | No change                      | "Pangkor Jetty is already in the list."               |
+| Rejected              | No change                      | "Pangkor Jetty was rejected. Use Approve on its row." |
+
+"Added by" shows "Admin" for a place with no `created_by_property_id`.
+
+### Owner sets a name for the property
+
+The owner's Edit dialog has an optional "Name on your site". `display_name` shows on that property only and needs no admin review. Other properties and suggestions keep the shared name. Empty, or the same as the shared name, stores null, so the property follows later admin renames. An override stays when an admin renames the place, and it goes when the owner removes the place. The guest API must return `display_name`, then the shared name. The rejection notice uses the name the owner sees.
+
+### Admin renames a place
+
+Google names can be odd, so admins can rename a place in any status from the row's menu. The new name shows on every property that has it. The status, coordinates, link and fingerprint do not change, so pasting the same link again still finds the place and keeps the new name. If Google later changes the name, the same pin becomes a second place, because admins cannot merge or delete a place yet. A permanently closed place should be rejected, not renamed.
 
 ### Reading a Google Maps link
 
@@ -97,4 +120,4 @@ The `photos` collection on room types has an upload UI: the Photos tab of the ro
 
 ## Admin routes
 
-`/admin/amenities` (`admin.amenities.*`, built: All, Property and Room tabs (the open tab is in the URL as `?type=`, default All) and search, up and down buttons within the filtered rows, and a dialog to add or edit) and `/admin/nearby-places` (`admin.nearby-places.*`, built: a status filter and search, with Approve and Reject buttons). Writes need `support.2fa`.
+`/admin/amenities` (`admin.amenities.*`, built: All, Property and Room tabs (the open tab is in the URL as `?type=`, default All) and search, up and down buttons within the filtered rows, and a dialog to add or edit) and `/admin/nearby-places` (`admin.nearby-places.*`, built: All, Pending, Approved and Rejected tabs (the open tab is in the URL as `?status=`, default All) and search, an Add place dialog, and a row menu with Edit name, Approve and Reject). Writes need `support.2fa`.

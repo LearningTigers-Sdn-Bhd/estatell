@@ -233,6 +233,7 @@ Route::prefix('settings')->name('settings.')->group(function () {
             Route::put('nearby-places/order', [NearbyPlaceController::class, 'reorder'])->name('nearby-places.reorder');
             Route::post('nearby-places/{nearbyPlace}/suggested', [NearbyPlaceController::class, 'storeSuggested'])->withoutScopedBindings()->whereNumber('nearbyPlace')->name('nearby-places.suggested');
             Route::put('nearby-places/{nearbyPlace}', [NearbyPlaceController::class, 'update'])->whereNumber('nearbyPlace')->name('nearby-places.update');
+            Route::put('nearby-places/{nearbyPlace}/active', [NearbyPlaceController::class, 'active'])->whereNumber('nearbyPlace')->name('nearby-places.active.update');
             Route::delete('nearby-places/{nearbyPlace}', [NearbyPlaceController::class, 'destroy'])->whereNumber('nearbyPlace')->name('nearby-places.destroy');
         });
         Route::middleware('can:'.PermissionEnum::BookingWebsitePublish->value)->group(function () {

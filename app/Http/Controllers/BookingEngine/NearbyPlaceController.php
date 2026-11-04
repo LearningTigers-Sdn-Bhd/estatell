@@ -6,12 +6,14 @@ use App\Actions\BookingEngine\AddNearbyPlaceFromLink;
 use App\Actions\BookingEngine\LinkSuggestedNearbyPlace;
 use App\Actions\BookingEngine\RemovePropertyNearbyPlace;
 use App\Actions\BookingEngine\ReorderPropertyNearbyPlaces;
+use App\Actions\BookingEngine\SetPropertyNearbyPlaceActive;
 use App\Actions\BookingEngine\UpdatePropertyNearbyPlace;
 use App\Data\BookingEngine\NearbyPlaceSuggestionData;
 use App\Data\BookingEngine\PropertyNearbyPlaceData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\BookingEngine\AddNearbyPlaceRequest;
 use App\Http\Requests\BookingEngine\ReorderNearbyPlacesRequest;
+use App\Http\Requests\BookingEngine\SetNearbyPlaceActiveRequest;
 use App\Http\Requests\BookingEngine\UpdateNearbyPlaceRequest;
 use App\Models\NearbyPlace;
 use App\Models\Property;
@@ -33,7 +35,7 @@ class NearbyPlaceController extends Controller
     public function index(Property $property, NearbyPlaceSuggestions $suggestions): Response
     {
         return Inertia::render('settings/booking-website/nearby-places', [
-            'nearbyPlaces' => $property->nearbyPlaces()->get()->map(fn (NearbyPlace $place): PropertyNearbyPlaceData => PropertyNearbyPlaceData::fromModel($place))->values(),
+            'nearbyPlaces' => $suggestions->ownPlaces($property)->map(fn (NearbyPlace $place): PropertyNearbyPlaceData => PropertyNearbyPlaceData::fromModel($place))->values(),
             'suggestions' => $suggestions->for($property)->map(fn (NearbyPlace $place): NearbyPlaceSuggestionData => NearbyPlaceSuggestionData::fromModel($place))->values(),
         ]);
     }
@@ -66,9 +68,18 @@ class NearbyPlaceController extends Controller
 
     public function update(UpdateNearbyPlaceRequest $request, Property $property, NearbyPlace $nearbyPlace, UpdatePropertyNearbyPlace $updatePropertyNearbyPlace): RedirectResponse
     {
-        Inertia::flash('toast', $updatePropertyNearbyPlace($request->user(), $property, $nearbyPlace, $request->description())
+        Inertia::flash('toast', $updatePropertyNearbyPlace($request->user(), $property, $nearbyPlace, $request->displayName(), $request->description())
             ? ['type' => 'success', 'message' => __('Place saved.')]
             : ['type' => 'error', 'message' => __('That place is no longer on your list. Reload the page and try again.')]);
+
+        return to_route('settings.booking-website.nearby-places', $property);
+    }
+
+    public function active(SetNearbyPlaceActiveRequest $request, Property $property, NearbyPlace $nearbyPlace, SetPropertyNearbyPlaceActive $setPropertyNearbyPlaceActive): RedirectResponse
+    {
+        if (! $setPropertyNearbyPlaceActive($request->user(), $property, $nearbyPlace, $request->boolean('active'))) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('That change did not apply. Reload the page and try again.')]);
+        }
 
         return to_route('settings.booking-website.nearby-places', $property);
     }

@@ -86,21 +86,28 @@ The rows follow the chosen template's [image slots](08-microsite.md#template-reg
 
 ### Nearby places
 
-Each action saves on its own.
+One table. Each action saves on its own. On places come first, in the owner's order. Off places and suggestions follow, nearest first.
 
 ```
-┌─ Nearby places ────────────────────────────────────────┐
-│ Google Maps link                                       │
-│ [ e.g. https://www.google.com/maps/place/Pangkor...  ] │
-│                                                [ Add ] │
-│ Suggested near you                                     │
-│ Teluk Nipah Beach      2.1 km                  [ Add ] │
-│                                                        │
-│ Your places                                            │
-│ Pangkor Jetty          6.4 km                     ⋯    │
-│ Dutch Fort             3.8 km                     ⋯    │
-└────────────────────────────────────────────────────────┘
+┌─ Nearby places ─────────────────────────── [ + Add place ] ┐
+│ On site  Place                  Distance                   │
+│ (on )    Pangkor Jetty            6.4 km   [↑][↓][ Edit ]  │
+│          Ferry to the island                               │
+│ (on )    Dutch Fort               3.8 km   [↑][↓][ Edit ]  │
+│ (off)    Imago Shopping Mall      1.2 km      Suggested    │
+│ (off)    Teluk Nipah Beach        5.0 km         [ Edit ]  │
+└────────────────────────────────────────────────────────────┘
 ```
+
+| Row       | Switch | Arrows | Edit | Guests see it |
+| --------- | ------ | ------ | ---- | ------------- |
+| On        | On     | Yes    | Yes  | Yes           |
+| Off       | Off    | No     | Yes  | No            |
+| Suggested | Off    | No     | No   | No            |
+
+- **Add place** opens a dialog for the Google Maps link. A link it cannot read keeps the dialog open with the error.
+- **Edit** opens a dialog for the property's own name and the description, with **Remove place**. Removing deletes the row, the name and the description, and an Approved place within 25 km comes back as a suggestion.
+- Turning a suggestion on adds it to the property. Turning a place back on puts it at the end of the on places.
 
 ### Rates
 

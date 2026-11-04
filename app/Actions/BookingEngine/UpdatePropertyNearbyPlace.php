@@ -9,15 +9,19 @@ use App\Models\User;
 class UpdatePropertyNearbyPlace
 {
     /**
-     * Set the short description the guest reads under the place. Returns false when the property does not have the place.
+     * Set the property's own name for the place and the short description the guest reads under it. An empty name, or
+     * the shared name, keeps the place on the shared name. Returns false when the property does not have the place.
      */
-    public function __invoke(User $actor, Property $property, NearbyPlace $place, ?string $description): bool
+    public function __invoke(User $actor, Property $property, NearbyPlace $place, ?string $displayName, ?string $description): bool
     {
         if (! $property->nearbyPlaces()->whereKey($place->id)->exists()) {
             return false;
         }
 
-        $property->nearbyPlaces()->updateExistingPivot($place->id, ['description' => $description]);
+        $property->nearbyPlaces()->updateExistingPivot($place->id, [
+            'display_name' => $displayName === $place->name ? null : $displayName,
+            'description' => $description,
+        ]);
 
         activity()
             ->performedOn($property)

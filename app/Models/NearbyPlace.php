@@ -27,7 +27,7 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
  * @property int|null $created_by_property_id
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
- * @property-read (Pivot&object{description: string|null, position: int})|null $pivot Set when loaded through Property::nearbyPlaces(); holds description and position.
+ * @property-read (Pivot&object{display_name: string|null, description: string|null, position: int, active: bool})|null $pivot Set when loaded through Property::nearbyPlaces(); holds the property's own name, description, position and active.
  */
 #[Fillable(['name', 'latitude', 'longitude', 'google_maps_url', 'fingerprint', 'status', 'created_by_property_id'])]
 class NearbyPlace extends Model
@@ -54,7 +54,7 @@ class NearbyPlace extends Model
     /** @return BelongsToMany<Property, $this> */
     public function properties(): BelongsToMany
     {
-        return $this->belongsToMany(Property::class, 'property_nearby_places')->withPivot(['description', 'position'])->withTimestamps();
+        return $this->belongsToMany(Property::class, 'property_nearby_places')->withPivot(['display_name', 'description', 'position'])->withTimestamps();
     }
 
     /**
