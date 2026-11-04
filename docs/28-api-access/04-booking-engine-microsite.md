@@ -2,13 +2,13 @@
 
 ## Purpose
 
-**Status: planned, not built.** How the booking engine microsite, API only websites and the demo will sign in to the API. They use the same [token layer](01-api-tokens.md) as kiosks. This file covers access only. The module itself is planned in the [booking engine docs](../29-booking-engine/01-overview.md).
+**Status: built for the content and offers endpoints.** How the booking engine microsite, API only websites and the demo sign in to the API. They use the same [token layer](01-api-tokens.md) as kiosks. This file covers access only. The module itself is planned in the [booking engine docs](../29-booking-engine/01-overview.md).
 
 ## What differs from a kiosk
 
 | Item              | Kiosk               | Booking client                         |
 | ----------------- | ------------------- | -------------------------------------- |
-| Owner             | `Kiosk`             | `BookingClient` (to build)             |
+| Owner             | `Kiosk`             | `BookingClient`                        |
 | Routes            | `/api/kiosk/v1`     | `/api/booking/v1`                      |
 | Route names       | `api.kiosk.v1.*`    | `api.booking.v1.*`                     |
 | Abilities         | `kiosk:*`           | `booking:*`, chosen with the endpoints |
@@ -30,9 +30,17 @@ booking_clients   id, type (BookingClientType), property_id (nullable), name,
 
 | `BookingClientType` | `property_id` | Tokens               | Reaches                                       |
 | ------------------- | ------------- | -------------------- | --------------------------------------------- |
-| Microsite           | Empty         | One for the app      | Properties in Microsite mode with the flag on |
-| API only            | Set           | One per property     | Its one property                              |
+| Microsite           | Empty         | One for the app      | Published sites in Microsite mode, flag on    |
+| API only            | Set           | One per property     | Its one property, in API only mode, flag on   |
 | Demo                | Empty         | One fixed test token | Demo properties, on the demo environment only |
+
+No type reaches a suspended property. A Demo client reaches nothing until the [demo item](../29-booking-engine/09-api-only-mode.md#test-mode) is built. A partial unique index allows one active Microsite client.
+
+Create the Microsite client and its token with this command. It prints the token once, and refuses when an active client exists.
+
+```bash
+php artisan booking-engine:create-microsite-client
+```
 
 Each later client with a booking purpose, such as new-wastays, adds a type and a reach rule. An API with another purpose gets its own owner model and prefix, as kiosks do.
 
@@ -48,20 +56,12 @@ Each later client with a booking purpose, such as new-wastays, adds a type and a
 
 | Limit                 | Rule                                                                                                   |
 | --------------------- | ------------------------------------------------------------------------------------------------------ |
-| API calls             | Per token and property, so one busy hotel cannot slow other microsites                                 |
-| API calls, no code    | A route with no property code in the path, such as `holds/{token}`, is limited per token               |
+| API calls             | 120 per minute per token and property, so one busy hotel cannot slow other microsites                  |
+| API calls, no code    | 120 per minute per token, on a route with no property in the path, such as `holds/{token}`             |
 | Open holds, property  | A cap for every client. This is the real protection against a bug or abuse holding every room          |
 | Open holds, guest IP  | Counted from the `X-Guest-IP` header, because the request IP is always the client's server             |
 | Header from Microsite | Trusted, because estatell runs the microsite. A hold with no header is refused                         |
 | Header from others    | Optional. An API only or demo client's value is only an extra limit, because estatell cannot verify it |
-
-## To build
-
-1. A `BookingClient` model with `HasApiTokens`, the `booking_clients` table and `BookingClientType`.
-2. `AuthenticateApiToken` accepts a `BookingClient` as well as a `Kiosk`, and sets the right request attribute. Today it accepts only a `Kiosk`.
-3. The reach check.
-4. The `api-token` limiter reads `booking_client`, and counts per token and property.
-5. The owner records its own last use, because Sanctum's `last_used_at` is off.
 
 ## Rules that stay
 

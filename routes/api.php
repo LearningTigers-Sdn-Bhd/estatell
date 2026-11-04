@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Api\Booking\ContentController;
+use App\Http\Controllers\Api\Booking\StayController as BookingStayController;
 use App\Http\Controllers\Api\Kiosk\BookingController;
 use App\Http\Controllers\Api\Kiosk\CheckInController;
 use App\Http\Controllers\Api\Kiosk\CheckOutController;
@@ -42,5 +44,30 @@ Route::prefix('kiosk/v1')->name('api.kiosk.v1.')->group(function () {
             Route::post('stays/{id}/check-in', [CheckInController::class, 'checkIn'])->name('stays.check-in');
             Route::post('stays/{id}/registration-card/sign', [RegistrationCardController::class, 'sign'])->name('stays.registration-card.sign');
         });
+    });
+});
+
+/*
+ * The booking engine API. A route names its ability, and the reach check finds the property in the path.
+ * See docs/29-booking-engine/02-api.md.
+ */
+Route::prefix('booking/v1')->name('api.booking.v1.')->group(function () {
+    Route::get('properties', [ContentController::class, 'properties'])
+        ->middleware(['api.token:booking:listing', 'throttle:api-token'])
+        ->name('properties.index');
+
+    Route::post('search', [BookingStayController::class, 'search'])
+        ->middleware(['api.token:booking:search', 'throttle:api-token'])
+        ->name('search');
+
+    Route::get('sites/{slug}', [ContentController::class, 'site'])
+        ->middleware(['api.token:booking:site', 'throttle:api-token', 'api.booking.reach'])
+        ->name('sites.show');
+
+    Route::middleware(['api.token:booking:content', 'throttle:api-token', 'api.booking.reach'])->prefix('properties/{code}')->group(function () {
+        Route::get('/', [ContentController::class, 'property'])->name('properties.show');
+        Route::get('room-types', [ContentController::class, 'roomTypes'])->name('properties.room-types');
+        Route::get('calendar', [BookingStayController::class, 'calendar'])->name('properties.calendar');
+        Route::post('offers', [BookingStayController::class, 'offers'])->name('properties.offers');
     });
 });

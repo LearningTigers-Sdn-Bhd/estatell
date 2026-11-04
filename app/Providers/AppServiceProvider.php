@@ -18,6 +18,7 @@ use App\Events\StayCheckedIn;
 use App\Events\StayCheckedOut;
 use App\Events\StayDatesChanged;
 use App\Events\StayRoomChanged;
+use App\Models\BookingClient;
 use App\Models\Kiosk;
 use App\Models\Property;
 use App\Models\RatePlan;
@@ -86,7 +87,9 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Pairing is limited per IP address (a pairing code can be guessed). Everything else is limited per token. See docs/28-api-access/01-api-tokens.md.
+     * Pairing is limited per IP address (a pairing code can be guessed). Everything else is limited per token, and a
+     * booking client's token also per property, so one busy hotel cannot slow other microsites. A route with no property
+     * in the path counts per token. See docs/28-api-access/01-api-tokens.md.
      */
     protected function configureApiRateLimiting(): void
     {
@@ -99,6 +102,13 @@ class AppServiceProvider extends ServiceProvider
         });
         RateLimiter::for('api-token', function (Request $request): Limit {
             $kiosk = $request->attributes->get('kiosk');
+            $client = $request->attributes->get('booking_client');
+
+            if ($client instanceof BookingClient) {
+                $property = $request->route('code') ?? $request->route('slug');
+
+                return Limit::perMinute(120)->by('booking:'.$client->currentAccessToken()->getKey().':'.mb_strtolower((string) $property));
+            }
 
             return Limit::perMinute(120)->by($kiosk instanceof Kiosk ? 'kiosk:'.$kiosk->id : (string) $request->ip());
         });

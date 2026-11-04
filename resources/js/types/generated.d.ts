@@ -4550,6 +4550,7 @@ export type BillingMode = 'master_pays' | 'master_pays_all' | 'each_pays';
 export type BoatDirection = 'in' | 'out';
 export type BoatMode = 'scheduled' | 'charter' | 'own';
 export type BookableOnlineResult = 'saved' | 'not-available' | 'last-plan';
+export type BookingClientType = 'microsite' | 'api-only' | 'demo';
 export type BookingEngineMode = 'microsite' | 'api-only';
 export type BookingSourceIcon = 'phone' | 'message-circle' | 'mail' | 'globe' | 'users' | 'handshake' | 'briefcase-business' | 'building-2' | 'footprints' | 'ticket' | 'megaphone' | 'star';
 export type BookingSourceType = 'direct' | 'ota' | 'company' | 'walk_in';

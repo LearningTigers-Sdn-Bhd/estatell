@@ -22,7 +22,9 @@ The one API behind the microsite, API only websites and, later, new-wastays. It 
 |                 | `GET /api/booking/v1/bookings/{token}/cancellation`  | Yes           | Yes      | Yes         |
 |                 | `POST /api/booking/v1/bookings/{token}/cancellation` | Yes           | Yes      | Yes         |
 
-The marketplace endpoints are built and tested now, and nothing calls them until new-wastays exists.
+The marketplace endpoints are built and tested now, and nothing calls them until new-wastays exists. No token has the `booking:search` ability yet.
+
+**Built:** listing, marketplace, microsite, and content and search. Checkout and Manage booking are planned.
 
 ## What each returns
 
@@ -33,7 +35,7 @@ The marketplace endpoints are built and tested now, and nothing calls them until
 | `sites/{slug}`          | Property code, template key, image slots, main colour, SEO title and description                                                      |
 | `properties/{code}`     | Name, address, coordinates, Maps link, album photos (cover first), about text, amenities, nearby places, check-in times, policies     |
 | `room-types`            | Name, description, photos, amenities, guest limits, how it is sold                                                                    |
-| `calendar`              | Lowest price and closed dates for each date                                                                                           |
+| `calendar`              | Lowest one-night price before tax and closed dates for each date, at most 62 days at a time                                           |
 | `offers`                | Room types, public rate plans, rooms left, `pay_online` and `pay_at_property` with tax lines, cancellation terms, or a blocked reason |
 | `holds` (POST)          | Hold token, expiry, online total, amount to pay at the property                                                                       |
 | `holds/{token}/payment` | Curlec `key_id`, `order_id`, amount, callback address, checkout timeout                                                               |
@@ -42,18 +44,48 @@ The marketplace endpoints are built and tested now, and nothing calls them until
 | `cancellation` (GET)    | Whether it can be cancelled online, the fee, tax on the fee, the refund amount                                                        |
 | `cancellation` (POST)   | The new status and the refund amount                                                                                                  |
 
+## Offers
+
+The body of `offers` and `search` is the stay and the party of one room.
+
+| Field         | Rule                                                                     |
+| ------------- | ------------------------------------------------------------------------ |
+| `arrival`     | Required, `YYYY-MM-DD`. Outside the booking window: 422 `outside_window` |
+| `departure`   | Required, after the arrival                                              |
+| `adults`      | Required, 1 to 50                                                        |
+| `child_ages`  | Optional, each from 0 to 17                                              |
+| `nationality` | Optional in `offers`, a 2-letter country code. `search` ignores it       |
+
+- An offer is the price of one room, or one bed for one adult. A bed ignores the party.
+- With no nationality, a guest is priced as a local guest, from the property's country. The hold prices again with the real one, so a change in the online total refuses with `price_changed`.
+- Only plans in the `bookableOnline` scope are sold. Auto-added items are in the total.
+- `pay_online` has `subtotal`, `taxes` and `total`. `pay_at_property` has `taxes` and `total`. A tax line has `name`, `amount` and `inclusive`. See [Taxes in the online total](03-checkout-and-hold.md#taxes-in-the-online-total).
+- A blocked offer has `blocked` with a stable `code` and a `message`, and no prices. The codes are `too_many_adults`, `too_many_children`, `restricted`, `not_available`, `pricing_unavailable`, a rate quote refusal such as `rate_missing`, and a tax refusal.
+- Cancellation terms come from the live `CANCEL` policy until a booking saves its own. See [Saved terms](05-cancel-and-refund.md#saved-terms).
+- `calendar` is a guide, one night at a time. A package plan opens a date but gives no nightly price. `offers` decides whether a stay can be booked.
+- `search` returns the lowest `pay_online` total, and leaves out a property with nothing to sell.
+
 ## Access
 
 Laravel Sanctum, on the same [token layer](../28-api-access/01-api-tokens.md) as kiosks, with one token for each client. Sanctum is already installed. The token's `booking:*` abilities decide which endpoints it reaches, and its owner decides which properties. The owner is a `BookingClient` with a type and an optional property: see [Booking engine microsite](../28-api-access/04-booking-engine-microsite.md).
 
-| Token               | Can reach                                     | Source of bookings |
-| ------------------- | --------------------------------------------- | ------------------ |
-| Microsite app       | Properties in Microsite mode with the flag on | Booking Engine     |
-| API only            | One property, from the owner's server         | Booking Engine     |
-| Demo test token     | Demo properties, on `demo.estatell.com` only  | Booking Engine     |
-| new-wastays (later) | Properties opted in; the setting comes later  | Decided later      |
+| Token               | Can reach                                                                                                               | Source of bookings |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| Microsite app       | Published sites in Microsite mode, flag on                                                                              | Booking Engine     |
+| API only            | One property, from the owner's server                                                                                   | Booking Engine     |
+| Demo test token     | Demo properties, on `demo.estatell.com` only. Reaches nothing until [Test mode](09-api-only-mode.md#test-mode) is built | Booking Engine     |
+| new-wastays (later) | Properties opted in; the setting comes later                                                                            | Decided later      |
 
-A property the token cannot reach, or one with the flag off, returns 404. A booking made before the flag went off still works through its booking token.
+A property the token cannot reach, one with the flag off, or a suspended one returns 404 `property_not_found`. A booking made before the flag went off still works through its booking token.
+
+| Ability           | Endpoints                                | Microsite | API only, Demo |
+| ----------------- | ---------------------------------------- | --------- | -------------- |
+| `booking:listing` | `properties`                             | Yes       | No             |
+| `booking:site`    | `sites/{slug}`                           | Yes       | No             |
+| `booking:content` | `properties/{code}` and the routes below | Yes       | Yes            |
+| `booking:search`  | `search`                                 | No        | No             |
+
+Sanctum matches abilities exactly, so `booking:*` is not a wildcard. The type's abilities are in `BookingClientType::abilities()`.
 
 ## Rules
 
@@ -68,5 +100,6 @@ A property the token cannot reach, or one with the flag off, returns 404. A book
 ## Code
 
 - Routes in `routes/api.php`, under `/api/booking/v1`, with names under `api.booking.v1.`. They use `api.token:{scope}`, never `auth:sanctum`: see [Traps](../28-api-access/01-api-tokens.md#traps).
-- Controllers in `app/Http/Controllers/Api/Booking/`, thin, returning Eloquent API Resources.
+- Controllers in `app/Http/Controllers/Api/Booking/`, thin, returning Eloquent API Resources without the `data` wrapper.
+- Services in `app/Services/BookingEngine/`: `BookingClientReach`, `BookingContent`, `BookingCalendar`, `BookingOffers`, `OnlineStayPrice`, `BookingSearch` and `BookingWindow`.
 - Every query is scoped by `property_id`, taken from the path and checked against the token.

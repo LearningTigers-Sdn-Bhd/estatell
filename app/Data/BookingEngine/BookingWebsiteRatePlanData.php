@@ -3,6 +3,7 @@
 namespace App\Data\BookingEngine;
 
 use App\Models\RatePlan;
+use App\Models\RoomType;
 use Spatie\LaravelData\Data;
 
 /**
@@ -29,7 +30,7 @@ class BookingWebsiteRatePlanData extends Data
             id: $ratePlan->id,
             name: $ratePlan->name,
             bookableOnline: $ratePlan->bookable_online,
-            roomTypeNames: $ratePlan->roomTypes->whereNull('archived_at')->sortBy(['position', 'id'])->pluck('name')->values()->all(),
+            roomTypeNames: array_values($ratePlan->roomTypes->whereNull('archived_at')->sortBy(['position', 'id'])->map(fn (RoomType $roomType): string => $roomType->name)->all()),
         );
     }
 }

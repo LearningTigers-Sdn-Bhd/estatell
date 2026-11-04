@@ -85,7 +85,7 @@ The booking engine never checks which tax it is. It reads the property's **Colle
 | Cancellation         | The desk amount was never paid, so there is nothing to refund for it                                         |
 | Commission           | No effect: commission is on the room total before tax                                                        |
 
-The online total and check-in use one shared Service for this rule, so a guest never pays a tax twice or not at all. `booking_holds.total_amount` is the online total.
+The online total and check-in use one shared Service for this rule (`CheckInTaxRule`), so a guest never pays a tax twice or not at all. An inclusive flagged tax comes out of the online total, because the guest pays it at the desk. `booking_holds.total_amount` is the online total.
 
 Example, 2 nights at RM 200, with SST 8% not flagged and tourism tax RM 10 a night for foreign guests, flagged:
 
