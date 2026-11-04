@@ -87,7 +87,9 @@ function Detail({
                 <Icon aria-hidden className="size-4" />
                 {label}
             </span>
-            <span className="flex items-center gap-1">{children}</span>
+            <span className="flex flex-wrap items-center gap-1">
+                {children}
+            </span>
         </div>
     );
 }
@@ -286,7 +288,7 @@ export function UnitsTab({
 
     return (
         <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between gap-3 ps-3 pt-2">
+            <div className="flex flex-wrap items-center justify-between gap-3 ps-3 pt-2">
                 <h2 className="font-heading text-base font-medium">
                     {unit.roomType} · {unit.ratePlan}
                 </h2>

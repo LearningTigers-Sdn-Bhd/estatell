@@ -1,4 +1,4 @@
-import { usePage } from '@inertiajs/react';
+import { usePage, usePoll } from '@inertiajs/react';
 import {
     CalendarClock,
     CalendarDays,
@@ -17,7 +17,10 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useBusinessDate } from '@/hooks/use-business-date';
-import { formatBusinessDay } from '@/lib/business-date';
+import {
+    businessDatePollInterval,
+    formatBusinessDay,
+} from '@/lib/business-date';
 import type { BusinessDateState, BusinessDateView } from '@/lib/business-date';
 import { cn } from '@/lib/utils';
 
@@ -57,6 +60,16 @@ function systemLine(view: BusinessDateView): string | null {
 }
 
 /**
+ * Keeps the business date current while an audit is due or running. It renders nothing. `usePoll` fixes its interval
+ * when it mounts, so the indicator mounts one per interval, and none when there is nothing to wait for.
+ */
+function BusinessDatePoller({ interval }: { interval: number }) {
+    usePoll(interval, { only: ['businessDate'] }, { mode: 'rest' });
+
+    return null;
+}
+
+/**
  * Sidebar row r4: the business date next to the system date, so staff always know which day they post to.
  * See docs/design-system/09-app-shell.md. The link to the night audit page comes with that page.
  */
@@ -71,10 +84,15 @@ export function BusinessDateIndicator() {
 
     const Icon = stateIcon[view.state];
     const system = systemLine(view);
+    const pollInterval = businessDatePollInterval(view.state);
+    const poller = pollInterval !== null && (
+        <BusinessDatePoller key={pollInterval} interval={pollInterval} />
+    );
 
     if (sidebarState === 'collapsed' && !isMobile) {
         return (
             <SidebarMenu>
+                {poller}
                 <SidebarMenuItem>
                     <Tooltip>
                         <TooltipTrigger
@@ -118,6 +136,7 @@ export function BusinessDateIndicator() {
 
     return (
         <SidebarMenu>
+            {poller}
             <SidebarMenuItem>
                 <div
                     role="status"
