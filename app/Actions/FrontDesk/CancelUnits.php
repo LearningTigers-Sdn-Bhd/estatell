@@ -26,12 +26,13 @@ class CancelUnits
      * `front-desk.waive-fees`. Each unit keeps its own `reservation.unit_cancelled` entry, and one
      * `reservation.cancelled` entry holds the count, the total fee, the reason and whether a company portal
      * cancellation request was resolved (`cancellation_requested_at` is cleared). Permissions are checked by the
-     * route. See docs/18-front-desk/01-check-in-and-check-out.md#cancel-reservation.
+     * route. `$actor` is null when the guest cancels online, and the log then has no causer.
+     * See docs/18-front-desk/01-check-in-and-check-out.md#cancel-reservation.
      *
      * @param  list<int>  $unitIds
      * @param  array<int, string|null>  $expectedFees
      */
-    public function __invoke(User $actor, Reservation $reservation, array $unitIds, bool $doNotCharge = false, ?string $reason = null, bool $removeAddOns = false, array $expectedFees = []): CancelUnitsResult
+    public function __invoke(?User $actor, Reservation $reservation, array $unitIds, bool $doNotCharge = false, ?string $reason = null, bool $removeAddOns = false, array $expectedFees = []): CancelUnitsResult
     {
         $units = $reservation->units()->whereIn('id', $unitIds)->with(['roomType', 'nights.room', 'nights.bed'])->orderBy('id')->get();
 

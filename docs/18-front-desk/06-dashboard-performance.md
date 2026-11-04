@@ -54,7 +54,7 @@ Period [Last 7 days] [Last 30 days] [●This month] [Last month] [12 months] [Mo
 - A figure the range cannot give shows a muted "No data" in place of the number, never a dash or 0, with the reason beside it ("No stays in this period", "No night audit figures for this period"). The chart area shows the shared empty state.
 - Every metric card has a comparison: the change chip and "vs {compared range}", or "Nothing to compare with" when the compared range has no figures.
 - Channel mix is two cards, **by source** and **by type**, each its own donut (at most 176px wide) with the total nights in the middle and the list below. Hovering a slice or a list row highlights both; the others fade. The slice tooltip shows the name and nights. List rows show the nights ("29 nights", muted) then the share at the right edge, each in a fixed right-aligned column. The chevron slot is kept only when a row of the view has companies.
-- Channel mix colors come from each source's badge `SwatchColor` (see [Booking sources](../12-reservations/11-booking-sources.md#badge)). By type, the four types use fixed chart tokens.
+- Channel mix colors come from each source's badge `SwatchColor` (see [Booking sources](../12-reservations/11-booking-sources.md#badge)). By type, the five types use fixed chart tokens.
 - **Lead time** is a card with the average in whole days, its change chip, and the description "Average days between booking and arrival. A longer lead time means guests plan earlier." Neither direction is good or bad, so the chip stays muted. **How far ahead guests book** is the card under it, with the arrival range and "walk-ins not counted" as its description and the four buckets.
 - A muted **Period** label sits left of the presets. The period presets are one outline toggle group at the normal size. Choosing one visits its URL. A picked month leaves no preset pressed. The month picker is hidden while there is no whole past month to pick.
 - The comparison chip uses a soft tint: up is `primary`, down is `warning-text`.
@@ -108,7 +108,7 @@ Period [Last 7 days] [Last 30 days] [●This month] [Last month] [12 months] [Mo
 ### Channel mix
 
 - Counts room nights by stay date (`unit_nights.date` in the range) of live units. Cancelled and no-show units stay out.
-- **Source** view: one row per booking source, by its name and badge, largest first. **Type** view: Direct, OTA, Company / Travel agent, Walk-in.
+- **Source** view: one row per booking source, by its name and badge, largest first. **Type** view: Direct, OTA, Company / Travel agent, Walk-in, Booking Engine.
 - Each row shows its share and room nights. The tooltip adds the room total (`SUM(unit_nights.amount)`).
 - Sources with no nights in the range are not listed. Shares are rounded so the list adds up to 100%.
 - **›** on a Company / Travel agent row opens a popover by company: name and room nights, largest first. Bookings with a company but a Direct or OTA source stay in their own source.

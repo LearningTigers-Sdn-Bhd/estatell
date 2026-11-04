@@ -56,7 +56,7 @@ class ArrivalImportPlanner
         $rooms = Room::query()->where('property_id', $property->id)->get()->keyBy(fn (Room $room): string => Str::lower($room->number));
         $planIds = $this->formOptions->enteredPlanIds($property);
         $companies = Company::query()->where('property_id', $property->id)->where('status', CompanyStatus::Active)->get()->keyBy(fn (Company $company): string => Str::lower(Str::squish($company->name)));
-        $sources = BookingSource::query()->where('property_id', $property->id)->where('is_active', true)->get();
+        $sources = BookingSource::query()->where('property_id', $property->id)->where('is_active', true)->where('type', '!=', BookingSourceType::BookingEngine)->get();
         $departures = Feature::for($property)->active(Boats::class)
             ? BoatDeparture::query()->where('property_id', $property->id)->where('active', true)->get()
             : null;

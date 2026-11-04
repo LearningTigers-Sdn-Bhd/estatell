@@ -65,7 +65,7 @@ class PaymentReceipt
             surcharge: $surcharge,
             surchargeTax: $surchargeTax,
             total: (string) $payment->amount,
-            receivedBy: $payment->receiver->name,
+            receivedBy: $payment->receiver->name ?? __('Booking Engine'),
         );
     }
 

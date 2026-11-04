@@ -21,11 +21,16 @@ class CloseSettledUnitFolio
      * Close an Open Unit folio of a CheckedOut unit when it is at 0. The posting, payment, refund, reversal and
      * transfer Actions call it as their last step, inside their transaction, so staff who reopened a folio to fix
      * something never have to close it again. A folio above or below 0, a folio of a unit that is not CheckedOut, and
-     * any other folio are left alone. A refusal of `CloseFolio` is ignored: the folio just stays Open. See
+     * any other folio are left alone. A refusal of `CloseFolio` is ignored: the folio just stays Open. With no actor the
+     * folio also stays Open, because a closed folio must name who closed it, so staff close it. See
      * docs/13-folio/01-folios-and-lines.md#close-and-reopen.
      */
     public function __invoke(?User $actor, Folio $folio): void
     {
+        if ($actor === null) {
+            return;
+        }
+
         $current = Folio::query()->find($folio->id);
 
         if ($current === null || $current->status !== FolioStatus::Open || $current->type !== FolioType::Unit || $current->reservation_unit_id === null) {

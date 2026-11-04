@@ -2,6 +2,7 @@
 
 require_once __DIR__.'/../Support/MigratedStaySetup.php';
 
+use App\Enums\BookingSourceType;
 use App\Enums\PaymentMethodType;
 use App\Enums\PermissionEnum;
 use App\Enums\SystemTransactionCode;
@@ -16,6 +17,7 @@ use App\Models\Reservation;
 use App\Models\TransactionCode;
 use App\Models\UnitNight;
 use App\Models\User;
+use Database\Factories\BookingSourceFactory;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -237,4 +239,14 @@ test('a file without the template columns is refused before any row is read', fu
     $this->actingAs($setup['user'])->postJson(arrivalImportUrl($setup['property'], '/preview'), ['file' => new UploadedFile($path, 'other.csv', null, null, true)])
         ->assertUnprocessable()
         ->assertJsonPath('errors.file.0', 'This file is not an arrival list: it has no guest, arrival, departure, total column. Use the template (Template ▾) or an arrival list export from your old PMS.');
+});
+
+test('an arrival list cannot put a stay on the Booking Engine source', function () {
+    $setup = arrivalImportSetup();
+    BookingSourceFactory::systemFor($setup['property']->id, BookingSourceType::BookingEngine);
+    $path = sys_get_temp_dir().'/'.uniqid('arrivals-').'.csv';
+    SimpleExcelWriter::create($path)->addRow(['res_no' => 'RES4900-1', 'guest' => 'KUMARAN', 'room' => '101', 'room_type' => 'Deluxe King', 'arrival' => '2026-10-20', 'departure' => '2026-10-21', 'adults' => '2', 'children' => '0', 'total' => '200.00', 'deposit' => '', 'company' => '', 'source' => 'Booking Engine', 'status' => '', 'boat_in' => '', 'boat_out' => ''])->close();
+
+    $this->actingAs($setup['user'])->post(arrivalImportUrl($setup['property'], '/preview'), ['file' => new UploadedFile($path, 'arrivals.csv', null, null, true)])
+        ->assertJsonPath('rows.0.problems.0', 'Unknown booking source Booking Engine.');
 });

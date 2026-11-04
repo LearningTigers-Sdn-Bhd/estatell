@@ -32,7 +32,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $receipt_number
  * @property int $folio_line_id
  * @property int|null $surcharge_line_id
- * @property int $received_by
+ * @property int|null $received_by
  * @property CarbonImmutable $received_at
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at

@@ -30,12 +30,13 @@ import { cn } from 'cn';
 type Row = App.Data.Dashboard.ChannelMixRowData;
 export type View = 'source' | 'type';
 
-/** The four types use fixed chart tokens. A literal class for each, so Tailwind sees them. */
+/** The five types use fixed chart tokens. A literal class for each, so Tailwind sees them. */
 const typeClasses: Record<App.Enums.BookingSourceType, string> = {
     direct: 'bg-chart-2',
     ota: 'bg-chart-3',
     company: 'bg-chart-4',
     walk_in: 'bg-chart-1',
+    booking_engine: 'bg-chart-5',
 };
 
 /** The same colors as SVG fills: the source's badge swatch, or the type's chart token. */
@@ -44,6 +45,7 @@ const typeColors: Record<App.Enums.BookingSourceType, string> = {
     ota: 'var(--chart-3)',
     company: 'var(--chart-4)',
     walk_in: 'var(--chart-1)',
+    booking_engine: 'var(--chart-5)',
 };
 
 const sliceColor = (row: Row) =>

@@ -17,7 +17,7 @@ booking_sources   id, property_id (FK, cascade), name (string 60), type (Booking
                   UNIQUE (property_id, lower(name))
                   UNIQUE (property_id, type) WHERE is_system
                   CHECK (type = 'ota') = (ota_channel_id IS NOT NULL)
-                  CHECK type NOT IN ('company', 'walk_in') OR is_system
+                  CHECK type NOT IN ('company', 'walk_in', 'booking_engine') OR is_system
                   CHECK (badge_icon IS NULL) <> (badge_letters IS NULL)
 reservations      + booking_source_id (FK booking_sources, restrict, not null), indexed
                   − source, − channel_name
@@ -25,22 +25,23 @@ reservations      + booking_source_id (FK booking_sources, restrict, not null), 
 
 - Each property has its own list. A reservation points to one row, so renaming a source renames it on every booking.
 - The row's type carries the rules. Nothing else in the code branches on the name.
-- Company and Walk-in are one system row each. The code finds them by type alone. System rows have `sort_order` 1000 and 1001, so they sit after the rows staff add (lists order by `is_system`, then `sort_order`).
+- Company, Walk-in and Booking Engine are one system row each. The code finds them by type alone. System rows have `sort_order` 1000, 1001 and 1002, so they sit after the rows staff add (lists order by `is_system`, then `sort_order`).
 - An OTA row points to an [OTA channel](../21-channels/01-connections-and-feature-gate.md#ota-channels). Each real channel has at most one row per property. The **Other** channel can have many rows, one per name (for example Traveloka), so this rule lives in the Actions, not in an index.
 
 ## Enums
 
 `BookingSourceType`: label, tone and the rules.
 
-| Case    | Label                  | Tone    | Staff can add | Rule                                                           |
-| ------- | ---------------------- | ------- | ------------- | -------------------------------------------------------------- |
-| Direct  | Direct                 | neutral | Yes           | None                                                           |
-| Ota     | OTA                    | info    | Yes           | Needs an OTA channel. The booking needs an External reference. |
-| Company | Company / Travel agent | warning | No (system)   | The booking needs a company.                                   |
-| WalkIn  | Walk-in                | success | No (system)   | Only in Walk-in mode. Every unit needs a room or bed.          |
+| Case          | Label                  | Tone    | Staff can add | Rule                                                                        |
+| ------------- | ---------------------- | ------- | ------------- | --------------------------------------------------------------------------- |
+| Direct        | Direct                 | neutral | Yes           | None                                                                        |
+| Ota           | OTA                    | info    | Yes           | Needs an OTA channel. The booking needs an External reference.              |
+| Company       | Company / Travel agent | warning | No (system)   | The booking needs a company.                                                |
+| WalkIn        | Walk-in                | success | No (system)   | Only in Walk-in mode. Every unit needs a room or bed.                       |
+| BookingEngine | Booking Engine         | info    | No (system)   | Only the booking engine books on it. Staff forms and imports cannot use it. |
 
 - `options()` lists the types staff can add: Direct and OTA.
-- `requiresOtaChannel()`, `requiresExternalReference()`, `requiresCompany()` and `isWalkIn()` hold the rules.
+- `requiresOtaChannel()`, `requiresExternalReference()`, `requiresCompany()`, `isWalkIn()` and `isBookingEngine()` hold the rules.
 
 `BookingSourceIcon`: the icons a badge can show. The value is the Lucide name, and `label()` is the picker's accessible name. The frontend maps each case to its Lucide component in one typed `Record`, so a missing icon fails `tsc`.
 
@@ -89,13 +90,14 @@ The reservation page header keeps the source name as text.
 
 `SeedBookingSources` runs inside [`SeedPropertyDefaults`](../02-property/03-seed-property-defaults.md). It is idempotent: a repeat run restores a missing system row by type and keeps property changes. Phone, WhatsApp and Email are created only when the property has no booking source rows, so a source the owner deleted does not come back.
 
-| Name                   | Type    | System | Badge                     |
-| ---------------------- | ------- | ------ | ------------------------- |
-| Phone                  | Direct  | No     | Phone icon, Gray          |
-| WhatsApp               | Direct  | No     | MessageCircle icon, Green |
-| Email                  | Direct  | No     | Mail icon, Blue           |
-| Company / Travel agent | Company | Yes    | BriefcaseBusiness, Amber  |
-| Walk-in                | WalkIn  | Yes    | Footprints icon, Teal     |
+| Name                   | Type          | System | Badge                     |
+| ---------------------- | ------------- | ------ | ------------------------- |
+| Phone                  | Direct        | No     | Phone icon, Gray          |
+| WhatsApp               | Direct        | No     | MessageCircle icon, Green |
+| Email                  | Direct        | No     | Mail icon, Blue           |
+| Company / Travel agent | Company       | Yes    | BriefcaseBusiness, Amber  |
+| Walk-in                | WalkIn        | Yes    | Footprints icon, Teal     |
+| Booking Engine         | BookingEngine | Yes    | Globe icon, Violet        |
 
 OTA rows come from the onboarding [OTA lists](../17-onboarding/02-wizard-steps.md#channel-manager-table). Basics seeds the defaults before the OTA lists step, so `SaveOtaCredentials` calls `EnsureOtaBookingSource` for each saved row: a real channel gets a row with the channel's name, and Other gets a row with the typed channel name. Removing a credential row never removes its source.
 
@@ -218,13 +220,13 @@ Four commits after the docs commit, as in the [checklist](../checklist.md#next):
 
 ## Booking engine source
 
-Planned with the [booking engine](../29-booking-engine/01-overview.md).
+Built for the [booking engine](../29-booking-engine/01-overview.md).
 
-- A new case `BookingSourceType::BookingEngine`, label "Booking Engine". One system row per property, named "Booking Engine", in both modes. The code finds it by type.
+- `BookingSourceType::BookingEngine`, label "Booking Engine". One system row per property, named "Booking Engine", in both modes. The code finds it by type.
 - The CHECK that limits `company` and `walk_in` to system rows also covers `booking_engine`.
 - Staff can change its badge, but cannot rename, turn off, reorder or delete it, like the other system rows.
-- It is not offered on the staff booking form, so reports count only real online bookings.
-- The backfill seeds it for every property. A property that already has a source with this name keeps that row, and the new row's name gets " (Online)" added, as OTA rows do in the existing [backfill](#backfill).
+- The staff booking form does not offer it, `StoreBookingRequest` refuses it, and an arrival import cannot match it, so reports count only real online bookings. The list filter and the Channel mix show it.
+- `SeedBookingSources` and the backfill migration create it for every property. A property that already has a source with this name keeps that row, and the new row's name gets " (Online)" added, as OTA rows do in the existing [backfill](#backfill).
 
 ## Lessons from wastays
 

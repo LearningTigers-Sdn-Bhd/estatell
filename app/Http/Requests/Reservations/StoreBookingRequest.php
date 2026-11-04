@@ -270,6 +270,12 @@ class StoreBookingRequest extends FormRequest
 
         $type = $this->bookingSource()->type;
 
+        if ($type->isBookingEngine()) {
+            $validator->errors()->add('booking_source_id', __('This booking source is not available. Pick another.'));
+
+            return;
+        }
+
         if ($type->requiresCompany() && ! $this->user()->can(PermissionEnum::CompanyView->value)) {
             $validator->errors()->add('booking_source_id', __('This booking source is not available. Pick another.'));
         } elseif ($type->requiresCompany() && ! $this->filled('company_id')) {

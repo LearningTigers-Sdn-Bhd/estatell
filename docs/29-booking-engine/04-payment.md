@@ -102,7 +102,12 @@ To verify at build: the event ID header and the exact refund event names.
 5. Mark the hold Confirmed and link the reservation.
 6. After commit: email the guest the confirmation and Manage booking link, and notify staff.
 
-`CreateBooking` and `AddUnit` need a `User` actor, and a guest has none. The first build item changes this so the actor can be null for a booking engine booking, with the source named in the activity log. `reservations.created_by` and `payments.received_by` must allow it. `AddUnit` already has a similar path for channels (`fromChannel`).
+A guest is not a `User`, so the actor is null in `CreateBooking`, `AddUnit`, `CancelUnits` and `RecordPayment`, and in the Actions they call.
+
+- `reservations.created_by`, `payments.received_by` and `folio_lines.user_id` stay empty, and the log entries have no causer. `reservation.created` names the source.
+- All rules still apply. A null actor is not `fromChannel`, so availability and restrictions are checked. It cannot override a restriction or use an Old system method.
+- The receipt and the Payments report show "Booking Engine" as the staff name.
+- `CloseSettledUnitFolio` leaves the folio Open with a null actor, because a closed folio must name who closed it (`folios_closed_check`). Staff close it. This does not affect a booking at confirmation, because its unit has not checked out.
 
 ### Paid after the hold expired
 

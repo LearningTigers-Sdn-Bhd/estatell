@@ -24,7 +24,7 @@ class AvailablePaymentMethod
 {
     public function __construct(private MigrationWindow $migrationWindow) {}
 
-    public function find(Reservation $reservation, int $methodId, User $actor, bool $allowOtaCollected = false): ?PaymentMethod
+    public function find(Reservation $reservation, int $methodId, ?User $actor, bool $allowOtaCollected = false): ?PaymentMethod
     {
         $method = PaymentMethod::query()
             ->where('property_id', $reservation->property_id)
@@ -57,10 +57,10 @@ class AvailablePaymentMethod
     }
 
     /**
-     * Whether the user may take an Old system payment now: `folio.manual` (or a platform admin, who runs the console imports) and an open migration window.
+     * Whether the user may take an Old system payment now: `folio.manual` (or a platform admin, who runs the console imports) and an open migration window. No actor never may.
      */
-    public function oldSystemOffered(Property $property, User $actor): bool
+    public function oldSystemOffered(Property $property, ?User $actor): bool
     {
-        return ($actor->is_admin || $actor->can(PermissionEnum::FolioManual->value)) && $this->migrationWindow->isOpen($property);
+        return $actor !== null && ($actor->is_admin || $actor->can(PermissionEnum::FolioManual->value)) && $this->migrationWindow->isOpen($property);
     }
 }

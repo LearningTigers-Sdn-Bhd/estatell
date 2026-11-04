@@ -16,8 +16,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Where a property's bookings come from, in the property's own words (Phone, WhatsApp, Booking.com). The type carries
- * the rules. `is_system` rows (Company / Travel agent, Walk-in) cannot be renamed or turned off. The badge is an icon or
- * one or two letters on a swatch color. See docs/12-reservations/11-booking-sources.md.
+ * the rules. `is_system` rows (Company / Travel agent, Walk-in, Booking Engine) cannot be renamed or turned off. The badge
+ * is an icon or one or two letters on a swatch color. See docs/12-reservations/11-booking-sources.md.
  *
  * @property int $id
  * @property int $property_id

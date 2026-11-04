@@ -38,7 +38,7 @@ class CancelUnit
      * `RemoveUnpostedAddOns`; a posted add-on stays, and the correction is `ReverseLine`.
      * Permissions are checked by the route. See docs/18-front-desk/01-check-in-and-check-out.md.
      */
-    public function __invoke(User $actor, ReservationUnit $unit, bool $doNotCharge = false, ?string $reason = null, ?string $expectedFee = null, bool $removeAddOns = false): UnitStayResult
+    public function __invoke(?User $actor, ReservationUnit $unit, bool $doNotCharge = false, ?string $reason = null, ?string $expectedFee = null, bool $removeAddOns = false): UnitStayResult
     {
         return DB::transaction(function () use ($actor, $unit, $doNotCharge, $reason, $expectedFee, $removeAddOns): UnitStayResult {
             $locked = ReservationUnit::query()->lockForUpdate()->findOrFail($unit->id);

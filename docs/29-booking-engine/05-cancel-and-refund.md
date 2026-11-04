@@ -68,7 +68,7 @@ reservation_cancellation_terms
 | Reinstating a cancelled unit       | Staff                              | The guest owes the amount again; the old refund is not undone               |
 | Group booking                      | Guest                              | Whole booking only, as in the company portal; staff can cancel single rooms |
 
-`CancelBookingOnline` runs `CancelUnits`, then the refund. The actor is null for a guest, as in [confirmation](04-payment.md#confirmation). When staff cancel a booking engine booking from the PMS, the same refund step runs after the Dialog, and the Dialog shows the refund amount.
+`CancelBookingOnline` runs `CancelUnits`, then the refund. The actor is null for a guest, as in [confirmation](04-payment.md#confirmation). To verify at build: with a null actor, the activity log uses the signed-in user of the current guard, so under `auth:sanctum` the entry may name the `BookingClient`. `RefundPayment` still needs a `User`; the refund item decides this for an automatic refund. When staff cancel a booking engine booking from the PMS, the same refund step runs after the Dialog, and the Dialog shows the refund amount.
 
 ## Refund status
 

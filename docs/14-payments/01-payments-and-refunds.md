@@ -12,7 +12,7 @@ payments    id, property_id, folio_id, payment_method_id, amount,
             refund_of_id (nullable), refund_reason (nullable), voided (bool),
             receipt_number (nullable),
             folio_line_id, surcharge_line_id (nullable),
-            received_by, received_at, timestamps
+            received_by (nullable: a booking engine payment has none), received_at, timestamps
             checks: amount > 0; a refund has no receipt number;
             only a refund has a reason or is voided;
             unique (property_id, receipt_number); unique folio_line_id
@@ -226,7 +226,7 @@ A table-based Blade PDF on A4 portrait (dompdf has no flex or grid, see [design 
 | Received from | The folio's payer guest, or its payer company, or the booker when it has neither; the reservation reference and the folio number |
 | Payment       | Method, reference, purpose                                                                                                       |
 | Amounts       | Amount paid on the bill, Surcharge and Tax on surcharge (only with a fee), **Total collected**, read from the ledger             |
-| Footer        | Received by (the staff member's name)                                                                                            |
+| Footer        | Received by (the staff member's name, or Booking Engine)                                                                         |
 
 Money shows as `MYR 105.40` with the property currency.
 
