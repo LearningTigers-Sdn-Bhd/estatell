@@ -34,7 +34,7 @@ class AmenityController extends Controller
                 ->map(fn (Amenity $amenity): AmenityData => AmenityData::fromModel($amenity))
                 ->values(),
             'typeOptions' => AmenityType::options(),
-            'type' => AmenityType::tryFrom($request->string('type')->toString())?->value ?? 'all',
+            'type' => AmenityType::tryFrom($request->string('type')->toString())->value ?? 'all',
         ]);
     }
 

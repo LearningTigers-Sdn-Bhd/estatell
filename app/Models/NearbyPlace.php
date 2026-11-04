@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 
 /**
  * A place near properties (a jetty, a market, a beach), shared across properties and found by its fingerprint.
@@ -26,6 +27,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * @property int|null $created_by_property_id
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
+ * @property-read (Pivot&object{description: string|null, position: int})|null $pivot Set when loaded through Property::nearbyPlaces(); holds description and position.
  */
 #[Fillable(['name', 'latitude', 'longitude', 'google_maps_url', 'fingerprint', 'status', 'created_by_property_id'])]
 class NearbyPlace extends Model

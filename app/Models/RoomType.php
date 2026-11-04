@@ -137,7 +137,7 @@ class RoomType extends Model implements HasMedia
 
     public function registerMediaConversions(?Media $media = null): void
     {
-        $this->addMediaConversion('thumb')->width(400)->performOnCollections(self::PHOTOS)->nonQueued();
-        $this->addMediaConversion('web')->width(1600)->performOnCollections(self::PHOTOS)->nonQueued();
+        $this->addMediaConversion('thumb')->performOnCollections(self::PHOTOS)->nonQueued()->width(400);
+        $this->addMediaConversion('web')->performOnCollections(self::PHOTOS)->nonQueued()->width(1600);
     }
 }
