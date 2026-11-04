@@ -2,19 +2,18 @@
 
 namespace Database\Factories;
 
-use App\Enums\ApiTokenKind;
-use App\Models\ApiToken;
+use App\Models\Kiosk;
 use App\Models\Property;
 use App\Services\ApiAccess\ApiSecrets;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<ApiToken>
+ * @extends Factory<Kiosk>
  */
-class ApiTokenFactory extends Factory
+class KioskFactory extends Factory
 {
     /**
-     * A kiosk that is paired. Read the plaintext token from `ApiSecrets::newToken()` yourself and pass its hash, or use `withToken()`.
+     * A paired kiosk. Use `withToken()` to give it a token a test can send.
      *
      * @return array<string, mixed>
      */
@@ -22,21 +21,24 @@ class ApiTokenFactory extends Factory
     {
         return [
             'property_id' => Property::factory(),
-            'kind' => ApiTokenKind::Kiosk,
             'name' => 'Lobby kiosk',
             'device_name' => 'KIOSK-01',
-            'token_hash' => ApiSecrets::hash(ApiSecrets::newToken()),
-            'scopes' => ApiTokenKind::Kiosk->defaultScopes(),
             'paired_at' => now(),
         ];
     }
 
     /**
-     * Set the token to a known plaintext so a test can send it.
+     * Give the kiosk a Sanctum token with a known plaintext so a test can send it.
+     *
+     * @param  list<string>  $abilities
      */
-    public function withToken(string $plain): static
+    public function withToken(string $plain, array $abilities = [Kiosk::TOKEN_ABILITY]): static
     {
-        return $this->state(['token_hash' => ApiSecrets::hash($plain)]);
+        return $this->afterCreating(fn (Kiosk $kiosk) => $kiosk->tokens()->forceCreate([
+            'name' => $kiosk->name,
+            'token' => hash('sha256', $plain),
+            'abilities' => $abilities,
+        ]));
     }
 
     /**
@@ -46,7 +48,6 @@ class ApiTokenFactory extends Factory
     {
         return $this->state(fn () => [
             'device_name' => null,
-            'token_hash' => null,
             'pairing_code_hash' => ApiSecrets::hash($code),
             'pairing_expires_at' => now()->addMinutes(10),
             'paired_at' => null,

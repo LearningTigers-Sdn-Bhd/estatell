@@ -3,7 +3,7 @@
 namespace App\Actions\Kiosk;
 
 use App\Actions\Guests\SetGuestDetails;
-use App\Models\ApiToken;
+use App\Models\Kiosk;
 use App\Models\ReservationUnit;
 use App\Services\Kiosk\KioskStays;
 
@@ -15,7 +15,7 @@ class CorrectStayGuest
      * Apply what the guest corrected on the confirm screen. The guest's own value replaces the saved one; a missing
      * or empty field changes nothing. Returns false when the stay has no open guest.
      */
-    public function __invoke(ApiToken $kiosk, ReservationUnit $stay, ?string $fullName, ?string $nationalityCode): bool
+    public function __invoke(Kiosk $kiosk, ReservationUnit $stay, ?string $fullName, ?string $nationalityCode): bool
     {
         $guest = $this->stays->guest($stay);
 

@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Kiosk\FindBookingRequest;
 use App\Http\Resources\Kiosk\V1\KioskBookingResource;
 use App\Http\Responses\ApiError;
-use App\Models\ApiToken;
+use App\Models\Kiosk;
 use App\Services\Kiosk\KioskBookingFinder;
 use App\Services\Kiosk\KioskBookingLookup;
 use App\Services\Kiosk\KioskLookupLockout;
@@ -16,20 +16,20 @@ class BookingController extends Controller
 {
     public function find(FindBookingRequest $request, KioskBookingFinder $finder, KioskLookupLockout $lockout): KioskBookingResource|JsonResponse
     {
-        /** @var ApiToken $token */
-        $token = $request->attributes->get('api_token');
+        /** @var Kiosk $kiosk */
+        $kiosk = $request->attributes->get('kiosk');
 
-        if (! $lockout->attempt($token)) {
-            return ApiError::response('rate_limited', __('Too many requests. Wait a moment and try again.'), 429, ['Retry-After' => (string) $lockout->retryAfter($token)]);
+        if (! $lockout->attempt($kiosk)) {
+            return ApiError::response('rate_limited', __('Too many requests. Wait a moment and try again.'), 429, ['Retry-After' => (string) $lockout->retryAfter($kiosk)]);
         }
 
         // ponytail: Estatell has no booking QR token yet, so only `reference` can find a booking.
         $lookup = $request->filled('reference')
-            ? $finder->byReference($token->property, $request->string('reference')->toString())
+            ? $finder->byReference($kiosk->property, $request->string('reference')->toString())
             : KioskBookingLookup::refused(KioskBookingLookup::BOOKING_NOT_FOUND);
 
         if ($lookup->refusal === null) {
-            $lockout->refund($token);
+            $lockout->refund($kiosk);
         }
 
         return match ($lookup->refusal) {

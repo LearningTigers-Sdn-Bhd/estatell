@@ -2,14 +2,14 @@
 
 namespace App\Http\Resources\ApiAccess;
 
-use App\Models\ApiToken;
+use App\Models\Kiosk;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * The answer to a successful pairing. The resource is the array returned by `PairKiosk`.
  *
- * @property array{token: ApiToken, plain: string} $resource
+ * @property array{kiosk: Kiosk, plain: string} $resource
  */
 class PairedKioskResource extends JsonResource
 {
@@ -20,7 +20,7 @@ class PairedKioskResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        $property = $this->resource['token']->property;
+        $property = $this->resource['kiosk']->property;
 
         return [
             'token' => $this->resource['plain'],

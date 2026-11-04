@@ -7,9 +7,9 @@ use App\Actions\Guests\SetGuestDetails;
 use App\Actions\Guests\UpdateIdentityDocument;
 use App\Data\Guests\IdentityDocumentInputData;
 use App\Data\Kiosk\KioskIdentityData;
-use App\Models\ApiToken;
 use App\Models\Guest;
 use App\Models\GuestIdentityDocument;
+use App\Models\Kiosk;
 use App\Models\ReservationUnit;
 use App\Services\Kiosk\KioskStays;
 use App\Services\Registration\RegistrationCardFieldRules;
@@ -32,7 +32,7 @@ class SaveStayIdentity
      * (merged or anonymized). `nationalityRequired` is true when an enabled foreign-only tax needs a nationality and the
      * guest still has none. The log names the fields and the document type, never the values.
      */
-    public function __invoke(ApiToken $kiosk, ReservationUnit $stay, KioskIdentityData $data): KioskIdentityResult
+    public function __invoke(Kiosk $kiosk, ReservationUnit $stay, KioskIdentityData $data): KioskIdentityResult
     {
         $stay->loadMissing('property');
 

@@ -10,7 +10,7 @@ use App\Models\Property;
  * Finds the booking a guest types or scans at the kiosk and says whether the guest may start check-in today. It uses the
  * same arrival rule as `CheckInUnit` (the stay day, not the calendar date) and reads only. Estatell has no QR token or
  * pre-check-in link for a booking yet, so a `qr_token` finds nothing.
- * See docs/28-api-access/02-kiosk-check-in-endpoints.md.
+ * See docs/28-api-access/03-kiosk-check-in-endpoints.md.
  */
 class KioskBookingFinder
 {

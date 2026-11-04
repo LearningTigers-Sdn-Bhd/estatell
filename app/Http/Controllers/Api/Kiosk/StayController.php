@@ -10,7 +10,7 @@ use App\Http\Requests\Kiosk\UpdateStayGuestRequest;
 use App\Http\Resources\Kiosk\V1\KioskAcceptedResource;
 use App\Http\Resources\Kiosk\V1\KioskIdentityResource;
 use App\Http\Responses\ApiError;
-use App\Models\ApiToken;
+use App\Models\Kiosk;
 use App\Models\ReservationUnit;
 use App\Services\Kiosk\KioskStays;
 use Illuminate\Http\JsonResponse;
@@ -20,36 +20,36 @@ class StayController extends Controller
 {
     public function identity(StoreStayIdentityRequest $request, string $id, KioskStays $stays, SaveStayIdentity $saveIdentity): KioskIdentityResource|JsonResponse
     {
-        $token = $this->token($request);
-        $stay = $this->stay($stays, $token, $id);
+        $kiosk = $this->kiosk($request);
+        $stay = $this->stay($stays, $kiosk, $id);
 
         return $stay === null
             ? $this->notFound()
-            : new KioskIdentityResource($saveIdentity($token, $stay, $request->toIdentityData()));
+            : new KioskIdentityResource($saveIdentity($kiosk, $stay, $request->toIdentityData()));
     }
 
     public function guest(UpdateStayGuestRequest $request, string $id, KioskStays $stays, CorrectStayGuest $correctGuest): KioskAcceptedResource|JsonResponse
     {
-        $token = $this->token($request);
-        $stay = $this->stay($stays, $token, $id);
+        $kiosk = $this->kiosk($request);
+        $stay = $this->stay($stays, $kiosk, $id);
 
         return $stay === null
             ? $this->notFound()
-            : new KioskAcceptedResource($correctGuest($token, $stay, $request->fullName(), $request->nationalityCode()));
+            : new KioskAcceptedResource($correctGuest($kiosk, $stay, $request->fullName(), $request->nationalityCode()));
     }
 
-    private function token(Request $request): ApiToken
+    private function kiosk(Request $request): Kiosk
     {
-        /** @var ApiToken */
-        return $request->attributes->get('api_token');
+        /** @var Kiosk */
+        return $request->attributes->get('kiosk');
     }
 
     /**
      * A stay of another property, a stay that is not open to check in and an id that is not a number all give null.
      */
-    private function stay(KioskStays $stays, ApiToken $token, string $id): ?ReservationUnit
+    private function stay(KioskStays $stays, Kiosk $kiosk, string $id): ?ReservationUnit
     {
-        return ctype_digit($id) ? $stays->find($token->property, (int) $id) : null;
+        return ctype_digit($id) ? $stays->find($kiosk->property, (int) $id) : null;
     }
 
     private function notFound(): JsonResponse
