@@ -136,7 +136,7 @@ Front desk staff must always know which business date they are posting to. After
 
 - **Business date**: shared Inertia prop `businessDate` with `date`, `status`, `timeZone`, `auditTime` and `serverNow`. Built from `CurrentBusinessDate` for the current property.
 - **System date and time**: calculated in the browser in the **property time zone** (`@date-fns/tz`), ticking every minute. Uses `serverNow` to correct a wrong device clock (common on front desk PCs), so it never trusts the device time alone.
-- **Refresh**: the prop updates on every page visit. While in Audit pending, Overdue or Auditing, a small `useHttp` check (`/p/{code}/business-date`) runs every 5 minutes so the indicator changes when the audit finishes. The night audit page updates it immediately after closing.
+- **Refresh**: the prop updates on every page visit. While in Audit pending, Overdue or Auditing, `BusinessDatePoller` reloads only this prop with `usePoll`, so the indicator changes when the audit finishes: every 5 seconds in Auditing, every 15 seconds in Audit pending and Overdue. It is mounted only in those states, and survives page visits because the sidebar does. When the Run Night Audit sheet sees the audit finish, it asks for one check at once. When the date moves while a page stays open, `useBusinessDate` reloads that page's data, because the audit also posted charges.
 
 ### Placement
 
