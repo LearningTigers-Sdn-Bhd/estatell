@@ -8,7 +8,9 @@ use App\Enums\SystemTransactionCode;
 use App\Enums\UnitStatus;
 use App\Models\ChannelBookingRevision;
 use App\Models\ChargeItem;
+use App\Models\ChargeItemChildPrice;
 use App\Models\Guest;
+use App\Models\PropertyAgeGroup;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\TransactionCode;
@@ -488,4 +490,43 @@ test('an OTA booking is still saved when an item for channel bookings refuses th
     expect($result->ok)->toBeTrue()
         ->and(Reservation::query()->count())->toBe(1)
         ->and(UnitAddOn::query()->count())->toBe(0);
+});
+
+test('a modified revision with other guests changes the unit party, keeps the OTA price and resizes the jetty fee', function () {
+    $setup = channelBookingSetup();
+    fakeChannexAck();
+    $jetty = ChargeItem::factory()->for($setup['property'])->create([
+        'default_amount' => '10.00', 'charging_unit' => ChargingUnit::PerGuest, 'auto_add' => true, 'auto_add_channels' => true,
+    ]);
+    ingest($setup);
+    $nights = reservationNightAmounts();
+
+    [, $result] = ingest($setup, ['status' => 'modified', 'rooms' => [channelRevisionRoom(['occupancy' => ['adults' => 3, 'children' => 1, 'infants' => 0]])]]);
+
+    $unit = Reservation::query()->sole()->units()->sole();
+    expect($result->ok)->toBeTrue()
+        ->and($unit->adults)->toBe(3)
+        ->and($unit->children)->toBe(1)
+        ->and(reservationNightAmounts())->toBe($nights)
+        ->and(UnitAddOn::query()->where('charge_item_id', $jetty->id)->sum('quantity'))->toBe(4);
+});
+
+test('an OTA child with no age pays the child price of the jetty fee, and an infant with an age is free', function () {
+    $setup = channelBookingSetup();
+    fakeChannexAck();
+    $jetty = ChargeItem::factory()->for($setup['property'])->create([
+        'default_amount' => '10.00', 'charging_unit' => ChargingUnit::PerGuest, 'auto_add' => true, 'auto_add_channels' => true,
+    ]);
+    $infant = PropertyAgeGroup::factory()->for($setup['property'])->create(['label' => 'Infant', 'min_age' => 0, 'max_age' => 2]);
+    $child = PropertyAgeGroup::factory()->for($setup['property'])->create(['label' => 'Child', 'min_age' => 3, 'max_age' => 11]);
+    ChargeItemChildPrice::factory()->free()->create(['charge_item_id' => $jetty->id, 'property_age_group_id' => $infant->id]);
+    ChargeItemChildPrice::factory()->percent('50.00')->create(['charge_item_id' => $jetty->id, 'property_age_group_id' => $child->id]);
+
+    ingest($setup, ['rooms' => [channelRevisionRoom(['occupancy' => ['adults' => 2, 'children' => 1, 'infants' => 1]])]]);
+
+    $unit = Reservation::query()->sole()->units()->sole();
+    expect($unit->children)->toBe(2)
+        ->and($unit->childAges()->orderBy('age')->pluck('age')->all())->toBe([0, 5]);
+    expect(UnitAddOn::query()->orderBy('id')->get()->map(fn (UnitAddOn $addOn): array => [$addOn->property_age_group_id, $addOn->quantity, $addOn->unit_amount])->all())
+        ->toBe([[null, 2, '10.00'], [$child->id, 1, '5.00']]);
 });

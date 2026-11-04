@@ -7,7 +7,8 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * The Change guests form and its preview: the adults, one age per child and whether charged nights are priced again.
+ * The Change guests form and its preview: the adults, one age per child, whether charged nights are priced again and
+ * which charged add-ons to leave as they are.
  */
 class ChangeUnitPartyRequest extends FormRequest
 {
@@ -30,6 +31,8 @@ class ChangeUnitPartyRequest extends FormRequest
             'child_ages' => ['present', 'array', 'max:20'],
             'child_ages.*' => ['required', 'integer', 'between:0,17'],
             'reprice_charged' => ['boolean'],
+            'skip_add_ons' => ['nullable', 'array', 'max:50'],
+            'skip_add_ons.*' => ['string', 'max:40'],
         ];
     }
 
@@ -60,6 +63,16 @@ class ChangeUnitPartyRequest extends FormRequest
     public function repriceCharged(): bool
     {
         return $this->boolean('reprice_charged') && ($this->user()?->can('reservations.change-price') ?? false);
+    }
+
+    /**
+     * The charged add-ons staff unticked, by `PostedAddOnAdjustment::$key`.
+     *
+     * @return list<string>
+     */
+    public function skipAddOns(): array
+    {
+        return array_values(array_map(strval(...), (array) ($this->validated('skip_add_ons') ?? [])));
     }
 
     public function unit(): ReservationUnit

@@ -9,6 +9,8 @@ use App\Enums\UnitStatus;
 use App\Models\FolioLine;
 use App\Models\ReservationUnit;
 use App\Models\UnitNight;
+use App\Services\NightAudit\CurrentBusinessDate;
+use App\Services\Property\PropertyToday;
 use App\Services\Rates\RateQuoteRequest;
 use App\Services\Rates\RateQuoteService;
 use Brick\Math\BigDecimal;
@@ -16,8 +18,9 @@ use Brick\Math\BigDecimal;
 /**
  * Plans a change of a unit's guests (adults and child ages): the whole stay is quoted again for the new party, so the
  * long-stay discount still counts every night. A night not charged yet takes the new price, unless staff set its price
- * by hand. A charged night takes it only with `$repriceCharged`. A channel booking keeps its OTA price. It writes
- * nothing. See docs/12-reservations/14-change-guests.md.
+ * by hand. A charged night takes it only with `$repriceCharged`. A channel booking keeps its OTA price. The charged
+ * per-guest add-ons to correct come from `PostedAddOnAdjustments`. A channel revision (`$channelRevision`) is never
+ * refused for too many guests, because the OTA booking is already sold. It writes nothing. See docs/12-reservations/14-change-guests.md.
  */
 class UnitPartyChangePreview
 {
@@ -31,12 +34,17 @@ class UnitPartyChangePreview
 
     public const REFUSAL_NOTHING_CHANGED = 'party_nothing_changed';
 
-    public function __construct(private RateQuoteService $rateQuoteService) {}
+    public function __construct(
+        private RateQuoteService $rateQuoteService,
+        private PostedAddOnAdjustments $postedAddOnAdjustments,
+        private CurrentBusinessDate $currentBusinessDate,
+        private PropertyToday $propertyToday,
+    ) {}
 
     /**
      * @param  list<int>  $childAges
      */
-    public function plan(ReservationUnit $unit, int $adults, array $childAges, bool $repriceCharged): UnitPartyPlan
+    public function plan(ReservationUnit $unit, int $adults, array $childAges, bool $repriceCharged, bool $channelRevision = false): UnitPartyPlan
     {
         $unit->loadMissing(['roomType', 'ratePlan', 'reservation.bookingSource', 'childAges']);
         sort($childAges);
@@ -53,7 +61,7 @@ class UnitPartyChangePreview
             return UnitPartyPlan::refused(self::REFUSAL_BED_UNIT);
         }
 
-        if ($adults < 1 || $adults > $unit->roomType->max_adults || count($childAges) > $unit->roomType->max_children) {
+        if ($adults < 1 || (! $channelRevision && ($adults > $unit->roomType->max_adults || count($childAges) > $unit->roomType->max_children))) {
             return UnitPartyPlan::refused(self::REFUSAL_TOO_MANY_GUESTS);
         }
 
@@ -105,6 +113,9 @@ class UnitPartyChangePreview
             $after = $after->plus($changes ? (string) $price->net()->getAmount() : $night->amount);
         }
 
-        return UnitPartyPlan::planned($unit, $adults, $childAges, $rows, $fromChannel, $repriceCharged, (string) $before->toScale(2), (string) $after->toScale(2));
+        $businessDate = $this->currentBusinessDate->date($unit->property) ?? $this->propertyToday->date($unit->property);
+        $postedAddOns = $this->postedAddOnAdjustments->plan($unit, $adults, $childAges, $businessDate);
+
+        return UnitPartyPlan::planned($unit, $adults, $childAges, $rows, $fromChannel, $repriceCharged, (string) $before->toScale(2), (string) $after->toScale(2), $postedAddOns);
     }
 }

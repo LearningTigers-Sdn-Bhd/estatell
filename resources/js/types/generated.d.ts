@@ -3944,6 +3944,15 @@ lines: App.Data.Reservations.UnitPendingLineData[],
 balanceIfStayed: string,
 stayed: boolean,
 };
+export type UnitPartyAddOnData = {
+key: string,
+name: string,
+summary: string,
+reverseAmount: string,
+chargeAmount: string,
+needsReversal: boolean,
+canApply: boolean,
+};
 export type UnitPartyNightData = {
 date: string,
 was: string,
@@ -3960,6 +3969,7 @@ difference: string,
 fromChannel: boolean,
 hasCharged: boolean,
 error: string | null,
+addOns: App.Data.Reservations.UnitPartyAddOnData[],
 };
 export type UnitPendingLineData = {
 description: string,

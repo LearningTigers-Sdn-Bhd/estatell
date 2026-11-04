@@ -12,6 +12,7 @@ class UnitPartyPreviewData extends Data
 {
     /**
      * @param  list<UnitPartyNightData>  $nights
+     * @param  list<UnitPartyAddOnData>  $addOns  The charged per-guest add-ons to correct.
      */
     public function __construct(
         public array $nights,
@@ -21,5 +22,6 @@ class UnitPartyPreviewData extends Data
         public bool $fromChannel,
         public bool $hasCharged,
         public ?string $error,
+        public array $addOns = [],
     ) {}
 }

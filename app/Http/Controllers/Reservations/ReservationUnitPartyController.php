@@ -3,13 +3,16 @@
 namespace App\Http\Controllers\Reservations;
 
 use App\Actions\Reservations\ChangeUnitParty;
+use App\Data\Reservations\UnitPartyAddOnData;
 use App\Data\Reservations\UnitPartyNightData;
 use App\Data\Reservations\UnitPartyPreviewData;
+use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Reservations\ChangeUnitPartyRequest;
 use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
+use App\Services\Reservations\PostedAddOnAdjustment;
 use App\Services\Reservations\ReservationRefusals;
 use App\Services\Reservations\UnitPartyChangePreview;
 use Brick\Math\BigDecimal;
@@ -48,21 +51,36 @@ class ReservationUnitPartyController extends Controller
             $plan->fromChannel,
             array_any($plan->nights, fn (array $row): bool => $row['charged']),
             null,
+            array_map(fn (PostedAddOnAdjustment $adjustment): UnitPartyAddOnData => new UnitPartyAddOnData(
+                $adjustment->key,
+                $adjustment->item->name,
+                $adjustment->summary,
+                $adjustment->reverseAmount,
+                $adjustment->chargeAmount,
+                $adjustment->needsReversal(),
+                ! $adjustment->needsReversal() || $request->user()->can(PermissionEnum::FolioReverse->value),
+            ), $plan->postedAddOns),
         ));
     }
 
     public function store(ChangeUnitPartyRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, ChangeUnitParty $changeUnitParty, ReservationRefusals $refusals): RedirectResponse
     {
-        $result = $changeUnitParty($request->user(), $unit, $request->adults(), $request->childAges(), $request->repriceCharged());
+        $result = $changeUnitParty($request->user(), $unit, $request->adults(), $request->childAges(), $request->repriceCharged(), $request->skipAddOns(), canReverse: $request->user()->can(PermissionEnum::FolioReverse->value));
         $page = route('reservations.show', ['property' => $property, 'reservation' => $reservation, 'unit' => $unit->id]);
 
         if ($result->isRefused()) {
             return back(fallback: $page)->withErrors([ReservationRefusals::FORM => $refusals->partyMessage((string) $result->refusal)]);
         }
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => $result->corrected > 0
+        $message = $result->corrected > 0
             ? trans_choice('Guests changed. :count charged night was charged again.|Guests changed. :count charged nights were charged again.', $result->corrected)
-            : __('Guests changed.')]);
+            : __('Guests changed.');
+
+        if ($result->adjustedAddOns > 0) {
+            $message .= ' '.trans_choice(':count charged add-on corrected.|:count charged add-ons corrected.', $result->adjustedAddOns);
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
 
         return back(fallback: $page);
     }

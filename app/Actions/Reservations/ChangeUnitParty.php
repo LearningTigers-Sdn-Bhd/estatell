@@ -3,12 +3,16 @@
 namespace App\Actions\Reservations;
 
 use App\Actions\Boats\ResyncBoatFares;
+use App\Actions\Folio\PostCharge;
+use App\Actions\Folio\ReverseLine;
+use App\Data\Folio\NewChargeData;
 use App\Data\Reservations\NewAddOnData;
 use App\Enums\ChargingUnit;
 use App\Models\ReservationUnit;
 use App\Models\UnitAddOn;
 use App\Models\User;
 use App\Services\Boats\BoatFareAddOns;
+use App\Services\Reservations\PostedAddOnAdjustment;
 use App\Services\Reservations\UnitPartyChangePreview;
 use Brick\Math\BigDecimal;
 use Illuminate\Support\Facades\DB;
@@ -21,6 +25,8 @@ class ChangeUnitParty
         private AddUnitAddOn $addUnitAddOn,
         private BoatFareAddOns $boatFareAddOns,
         private ResyncBoatFares $resyncBoatFares,
+        private ReverseLine $reverseLine,
+        private PostCharge $postCharge,
     ) {}
 
     /**
@@ -28,17 +34,20 @@ class ChangeUnitParty
      * `UnitPartyChangePreview`: nights not charged yet take the new price, charged nights are corrected through
      * `ChangeNightPrice` only with `$repriceCharged`, and an overridden night keeps its price. The per-guest add-ons
      * not posted yet (a jetty fee) are written again for the new party, and the boat fares that are not charged yet
-     * follow through `ResyncBoatFares`. Posted add-ons do not change. The unit row is locked first, and a refusal from
-     * any step rolls everything back. See docs/12-reservations/14-change-guests.md.
+     * follow through `ResyncBoatFares`. Charged per-guest add-ons are corrected (`PostedAddOnAdjustments`: the
+     * difference is charged, or the lines are reversed and charged again), except the keys in `$skipAddOns`, which staff
+     * correct by hand, and a correction that reverses a line without `$canReverse` (`folio.reverse`). `$channelRevision` is an OTA change of the guests: never refused for too many guests. The unit
+     * row is locked first, and a refusal from any step rolls everything back. See docs/12-reservations/14-change-guests.md.
      *
      * @param  list<int>  $childAges
+     * @param  list<string>  $skipAddOns  Keys of `PostedAddOnAdjustment` to leave as they are.
      */
-    public function __invoke(User $actor, ReservationUnit $unit, int $adults, array $childAges, bool $repriceCharged = false): UnitPartyResult
+    public function __invoke(User $actor, ReservationUnit $unit, int $adults, array $childAges, bool $repriceCharged = false, array $skipAddOns = [], bool $channelRevision = false, bool $canReverse = true): UnitPartyResult
     {
         try {
-            return DB::transaction(function () use ($actor, $unit, $adults, $childAges, $repriceCharged): UnitPartyResult {
+            return DB::transaction(function () use ($actor, $unit, $adults, $childAges, $repriceCharged, $skipAddOns, $channelRevision, $canReverse): UnitPartyResult {
                 $locked = ReservationUnit::query()->lockForUpdate()->findOrFail($unit->id);
-                $plan = $this->preview->plan($locked, $adults, $childAges, $repriceCharged);
+                $plan = $this->preview->plan($locked, $adults, $childAges, $repriceCharged, $channelRevision);
 
                 if ($plan->isRefused()) {
                     return UnitPartyResult::refused((string) $plan->refusal);
@@ -93,6 +102,15 @@ class ChangeUnitParty
                 }
 
                 $this->rewritePerGuestAddOns($actor, $locked->refresh());
+                $adjusted = 0;
+
+                foreach ($plan->postedAddOns as $adjustment) {
+                    if (! in_array($adjustment->key, $skipAddOns, true) && ($canReverse || ! $adjustment->needsReversal())) {
+                        $this->adjustPostedAddOn($actor, $locked, $adjustment);
+                        $adjusted++;
+                    }
+                }
+
                 $boatRefusal = ($this->resyncBoatFares)($actor, $locked);
 
                 if ($boatRefusal !== null) {
@@ -115,10 +133,12 @@ class ChangeUnitParty
                         'repriced_nights' => $repriced,
                         'corrected_nights' => $corrected,
                         'from_channel' => $plan->fromChannel,
+                        'adjusted_add_ons' => $adjusted,
+                        'skipped_add_ons' => count($plan->postedAddOns) - $adjusted,
                     ])
                     ->log('Unit guests changed');
 
-                return UnitPartyResult::done($repriced, $corrected);
+                return UnitPartyResult::done($repriced, $corrected, $adjusted);
             });
         } catch (UnitPartyRefused $refused) {
             return UnitPartyResult::refused($refused->getMessage());
@@ -158,6 +178,44 @@ class ChangeUnitParty
 
             if ($result->isRefused()) {
                 throw new UnitPartyRefused((string) $result->refusal);
+            }
+        }
+    }
+
+    /**
+     * Reverse the charged lines when guests left, then add the new rows and charge them at once, on the business date,
+     * so the folio shows the correction next to the old charge.
+     */
+    private function adjustPostedAddOn(User $actor, ReservationUnit $unit, PostedAddOnAdjustment $adjustment): void
+    {
+        foreach ($adjustment->reverseLines as $line) {
+            $reversed = ($this->reverseLine)($actor, $line);
+
+            if ($reversed->isRefused()) {
+                throw new UnitPartyRefused((string) $reversed->refusal);
+            }
+        }
+
+        foreach ($adjustment->newRows as $row) {
+            $addOn = $unit->addOns()->create([
+                'charge_item_id' => $adjustment->item->id,
+                'quantity' => $row['quantity'],
+                'unit_amount' => $row['unit_amount'],
+                'service_date' => $row['service_date'],
+                'property_age_group_id' => $row['age_group_id'],
+            ]);
+
+            $posted = ($this->postCharge)($actor, $unit, new NewChargeData(
+                chargeItemId: $adjustment->item->id,
+                transactionCodeId: null,
+                description: null,
+                quantity: $row['quantity'],
+                unitAmount: $row['unit_amount'],
+                unitAddOnId: $addOn->id,
+            ));
+
+            if ($posted->isRefused()) {
+                throw new UnitPartyRefused((string) $posted->refusal);
             }
         }
     }

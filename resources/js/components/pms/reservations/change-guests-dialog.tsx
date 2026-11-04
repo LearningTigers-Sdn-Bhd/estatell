@@ -42,10 +42,12 @@ function ChangeGuestsForm({
         adults: string;
         child_ages: string[];
         reprice_charged: boolean;
+        skip_add_ons: string[];
     }>({
         adults: String(unit.adults),
         child_ages: unit.childAges.map(String),
         reprice_charged: false,
+        skip_add_ons: [],
     });
     const { data, errors } = form;
     const valid =
@@ -253,9 +255,76 @@ function ChangeGuestsForm({
                     </div>
                     <p className="text-muted-foreground">
                         Per-guest extras not charged yet, such as a jetty fee,
-                        follow the new guests. Extras already charged do not
-                        change.
+                        follow the new guests.
                     </p>
+                    {preview.addOns.length > 0 && (
+                        <div className="flex flex-col gap-2 border-t pt-2">
+                            <span className="font-medium">
+                                Extras already charged
+                            </span>
+                            {preview.addOns.map((addOn) => (
+                                <label
+                                    key={addOn.key}
+                                    className="flex items-start gap-2"
+                                >
+                                    <Checkbox
+                                        className="mt-0.5"
+                                        disabled={!addOn.canApply}
+                                        checked={
+                                            addOn.canApply &&
+                                            !data.skip_add_ons.includes(
+                                                addOn.key,
+                                            )
+                                        }
+                                        onCheckedChange={(checked) =>
+                                            form.setData(
+                                                'skip_add_ons',
+                                                checked
+                                                    ? data.skip_add_ons.filter(
+                                                          (one) =>
+                                                              one !== addOn.key,
+                                                      )
+                                                    : [
+                                                          ...data.skip_add_ons,
+                                                          addOn.key,
+                                                      ],
+                                            )
+                                        }
+                                    />
+                                    <span className="flex flex-1 flex-col">
+                                        <span className="flex justify-between gap-4">
+                                            <span>
+                                                {addOn.name}: {addOn.summary}
+                                            </span>
+                                            <span>
+                                                {addOn.needsReversal && (
+                                                    <span className="text-muted-foreground">
+                                                        −
+                                                        <MoneyText
+                                                            amount={
+                                                                addOn.reverseAmount
+                                                            }
+                                                            currency={currency}
+                                                        />{' '}
+                                                    </span>
+                                                )}
+                                                +
+                                                <MoneyText
+                                                    amount={addOn.chargeAmount}
+                                                    currency={currency}
+                                                />
+                                            </span>
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">
+                                            {addOn.canApply
+                                                ? 'Untick to correct it on the folio yourself.'
+                                                : 'Needs permission to reverse charges. Correct it on the folio later.'}
+                                        </span>
+                                    </span>
+                                </label>
+                            ))}
+                        </div>
+                    )}
                 </div>
             )}
         </FormOverlay>

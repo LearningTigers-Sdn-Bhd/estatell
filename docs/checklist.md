@@ -119,6 +119,7 @@ Branch `feat/sandbay-gaps`. Plan: `~/Code/Jesselton-Pixel/docs/estatell/sandbay/
 
 - [x] `feat(reports): filter boats not set and release overdue agent bookings` — Boat not set on Guest list › Arrivals and Departures (`?no_boat=1`, `ReportFilters::$boatNotSet`, `ReportKey::hasBoatNotSetFilter()`), and Release rooms on overdue rows of Agent payments due (`AgentPaymentDueRow::$overdue`, the Cancel reservation Dialog with a reason). Docs: [Guest list](22-reports/02-guest-list-and-daily-report.md#3-guest-list), [Follow-up](15-city-ledger/06-agent-payment-schedule.md#follow-up).
 - [x] `feat(rates): switch a booking to the group rate` — `rate_plans.group_rate_plan_id` (Larger bookings use on the Details tab, validated against the group rate's Min rooms), `groupRateSwitch()` and `switchGroupRates()` on the staff booking form and the agent portal, which also hides plans that do not fit the room count. Docs: [Rooms per booking](08-rates/01-rate-plans.md#rooms-per-booking).
+- [x] `feat(reservations): correct charged add-ons when guests change` — `PostedAddOnAdjustments` and the Extras already charged tick boxes in Change guests (charge the difference, or reverse and charge again; `folio.reverse` for reversals; `skip_add_ons` to do it by hand), OTA Modified revisions sync the guests through `ChangeUnitParty` (`channelRevision`), and OTA infants are children of 0. Docs: [Charged add-ons](12-reservations/14-change-guests.md#charged-add-ons), [Booking ingestion](21-channels/05-booking-ingestion.md).
 
 ## Next
 
