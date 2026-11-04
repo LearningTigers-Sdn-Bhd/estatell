@@ -119,6 +119,10 @@ The fingerprint is the normalized name and rounded coordinates, so the same plac
 
 Source: [Maps Embed API usage and billing](https://developers.google.com/maps/documentation/embed/usage-and-billing).
 
+## Property photos
+
+The property's own album, for both booking modes. It lives on the Details page, not under Booking website, so it does not depend on the booking website: see [Photos](../02-property/01-properties.md#photos). The Design tab's image slots are separate, and can copy a photo from the album: see [Design](07-settings-and-permissions.md#design).
+
 ## Room photos
 
 The `photos` collection on room types has an upload UI: the Photos tab of the room type page (see [Room types](../05-rooms/01-room-types.md)). Images the guest sees use the public media disk, because the media library's default disk is private. `MEDIA_PUBLIC_DISK` is `public` locally and `r2-public` in production: a separate public R2 bucket (`R2_PUBLIC_BUCKET`) served on a custom domain (`R2_PUBLIC_URL`, for example `https://media.estatell.com`). It reuses the `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` and `R2_ENDPOINT` of the private disk, and the endpoint must have no bucket name in it.

@@ -31,7 +31,7 @@ The marketplace endpoints are built and tested now, and nothing calls them until
 | `properties`            | Code, slug, name and city of the properties the token can reach                                                                       |
 | `search`                | The lowest price per property for the dates and party                                                                                 |
 | `sites/{slug}`          | Property code, template key, image slots, main colour, SEO title and description                                                      |
-| `properties/{code}`     | Name, address, coordinates, Maps link, photos, about text, amenities, nearby places, check-in times, policies                         |
+| `properties/{code}`     | Name, address, coordinates, Maps link, album photos (cover first), about text, amenities, nearby places, check-in times, policies     |
 | `room-types`            | Name, description, photos, amenities, guest limits, how it is sold                                                                    |
 | `calendar`              | Lowest price and closed dates for each date                                                                                           |
 | `offers`                | Room types, public rate plans, rooms left, `pay_online` and `pay_at_property` with tax lines, cancellation terms, or a blocked reason |

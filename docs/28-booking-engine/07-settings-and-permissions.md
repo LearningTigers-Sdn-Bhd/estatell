@@ -19,7 +19,7 @@ rate_plans               + bookable_online (bool, default false)
 - `BookingEngineMode`: Microsite, ApiOnly.
 - Slugs are lower case letters, digits and hyphens, 3 to 50 characters. A property gets one from its name when the General tab is first opened (`SetUpBookingSite`, which also creates the `property_booking_sites` row as Microsite). Until it is published, the owner can edit it on the General tab. After publishing, only admins change it, because a change breaks links already shared.
 - `site_template_id` is a foreign key to `site_templates`, and a template in use cannot be deleted.
-- **Built so far:** the flag, the tables, the three permissions, the General tab with Publish and Unpublish, the Amenities and Nearby places tabs, the property location read from the Maps link, and the checklist service (`BookingSiteChecklist`) with the Template, Required images and Location rows, the [template registry](08-microsite.md#template-registry), the Design and SEO tabs, and the Rates tab with the Public rate plan row. Each later item adds its own checklist row. Not built yet: the about text on the General tab, the admin switch for the mode, and the admin change of a published slug.
+- **Built so far:** the flag, the tables, the three permissions, the General tab with Publish and Unpublish, the Amenities and Nearby places tabs, the property location read from the Maps link, and the checklist service (`BookingSiteChecklist`) with the Template, Required images and Location rows, the [template registry](08-microsite.md#template-registry), the Design and SEO tabs, and the Rates tab with the Public rate plan row. Each later item adds its own checklist row. Not built yet: the about text on the General tab, the admin switch for the mode, the admin change of a published slug, Choose from album on the Design tab, and the Property photos and Room photos rows.
 
 ## Booking website settings
 
@@ -47,7 +47,8 @@ Settings › Booking website (`/p/{code}/settings/booking-website`, `settings.bo
 │                                                        │
 │ Before you publish                                     │
 │ ✓ Template chosen                                      │
-│ ✓ Hero image added                                     │
+│ ✓ Required images added                                │
+│ ✗ Property photos        None added yet           Fix  │
 │ ✗ Room photos            2 room types have none   Fix  │
 │ ✗ Public rate plan       None chosen yet          Fix  │
 │ ✓ Cancellation policy set                              │
@@ -57,23 +58,52 @@ Settings › Booking website (`/p/{code}/settings/booking-website`, `settings.bo
 └────────────────────────────────────────────────────────┘
 ```
 
-The checklist is calculated from data. In API only mode, Publish becomes **Go live**, and the template and hero image rows are left out. Unpublishing takes the site offline, and booked guests keep their Manage booking link.
+The checklist is calculated from data. In API only mode, Publish becomes **Go live**, and the template and required images rows are left out. Unpublishing takes the site offline, and booked guests keep their Manage booking link.
+
+- **Property photos** is done when the [property album](../02-property/01-properties.md#photos) has at least one photo. Both modes have this row.
+- **Room photos** is done when every active room type has at least one photo. Both modes have this row.
 
 ### Design
 
 ```
-┌─ Design ───────────────────────────────────────────────┐
-│ Template      [ Choose a template                   ▾ ]│
-│                                                        │
-│ Hero image    [ beach.jpg ]                [ Replace ] │
-│ Logo          [ logo.png  ]                [ Replace ] │
-│ About image   [ Empty     ]                [ Upload  ] │
-│ Main colour   [ e.g. #0F766E ]                         │
-│                                                [ Save ]│
-└────────────────────────────────────────────────────────┘
+┌─ Design ─────────────────────────────────────────────────┐
+│ Template      [ Choose a template                     ▾ ]│
+│                                                          │
+│ Hero image *  [ beach.jpg ]                              │
+│               [ Choose from album ] [ Upload ] [ Remove ]│
+│ Logo          [ logo.png  ]                              │
+│               [ Choose from album ] [ Upload ] [ Remove ]│
+│ About image   Empty                                      │
+│               [ Choose from album ] [ Upload ]           │
+│ Main colour   [ e.g. #0F766E ]                           │
+│                                                  [ Save ]│
+└──────────────────────────────────────────────────────────┘
 ```
 
-The rows follow the saved template's [image slots](08-microsite.md#template-registry), so they appear after the template is saved. Images are media on `PropertyBookingSite`, on a public disk, with the slot key as a custom property. Each file uploads as soon as it is picked. Changing the template keeps images in slots the new template also has, because images are matched by slot key.
+The rows follow the saved template's [image slots](08-microsite.md#template-registry), so they appear after the template is saved. Images are media on `PropertyBookingSite`, on a public disk, with the slot key as a custom property. Changing the template keeps images in slots the new template also has, because images are matched by slot key.
+
+The owner fills each slot in one of two ways. Both replace what the slot held and save at once.
+
+| Action            | What happens                                                                     | Added to the album?   |
+| ----------------- | -------------------------------------------------------------------------------- | --------------------- |
+| Choose from album | Copies a photo from the [property album](../02-property/01-properties.md#photos) | It stays in the album |
+| Upload            | Saves the file to the slot only                                                  | No                    |
+
+```
+┌─ Choose the Hero image ──────────────────────── [ x ] ┐
+│ ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐     │
+│ │✓beach │ │ lobby │ │ pool  │ │ cafe  │ │garden │     │
+│ └───────┘ └───────┘ └───────┘ └───────┘ └───────┘     │
+│                                                       │
+│                              [ Cancel ]  [ Use photo ]│
+└───────────────────────────────────────────────────────┘
+```
+
+- A slot always owns its image. Deleting or reordering album photos never changes the website, so the album needs no delete warnings.
+- Replacing a photo in the album does not update the website. The owner chooses it again on this tab.
+- An upload can be a website-only image, such as a banner with text. It never appears in the property gallery.
+- `CopyAlbumPhotoToSite` (`app/Actions/BookingEngine/`) checks that the slot exists and the photo belongs to the property. It uses the media library's `copy()`. Route: `POST design/images/{slot}/from-album`, `settings.booking-website.design.images.copy`.
+- The dialog needs `booking-website.manage`. With an empty album, it says so and links to the Photos tab. The album itself is managed with `settings.manage`.
 
 - The picker lists Available Standard templates, the property's own Available Custom templates, and the template already in use, even if it was retired. The server refuses any other template.
 - The main colour shows only when the saved template allows it. It is a six digit hex value, such as `#0F766E`, and it is cleared when the template does not allow one.
@@ -159,6 +189,7 @@ Only active, nightly plans with `company_access` Everyone appear (`RatePlan::sco
 
 | Item                                 | Where                                 |
 | ------------------------------------ | ------------------------------------- |
+| Property photos                      | Settings › Details › Photos           |
 | Room photos and room amenities       | Room type page                        |
 | Room name, description, guest limits | Room type page                        |
 | Prices and restrictions              | Rate calendar                         |

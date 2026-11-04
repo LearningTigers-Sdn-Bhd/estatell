@@ -78,7 +78,7 @@ The property's identity, edited on the Details page, **Profile** tab (`/p/{code}
 - `UpdatePropertyProfile` (`app/Actions/Property/`) saves the fields and logs `property.updated` with the changed fields. A save that changes nothing is not logged. It does not change `document_prefix`.
 - Printed documents read these values through [Printing settings](05-printing-settings.md). Empty values show "Not set" there with a link back to this tab.
 
-All seven Details tabs disable Save until a field changes. They reuse the shared unsaved-changes guard and dialog when leaving or switching tabs: Cancel, Discard or Save. Save leaves only after a successful response; validation errors keep the form open. Reloading or closing the browser tab shows the browser warning. A successful save clears the dirty state. Logo uploads remain separate and immediate.
+The seven Details form tabs disable Save until a field changes. They reuse the shared unsaved-changes guard and dialog when leaving or switching tabs: Cancel, Discard or Save. Save leaves only after a successful response; validation errors keep the form open. Reloading or closing the browser tab shows the browser warning. A successful save clears the dirty state. Logo uploads remain separate and immediate.
 
 ### Business licence
 
@@ -115,6 +115,38 @@ The legal details, on the Details page, **Business licence** tab (`/p/{code}/set
 | `GET`, `PUT /p/{code}/settings/business` | `settings.business`, `settings.business.update` |
 | `POST`, `DELETE …/settings/logo`         | `settings.logo.store`, `settings.logo.destroy`  |
 | `GET …/settings/logo`                    | `settings.logo`                                 |
+
+## Photos
+
+The property's own photo album, on the Details page, **Photos** tab (`/p/{code}/settings/photos`, `settings.manage`). It is the third tab. Not built yet: see the [checklist](../checklist.md#28-booking-engine).
+
+```
+┌ Property photos ──────────────── 12 of 30 ─ [ + Add photos ] ┐
+│ Photos of your property. Drag to reorder. The first is the   │
+│ cover.                                                       │
+│                                                              │
+│ ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐            │
+│ │ beach │ │ lobby │ │ pool  │ │ cafe  │ │garden │            │
+│ │  [x]  │ │  [x]  │ │  [x]  │ │  [x]  │ │  [x]  │            │
+│ └───────┘ └───────┘ └───────┘ └───────┘ └───────┘            │
+│  Cover                                                       │
+│                                                              │
+│ JPEG, PNG or WebP, up to 5 MB each.                          │
+└──────────────────────────────────────────────────────────────┘
+```
+
+- A `photos` media collection on Property, on the public media disk (`MEDIA_PUBLIC_DISK`), because guests see the photos. Up to 30 photos, each with a `thumb` (400 px) and a `web` (1600 px) conversion. The rules match [room type photos](../05-rooms/01-room-types.md).
+- Each action saves at once, so the tab has no Save button. `UploadPropertyPhotos`, `ReorderPropertyPhotos` and `RemovePropertyPhoto` (`app/Actions/Property/`) each log `property.updated` with `photos`.
+- The album does not depend on the booking website. It has no feature flag and the tab shows in both booking modes.
+- Onboarding does not ask for photos, and they are not on the [Recommended checklist](../17-onboarding/03-go-live.md#recommended-checklist). The [Booking website checklist](../28-booking-engine/07-settings-and-permissions.md#general) asks for them before publishing.
+- The booking engine API returns these photos on `properties/{code}`.
+- The website's image slots keep their own copies. Changing the album never changes a slot. See [Design](../28-booking-engine/07-settings-and-permissions.md#design).
+
+| Route                                   | Name                      |
+| --------------------------------------- | ------------------------- |
+| `GET`, `POST /p/{code}/settings/photos` | `settings.photos.*`       |
+| `PUT …/settings/photos/order`           | `settings.photos.reorder` |
+| `DELETE …/settings/photos/{photo}`      | `settings.photos.destroy` |
 
 ## Rules
 
