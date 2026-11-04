@@ -8,6 +8,7 @@ use App\Models\PropertySetting;
 use App\Models\RegistrationCardFieldSetting;
 use App\Models\ReservationUnit;
 use App\Services\Kiosk\KioskLookupLockout;
+use Illuminate\Support\Facades\RateLimiter;
 
 require_once __DIR__.'/../Support/KioskSetup.php';
 
@@ -179,4 +180,25 @@ it('keeps the lockout per kiosk', function () {
 
     kioskPost('/bookings/find', ['reference' => 'R-100'])->assertStatus(429);
     kioskPost('/bookings/find', ['reference' => 'R-100'], 'est_live_secondkioskaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')->assertOk();
+});
+
+it('never lets a refund take the failure count below zero', function () {
+    ['kiosk' => $kiosk] = kioskStaySetup();
+    $lockout = app(KioskLookupLockout::class);
+    $key = 'kiosk-lookup-failures:'.$kiosk->id;
+    $max = KioskLookupLockout::MAX_FAILURES;
+
+    // the window ran out between the attempt and the refund of a found lookup
+    $lockout->attempt($kiosk);
+    $this->travel(KioskLookupLockout::DECAY_SECONDS + 1)->seconds();
+    $lockout->refund($kiosk);
+    $lockout->refund($kiosk);
+
+    expect(RateLimiter::attempts($key))->toBe(0);
+
+    foreach (range(1, $max) as $guess) {
+        kioskPost('/bookings/find', ['reference' => "X-{$guess}"])->assertNotFound();
+    }
+
+    kioskPost('/bookings/find', ['reference' => 'R-100'])->assertStatus(429);
 });

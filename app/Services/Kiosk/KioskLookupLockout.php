@@ -33,11 +33,14 @@ class KioskLookupLockout
     }
 
     /**
-     * Give back the attempt of a lookup that found a booking.
+     * Give back the attempt of a lookup that found a booking. It never takes the count below zero: if the window ran
+     * out since the attempt, `RateLimiter::decrement` would recreate the counter at -1 and hand out extra attempts.
      */
     public function refund(ApiToken $token): void
     {
-        RateLimiter::decrement($this->key($token));
+        if (RateLimiter::attempts($this->key($token)) > 0) {
+            RateLimiter::decrement($this->key($token), self::DECAY_SECONDS);
+        }
     }
 
     private function key(ApiToken $token): string
