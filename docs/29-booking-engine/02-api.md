@@ -44,7 +44,7 @@ The marketplace endpoints are built and tested now, and nothing calls them until
 
 ## Access
 
-Laravel Sanctum, with one token for each client. The token's abilities decide which endpoints it reaches and its scope decides which properties. The user approved adding Sanctum on 2026-11-03. It is installed when this item is built.
+Laravel Sanctum, on the same [token layer](../28-api-access/01-api-tokens.md) as kiosks, with one token for each client. Sanctum is already installed. The token's `v1:*` abilities decide which endpoints it reaches and its scope decides which properties. These tokens need a new owner, because `Kiosk` is the only one today: see [Booking engine microsite](../28-api-access/04-booking-engine-microsite.md).
 
 | Token               | Can reach                                     | Source of bookings |
 | ------------------- | --------------------------------------------- | ------------------ |
@@ -63,10 +63,10 @@ A property the token cannot reach, or one with the flag off, returns 404. A book
 - **Rate limits.** Per token, tighter on writes than reads, and a limit on open holds per IP address and per property.
 - **Guest tokens.** Hold and booking tokens are long and random. A booking number alone opens nothing.
 - **Not exposed.** Folios, guest search, staff data and commission.
-- **Errors.** Refusals return 422 with a stable `code` and a message, like the Action refusal codes elsewhere.
+- **Errors.** Refusals return 422 with a stable `code` and a message, like the Action refusal codes elsewhere. A missing, wrong or revoked token returns 401 `unauthorized`, in the [shared error shape](../28-api-access/01-api-tokens.md#errors).
 
 ## Code
 
-- Routes in `routes/api.php`, under `/api/v1`, with names under `api.`.
+- Routes in `routes/api.php`, under `/api/v1`, with names under `api.`. They use `api.token:{scope}`, never `auth:sanctum`: see [Traps](../28-api-access/01-api-tokens.md#traps).
 - Controllers in `app/Http/Controllers/Api/V1/`, thin, returning Eloquent API Resources.
 - Every query is scoped by `property_id`, taken from the path and checked against the token.

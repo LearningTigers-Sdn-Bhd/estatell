@@ -29,13 +29,13 @@ booking_return_addresses   id, property_id, url, timestamps
                            unique (property_id, url)
 ```
 
-| Item             | Rule                                                                              |
-| ---------------- | --------------------------------------------------------------------------------- |
-| Token            | One Sanctum token per property, shown once, replaceable and revocable             |
-| Use              | Server only, because the API allows no browser calls                              |
-| Return addresses | Full `https` addresses. A payment names one, and anything else is refused         |
-| Limits on holds  | A cap on open holds per property and per IP, so a bug cannot hold every room      |
-| Endpoints        | Content, search, checkout and manage booking only: see [API](02-api.md#endpoints) |
+| Item             | Rule                                                                                      |
+| ---------------- | ----------------------------------------------------------------------------------------- |
+| Token            | One [Sanctum token](02-api.md#access) per property, shown once, replaceable and revocable |
+| Use              | Server only, because the API allows no browser calls                                      |
+| Return addresses | Full `https` addresses. A payment names one, and anything else is refused                 |
+| Limits on holds  | A cap on open holds per property and per IP, so a bug cannot hold every room              |
+| Endpoints        | Content, search, checkout and manage booking only: see [API](02-api.md#endpoints)         |
 
 Curlec always returns the guest to estatell's callback, which sends them to the approved address. The Curlec allowlist therefore holds only estatell's domain.
 
@@ -57,6 +57,8 @@ Curlec always returns the guest to estatell's callback, which sends them to the 
 
 Owners manage the token and return addresses, and admins set the mode. Support cannot change them through view as.
 
+Sanctum's own `last_used_at` is off, so the token's owner records "last used", as a kiosk does.
+
 ## Test mode
 
 Developers test on the [demo environment](../deployment/demo_environment.md), with Curlec's test system. Production has no test path, so no test code or flag reaches real data.
@@ -76,13 +78,13 @@ Curlec test keys                         Curlec live keys
 
 Going live changes only the API address and token.
 
-| Demo fact                       | Effect                                        | Plan                                                                                 |
-| ------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------ |
-| The database resets every night | A token made by hand would disappear          | `DemoSeeder` creates one fixed token from an environment setting                     |
-| Demo properties only            | Developers test on sample rooms               | The owner does one real booking and refund before launch                             |
-| Mail is only logged             | No confirmation email arrives                 | Check the booking through the API; test email separately                             |
-| No scheduler or queue workers   | No job expires holds; the queue is `sync`     | [Availability ignores expired holds](03-checkout-and-hold.md#holds-and-availability) |
-| A shared token                  | Developers can see each other's test activity | Acceptable for sample data; never use real guest details                             |
+| Demo fact                       | Effect                                        | Plan                                                                                                                                    |
+| ------------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| The database resets every night | A token made by hand would disappear          | `DemoSeeder` stores the hash of one fixed token from an environment setting, with its abilities. `createToken` only makes random tokens |
+| Demo properties only            | Developers test on sample rooms               | The owner does one real booking and refund before launch                                                                                |
+| Mail is only logged             | No confirmation email arrives                 | Check the booking through the API; test email separately                                                                                |
+| No scheduler or queue workers   | No job expires holds; the queue is `sync`     | [Availability ignores expired holds](03-checkout-and-hold.md#holds-and-availability)                                                    |
+| A shared token                  | Developers can see each other's test activity | Acceptable for sample data; never use real guest details                                                                                |
 
 Demo needs the flag on for its properties, the test token and Curlec test keys, plus a public webhook. Curlec's test mode has test cards and a mock bank page with Success and Failure buttons.
 

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-**Status: planned, not built.** How the booking engine microsite will sign in to the API. It uses the same [token layer](01-api-tokens.md) as kiosks. This file covers access only. The module itself is planned in the booking engine docs.
+**Status: planned, not built.** How the booking engine microsite will sign in to the API. It uses the same [token layer](01-api-tokens.md) as kiosks. This file covers access only. The module itself is planned in the [booking engine docs](../29-booking-engine/01-overview.md), and its token list is in [Access](../29-booking-engine/02-api.md#access).
 
 ## What differs from a kiosk
 
@@ -22,6 +22,11 @@ A kiosk's owner holds its one property. A microsite token reaches many, so `ApiC
 1. An `ApiClient` model with `HasApiTokens`.
 2. `AuthenticateApiToken` accepts an `ApiClient` as well as a `Kiosk`, and sets the right request attribute. Today it accepts only a `Kiosk`.
 3. A check that the property in the path is one the client can reach. A property it cannot reach answers 404.
+4. The owner records its own last use, because Sanctum's `last_used_at` is off.
+
+## Open question
+
+API only and demo tokens also need an owner. Decide whether they share `ApiClient` when it is designed. An API only client reaches one property, and a demo token reaches demo properties.
 
 ## Rules that stay
 
