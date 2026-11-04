@@ -13,6 +13,7 @@ use App\Services\EInvoice\MyInvoisClient;
 use App\Services\EInvoice\MyInvoisClientFactory;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Laravel\Pennant\Feature;
@@ -31,11 +32,8 @@ class EInvoiceSettingsController extends Controller
             'setting' => $setting === null ? null : [
                 'enabled' => $setting->enabled,
                 'api_environment' => $setting->api_environment->value,
-                'client_id' => $setting->client_id ? '••••••••' : '',
+                'client_id' => (string) $setting->client_id,
                 'has_client_secret' => ! empty($setting->client_secret),
-                'signature_enabled' => $setting->signature_enabled,
-                'signing_certificate' => $setting->signing_certificate,
-                'has_signing_private_key' => ! empty($setting->signing_private_key),
                 'supplier_name' => $setting->supplier_name,
                 'supplier_tin' => $setting->supplier_tin,
                 'supplier_sst_registration' => $setting->supplier_sst_registration,
@@ -72,6 +70,12 @@ class EInvoiceSettingsController extends Controller
         ]);
     }
 
+    /**
+     * Signing fields (signature_enabled, signing_certificate, signing_private_key,
+     * signing_passphrase) are deliberately not accepted. DocumentSigner does not
+     * produce a signature LHDN accepts yet, so a crafted request must not be able
+     * to switch signing on. Unsigned v1.0 documents are what LHDN accepts today.
+     */
     public function update(Property $property, Request $request, SaveEInvoiceSettings $saveAction): RedirectResponse
     {
         if (! Feature::for($property)->active(EInvoicing::class)) {
@@ -81,12 +85,9 @@ class EInvoiceSettingsController extends Controller
         $validated = $request->validate([
             'enabled' => ['required', 'boolean'],
             'api_environment' => ['required', 'string', 'in:mock,sandbox,production'],
+            'confirm_production' => ['nullable', 'boolean'],
             'client_id' => ['nullable', 'string', 'max:255'],
             'client_secret' => ['nullable', 'string', 'max:255'],
-            'signature_enabled' => ['required', 'boolean'],
-            'signing_certificate' => ['nullable', 'string'],
-            'signing_private_key' => ['nullable', 'string'],
-            'signing_passphrase' => ['nullable', 'string'],
             'supplier_name' => ['nullable', 'string', 'max:255'],
             'supplier_tin' => ['nullable', 'string', 'max:30'],
             'supplier_sst_registration' => ['nullable', 'string', 'max:30'],
@@ -103,6 +104,23 @@ class EInvoiceSettingsController extends Controller
             'auto_submit_on_checkout' => ['nullable', 'boolean'],
             'consolidation_enabled' => ['nullable', 'boolean'],
         ]);
+
+        if ($validated['api_environment'] === 'mock' && app()->isProduction()) {
+            throw ValidationException::withMessages([
+                'api_environment' => __('Mock mode is only available in development and testing environments.'),
+            ]);
+        }
+
+        $currentSetting = $property->eInvoiceSetting;
+        if (
+            $validated['api_environment'] === 'production' &&
+            $currentSetting?->api_environment?->value !== 'production' &&
+            empty($validated['confirm_production'])
+        ) {
+            throw ValidationException::withMessages([
+                'confirm_production' => __('Please confirm that you understand switching to Production will submit real legal tax documents to LHDN.'),
+            ]);
+        }
 
         $saveAction($property, $validated, $request->user());
 

@@ -5,7 +5,6 @@ namespace App\Services\EInvoice;
 use App\Models\EInvoiceSubmission;
 use App\Models\Property;
 use App\Models\PropertyEInvoiceSetting;
-use Carbon\CarbonImmutable;
 use RuntimeException;
 
 class CreditNoteDocumentBuilder
@@ -52,6 +51,8 @@ class CreditNoteDocumentBuilder
      */
     public function build(): array
     {
+        $this->validateRequiredData();
+
         $payload = $this->buildPayload();
         $payloadJson = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
@@ -64,31 +65,65 @@ class CreditNoteDocumentBuilder
         ];
     }
 
+    private function resolveBuyer(): array
+    {
+        if (! empty($this->originalSubmission->buyer_snapshot)) {
+            return $this->originalSubmission->buyer_snapshot;
+        }
+
+        if ($this->originalSubmission->folio !== null) {
+            return BuyerResolver::forFolio($this->originalSubmission->folio);
+        }
+
+        if ($this->originalSubmission->arInvoice !== null) {
+            return BuyerResolver::forCompany($this->originalSubmission->arInvoice->company, $this->property);
+        }
+
+        throw new \InvalidArgumentException('Original submission buyer details are missing.');
+    }
+
+    private function validateRequiredData(): void
+    {
+        $tin = $this->setting?->supplier_tin ?: $this->property->tin;
+        if (empty($tin)) {
+            throw new \InvalidArgumentException('Property TIN is missing. Configure E-Invoice Settings before submitting.');
+        }
+
+        $email = $this->setting?->supplier_email ?: $this->property->contact_email;
+        if (empty($email)) {
+            throw new \InvalidArgumentException('Property contact email is missing. Configure E-Invoice Settings before submitting.');
+        }
+
+        $city = $this->setting?->supplier_city ?: $this->property->city;
+        if (empty($city)) {
+            throw new \InvalidArgumentException('Property city is missing. Configure Property Address before submitting.');
+        }
+
+        $buyer = $this->resolveBuyer();
+        if (empty($buyer['tin'])) {
+            throw new \InvalidArgumentException('Buyer TIN is required to issue an e-invoice credit note.');
+        }
+
+        if (empty($buyer['city'])) {
+            throw new \InvalidArgumentException('Buyer city is required for LHDN e-invoicing.');
+        }
+    }
+
     /**
      * @return array<string, mixed>
      */
     public function buildPayload(): array
     {
         $subtotal = abs($this->amount);
-        $buyer = $this->originalSubmission->buyer_snapshot ?? [
-            'name' => 'Buyer',
-            'tin' => BuyerResolver::DOMESTIC_BUYER_FALLBACK_TIN,
-            'id_type' => 'BRN',
-            'id_value' => 'NA',
-            'email' => 'buyer@example.com',
-            'phone' => '+60123456789',
-            'address_line1' => 'NA',
-            'address_line2' => '',
-            'city' => 'Kota Kinabalu',
-            'postal_code' => '88000',
-            'state_code' => '12',
-            'country_code' => 'MYS',
-        ];
+        $buyer = $this->resolveBuyer();
+
+        // LHDN reads IssueDate and IssueTime as UTC, so local time here would be 8 hours in the future.
+        $issuedAt = now('UTC');
 
         $body = [
             'ID' => [['_' => $this->creditNoteNumber]],
-            'IssueDate' => [['_' => CarbonImmutable::now('Asia/Kuala_Lumpur')->toDateString()]],
-            'IssueTime' => [['_' => CarbonImmutable::now('Asia/Kuala_Lumpur')->toTimeString().'Z']],
+            'IssueDate' => [['_' => $issuedAt->toDateString()]],
+            'IssueTime' => [['_' => $issuedAt->format('H:i:s').'Z']],
             'InvoiceTypeCode' => [['_' => self::INVOICE_TYPE_CODE, 'listVersionID' => $this->documentSigner->documentVersion()]],
             'DocumentCurrencyCode' => [['_' => self::DEFAULT_CURRENCY]],
             'TaxCurrencyCode' => [['_' => self::DEFAULT_CURRENCY]],
@@ -185,19 +220,19 @@ class CreditNoteDocumentBuilder
      */
     private function supplierParty(): array
     {
-        $tin = $this->setting?->supplier_tin ?: $this->property->tin ?: 'C0000000000';
+        $tin = $this->setting?->supplier_tin ?: $this->property->tin;
         $brn = $this->property->registration_number ?: 'NA';
         $name = $this->setting?->supplier_name ?: $this->property->legal_name ?: $this->property->name;
         $msic = $this->setting?->supplier_msic_code ?: $this->property->msic_code ?: '55101';
         $desc = $this->setting?->supplier_business_description ?: $this->property->business_description ?: 'Hotel and accommodation services';
-        $email = $this->setting?->supplier_email ?: $this->property->contact_email ?: 'accounts@hotel.com';
+        $email = $this->setting?->supplier_email ?: $this->property->contact_email;
         $phone = PhoneFormatter::format($this->setting?->supplier_phone ?: $this->property->contact_phone);
 
         $addressLine1 = $this->setting?->supplier_address_line1 ?: $this->property->address_line1 ?: 'NA';
         $addressLine2 = $this->setting?->supplier_address_line2 ?: $this->property->address_line2 ?: '';
-        $city = $this->setting?->supplier_city ?: $this->property->city ?: 'Kota Kinabalu';
-        $postalCode = $this->setting?->supplier_postal_code ?: $this->property->postal_code ?: '88000';
-        $stateCode = $this->setting?->supplier_state_code ?: $this->property->state_code ?: '12';
+        $city = $this->setting?->supplier_city ?: $this->property->city;
+        $postalCode = $this->setting?->supplier_postal_code ?: $this->property->postal_code ?: '00000';
+        $stateCode = $this->setting?->supplier_state_code ?: $this->property->state_code ?: '14';
 
         $partyIdentifications = [
             ['ID' => [['_' => $tin, 'schemeID' => 'TIN']]],
@@ -242,7 +277,7 @@ class CreditNoteDocumentBuilder
     private function buyerParty(array $buyer): array
     {
         $partyIdentifications = [
-            ['ID' => [['_' => $buyer['tin'] ?? BuyerResolver::DOMESTIC_BUYER_FALLBACK_TIN, 'schemeID' => 'TIN']]],
+            ['ID' => [['_' => $buyer['tin'], 'schemeID' => 'TIN']]],
             ['ID' => [['_' => $buyer['id_value'] ?? 'NA', 'schemeID' => $buyer['id_type'] ?? 'BRN']]],
         ];
 
@@ -254,9 +289,9 @@ class CreditNoteDocumentBuilder
             'PartyIdentification' => $partyIdentifications,
             'PostalAddress' => [
                 [
-                    'CityName' => [['_' => $buyer['city'] ?? 'Kota Kinabalu']],
-                    'PostalZone' => [['_' => $buyer['postal_code'] ?? '88000']],
-                    'CountrySubentityCode' => [['_' => $buyer['state_code'] ?? '12']],
+                    'CityName' => [['_' => $buyer['city']]],
+                    'PostalZone' => [['_' => $buyer['postal_code'] ?? '00000']],
+                    'CountrySubentityCode' => [['_' => $buyer['state_code'] ?? '14']],
                     'AddressLine' => [
                         ['Line' => [['_' => $buyer['address_line1'] ?? 'NA']]],
                         ['Line' => [['_' => $buyer['address_line2'] ?? '']]],
@@ -268,8 +303,8 @@ class CreditNoteDocumentBuilder
             'PartyLegalEntity' => [['RegistrationName' => [['_' => $buyer['name'] ?? 'Buyer']]]],
             'Contact' => [
                 [
-                    'Telephone' => [['_' => $buyer['phone'] ?? '+60123456789']],
-                    'ElectronicMail' => [['_' => $buyer['email'] ?? 'accounts@buyer.com']],
+                    'Telephone' => [['_' => $buyer['phone'] ?? PhoneFormatter::DEFAULT_PHONE]],
+                    'ElectronicMail' => [['_' => $buyer['email'] ?? '']],
                 ],
             ],
         ];

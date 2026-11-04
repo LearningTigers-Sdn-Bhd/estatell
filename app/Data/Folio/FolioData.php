@@ -73,5 +73,17 @@ class FolioData extends Data
         public ?string $oldSystemTotal = null,
         public ?string $refundCredit = null,
         public bool $canRefundOtherMethod = false,
+        public ?int $eInvoiceSubmissionId = null,
+        public ?string $eInvoiceStatus = null,
+        public ?string $eInvoiceStatusLabel = null,
+        public ?string $eInvoiceStatusTone = null,
+        public ?string $eInvoiceUuid = null,
+        public bool $canSubmitEInvoice = false,
+        public ?string $payerGuestTin = null,
+        public ?string $payerGuestIdType = null,
+        public ?string $payerGuestIdValue = null,
+        public ?string $payerGuestCity = null,
+        /** @var array<string, mixed>|null */
+        public ?array $eInvoiceBuyer = null,
     ) {}
 }

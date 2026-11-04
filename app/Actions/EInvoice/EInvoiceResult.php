@@ -24,6 +24,14 @@ class EInvoiceResult
 
     public const string REFUSAL_ORIGINAL_NOT_VALID = 'original_not_valid';
 
+    public const string REFUSAL_SUPPLIER_PROFILE_INCOMPLETE = 'supplier_profile_incomplete';
+
+    public const string REFUSAL_BUYER_TIN_REQUIRED = 'buyer_tin_required';
+
+    public const string REFUSAL_BUYER_DETAILS_INCOMPLETE = 'buyer_details_incomplete';
+
+    public const string REFUSAL_PASSPORT_REQUIRED = 'passport_required';
+
     private function __construct(
         public readonly bool $ok,
         public readonly ?EInvoiceSubmission $submission = null,

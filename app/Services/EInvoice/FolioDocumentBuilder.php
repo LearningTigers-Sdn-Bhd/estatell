@@ -58,6 +58,8 @@ class FolioDocumentBuilder
      */
     public function build(): array
     {
+        $this->validateRequiredData();
+
         $payload = $this->buildPayload();
         $payloadJson = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
@@ -70,15 +72,71 @@ class FolioDocumentBuilder
         ];
     }
 
+    private function validateRequiredData(): void
+    {
+        $tin = $this->setting?->supplier_tin ?: $this->property->tin;
+        if (empty($tin)) {
+            throw new \InvalidArgumentException('Property TIN is missing. Configure E-Invoice Settings before submitting.');
+        }
+
+        $email = $this->setting?->supplier_email ?: $this->property->contact_email;
+        if (empty($email)) {
+            throw new \InvalidArgumentException('Property contact email is missing. Configure E-Invoice Settings before submitting.');
+        }
+
+        $city = $this->setting?->supplier_city ?: $this->property->city;
+        if (empty($city)) {
+            throw new \InvalidArgumentException('Property city is missing. Configure Property Address before submitting.');
+        }
+
+        $buyer = $this->resolveBuyer();
+
+        if (empty($buyer['city'])) {
+            throw new \InvalidArgumentException('Buyer city is required for LHDN e-invoicing.');
+        }
+
+        $isDomestic = ($buyer['country_code'] ?? 'MYS') === 'MYS';
+        if ($isDomestic && empty($buyer['tin'])) {
+            throw new \InvalidArgumentException('Domestic buyer requires a valid tax identification number (TIN) for individual e-invoicing. Stays without a guest TIN can be consolidated monthly.');
+        }
+
+        if (! $isDomestic && ($buyer['id_value'] === 'NA' || empty($buyer['id_value']))) {
+            throw new \InvalidArgumentException("Enter the foreign guest's passport number before issuing an individual e-invoice.");
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function resolveBuyer(): array
+    {
+        $buyer = $this->buyerSnapshot ?? BuyerResolver::forFolio($this->folio);
+        $countryCode = BuyerResolver::lhdnCountryCode($buyer['country_code'] ?? null);
+        $isDomestic = $countryCode === 'MYS';
+
+        $tin = trim((string) ($buyer['tin'] ?? ''));
+        if (empty($tin) && ! $isDomestic) {
+            $tin = BuyerResolver::FOREIGN_BUYER_TIN;
+        }
+
+        $buyer['country_code'] = $countryCode;
+        $buyer['tin'] = $tin;
+
+        return $buyer;
+    }
+
     /**
      * @return array<string, mixed>
      */
     public function buildPayload(): array
     {
+        // LHDN reads IssueDate and IssueTime as UTC, so local time here would be 8 hours in the future.
+        $issuedAt = now('UTC');
+
         $body = [
             'ID' => [['_' => $this->internalId()]],
-            'IssueDate' => [['_' => CarbonImmutable::now('Asia/Kuala_Lumpur')->toDateString()]],
-            'IssueTime' => [['_' => CarbonImmutable::now('Asia/Kuala_Lumpur')->toTimeString().'Z']],
+            'IssueDate' => [['_' => $issuedAt->toDateString()]],
+            'IssueTime' => [['_' => $issuedAt->format('H:i:s').'Z']],
             'InvoiceTypeCode' => [['_' => self::INVOICE_TYPE_CODE, 'listVersionID' => $this->documentSigner->documentVersion()]],
             'DocumentCurrencyCode' => [['_' => self::DEFAULT_CURRENCY]],
             'TaxCurrencyCode' => [['_' => self::DEFAULT_CURRENCY]],
@@ -119,19 +177,19 @@ class FolioDocumentBuilder
      */
     private function supplierParty(): array
     {
-        $tin = $this->setting?->supplier_tin ?: $this->property->tin ?: 'C0000000000';
+        $tin = $this->setting?->supplier_tin ?: $this->property->tin;
         $brn = $this->property->registration_number ?: 'NA';
         $name = $this->setting?->supplier_name ?: $this->property->legal_name ?: $this->property->name;
         $msic = $this->setting?->supplier_msic_code ?: $this->property->msic_code ?: '55101';
         $desc = $this->setting?->supplier_business_description ?: $this->property->business_description ?: 'Hotel and accommodation services';
-        $email = $this->setting?->supplier_email ?: $this->property->contact_email ?: 'accounts@hotel.com';
+        $email = $this->setting?->supplier_email ?: $this->property->contact_email;
         $phone = PhoneFormatter::format($this->setting?->supplier_phone ?: $this->property->contact_phone);
 
         $addressLine1 = $this->setting?->supplier_address_line1 ?: $this->property->address_line1 ?: 'NA';
         $addressLine2 = $this->setting?->supplier_address_line2 ?: $this->property->address_line2 ?: '';
-        $city = $this->setting?->supplier_city ?: $this->property->city ?: 'Kota Kinabalu';
-        $postalCode = $this->setting?->supplier_postal_code ?: $this->property->postal_code ?: '88000';
-        $stateCode = $this->setting?->supplier_state_code ?: $this->property->state_code ?: '12';
+        $city = $this->setting?->supplier_city ?: $this->property->city;
+        $postalCode = $this->setting?->supplier_postal_code ?: $this->property->postal_code ?: '00000';
+        $stateCode = $this->setting?->supplier_state_code ?: $this->property->state_code ?: '14';
 
         $partyIdentifications = [
             ['ID' => [['_' => $tin, 'schemeID' => 'TIN']]],
@@ -176,7 +234,7 @@ class FolioDocumentBuilder
      */
     private function buyerParty(): array
     {
-        $buyer = $this->buyerSnapshot ?? BuyerResolver::forFolio($this->folio);
+        $buyer = $this->resolveBuyer();
 
         $partyIdentifications = [
             ['ID' => [['_' => $buyer['tin'], 'schemeID' => 'TIN']]],
@@ -254,11 +312,47 @@ class FolioDocumentBuilder
             ];
         }
 
+        $reversedIds = $this->folio->lines()
+            ->whereNotNull('reversal_of_id')
+            ->pluck('reversal_of_id')
+            ->filter();
+
         $idx = 1;
         foreach ($lines as $line) {
             $amount = (float) $line->amount;
             $qty = $line->quantity ?: 1;
             $unitPrice = (float) ($line->unit_amount ?? ($amount / $qty));
+
+            $childTaxes = $this->folio->lines
+                ->where('parent_line_id', $line->id)
+                ->where('kind', TransactionKind::Tax)
+                ->whereNull('reversal_of_id')
+                ->whereNotIn('id', $reversedIds);
+
+            $lineTaxSubtotals = [];
+            $lineTaxAmount = 0.0;
+
+            if ($childTaxes->isNotEmpty()) {
+                foreach ($childTaxes as $tax) {
+                    $taxAmt = (float) $tax->amount;
+                    $lineTaxAmount += $taxAmt;
+                    $taxCode = $this->resolveTaxCode($tax);
+
+                    $lineTaxSubtotals[] = [
+                        'TaxableAmount' => [['_' => round($amount, 2), 'currencyID' => self::DEFAULT_CURRENCY]],
+                        'TaxAmount' => [['_' => round($taxAmt, 2), 'currencyID' => self::DEFAULT_CURRENCY]],
+                        'TaxCategory' => [
+                            [
+                                'ID' => [['_' => $taxCode]],
+                                'TaxExemptionReason' => [['_' => '']],
+                                'TaxScheme' => [['ID' => [['_' => 'OTH', 'schemeID' => 'UN/ECE 5153', 'schemeAgencyID' => '6']]]],
+                            ],
+                        ],
+                    ];
+                }
+            } else {
+                $lineTaxSubtotals[] = $this->exemptTaxSubtotal(round($amount, 2));
+            }
 
             $formattedLines[] = [
                 'ID' => [['_' => (string) $idx++]],
@@ -272,8 +366,8 @@ class FolioDocumentBuilder
                 ],
                 'TaxTotal' => [
                     [
-                        'TaxAmount' => [['_' => 0.0, 'currencyID' => self::DEFAULT_CURRENCY]],
-                        'TaxSubtotal' => [$this->exemptTaxSubtotal(round($amount, 2))],
+                        'TaxAmount' => [['_' => round($lineTaxAmount, 2), 'currencyID' => self::DEFAULT_CURRENCY]],
+                        'TaxSubtotal' => $lineTaxSubtotals,
                     ],
                 ],
                 'Item' => [
@@ -329,14 +423,19 @@ class FolioDocumentBuilder
         $totalTaxAmount = 0.0;
         $subtotals = [];
 
-        foreach ($taxLines as $taxLine) {
-            $taxAmount = (float) $taxLine->amount;
+        $grouped = $taxLines->groupBy(fn (FolioLine $line): string => $this->resolveTaxCode($line));
+
+        foreach ($grouped as $taxCode => $lines) {
+            $taxAmount = $lines->sum(fn (FolioLine $l): float => (float) $l->amount);
             $totalTaxAmount += $taxAmount;
 
-            $taxCode = $this->resolveTaxCode($taxLine);
+            $parentIds = $lines->pluck('parent_line_id')->filter();
+            $taxableBase = $parentIds->isNotEmpty()
+                ? $this->activeChargeLines()->whereIn('id', $parentIds)->sum(fn (FolioLine $c): float => (float) $c->amount)
+                : $subtotal;
 
             $subtotals[] = [
-                'TaxableAmount' => [['_' => $subtotal, 'currencyID' => self::DEFAULT_CURRENCY]],
+                'TaxableAmount' => [['_' => round($taxableBase ?: $subtotal, 2), 'currencyID' => self::DEFAULT_CURRENCY]],
                 'TaxAmount' => [['_' => round($taxAmount, 2), 'currencyID' => self::DEFAULT_CURRENCY]],
                 'TaxCategory' => [
                     [
@@ -384,7 +483,7 @@ class FolioDocumentBuilder
             return '03';
         }
 
-        return 'OTH';
+        return '06';
     }
 
     /**

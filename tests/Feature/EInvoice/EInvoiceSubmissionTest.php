@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\EInvoice\ConsolidateMonthlyEInvoices;
 use App\Enums\ArInvoiceType;
 use App\Enums\EInvoiceDocumentType;
 use App\Enums\EInvoiceEnvironment;
@@ -9,6 +10,7 @@ use App\Enums\FolioStatus;
 use App\Enums\FolioType;
 use App\Enums\TransactionKind;
 use App\Features\EInvoicing;
+use App\Jobs\RefreshEInvoiceStatusJob;
 use App\Models\ArInvoice;
 use App\Models\BusinessDate;
 use App\Models\Company;
@@ -16,13 +18,16 @@ use App\Models\EInvoiceSubmission;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\Guest;
+use App\Models\GuestIdentityDocument;
 use App\Models\Property;
 use App\Models\PropertyEInvoiceSetting;
 use App\Models\PropertySetting;
 use App\Models\Reservation;
 use App\Models\TransactionCode;
 use App\Models\User;
+use App\Services\EInvoice\MockMyInvoisClient;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Queue;
 use Laravel\Pennant\Feature;
 
 /**
@@ -56,10 +61,14 @@ function submissionSetup(): array
         'supplier_sst_registration' => 'W10-1808-12345678',
         'supplier_msic_code' => '55101',
         'supplier_business_description' => 'Hotel operations',
+        'supplier_email' => 'accounts@hotel.my',
+        'supplier_city' => 'Kuala Lumpur',
     ]);
 
     $guest = Guest::factory()->for($property)->create([
         'full_name' => 'Ahmad Razak',
+        'tin' => 'IG1234567890',
+        'city' => 'Kuala Lumpur',
         'email' => 'ahmad@example.my',
         'phone' => '+60123456789',
         'state_code' => '14',
@@ -95,6 +104,22 @@ function submissionSetup(): array
         'reservation' => $reservation,
         'folio' => $folio,
     ];
+}
+
+afterEach(fn () => MockMyInvoisClient::resetOverrides());
+
+/**
+ * Submit the setup folio's e-invoice and return the stored submission.
+ *
+ * @param  array{owner: User, property: Property, reservation: Reservation, folio: Folio}  $setup
+ */
+function submitSetupFolio(array $setup): EInvoiceSubmission
+{
+    test()->actingAs($setup['owner'])
+        ->post("/p/{$setup['property']->code}/reservations/{$setup['reservation']->id}/folios/{$setup['folio']->id}/e-invoice")
+        ->assertSessionHas('success');
+
+    return EInvoiceSubmission::where('folio_id', $setup['folio']->id)->firstOrFail();
 }
 
 it('submits a closed folio and transitions to Valid status via Mock client', function () {
@@ -229,6 +254,9 @@ it('submits a city ledger AR invoice', function () {
         'name' => 'Petronas Dagangan Bhd',
         'tin' => 'C9876543210',
         'brn' => '198201002233',
+        'billing_city' => 'Kuala Lumpur',
+        'billing_state_code' => '14',
+        'billing_country_code' => 'MY',
     ]);
 
     $arInvoice = ArInvoice::factory()->for($setup['property'])->create([
@@ -271,4 +299,180 @@ it('renders the finance e-invoices dashboard and detail views', function () {
     $this->actingAs($setup['owner'])
         ->get("/p/{$setup['property']->code}/finance/e-invoices/{$submission->id}")
         ->assertOk();
+});
+
+it('sends the issue date and time in UTC', function () {
+    // 20:30 UTC is 04:30 the next day in Kuala Lumpur.
+    $this->travelTo(CarbonImmutable::parse('2026-10-14 20:30:00', 'UTC'));
+
+    $invoice = submitSetupFolio(submissionSetup())->document_payload['Invoice'][0];
+
+    expect($invoice['IssueDate'][0]['_'])->toBe('2026-10-14')
+        ->and($invoice['IssueTime'][0]['_'])->toBe('20:30:00Z');
+});
+
+it('sends a three-letter country code for a foreign guest', function () {
+    $setup = submissionSetup();
+    $setup['folio']->payerGuest->forceFill(['country_code' => 'SG', 'nationality_code' => 'SG', 'tin' => null])->save();
+    GuestIdentityDocument::factory()->passport()->for($setup['folio']->payerGuest)->create(['number' => 'E1234567A']);
+
+    $submission = submitSetupFolio($setup);
+    $buyer = $submission->document_payload['Invoice'][0]['AccountingCustomerParty'][0]['Party'][0];
+
+    expect($buyer['PostalAddress'][0]['Country'][0]['IdentificationCode'][0]['_'])->toBe('SGP')
+        ->and($buyer['PartyIdentification'][0]['ID'][0]['_'])->toBe('EI00000000020')
+        ->and($submission->buyer_snapshot['country_code'])->toBe('SGP');
+});
+
+it('queues a status refresh while LHDN is still validating', function () {
+    Queue::fake();
+    MockMyInvoisClient::$documentDetailsOverride = fn (string $uuid): array => ['uuid' => $uuid, 'status' => 'Submitted'];
+
+    $submission = submitSetupFolio(submissionSetup());
+
+    expect($submission->status)->toBe(EInvoiceStatus::Submitted);
+    Queue::assertPushed(RefreshEInvoiceStatusJob::class, fn (RefreshEInvoiceStatusJob $job): bool => $job->submissionId === $submission->id);
+});
+
+it('does not queue a status refresh once LHDN has validated', function () {
+    Queue::fake();
+
+    expect(submitSetupFolio(submissionSetup())->status)->toBe(EInvoiceStatus::Valid);
+    Queue::assertNotPushed(RefreshEInvoiceStatusJob::class);
+});
+
+it('refuses submission if domestic guest lacks a tax number', function () {
+    $setup = submissionSetup();
+    $setup['folio']->payerGuest->forceFill(['tin' => null])->save();
+
+    $this->actingAs($setup['owner'])
+        ->post("/p/{$setup['property']->code}/reservations/{$setup['reservation']->id}/folios/{$setup['folio']->id}/e-invoice")
+        ->assertSessionHas('error');
+
+    expect(EInvoiceSubmission::where('folio_id', $setup['folio']->id)->exists())->toBeFalse();
+});
+
+it('refuses submission if buyer city is missing', function () {
+    $setup = submissionSetup();
+    $setup['folio']->payerGuest->forceFill(['city' => null])->save();
+
+    $this->actingAs($setup['owner'])
+        ->post("/p/{$setup['property']->code}/reservations/{$setup['reservation']->id}/folios/{$setup['folio']->id}/e-invoice")
+        ->assertSessionHas('error');
+
+    expect(EInvoiceSubmission::where('folio_id', $setup['folio']->id)->exists())->toBeFalse();
+});
+
+it('refuses submission if foreign guest lacks a passport number', function () {
+    $setup = submissionSetup();
+    $setup['folio']->payerGuest->forceFill(['country_code' => 'SG', 'nationality_code' => 'SG', 'tin' => null])->save();
+
+    $this->actingAs($setup['owner'])
+        ->post("/p/{$setup['property']->code}/reservations/{$setup['reservation']->id}/folios/{$setup['folio']->id}/e-invoice")
+        ->assertSessionHas('error');
+
+    expect(EInvoiceSubmission::where('folio_id', $setup['folio']->id)->exists())->toBeFalse();
+});
+
+it('excludes stays over RM 10,000 from monthly consolidation and does not re-consolidate', function () {
+    $setup = submissionSetup();
+    $property = $setup['property'];
+
+    $res1 = Reservation::factory()->for($property)->create();
+    $res2 = Reservation::factory()->for($property)->create();
+
+    // Setup folio with amount over RM 10,000
+    $expensiveFolio = Folio::factory()->for($property)->closed()->create([
+        'reservation_id' => $res1->id,
+        'type' => FolioType::Master,
+        'closed_at' => CarbonImmutable::parse('2026-10-10 12:00:00'),
+    ]);
+    FolioLine::factory()->for($expensiveFolio)->create([
+        'transaction_code_id' => $setup['folio']->lines->first()->transaction_code_id,
+        'kind' => TransactionKind::Charge,
+        'amount' => '12000.00',
+        'unit_amount' => '12000.00',
+    ]);
+
+    // Setup eligible folio under RM 10,000
+    $normalFolio = Folio::factory()->for($property)->closed()->create([
+        'reservation_id' => $res2->id,
+        'type' => FolioType::Master,
+        'closed_at' => CarbonImmutable::parse('2026-10-10 12:00:00'),
+    ]);
+    FolioLine::factory()->for($normalFolio)->create([
+        'transaction_code_id' => $setup['folio']->lines->first()->transaction_code_id,
+        'kind' => TransactionKind::Charge,
+        'amount' => '450.00',
+        'unit_amount' => '450.00',
+    ]);
+
+    $consolidateAction = app(ConsolidateMonthlyEInvoices::class);
+
+    // First consolidation run
+    $submissions = $consolidateAction($property, CarbonImmutable::parse('2026-10-01'));
+    expect($submissions)->toHaveCount(1);
+    expect($submissions[0]->folios->pluck('id'))
+        ->toContain($normalFolio->id)
+        ->toContain($setup['folio']->id)
+        ->not->toContain($expensiveFolio->id);
+
+    // Second consolidation run in same month should not find any eligible folios
+    $secondRun = $consolidateAction($property, CarbonImmutable::parse('2026-10-01'));
+    expect($secondRun)->toBeEmpty();
+});
+
+it('submits an individual e-invoice from front desk with custom buyer snapshot', function () {
+    Queue::fake([RefreshEInvoiceStatusJob::class]);
+
+    $setup = submissionSetup();
+    $owner = $setup['owner'];
+    $property = $setup['property'];
+    $res = $setup['reservation'];
+    $folio = $setup['folio'];
+
+    $response = $this->actingAs($owner)->post(
+        route('reservations.folios.e-invoice', [
+            'property' => $property->code,
+            'reservation' => $res->id,
+            'folio' => $folio->id,
+        ]),
+        [
+            'requested_by_guest' => true,
+            'buyer_snapshot' => [
+                'name' => 'John Doe International',
+                'id_type' => 'PASSPORT',
+                'id_value' => 'A12345678',
+                'tin' => null,
+                'email' => 'john.doe@global.com',
+                'phone' => '+65 9123 4567',
+                'address_line1' => '10 Orchard Road',
+                'address_line2' => '',
+                'city' => 'Singapore',
+                'postal_code' => '238888',
+                'state_code' => '17',
+                'country_code' => 'SGP',
+                'sst_registration' => null,
+            ],
+        ]
+    );
+
+    $response->assertRedirect();
+    $response->assertSessionHasNoErrors();
+
+    $submission = EInvoiceSubmission::query()
+        ->where('folio_id', $folio->id)
+        ->latest('id')
+        ->first();
+
+    expect($submission)->not->toBeNull();
+    expect($submission->requested_by_guest)->toBeTrue();
+    expect($submission->status)->toBe(EInvoiceStatus::Valid);
+    expect($submission->buyer_snapshot['name'])->toBe('John Doe International');
+    expect($submission->buyer_snapshot['country_code'])->toBe('SGP');
+
+    // Foreign guest with null TIN in snapshot gets LHDN foreign TIN EI00000000020 in the document payload
+    $ublCustomer = $submission->document_payload['Invoice'][0]['AccountingCustomerParty'][0]['Party'][0];
+    $tinId = collect($ublCustomer['PartyIdentification'])->firstWhere('ID.0.schemeID', 'TIN')['ID'][0]['_'];
+    expect($tinId)->toBe('EI00000000020');
 });

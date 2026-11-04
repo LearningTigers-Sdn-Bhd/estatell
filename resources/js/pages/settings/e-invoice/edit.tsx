@@ -20,17 +20,8 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import {
-    Field,
-    FieldDescription,
-    FieldError,
-    FieldGroup,
-    FieldLabel,
-    FieldLegend,
-    FieldSet,
-} from '@/components/ui/field';
+import { FieldGroup, FieldLegend, FieldSet } from '@/components/ui/field';
 import { Spinner } from '@/components/ui/spinner';
-import { Textarea } from '@/components/ui/textarea';
 import { profile } from '@/routes/settings';
 import { edit, test as testRoute } from '@/routes/settings/e-invoice';
 
@@ -39,9 +30,6 @@ type SettingData = {
     api_environment: string;
     client_id: string;
     has_client_secret: boolean;
-    signature_enabled: boolean;
-    signing_certificate: string | null;
-    has_signing_private_key: boolean;
     supplier_name: string | null;
     supplier_tin: string | null;
     supplier_sst_registration: string | null;
@@ -98,7 +86,7 @@ export default function EInvoiceSettings({
     const portalUrl =
         apiEnvironment === 'production'
             ? 'https://myinvois.hasil.gov.my'
-            : 'https://preprod-myinvois.hasil.gov.my';
+            : 'https://preprod.myinvois.hasil.gov.my';
 
     return (
         <>
@@ -158,6 +146,47 @@ export default function EInvoiceSettings({
                                             onValueChange={setApiEnvironment}
                                             error={errors.api_environment}
                                         />
+
+                                        {apiEnvironment === 'production' &&
+                                            setting?.api_environment !==
+                                                'production' && (
+                                                <div className="flex flex-col gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
+                                                    <p className="font-semibold text-amber-600 dark:text-amber-400">
+                                                        Switching to Production
+                                                        Gateway
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Submissions in
+                                                        Production file legally
+                                                        binding statutory
+                                                        e-invoices directly with
+                                                        LHDN Malaysia.
+                                                    </p>
+                                                    <label className="flex cursor-pointer items-center gap-2 pt-1">
+                                                        <input
+                                                            type="checkbox"
+                                                            name="confirm_production"
+                                                            value="1"
+                                                            className="size-4 rounded border-input text-primary focus:ring-primary"
+                                                        />
+                                                        <span className="text-xs font-medium">
+                                                            I confirm that I
+                                                            understand this
+                                                            property will submit
+                                                            real, legally
+                                                            binding tax
+                                                            documents to LHDN.
+                                                        </span>
+                                                    </label>
+                                                    {errors.confirm_production && (
+                                                        <p className="text-xs text-destructive">
+                                                            {
+                                                                errors.confirm_production
+                                                            }
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            )}
 
                                         <div className="grid gap-4 md:grid-cols-2">
                                             <SettingsSwitch
@@ -224,7 +253,7 @@ export default function EInvoiceSettings({
                                                         ? '•••••••• (Leave blank to keep saved secret)'
                                                         : 'Paste secret here'
                                                 }
-                                                description="Stored encrypted with AES-256-GCM."
+                                                description="Stored securely with AES-256 encryption."
                                                 error={errors.client_secret}
                                             />
                                         </FieldGroup>
@@ -400,94 +429,6 @@ export default function EInvoiceSettings({
                                             </FieldGroup>
                                         </FieldGroup>
                                     </FieldSet>
-
-                                    <FieldSet>
-                                        <FieldLegend>
-                                            Digital Signing (v1.1)
-                                        </FieldLegend>
-                                        <SettingsSwitch
-                                            bordered
-                                            name="signature_enabled"
-                                            label="Sign payloads with digital certificate"
-                                            checked={
-                                                setting?.signature_enabled ??
-                                                false
-                                            }
-                                            description="Applies an XAdES enveloped signature with your X.509 certificate and RSA private key. Version 1.0 (unsigned) uses SHA-256 base64 digest."
-                                            error={errors.signature_enabled}
-                                        />
-
-                                        <FieldGroup>
-                                            <Field>
-                                                <FieldLabel htmlFor="signing_certificate">
-                                                    X.509 Signing Certificate
-                                                    (PEM format)
-                                                </FieldLabel>
-                                                <Textarea
-                                                    id="signing_certificate"
-                                                    name="signing_certificate"
-                                                    rows={4}
-                                                    placeholder="-----BEGIN CERTIFICATE-----&#10;...&#10;-----END CERTIFICATE-----"
-                                                    defaultValue={
-                                                        setting?.signing_certificate ??
-                                                        ''
-                                                    }
-                                                    aria-invalid={
-                                                        !!errors.signing_certificate
-                                                    }
-                                                />
-                                                <FieldDescription>
-                                                    Public certificate issued by
-                                                    a licensed Malaysian Trust
-                                                    Service Provider (e.g. Pos
-                                                    Digicert, MSC Trustgate).
-                                                </FieldDescription>
-                                                <FieldError>
-                                                    {errors.signing_certificate}
-                                                </FieldError>
-                                            </Field>
-
-                                            <Field>
-                                                <FieldLabel htmlFor="signing_private_key">
-                                                    Private Key (PEM format)
-                                                </FieldLabel>
-                                                <Textarea
-                                                    id="signing_private_key"
-                                                    name="signing_private_key"
-                                                    rows={4}
-                                                    placeholder={
-                                                        setting?.has_signing_private_key
-                                                            ? '•••••••• (Private key is securely stored in database)'
-                                                            : '-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----'
-                                                    }
-                                                    defaultValue=""
-                                                    aria-invalid={
-                                                        !!errors.signing_private_key
-                                                    }
-                                                />
-                                                <FieldDescription>
-                                                    Stored encrypted with
-                                                    AES-256-GCM. Never exposed
-                                                    in responses or sent to
-                                                    third parties.
-                                                </FieldDescription>
-                                                <FieldError>
-                                                    {errors.signing_private_key}
-                                                </FieldError>
-                                            </Field>
-
-                                            <SettingsInput
-                                                name="signing_passphrase"
-                                                label="Private key passphrase (optional)"
-                                                type="password"
-                                                placeholder="Leave blank if private key has no passphrase"
-                                                value=""
-                                                error={
-                                                    errors.signing_passphrase
-                                                }
-                                            />
-                                        </FieldGroup>
-                                    </FieldSet>
                                 </>
                             )}
                         </SettingsSection>
@@ -554,19 +495,6 @@ export default function EInvoiceSettings({
                                                 {isConfigured
                                                     ? 'Configured'
                                                     : 'Not set'}
-                                            </Badge>
-                                        </dd>
-                                    </div>
-
-                                    <div className="flex items-center justify-between gap-3">
-                                        <dt className="text-muted-foreground">
-                                            Signing
-                                        </dt>
-                                        <dd>
-                                            <Badge variant="outline">
-                                                {setting?.signature_enabled
-                                                    ? 'v1.1 Signed'
-                                                    : 'v1.0 Standard'}
                                             </Badge>
                                         </dd>
                                     </div>

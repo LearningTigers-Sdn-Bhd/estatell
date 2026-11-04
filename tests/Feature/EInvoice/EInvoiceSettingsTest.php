@@ -6,6 +6,7 @@ use App\Models\Property;
 use App\Models\PropertyEInvoiceSetting;
 use App\Models\PropertySetting;
 use App\Models\User;
+use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Pennant\Feature;
 
 /**
@@ -85,6 +86,52 @@ it('saves e-invoice settings and encrypts sensitive credentials', function () {
     expect($setting->consolidation_enabled)->toBeTrue();
 });
 
+it('keeps the saved client ID when the form is saved again unchanged', function () {
+    [$owner, $property] = eInvoiceOwner(feature: true);
+    PropertyEInvoiceSetting::factory()->for($property)->create(['client_id' => 'real-client-id']);
+
+    $shownClientId = null;
+    $this->actingAs($owner)
+        ->get("/p/{$property->code}/settings/e-invoice")
+        ->assertInertia(function (Assert $page) use (&$shownClientId) {
+            $page->where('setting.client_id', 'real-client-id');
+            $shownClientId = $page->toArray()['props']['setting']['client_id'];
+        });
+
+    $this->actingAs($owner)
+        ->from("/p/{$property->code}/settings/e-invoice")
+        ->put("/p/{$property->code}/settings/e-invoice", [
+            'enabled' => true,
+            'api_environment' => EInvoiceEnvironment::Sandbox->value,
+            'client_id' => $shownClientId,
+            'client_secret' => '',
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($property->eInvoiceSetting()->firstOrFail()->client_id)->toBe('real-client-id');
+});
+
+it('ignores digital signing fields because signing is not LHDN-compliant yet', function () {
+    [$owner, $property] = eInvoiceOwner(feature: true);
+
+    $this->actingAs($owner)
+        ->from("/p/{$property->code}/settings/e-invoice")
+        ->put("/p/{$property->code}/settings/e-invoice", [
+            'enabled' => true,
+            'api_environment' => EInvoiceEnvironment::Sandbox->value,
+            'signature_enabled' => true,
+            'signing_certificate' => '-----BEGIN CERTIFICATE-----abc-----END CERTIFICATE-----',
+            'signing_private_key' => '-----BEGIN PRIVATE KEY-----abc-----END PRIVATE KEY-----',
+        ])
+        ->assertRedirect("/p/{$property->code}/settings/e-invoice")
+        ->assertSessionHasNoErrors();
+
+    $setting = PropertyEInvoiceSetting::where('property_id', $property->id)->firstOrFail();
+    expect($setting->signature_enabled)->toBeFalse()
+        ->and($setting->signing_certificate)->toBeNull()
+        ->and($setting->signing_private_key)->toBeNull();
+});
+
 it('tests connection successfully with Mock environment', function () {
     [$owner, $property] = eInvoiceOwner(feature: true);
 
@@ -100,4 +147,45 @@ it('tests connection successfully with Mock environment', function () {
         ->post("/p/{$property->code}/settings/e-invoice/test")
         ->assertRedirect("/p/{$property->code}/settings/e-invoice")
         ->assertSessionHas('success');
+});
+
+it('requires confirmation when switching to production environment', function () {
+    [$owner, $property] = eInvoiceOwner(feature: true);
+
+    PropertyEInvoiceSetting::factory()->for($property)->create([
+        'api_environment' => EInvoiceEnvironment::Sandbox,
+        'client_id' => 'sb-id',
+        'client_secret' => 'sb-secret',
+    ]);
+
+    $this->actingAs($owner)
+        ->from("/p/{$property->code}/settings/e-invoice")
+        ->put("/p/{$property->code}/settings/e-invoice", [
+            'enabled' => true,
+            'api_environment' => EInvoiceEnvironment::Production->value,
+        ])
+        ->assertRedirect("/p/{$property->code}/settings/e-invoice")
+        ->assertSessionHasErrors(['confirm_production']);
+});
+
+it('switches to production environment when confirmation is checked', function () {
+    [$owner, $property] = eInvoiceOwner(feature: true);
+
+    PropertyEInvoiceSetting::factory()->for($property)->create([
+        'api_environment' => EInvoiceEnvironment::Sandbox,
+        'client_id' => 'sb-id',
+        'client_secret' => 'sb-secret',
+    ]);
+
+    $this->actingAs($owner)
+        ->from("/p/{$property->code}/settings/e-invoice")
+        ->put("/p/{$property->code}/settings/e-invoice", [
+            'enabled' => true,
+            'api_environment' => EInvoiceEnvironment::Production->value,
+            'confirm_production' => true,
+        ])
+        ->assertRedirect("/p/{$property->code}/settings/e-invoice")
+        ->assertSessionHasNoErrors();
+
+    expect($property->eInvoiceSetting()->firstOrFail()->api_environment)->toBe(EInvoiceEnvironment::Production);
 });

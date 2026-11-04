@@ -3,6 +3,7 @@ import {
     ArrowUpRight,
     Ban,
     CheckCircle2,
+    ChevronDown,
     Copy,
     FileCheck,
     QrCode,
@@ -15,6 +16,11 @@ import { StatusBadge } from '@/components/pms/status-badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import {
     Card,
     CardContent,
@@ -299,12 +305,12 @@ export default function EInvoiceShow({ submission }: Props) {
             )}
 
             <div className="grid gap-6 md:grid-cols-2">
-                {/* LHDN Identifiers Card */}
+                {/* Document Summary Card */}
                 <Card>
                     <CardHeader className="pb-3">
                         <div className="flex items-center justify-between">
                             <CardTitle className="text-base">
-                                LHDN Technical Identifiers
+                                E-Invoice Summary
                             </CardTitle>
                             <StatusBadge
                                 status={{
@@ -318,25 +324,9 @@ export default function EInvoiceShow({ submission }: Props) {
                     <CardContent className="space-y-3 text-xs">
                         <div className="flex items-center justify-between border-b pb-2">
                             <span className="text-muted-foreground">
-                                Document UUID
-                            </span>
-                            <span className="font-mono font-medium select-all">
-                                {submission.uuid || '—'}
-                            </span>
-                        </div>
-                        <div className="flex items-center justify-between border-b pb-2">
-                            <span className="text-muted-foreground">
-                                Submission UID
-                            </span>
-                            <span className="font-mono font-medium select-all">
-                                {submission.submission_uid || '—'}
-                            </span>
-                        </div>
-                        <div className="flex items-center justify-between border-b pb-2">
-                            <span className="text-muted-foreground">
                                 Internal Code
                             </span>
-                            <span className="font-medium">
+                            <span className="font-semibold">
                                 {submission.internal_id}
                             </span>
                         </div>
@@ -347,6 +337,24 @@ export default function EInvoiceShow({ submission }: Props) {
                             <Badge variant="outline">
                                 {submission.document_type_label}
                             </Badge>
+                        </div>
+                        <div className="flex items-center justify-between border-b pb-2">
+                            <span className="text-muted-foreground">
+                                Submission Mode
+                            </span>
+                            <span>{submission.scenario_label}</span>
+                        </div>
+                        <div className="flex items-center justify-between border-b pb-2">
+                            <span className="text-muted-foreground">
+                                Source Reference
+                            </span>
+                            <span className="font-medium">
+                                {submission.folio_number
+                                    ? `Folio ${submission.folio_number}`
+                                    : submission.ar_invoice_number
+                                      ? `Invoice ${submission.ar_invoice_number}`
+                                      : 'Consolidated Batch'}
+                            </span>
                         </div>
                         <div className="flex items-center justify-between border-b pb-2">
                             <span className="text-muted-foreground">
@@ -488,40 +496,95 @@ export default function EInvoiceShow({ submission }: Props) {
                 </Card>
             )}
 
-            {/* UBL 2.1 JSON Payload Inspection */}
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-3">
-                    <div>
-                        <CardTitle className="text-base">
-                            UBL 2.1 Document Payload
-                        </CardTitle>
-                        <CardDescription>
-                            Normalized UBL 2.1 JSON data structure submitted to
-                            LHDN.
-                        </CardDescription>
+            {/* Technical Details & UBL 2.1 Payload (Collapsible) */}
+            <Collapsible className="rounded-lg border bg-card text-card-foreground shadow-sm">
+                <CollapsibleTrigger className="group flex w-full items-center justify-between p-4 text-left transition-colors hover:bg-muted/50">
+                    <div className="flex flex-col gap-0.5">
+                        <span className="text-sm font-semibold">
+                            Technical details & UBL 2.1 payload
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                            LHDN UUID, Submission UID, cryptographic hashes, and
+                            raw gateway JSON
+                        </span>
                     </div>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={handleCopyPayload}
-                    >
-                        <Copy className="mr-1.5 size-3.5" />
-                        {copied ? 'Copied!' : 'Copy JSON'}
-                    </Button>
-                </CardHeader>
-                <CardContent>
-                    <pre className="max-h-96 overflow-auto rounded-lg bg-muted/60 p-4 font-mono text-xs leading-relaxed">
-                        {submission.document_payload
-                            ? JSON.stringify(
-                                  submission.document_payload,
-                                  null,
-                                  2,
-                              )
-                            : 'No payload captured.'}
-                    </pre>
-                </CardContent>
-            </Card>
+                    <ChevronDown className="size-4 shrink-0 transition-transform group-aria-expanded:rotate-180" />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-4 border-t p-4">
+                    {/* Technical Identifiers */}
+                    <div className="grid gap-3 text-xs sm:grid-cols-2">
+                        <div className="flex flex-col gap-1 rounded border bg-muted/30 p-2.5">
+                            <span className="text-muted-foreground">
+                                Document UUID
+                            </span>
+                            <span className="font-mono font-medium select-all">
+                                {submission.uuid || '—'}
+                            </span>
+                        </div>
+                        <div className="flex flex-col gap-1 rounded border bg-muted/30 p-2.5">
+                            <span className="text-muted-foreground">
+                                Submission UID
+                            </span>
+                            <span className="font-mono font-medium select-all">
+                                {submission.submission_uid || '—'}
+                            </span>
+                        </div>
+                        {submission.long_id && (
+                            <div className="flex flex-col gap-1 rounded border bg-muted/30 p-2.5 sm:col-span-2">
+                                <span className="text-muted-foreground">
+                                    Long ID (Digest Hash)
+                                </span>
+                                <span className="font-mono text-xs break-all select-all">
+                                    {submission.long_id}
+                                </span>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* UBL 2.1 Payload */}
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold">
+                                Normalized UBL 2.1 JSON Document Payload
+                            </span>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={handleCopyPayload}
+                            >
+                                <Copy className="mr-1.5 size-3.5" />
+                                {copied ? 'Copied!' : 'Copy JSON'}
+                            </Button>
+                        </div>
+                        <pre className="max-h-96 overflow-auto rounded-lg bg-muted/60 p-4 font-mono text-xs leading-relaxed">
+                            {submission.document_payload
+                                ? JSON.stringify(
+                                      submission.document_payload,
+                                      null,
+                                      2,
+                                  )
+                                : 'No payload captured.'}
+                        </pre>
+                    </div>
+
+                    {/* Raw LHDN Response */}
+                    {submission.raw_response && (
+                        <div className="space-y-2">
+                            <span className="text-xs font-semibold">
+                                LHDN Raw Gateway Response
+                            </span>
+                            <pre className="max-h-48 overflow-auto rounded-lg bg-muted/60 p-4 font-mono text-xs leading-relaxed">
+                                {JSON.stringify(
+                                    submission.raw_response,
+                                    null,
+                                    2,
+                                )}
+                            </pre>
+                        </div>
+                    )}
+                </CollapsibleContent>
+            </Collapsible>
 
             {/* Cancel Modal */}
             <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>

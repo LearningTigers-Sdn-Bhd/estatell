@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
@@ -119,6 +120,15 @@ class EInvoiceSubmission extends Model
     public function folio(): BelongsTo
     {
         return $this->belongsTo(Folio::class);
+    }
+
+    /**
+     * @return BelongsToMany<Folio, $this>
+     */
+    public function folios(): BelongsToMany
+    {
+        return $this->belongsToMany(Folio::class, 'e_invoice_submission_folios', 'submission_id', 'folio_id')
+            ->withTimestamps();
     }
 
     /**

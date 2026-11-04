@@ -10,6 +10,8 @@ use App\Data\Folio\PostFolioOptionData;
 use App\Data\Reservations\ReservationUnitOptionData;
 use App\Data\Shared\BadgeData;
 use App\Enums\ArInvoiceStatus;
+use App\Enums\EInvoiceDocumentType;
+use App\Enums\EInvoiceStatus;
 use App\Enums\FolioRowTag;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
@@ -20,6 +22,7 @@ use App\Enums\TransactionKind;
 use App\Enums\UnitStatus;
 use App\Models\ArInvoice;
 use App\Models\Company;
+use App\Models\EInvoiceSubmission;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\FolioManualBatch;
@@ -30,6 +33,7 @@ use App\Models\UnitNight;
 use App\Models\User;
 use App\Services\CityLedger\ArInvoiceVoidCheck;
 use App\Services\CityLedger\CreditCheck;
+use App\Services\EInvoice\BuyerResolver;
 use App\Services\FrontDesk\CheckOutSettlement;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Payments\PaymentPurposeChoices;
@@ -301,6 +305,18 @@ class FolioStatement
         $canVoidAndReopen = $billedBy !== null && $user->can(PermissionEnum::CityLedgerInvoice->value) && $user->can(PermissionEnum::FolioReopen->value);
         $projected = $scheduled->reduce(fn (BigDecimal $sum, FolioRowData $row): BigDecimal => $sum->plus($row->amount), BigDecimal::of($balance ?? '0'));
 
+        $eInvoiceSetting = $reservation->property->eInvoiceSetting;
+        $eInvoiceEnabled = $eInvoiceSetting !== null && $eInvoiceSetting->enabled;
+        $latestSubmission = $folio !== null ? EInvoiceSubmission::query()
+            ->where('folio_id', $folio->id)
+            ->where('document_type', EInvoiceDocumentType::Invoice)
+            ->where('status', '!=', EInvoiceStatus::Cancelled)
+            ->latest('id')
+            ->first() : null;
+
+        $canSubmitEInvoice = $eInvoiceEnabled && $folio?->status === FolioStatus::Closed && ($latestSubmission === null || $latestSubmission->status === EInvoiceStatus::Invalid);
+        $buyer = $folio !== null ? BuyerResolver::forFolio($folio) : null;
+
         return new FolioData(
             key: $entry['key'],
             kind: $entry['item']->kind,
@@ -342,6 +358,17 @@ class FolioStatement
             voidInvoiceBlockedBy: $canVoidAndReopen ? $this->arInvoiceVoidCheck->blockedBy($billedBy) : null,
             closedNotice: $folio !== null && $user !== null ? $this->folioReopenRule->notice($user, $folio) : null,
             canManageManually: $isOpen && ($can['manual'] ?? false),
+            eInvoiceSubmissionId: $latestSubmission?->id,
+            eInvoiceStatus: $latestSubmission?->status->value,
+            eInvoiceStatusLabel: $latestSubmission?->status->label(),
+            eInvoiceStatusTone: $latestSubmission?->status->tone()->value,
+            eInvoiceUuid: $latestSubmission?->uuid,
+            canSubmitEInvoice: $canSubmitEInvoice,
+            payerGuestTin: $buyer['tin'] ?? null,
+            payerGuestIdType: $buyer['id_type'] ?? null,
+            payerGuestIdValue: $buyer['id_value'] ?? null,
+            payerGuestCity: $buyer['city'] ?? null,
+            eInvoiceBuyer: $buyer,
         );
     }
 

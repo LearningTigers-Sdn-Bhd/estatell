@@ -8,14 +8,13 @@ use App\Models\Folio;
 use App\Models\Guest;
 use App\Models\GuestIdentityDocument;
 use App\Models\Property;
+use App\Services\Guests\CountryOptions;
 
 class BuyerResolver
 {
     public const string FOREIGN_BUYER_TIN = 'EI00000000020';
 
     public const string GENERAL_PUBLIC_TIN = 'EI00000000010';
-
-    public const string DOMESTIC_BUYER_FALLBACK_TIN = 'EI00000000000';
 
     /**
      * @return array{
@@ -62,10 +61,7 @@ class BuyerResolver
      */
     public static function forCompany(Company $company, Property $property): array
     {
-        $countryCode = strtoupper(trim($company->billing_country_code ?? 'MYS'));
-        if (strlen($countryCode) === 2 && $countryCode === 'MY') {
-            $countryCode = 'MYS';
-        }
+        $countryCode = self::lhdnCountryCode($company->billing_country_code);
 
         $stateCode = MalaysiaStates::resolve(
             $company->billing_state_code,
@@ -73,7 +69,7 @@ class BuyerResolver
             $countryCode
         );
 
-        $tin = trim((string) ($company->tin ?: self::DOMESTIC_BUYER_FALLBACK_TIN));
+        $tin = trim((string) ($company->tin ?: ''));
         $brn = trim((string) ($company->brn ?: 'NA'));
 
         return [
@@ -82,14 +78,14 @@ class BuyerResolver
             'id_type' => 'BRN',
             'id_value' => preg_replace('/[^A-Za-z0-9]/', '', $brn) ?: 'NA',
             'sst_registration' => $company->sst_registration_number,
-            'email' => $company->contact_email ?: ($property->contact_email ?: 'guest@hotel.com'),
+            'email' => (string) ($company->contact_email ?: ''),
             'phone' => PhoneFormatter::format($company->contact_phone ?: $property->contact_phone),
-            'address_line1' => $company->billing_address_line1 ?: ($property->address_line1 ?: 'NA'),
+            'address_line1' => (string) ($company->billing_address_line1 ?: 'NA'),
             'address_line2' => (string) ($company->billing_address_line2 ?: ''),
-            'city' => $company->billing_city ?: ($property->city ?: 'Kota Kinabalu'),
-            'postal_code' => $company->billing_postal_code ?: ($property->postal_code ?: '88000'),
+            'city' => (string) ($company->billing_city ?: ''),
+            'postal_code' => (string) ($company->billing_postal_code ?: ''),
             'state_code' => $stateCode,
-            'country_code' => $countryCode ?: 'MYS',
+            'country_code' => $countryCode,
         ];
     }
 
@@ -113,12 +109,9 @@ class BuyerResolver
     public static function forGuest(?Guest $guest, Property $property): array
     {
         $guestName = $guest?->full_name ?: 'Hotel Guest';
-        $countryCode = strtoupper(trim($guest?->country_code ?? $guest?->nationality_code ?? 'MYS'));
-        if (strlen($countryCode) === 2 && $countryCode === 'MY') {
-            $countryCode = 'MYS';
-        }
+        $countryCode = self::lhdnCountryCode($guest?->country_code ?? $guest?->nationality_code);
 
-        $isForeign = ($countryCode !== 'MYS' && $countryCode !== 'MY');
+        $isForeign = $countryCode !== 'MYS';
 
         // Resolve Identity Document
         $idType = 'NRIC';
@@ -144,7 +137,8 @@ class BuyerResolver
 
         $tin = trim((string) ($guest?->tin ?? ''));
         if (empty($tin)) {
-            $tin = $isForeign ? self::FOREIGN_BUYER_TIN : self::DOMESTIC_BUYER_FALLBACK_TIN;
+            // Foreign buyers without a TIN use LHDN general foreign TIN; domestic buyers must supply their own.
+            $tin = $isForeign ? self::FOREIGN_BUYER_TIN : '';
         }
 
         $stateCode = MalaysiaStates::resolve(
@@ -159,14 +153,30 @@ class BuyerResolver
             'id_type' => $idType,
             'id_value' => preg_replace('/[^A-Za-z0-9]/', '', $idValue) ?: 'NA',
             'sst_registration' => null,
-            'email' => $guest?->email ?: ($property->contact_email ?: 'guest@hotel.com'),
+            'email' => (string) ($guest?->email ?: ''),
             'phone' => PhoneFormatter::format($guest?->phone ?: $property->contact_phone),
-            'address_line1' => $guest?->address_line1 ?: ($property->address_line1 ?: 'NA'),
+            'address_line1' => (string) ($guest?->address_line1 ?: 'NA'),
             'address_line2' => (string) ($guest?->address_line2 ?: ''),
-            'city' => $guest?->city ?: ($property->city ?: 'Kota Kinabalu'),
-            'postal_code' => $guest?->postal_code ?: ($property->postal_code ?: '88000'),
+            'city' => (string) ($guest?->city ?: ''),
+            'postal_code' => (string) ($guest?->postal_code ?: ''),
             'state_code' => $stateCode,
-            'country_code' => $countryCode ?: 'MYS',
+            'country_code' => $countryCode,
         ];
+    }
+
+    /**
+     * LHDN needs ISO 3166-1 alpha-3 codes; guests and companies store alpha-2.
+     * An empty code stays Malaysia. An unknown code is sent as it is, so LHDN
+     * rejects it rather than the buyer being filed as Malaysian.
+     */
+    public static function lhdnCountryCode(?string $code): string
+    {
+        $code = strtoupper(trim((string) $code));
+
+        if ($code === '') {
+            return 'MYS';
+        }
+
+        return app(CountryOptions::class)->alpha3($code) ?? $code;
     }
 }

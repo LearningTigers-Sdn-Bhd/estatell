@@ -5,6 +5,7 @@ namespace App\Actions\EInvoice;
 use App\Enums\EInvoiceDocumentType;
 use App\Enums\EInvoiceScenario;
 use App\Enums\EInvoiceStatus;
+use App\Jobs\RefreshEInvoiceStatusJob;
 use App\Models\ArInvoice;
 use App\Models\EInvoiceSubmission;
 use App\Models\User;
@@ -45,8 +46,17 @@ class SubmitArEInvoice
             return EInvoiceResult::refused(EInvoiceResult::REFUSAL_ALREADY_EXISTS, __('An active e-invoice already exists for this AR invoice.'));
         }
 
-        $builder = new ArInvoiceDocumentBuilder($invoice);
-        $built = $builder->build();
+        try {
+            $builder = new ArInvoiceDocumentBuilder($invoice);
+            $built = $builder->build();
+        } catch (\InvalidArgumentException $e) {
+            $refusal = str_contains($e->getMessage(), 'Property')
+                ? EInvoiceResult::REFUSAL_SUPPLIER_PROFILE_INCOMPLETE
+                : EInvoiceResult::REFUSAL_BUYER_DETAILS_INCOMPLETE;
+
+            return EInvoiceResult::refused($refusal, $e->getMessage());
+        }
+
         $buyer = BuyerResolver::forCompany($invoice->company, $property);
 
         return DB::transaction(function () use ($invoice, $actor, $buyer, $built, $setting): EInvoiceResult {
@@ -90,7 +100,12 @@ class SubmitArEInvoice
                     $submission->status = EInvoiceStatus::Submitted;
                     $submission->save();
 
-                    ($this->refreshEInvoiceStatus)($submission);
+                    $refreshed = ($this->refreshEInvoiceStatus)($submission);
+
+                    // LHDN validates in the background, so keep checking until it answers.
+                    if ($refreshed->status === EInvoiceStatus::Submitted) {
+                        RefreshEInvoiceStatusJob::dispatch($submission->id)->afterCommit();
+                    }
                 } elseif ($rejected !== null) {
                     $submission->status = EInvoiceStatus::Invalid;
                     $submission->error_details = $rejected['error'] ?? $rejected;

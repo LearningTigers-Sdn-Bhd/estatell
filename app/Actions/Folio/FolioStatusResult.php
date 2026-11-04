@@ -46,4 +46,9 @@ class FolioStatusResult
     {
         return $this->refusal !== null;
     }
+
+    public function isDone(): bool
+    {
+        return $this->refusal === null;
+    }
 }

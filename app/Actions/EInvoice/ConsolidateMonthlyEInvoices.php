@@ -6,6 +6,7 @@ use App\Enums\EInvoiceDocumentType;
 use App\Enums\EInvoiceScenario;
 use App\Enums\EInvoiceStatus;
 use App\Enums\FolioStatus;
+use App\Jobs\RefreshEInvoiceStatusJob;
 use App\Models\EInvoiceSubmission;
 use App\Models\Folio;
 use App\Models\Property;
@@ -48,13 +49,30 @@ class ConsolidateMonthlyEInvoices
             ->pluck('folio_id')
             ->all();
 
-        $eligibleFolios = Folio::query()
+        // Exclude folios that are already part of an active consolidated batch
+        $alreadyConsolidatedFolioIds = DB::table('e_invoice_submission_folios')
+            ->join('e_invoice_submissions', 'e_invoice_submissions.id', '=', 'e_invoice_submission_folios.submission_id')
+            ->where('e_invoice_submissions.property_id', $property->id)
+            ->where('e_invoice_submissions.status', '!=', EInvoiceStatus::Cancelled->value)
+            ->pluck('e_invoice_submission_folios.folio_id')
+            ->all();
+
+        $excludedFolioIds = array_unique([...$individuallySubmittedFolioIds, ...$alreadyConsolidatedFolioIds]);
+
+        $candidateFolios = Folio::query()
             ->where('property_id', $property->id)
             ->where('status', FolioStatus::Closed)
             ->whereBetween('closed_at', [$monthStart, $monthEnd])
-            ->whereNotIn('id', $individuallySubmittedFolioIds)
+            ->whereNotIn('id', $excludedFolioIds)
             ->with(['lines.transactionCode', 'lines.reversal'])
             ->get();
+
+        // Stays > RM 10,000 cannot be consolidated into monthly batches per LHDN rules.
+        $eligibleFolios = $candidateFolios->filter(function (Folio $folio): bool {
+            $gross = ConsolidatedBatchBuilder::calculateFolioGrossAmount($folio);
+
+            return $gross > 0.0 && $gross <= ConsolidatedBatchBuilder::MAX_INDIVIDUAL_STAY_AMOUNT;
+        })->values();
 
         if ($eligibleFolios->isEmpty()) {
             return [];
@@ -84,10 +102,16 @@ class ConsolidateMonthlyEInvoices
             return null;
         }
 
-        $builder = new ConsolidatedBatchBuilder($property, $chunk, $month);
-        $built = $builder->build();
+        try {
+            $builder = new ConsolidatedBatchBuilder($property, $chunk, $month);
+            $built = $builder->build();
+        } catch (\Throwable $e) {
+            Log::error("Failed to build consolidated e-invoice batch: {$e->getMessage()}");
 
-        return DB::transaction(function () use ($property, $built, $setting, $actor): ?EInvoiceSubmission {
+            return null;
+        }
+
+        return DB::transaction(function () use ($property, $built, $setting, $actor, $chunk): ?EInvoiceSubmission {
             $submission = new EInvoiceSubmission([
                 'property_id' => $property->id,
                 'document_type' => EInvoiceDocumentType::Invoice,
@@ -106,6 +130,7 @@ class ConsolidateMonthlyEInvoices
                 'requested_by_guest' => false,
             ]);
             $submission->save();
+            $submission->folios()->attach($chunk->pluck('id')->all());
 
             try {
                 $client = MyInvoisClientFactory::forSetting($setting);
@@ -131,7 +156,12 @@ class ConsolidateMonthlyEInvoices
                     $submission->status = EInvoiceStatus::Submitted;
                     $submission->save();
 
-                    ($this->refreshEInvoiceStatus)($submission);
+                    $refreshed = ($this->refreshEInvoiceStatus)($submission);
+
+                    // LHDN validates in the background, so keep checking until it answers.
+                    if ($refreshed->status === EInvoiceStatus::Submitted) {
+                        RefreshEInvoiceStatusJob::dispatch($submission->id)->afterCommit();
+                    }
                 } elseif ($rejected !== null) {
                     $submission->status = EInvoiceStatus::Invalid;
                     $submission->error_details = $rejected['error'] ?? $rejected;

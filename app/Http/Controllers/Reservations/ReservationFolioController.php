@@ -38,6 +38,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class ReservationFolioController extends Controller
@@ -137,7 +138,14 @@ class ReservationFolioController extends Controller
         $result = $closeFolio($request->user(), $folio);
 
         if ($result->isDone() && $property->eInvoiceSetting?->enabled && $property->eInvoiceSetting?->auto_submit_on_checkout) {
-            app(SubmitFolioEInvoice::class)($folio, $request->user());
+            try {
+                $eResult = app(SubmitFolioEInvoice::class)($folio, $request->user());
+                if (! $eResult->ok && $eResult->message) {
+                    Log::info("E-invoice auto-submit skipped for folio {$folio->id}: {$eResult->message}");
+                }
+            } catch (\Throwable $e) {
+                Log::error("Failed to auto-submit e-invoice for folio {$folio->id}: {$e->getMessage()}");
+            }
         }
 
         Inertia::flash('toast', $result->isRefused()
@@ -249,7 +257,27 @@ class ReservationFolioController extends Controller
         abort_unless($folio->reservation_id === $reservation->id, 404);
 
         $requestedByGuest = (bool) $request->input('requested_by_guest', false);
-        $buyerSnapshot = $request->input('buyer_snapshot');
+        $buyerSnapshot = null;
+
+        if ($request->has('buyer_snapshot')) {
+            $validated = $request->validate([
+                'buyer_snapshot' => ['required', 'array'],
+                'buyer_snapshot.name' => ['required', 'string', 'max:255'],
+                'buyer_snapshot.tin' => ['nullable', 'string', 'max:50'],
+                'buyer_snapshot.id_type' => ['required', 'string', 'in:NRIC,PASSPORT,BRN,ARMY'],
+                'buyer_snapshot.id_value' => ['required', 'string', 'max:50'],
+                'buyer_snapshot.email' => ['nullable', 'string', 'max:255'],
+                'buyer_snapshot.phone' => ['nullable', 'string', 'max:50'],
+                'buyer_snapshot.address_line1' => ['nullable', 'string', 'max:255'],
+                'buyer_snapshot.address_line2' => ['nullable', 'string', 'max:255'],
+                'buyer_snapshot.city' => ['required', 'string', 'max:100'],
+                'buyer_snapshot.postal_code' => ['nullable', 'string', 'max:20'],
+                'buyer_snapshot.state_code' => ['nullable', 'string', 'max:10'],
+                'buyer_snapshot.country_code' => ['required', 'string', 'max:3'],
+                'buyer_snapshot.sst_registration' => ['nullable', 'string', 'max:50'],
+            ]);
+            $buyerSnapshot = $validated['buyer_snapshot'];
+        }
 
         $result = $submitAction($folio, $request->user(), $requestedByGuest, $buyerSnapshot);
 

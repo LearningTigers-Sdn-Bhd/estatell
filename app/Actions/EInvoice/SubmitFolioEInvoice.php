@@ -6,6 +6,7 @@ use App\Enums\EInvoiceDocumentType;
 use App\Enums\EInvoiceScenario;
 use App\Enums\EInvoiceStatus;
 use App\Enums\FolioStatus;
+use App\Jobs\RefreshEInvoiceStatusJob;
 use App\Models\EInvoiceSubmission;
 use App\Models\Folio;
 use App\Models\User;
@@ -51,8 +52,21 @@ class SubmitFolioEInvoice
             return EInvoiceResult::refused(EInvoiceResult::REFUSAL_ALREADY_EXISTS, __('An active e-invoice already exists for this folio.'));
         }
 
-        $builder = new FolioDocumentBuilder($folio, $buyerSnapshot);
-        $built = $builder->build();
+        try {
+            $builder = new FolioDocumentBuilder($folio, $buyerSnapshot);
+            $built = $builder->build();
+        } catch (\InvalidArgumentException $e) {
+            $refusal = str_contains($e->getMessage(), 'TIN')
+                ? EInvoiceResult::REFUSAL_BUYER_TIN_REQUIRED
+                : (str_contains($e->getMessage(), 'passport')
+                    ? EInvoiceResult::REFUSAL_PASSPORT_REQUIRED
+                    : (str_contains($e->getMessage(), 'Property')
+                        ? EInvoiceResult::REFUSAL_SUPPLIER_PROFILE_INCOMPLETE
+                        : EInvoiceResult::REFUSAL_BUYER_DETAILS_INCOMPLETE));
+
+            return EInvoiceResult::refused($refusal, $e->getMessage());
+        }
+
         $buyer = $buyerSnapshot ?? BuyerResolver::forFolio($folio);
 
         return DB::transaction(function () use ($folio, $actor, $requestedByGuest, $buyer, $built, $setting): EInvoiceResult {
@@ -97,7 +111,12 @@ class SubmitFolioEInvoice
                     $submission->save();
 
                     // Instantly refresh if mock or pre-validated
-                    ($this->refreshEInvoiceStatus)($submission);
+                    $refreshed = ($this->refreshEInvoiceStatus)($submission);
+
+                    // LHDN validates in the background, so keep checking until it answers.
+                    if ($refreshed->status === EInvoiceStatus::Submitted) {
+                        RefreshEInvoiceStatusJob::dispatch($submission->id)->afterCommit();
+                    }
                 } elseif ($rejected !== null) {
                     $submission->status = EInvoiceStatus::Invalid;
                     $submission->error_details = $rejected['error'] ?? $rejected;

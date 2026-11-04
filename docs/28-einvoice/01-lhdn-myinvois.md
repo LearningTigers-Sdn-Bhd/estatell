@@ -6,16 +6,16 @@ Automate statutory e-invoicing compliance with the Inland Revenue Board of Malay
 
 ## Scope
 
-| Now                                                                                             | Later                                             |
-| ----------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| Submission of closed reservation folios (`01` Invoice)                                          | Self-billed e-invoices (`11`) for OTA commissions |
-| Submission of City Ledger AR invoices (`01` Invoice)                                            | Debit Notes (`03`) and Refund Notes (`04`)        |
-| Credit Notes (`02`) referencing original validated submission UUID                              | Webhook receiver for real-time buyer rejections   |
-| Monthly B2C consolidation batching with General Public TIN `EI00000000010`                      | Automated XML/UBL export download button          |
-| 72-hour cancellation window enforcement on LHDN                                                 |                                                   |
-| Digital signing with PKCS#12 / XAdES Enveloped Signature (v1.1) or SHA-256 base64 digest (v1.0) |                                                   |
-| Mock, Sandbox, and Production gateway environments                                              |                                                   |
-| Behind the `EInvoicing` Pennant feature flag, off by default                                    |                                                   |
+| Now                                                                        | Later                                                  |
+| -------------------------------------------------------------------------- | ------------------------------------------------------ |
+| Submission of closed reservation folios (`01` Invoice)                     | Self-billed e-invoices (`11`) for OTA commissions      |
+| Submission of City Ledger AR invoices (`01` Invoice)                       | Debit Notes (`03`) and Refund Notes (`04`)             |
+| Credit Notes (`02`) referencing original validated submission UUID         | Webhook receiver for real-time buyer rejections        |
+| Monthly B2C consolidation batching with General Public TIN `EI00000000010` | Automated XML/UBL export download button               |
+| 72-hour cancellation window enforcement on LHDN                            |                                                        |
+| Unsigned v1.0 documents (SHA-256 document hash)                            | Digital signing (v1.1), once `DocumentSigner` is fixed |
+| Mock, Sandbox, and Production gateway environments                         |                                                        |
+| Behind the `EInvoicing` Pennant feature flag, off by default               |                                                        |
 
 ## Feature gate
 
@@ -51,17 +51,23 @@ LHDN mandates electronic invoicing under Section 82C of the Income Tax Act 1967.
 
 ## Digital Signing (v1.0 vs v1.1)
 
-LHDN supports two document versions:
+LHDN accepts two document versions:
 
-1. **Version 1.0 (Standard)**: Uses SHA-256 document hashing of normalized JSON base64-encoded in the API payload. Recommended during initial rollout and Sandbox testing.
-2. **Version 1.1 (Signed)**: Envelopes a cryptographic signature using an X.509 certificate and RSA private key (`UBLExtensions` block) conforming to XAdES baseline specifications.
+1. **Version 1.0 (unsigned)**: the document carries a SHA-256 hash. This is what estatell sends today.
+2. **Version 1.1 (signed)**: adds an XAdES signature made with an X.509 certificate and RSA key.
 
-Property owners can upload their `.p12` or `.pem` certificate and key in **Settings > E-Invoice**.
+Signing is hidden, the same as in WAStays. `DocumentSigner` does not yet build the signature LHDN expects (no `SignedProperties`, and the digests are computed over the wrong bytes), so LHDN would reject a signed document. The settings page does not show the signing fields, and the settings controller does not accept them. The columns stay on `property_e_invoice_settings` so signing can come back after `DocumentSigner` is rewritten and verified on LHDN preprod.
+
+## Document rules
+
+- **Issue date and time are UTC.** `IssueDate` and `IssueTime` use the UTC clock (`20:30:00Z`). LHDN reads them as UTC, so Malaysian time would put the document 8 hours in the future.
+- **Country codes are ISO 3166-1 alpha-3.** Guests and companies store alpha-2 (`SG`). `CountryOptions::alpha3()` converts them (`SGP`) from the PHP intl data. An empty country is sent as `MYS`.
+- **Status refresh.** LHDN validates in the background. After a submission, if LHDN still says "Submitted", `RefreshEInvoiceStatusJob` is queued (after the transaction commits). It checks again after 30 s, 1, 2 and 5 minutes. After that, staff can press Refresh on the submission page.
 
 ## Buyer Resolution Rules
 
 1. **B2B Companies**: Requires Company TIN and Business Registration Number (BRN).
-2. **Domestic Individual Guests (Malaysian)**: Requires Personal TIN or NRIC (MyKad). If personal TIN is not provided, fallback `EI00000000000` is used with NRIC.
+2. **Domestic Individual Guests (Malaysian)**: Requires Personal TIN or NRIC (MyKad). Stays without a guest TIN can be consolidated monthly under `EI00000000010`. Individual statutory e-invoices require the buyer's personal TIN.
 3. **Foreign Guests**: Requires Passport number with Foreign Buyer TIN `EI00000000020`.
 4. **General Public Consolidated**: Requires TIN `EI00000000010`, BRN `NA`, classification code `004`, and state code `17` (Not applicable).
 
@@ -80,8 +86,15 @@ For guests who do not request an individual e-invoice upon check-out:
 
 1. **Window**: Consolidated documents must be submitted within 7 calendar days after month-end.
 2. **Chunking**: LHDN allows a maximum of 100 stays per consolidated document. Stays in excess of 100 are automatically chunked into consecutive batches.
-3. **RM 10,000 Threshold Exemption**: Any stay whose total charges exceed RM 10,000 cannot be consolidated into a batch and must be submitted individually under LHDN regulations.
+3. **RM 10,000 Threshold Exemption**: Any stay whose total charges exceed RM 10,000 cannot be consolidated into a batch and must be submitted individually under LHDN regulations. Folios submitted in consolidated batches are recorded in `e_invoice_submission_folios` to prevent double-filing.
 4. **Scheduled Automation**: `App\Jobs\MonthlyConsolidationJob` runs automatically on the 1st of every month at 04:00 (Asia/Kuala_Lumpur) for properties with `consolidation_enabled = true`.
+
+## Front Desk Issuance
+
+- Closed folios can be submitted individually by front desk staff via the **Issue e-invoice** action in the folio tab.
+- A dedicated sheet (`IssueFolioEInvoiceDialog`) allows staff to input or verify the guest's statutory tax identification (TIN, NRIC, or Passport), billing address, and contact details before transmitting to LHDN.
+- Once submitted, the folio tab displays the live e-invoice status badge with a direct link to the submission details.
+- In the e-invoice detail page, technical identifiers and raw UBL 2.1 JSON payloads are organized under a collapsible section for clean, hotelier-friendly operation.
 
 ## Permissions
 

@@ -44,6 +44,8 @@ class ArInvoiceDocumentBuilder
      */
     public function build(): array
     {
+        $this->validateRequiredData();
+
         $payload = $this->buildPayload();
         $payloadJson = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
@@ -56,6 +58,34 @@ class ArInvoiceDocumentBuilder
         ];
     }
 
+    private function validateRequiredData(): void
+    {
+        $tin = $this->setting?->supplier_tin ?: $this->property->tin;
+        if (empty($tin)) {
+            throw new \InvalidArgumentException('Property TIN is missing. Configure E-Invoice Settings before submitting.');
+        }
+
+        $email = $this->setting?->supplier_email ?: $this->property->contact_email;
+        if (empty($email)) {
+            throw new \InvalidArgumentException('Property contact email is missing. Configure E-Invoice Settings before submitting.');
+        }
+
+        $city = $this->setting?->supplier_city ?: $this->property->city;
+        if (empty($city)) {
+            throw new \InvalidArgumentException('Property city is missing. Configure Property Address before submitting.');
+        }
+
+        $buyer = BuyerResolver::forCompany($this->invoice->company, $this->property);
+
+        if (empty($buyer['tin'])) {
+            throw new \InvalidArgumentException('Company TIN is required for B2B e-invoicing.');
+        }
+
+        if (empty($buyer['city'])) {
+            throw new \InvalidArgumentException('Company city is required for LHDN e-invoicing.');
+        }
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -63,10 +93,13 @@ class ArInvoiceDocumentBuilder
     {
         $subtotal = abs((float) $this->invoice->amount);
 
+        // LHDN reads IssueDate and IssueTime as UTC, so local time here would be 8 hours in the future.
+        $issuedAt = now('UTC');
+
         $body = [
             'ID' => [['_' => $this->invoice->number]],
-            'IssueDate' => [['_' => CarbonImmutable::now('Asia/Kuala_Lumpur')->toDateString()]],
-            'IssueTime' => [['_' => CarbonImmutable::now('Asia/Kuala_Lumpur')->toTimeString().'Z']],
+            'IssueDate' => [['_' => $issuedAt->toDateString()]],
+            'IssueTime' => [['_' => $issuedAt->format('H:i:s').'Z']],
             'InvoiceTypeCode' => [['_' => self::INVOICE_TYPE_CODE, 'listVersionID' => $this->documentSigner->documentVersion()]],
             'DocumentCurrencyCode' => [['_' => self::DEFAULT_CURRENCY]],
             'TaxCurrencyCode' => [['_' => self::DEFAULT_CURRENCY]],
@@ -160,19 +193,19 @@ class ArInvoiceDocumentBuilder
      */
     private function supplierParty(): array
     {
-        $tin = $this->setting?->supplier_tin ?: $this->property->tin ?: 'C0000000000';
+        $tin = $this->setting?->supplier_tin ?: $this->property->tin;
         $brn = $this->property->registration_number ?: 'NA';
         $name = $this->setting?->supplier_name ?: $this->property->legal_name ?: $this->property->name;
         $msic = $this->setting?->supplier_msic_code ?: $this->property->msic_code ?: '55101';
         $desc = $this->setting?->supplier_business_description ?: $this->property->business_description ?: 'Hotel and accommodation services';
-        $email = $this->setting?->supplier_email ?: $this->property->contact_email ?: 'accounts@hotel.com';
+        $email = $this->setting?->supplier_email ?: $this->property->contact_email;
         $phone = PhoneFormatter::format($this->setting?->supplier_phone ?: $this->property->contact_phone);
 
         $addressLine1 = $this->setting?->supplier_address_line1 ?: $this->property->address_line1 ?: 'NA';
         $addressLine2 = $this->setting?->supplier_address_line2 ?: $this->property->address_line2 ?: '';
-        $city = $this->setting?->supplier_city ?: $this->property->city ?: 'Kota Kinabalu';
-        $postalCode = $this->setting?->supplier_postal_code ?: $this->property->postal_code ?: '88000';
-        $stateCode = $this->setting?->supplier_state_code ?: $this->property->state_code ?: '12';
+        $city = $this->setting?->supplier_city ?: $this->property->city;
+        $postalCode = $this->setting?->supplier_postal_code ?: $this->property->postal_code ?: '00000';
+        $stateCode = $this->setting?->supplier_state_code ?: $this->property->state_code ?: '14';
 
         $partyIdentifications = [
             ['ID' => [['_' => $tin, 'schemeID' => 'TIN']]],
