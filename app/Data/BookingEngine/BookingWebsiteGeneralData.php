@@ -28,6 +28,7 @@ class BookingWebsiteGeneralData extends Data
         public string $baseUrl,
         public string $webAddress,
         public ?string $googleMapsUrl,
+        public ?string $aboutText,
         public array $checklist,
         public bool $canPublish,
     ) {}
@@ -50,6 +51,7 @@ class BookingWebsiteGeneralData extends Data
             baseUrl: $baseUrl,
             webAddress: $baseUrl.'/'.$slug,
             googleMapsUrl: $property->google_maps_url,
+            aboutText: $site->about_text,
             checklist: $checklist->items($site),
             canPublish: $checklist->isComplete($site),
         );

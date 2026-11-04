@@ -27,7 +27,13 @@ class SaveBookingWebsiteGeneralRequest extends FormRequest
         return [
             'slug' => ['required', 'string', 'min:3', 'max:50', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/', Rule::unique('properties', 'slug')->ignore($property)],
             'google_maps_url' => ['nullable', 'url:http,https', 'max:2048'],
+            'about_text' => ['nullable', 'string', 'max:1000'],
         ];
+    }
+
+    public function aboutText(): ?string
+    {
+        return $this->filled('about_text') ? trim($this->string('about_text')->toString()) : null;
     }
 
     public function withValidator(Validator $validator): void

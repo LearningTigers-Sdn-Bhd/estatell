@@ -238,6 +238,7 @@ slugLocked: boolean,
 baseUrl: string,
 webAddress: string,
 googleMapsUrl: string | null,
+aboutText: string | null,
 checklist: App.Data.BookingEngine.BookingSiteChecklistItemData[],
 canPublish: boolean,
 };

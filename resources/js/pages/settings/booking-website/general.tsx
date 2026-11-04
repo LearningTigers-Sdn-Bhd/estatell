@@ -33,7 +33,10 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Textarea } from '@/components/ui/textarea';
 import { useClipboard } from '@/hooks/use-clipboard';
+
+const ABOUT_MAX = 1000;
 
 export default function BookingWebsiteGeneral({
     general,
@@ -161,6 +164,30 @@ export default function BookingWebsiteGeneral({
                                         description="Paste the link of your property on Google Maps."
                                         error={errors.google_maps_url}
                                     />
+                                    <Field data-invalid={!!errors.about_text}>
+                                        <FieldLabel htmlFor="about_text">
+                                            About
+                                        </FieldLabel>
+                                        <Textarea
+                                            id="about_text"
+                                            name="about_text"
+                                            rows={5}
+                                            maxLength={ABOUT_MAX}
+                                            defaultValue={
+                                                general.aboutText ?? ''
+                                            }
+                                            placeholder="e.g. A quiet beach resort in Pangkor"
+                                            aria-invalid={!!errors.about_text}
+                                        />
+                                        <FieldDescription>
+                                            Guests read this on your booking
+                                            website. Up to {ABOUT_MAX}{' '}
+                                            characters.
+                                        </FieldDescription>
+                                        <FieldError>
+                                            {errors.about_text}
+                                        </FieldError>
+                                    </Field>
                                 </>
                             )}
                         </SettingsSection>

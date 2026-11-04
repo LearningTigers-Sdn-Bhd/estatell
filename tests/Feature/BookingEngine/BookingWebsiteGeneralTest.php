@@ -118,6 +118,34 @@ it('saves the slug and the Google Maps link, reads the location from it and logs
         ->and(Activity::query()->where('event', 'booking-website.general-saved')->count())->toBe(1);
 });
 
+it('saves the about text, trims it, clears it when empty and logs the change', function () {
+    ['owner' => $owner, 'property' => $property] = bookingWebsiteSetup();
+    app(SetUpBookingSite::class)($property);
+    $url = route('settings.booking-website.general.update', $property);
+
+    $this->actingAs($owner)->put($url, ['slug' => 'sand-bay', 'about_text' => "  A quiet beach resort in Pangkor.  \n"])
+        ->assertRedirect(route('settings.booking-website.general', $property));
+
+    expect($property->bookingSite->refresh()->about_text)->toBe('A quiet beach resort in Pangkor.')
+        ->and(Activity::query()->where('event', 'booking-website.general-saved')->count())->toBe(1);
+
+    $this->actingAs($owner)->put($url, ['slug' => 'sand-bay', 'about_text' => ''])->assertRedirect();
+
+    expect($property->bookingSite->refresh()->about_text)->toBeNull();
+});
+
+it('refuses an about text over 1000 characters', function () {
+    ['owner' => $owner, 'property' => $property] = bookingWebsiteSetup();
+    app(SetUpBookingSite::class)($property);
+
+    $this->actingAs($owner)->put(route('settings.booking-website.general.update', $property), [
+        'slug' => 'sand-bay',
+        'about_text' => str_repeat('a', 1001),
+    ])->assertSessionHasErrors('about_text');
+
+    expect($property->bookingSite->refresh()->about_text)->toBeNull();
+});
+
 it('refuses a bad or taken slug', function (string $slug) {
     ['owner' => $owner, 'property' => $property] = bookingWebsiteSetup();
     app(SetUpBookingSite::class)($property);

@@ -45,7 +45,7 @@ use Inertia\Response;
 class BookingWebsiteController extends Controller
 {
     /**
-     * The General tab: status, web address, Google Maps link and the publish checklist.
+     * The General tab: status, web address, Google Maps link, about text and the publish checklist.
      */
     public function general(Property $property, SetUpBookingSite $setUpBookingSite, BookingSiteChecklist $checklist): Response
     {
@@ -69,7 +69,7 @@ class BookingWebsiteController extends Controller
             }
         }
 
-        $saveBookingWebsiteGeneral($property, $request->user(), $request->string('slug')->toString(), $googleMapsUrl, $place);
+        $saveBookingWebsiteGeneral($property, $request->user(), $request->string('slug')->toString(), $googleMapsUrl, $request->aboutText(), $place);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Booking website saved.')]);
 
