@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\AuthenticateApiToken;
 use App\Http\Middleware\BlockDuringImpersonation;
 use App\Http\Middleware\BlockOnDemo;
 use App\Http\Middleware\EnsureAccountingIsActive;
@@ -17,18 +18,22 @@ use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\LogoutDeactivatedUsers;
 use App\Http\Middleware\RequireSupportTwoFactor;
 use App\Http\Middleware\TrackOnboardingActivity;
+use App\Http\Responses\ApiError;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\AuthenticateSession;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
+use Illuminate\Validation\ValidationException;
 use Inertia\ExceptionResponse;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -37,6 +42,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
         then: function (): void {
             Route::prefix('webhooks')->name('webhooks.')->group(base_path('routes/webhooks.php'));
+            Route::prefix('api')->middleware('api')->group(base_path('routes/api.php'));
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
@@ -45,6 +51,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectUsersTo(fn (Request $request): string => $request->user()?->is_admin ? route('admin.dashboard') : route('home.redirect'));
 
         $middleware->alias([
+            'api.token' => AuthenticateApiToken::class,
             'block.impersonation' => BlockDuringImpersonation::class,
             'support.2fa' => RequireSupportTwoFactor::class,
             'boats' => EnsureBoatsIsActive::class,
@@ -84,6 +91,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        $exceptions->render(fn (ThrottleRequestsException $exception, Request $request) => $request->is('api/*')
+            ? ApiError::response('rate_limited', __('Too many requests. Wait a moment and try again.'), 429, $exception->getHeaders())
+            : null);
+
+        $exceptions->render(fn (Throwable $exception, Request $request) => $request->is('api/*') && ! $exception instanceof HttpExceptionInterface && ! $exception instanceof ValidationException
+            ? ApiError::response('server_error', __('Something went wrong. Please see the front desk.'), 500)
+            : null);
 
         Inertia::handleExceptionsUsing(function (ExceptionResponse $exception): ?Response {
             $request = $exception->request;
