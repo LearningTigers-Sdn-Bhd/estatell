@@ -18,7 +18,7 @@ use App\Events\StayCheckedIn;
 use App\Events\StayCheckedOut;
 use App\Events\StayDatesChanged;
 use App\Events\StayRoomChanged;
-use App\Models\ApiToken;
+use App\Models\Kiosk;
 use App\Models\Property;
 use App\Models\RatePlan;
 use App\Models\RoomType;
@@ -86,15 +86,15 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Pairing is limited per IP address (a pairing code can be guessed). Everything else is limited per token. See docs/28-api-access/01-api-tokens-and-kiosk-pairing.md.
+     * Pairing is limited per IP address (a pairing code can be guessed). Everything else is limited per token. See docs/28-api-access/01-api-tokens.md.
      */
     protected function configureApiRateLimiting(): void
     {
         RateLimiter::for('api-pair', fn (Request $request): Limit => Limit::perMinute(10)->by((string) $request->ip()));
         RateLimiter::for('api-token', function (Request $request): Limit {
-            $token = $request->attributes->get('api_token');
+            $kiosk = $request->attributes->get('kiosk');
 
-            return Limit::perMinute(120)->by($token instanceof ApiToken ? 'token:'.$token->id : (string) $request->ip());
+            return Limit::perMinute(120)->by($kiosk instanceof Kiosk ? 'kiosk:'.$kiosk->id : (string) $request->ip());
         });
     }
 

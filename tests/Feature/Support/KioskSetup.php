@@ -1,8 +1,8 @@
 <?php
 
-use App\Models\ApiToken;
 use App\Models\BusinessDate;
 use App\Models\Guest;
+use App\Models\Kiosk;
 use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\Reservation;
@@ -20,14 +20,14 @@ const KIOSK_TEST_TOKEN = 'est_live_testtokenaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
  *
  * @param  array<string, mixed>  $unit
  * @param  array<string, mixed>  $guest
- * @return array{property: Property, kiosk: ApiToken, reservation: Reservation, unit: ReservationUnit, guest: Guest}
+ * @return array{property: Property, kiosk: Kiosk, reservation: Reservation, unit: ReservationUnit, guest: Guest}
  */
 function kioskStaySetup(array $unit = [], array $guest = []): array
 {
     $property = Property::factory()->create(['name' => 'Palm Resort']);
     PropertySetting::factory()->for($property)->create();
     BusinessDate::factory()->create(['property_id' => $property->id]);
-    $kiosk = ApiToken::factory()->for($property)->withToken(KIOSK_TEST_TOKEN)->create();
+    $kiosk = Kiosk::factory()->for($property)->withToken(KIOSK_TEST_TOKEN)->create();
 
     return [...kioskStayFor($property, 'R-100', $unit, $guest), 'property' => $property, 'kiosk' => $kiosk];
 }

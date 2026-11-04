@@ -10,6 +10,6 @@ class MeController extends Controller
 {
     public function __invoke(Request $request): KioskMeResource
     {
-        return new KioskMeResource($request->attributes->get('api_token'));
+        return new KioskMeResource($request->attributes->get('kiosk'));
     }
 }

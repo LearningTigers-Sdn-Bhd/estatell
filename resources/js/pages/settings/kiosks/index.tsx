@@ -233,7 +233,7 @@ export default function KiosksIndex({ kiosks }: { kiosks: Kiosk[] }) {
                 <AlertDialogContent>
                     {revoking && (
                         <Form
-                            {...revoke.form({ apiToken: revoking.id })}
+                            {...revoke.form({ kiosk: revoking.id })}
                             options={{ preserveScroll: true }}
                             onSuccess={() => setRevoking(null)}
                         >

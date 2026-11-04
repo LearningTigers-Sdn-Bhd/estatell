@@ -350,10 +350,10 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
         return $this->hasMany(PropertyDocumentPrefixHistory::class);
     }
 
-    /** @return HasMany<ApiToken, $this> */
-    public function apiTokens(): HasMany
+    /** @return HasMany<Kiosk, $this> */
+    public function kiosks(): HasMany
     {
-        return $this->hasMany(ApiToken::class);
+        return $this->hasMany(Kiosk::class);
     }
 
     /** @return HasOne<DoorLockConnection, $this> */

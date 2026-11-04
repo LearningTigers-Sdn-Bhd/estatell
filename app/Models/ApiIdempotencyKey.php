@@ -9,11 +9,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * The first answer to one `Idempotency-Key` on one path, kept for 24 hours so a retry gets the same answer.
- * See docs/28-api-access/02-kiosk-check-in-endpoints.md.
+ * See docs/28-api-access/03-kiosk-check-in-endpoints.md.
  *
  * @property int $id
  * @property int $property_id
- * @property int $api_token_id
+ * @property int $kiosk_id
  * @property string $key
  * @property string $path
  * @property int $status
@@ -28,10 +28,10 @@ class ApiIdempotencyKey extends Model
     public const int RETENTION_HOURS = 24;
 
     /**
-     * @return BelongsTo<ApiToken, $this>
+     * @return BelongsTo<Kiosk, $this>
      */
-    public function apiToken(): BelongsTo
+    public function kiosk(): BelongsTo
     {
-        return $this->belongsTo(ApiToken::class);
+        return $this->belongsTo(Kiosk::class);
     }
 }

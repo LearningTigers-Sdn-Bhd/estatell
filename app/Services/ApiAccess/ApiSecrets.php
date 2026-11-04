@@ -5,19 +5,13 @@ namespace App\Services\ApiAccess;
 use Illuminate\Support\Str;
 
 /**
- * Makes and hashes API secrets. Tokens and pairing codes are stored as SHA-256 hashes only: both are random, so a fast hash is enough.
+ * Makes and hashes pairing codes. They are stored as SHA-256 hashes only: they are random, so a fast hash is enough.
+ * Sanctum makes and hashes the tokens.
  */
 class ApiSecrets
 {
-    public const TOKEN_PREFIX = 'est_live_';
-
     /** No 0, 1, I, L or O: a code read aloud or typed from a screen stays unambiguous. */
     private const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-
-    public static function newToken(): string
-    {
-        return self::TOKEN_PREFIX.Str::random(40);
-    }
 
     /**
      * Eight characters, about 40 bits. Single use, valid ten minutes, and the pair endpoint is rate limited.
