@@ -14,11 +14,15 @@ export default function RoomTypeAmenitiesPage({
     roomCount,
     canManage,
     amenities,
+    page,
+    listUrl,
 }: {
     roomType: RoomType;
     roomCount: number;
     canManage: boolean;
     amenities: App.Data.BookingEngine.AmenityPickerData;
+    page: number;
+    listUrl: string;
 }) {
     return (
         <>
@@ -31,10 +35,11 @@ export default function RoomTypeAmenitiesPage({
             >
                 <AmenityPicker
                     picker={amenities}
-                    form={update.form({ roomType: roomType.id })}
-                    title="Amenities"
-                    description="Tick what guests find in this room type."
+                    saveUrl={update.url({ roomType: roomType.id })}
+                    description="Turn on what guests find in this room type. Each switch saves at once."
                     readOnly={isRoomTypeReadOnly(roomType, canManage)}
+                    page={page}
+                    listUrl={listUrl}
                 />
             </RoomTypeShell>
         </>

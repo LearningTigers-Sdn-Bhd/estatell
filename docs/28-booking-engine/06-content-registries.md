@@ -20,16 +20,16 @@ room_type_amenities   room_type_id, amenity_id    unique pair
 - A name is unique per type, ignoring case. The type never changes after an amenity is added, because properties already link to it. `icon` keeps the wastays icon key for the microsite; no screen edits it yet.
 - Each type has its own categories, so Property "General" and Room "General" are two rows. A new amenity takes its type from its category, and an amenity can only move to a category of its own type. A category's name is unique per type, ignoring case, and its type never changes. A category can only be deleted when no amenity uses it, retired ones included.
 - The list order is the category position, then the amenity position inside it. The pickers and the admin page both follow it.
-- The pickers are plain tick boxes grouped by category. A category with nothing to show stays hidden. A ticked retired amenity shows a "Retired" badge until it is unticked.
-- Saving refuses an id that is the wrong type, unknown, or retired and not already ticked, and writes nothing. Room amenities cannot change on an archived room type. Every change is logged (`property.amenities_changed`, `room_type.amenities_changed`, `amenity.*`, `amenity_category.*`).
-- A retired amenity (`active` off) leaves the pickers and stays on properties until they untick it. Admins retire or bring back an amenity with the **Available** switch on its row, which saves at once.
+- Owners pick from the same table as the admin page, without the admin actions: search, a Grouped or List toggle kept in the URL (`?view=list&page=`), category rows that open and close, all closed at first, with a count such as "2 of 8", and 50 rows a page in List. Each row has an **Available** switch that saves at once, with no success toast. A category with nothing to show stays hidden. A retired amenity that is on shows a "Retired" badge and leaves the list once it is turned off.
+- A switch refuses an id that is the wrong type, unknown, or retired and not already on, and writes nothing. Asking for the state it already has changes nothing. Room amenities cannot change on an archived room type. Every change is logged (`property.amenities_changed`, `room_type.amenities_changed`, `amenity.*`, `amenity_category.*`).
+- A retired amenity (`active` off) leaves the pickers and stays on properties until they turn it off. Admins retire or bring back an amenity with the **Available** switch on its row, which saves at once.
 
 | Who   | Does                                         | Where                          |
 | ----- | -------------------------------------------- | ------------------------------ |
 | Admin | Adds, edits, orders and retires amenities    | Admin › Amenities              |
 | Admin | Adds, renames, orders and deletes categories | Admin › Amenities › Categories |
-| Owner | Ticks property amenities                     | Booking website › Amenities    |
-| Owner | Ticks room amenities                         | Room type page                 |
+| Owner | Turns on property amenities                  | Booking website › Amenities    |
+| Owner | Turns on room amenities                      | Room type page                 |
 
 Left out for now: per-amenity details, such as opening hours and fees (a concierge page need), and a Channex sync. The Channex `facilities` field is optional. If it is needed later, add `amenities.channex_id`, as wastays had.
 

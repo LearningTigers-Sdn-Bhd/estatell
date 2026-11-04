@@ -323,36 +323,80 @@ test('the Amenities tab lists active property amenities plus a retired one that 
     expect($pool->id)->toBeInt();
 });
 
-test('saving the Amenities tab replaces the ticked amenities and logs the change', function () {
+test('a switch on the Amenities tab turns one amenity on or off, stays on the page and logs it', function () {
     ['owner' => $owner, 'property' => $property] = amenityOwner();
     [$pool, $gym] = Amenity::factory()->count(2)->create();
     $property->amenities()->attach($pool);
+    $openPage = route('settings.booking-website.amenities', [$property, 'view' => 'list', 'page' => 2]);
 
-    $this->actingAs($owner)
-        ->put(route('settings.booking-website.amenities.update', $property), ['amenity_ids' => [$gym->id]])
-        ->assertRedirect(route('settings.booking-website.amenities', $property))
-        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Amenities saved.']);
+    $this->actingAs($owner)->from($openPage)
+        ->put(route('settings.booking-website.amenities.update', $property), ['amenity_id' => $gym->id, 'active' => true])
+        ->assertRedirect($openPage)
+        ->assertInertiaFlashMissing('toast');
 
-    expect($property->amenities()->pluck('amenities.id')->all())->toBe([$gym->id]);
+    expect($property->amenities()->pluck('amenities.id')->sort()->values()->all())->toBe([$pool->id, $gym->id]);
     expect(Activity::query()->where('event', 'property.amenities_changed')->count())->toBe(1);
 
-    $this->actingAs($owner)->put(route('settings.booking-website.amenities.update', $property), ['amenity_ids' => []]);
+    $this->actingAs($owner)->put(route('settings.booking-website.amenities.update', $property), ['amenity_id' => $pool->id, 'active' => false]);
 
-    expect($property->amenities()->count())->toBe(0);
+    expect($property->amenities()->pluck('amenities.id')->all())->toBe([$gym->id]);
+    expect(Activity::query()->where('event', 'property.amenities_changed')->count())->toBe(2);
 });
 
-test('the Amenities tab refuses room amenities, retired ones not yet ticked and unknown ids', function () {
+test('asking for the state an amenity already has changes and logs nothing', function () {
+    ['owner' => $owner, 'property' => $property] = amenityOwner();
+    $pool = Amenity::factory()->create();
+    $property->amenities()->attach($pool);
+
+    $this->actingAs($owner)->put(route('settings.booking-website.amenities.update', $property), ['amenity_id' => $pool->id, 'active' => true]);
+
+    expect($property->amenities()->count())->toBe(1);
+    expect(Activity::query()->where('event', 'property.amenities_changed')->count())->toBe(0);
+});
+
+test('the Amenities tab refuses room amenities, retired ones not yet on and unknown ids', function () {
     ['owner' => $owner, 'property' => $property] = amenityOwner();
     $room = Amenity::factory()->room()->create();
     $retired = Amenity::factory()->inactive()->create();
 
-    foreach ([[$room->id], [$retired->id], [999999]] as $ids) {
+    foreach ([$room->id, $retired->id, 999999] as $id) {
         $this->actingAs($owner)
-            ->put(route('settings.booking-website.amenities.update', $property), ['amenity_ids' => $ids])
+            ->put(route('settings.booking-website.amenities.update', $property), ['amenity_id' => $id, 'active' => true])
             ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'The amenity list changed. Reload the page and try again.']);
     }
 
     expect($property->amenities()->count())->toBe(0);
+    expect(Activity::query()->where('event', 'property.amenities_changed')->count())->toBe(0);
+});
+
+test('a retired amenity that is on can be turned off but not back on', function () {
+    ['owner' => $owner, 'property' => $property] = amenityOwner();
+    $sauna = Amenity::factory()->inactive()->create();
+    $property->amenities()->attach($sauna);
+
+    $this->actingAs($owner)->put(route('settings.booking-website.amenities.update', $property), ['amenity_id' => $sauna->id, 'active' => false]);
+
+    expect($property->amenities()->count())->toBe(0);
+
+    $this->actingAs($owner)
+        ->put(route('settings.booking-website.amenities.update', $property), ['amenity_id' => $sauna->id, 'active' => true])
+        ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'The amenity list changed. Reload the page and try again.']);
+
+    expect($property->amenities()->count())->toBe(0);
+});
+
+test('the owner pages get the list page from the URL', function () {
+    ['owner' => $owner, 'property' => $property] = amenityOwner();
+    $roomType = RoomType::factory()->for($property)->create();
+
+    $this->actingAs($owner)->get(route('settings.booking-website.amenities', [$property, 'view' => 'list', 'page' => 3]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('page', 3)
+            ->where('listUrl', route('settings.booking-website.amenities', $property)));
+    $this->actingAs($owner)->get(route('settings.room-types.amenities.edit', [$property, $roomType, 'page' => 0]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('page', 1)
+            ->where('listUrl', route('settings.room-types.amenities.edit', [$property, $roomType])));
 });
 
 test('the Amenities tab needs the manage permission and the feature', function () {
@@ -360,7 +404,7 @@ test('the Amenities tab needs the manage permission and the feature', function (
     $staff = User::factory()->for($property)->withPermissions([PermissionEnum::SettingsManage])->create();
 
     $this->actingAs($staff)->get(route('settings.booking-website.amenities', $property))->assertForbidden();
-    $this->actingAs($staff)->put(route('settings.booking-website.amenities.update', $property), ['amenity_ids' => []])->assertForbidden();
+    $this->actingAs($staff)->put(route('settings.booking-website.amenities.update', $property), ['amenity_id' => 1, 'active' => true])->assertForbidden();
 
     Feature::for($property)->deactivate(BookingEngine::class);
     $this->actingAs(User::factory()->owner()->create())->get(route('settings.booking-website.amenities', $property))->assertNotFound();
@@ -381,14 +425,14 @@ test('room amenities save on the room type page and stay inside the property', f
             ->where('canManage', true));
 
     $this->actingAs($owner)
-        ->put(route('settings.room-types.amenities.update', [$property, $roomType]), ['amenity_ids' => [$balcony->id]])
-        ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Amenities saved.']);
+        ->put(route('settings.room-types.amenities.update', [$property, $roomType]), ['amenity_id' => $balcony->id, 'active' => true])
+        ->assertRedirect();
 
     expect($roomType->amenities()->pluck('amenities.id')->all())->toBe([$balcony->id]);
     expect(Activity::query()->where('event', 'room_type.amenities_changed')->count())->toBe(1);
 
     $this->actingAs($owner)
-        ->put(route('settings.room-types.amenities.update', [$property, $roomType]), ['amenity_ids' => [$pool->id]])
+        ->put(route('settings.room-types.amenities.update', [$property, $roomType]), ['amenity_id' => $pool->id, 'active' => true])
         ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'The amenity list changed, or the room type is archived. Reload the page and try again.']);
 
     $other = RoomType::factory()->for(Property::factory()->create())->create();
@@ -401,7 +445,7 @@ test('an archived room type refuses amenity changes and view-only staff cannot s
     $balcony = Amenity::factory()->room()->create();
 
     $this->actingAs($owner)
-        ->put(route('settings.room-types.amenities.update', [$property, $roomType]), ['amenity_ids' => [$balcony->id]])
+        ->put(route('settings.room-types.amenities.update', [$property, $roomType]), ['amenity_id' => $balcony->id, 'active' => true])
         ->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'The amenity list changed, or the room type is archived. Reload the page and try again.']);
 
     $viewer = User::factory()->for($property)->withPermissions([PermissionEnum::RoomsView])->create();
@@ -409,6 +453,6 @@ test('an archived room type refuses amenity changes and view-only staff cannot s
 
     $this->actingAs($viewer)->get(route('settings.room-types.amenities.edit', [$property, $active]))->assertOk();
     $this->actingAs($viewer)
-        ->put(route('settings.room-types.amenities.update', [$property, $active]), ['amenity_ids' => [$balcony->id]])
+        ->put(route('settings.room-types.amenities.update', [$property, $active]), ['amenity_id' => $balcony->id, 'active' => true])
         ->assertForbidden();
 });

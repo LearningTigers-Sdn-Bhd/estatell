@@ -79,10 +79,16 @@ The rows follow the chosen template's [image slots](08-microsite.md#template-reg
 
 ```
 ┌─ Amenities ────────────────────────────────────────────┐
-│ [✓] Wi-Fi  [✓] Pool  [ ] Gym  [✓] Parking              │
-│                                      [ Save amenities ]│
+│ [ Search ]                           ( Grouped | List )│
+│ Available   Amenity                                    │
+│ ▸ General (3 of 27)                                    │
+│ ▾ Parking (2 of 8)                                     │
+│ (on )       Bike parking                               │
+│ (off)       Free parking                               │
 └────────────────────────────────────────────────────────┘
 ```
+
+Each switch saves at once. See [Amenities](06-content-registries.md#amenities).
 
 ### Nearby places
 

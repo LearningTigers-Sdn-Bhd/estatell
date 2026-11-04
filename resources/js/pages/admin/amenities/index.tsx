@@ -1,13 +1,10 @@
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import {
     BedDouble,
     Building2,
     ChevronDown,
-    ChevronRight,
     ChevronUp,
-    List,
     ListChecks,
-    ListTree,
     Plus,
     Tags,
 } from 'lucide-react';
@@ -16,13 +13,16 @@ import { Fragment, useMemo, useState } from 'react';
 import { AmenityCategoryDialog } from '@/components/pms/amenities/amenity-category-dialog';
 import { AmenityCategoryTable } from '@/components/pms/amenities/amenity-category-table';
 import { AmenityDialog } from '@/components/pms/amenities/amenity-dialog';
+import {
+    AmenityGroupRow,
+    AmenityViewToggle,
+} from '@/components/pms/amenities/amenity-table-parts';
+import { useAmenityTable } from '@/components/pms/amenities/use-amenity-table';
 import { EmptyState } from '@/components/pms/empty-state';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { FilterBar } from '@/components/pms/filter-bar';
 import { PageHeader } from '@/components/pms/page-header';
 import { PaginationFooter } from '@/components/pms/pagination-footer';
-import type { PaginationData } from '@/components/pms/pagination-footer';
-import { paginationUrl } from '@/components/pms/pagination-navigation';
 import { TabLinks } from '@/components/pms/tab-links';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -34,18 +34,14 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes/admin';
 import { index, reorder } from '@/routes/admin/amenities';
 import { update as updateActive } from '@/routes/admin/amenities/active';
 
 type Amenity = App.Data.BookingEngine.AmenityData;
 type Category = App.Data.BookingEngine.AmenityCategoryData;
-type View = 'grouped' | 'list';
 
 const CATEGORIES = 'categories';
-const LIST_PAGE_SIZE = 50;
 
 const tabIcons: Record<string, LucideIcon> = {
     property: Building2,
@@ -75,15 +71,6 @@ function moveAmenity(
     );
 }
 
-/** The address of a page in the List view, so a refresh stays on that view and page. */
-function listPageUrl(listUrl: string, page: number): string {
-    const url = new URL(paginationUrl(listUrl, page));
-
-    url.searchParams.set('view', 'list');
-
-    return url.href;
-}
-
 function AmenityRow({
     amenity,
     showCategory,
@@ -100,7 +87,7 @@ function AmenityRow({
 }) {
     const [saving, setSaving] = useState(false);
 
-    /** Off retires the amenity. The switch flips at once and follows the server's answer. */
+    /** Off retires the amenity. The switch flips at once and follows the server's answer. It is async so a quick next switch does not cancel this save. */
     function saveActive(active: boolean) {
         router
             .optimistic<{ amenities: Amenity[] }>((props) => ({
@@ -112,6 +99,7 @@ function AmenityRow({
                 updateActive.url(amenity.id),
                 { active },
                 {
+                    async: true,
                     preserveScroll: true,
                     preserveState: true,
                     onStart: () => setSaving(true),
@@ -187,64 +175,13 @@ export default function AmenitiesIndex({
 }) {
     const [adding, setAdding] = useState(false);
     const [editing, setEditing] = useState<Amenity | null>(null);
-    const [search, setSearch] = useState('');
-    const { url } = usePage();
-    const [view, setView] = useState<View>(() =>
-        new URL(url, 'http://localhost').searchParams.get('view') === 'list'
-            ? 'list'
-            : 'grouped',
-    );
-    const [openGroups, setOpenGroups] = useState<number[]>([]);
-
-    /** Keeps the view in the URL (`?view=list`) with no request, and goes back to the first page of the list. */
-    function changeView(next: View) {
-        setView(next);
-
-        const target = new URL(url, 'http://localhost');
-
-        target.searchParams.delete('page');
-
-        if (next === 'list') {
-            target.searchParams.set('view', 'list');
-        } else {
-            target.searchParams.delete('view');
-        }
-
-        router.replace({
-            url: `${target.pathname}${target.search}`,
-            props: (current) => ({ ...current, page: 1 }),
-            preserveScroll: true,
-            preserveState: true,
-        });
-    }
-
     const showingCategories = tab === CATEGORIES;
-    const term = search.trim().toLowerCase();
-
-    const visible = useMemo(
-        () =>
-            amenities.filter(
-                (amenity) =>
-                    amenity.type === tab &&
-                    (term === '' ||
-                        amenity.name.toLowerCase().includes(term) ||
-                        amenity.category.toLowerCase().includes(term)),
-            ),
-        [amenities, tab, term],
+    const ofTab = useMemo(
+        () => amenities.filter((amenity) => amenity.type === tab),
+        [amenities, tab],
     );
-
-    const groups = useMemo(
-        () =>
-            categories
-                .map((category) => ({
-                    category,
-                    rows: visible.filter(
-                        (amenity) => amenity.categoryId === category.id,
-                    ),
-                }))
-                .filter((group) => group.rows.length > 0),
-        [categories, visible],
-    );
+    const table = useAmenityTable(ofTab, page, listUrl);
+    const { view, term } = table;
 
     const categoryOptions = (type: string): EnumOption[] =>
         categories
@@ -255,38 +192,6 @@ export default function AmenitiesIndex({
             }));
 
     const columnCount = view === 'list' ? 4 : 3;
-
-    /** Search opens every group that has a match, so nothing it found stays hidden. */
-    const isGroupOpen = (categoryId: number) =>
-        term !== '' || openGroups.includes(categoryId);
-
-    function toggleGroup(categoryId: number) {
-        setOpenGroups((current) =>
-            current.includes(categoryId)
-                ? current.filter((id) => id !== categoryId)
-                : [...current, categoryId],
-        );
-    }
-
-    const lastPage = Math.max(1, Math.ceil(visible.length / LIST_PAGE_SIZE));
-    const currentPage = Math.min(page, lastPage);
-    const firstRow = (currentPage - 1) * LIST_PAGE_SIZE;
-    const listRows =
-        term === ''
-            ? visible.slice(firstRow, firstRow + LIST_PAGE_SIZE)
-            : visible;
-    const pagination: PaginationData = {
-        currentPage,
-        lastPage,
-        from: firstRow + 1,
-        to: firstRow + listRows.length,
-        total: visible.length,
-        prevUrl: currentPage > 1 ? listPageUrl(listUrl, currentPage - 1) : null,
-        nextUrl:
-            currentPage < lastPage
-                ? listPageUrl(listUrl, currentPage + 1)
-                : null,
-    };
 
     return (
         <>
@@ -333,28 +238,14 @@ export default function AmenitiesIndex({
                     ) : (
                         <>
                             <FilterBar
-                                search={search}
-                                onSearchChange={setSearch}
+                                search={table.search}
+                                onSearchChange={table.setSearch}
                                 searchPlaceholder="Search by name or category"
                             >
-                                <ToggleGroup
-                                    variant="outline"
-                                    spacing={0}
-                                    value={[view]}
-                                    onValueChange={(value) =>
-                                        value[0] && changeView(value[0] as View)
-                                    }
-                                    aria-label="View"
-                                >
-                                    <ToggleGroupItem value="grouped">
-                                        <ListTree data-icon="inline-start" />
-                                        Grouped
-                                    </ToggleGroupItem>
-                                    <ToggleGroupItem value="list">
-                                        <List data-icon="inline-start" />
-                                        List
-                                    </ToggleGroupItem>
-                                </ToggleGroup>
+                                <AmenityViewToggle
+                                    view={view}
+                                    onChange={table.changeView}
+                                />
                             </FilterBar>
 
                             <div className="overflow-hidden rounded-lg border">
@@ -375,7 +266,7 @@ export default function AmenitiesIndex({
                                     </TableHeader>
                                     <TableBody>
                                         {view === 'list'
-                                            ? listRows.map((amenity) => (
+                                            ? table.listRows.map((amenity) => (
                                                   <AmenityRow
                                                       key={amenity.id}
                                                       amenity={amenity}
@@ -385,118 +276,86 @@ export default function AmenitiesIndex({
                                                       }
                                                   />
                                               ))
-                                            : groups.map(
-                                                  ({ category, rows }) => (
-                                                      <Fragment
-                                                          key={category.id}
-                                                      >
-                                                          <TableRow className="bg-muted/50 hover:bg-muted/50">
-                                                              <TableCell
-                                                                  colSpan={
-                                                                      columnCount
-                                                                  }
-                                                                  className="p-0"
-                                                              >
-                                                                  <button
-                                                                      type="button"
-                                                                      aria-expanded={isGroupOpen(
-                                                                          category.id,
-                                                                      )}
-                                                                      disabled={
+                                            : table.groups.map((group) => (
+                                                  <Fragment key={group.id}>
+                                                      <AmenityGroupRow
+                                                          name={group.name}
+                                                          count={
+                                                              group.rows.length
+                                                          }
+                                                          open={table.isGroupOpen(
+                                                              group.id,
+                                                          )}
+                                                          disabled={term !== ''}
+                                                          colSpan={columnCount}
+                                                          onToggle={() =>
+                                                              table.toggleGroup(
+                                                                  group.id,
+                                                              )
+                                                          }
+                                                      />
+                                                      {table.isGroupOpen(
+                                                          group.id,
+                                                      ) &&
+                                                          group.rows.map(
+                                                              (
+                                                                  amenity,
+                                                                  position,
+                                                              ) => (
+                                                                  <AmenityRow
+                                                                      key={
+                                                                          amenity.id
+                                                                      }
+                                                                      amenity={
+                                                                          amenity
+                                                                      }
+                                                                      showCategory={
+                                                                          false
+                                                                      }
+                                                                      onEdit={() =>
+                                                                          setEditing(
+                                                                              amenity,
+                                                                          )
+                                                                      }
+                                                                      onMoveUp={
                                                                           term !==
                                                                           ''
+                                                                              ? undefined
+                                                                              : position ===
+                                                                                  0
+                                                                                ? null
+                                                                                : () =>
+                                                                                      moveAmenity(
+                                                                                          amenities,
+                                                                                          group.rows,
+                                                                                          position,
+                                                                                          -1,
+                                                                                      )
                                                                       }
-                                                                      onClick={() =>
-                                                                          toggleGroup(
-                                                                              category.id,
-                                                                          )
+                                                                      onMoveDown={
+                                                                          term !==
+                                                                          ''
+                                                                              ? undefined
+                                                                              : position ===
+                                                                                  group
+                                                                                      .rows
+                                                                                      .length -
+                                                                                      1
+                                                                                ? null
+                                                                                : () =>
+                                                                                      moveAmenity(
+                                                                                          amenities,
+                                                                                          group.rows,
+                                                                                          position,
+                                                                                          1,
+                                                                                      )
                                                                       }
-                                                                      className="flex w-full items-center gap-2 p-2 text-left font-medium"
-                                                                  >
-                                                                      <ChevronRight
-                                                                          aria-hidden
-                                                                          className={cn(
-                                                                              'size-4 text-muted-foreground transition-transform',
-                                                                              isGroupOpen(
-                                                                                  category.id,
-                                                                              ) &&
-                                                                                  'rotate-90',
-                                                                          )}
-                                                                      />
-                                                                      {
-                                                                          category.name
-                                                                      }
-                                                                      <span className="font-normal text-muted-foreground tabular-nums">
-                                                                          (
-                                                                          {
-                                                                              rows.length
-                                                                          }
-                                                                          )
-                                                                      </span>
-                                                                  </button>
-                                                              </TableCell>
-                                                          </TableRow>
-                                                          {isGroupOpen(
-                                                              category.id,
-                                                          ) &&
-                                                              rows.map(
-                                                                  (
-                                                                      amenity,
-                                                                      position,
-                                                                  ) => (
-                                                                      <AmenityRow
-                                                                          key={
-                                                                              amenity.id
-                                                                          }
-                                                                          amenity={
-                                                                              amenity
-                                                                          }
-                                                                          showCategory={
-                                                                              false
-                                                                          }
-                                                                          onEdit={() =>
-                                                                              setEditing(
-                                                                                  amenity,
-                                                                              )
-                                                                          }
-                                                                          onMoveUp={
-                                                                              term !==
-                                                                              ''
-                                                                                  ? undefined
-                                                                                  : position ===
-                                                                                      0
-                                                                                    ? null
-                                                                                    : () =>
-                                                                                          moveAmenity(
-                                                                                              amenities,
-                                                                                              rows,
-                                                                                              position,
-                                                                                              -1,
-                                                                                          )
-                                                                          }
-                                                                          onMoveDown={
-                                                                              term !==
-                                                                              ''
-                                                                                  ? undefined
-                                                                                  : position ===
-                                                                                      rows.length -
-                                                                                          1
-                                                                                    ? null
-                                                                                    : () =>
-                                                                                          moveAmenity(
-                                                                                              amenities,
-                                                                                              rows,
-                                                                                              position,
-                                                                                              1,
-                                                                                          )
-                                                                          }
-                                                                      />
-                                                                  ),
-                                                              )}
-                                                      </Fragment>
-                                                  ),
-                                              )}
-                                        {visible.length === 0 && (
+                                                                  />
+                                                              ),
+                                                          )}
+                                                  </Fragment>
+                                              ))}
+                                        {table.visible.length === 0 && (
                                             <TableRow className="hover:bg-transparent">
                                                 <TableCell
                                                     colSpan={columnCount}
@@ -527,7 +386,7 @@ export default function AmenitiesIndex({
                                                                 <Button
                                                                     variant="outline"
                                                                     onClick={() =>
-                                                                        setSearch(
+                                                                        table.setSearch(
                                                                             '',
                                                                         )
                                                                     }
@@ -545,7 +404,9 @@ export default function AmenitiesIndex({
                             </div>
 
                             {view === 'list' && term === '' && (
-                                <PaginationFooter pagination={pagination} />
+                                <PaginationFooter
+                                    pagination={table.pagination}
+                                />
                             )}
                         </>
                     )}

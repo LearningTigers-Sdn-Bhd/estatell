@@ -5,8 +5,12 @@ import { BookingWebsiteShell } from '@/components/pms/booking-website/booking-we
 
 export default function BookingWebsiteAmenities({
     amenities,
+    page,
+    listUrl,
 }: {
     amenities: App.Data.BookingEngine.AmenityPickerData;
+    page: number;
+    listUrl: string;
 }) {
     return (
         <>
@@ -17,10 +21,11 @@ export default function BookingWebsiteAmenities({
             >
                 <AmenityPicker
                     picker={amenities}
-                    form={BookingWebsiteController.updateAmenities.form()}
-                    title="Amenities"
-                    description="Tick what your property offers. Room amenities are set on each room type."
+                    saveUrl={BookingWebsiteController.updateAmenities.url()}
+                    description="Turn on what your property offers. Each switch saves at once. Room amenities are set on each room type."
                     readOnly={false}
+                    page={page}
+                    listUrl={listUrl}
                 />
             </BookingWebsiteShell>
         </>
