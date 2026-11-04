@@ -13,9 +13,10 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Bearer-token check for the device and integration API (`api.token:{scope}`). Sanctum finds the token; this class
- * keeps the rest, so every refusal is our 401 JSON error. `auth:sanctum` would answer `server_error` instead, so do not
- * use it on `/api`. The route names the ability it needs. The kiosk's property is the only property the request can
- * see: controllers read `$request->attributes->get('kiosk')->property` and never take a property from the URL or body.
+ * keeps the rest, so every refusal is our 401 JSON error. This app's exception handler maps an authentication exception
+ * to `500 server_error`; that is not Sanctum's default response. The route names the ability it needs. The kiosk's
+ * property is the only property the request can see: controllers read `$request->attributes->get('kiosk')->property`
+ * and never take a property from the URL or body.
  */
 class AuthenticateApiToken
 {

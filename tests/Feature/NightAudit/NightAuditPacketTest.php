@@ -110,6 +110,7 @@ test('a user without reports.view is refused', function () {
 
 test('the packet holds the statistics, revenue, payments, meals, every exception and the steps', function () {
     [$user, $property, $audit] = packetSetup();
+    $user->update(['name' => "Sydnie O'Kon Jr."]);
     DailyStatistic::factory()->create(['property_id' => $property->id, 'business_date' => '2026-10-12', 'rooms_available' => 10, 'rooms_sold' => 6, 'beds_available' => 8, 'beds_sold' => 3, 'occupancy' => '50.00', 'adr' => '180.00', 'revpar' => '90.00', 'arrivals' => 3, 'departures' => 2, 'no_shows' => 1, 'in_house_guests' => 9]);
     $room = TransactionCode::factory()->for($property)->system(SystemTransactionCode::RoomRevenue)->create(['code' => 'ROOM', 'name' => 'Room revenue']);
     DailyRevenue::factory()->create(['property_id' => $property->id, 'business_date' => '2026-10-12', 'transaction_code_id' => $room->id, 'amount' => '900.00', 'line_count' => 5]);
@@ -144,7 +145,8 @@ test('the packet holds the statistics, revenue, payments, meals, every exception
     $this->actingAs($user)->get(packetUrl($property))->assertOk();
     $html = packetHtml($captured);
 
-    expect($html)->toContain('Night audit — 12 Oct 2026', $user->name, 'Run by staff')
+    expect($html)->toContain('Night audit — 12 Oct 2026', 'Sydnie O&#039;Kon Jr.', 'Run by staff')
+        ->not->toContain($user->name)
         ->not->toContain('Forced:')
         ->toContain('Rooms available', 'Beds sold', '50.00', '180.00', '90.00', 'In-house guests')
         ->toContain('ROOM', 'Room revenue', '900.00')

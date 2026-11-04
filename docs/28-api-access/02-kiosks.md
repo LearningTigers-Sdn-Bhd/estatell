@@ -54,6 +54,22 @@ A kiosk is refused when its token is unknown or expired, it is revoked, its prop
 
 `api-access.kiosk-added`, `api-access.kiosk-paired` (no actor: the kiosk), `api-access.token-revoked`.
 
+## Deployment and rollback
+
+Install the locked Composer dependencies and run `php artisan migrate` before serving the new application. Coordinate the schema and application switch: the old code expects `api_tokens`, while the new code expects `kiosks`.
+
+The forward migration preserves existing unrevoked token hashes, expiry times, kiosk ids, stored idempotency answers and activity subjects. It stops before changing kiosk data if any old credential has a kind other than `kiosk`.
+
+Rollback restores the old schema and copies token hashes back, but it cannot make newly issued Sanctum tokens work with the old application. Those tokens include an `id|` prefix; the old code requires `est_live_` at the start and hashes the entire bearer string. The stored Sanctum hash covers only the secret after `|`. Removing the prefix on the client is not a supported recovery procedure.
+
+If rolling back after any kiosk has paired on this version:
+
+1. Stop API requests while restoring the old schema and application together.
+2. Treat kiosks paired on this version as needing re-pairing. In the restored Settings screen, revoke each affected kiosk, add a replacement, and pair it with the new code.
+3. Verify `/me` from each affected kiosk before returning it to service.
+
+Legacy tokens carried through the forward migration keep their original format and do not need re-pairing solely because of rollback. Re-pairing creates a new kiosk id, so its rate-limit counters and idempotency history do not carry over. Do not replay an uncertain write under the replacement identity without checking its result first.
+
 ## Code
 
 | Piece                                                              | Where                     |

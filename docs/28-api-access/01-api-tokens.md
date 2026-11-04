@@ -10,7 +10,7 @@ Sanctum replaced a custom `api_tokens` table on 2026-11-04, so one token system 
 
 ## Setup
 
-Tokens live in Sanctum's `personal_access_tokens`. An owner is any model with `HasApiTokens`. Owners are not users.
+Tokens live in Sanctum's `personal_access_tokens`. A kiosk owns its token through `HasApiTokens` and its contract. It stays a plain Eloquent model because the current API only needs token ownership, not Laravel's full authenticated-user contract. This is a local integration choice, not a Sanctum requirement or a security boundary. The separate guards and authorization checks keep kiosk access apart from staff access.
 
 | `config/sanctum.php` | Value       | Why                                                                      |
 | -------------------- | ----------- | ------------------------------------------------------------------------ |
@@ -33,10 +33,10 @@ New tokens look like `12|est_live_` plus 40 random characters and a checksum. Cl
 
 ## Traps
 
-- **Do not use `auth:sanctum` or `abilities:` on `/api`.** Their exceptions reach the `/api/*` handler and answer `500 server_error`. A kiosk would then show "see the front desk" instead of "out of service".
-- **Do not call `id()` on the Sanctum guard.** An owner is not `Authenticatable`, so it throws. Use `user()`.
+- **Keep `api.token:{scope}` on the current API routes.** This app's catch-all exception handler in `bootstrap/app.php` maps authentication exceptions to `500 server_error`. This is not Sanctum's default behavior. Laravel converts a missing-ability exception to HTTP 403, which also differs from the kiosk's `401 kiosk_unauthorized` contract. Switching to `auth:sanctum` or `abilities:` requires explicit exception mappings that preserve the kiosk error contract.
+- **Do not call `id()` on the Sanctum guard for a kiosk.** `Kiosk` does not implement `Authenticatable`, so it throws. Use `user()`. If future callers need Laravel's full guard API, revisit that model contract with tests for staff and kiosk separation.
 - **Always pass abilities to `createToken`.** The default is `['*']`, which passes every route.
-- **`$request->user()` is empty on `/api`.** The default guard is `web`, so an owner is never mistaken for staff.
+- **Kiosk authentication does not sign in a staff user.** The middleware leaves the default `web` guard unchanged and puts the kiosk in request attributes. Sanctum's empty `guard` list prevents a staff session from substituting for a bearer token; staff routes still enforce their own authentication and authorization.
 - **The guard remembers its user** as long as the application lives. `AuthenticateApiToken` clears it for each request.
 
 ## Errors

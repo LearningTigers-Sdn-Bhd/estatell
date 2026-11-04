@@ -15,7 +15,8 @@ use Laravel\Sanctum\HasApiTokens;
 /**
  * One kiosk of one property. The row exists before the kiosk pairs: `pairing_code_hash` is set until the code is used,
  * then cleared. The kiosk owns its Sanctum token, which `RevokeKiosk` deletes while this row stays. Only SHA-256 hashes
- * are stored. Not a user: read it with the Sanctum guard's `user()`, never `id()`. See docs/28-api-access/02-kiosks.md.
+ * are stored. This model implements only the token contract; the middleware reads the owner with `user()`, never `id()`.
+ * Staff access is separated by guards and authorization, not by this model's base class. See docs/28-api-access/02-kiosks.md.
  *
  * @property int $id
  * @property int $property_id
