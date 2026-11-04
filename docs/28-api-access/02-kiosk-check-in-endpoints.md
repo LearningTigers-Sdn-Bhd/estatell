@@ -18,17 +18,17 @@ A **stay** is a reservation unit (`stay_id` is its id). A Confirmed stay **insid
 
 ## Find a booking
 
-- `reference` matches `reservations.reference` of the property, ignoring letter case and spaces at the ends. A reservation with several stays gives the one that arrives first (open: let the guest pick).
+- `reference` matches `reservations.reference` of the property, ignoring letter case and spaces at the ends. More than one Confirmed or CheckedIn stay answers `409 server_error` with a front-desk message, without choosing a stay or returning guest data. The kiosk contract returns only one stay. A per-stay QR link resolves that ambiguity.
 - `booking_not_found` (404): no such reference, another property's booking, a stay that is neither Confirmed nor CheckedIn, a stay whose last night has passed, or a body with no `reference`.
 - `arrival_not_reached` (409): the stay day is before the arrival date. It uses the same rule as `CheckInUnit` (`StayDay`, business date), so a guest who arrives after midnight while the night audit is pending is not turned away.
 - A property with no open business date answers `server_error` (409): nobody can check in yet.
-- **No QR token exists in Estatell** (no booking token, no pre-check-in link). A `qr_token` therefore always answers `booking_not_found`. Add it here when Estatell issues one.
+- **QR lookup** accepts the raw token or its `/c/{token}` link (absolute URL or path). Tokens use 32 random bytes encoded as unpadded base64url. `booking_pre_check_in_tokens` stores only the SHA-256, scoped to the property and one reservation unit, with a unique hash and expiry at midnight after departure in the property time zone. Wrong property, unknown, malformed, expired, cancelled and ended tokens all answer `booking_not_found`. The normal arrival and departure windows still apply. Links are reusable until expiry, including for PIN check-out. `IssueBookingPreCheckInToken` returns the plaintext link once; it never logs it. No guest booking-confirmation email flow or guest `/c` page exists yet; issuance is a reusable action for that delivery integration.
 - `guest_name` is the stay's primary guest, or the booker when it has none. `unit_type` is the room type name.
 - `steps_required.registration_card` is the property setting `card_required_for_check_in`. `steps_required.id` is true when the registration card field `identity_document` is **Required** (the default). Estatell has no separate pre-check-in settings.
 
 ## Guessing protection
 
-`bookings/find` counts every lookup that does not find an open booking (unknown reference, early arrival, ended stay, body with no reference) as a failure of the kiosk token (`KioskLookupLockout`, cache, per token). After 10 failures within 5 minutes the token gets `429 rate_limited` with `Retry-After` for every lookup, found or not, so the answer says nothing about whether a reference exists. Each lookup takes one attempt first (one atomic increment) and a lookup that finds a booking gives it back; a success never resets the failures, so knowing one valid reference does not help to guess others. This sits on top of the `api-token` limit (120 a minute).
+`bookings/find` counts every lookup that does not find an open booking (unknown reference or QR, ambiguous reference, expired QR, early arrival, ended stay, body with no reference) as a failure of the kiosk token (`KioskLookupLockout`, cache, per token). After 10 failures within 5 minutes the token gets `429 rate_limited` with `Retry-After` for every lookup, found or not, so the answer says nothing about whether a reference exists. Each lookup takes one attempt first (one atomic increment) and a lookup that finds a booking gives it back; a success never resets the failures, so knowing one valid reference does not help to guess others. This sits on top of the `api-token` limit (120 a minute).
 
 ## Take the ID
 
@@ -76,6 +76,6 @@ The ID comes from the reader to the API and is stored as normal guest data (numb
 ## Open
 
 - Not done, needs a contract or product decision: masking `guest_name`, a second factor for a lookup (for example last name or phone), a lookup token between `find` and the writes. Guessing `stay_id` values inside the window is limited by the same lockout as the reference lookup, see [By-id lookups](03-kiosk-signing-check-in-and-keys.md#by-id-lookups-and-the-lockout).
-- A reservation with several stays: the kiosk gets the first to arrive.
-- A QR token needs an Estatell decision (what it is, where it is shown).
+- The single-stay contract cannot offer a stay picker. Ambiguous typed references go to the front desk; QR links identify individual stays.
+- Guest email delivery and a public pre-check-in page are not built. Token issuance is available through `IssueBookingPreCheckInToken`.
 - `Accept-Language` is not applied to API messages yet.

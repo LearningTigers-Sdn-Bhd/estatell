@@ -70,7 +70,7 @@ it('answers booking_not_found for a body with no reference', function (array $bo
     'reference is a list' => [['reference' => ['R-100']]],
 ]);
 
-it('has no QR token to look up, so a qr_token finds nothing', function () {
+it('does not treat a reference as a QR token', function () {
     kioskStaySetup();
 
     kioskPost('/bookings/find', ['qr_token' => 'R-100'])->assertNotFound()->assertJsonPath('error.code', 'booking_not_found');
@@ -94,11 +94,11 @@ it('does not find a stay that is not ready to arrive or depart, cancelled or alr
     'departure day reached' => [['arrival_date' => '2026-10-12', 'departure_date' => '2026-10-14']],
 ]);
 
-it('picks the stay that arrives first when a reservation has several', function () {
+it('directs an ambiguous reference to the front desk without choosing a stay', function () {
     ['reservation' => $reservation, 'unit' => $first] = kioskStaySetup(['arrival_date' => '2026-10-14']);
     ReservationUnit::factory()->create(['reservation_id' => $reservation->id, 'arrival_date' => '2026-10-14', 'departure_date' => '2026-10-18']);
 
-    kioskPost('/bookings/find', ['reference' => 'R-100'])->assertOk()->assertJsonPath('stay_id', $first->id);
+    kioskPost('/bookings/find', ['reference' => 'R-100'])->assertStatus(409)->assertJsonPath('error.code', 'server_error')->assertJsonMissingPath('stay_id');
 });
 
 it('refuses a missing, wrong or revoked token', function () {

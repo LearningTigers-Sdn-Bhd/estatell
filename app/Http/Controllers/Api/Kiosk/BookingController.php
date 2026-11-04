@@ -23,10 +23,9 @@ class BookingController extends Controller
             return ApiError::response('rate_limited', __('Too many requests. Wait a moment and try again.'), 429, ['Retry-After' => (string) $lockout->retryAfter($token)]);
         }
 
-        // ponytail: Estatell has no booking QR token yet, so only `reference` can find a booking.
         $lookup = $request->filled('reference')
             ? $finder->byReference($token->property, $request->string('reference')->toString())
-            : KioskBookingLookup::refused(KioskBookingLookup::BOOKING_NOT_FOUND);
+            : $finder->byQrToken($token->property, $request->string('qr_token')->toString());
 
         if ($lookup->refusal === null) {
             $lockout->refund($token);
@@ -35,6 +34,7 @@ class BookingController extends Controller
         return match ($lookup->refusal) {
             null => new KioskBookingResource($lookup),
             KioskBookingLookup::ARRIVAL_NOT_REACHED => ApiError::response($lookup->refusal, __('Check-in is not open for this booking yet.'), 409),
+            KioskBookingLookup::AMBIGUOUS => ApiError::response('server_error', __('Please see the front desk to find your stay.'), 409),
             KioskBookingLookup::NOT_OPEN => ApiError::response('server_error', __('Check-in is not open yet. Please see the front desk.'), 409),
             default => ApiError::response(KioskBookingLookup::BOOKING_NOT_FOUND, __('We could not find that booking.'), 404),
         };

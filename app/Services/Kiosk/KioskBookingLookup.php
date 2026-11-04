@@ -9,6 +9,8 @@ use App\Models\ReservationUnit;
  */
 final readonly class KioskBookingLookup
 {
+    public const string AMBIGUOUS = 'ambiguous_reference';
+
     public const string BOOKING_NOT_FOUND = 'booking_not_found';
 
     public const string ARRIVAL_NOT_REACHED = 'arrival_not_reached';

@@ -5,12 +5,14 @@ namespace App\Services\Kiosk;
 use App\Enums\StayType;
 use App\Enums\UnitStatus;
 use App\Models\ApiToken;
+use App\Models\BookingPreCheckInToken;
 use App\Models\Guest;
 use App\Models\Property;
 use App\Models\ReservationUnit;
 use App\Models\UnitGuest;
 use App\Services\FrontDesk\StayDay;
 use App\Services\NightAudit\CurrentBusinessDate;
+use Illuminate\Database\Eloquent\Collection;
 use Spatie\Activitylog\Models\Activity;
 
 /**
@@ -109,11 +111,8 @@ class KioskStays
             ->exists();
     }
 
-    /**
-     * The Confirmed or CheckedIn stay of a reservation reference (any letter case). A reservation with several stays gives the one
-     * that arrives first.
-     */
-    public function findByReference(Property $property, string $reference): ?ReservationUnit
+    /** @return Collection<int, ReservationUnit> */
+    public function byReference(Property $property, string $reference): Collection
     {
         return ReservationUnit::query()
             ->where('property_id', $property->id)
@@ -121,9 +120,24 @@ class KioskStays
             ->whereHas('reservation', fn ($query) => $query
                 ->where('property_id', $property->id)
                 ->whereRaw('lower(reference) = ?', [mb_strtolower(trim($reference))]))
-            ->orderBy('arrival_date')
-            ->orderBy('id')
-            ->first();
+            ->orderBy('arrival_date')->orderBy('id')->limit(2)->get();
+    }
+
+    public function byQrToken(Property $property, string $value): ?ReservationUnit
+    {
+        if (preg_match('~^(?:https?://[^/?#]+)?/c/([A-Za-z0-9_-]{43})$~D', $value, $match) === 1) {
+            $value = $match[1];
+        }
+
+        if (preg_match('/^[A-Za-z0-9_-]{43}$/D', $value) !== 1) {
+            return null;
+        }
+
+        $token = BookingPreCheckInToken::query()->where('property_id', $property->id)
+            ->where('token_hash', hash('sha256', $value))->where('expires_at', '>', now())->first();
+
+        return $token === null ? null : ReservationUnit::query()->where('property_id', $property->id)
+            ->whereIn('status', [UnitStatus::Confirmed, UnitStatus::CheckedIn])->find($token->reservation_unit_id);
     }
 
     /**
