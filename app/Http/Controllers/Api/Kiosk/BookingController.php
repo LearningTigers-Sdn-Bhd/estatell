@@ -19,7 +19,7 @@ class BookingController extends Controller
         /** @var ApiToken $token */
         $token = $request->attributes->get('api_token');
 
-        if ($lockout->isLocked($token)) {
+        if (! $lockout->attempt($token)) {
             return ApiError::response('rate_limited', __('Too many requests. Wait a moment and try again.'), 429, ['Retry-After' => (string) $lockout->retryAfter($token)]);
         }
 
@@ -28,7 +28,9 @@ class BookingController extends Controller
             ? $finder->byReference($token->property, $request->string('reference')->toString())
             : KioskBookingLookup::refused(KioskBookingLookup::BOOKING_NOT_FOUND);
 
-        $lookup->refusal === null ? $lockout->clear($token) : $lockout->recordFailure($token);
+        if ($lookup->refusal === null) {
+            $lockout->refund($token);
+        }
 
         return match ($lookup->refusal) {
             null => new KioskBookingResource($lookup),

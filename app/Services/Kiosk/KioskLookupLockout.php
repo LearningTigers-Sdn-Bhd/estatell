@@ -6,10 +6,12 @@ use App\Models\ApiToken;
 use Illuminate\Support\Facades\RateLimiter;
 
 /**
- * Stops a kiosk token from guessing booking references. Every lookup that does not find an open booking counts as a
- * failure; after `MAX_FAILURES` within `DECAY_SECONDS` the token is locked out until the window runs out, whatever it
- * asks, so a locked answer says nothing about whether a reference exists. A found booking clears the count. The count
- * lives in the cache, per token, and holds no booking data.
+ * Stops a kiosk token from guessing booking references. Every lookup takes one attempt from the token before it runs
+ * (one atomic increment, so parallel requests cannot slip past the limit). A lookup that finds an open booking gives
+ * its attempt back; any other lookup keeps it. So failures add up to `MAX_FAILURES` within `DECAY_SECONDS` and are
+ * never reset by a success: knowing one valid reference does not help to guess others. Once the limit is passed the
+ * token is locked out until the window runs out, whatever it asks, so the answer says nothing about whether a
+ * reference exists. The count lives in the cache, per token, and holds no booking data.
  */
 class KioskLookupLockout
 {
@@ -17,9 +19,12 @@ class KioskLookupLockout
 
     public const int DECAY_SECONDS = 300;
 
-    public function isLocked(ApiToken $token): bool
+    /**
+     * Take an attempt. False when the token is locked out.
+     */
+    public function attempt(ApiToken $token): bool
     {
-        return RateLimiter::tooManyAttempts($this->key($token), self::MAX_FAILURES);
+        return RateLimiter::hit($this->key($token), self::DECAY_SECONDS) <= self::MAX_FAILURES;
     }
 
     public function retryAfter(ApiToken $token): int
@@ -27,14 +32,12 @@ class KioskLookupLockout
         return RateLimiter::availableIn($this->key($token));
     }
 
-    public function recordFailure(ApiToken $token): void
+    /**
+     * Give back the attempt of a lookup that found a booking.
+     */
+    public function refund(ApiToken $token): void
     {
-        RateLimiter::hit($this->key($token), self::DECAY_SECONDS);
-    }
-
-    public function clear(ApiToken $token): void
-    {
-        RateLimiter::clear($this->key($token));
+        RateLimiter::decrement($this->key($token));
     }
 
     private function key(ApiToken $token): string

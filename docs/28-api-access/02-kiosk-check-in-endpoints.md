@@ -28,7 +28,7 @@ A **stay** is a reservation unit (`stay_id` is its id). Only a Confirmed stay **
 
 ## Guessing protection
 
-`bookings/find` counts every lookup that does not find an open booking (unknown reference, early arrival, ended stay, body with no reference) as a failure of the kiosk token (`KioskLookupLockout`, cache, per token). After 10 failures within 5 minutes the token gets `429 rate_limited` with `Retry-After` for every lookup, found or not, so the answer says nothing about whether a reference exists. A found booking clears the count. This sits on top of the `api-token` limit (120 a minute).
+`bookings/find` counts every lookup that does not find an open booking (unknown reference, early arrival, ended stay, body with no reference) as a failure of the kiosk token (`KioskLookupLockout`, cache, per token). After 10 failures within 5 minutes the token gets `429 rate_limited` with `Retry-After` for every lookup, found or not, so the answer says nothing about whether a reference exists. Each lookup takes one attempt first (one atomic increment) and a lookup that finds a booking gives it back; a success never resets the failures, so knowing one valid reference does not help to guess others. This sits on top of the `api-token` limit (120 a minute).
 
 ## Take the ID
 

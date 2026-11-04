@@ -144,19 +144,19 @@ it('lets the kiosk look up again once the lockout runs out', function () {
     kioskPost('/bookings/find', ['reference' => 'R-100'])->assertOk();
 });
 
-it('clears the failure count when a booking is found', function () {
+it('does not reset the failure count when a booking is found', function () {
     kioskStaySetup();
-    $almost = KioskLookupLockout::MAX_FAILURES - 1;
+    $max = KioskLookupLockout::MAX_FAILURES;
 
-    foreach (range(1, $almost) as $guess) {
-        kioskPost('/bookings/find', ['reference' => "X-{$guess}"]);
+    foreach (range(1, $max - 1) as $guess) {
+        kioskPost('/bookings/find', ['reference' => "X-{$guess}"])->assertNotFound();
     }
+    // a found booking costs nothing, and does not wipe the failures either
     kioskPost('/bookings/find', ['reference' => 'R-100'])->assertOk();
-    foreach (range(1, $almost) as $guess) {
-        kioskPost('/bookings/find', ['reference' => "Y-{$guess}"])->assertNotFound();
-    }
+    kioskPost('/bookings/find', ['reference' => 'R-100'])->assertOk();
+    kioskPost('/bookings/find', ['reference' => 'X-last'])->assertNotFound();
 
-    kioskPost('/bookings/find', ['reference' => 'R-100'])->assertOk();
+    kioskPost('/bookings/find', ['reference' => 'R-100'])->assertStatus(429);
 });
 
 it('counts an early arrival as a failed lookup too, so it cannot be used to confirm references', function () {
