@@ -2,11 +2,11 @@
 
 ## Purpose
 
-One credential layer for everything that calls Estatell without a staff session. It uses Laravel Sanctum API tokens. Staff pages stay Inertia and use the session. [Kiosks](02-kiosks.md) are the first token owner. The [booking engine microsite](04-booking-engine-microsite.md) is planned as the next.
+One credential layer for everything that calls Estatell without a staff session. It uses Laravel Sanctum API tokens. Staff pages stay Inertia and use the session. [Kiosks](02-kiosks.md) are the first token owner. [Booking clients](04-booking-engine-microsite.md) are planned as the next.
 
 ## Decision
 
-Sanctum replaced a custom `api_tokens` table on 2026-11-04, so one token system serves kiosks and the planned `/api/v1`. The user approved the package on 2026-11-03.
+Sanctum replaced a custom `api_tokens` table on 2026-11-04, so one token system serves kiosks and the planned `/api/booking/v1`. The user approved the package on 2026-11-03.
 
 ## Setup
 
@@ -23,13 +23,13 @@ New tokens look like `12|est_live_` plus 40 random characters and a checksum. Cl
 
 ## Requests
 
-| Item        | Rule                                                                                                                                                                                                                                                     |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Middleware  | `api.token:{scope}` (`AuthenticateApiToken`): the Sanctum guard finds the token, then this class checks the owner, its property and ability                                                                                                              |
-| Ability     | The route names the ability. A kiosk token has `kiosk:*`, so it never passes a `v1:*` route, and the reverse                                                                                                                                             |
-| Property    | Read from the owner (`$request->attributes->get('kiosk')->property`). Never from the URL or body                                                                                                                                                         |
-| Rate limits | `api-pair`: 10 per minute per IP. `api-token`: 120 per minute per kiosk. Walk-in quote and book also share 20 per minute per kiosk and 40 per IP (`api-walk-in`), after authentication. Failed token checks share 120 per minute per IP (`rate_limited`) |
-| Format      | JSON, snake_case, Eloquent API Resources without the `data` wrapper                                                                                                                                                                                      |
+| Item        | Rule                                                                                                                                                                                                                                                                                                                                     |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Middleware  | `api.token:{scope}` (`AuthenticateApiToken`): the Sanctum guard finds the token, then this class checks the owner, its property and ability                                                                                                                                                                                              |
+| Ability     | The route names the ability. A kiosk token has `kiosk:*`, so it never passes a `booking:*` route, and the reverse                                                                                                                                                                                                                        |
+| Property    | Kiosk: read from the owner (`$request->attributes->get('kiosk')->property`), never from the URL or body. Booking client (planned): taken from the path and checked for [reach](04-booking-engine-microsite.md#on-each-request)                                                                                                           |
+| Rate limits | `api-pair`: 10 per minute per IP. `api-token`: 120 per minute per kiosk. Walk-in quote and book also share 20 per minute per kiosk and 40 per IP (`api-walk-in`), after authentication. Failed token checks share 120 per minute per IP (`rate_limited`). Booking clients (planned): see [Limits](04-booking-engine-microsite.md#limits) |
+| Format      | JSON, snake_case, Eloquent API Resources without the `data` wrapper                                                                                                                                                                                                                                                                      |
 
 ## Traps
 
@@ -46,7 +46,7 @@ Shape: `{ "error": { "code": "...", "message": "..." } }`. Rendered by `ApiError
 | Code                 | Status | When                                                                          |
 | -------------------- | ------ | ----------------------------------------------------------------------------- |
 | `kiosk_unauthorized` | 401    | Token or pairing code missing, wrong, revoked or expired, or wrong ability    |
-| `unauthorized`       | 401    | Same as `kiosk_unauthorized` for non-kiosk scopes (future `/api/v1`)          |
+| `unauthorized`       | 401    | Same as `kiosk_unauthorized` for non-kiosk scopes (future `/api/booking/v1`)  |
 | `rate_limited`       | 429    | A limit above. `Retry-After` is kept                                          |
 | `server_error`       | 500    | Any exception that is not an HTTP or validation error. The message is generic |
 

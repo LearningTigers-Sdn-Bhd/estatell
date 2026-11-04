@@ -41,7 +41,7 @@ URL shape, route groups, names and middleware for estatell. Wayfinder generates 
 | `can:partner`         | Partner gate (`users.partner_id` set and the partner Active), used with `auth`                                                                                                                                                                                              | `/partner`                            |
 | `support.2fa`         | `RequireSupportTwoFactor`: admin and partner actions need confirmed 2FA only when `SUPPORT_REQUIRE_2FA` is true (default false). See [Platform admins](01-platform/01-platform-admins.md#two-factor-for-admins)                                                             | Admin writes, partner writes, view as |
 | `api.idempotent`      | `ReplayIdempotentRequest`: replays the first answer for the same `Idempotency-Key` for 24 hours. See [kiosk check-in](28-api-access/03-kiosk-check-in-endpoints.md#idempotency-for-every-kiosk-write)                                                                       | kiosk write routes                    |
-| `api.token:{scope}`   | `AuthenticateApiToken`: Sanctum bearer token, ability, and the property from the token owner. 401 JSON error otherwise. See [API access](28-api-access/01-api-tokens.md#requests)                                                                                           | `/api/*` except `pair`                |
+| `api.token:{scope}`   | `AuthenticateApiToken`: Sanctum bearer token, ability, and the property from the token owner (a booking client's comes from the path, checked for reach). 401 JSON error otherwise. See [API access](28-api-access/01-api-tokens.md#requests)                               | `/api/*` except `pair`                |
 | `portal`              | `EnsurePortalAccess`: the user is a company user with an Active link at the property in the URL, and the property is Live. 404 otherwise. Sets URL defaults for `property`.                                                                                                 | `/portal/{code}`                      |
 | `signed`              | Temporary signed URLs                                                                                                                                                                                                                                                       | Guest-facing links                    |
 
@@ -73,7 +73,7 @@ URL shape, route groups, names and middleware for estatell. Wayfinder generates 
 | Company portal     | `/portal`, `/portal/properties`, `/portal/{code}`                             | `portal.`             | auth, verified (+ portal under `/portal/{code}`)                                         | `portal.php`       |
 | Guest-facing       | `/g`                                                                          | `guest.`              | signed                                                                                   | `guest.php`        |
 | Webhooks           | `/webhooks`                                                                   | `webhooks.`           | no CSRF, provider signature check                                                        | `webhooks.php`     |
-| Booking engine API | `/api/v1` (planned)                                                           | `api.`                | Sanctum token, abilities, rate limits. See [API](29-booking-engine/02-api.md)            | `api.php`          |
+| Booking engine API | `/api/booking/v1` (planned)                                                   | `api.booking.v1.`     | Sanctum token, abilities, rate limits. See [API](29-booking-engine/02-api.md)            | `api.php`          |
 
 After login, an Owner of a non-live property is redirected to `/p/{their code}/onboarding/basics`. Other staff and live Owners go to the property dashboard.
 
@@ -234,4 +234,4 @@ The staff app has four contexts, chosen with links in the sidebar footer; the ot
 ## Later
 
 - **Short guest links**: `example.com/c/K7Q2MX` redirecting to the signed URL, backed by a `short_links` table, when cards are sent by WhatsApp or SMS.
-- **Public booking engine**: a separate microsite app at `booking.estatell.com/{slug}`, using `properties.slug` and the `/api/v1` API. See [Booking engine](29-booking-engine/01-overview.md).
+- **Public booking engine**: a separate microsite app at `booking.estatell.com/{slug}`, using `properties.slug` and the `/api/booking/v1` API. See [Booking engine](29-booking-engine/01-overview.md).

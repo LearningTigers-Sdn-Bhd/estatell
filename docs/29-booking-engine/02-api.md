@@ -6,21 +6,21 @@ The one API behind the microsite, API only websites and, later, new-wastays. It 
 
 ## Endpoints
 
-| Group           | Endpoint                                     | Microsite     | API only | new-wastays |
-| --------------- | -------------------------------------------- | ------------- | -------- | ----------- |
-| Listing         | `GET /api/v1/properties`                     | Yes (sitemap) | No       | Yes         |
-| Marketplace     | `POST /api/v1/search`                        | No            | No       | Yes         |
-| Microsite       | `GET /api/v1/sites/{slug}`                   | Yes           | No       | No          |
-| Content, search | `GET /api/v1/properties/{code}`              | Yes           | Yes      | Yes         |
-|                 | `GET /api/v1/properties/{code}/room-types`   | Yes           | Yes      | Yes         |
-|                 | `GET /api/v1/properties/{code}/calendar`     | Yes           | Yes      | Yes         |
-|                 | `POST /api/v1/properties/{code}/offers`      | Yes           | Yes      | Yes         |
-| Checkout        | `POST /api/v1/properties/{code}/holds`       | Yes           | Yes      | Yes         |
-|                 | `POST /api/v1/holds/{token}/payment`         | Yes           | Yes      | Yes         |
-|                 | `GET /api/v1/holds/{token}`                  | Yes           | Yes      | Yes         |
-| Manage booking  | `GET /api/v1/bookings/{token}`               | Yes           | Yes      | Yes         |
-|                 | `GET /api/v1/bookings/{token}/cancellation`  | Yes           | Yes      | Yes         |
-|                 | `POST /api/v1/bookings/{token}/cancellation` | Yes           | Yes      | Yes         |
+| Group           | Endpoint                                             | Microsite     | API only | new-wastays |
+| --------------- | ---------------------------------------------------- | ------------- | -------- | ----------- |
+| Listing         | `GET /api/booking/v1/properties`                     | Yes (sitemap) | No       | Yes         |
+| Marketplace     | `POST /api/booking/v1/search`                        | No            | No       | Yes         |
+| Microsite       | `GET /api/booking/v1/sites/{slug}`                   | Yes           | No       | No          |
+| Content, search | `GET /api/booking/v1/properties/{code}`              | Yes           | Yes      | Yes         |
+|                 | `GET /api/booking/v1/properties/{code}/room-types`   | Yes           | Yes      | Yes         |
+|                 | `GET /api/booking/v1/properties/{code}/calendar`     | Yes           | Yes      | Yes         |
+|                 | `POST /api/booking/v1/properties/{code}/offers`      | Yes           | Yes      | Yes         |
+| Checkout        | `POST /api/booking/v1/properties/{code}/holds`       | Yes           | Yes      | Yes         |
+|                 | `POST /api/booking/v1/holds/{token}/payment`         | Yes           | Yes      | Yes         |
+|                 | `GET /api/booking/v1/holds/{token}`                  | Yes           | Yes      | Yes         |
+| Manage booking  | `GET /api/booking/v1/bookings/{token}`               | Yes           | Yes      | Yes         |
+|                 | `GET /api/booking/v1/bookings/{token}/cancellation`  | Yes           | Yes      | Yes         |
+|                 | `POST /api/booking/v1/bookings/{token}/cancellation` | Yes           | Yes      | Yes         |
 
 The marketplace endpoints are built and tested now, and nothing calls them until new-wastays exists.
 
@@ -44,7 +44,7 @@ The marketplace endpoints are built and tested now, and nothing calls them until
 
 ## Access
 
-Laravel Sanctum, on the same [token layer](../28-api-access/01-api-tokens.md) as kiosks, with one token for each client. Sanctum is already installed. The token's `v1:*` abilities decide which endpoints it reaches and its scope decides which properties. These tokens need a new owner, because `Kiosk` is the only one today: see [Booking engine microsite](../28-api-access/04-booking-engine-microsite.md).
+Laravel Sanctum, on the same [token layer](../28-api-access/01-api-tokens.md) as kiosks, with one token for each client. Sanctum is already installed. The token's `booking:*` abilities decide which endpoints it reaches, and its owner decides which properties. The owner is a `BookingClient` with a type and an optional property: see [Booking engine microsite](../28-api-access/04-booking-engine-microsite.md).
 
 | Token               | Can reach                                     | Source of bookings |
 | ------------------- | --------------------------------------------- | ------------------ |
@@ -60,13 +60,13 @@ A property the token cannot reach, or one with the flag off, returns 404. A book
 - **Never trusted.** Availability, price, tax and the refund are worked out again on each write. A changed price refuses the hold with `price_changed` and the current offer.
 - **Server only.** Tokens stay on the client's server, and the API allows no browser calls (no CORS). React parts of the microsite call its own server routes.
 - **Idempotent writes.** Creating a hold, starting a payment and cancelling take an `Idempotency-Key` header. A repeat returns the first result.
-- **Rate limits.** Per token, tighter on writes than reads, and a limit on open holds per IP address and per property.
+- **Rate limits.** Per token and property, tighter on writes than reads, with limits on open holds per property and per guest IP. See [Limits](../28-api-access/04-booking-engine-microsite.md#limits).
 - **Guest tokens.** Hold and booking tokens are long and random. A booking number alone opens nothing.
 - **Not exposed.** Folios, guest search, staff data and commission.
 - **Errors.** Refusals return 422 with a stable `code` and a message, like the Action refusal codes elsewhere. A missing, wrong or revoked token returns 401 `unauthorized`, in the [shared error shape](../28-api-access/01-api-tokens.md#errors).
 
 ## Code
 
-- Routes in `routes/api.php`, under `/api/v1`, with names under `api.`. They use `api.token:{scope}`, never `auth:sanctum`: see [Traps](../28-api-access/01-api-tokens.md#traps).
-- Controllers in `app/Http/Controllers/Api/V1/`, thin, returning Eloquent API Resources.
+- Routes in `routes/api.php`, under `/api/booking/v1`, with names under `api.booking.v1.`. They use `api.token:{scope}`, never `auth:sanctum`: see [Traps](../28-api-access/01-api-tokens.md#traps).
+- Controllers in `app/Http/Controllers/Api/Booking/`, thin, returning Eloquent API Resources.
 - Every query is scoped by `property_id`, taken from the path and checked against the token.

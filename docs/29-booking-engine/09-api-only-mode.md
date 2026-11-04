@@ -29,13 +29,13 @@ booking_return_addresses   id, property_id, url, timestamps
                            unique (property_id, url)
 ```
 
-| Item             | Rule                                                                                      |
-| ---------------- | ----------------------------------------------------------------------------------------- |
-| Token            | One [Sanctum token](02-api.md#access) per property, shown once, replaceable and revocable |
-| Use              | Server only, because the API allows no browser calls                                      |
-| Return addresses | Full `https` addresses. A payment names one, and anything else is refused                 |
-| Limits on holds  | A cap on open holds per property and per IP, so a bug cannot hold every room              |
-| Endpoints        | Content, search, checkout and manage booking only: see [API](02-api.md#endpoints)         |
+| Item             | Rule                                                                                                                                                                             |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Token            | One [Sanctum token](02-api.md#access) per property, shown once, replaceable and revocable                                                                                        |
+| Use              | Server only, because the API allows no browser calls                                                                                                                             |
+| Return addresses | Full `https` addresses. A payment names one, and anything else is refused                                                                                                        |
+| Limits on holds  | A cap on open holds per property, so a bug cannot hold every room. The guest IP is an optional extra limit: see [Limits](../28-api-access/04-booking-engine-microsite.md#limits) |
+| Endpoints        | Content, search, checkout and manage booking only: see [API](02-api.md#endpoints)                                                                                                |
 
 Curlec always returns the guest to estatell's callback, which sends them to the approved address. The Curlec allowlist therefore holds only estatell's domain.
 
@@ -68,7 +68,7 @@ Developers test on the [demo environment](../deployment/demo_environment.md), wi
 Owner's dev site                         Owner's website
       │                                        │
       ▼                                        ▼
-demo.estatell.com/api/v1                 app.estatell.com/api/v1
+demo.estatell.com/api/booking/v1         app.estatell.com/api/booking/v1
 fixed test token                         the property's real token
       │                                        │
       ▼                                        ▼

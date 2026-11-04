@@ -37,7 +37,7 @@ Guest opens booking.estatell.com/sand-bay
         │
         ▼
 Microsite app (one deployment)
-        │  1. GET /api/v1/sites/sand-bay  (the token stays on the server)
+        │  1. GET /api/booking/v1/sites/sand-bay  (the token stays on the server)
         ▼
 estatell returns: code ES1142, template island-resort, images, colours
         │
@@ -111,14 +111,14 @@ A quotation for a custom design should include a yearly maintenance fee, because
 
 Pages render on the server, so Google reads finished HTML and never calls the API.
 
-| Item                                    | Purpose                                                               |
-| --------------------------------------- | --------------------------------------------------------------------- |
-| Page title and description per property | What shows in Google results                                          |
-| Hotel structured data                   | Tells Google the name, address and photos                             |
-| Sitemap                                 | Lists every published property's pages, from `GET /api/v1/properties` |
-| Real 404 page                           | For an unknown, unpublished or flag-off slug                          |
-| No-index on checkout and manage booking | Keeps private steps out of Google                                     |
-| Content cache and compressed images     | Keeps pages fast on mobile                                            |
+| Item                                    | Purpose                                                                       |
+| --------------------------------------- | ----------------------------------------------------------------------------- |
+| Page title and description per property | What shows in Google results                                                  |
+| Hotel structured data                   | Tells Google the name, address and photos                                     |
+| Sitemap                                 | Lists every published property's pages, from `GET /api/booking/v1/properties` |
+| Real 404 page                           | For an unknown, unpublished or flag-off slug                                  |
+| No-index on checkout and manage booking | Keeps private steps out of Google                                             |
+| Content cache and compressed images     | Keeps pages fast on mobile                                                    |
 
 A microsite will probably rank for its own hotel name, and is unlikely to rank for broad searches. All properties share one domain. A property with its own website should link to the microsite as its "Book now" page.
 
