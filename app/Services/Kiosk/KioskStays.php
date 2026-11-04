@@ -19,6 +19,9 @@ use Spatie\Activitylog\Models\Activity;
  */
 class KioskStays
 {
+    /** How long after the kiosk check-in the guest can still get the room and key at the kiosk. */
+    public const int KEY_WINDOW_MINUTES = 30;
+
     public const string OPEN = 'open';
 
     public const string EARLY = 'early';
@@ -71,12 +74,17 @@ class KioskStays
     }
 
     /**
-     * Whether a kiosk checked this stay in (`KioskCheckIn` logs `kiosk.checked_in`). Reads that hand out a key or a
-     * room number to a stay that is already in-house only serve stays the kiosk itself checked in.
+     * Whether a kiosk checked this stay in during the last `KEY_WINDOW_MINUTES` (`CheckInStay` logs `kiosk.checked_in`).
+     * The room and the key of a stay that is already in-house are only served for that short time after the kiosk
+     * check-in, so a token that guesses ids cannot read the room or PIN of a guest who has long left the kiosk.
      */
     public function checkedInByKiosk(ReservationUnit $stay): bool
     {
-        return Activity::query()->where('event', 'kiosk.checked_in')->forSubject($stay)->exists();
+        return Activity::query()
+            ->where('event', 'kiosk.checked_in')
+            ->where('created_at', '>=', now()->subMinutes(self::KEY_WINDOW_MINUTES))
+            ->forSubject($stay)
+            ->exists();
     }
 
     /**

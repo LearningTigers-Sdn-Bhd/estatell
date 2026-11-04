@@ -88,6 +88,17 @@ it('answers the same room again for a stay the kiosk already checked in, also wi
         ->and(Activity::query()->where('event', 'kiosk.checked_in')->count())->toBe(1);
 });
 
+it('does not show the room after the kiosk key window expires', function () {
+    ['unit' => $unit] = kioskCheckInSetup();
+    kioskPost("/stays/{$unit->id}/check-in")->assertOk();
+
+    $this->travelTo(now()->addMinutes(31));
+
+    kioskPost("/stays/{$unit->id}/check-in")
+        ->assertNotFound()->assertJsonPath('error.code', 'booking_not_found');
+    expect(Activity::query()->where('event', 'reservation.unit_checked_in')->count())->toBe(1);
+});
+
 it('replays the first answer for the same Idempotency-Key', function () {
     ['unit' => $unit] = kioskCheckInSetup();
     $headers = ['Idempotency-Key' => 'b1f0c9de-7a0e-4a52-9d57-1a2f9d3c3001'];
