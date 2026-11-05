@@ -23,13 +23,13 @@ New tokens look like `12|est_live_` plus 40 random characters and a checksum. Cl
 
 ## Requests
 
-| Item        | Rule                                                                                                                                        |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| Middleware  | `api.token:{scope}` (`AuthenticateApiToken`): the Sanctum guard finds the token, then this class checks the owner, its property and ability |
-| Ability     | The route names the ability. A kiosk token has `kiosk:*`, so it never passes a `v1:*` route, and the reverse                                |
-| Property    | Read from the owner (`$request->attributes->get('kiosk')->property`). Never from the URL or body                                            |
+| Item        | Rule                                                                                                                                                                                                                                                     |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Middleware  | `api.token:{scope}` (`AuthenticateApiToken`): the Sanctum guard finds the token, then this class checks the owner, its property and ability                                                                                                              |
+| Ability     | The route names the ability. A kiosk token has `kiosk:*`, so it never passes a `v1:*` route, and the reverse                                                                                                                                             |
+| Property    | Read from the owner (`$request->attributes->get('kiosk')->property`). Never from the URL or body                                                                                                                                                         |
 | Rate limits | `api-pair`: 10 per minute per IP. `api-token`: 120 per minute per kiosk. Walk-in quote and book also share 20 per minute per kiosk and 40 per IP (`api-walk-in`), after authentication. Failed token checks share 120 per minute per IP (`rate_limited`) |
-| Format      | JSON, snake_case, Eloquent API Resources without the `data` wrapper                                                                         |
+| Format      | JSON, snake_case, Eloquent API Resources without the `data` wrapper                                                                                                                                                                                      |
 
 ## Traps
 
