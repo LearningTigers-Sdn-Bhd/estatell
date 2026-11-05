@@ -11,11 +11,11 @@ Give a property a booking website with no build or deployment per property. It i
 ```
 estatell-booking-microsite/
 ├── src/
-│   ├── pages/[slug]/     home, rooms, book, manage booking
+│   ├── pages/[slug]/     home, browse, book, manage booking
 │   ├── pages/api/        server routes that add the API token
 │   ├── templates/        island-resort, city-hotel, custom designs
-│   ├── booking/          React parts for search and checkout
-│   ├── components/       room card, gallery, price summary
+│   ├── booking/          the booking flow's hooks and default screens
+│   ├── components/ui/    shared parts, in shadcn's style
 │   └── lib/estatell.ts   the one API client
 ├── astro.config.mjs
 └── Dockerfile
@@ -23,12 +23,12 @@ estatell-booking-microsite/
 
 | Part          | Shared by all sites?      | What it is for                               |
 | ------------- | ------------------------- | -------------------------------------------- |
-| `templates/`  | No, one folder per design | How the home page looks                      |
-| `booking/`    | Yes                       | The steps where guests book and pay          |
+| `templates/`  | No, one folder per design | How the pages and booking screens look       |
+| `booking/`    | Yes                       | The rules of booking, and default screens    |
 | `components/` | Yes                       | Building blocks, which templates can restyle |
 | `lib/`        | Yes                       | The only code that talks to estatell         |
 
-A custom design gets its own home page and styling, but uses the same booking and payment steps, so one fix reaches every site.
+Standard and custom templates have the same abilities: each can replace any page or booking screen. Every template uses the same booking flow, so one fix to the rules reaches every site. They differ only in who can pick them.
 
 ## How a page loads
 
