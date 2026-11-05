@@ -51,6 +51,7 @@ export function Workspace({
     asideLabel = 'Summary',
     hideAside = false,
     scroll = 'panels',
+    asideWidth = 'default',
     children,
 }: {
     /** Left panel, for example the unit chooser or the folio rail. */
@@ -63,6 +64,8 @@ export function Workspace({
     hideAside?: boolean;
     /** Whether each panel scrolls on its own or the page scrolls. */
     scroll?: WorkspaceScroll;
+    /** With `scroll="page"`: `default` is 20rem, `wide` is 28rem for a rail with wider content. */
+    asideWidth?: 'default' | 'wide';
     /** Centre panel, the content of the open tab. */
     children: ReactNode;
 }) {
@@ -71,7 +74,10 @@ export function Workspace({
             <div
                 className={cn(
                     'grid grid-cols-1 gap-1.5 lg:flex-1',
-                    aside !== undefined && 'lg:grid-cols-[minmax(0,1fr)_20rem]',
+                    aside !== undefined &&
+                        (asideWidth === 'wide'
+                            ? 'lg:grid-cols-[minmax(0,1fr)_28rem]'
+                            : 'lg:grid-cols-[minmax(0,1fr)_20rem]'),
                 )}
             >
                 <Panel scroll="page" label="Details">

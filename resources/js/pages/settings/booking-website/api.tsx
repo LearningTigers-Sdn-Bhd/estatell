@@ -131,6 +131,7 @@ export default function BookingWebsiteApi({
             <BookingWebsiteShell
                 activeTab="api"
                 asideLabel="Developer quick start"
+                asideWidth="wide"
                 aside={
                     <ApiQuickStart
                         apiAddress={api.apiAddress}

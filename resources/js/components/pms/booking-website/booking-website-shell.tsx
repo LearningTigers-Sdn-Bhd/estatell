@@ -45,6 +45,7 @@ export function BookingWebsiteShell({
     activeTab,
     aside,
     asideLabel,
+    asideWidth,
     children,
 }: {
     activeTab: BookingWebsiteTab;
@@ -52,6 +53,8 @@ export function BookingWebsiteShell({
     aside?: ReactNode;
     /** The accessible name of the rail. */
     asideLabel?: string;
+    /** `wide` for a rail with wider content, such as the image slots. */
+    asideWidth?: 'default' | 'wide';
     children: ReactNode;
 }) {
     const { bookingMode, bookingWebsiteHeader: header } = usePage().props;
@@ -135,7 +138,12 @@ export function BookingWebsiteShell({
                 className="flex flex-col gap-4 lg:flex-1"
                 panelClassName="flex flex-col lg:flex-1"
             >
-                <Workspace scroll="page" aside={aside} asideLabel={asideLabel}>
+                <Workspace
+                    scroll="page"
+                    aside={aside}
+                    asideLabel={asideLabel}
+                    asideWidth={asideWidth}
+                >
                     {children}
                 </Workspace>
             </TabLinks>

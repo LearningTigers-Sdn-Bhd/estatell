@@ -37,7 +37,7 @@ Settings › Booking website (`/p/{code}/settings/booking-website`, `settings.bo
 
 The header is the same on every tab: the title, "Let guests book and pay online.", then a badge row with the publish status (Published in success, Not published in neutral) and the mode (Microsite with a globe icon, API only with a code icon, both in info). The `booking-engine` middleware shares the badges as `bookingWebsiteHeader` (`BookingWebsiteHeaderData`).
 
-The tabs use `Workspace` with `scroll="page"`: bordered panels as on the reservation page that fill the height, but the page scrolls and the rail's content stays in view. Below `lg` the rail comes after the tab content. A tab with no rail has one full-width panel.
+The tabs use `Workspace` with `scroll="page"`: bordered panels as on the reservation page that fill the height, but the page scrolls and the rail's content stays in view. Below `lg` the rail comes after the tab content. A tab with no rail has one full-width panel. The Design and API rails are wide (28rem), the others 20rem.
 
 ### General
 

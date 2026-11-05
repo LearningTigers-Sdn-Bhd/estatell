@@ -26,6 +26,7 @@ export default function BookingWebsiteDesign({
             <BookingWebsiteShell
                 activeTab="design"
                 asideLabel="Images"
+                asideWidth="wide"
                 aside={
                     <div className="flex flex-col gap-4">
                         <SectionHeader
