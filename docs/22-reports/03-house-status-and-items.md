@@ -20,9 +20,9 @@ Two front desk reports for housekeeping, built from Sand Bay's spreadsheets: **H
 
 ## House status
 
-| Report       | `ReportKey`   | Source                                                              | Dates    | Orientation | Category   | Icon          |
-| ------------ | ------------- | ------------------------------------------------------------------- | -------- | ----------- | ---------- | ------------- |
-| House status | `HouseStatus` | `HouseStatusReport` over `reservation_units`, `unit_nights`, blocks | One date | Landscape   | Front desk | `layout-grid` |
+| Report       | `ReportKey`   | Source                                                              | Dates    | Orientation | Category                                   | Icon          |
+| ------------ | ------------- | ------------------------------------------------------------------- | -------- | ----------- | ------------------------------------------ | ------------- |
+| House status | `HouseStatus` | `HouseStatusReport` over `reservation_units`, `unit_nights`, blocks | One date | Landscape   | Front desk (sidebar: Rooms › Housekeeping) | `layout-grid` |
 
 Every room housekeeping needs on the date, one tile per room, in groups. The rows keep their order (`hasFixedOrder`), so the headers do not sort.
 

@@ -647,11 +647,11 @@ enum ReportKey: string
     /**
      * Whether the report is listed in the Reports sidebar. Housekeeping tasks is the board's print sheet, opened from
      * the Housekeeping page, and has no page of its own. The tabs of a `TabbedReport` are reached through that page,
-     * except Payments, which keeps its own entry.
+     * except Payments, which keeps its own entry. House status and Boat manifest sit in the Front desk sidebar.
      */
     public function listedInReportsMenu(): bool
     {
-        return ! in_array($this, [self::HousekeepingTasks, self::Arrivals, self::Departures, self::InHouse, self::CheckedOut, self::DailyRevenue, self::DailyCharges], true);
+        return ! in_array($this, [self::HousekeepingTasks, self::Arrivals, self::Departures, self::InHouse, self::CheckedOut, self::DailyRevenue, self::DailyCharges, self::HouseStatus, self::BoatManifest], true);
     }
 
     /**

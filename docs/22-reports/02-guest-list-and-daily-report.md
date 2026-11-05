@@ -17,7 +17,7 @@ The shared frame (date range, quick dates, column layout, row selection, export)
 ## Reports sidebar
 
 ```
-FRONT DESK   Guest list · Police report · Boat manifest
+FRONT DESK   Guest list · Police report · Housekeeping items
 REVENUE      Daily report · Occupancy · Revenue · Tax · Non-national guests · Booking performance
 FINANCE      Payments · Folio ledger · Outstanding balance · Deposit liability
 KITCHEN      Meal counts

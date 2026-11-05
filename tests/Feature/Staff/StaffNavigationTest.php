@@ -1,8 +1,12 @@
 <?php
 
+use App\Features\Boats;
+use App\Models\BusinessDate;
 use App\Models\Property;
+use App\Models\PropertySetting;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
+use Laravel\Pennant\Feature;
 
 test('owners get front desk, finance, reports and settings contexts with the active context from the route', function () {
     $staff = User::factory()->owner()->create();
@@ -66,4 +70,68 @@ test('admins and staff of suspended properties get no staff navigation', functio
     $this->actingAs($staff)
         ->get(route('property.suspended', $staff->property->code))
         ->assertInertia(fn (Assert $page) => $page->where('navigation', null));
+});
+
+test('front desk navigation puts house status under housekeeping in rooms group, and boat manifest under guests with boats feature', function () {
+    $staff = User::factory()->owner()->create();
+    $code = $staff->property->code;
+
+    $this->actingAs($staff)
+        ->get(route('dashboard', $code))
+        ->assertInertia(function (Assert $page) use ($code) {
+            $rooms = collect($page->toArray()['props']['navigation']['contexts'][0]['groups'])->firstWhere('label', 'Rooms');
+            $guests = collect($page->toArray()['props']['navigation']['contexts'][0]['groups'])->firstWhere('label', 'Guests');
+
+            expect(collect($rooms['items'])->pluck('title')->all())->toBe(['Room blocks', 'Housekeeping', 'House status'])
+                ->and($rooms['items'][2])->toMatchArray([
+                    'title' => 'House status',
+                    'href' => "/p/{$code}/reports/house-status",
+                    'icon' => 'layout-grid',
+                ])
+                ->and(collect($guests['items'])->pluck('title')->all())->toBe(['Guests']);
+        });
+
+    Feature::for($staff->property)->activate(Boats::class);
+
+    $this->actingAs($staff)
+        ->get(route('dashboard', $code))
+        ->assertInertia(function (Assert $page) use ($code) {
+            $guests = collect($page->toArray()['props']['navigation']['contexts'][0]['groups'])->firstWhere('label', 'Guests');
+
+            expect(collect($guests['items'])->pluck('title')->all())->toBe(['Guests', 'Boat manifest'])
+                ->and($guests['items'][1])->toMatchArray([
+                    'title' => 'Boat manifest',
+                    'href' => "/p/{$code}/reports/boat-manifest",
+                    'icon' => 'ship',
+                ]);
+        });
+});
+
+test('house status and boat manifest keep front-desk navigation context and mark their items active', function () {
+    $staff = User::factory()->owner()->create();
+    $property = $staff->property;
+    PropertySetting::factory()->for($property)->create();
+    BusinessDate::factory()->create(['property_id' => $property->id, 'date' => '2026-10-20']);
+    Feature::for($property)->activate(Boats::class);
+    $code = $property->code;
+
+    $this->actingAs($staff)
+        ->get(route('reports.house-status', $code))
+        ->assertInertia(function (Assert $page) {
+            $rooms = collect($page->toArray()['props']['navigation']['contexts'][0]['groups'])->firstWhere('label', 'Rooms');
+            $houseStatusItem = collect($rooms['items'])->firstWhere('title', 'House status');
+
+            expect($page->toArray()['props']['navigation']['active'])->toBe('front-desk')
+                ->and($houseStatusItem['active'])->toBeTrue();
+        });
+
+    $this->actingAs($staff)
+        ->get(route('reports.boat-manifest', $code))
+        ->assertInertia(function (Assert $page) {
+            $guests = collect($page->toArray()['props']['navigation']['contexts'][0]['groups'])->firstWhere('label', 'Guests');
+            $boatManifestItem = collect($guests['items'])->firstWhere('title', 'Boat manifest');
+
+            expect($page->toArray()['props']['navigation']['active'])->toBe('front-desk')
+                ->and($boatManifestItem['active'])->toBeTrue();
+        });
 });
