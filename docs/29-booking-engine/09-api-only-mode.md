@@ -47,18 +47,18 @@ Curlec always returns the guest to estatell's callback, which sends them to the 
 
 ```
 ┌─ API ──────────────────────────────┐ ┌─ Developer quick start ───────┐
-│ API token   Created 3 Nov 2026,    │ │ Send this to your developer.  │
-│             last used today        │ │ 1 Get access                  │
+│ API token   Created 3 Nov 2026,    │ │ What your developer needs.    │
+│             last used today        │ │ 1 Set up this page            │
 │             [ Replace ] [ Revoke ] │ │ 2 Test on the demo            │
-│ API address https://app.estatell…  │ │ 3 Make a booking              │
-│                          [ Copy ]  │ │ 4 Keep it safe                │
-│                                    │ │ 5 Go live                     │
-│ Return addresses                   │ │ [ Copy for developer ]        │
-│ https://www.sandbayresort.com/…    │ │ [ Full guide ]                │
+│ API address https://app.estatell…  │ │ 3 Keep it safe                │
+│                          [ Copy ]  │ │ 4 Go live                     │
+│                                    │ │                               │
+│ Return addresses                   │ │ [         Full guide        ] │
+│ https://www.sandbayresort.com/…    │ │                               │
 └────────────────────────────────────┘ └───────────────────────────────┘
 ```
 
-The quick start sits in the rail (`ApiQuickStart`). The owner's developer usually has no estatell login, so **Copy for developer** copies the steps as plain text with this property's API address and the guide link. The copied text never holds the token. The full guide is in `estatell-docs`.
+The quick start sits in the rail (`ApiQuickStart`). It names only the steps the main panel does not show, and ends with a full-width **Full guide** button that opens the guide in `estatell-docs`.
 
 Owners manage the token and return addresses, and admins set the mode. Support cannot change them through view as.
 

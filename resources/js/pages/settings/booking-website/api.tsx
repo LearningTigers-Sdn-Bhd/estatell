@@ -132,12 +132,7 @@ export default function BookingWebsiteApi({
                 activeTab="api"
                 asideLabel="Developer quick start"
                 asideWidth="wide"
-                aside={
-                    <ApiQuickStart
-                        apiAddress={api.apiAddress}
-                        docsUrl={api.docsUrl}
-                    />
-                }
+                aside={<ApiQuickStart docsUrl={api.docsUrl} />}
             >
                 <div className="flex flex-col gap-8">
                     <section className="flex flex-col gap-4">
