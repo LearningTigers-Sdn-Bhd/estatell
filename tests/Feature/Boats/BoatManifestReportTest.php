@@ -22,7 +22,7 @@ use App\Models\UnitBoatTrip;
 use App\Models\UnitGuest;
 use App\Models\UnitNight;
 use App\Models\User;
-use App\Navigation\ReportsNavigation;
+use App\Navigation\FrontDeskNavigation;
 use App\Services\Boats\BoatSeats;
 use App\Services\Reports\BoatManifestReport;
 use Carbon\CarbonImmutable;
@@ -330,7 +330,7 @@ test('the room is the first night for Boat in, the last night for Boat out, else
 test('the report is hidden and 404 while the Boats feature is off', function () {
     [$owner, $property] = manifestSetup(DefaultRoleEnum::Owner, featureOn: false);
     setPermissionsTeamId($property->id);
-    $titles = collect(app(ReportsNavigation::class)->groups($property, $owner))
+    $titles = collect(app(FrontDeskNavigation::class)->groups($property, $owner))
         ->flatMap(fn ($group) => collect($group->items)->pluck('title'))
         ->all();
 
@@ -344,7 +344,7 @@ test('the report is hidden and 404 while the Boats feature is off', function () 
     Feature::for($property)->activate(Boats::class);
     $owner = User::find($owner->id);
 
-    $titles = collect(app(ReportsNavigation::class)->groups($property, $owner))
+    $titles = collect(app(FrontDeskNavigation::class)->groups($property, $owner))
         ->flatMap(fn ($group) => collect($group->items)->pluck('title'))
         ->all();
 

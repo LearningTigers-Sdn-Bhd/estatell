@@ -140,6 +140,9 @@ export function BoatDepartureTable({
                         <TableHead className="w-24">Arrives</TableHead>
                         <TableHead>Pick-up point</TableHead>
                         <TableHead className="w-20 text-right">Seats</TableHead>
+                        <TableHead className="w-48">
+                            Default boat & crew
+                        </TableHead>
                         <TableHead className="w-64">Fare</TableHead>
                         <TableHead className="w-64">
                             <MealsHeader mealPeriods={mealPeriods} />
@@ -152,7 +155,7 @@ export function BoatDepartureTable({
                 <TableBody>
                     {departures.length === 0 && (
                         <TableRow className="hover:bg-transparent">
-                            <TableCell colSpan={8}>
+                            <TableCell colSpan={9}>
                                 <EmptyState icon={Ship} title={emptyTitle} />
                             </TableCell>
                         </TableRow>
@@ -192,6 +195,23 @@ export function BoatDepartureTable({
                             </TableCell>
                             <TableCell className="text-right tabular-nums">
                                 {departure.seats ?? (
+                                    <span className="text-muted-foreground">
+                                        —
+                                    </span>
+                                )}
+                            </TableCell>
+                            <TableCell>
+                                {departure.defaultBoatName ||
+                                departure.defaultCrew ? (
+                                    <span>
+                                        {[
+                                            departure.defaultBoatName,
+                                            departure.defaultCrew,
+                                        ]
+                                            .filter(Boolean)
+                                            .join(' · ')}
+                                    </span>
+                                ) : (
                                     <span className="text-muted-foreground">
                                         —
                                     </span>

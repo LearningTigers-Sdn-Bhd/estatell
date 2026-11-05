@@ -22,6 +22,7 @@ import { store, update } from '@/routes/settings/boats/departures';
 
 type Departure = App.Data.Boats.BoatDepartureData;
 type Fare = App.Data.Boats.BoatFareData;
+type Boat = App.Data.Boats.BoatData;
 type Option = { value: string; label: string };
 
 type Props = {
@@ -33,6 +34,7 @@ type Props = {
     defaultDirection: string;
     directions: Option[];
     fares: Fare[];
+    boats: Boat[];
     /** The active meal periods, for the meals preview under the times. */
     mealPeriods: App.Data.Meals.MealPeriodData[];
     currency: App.Data.Property.CurrencyData;
@@ -45,11 +47,14 @@ type FormData = {
     pickup_point: string;
     seats: string;
     charge_item_id: string;
+    default_boat_id: string;
+    default_crew: string;
     active: boolean;
 };
 
 /** The "No fare" choice, which the form sends as an empty fare. */
 const NO_FARE = 'none';
+const NO_DEFAULT_BOAT = 'none';
 
 function toFormData(
     departure: Departure | null,
@@ -63,6 +68,8 @@ function toFormData(
             pickup_point: '',
             seats: '',
             charge_item_id: '',
+            default_boat_id: '',
+            default_crew: '',
             active: true,
         };
     }
@@ -77,6 +84,12 @@ function toFormData(
             departure.chargeItemId === null
                 ? ''
                 : String(departure.chargeItemId),
+        default_boat_id:
+            departure.defaultBoatId === null ||
+            departure.defaultBoatId === undefined
+                ? ''
+                : String(departure.defaultBoatId),
+        default_crew: departure.defaultCrew ?? '',
         active: departure.active,
     };
 }
@@ -88,6 +101,7 @@ function BoatDepartureForm({
     defaultDirection,
     directions,
     fares,
+    boats,
     mealPeriods,
     currency,
 }: Props) {
@@ -132,6 +146,14 @@ function BoatDepartureForm({
         ...offeredFares.map((fare) => ({
             value: String(fare.id),
             label: fareLabel(fare, money),
+        })),
+    ];
+
+    const boatOptions: EnumOption[] = [
+        { value: NO_DEFAULT_BOAT, label: 'No default boat' },
+        ...boats.map((boat) => ({
+            value: String(boat.id),
+            label: boat.name,
         })),
     ];
 
@@ -305,6 +327,49 @@ function BoatDepartureForm({
                         {errors.charge_item_id ?? errors.active}
                     </FieldError>
                 </Field>
+                <div className="grid gap-4 sm:grid-cols-2">
+                    <Field data-invalid={!!errors.default_boat_id}>
+                        <FieldLabel htmlFor="boat-departure-default-boat">
+                            Default boat
+                        </FieldLabel>
+                        <EnumSelect
+                            id="boat-departure-default-boat"
+                            name="default_boat_id"
+                            options={boatOptions}
+                            value={data.default_boat_id || NO_DEFAULT_BOAT}
+                            onValueChange={(value) =>
+                                setData(
+                                    'default_boat_id',
+                                    value === NO_DEFAULT_BOAT ? '' : value,
+                                )
+                            }
+                            aria-invalid={!!errors.default_boat_id}
+                        />
+                        <FieldDescription>
+                            Prefills on the manifest.
+                        </FieldDescription>
+                        <FieldError>{errors.default_boat_id}</FieldError>
+                    </Field>
+                    <Field data-invalid={!!errors.default_crew}>
+                        <FieldLabel htmlFor="boat-departure-default-crew">
+                            Default crew
+                        </FieldLabel>
+                        <Input
+                            id="boat-departure-default-crew"
+                            placeholder="e.g. Awang / Daus"
+                            maxLength={120}
+                            value={data.default_crew}
+                            onChange={(event) =>
+                                setData('default_crew', event.target.value)
+                            }
+                            aria-invalid={!!errors.default_crew}
+                        />
+                        <FieldDescription>
+                            Prefills on the manifest.
+                        </FieldDescription>
+                        <FieldError>{errors.default_crew}</FieldError>
+                    </Field>
+                </div>
                 {movesBookings && departure !== null && (
                     <FieldDescription>
                         {departure.upcomingBookings === 1

@@ -13,5 +13,8 @@ class BoatDepartureRunData extends Data
         public string $direction,
         public ?int $boatId,
         public ?string $crew,
+        public ?int $defaultBoatId = null,
+        public ?string $defaultCrew = null,
+        public bool $isOverridden = false,
     ) {}
 }

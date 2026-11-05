@@ -1,6 +1,7 @@
 import { useForm } from '@inertiajs/react';
-import { Ship } from 'lucide-react';
+import { RotateCcw, Ship } from 'lucide-react';
 import { EnumSelect } from '@/components/pms/enum-select';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     Collapsible,
@@ -15,78 +16,230 @@ import { runs as runsRoute } from '@/routes/reports/boat-manifest';
 type Run = App.Data.Boats.BoatDepartureRunData;
 type Boat = App.Data.Boats.BoatData;
 
-function RunRow({
-    run,
+type RunFormItem = {
+    boat_departure_id: number;
+    boat_id: string;
+    crew: string;
+    reset_to_default?: boolean;
+};
+
+function BoatsAndCrewForm({
+    runs,
+    boats,
     date,
-    boatOptions,
     canSet,
 }: {
-    run: Run;
+    runs: Run[];
+    boats: Boat[];
     date: string;
-    boatOptions: { value: string; label: string }[];
     canSet: boolean;
 }) {
-    const form = useForm({
-        boat_departure_id: run.departureId,
+    const boatOptions = boats.map((boat) => ({
+        value: String(boat.id),
+        label: boat.name,
+    }));
+
+    const form = useForm<{
+        date: string;
+        runs: RunFormItem[];
+    }>({
         date,
-        boat_id: run.boatId === null ? '' : String(run.boatId),
-        crew: run.crew ?? '',
+        runs: runs.map((run) => ({
+            boat_departure_id: run.departureId,
+            boat_id:
+                run.boatId === null || run.boatId === undefined
+                    ? ''
+                    : String(run.boatId),
+            crew: run.crew ?? '',
+            reset_to_default: false,
+        })),
     });
+
+    const updateRun = (
+        index: number,
+        field: 'boat_id' | 'crew',
+        value: string,
+    ) => {
+        const nextRuns = [...form.data.runs];
+        nextRuns[index] = {
+            ...nextRuns[index],
+            [field]: value,
+            reset_to_default: false,
+        };
+        form.setData('runs', nextRuns);
+    };
+
+    const revertRow = (index: number, run: Run) => {
+        const nextRuns = [...form.data.runs];
+        nextRuns[index] = {
+            ...nextRuns[index],
+            boat_id:
+                run.defaultBoatId === null || run.defaultBoatId === undefined
+                    ? ''
+                    : String(run.defaultBoatId),
+            crew: run.defaultCrew ?? '',
+            reset_to_default: true,
+        };
+        form.setData('runs', nextRuns);
+    };
 
     const save = (event: React.FormEvent) => {
         event.preventDefault();
         form.transform((data) => ({
             ...data,
-            boat_id: data.boat_id === '' ? null : Number(data.boat_id),
+            runs: data.runs.map((r) => ({
+                ...r,
+                boat_id: r.boat_id === '' ? null : Number(r.boat_id),
+            })),
         }));
         form.put(runsRoute.url(), { preserveScroll: true });
     };
 
     return (
-        <form
-            onSubmit={save}
-            className="flex flex-wrap items-start gap-2 border-t py-2 first:border-t-0"
-        >
-            <span className="w-48 pt-1.5 text-sm font-medium">{run.label}</span>
-            <div className="flex flex-col gap-1">
-                <EnumSelect
-                    aria-label={`Boat for ${run.label}`}
-                    className="w-40"
-                    options={boatOptions}
-                    allLabel="No boat"
-                    value={form.data.boat_id}
-                    onValueChange={(value) => form.setData('boat_id', value)}
-                    disabled={!canSet}
-                />
-                <FieldError>{form.errors.boat_id}</FieldError>
+        <form onSubmit={save} className="pt-1">
+            <div className="divide-y">
+                {runs.map((run, index) => {
+                    const formRun = form.data.runs[index];
+                    if (!formRun) {
+                        return null;
+                    }
+
+                    return (
+                        <div
+                            key={`${date}-${run.departureId}`}
+                            className="flex flex-wrap items-center gap-2 py-2 first:pt-0"
+                        >
+                            <div className="flex w-52 flex-col">
+                                <span className="text-sm font-medium">
+                                    {run.label}
+                                </span>
+                                {run.isOverridden ? (
+                                    <span className="text-xs font-normal text-amber-600 dark:text-amber-500">
+                                        Custom override
+                                    </span>
+                                ) : run.defaultBoatId !== null ||
+                                  run.defaultCrew ? (
+                                    <span className="text-xs font-normal text-muted-foreground">
+                                        Timetable default
+                                    </span>
+                                ) : null}
+                            </div>
+                            <div className="flex flex-col gap-1">
+                                <EnumSelect
+                                    aria-label={`Boat for ${run.label}`}
+                                    className="w-44"
+                                    options={boatOptions}
+                                    allLabel="No boat"
+                                    value={formRun.boat_id}
+                                    onValueChange={(value) =>
+                                        updateRun(index, 'boat_id', value)
+                                    }
+                                    disabled={!canSet}
+                                />
+                                <FieldError>
+                                    {
+                                        (
+                                            form.errors as Record<
+                                                string,
+                                                string | undefined
+                                            >
+                                        )[`runs.${index}.boat_id`]
+                                    }
+                                </FieldError>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                                <Input
+                                    aria-label={`Crew for ${run.label}`}
+                                    className="w-56"
+                                    placeholder="Crew, e.g. Awang / Daus"
+                                    maxLength={120}
+                                    value={formRun.crew}
+                                    onChange={(event) =>
+                                        updateRun(
+                                            index,
+                                            'crew',
+                                            event.target.value,
+                                        )
+                                    }
+                                    disabled={!canSet}
+                                />
+                                <FieldError>
+                                    {
+                                        (
+                                            form.errors as Record<
+                                                string,
+                                                string | undefined
+                                            >
+                                        )[`runs.${index}.crew`]
+                                    }
+                                </FieldError>
+                            </div>
+                            {canSet &&
+                                (run.isOverridden ||
+                                    formRun.reset_to_default) &&
+                                (run.defaultBoatId !== null ||
+                                    run.defaultCrew) && (
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => revertRow(index, run)}
+                                        title="Revert to timetable default"
+                                        className="text-xs text-muted-foreground hover:text-foreground"
+                                    >
+                                        <RotateCcw
+                                            data-icon="inline-start"
+                                            className="size-3.5"
+                                        />
+                                        Default
+                                    </Button>
+                                )}
+                        </div>
+                    );
+                })}
             </div>
-            <Input
-                aria-label={`Crew for ${run.label}`}
-                className="w-56"
-                placeholder="Crew, e.g. Awang / Daus"
-                maxLength={120}
-                value={form.data.crew}
-                onChange={(event) => form.setData('crew', event.target.value)}
-                disabled={!canSet}
-            />
+
             {canSet && (
-                <Button
-                    type="submit"
-                    variant="outline"
-                    size="sm"
-                    disabled={!form.isDirty || form.processing}
-                    focusableWhenDisabled
-                >
-                    {form.processing && <Spinner data-icon="inline-start" />}
-                    Save
-                </Button>
+                <div className="mt-3 flex items-center justify-between border-t pt-3">
+                    <div className="flex items-center gap-2">
+                        {form.isDirty && (
+                            <span className="text-xs text-muted-foreground">
+                                Unsaved changes
+                            </span>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {form.isDirty && (
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => form.reset()}
+                                disabled={form.processing}
+                            >
+                                Cancel
+                            </Button>
+                        )}
+                        <Button
+                            type="submit"
+                            size="sm"
+                            disabled={!form.isDirty || form.processing}
+                            focusableWhenDisabled
+                        >
+                            {form.processing && (
+                                <Spinner data-icon="inline-start" />
+                            )}
+                            Save changes
+                        </Button>
+                    </div>
+                </div>
             )}
         </form>
     );
 }
 
 /**
- * The boat and crew of each departure on the manifest date. They print in the section title of each departure, for
+ * The boat and crew of departures on the manifest date. They print in the section title of each departure, for
  * the boat crew. Staff without reservations.manage see them read only.
  */
 export function BoatsAndCrewPanel({
@@ -104,10 +257,7 @@ export function BoatsAndCrewPanel({
         return null;
     }
 
-    const boatOptions = boats.map((boat) => ({
-        value: String(boat.id),
-        label: boat.name,
-    }));
+    const stateKey = `${date}-${runs.map((r) => `${r.departureId}:${r.boatId}:${r.crew}:${r.isOverridden}`).join(',')}`;
 
     return (
         <Collapsible className="rounded-lg border px-3 py-2">
@@ -116,23 +266,28 @@ export function BoatsAndCrewPanel({
                     <Button
                         variant="ghost"
                         size="sm"
-                        className="-mx-2 justify-start"
+                        className="-mx-2 w-full justify-between"
                     />
                 }
             >
-                <Ship data-icon="inline-start" />
-                Boats and crew
+                <div className="flex items-center gap-2">
+                    <Ship data-icon="inline-start" />
+                    <span>Boats and crew</span>
+                </div>
+                <Badge variant="outline" className="text-xs font-normal">
+                    {runs.length === 1
+                        ? '1 departure'
+                        : `${runs.length} departures`}
+                </Badge>
             </CollapsibleTrigger>
             <CollapsibleContent className="pt-1">
-                {runs.map((run) => (
-                    <RunRow
-                        key={`${date}-${run.departureId}`}
-                        run={run}
-                        date={date}
-                        boatOptions={boatOptions}
-                        canSet={canSet}
-                    />
-                ))}
+                <BoatsAndCrewForm
+                    key={stateKey}
+                    runs={runs}
+                    boats={boats}
+                    date={date}
+                    canSet={canSet}
+                />
             </CollapsibleContent>
         </Collapsible>
     );

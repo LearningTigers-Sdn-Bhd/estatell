@@ -63,15 +63,15 @@ All need `settings.manage` and the `Boats` feature.
 Settings › Boats
 [ Departures ]  Fares
 
-Boat in                                                                                      [+ Add departure]
- Available  Leaves  Arrives  Pick-up point       Seats  Fare                 Meals ⓘ
- [●  ]      09:00   09:45    Kuala Besut jetty   20     Speedboat · RM35.00  Breakfast · Lunch · Dinner  ⋯
- [●  ]      13:00   13:45    Kuala Besut jetty   20     Speedboat · RM35.00  Lunch · Dinner              ⋯
- [  ○]      16:00   16:45    Kuala Besut jetty   —      No fare              Dinner                      ⋯   (muted)
+Boat in                                                                                                         [+ Add departure]
+ Available  Leaves  Arrives  Pick-up point       Seats  Default boat & crew          Fare                 Meals ⓘ
+ [●  ]      09:00   09:45    Kuala Besut jetty   20     MV Sand Bay 1 · Awang / Daus Speedboat · RM35.00  Breakfast · Lunch · Dinner  ⋯
+ [●  ]      13:00   13:45    Kuala Besut jetty   20     MV Sand Bay 2 · Din / Razak  Speedboat · RM35.00  Lunch · Dinner              ⋯
+ [  ○]      16:00   16:45    Kuala Besut jetty   —      —                            No fare              Dinner                      ⋯   (muted)
 
-Boat out                                                                                     [+ Add departure]
- [●  ]      08:00   08:45    Resort jetty        20     Speedboat · RM35.00  Breakfast                   ⋯
- [●  ]      12:00   12:45    Resort jetty        —      Ferry · RM25.00      Breakfast                   ⋯
+Boat out                                                                                                        [+ Add departure]
+ [●  ]      08:00   08:45    Resort jetty        20     MV Sand Bay 1 · Awang / Daus Speedboat · RM35.00  Breakfast                   ⋯
+ [●  ]      12:00   12:45    Resort jetty        —      MV Sea Eagle                 Ferry · RM25.00      Breakfast                   ⋯
 ```
 
 - Two tables, Boat in then Boat out, each sorted by **Leaves**. There is no manual order, as with meal periods.
@@ -138,6 +138,8 @@ Pick-up point  [Kuala Besut jetty          ]
 Seats          [20]   Leave empty for no limit
 Fare           [Speedboat · RM35.00       ▾]
                No fare · Speedboat · Ferry
+Default boat   [MV Sand Bay 1             ▾]  Prefills on manifest
+Default crew   [Awang / Daus               ]  Prefills on manifest
                               [Cancel] [Add departure]
 ```
 

@@ -175,13 +175,36 @@ class BoatManifestReport implements HasSections, HasTotals, Report
             return [];
         }
 
-        return BoatDepartureRun::query()
-            ->whereIn('boat_departure_id', array_unique($departureIds))
+        $uniqueIds = array_values(array_unique($departureIds));
+
+        $runs = BoatDepartureRun::query()
+            ->whereIn('boat_departure_id', $uniqueIds)
             ->whereDate('date', $date)
             ->with('boat')
             ->get()
-            ->mapWithKeys(fn (BoatDepartureRun $run): array => [$run->boat_departure_id => implode(' · ', array_filter([$run->boat?->name, $run->crew]))])
-            ->all();
+            ->keyBy('boat_departure_id');
+
+        $departures = BoatDeparture::query()
+            ->whereIn('id', $uniqueIds)
+            ->with('defaultBoat')
+            ->get()
+            ->keyBy('id');
+
+        $labels = [];
+        foreach ($uniqueIds as $departureId) {
+            $run = $runs->get($departureId);
+            $departure = $departures->get($departureId);
+
+            $boatName = $run ? $run->boat?->name : $departure?->defaultBoat?->name;
+            $crew = $run ? $run->crew : $departure?->default_crew;
+
+            $label = implode(' · ', array_filter([$boatName, $crew]));
+            if ($label !== '') {
+                $labels[$departureId] = $label;
+            }
+        }
+
+        return $labels;
     }
 
     /**
@@ -199,16 +222,25 @@ class BoatManifestReport implements HasSections, HasTotals, Report
             ->where('property_id', $property->id)
             ->whereIn('direction', array_map(fn (BoatDirection $direction): string => $direction->value, $directions))
             ->where(fn ($query) => $query->where('active', true)->orWhereIn('id', $runs->keys()->all()))
+            ->with('defaultBoat')
             ->orderBy('leaves_at')
             ->orderBy('id')
             ->get()
-            ->map(fn (BoatDeparture $departure): BoatDepartureRunData => new BoatDepartureRunData(
-                $departure->id,
-                trim(($filters->bothDirections ? $departure->direction->label().' · ' : '').substr($departure->leaves_at, 0, 5).' '.($departure->pickup_point ?? '')),
-                $departure->direction->value,
-                $runs->get($departure->id)?->boat_id,
-                $runs->get($departure->id)?->crew,
-            ))
+            ->map(function (BoatDeparture $departure) use ($filters, $runs): BoatDepartureRunData {
+                $run = $runs->get($departure->id);
+                $isOverridden = $run !== null;
+
+                return new BoatDepartureRunData(
+                    departureId: $departure->id,
+                    label: trim(($filters->bothDirections ? $departure->direction->label().' · ' : '').substr($departure->leaves_at, 0, 5).' '.($departure->pickup_point ?? '')),
+                    direction: $departure->direction->value,
+                    boatId: $isOverridden ? $run->boat_id : $departure->default_boat_id,
+                    crew: $isOverridden ? $run->crew : $departure->default_crew,
+                    defaultBoatId: $departure->default_boat_id,
+                    defaultCrew: $departure->default_crew,
+                    isOverridden: $isOverridden,
+                );
+            })
             ->all());
     }
 

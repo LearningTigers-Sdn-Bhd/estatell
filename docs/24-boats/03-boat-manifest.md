@@ -10,11 +10,11 @@ Needs the `Boats` feature.
 
 A report in the [core reports](../22-reports/01-core-reports.md) registry, so it gets the shared frame: quick dates, column layout, row selection and PDF, CSV and Excel export.
 
-| Report        | `ReportKey`    | Source                                        | Dates    | Default orientation | Category   | Icon   |
-| ------------- | -------------- | --------------------------------------------- | -------- | ------------------- | ---------- | ------ |
-| Boat manifest | `BoatManifest` | `BoatManifest` service over `unit_boat_trips` | One date | Portrait            | Front desk | `ship` |
+| Report        | `ReportKey`    | Source                                        | Dates    | Default orientation | Category                     | Icon   |
+| ------------- | -------------- | --------------------------------------------- | -------- | ------------------- | ---------------------------- | ------ |
+| Boat manifest | `BoatManifest` | `BoatManifest` service over `unit_boat_trips` | One date | Portrait            | Front desk (sidebar: Guests) | `ship` |
 
-- The report shows in the reports list only when the feature is on. Its page, PDF, spreadsheet and layout routes return 404 when it is off (`ReportKey::feature()`, `EnsureReportIsAvailable`).
+- The report shows in the Front desk sidebar under Guests only when the Boats feature is on. Its page, PDF, spreadsheet and layout routes return 404 when it is off (`ReportKey::feature()`, `EnsureReportIsAvailable`).
 - The rows are not paged and keep their order (departure `leaves_at`, then id; Charter and Own by unit time, last). The headers do not sort. Each Charter and Own row's time is the unit's `arrival_time` (In) or `departure_time` (Out).
 - **Filter:** Direction (Boat in, Boat out, Boat in and out). Default: Boat in. **Boat in and out** (`direction=both`, `ReportFilters::$bothDirections`) lists every departure of the date in time order, as Sand Bay's sheet does (08:00 out, 09:00 in, 14:30 out…), and each section title starts with "Boat out · " or "Boat in · ".
 - **Quick dates:** Today, Tomorrow.
@@ -53,8 +53,11 @@ boat_departure_runs    id, property_id, boat_departure_id, date, boat_id (nullab
                        unique (boat_departure_id, date); CHECK boat_id or crew is set
 ```
 
-- A collapsible **Boats and crew** panel above the filters (`BoatsAndCrewPanel`, the report screen's `aside` slot) lists the date's departures in the shown direction (or both): active ones and any with a run. Each row has a Boat select (active boats, or "No boat") and a Crew input, with **Save**. Staff without `reservations.manage` see it read only.
-- `reports.boat-manifest.runs` (PUT, `boats` and `reservations.manage`) runs `SetBoatDepartureRun`: it saves the row, removes it when both are empty, refuses a boat that is not an active boat of the property, and logs `boat_departure_run.set`.
+- **Timetable defaults:** Departures can set a default boat and default crew in Settings › Boats › Departures. On any date without a daily override, the boat manifest automatically inherits and displays these defaults (e.g. section titles and PDF automatically read " · MV Sand Bay 1 · Awang / Daus" without needing daily entry).
+- A collapsible **Boats and crew** panel above the filters (`BoatsAndCrewPanel`, the report screen's `aside` slot) lists the date's departures in the shown direction (or both). If no daily override exists, fields are prefilled with the timetable defaults and tagged "Timetable default".
+- **Unified Save all form:** Staff can edit boats and crew across multiple departures and click a single **Save changes** button (saving all departures in one batch request via `reports.boat-manifest.runs`).
+- **Overrides & Reverts:** Overridden departures display a subtle "Custom override" label and a **Default** button to revert them back to timetable defaults with one click (`reset_to_default`).
+- `reports.boat-manifest.runs` (PUT, `boats` and `reservations.manage`) runs `SetBoatDepartureRun`: it saves batch runs or single runs, removes override records when reset to default or when both boat and crew are empty, refuses inactive boats or boats of other properties, and logs `boat_departure_run.set`.
 - The section title of each departure ends with " · SA10716 · Awang / Daus" (`BoatManifestReport::runLabels()`), so the page, the PDF and the spreadsheet sections name them.
 
 ## PDF
