@@ -35,15 +35,17 @@ export function ApiQuickStart({ docsUrl }: { docsUrl: string }) {
                 icon={Rocket}
                 description="What your website developer needs to start."
             />
-            <ol className="flex flex-col gap-3">
+            <ol className="flex flex-col gap-3 ps-3">
                 {STEPS.map((step, index) => (
                     <li key={step.title} className="flex gap-3 text-sm">
-                        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium tabular-nums">
-                            {index + 1}
+                        <span className="flex w-8 shrink-0 justify-center">
+                            <span className="flex size-6 items-center justify-center rounded-full bg-muted text-xs font-medium tabular-nums">
+                                {index + 1}
+                            </span>
                         </span>
                         <span className="flex min-w-0 flex-col gap-0.5">
                             <span className="font-medium">{step.title}</span>
-                            <span className="break-words text-muted-foreground">
+                            <span className="text-balance break-words text-muted-foreground">
                                 {step.body}
                             </span>
                         </span>
