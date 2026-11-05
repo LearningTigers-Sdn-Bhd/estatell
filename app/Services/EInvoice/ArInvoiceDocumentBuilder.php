@@ -47,7 +47,7 @@ class ArInvoiceDocumentBuilder
         $this->validateRequiredData();
 
         $payload = $this->buildPayload();
-        $payloadJson = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        $payloadJson = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
 
         return [
             'format' => 'JSON',
@@ -105,7 +105,7 @@ class ArInvoiceDocumentBuilder
             'TaxCurrencyCode' => [['_' => self::DEFAULT_CURRENCY]],
             'InvoicePeriod' => [
                 [
-                    'StartDate' => [['_' => $this->invoice->issued_on?->toDateString() ?: CarbonImmutable::now('Asia/Kuala_Lumpur')->toDateString()]],
+                    'StartDate' => [['_' => $this->invoice->issued_on->toDateString()]],
                     'EndDate' => [['_' => $this->invoice->due_on?->toDateString() ?: CarbonImmutable::now('Asia/Kuala_Lumpur')->addMonth()->toDateString()]],
                     'Description' => [['_' => 'City Ledger Account Settlement']],
                 ],

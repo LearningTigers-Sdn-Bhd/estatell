@@ -93,9 +93,9 @@ class EInvoiceSubmissionsController extends Controller
             'scenarioOptions' => EInvoiceScenario::options(),
             'stats' => $stats,
             'setting' => [
-                'enabled' => $property->eInvoiceSetting?->enabled ?? false,
-                'environment' => $property->eInvoiceSetting?->api_environment?->value ?? 'sandbox',
-                'consolidation_enabled' => $property->eInvoiceSetting?->consolidation_enabled ?? false,
+                'enabled' => $property->eInvoiceSetting->enabled ?? false,
+                'environment' => $property->eInvoiceSetting->api_environment->value ?? 'sandbox',
+                'consolidation_enabled' => $property->eInvoiceSetting->consolidation_enabled ?? false,
             ],
         ]);
     }

@@ -51,6 +51,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  * @property-read PropertySetting|null $settings
+ * @property-read PropertyEInvoiceSetting|null $eInvoiceSetting
  */
 #[Fillable([
     'name', 'type', 'status',

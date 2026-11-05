@@ -111,7 +111,7 @@ class ConsolidateMonthlyEInvoices
             return null;
         }
 
-        return DB::transaction(function () use ($property, $built, $setting, $actor, $chunk): ?EInvoiceSubmission {
+        return DB::transaction(function () use ($property, $built, $setting, $actor, $chunk): EInvoiceSubmission {
             $submission = new EInvoiceSubmission([
                 'property_id' => $property->id,
                 'document_type' => EInvoiceDocumentType::Invoice,

@@ -64,7 +64,7 @@ class ConsolidatedBatchBuilder
     {
         $internalId = 'CONS-'.$this->property->id.'-'.$this->month->format('Ym').'-'.strtoupper(Str::random(6));
         $payload = $this->buildPayload($internalId);
-        $payloadJson = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        $payloadJson = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
 
         return [
             'format' => 'JSON',
@@ -327,7 +327,7 @@ class ConsolidatedBatchBuilder
         foreach ($this->folios as $folio) {
             $amt = self::calculateFolioGrossAmount($folio);
             if ($amt > 0.0 && $amt <= self::MAX_INDIVIDUAL_STAY_AMOUNT) {
-                $sum = $sum->plus($amt);
+                $sum = $sum->plus(BigDecimal::of((string) $amt));
             }
         }
 

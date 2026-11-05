@@ -9,7 +9,7 @@ class MalaysiaStates
     /**
      * Prescribed LHDN Malaysian state codes (01-16 + 17 for outside Malaysia).
      *
-     * @var array<string, string>
+     * @var array<array-key, string>
      */
     public const array CODES = [
         '01' => 'Johor',
@@ -80,9 +80,10 @@ class MalaysiaStates
     {
         $options = [];
         foreach (self::CODES as $code => $name) {
+            $codeStr = (string) $code;
             $options[] = [
-                'value' => $code,
-                'label' => $code === self::NOT_APPLICABLE ? $name : "{$code} - {$name}",
+                'value' => $codeStr,
+                'label' => $codeStr === self::NOT_APPLICABLE ? $name : "{$codeStr} - {$name}",
             ];
         }
 

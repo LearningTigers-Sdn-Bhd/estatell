@@ -61,7 +61,7 @@ class FolioDocumentBuilder
         $this->validateRequiredData();
 
         $payload = $this->buildPayload();
-        $payloadJson = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        $payloadJson = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
 
         return [
             'format' => 'JSON',
@@ -475,7 +475,7 @@ class FolioDocumentBuilder
 
     private function resolveTaxCode(FolioLine $taxLine): string
     {
-        $desc = strtolower($taxLine->description.' '.($taxLine->transactionCode?->name ?? ''));
+        $desc = strtolower($taxLine->description.' '.($taxLine->transactionCode->name ?? ''));
         if (str_contains($desc, 'sst') || str_contains($desc, 'service tax')) {
             return '02';
         }

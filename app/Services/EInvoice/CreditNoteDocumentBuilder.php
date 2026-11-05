@@ -54,7 +54,7 @@ class CreditNoteDocumentBuilder
         $this->validateRequiredData();
 
         $payload = $this->buildPayload();
-        $payloadJson = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        $payloadJson = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
 
         return [
             'format' => 'JSON',
@@ -65,6 +65,9 @@ class CreditNoteDocumentBuilder
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function resolveBuyer(): array
     {
         if (! empty($this->originalSubmission->buyer_snapshot)) {

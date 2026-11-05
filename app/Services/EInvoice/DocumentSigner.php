@@ -52,12 +52,12 @@ class DocumentSigner
             return $payload;
         }
 
-        if (empty($this->setting?->signing_certificate) || empty($this->setting?->signing_private_key)) {
+        if (empty($this->setting->signing_certificate) || empty($this->setting->signing_private_key)) {
             throw new RuntimeException('E-invoice digital signing is enabled, but signing certificate or private key is missing.');
         }
 
         $invoice = &$payload['Invoice'][0];
-        $documentDigest = base64_encode(hash('sha256', json_encode($payload), true));
+        $documentDigest = base64_encode(hash('sha256', json_encode($payload, JSON_THROW_ON_ERROR), true));
 
         // Format certificate string by stripping headers and whitespace
         $certBody = preg_replace('/-----BEGIN CERTIFICATE-----|-----END CERTIFICATE-----|\s+/', '', $this->setting->signing_certificate);

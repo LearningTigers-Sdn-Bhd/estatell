@@ -75,7 +75,7 @@ class FolioStatement
     public function build(Property $property, Reservation $reservation, array $units, string $selected = '', array $can = [], ?User $user = null): array
     {
         $labels = collect($units)->mapWithKeys(fn (ReservationUnitOptionData $unit): array => [$unit->id => $unit->assigned ?? $unit->roomType])->all();
-        $folios = $this->folios($reservation, array_keys($labels));
+        $folios = $this->folios($property, $reservation, array_keys($labels));
         $balances = $this->balances($folios);
         $blocks = $this->scheduledRows->forReservation($property, $reservation, $labels);
 
@@ -100,7 +100,7 @@ class FolioStatement
 
         return [
             'folios' => array_values($entries->map(fn (array $entry): FolioRailItemData => $entry['item'])->all()),
-            'folio' => $open === null ? null : $this->data($reservation, $open, $entries, $units, $blocks, $balances, $can, $labels, $user),
+            'folio' => $open === null ? null : $this->data($property, $reservation, $open, $entries, $units, $blocks, $balances, $can, $labels, $user),
         ];
     }
 
@@ -118,7 +118,7 @@ class FolioStatement
      * @param  list<int>  $unitOrder
      * @return EloquentCollection<int, Folio>
      */
-    private function folios(Reservation $reservation, array $unitOrder): Collection
+    private function folios(Property $property, Reservation $reservation, array $unitOrder): Collection
     {
         return Folio::query()
             ->where('property_id', $reservation->property_id)
@@ -126,6 +126,7 @@ class FolioStatement
             ->where('status', '!=', FolioStatus::Voided)
             ->with('payerGuest', 'payerCompany:id,name')
             ->get()
+            ->each(fn (Folio $folio) => $folio->setRelation('property', $property))
             ->sortBy(fn (Folio $folio): array => [
                 match ($folio->type) {
                     FolioType::Master => 0,
@@ -241,7 +242,7 @@ class FolioStatement
      * @param  array{postCharge?: bool, reverse?: bool, transfer?: bool, discount?: bool, close?: bool, recordPayment?: bool, refund?: bool, printVoucher?: bool, settleCityLedger?: bool, changePrice?: bool, manual?: bool, viewManual?: bool}  $can
      * @param  array<int, string>  $labels  Unit label by unit id
      */
-    private function data(Reservation $reservation, array $entry, Collection $entries, array $units, array $blocks, array $balances, array $can, array $labels, ?User $user): FolioData
+    private function data(Property $property, Reservation $reservation, array $entry, Collection $entries, array $units, array $blocks, array $balances, array $can, array $labels, ?User $user): FolioData
     {
         $folio = $entry['folio'];
         $isOpen = $folio?->status === FolioStatus::Open;
@@ -315,7 +316,7 @@ class FolioStatement
             ->first() : null;
 
         $canSubmitEInvoice = $eInvoiceEnabled && $folio?->status === FolioStatus::Closed && ($latestSubmission === null || $latestSubmission->status === EInvoiceStatus::Invalid);
-        $buyer = $folio !== null ? BuyerResolver::forFolio($folio) : null;
+        $buyer = $folio !== null ? BuyerResolver::forFolio($folio, $property) : null;
 
         return new FolioData(
             key: $entry['key'],

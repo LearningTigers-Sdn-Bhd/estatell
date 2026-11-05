@@ -24,6 +24,9 @@ class SubmitFolioEInvoice
         private RefreshEInvoiceStatus $refreshEInvoiceStatus
     ) {}
 
+    /**
+     * @param  array<string, mixed>|null  $buyerSnapshot
+     */
     public function __invoke(Folio $folio, User $actor, bool $requestedByGuest = false, ?array $buyerSnapshot = null): EInvoiceResult
     {
         $property = $folio->property;

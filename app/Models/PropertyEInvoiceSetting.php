@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\EInvoiceEnvironment;
 use Carbon\CarbonImmutable;
+use Database\Factories\PropertyEInvoiceSettingFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -69,6 +70,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 ])]
 class PropertyEInvoiceSetting extends Model
 {
+    /** @use HasFactory<PropertyEInvoiceSettingFactory> */
     use HasFactory;
 
     /**

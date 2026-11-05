@@ -137,7 +137,7 @@ class ReservationFolioController extends Controller
     {
         $result = $closeFolio($request->user(), $folio);
 
-        if ($result->isDone() && $property->eInvoiceSetting?->enabled && $property->eInvoiceSetting?->auto_submit_on_checkout) {
+        if ($result->isDone() && $property->eInvoiceSetting?->enabled && $property->eInvoiceSetting->auto_submit_on_checkout) {
             try {
                 $eResult = app(SubmitFolioEInvoice::class)($folio, $request->user());
                 if (! $eResult->ok && $eResult->message) {

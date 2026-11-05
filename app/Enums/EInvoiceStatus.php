@@ -30,7 +30,7 @@ enum EInvoiceStatus: string
             self::Pending => Tone::Warning,
             self::Submitted => Tone::Info,
             self::Valid => Tone::Success,
-            self::Invalid => Tone::Destructive,
+            self::Invalid => Tone::Danger,
             self::Cancelled => Tone::Neutral,
         };
     }

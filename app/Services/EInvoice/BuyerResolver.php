@@ -33,13 +33,15 @@ class BuyerResolver
      *     country_code: string
      * }
      */
-    public static function forFolio(Folio $folio): array
+    public static function forFolio(Folio $folio, ?Property $property = null): array
     {
+        $property ??= $folio->relationLoaded('property') ? $folio->property : $folio->property;
+
         if ($folio->payerCompany !== null) {
-            return self::forCompany($folio->payerCompany, $folio->property);
+            return self::forCompany($folio->payerCompany, $property);
         }
 
-        return self::forGuest($folio->payerGuest, $folio->property);
+        return self::forGuest($folio->payerGuest, $property);
     }
 
     /**
@@ -109,7 +111,7 @@ class BuyerResolver
     public static function forGuest(?Guest $guest, Property $property): array
     {
         $guestName = $guest?->full_name ?: 'Hotel Guest';
-        $countryCode = self::lhdnCountryCode($guest?->country_code ?? $guest?->nationality_code);
+        $countryCode = self::lhdnCountryCode($guest->country_code ?? $guest?->nationality_code);
 
         $isForeign = $countryCode !== 'MYS';
 
@@ -135,7 +137,7 @@ class BuyerResolver
             }
         }
 
-        $tin = trim((string) ($guest?->tin ?? ''));
+        $tin = trim((string) ($guest->tin ?? ''));
         if (empty($tin)) {
             // Foreign buyers without a TIN use LHDN general foreign TIN; domestic buyers must supply their own.
             $tin = $isForeign ? self::FOREIGN_BUYER_TIN : '';
