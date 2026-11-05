@@ -61,3 +61,13 @@ it('needs the settings permission and stays in the own property', function () {
     $this->actingAs($frontDesk)->put(route('settings.kiosks.update', $owner->property), ['key_mode' => 'card', 'walk_in_enabled' => false, 'idle_timeout_seconds' => 60])->assertForbidden();
     $this->actingAs($owner)->put(route('settings.kiosks.update', $other), ['key_mode' => 'card', 'walk_in_enabled' => false, 'idle_timeout_seconds' => 60])->assertNotFound();
 });
+
+it('saves with walk-in off when the switch sends nothing', function () {
+    $owner = kioskSettingsOwner();
+    PropertySetting::query()->where('property_id', $owner->property->id)->update(['kiosk_walk_in_enabled' => true]);
+
+    $this->actingAs($owner)->put(route('settings.kiosks.update', $owner->property), ['key_mode' => 'both', 'idle_timeout_seconds' => 60])
+        ->assertSessionHasNoErrors();
+
+    expect(PropertySetting::query()->where('property_id', $owner->property->id)->sole()->kiosk_walk_in_enabled)->toBeFalse();
+});
