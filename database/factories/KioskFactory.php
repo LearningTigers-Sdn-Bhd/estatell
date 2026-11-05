@@ -2,16 +2,26 @@
 
 namespace Database\Factories;
 
+use App\Features\Kiosks;
 use App\Models\Kiosk;
 use App\Models\Property;
 use App\Services\ApiAccess\ApiSecrets;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Laravel\Pennant\Feature;
 
 /**
  * @extends Factory<Kiosk>
  */
 class KioskFactory extends Factory
 {
+    /**
+     * A kiosk only exists while its property has the Kiosks feature, so creating one turns the feature on.
+     */
+    public function configure(): static
+    {
+        return $this->afterCreating(fn (Kiosk $kiosk) => Feature::for($kiosk->property)->activate(Kiosks::class));
+    }
+
     /**
      * A paired kiosk. Use `withToken()` to give it a token a test can send.
      *

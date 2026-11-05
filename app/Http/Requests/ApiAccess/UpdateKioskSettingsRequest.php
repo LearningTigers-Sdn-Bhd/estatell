@@ -23,7 +23,7 @@ class UpdateKioskSettingsRequest extends FormRequest
     {
         return [
             'key_mode' => ['required', Rule::enum(KioskKeyMode::class)],
-            'walk_in_enabled' => ['required', 'boolean'],
+            'walk_in_enabled' => ['sometimes', 'boolean'],
             'idle_timeout_seconds' => ['required', 'integer', 'min:15', 'max:600'],
         ];
     }

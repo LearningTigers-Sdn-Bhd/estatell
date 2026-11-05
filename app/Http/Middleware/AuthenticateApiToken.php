@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Actions\ApiAccess\RecordKioskUse;
+use App\Features\Kiosks;
 use App\Http\Responses\ApiError;
 use App\Models\Kiosk;
 use Closure;
@@ -10,6 +11,7 @@ use Illuminate\Auth\RequestGuard;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
+use Laravel\Pennant\Feature;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -49,7 +51,8 @@ class AuthenticateApiToken
     }
 
     /**
-     * The kiosk behind the bearer token, or null when it is unknown, expired or revoked or its property is suspended.
+     * The kiosk behind the bearer token, or null when it is unknown, expired or revoked, its property is suspended or the
+     * property's Kiosks feature is off.
      * The guard remembers its user for as long as the application lives, so it is cleared for each request.
      */
     private function usableKiosk(Request $request): ?Kiosk
@@ -63,6 +66,8 @@ class AuthenticateApiToken
             return null;
         }
 
-        return $kiosk->loadMissing('property')->property->suspended_at === null ? $kiosk : null;
+        $property = $kiosk->loadMissing('property')->property;
+
+        return $property->suspended_at === null && Feature::for($property)->active(Kiosks::class) ? $kiosk : null;
     }
 }

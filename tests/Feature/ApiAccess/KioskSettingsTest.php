@@ -1,10 +1,12 @@
 <?php
 
+use App\Features\Kiosks;
 use App\Models\ApiIdempotencyKey;
 use App\Models\Kiosk;
 use App\Models\Property;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
+use Laravel\Pennant\Feature;
 use Spatie\Activitylog\Models\Activity;
 
 /**
@@ -15,6 +17,7 @@ function kioskSetup(): array
     $owner = User::factory()->owner()->create();
     $property = $owner->property;
     $property->forceFill(['status' => 'live'])->save();
+    Feature::for($property)->activate(Kiosks::class);
 
     return compact('owner', 'property');
 }

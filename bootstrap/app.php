@@ -8,6 +8,7 @@ use App\Http\Middleware\EnsureBoatsIsActive;
 use App\Http\Middleware\EnsureChannelManagerIsActive;
 use App\Http\Middleware\EnsureDoorLocksAreActive;
 use App\Http\Middleware\EnsureEmailIsVerified;
+use App\Http\Middleware\EnsureKiosksAreActive;
 use App\Http\Middleware\EnsureOnboarding;
 use App\Http\Middleware\EnsurePasswordChanged;
 use App\Http\Middleware\EnsurePortalAccess;
@@ -61,6 +62,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'boats' => EnsureBoatsIsActive::class,
             'accounting' => EnsureAccountingIsActive::class,
             'door-locks' => EnsureDoorLocksAreActive::class,
+            'kiosks' => EnsureKiosksAreActive::class,
             'channels' => EnsureChannelManagerIsActive::class,
             'live' => EnsurePropertyIsLive::class,
             'onboarding.activity' => TrackOnboardingActivity::class,
@@ -79,6 +81,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureBoatsIsActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureAccountingIsActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureDoorLocksAreActive::class);
+        $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureKiosksAreActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureChannelManagerIsActive::class);
 
         $middleware->web(append: [

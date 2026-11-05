@@ -221,7 +221,7 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::put('/', [OtaListSettingsController::class, 'update'])->name('update');
     });
 
-    Route::prefix('kiosks')->name('kiosks.')->middleware('can:'.PermissionEnum::SettingsManage->value)->scopeBindings()->group(function () {
+    Route::prefix('kiosks')->name('kiosks.')->middleware(['kiosks', 'can:'.PermissionEnum::SettingsManage->value])->scopeBindings()->group(function () {
         Route::get('/', [KioskController::class, 'index'])->name('index');
         Route::post('/', [KioskController::class, 'store'])->name('store');
         Route::put('settings', [KioskController::class, 'update'])->name('update');

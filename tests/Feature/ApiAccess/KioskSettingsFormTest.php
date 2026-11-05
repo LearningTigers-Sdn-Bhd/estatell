@@ -1,10 +1,12 @@
 <?php
 
 use App\Enums\KioskKeyMode;
+use App\Features\Kiosks;
 use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
+use Laravel\Pennant\Feature;
 use Spatie\Activitylog\Models\Activity;
 
 function kioskSettingsOwner(): User
@@ -12,6 +14,7 @@ function kioskSettingsOwner(): User
     $owner = User::factory()->owner()->create();
     $owner->property->forceFill(['status' => 'live'])->save();
     PropertySetting::factory()->for($owner->property)->create();
+    Feature::for($owner->property)->activate(Kiosks::class);
 
     return $owner;
 }
@@ -60,4 +63,14 @@ it('needs the settings permission and stays in the own property', function () {
 
     $this->actingAs($frontDesk)->put(route('settings.kiosks.update', $owner->property), ['key_mode' => 'card', 'walk_in_enabled' => false, 'idle_timeout_seconds' => 60])->assertForbidden();
     $this->actingAs($owner)->put(route('settings.kiosks.update', $other), ['key_mode' => 'card', 'walk_in_enabled' => false, 'idle_timeout_seconds' => 60])->assertNotFound();
+});
+
+it('saves with walk-in off when the switch sends nothing', function () {
+    $owner = kioskSettingsOwner();
+    PropertySetting::query()->where('property_id', $owner->property->id)->update(['kiosk_walk_in_enabled' => true]);
+
+    $this->actingAs($owner)->put(route('settings.kiosks.update', $owner->property), ['key_mode' => 'both', 'idle_timeout_seconds' => 60])
+        ->assertSessionHasNoErrors();
+
+    expect(PropertySetting::query()->where('property_id', $owner->property->id)->sole()->kiosk_walk_in_enabled)->toBeFalse();
 });
