@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\Booking\ContentController;
 use App\Http\Controllers\Api\Booking\HoldController;
+use App\Http\Controllers\Api\Booking\ManageBookingController;
 use App\Http\Controllers\Api\Booking\StayController as BookingStayController;
 use App\Http\Controllers\Api\Kiosk\BookingController;
 use App\Http\Controllers\Api\Kiosk\CheckInController;
@@ -80,5 +81,11 @@ Route::prefix('booking/v1')->name('api.booking.v1.')->group(function () {
         Route::get('/', [HoldController::class, 'show'])->name('holds.show');
         Route::delete('/', [HoldController::class, 'destroy'])->name('holds.destroy');
         Route::post('payment', [HoldController::class, 'payment'])->middleware('api.idempotent')->name('holds.payment');
+    });
+
+    Route::middleware(['api.token:booking:checkout', 'throttle:api-token'])->prefix('bookings/{token}')->group(function () {
+        Route::get('/', [ManageBookingController::class, 'show'])->name('bookings.show');
+        Route::get('cancellation', [ManageBookingController::class, 'cancellation'])->name('bookings.cancellation');
+        Route::post('cancellation', [ManageBookingController::class, 'cancel'])->middleware('api.idempotent')->name('bookings.cancel');
     });
 });

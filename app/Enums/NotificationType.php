@@ -23,6 +23,7 @@ enum NotificationType: string
     case NearbyPlaceRemoved = 'nearby_place_removed';
     case OnlineBookingReceived = 'online_booking_received';
     case OnlineRefundNeedsAttention = 'online_refund_needs_attention';
+    case OnlineBookingCancelled = 'online_booking_cancelled';
 
     public function label(): string
     {
@@ -46,6 +47,7 @@ enum NotificationType: string
             self::NearbyPlaceRemoved => __('Nearby place removed'),
             self::OnlineBookingReceived => __('Online booking received'),
             self::OnlineRefundNeedsAttention => __('Online refund needs attention'),
+            self::OnlineBookingCancelled => __('Online booking cancelled'),
         };
     }
 
@@ -85,7 +87,7 @@ enum NotificationType: string
             self::NightAuditCompleted, self::NightAuditExceptions => 'night-audit.receive-report',
             self::NightAuditFailed => 'night-audit.run',
             self::PaymentSlipReceived => 'city-ledger.payment',
-            self::PortalBookingCreated, self::PortalBookingCancelled, self::PortalCancellationRequested, self::ChannelBookingReceived, self::ChannelBookingCancelled, self::OnlineBookingReceived => 'reservations.manage',
+            self::PortalBookingCreated, self::PortalBookingCancelled, self::PortalCancellationRequested, self::ChannelBookingReceived, self::ChannelBookingCancelled, self::OnlineBookingReceived, self::OnlineBookingCancelled => 'reservations.manage',
             self::OnlineRefundNeedsAttention => 'payment.refund',
             default => null,
         };

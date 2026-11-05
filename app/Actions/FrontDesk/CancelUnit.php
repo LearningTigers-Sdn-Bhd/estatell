@@ -3,12 +3,11 @@
 namespace App\Actions\FrontDesk;
 
 use App\Actions\Reservations\SyncReservationStatus;
-use App\Enums\SystemTransactionCode;
 use App\Enums\UnitStatus;
 use App\Events\ReservationChanged;
 use App\Models\ReservationUnit;
-use App\Models\RoomRevenuePolicy;
 use App\Models\User;
+use App\Services\Catalogues\CancellationPolicy;
 use App\Services\Catalogues\PolicyChargeCalculator;
 use App\Services\NightAudit\CurrentBusinessDate;
 use Brick\Math\BigDecimal;
@@ -18,6 +17,7 @@ class CancelUnit
 {
     public function __construct(
         private CurrentBusinessDate $currentBusinessDate,
+        private CancellationPolicy $cancellationPolicy,
         private PolicyChargeCalculator $policyChargeCalculator,
         private PostUnitPolicyFee $postUnitPolicyFee,
         private RemoveUnpostedAddOns $removeUnpostedAddOns,
@@ -31,7 +31,8 @@ class CancelUnit
      * before the first write, so a refusal writes and logs nothing. The nights stay as history with their prices, and
      * their rooms and beds are released (`ReleaseUnitRooms`).
      *
-     * The fee comes from `PolicyChargeCalculator` on the business date and posts through `PostUnitPolicyFee`.
+     * The fee comes from `PolicyChargeCalculator` on the business date, under the terms an online booking saved or
+     * otherwise the live policy (`CancellationPolicy`), and posts through `PostUnitPolicyFee`.
      * `$expectedFee` is the fee the form showed (a decimal string): when it differs from the fee now, the Action
      * refuses with `fee_changed`. `$doNotCharge` posts no fee and needs a `$reason`; the route passes it only for a
      * user with `front-desk.waive-fees`. `$removeAddOns` deletes the unit's unposted add-ons with
@@ -59,7 +60,7 @@ class CancelUnit
                 return UnitStayResult::refused(UnitStayResult::REFUSAL_REASON_REQUIRED);
             }
 
-            $policy = RoomRevenuePolicy::query()->where('property_id', $locked->property_id)->where('code', SystemTransactionCode::CancellationRevenue)->first();
+            $policy = $this->cancellationPolicy->forReservation($locked->property_id, $locked->reservation_id);
 
             if ($policy === null) {
                 return UnitStayResult::refused(UnitStayResult::REFUSAL_POLICY_NOT_FOUND);

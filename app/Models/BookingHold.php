@@ -75,6 +75,14 @@ class BookingHold extends Model
     }
 
     /**
+     * @return BelongsTo<Reservation, $this>
+     */
+    public function reservation(): BelongsTo
+    {
+        return $this->belongsTo(Reservation::class);
+    }
+
+    /**
      * @return HasMany<BookingHoldLine, $this>
      */
     public function lines(): HasMany

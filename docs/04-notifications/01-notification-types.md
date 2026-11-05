@@ -40,6 +40,7 @@ Define every notification once, with its channels, defaults and recipients.
 | NearbyPlaceRemoved          | No   | On, mandatory | No         | Owner                                    |
 | OnlineBookingReceived       | On   | On            | Both       | Reservation staff (module 12 permission) |
 | OnlineRefundNeedsAttention  | On   | On            | Both       | Staff with `payment.refund`              |
+| OnlineBookingCancelled      | On   | On            | Both       | Reservation staff (module 12 permission) |
 
 `PortalBookingCreated`, `PortalBookingCancelled` and `PortalCancellationRequested` are built (`PortalReservationNotification`, sent by `NotifyReservationStaff` after the save). The recipients are the active staff of the property with `reservations.manage`; each message names the company and the reference and links to the reservation. The matrix check constraints list the three types.
 
@@ -52,6 +53,8 @@ Define every notification once, with its channels, defaults and recipients.
 `NearbyPlaceRemoved` is planned with the [Booking engine](../29-booking-engine/06-content-registries.md#nearby-places). It is in-app only. It is sent to the property's first active Owner when an admin rejects a nearby place, and it reads "Pangkor Jetty was removed from your nearby places." It stays in the notification list until the owner reads it. The matrix check constraints must list it.
 
 `OnlineBookingReceived` is built (`NotifyOnlineBooking`, run by `ConfirmBookingHold` after its transaction commits, once per order). The recipients are the active staff of the property with `reservations.manage`; the message names the guest and the reference and links to the reservation. The matrix check constraints list it. The guest's confirmation email, `OnlineBookingConfirmed`, is a plain notification class, not a `NotificationType` case: a guest is not a user, so it skips the preference matrix and always goes by mail to the address on the hold. It shows the reference, dates, rooms and amount paid, with a **Manage booking** button. See [Confirmation](../29-booking-engine/04-payment.md#confirmation).
+
+`OnlineBookingCancelled` is built (`OnlineBookingCancelledByGuest`, sent by `NotifyOnlineCancellation` after `CancelBookingOnline` commits). The recipients are the active staff of the property with `reservations.manage`. The guest's email (`OnlineBookingCancelled`) skips the preference matrix. See [Cancel and refund](../29-booking-engine/05-cancel-and-refund.md#flow).
 
 `OnlineRefundNeedsAttention` is built (`AlertOnlineRefundProblem`). It is sent when an online refund fails and when a late payment is refunded automatically. See [Cancel and refund](../29-booking-engine/05-cancel-and-refund.md#refund-status).
 

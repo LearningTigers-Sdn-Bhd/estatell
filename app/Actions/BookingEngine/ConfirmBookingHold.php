@@ -44,6 +44,7 @@ class ConfirmBookingHold
         private AutoAddOns $autoAddOns,
         private RateQuoteService $rateQuoteService,
         private NotifyOnlineBooking $notifyOnlineBooking,
+        private SaveCancellationTerms $saveCancellationTerms,
     ) {}
 
     public function __invoke(BookingHold $hold, GatewayPayment $payment): ConfirmBookingHoldResult
@@ -97,6 +98,7 @@ class ConfirmBookingHold
         }
 
         $reservation = $booking->reservation;
+        ($this->saveCancellationTerms)($reservation);
         $this->postPayments($locked, $payment, $reservation, $method);
         $locked->update(['reservation_id' => $reservation->id]);
 

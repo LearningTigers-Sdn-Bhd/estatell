@@ -22,8 +22,8 @@ use InvalidArgumentException;
 
 /**
  * Works out what a no-show, cancellation, early departure or late check-out policy charges for a unit, before tax.
- * It reads only. The front desk Actions post the amount through `PostFolioCharge`. The policy applies as it is now,
- * because a booking keeps no copy of it. A day use unit has no nights: its block counts as one night priced at
+ * It reads only. The front desk Actions post the amount through `PostFolioCharge`. The policy applies as it is now, unless
+ * an online booking saved its own terms (`CancellationPolicy`). A day use unit has no nights: its block counts as one night priced at
  * `unit_day_uses.amount`, so First night, Whole stay and One charge all give the block price and Unused nights gives
  * nothing. Current rate prices the block again with `RateQuoteService::quoteDayUse()` and keeps the booked amount when
  * that is refused.

@@ -29,15 +29,17 @@ Front desk: CancelUnits posts the fee and frees the room
 Payments: asks Curlec to refund the balance
         │
         ▼
-Curlec's refund webhook ─► refund line posted on the folio
+Email to guest with the refund amount, staff notified
         │
         ▼
-Email to guest, staff notified, Commission fees updated
+Curlec's refund webhook ─► refund line posted on the folio
 ```
 
 **Refund = amount paid − cancellation fee − tax on the fee.**
 
 The refund runs automatically. Staff do not approve it, because the property's policy sets the amount.
+
+The guest gets one email, right after cancelling (`OnlineBookingCancelled`), because a refund can take up to 10 days. It goes to the reservation's booker, because a hold empties its guest details after 30 days and a guest can book 6 months ahead. Staff get `OnlineBookingCancelledByGuest`. Commission fees will read the result when that module is built.
 
 ## Saved terms
 
@@ -47,13 +49,14 @@ Today the policy applies at the moment of the action, and a booking keeps no cop
 reservation_cancellation_terms
     id, property_id, reservation_id (unique), charge_mode (PolicyChargeMode),
     amount (nullable), percent (nullable), percent_basis (PolicyRateBasis, nullable),
-    applies_to (PolicyScope), free_until_days (nullable), own_taxes,
+    applies_to (PolicyScope), free_until_days (nullable),
     text_en, text_ms, timestamps
 ```
 
 - Written at [confirmation](04-payment.md#confirmation), from the `CANCEL` row in `room_revenue_policies`. Real columns, no jsonb.
-- `PolicyChargeCalculator` uses these terms when they exist, and the live policy otherwise. Staff and portal bookings do not change.
+- `CancellationPolicy` returns these terms when they exist, and the live policy otherwise. `CancelUnit` and the previews use it, so staff and portal bookings do not change.
 - A later change to the property's policy does not change these bookings.
+- The tax on the fee is not saved. It follows the live settings, because the law sets it and it is not a promise to the guest.
 
 ## Cases
 
@@ -63,12 +66,17 @@ reservation_cancellation_terms
 | After the free window              | Guest or staff                     | The fee is kept and the rest refunded; commission on the fee                |
 | Staff choose Do not charge         | Staff with `front-desk.waive-fees` | Full refund                                                                 |
 | On or after the arrival date       | Staff only                         | Online cancel closes, and the guest contacts the property                   |
+| Fee and tax above the amount paid  | Staff only                         | Online cancel closes, so a guest never owes money after an online cancel    |
 | No-show                            | Staff or the night audit rule      | The fee is posted, and any leftover stays as credit for staff to refund     |
 | Early departure or goodwill refund | Staff, from the folio              | Refund through Curlec; money already paid out comes off the next payout     |
 | Reinstating a cancelled unit       | Staff                              | The guest owes the amount again; the old refund is not undone               |
 | Group booking                      | Guest                              | Whole booking only, as in the company portal; staff can cancel single rooms |
 
-`CancelBookingOnline` runs `CancelUnits`, then the refund. The actor is null for a guest, as in [confirmation](04-payment.md#confirmation). To verify at build: with a null actor, the activity log uses the signed-in user of the current guard, so under `auth:sanctum` the entry may name the `BookingClient`. `RefundPayment` takes a null actor for an automatic refund. When staff cancel a booking engine booking from the PMS, the same refund step runs after the Dialog, and the Dialog shows the refund amount.
+`CancelBookingOnline` runs `CancelUnits`, then `RefundCancelledUnits`, in one transaction, so neither happens alone. The actor is null for a guest, as in [confirmation](04-payment.md#confirmation), and the activity log has no causer. `RefundPayment` takes a null actor for an automatic refund. The guest sends the refund they saw: if it has changed, for example because the free window closed, it is refused (`refund_changed`) and nothing is written.
+
+`CancelledUnitRefund` works out each room's share: the credit on its Open folios, up to what its Curlec payments still hold. A room a guest or staff already cancelled is left out. Credit from another method, or an Online payment with no Curlec row, stays on the folio for staff.
+
+When staff cancel a room or a reservation, `CancelUnitAndRefund` or `CancelUnitsAndRefund` runs the same refund step, and the Dialog shows the amount. A user without `payment.refund`, including a support user the owner has blocked from refunds, leaves the credit on the folio, as at check-out. The guest gets no email from a staff cancel, and staff tell the guest themselves.
 
 ## Refund status
 
@@ -109,7 +117,7 @@ The line is posted under `requested_by`, the person who asked, so it can close a
 | `captured` is true, on our payment       | Admins are alerted, because the refund was made outside estatell. Nothing posts by itself |
 | `refund.created`, `refund.speed_changed` | Ignored                                                                                   |
 
-While a refund is Pending, the folio shows it above the rows and it counts against the amount left to refund and the credit. A folio with a Pending refund cannot close (`online_refund_pending`). Curlec's normal refunds take 0–3 days for FPX and e-wallets and 5–10 days for cards, so guest wording says so. The guest's page comes with `let guests cancel online`.
+While a refund is Pending, the folio shows it above the rows and it counts against the amount left to refund and the credit. A folio with a Pending refund cannot close (`online_refund_pending`). Curlec's normal refunds take 0–3 days for FPX and e-wallets and 5–10 days for cards, so guest wording says so. The guest's page is built in the microsite repo.
 
 ### Check-out
 
