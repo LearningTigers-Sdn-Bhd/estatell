@@ -2,8 +2,6 @@
 
 namespace App\Data\BookingEngine;
 
-use App\Data\Shared\BadgeData;
-use App\Enums\Tone;
 use App\Models\Property;
 use App\Models\PropertyBookingSite;
 use App\Services\BookingEngine\BookingSiteChecklist;
@@ -19,9 +17,7 @@ class BookingWebsiteGeneralData extends Data
      */
     public function __construct(
         public string $mode,
-        public string $modeLabel,
         public bool $published,
-        public BadgeData $status,
         public ?string $publishedAt,
         public string $slug,
         public bool $slugLocked,
@@ -40,11 +36,7 @@ class BookingWebsiteGeneralData extends Data
 
         return new self(
             mode: $site->mode->value,
-            modeLabel: $site->mode->label(),
             published: $site->isPublished(),
-            status: $site->isPublished()
-                ? new BadgeData('published', __('Published'), Tone::Success)
-                : new BadgeData('not-published', __('Not published'), Tone::Neutral),
             publishedAt: $site->published_at?->toIso8601String(),
             slug: $slug,
             slugLocked: $site->isPublished(),

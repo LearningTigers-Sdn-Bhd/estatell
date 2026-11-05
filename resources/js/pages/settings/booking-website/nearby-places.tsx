@@ -12,10 +12,7 @@ export default function BookingWebsiteNearbyPlaces({
     return (
         <>
             <Head title="Booking website nearby places" />
-            <BookingWebsiteShell
-                description="Places guests may want to visit."
-                activeTab="nearby-places"
-            >
+            <BookingWebsiteShell activeTab="nearby-places">
                 <NearbyPlacesSection
                     places={nearbyPlaces}
                     suggestions={suggestions}

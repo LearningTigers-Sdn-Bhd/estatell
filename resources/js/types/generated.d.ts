@@ -242,9 +242,7 @@ albumPhotos: App.Data.Property.PropertyPhotoData[],
 };
 export type BookingWebsiteGeneralData = {
 mode: string,
-modeLabel: string,
 published: boolean,
-status: App.Data.Shared.BadgeData,
 publishedAt: string | null,
 slug: string,
 slugLocked: boolean,
@@ -254,6 +252,10 @@ googleMapsUrl: string | null,
 aboutText: string | null,
 checklist: App.Data.BookingEngine.BookingSiteChecklistItemData[],
 canPublish: boolean,
+};
+export type BookingWebsiteHeaderData = {
+status: App.Data.Shared.BadgeData,
+mode: App.Data.Shared.BadgeData,
 };
 export type BookingWebsiteRatePlanData = {
 id: number,

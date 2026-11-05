@@ -129,7 +129,6 @@ export default function BookingWebsiteApi({
         <>
             <Head title="Booking API" />
             <BookingWebsiteShell
-                description="Connect your own website to the booking engine. Your developer keeps the token on your web server."
                 activeTab="api"
                 asideLabel="Developer quick start"
                 aside={

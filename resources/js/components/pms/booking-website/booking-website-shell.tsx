@@ -1,5 +1,7 @@
 import {
+    CodeXml,
     FileText,
+    Globe,
     KeyRound,
     MapPin,
     Palette,
@@ -10,6 +12,7 @@ import {
 import { usePage } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 import { PageHeader } from '@/components/pms/page-header';
+import { StatusBadge } from '@/components/pms/status-badge';
 import { TabLinks } from '@/components/pms/tab-links';
 import { Workspace } from '@/components/pms/workspace';
 import type { TabLink } from '@/components/pms/tab-links';
@@ -35,18 +38,15 @@ export type BookingWebsiteTab =
 /**
  * Header and tab links of Settings › Booking website. Each tab is its own page and URL, and loads only its own data.
  * Design and SEO belong to Microsite mode, API to API only mode.
+ * The header is the same on every tab: title, description, then the publish status and mode badges.
  * The tab content sits in a page-scroll `Workspace`; a tab may add a right rail with `aside`.
  */
 export function BookingWebsiteShell({
-    description,
-    badge,
     activeTab,
     aside,
     asideLabel,
     children,
 }: {
-    description: string;
-    badge?: ReactNode;
     activeTab: BookingWebsiteTab;
     /** Right rail of the tab, for example the publish checklist or the Google preview. */
     aside?: ReactNode;
@@ -54,7 +54,8 @@ export function BookingWebsiteShell({
     asideLabel?: string;
     children: ReactNode;
 }) {
-    const apiOnly = usePage().props.bookingMode === 'api-only';
+    const { bookingMode, bookingWebsiteHeader: header } = usePage().props;
+    const apiOnly = bookingMode === 'api-only';
     const allTabs: (TabLink & { mode?: 'microsite' | 'api-only' })[] = [
         {
             value: 'general',
@@ -114,8 +115,18 @@ export function BookingWebsiteShell({
         <div className="flex flex-1 flex-col gap-6 p-4">
             <PageHeader
                 title="Booking website"
-                description={description}
-                badge={badge}
+                description="Let guests book and pay online."
+                meta={
+                    header && (
+                        <>
+                            <StatusBadge status={header.status} />
+                            <StatusBadge
+                                status={header.mode}
+                                icon={apiOnly ? CodeXml : Globe}
+                            />
+                        </>
+                    )
+                }
             />
             <TabLinks
                 tabs={tabs}

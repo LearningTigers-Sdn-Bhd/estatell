@@ -19,6 +19,14 @@ enum BookingEngineMode: string
     }
 
     /**
+     * Both modes are normal states, so neither is good or bad.
+     */
+    public function tone(): Tone
+    {
+        return Tone::Info;
+    }
+
+    /**
      * @return list<array{value: string, label: string}>
      */
     public static function options(): array

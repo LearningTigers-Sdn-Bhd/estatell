@@ -270,3 +270,23 @@ test('the tabs get the property\'s mode, so each mode shows only its own tabs', 
     $this->actingAs($owner)->get(route('settings.booking-website.general', $property))
         ->assertInertia(fn (Assert $page) => $page->where('bookingMode', 'microsite'));
 });
+
+test('every tab gets the header badges for the publish status and the mode', function () {
+    ['owner' => $owner, 'property' => $property, 'site' => $site] = apiOnlySetup();
+
+    $this->actingAs($owner)->get(route('settings.booking-website.rates', $property))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('bookingWebsiteHeader.status.value', 'published')
+            ->where('bookingWebsiteHeader.status.tone', 'success')
+            ->where('bookingWebsiteHeader.mode.value', 'api-only')
+            ->where('bookingWebsiteHeader.mode.label', 'API only')
+            ->where('bookingWebsiteHeader.mode.tone', 'info'));
+
+    $site->update(['mode' => BookingEngineMode::Microsite, 'published_at' => null]);
+
+    $this->actingAs($owner)->get(route('settings.booking-website.rates', $property))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('bookingWebsiteHeader.status.value', 'not-published')
+            ->where('bookingWebsiteHeader.status.tone', 'neutral')
+            ->where('bookingWebsiteHeader.mode.value', 'microsite'));
+});

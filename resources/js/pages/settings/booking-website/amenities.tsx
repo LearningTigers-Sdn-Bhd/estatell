@@ -15,10 +15,7 @@ export default function BookingWebsiteAmenities({
     return (
         <>
             <Head title="Booking website amenities" />
-            <BookingWebsiteShell
-                description="What your property offers guests."
-                activeTab="amenities"
-            >
+            <BookingWebsiteShell activeTab="amenities">
                 <AmenityPicker
                     headerClassName="ps-3 pt-2"
                     picker={amenities}

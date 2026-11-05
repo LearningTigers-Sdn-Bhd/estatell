@@ -5,7 +5,6 @@ import { BookingWebsiteShell } from '@/components/pms/booking-website/booking-we
 import { SectionHeader } from '@/components/pms/booking-website/section-header';
 import { SettingsInput } from '@/components/pms/settings/form-fields';
 import { SettingsSection } from '@/components/pms/settings-section';
-import { StatusBadge } from '@/components/pms/status-badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
     Field,
@@ -50,8 +49,6 @@ export default function BookingWebsiteGeneral({
         <>
             <Head title="Booking website" />
             <BookingWebsiteShell
-                description={`Let guests book and pay online. Mode: ${general.modeLabel}.`}
-                badge={<StatusBadge status={general.status} />}
                 activeTab="general"
                 asideLabel="Before you publish"
                 aside={

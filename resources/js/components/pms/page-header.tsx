@@ -9,18 +9,21 @@ type Props = {
     description?: ReactNode;
     back?: { href: NonNullable<InertiaLinkProps['href']>; label: string };
     badge?: ReactNode;
+    /** A row under the description, for example badges. */
+    meta?: ReactNode;
     actions?: ReactNode;
 };
 
 /**
  * Page title row: optional icon-only back link, then a column with the Geist heading and description,
- * then badge and actions.
+ * then badge and actions. `meta` adds a row under the description.
  */
 export function PageHeader({
     title,
     description,
     back,
     badge,
+    meta,
     actions,
 }: Props) {
     return (
@@ -49,6 +52,11 @@ export function PageHeader({
                         <p className="text-sm text-muted-foreground">
                             {description}
                         </p>
+                    )}
+                    {meta && (
+                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                            {meta}
+                        </div>
                     )}
                 </div>
             </div>

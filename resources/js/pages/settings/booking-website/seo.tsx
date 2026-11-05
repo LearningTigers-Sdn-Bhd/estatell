@@ -84,7 +84,6 @@ export default function BookingWebsiteSeo({
         <>
             <Head title="Booking website SEO" />
             <BookingWebsiteShell
-                description="What Google shows for your booking website."
                 activeTab="seo"
                 asideLabel="Google preview"
                 aside={

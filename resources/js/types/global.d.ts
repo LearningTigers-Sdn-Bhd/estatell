@@ -35,6 +35,7 @@ declare module '@inertiajs/core' {
             onboarding?: App.Data.Onboarding.OnboardingProgressData | null;
             csrfToken: string;
             bookingMode?: App.Enums.BookingEngineMode;
+            bookingWebsiteHeader?: App.Data.BookingEngine.BookingWebsiteHeaderData;
             [key: string]: unknown;
         };
     }

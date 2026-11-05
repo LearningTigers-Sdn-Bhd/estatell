@@ -24,7 +24,6 @@ export default function BookingWebsiteDesign({
         <>
             <Head title="Booking website design" />
             <BookingWebsiteShell
-                description="Pick how your booking website looks, then add your images."
                 activeTab="design"
                 asideLabel="Images"
                 aside={
