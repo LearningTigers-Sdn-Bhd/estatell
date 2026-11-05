@@ -200,5 +200,5 @@ Modules are numbered in build order. Each folder in `docs/` holds one module. Ea
 
 The build plan, as one commit per item, is in [checklist.md](checklist.md).
 
-| 28  | [API access](28-api-access/)         | Sanctum API tokens, kiosk pairing, the first kiosk check-in calls, idempotency and the `/api` error shape |
-| 29  | [E-Invoicing](29-einvoice/)          | LHDN MyInvois e-invoicing: folios, AR invoices, consolidation, credit notes, digital signing (feature flag) |
+| 28 | [API access](28-api-access/) | Sanctum API tokens, kiosk pairing, the first kiosk check-in calls, idempotency and the `/api` error shape |
+| 29 | [E-Invoicing](29-einvoice/) | LHDN MyInvois e-invoicing: folios, AR invoices, consolidation, credit notes, digital signing (feature flag) |
