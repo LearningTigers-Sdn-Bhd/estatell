@@ -47,7 +47,7 @@ Planned on 2026-11-03. Docs: [Booking engine](29-booking-engine/01-overview.md).
 - [x] `feat(booking-engine): add API only mode` — per-property tokens on an API only `BookingClient`, return addresses, the API tab and its quick start. Docs: [API only mode](29-booking-engine/09-api-only-mode.md).
 - [x] `feat(demo): open the booking engine API on the demo` — the fixed test token and Curlec test keys. The Coolify setup is left with the demo's own setup. Docs: [Test mode](29-booking-engine/09-api-only-mode.md#test-mode).
 - [ ] In the `estatell-docs` repo: write the booking API developer guide — the steps, the demo address, the test token, the test payment details and the page security rules. The **Full guide** button on the API tab links to it. Needs: open the booking engine API on the demo. Docs: [Test mode](29-booking-engine/09-api-only-mode.md#test-mode), [Page security](29-booking-engine/09-api-only-mode.md#page-security).
-- [ ] In the `estatell-booking-microsite` repo: scaffold Astro, the booking steps, the first template, SEO, the map and the page security rules. Docs: [Microsite](29-booking-engine/08-microsite.md).
+- [ ] In the `estatell-booking-microsite` repo: scaffold Astro, the booking steps, the first template, SEO, the map and the page security rules. Docs: [Microsite](29-booking-engine/08-microsite.md), [Local development](29-booking-engine/10-local-dev-microsite.md).
 
 ### 18 Front desk
 

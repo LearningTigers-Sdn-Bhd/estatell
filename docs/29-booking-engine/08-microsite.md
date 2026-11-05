@@ -6,7 +6,7 @@ Give a property a booking website with no build or deployment per property. It i
 
 ## Repo
 
-`estatell-booking-microsite`, a separate repo, created when this item is built. Astro with React parts, one Node app on Coolify, using on-demand rendering and the Node standalone adapter.
+`estatell-booking-microsite`, a separate repo, created when this item is built. Astro with React parts, one Node app on Coolify, using on-demand rendering and the Node standalone adapter. To run it against a local estatell, see [Local development](10-local-dev-microsite.md).
 
 ```
 estatell-booking-microsite/
