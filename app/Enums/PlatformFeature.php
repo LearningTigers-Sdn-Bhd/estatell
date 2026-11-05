@@ -6,6 +6,7 @@ use App\Features\AccountingIntegration;
 use App\Features\Boats;
 use App\Features\ChannelManager;
 use App\Features\DoorLocks;
+use App\Features\Kiosks;
 
 /**
  * Per-property features that platform admins turn on or off. Each case maps to a Pennant feature class.
@@ -16,6 +17,7 @@ enum PlatformFeature: string
     case Boats = 'boats';
     case AccountingIntegration = 'accounting-integration';
     case DoorLocks = 'door-locks';
+    case Kiosks = 'kiosks';
 
     public function label(): string
     {
@@ -24,6 +26,7 @@ enum PlatformFeature: string
             self::Boats => __('Boats'),
             self::AccountingIntegration => __('Accounting integration'),
             self::DoorLocks => __('Door locks'),
+            self::Kiosks => __('Kiosks'),
         };
     }
 
@@ -34,6 +37,7 @@ enum PlatformFeature: string
             self::Boats => __('Boat departures, fares and boat trips for island and jetty properties.'),
             self::AccountingIntegration => __('Push each closed business date to the property\'s accounting software.'),
             self::DoorLocks => __('Issue and remove TTLock door PINs for each stay.'),
+            self::Kiosks => __('Self check-in kiosks: pairing, settings and the kiosk API for this property.'),
         };
     }
 
@@ -47,6 +51,7 @@ enum PlatformFeature: string
             self::Boats => Boats::class,
             self::AccountingIntegration => AccountingIntegration::class,
             self::DoorLocks => DoorLocks::class,
+            self::Kiosks => Kiosks::class,
         };
     }
 }

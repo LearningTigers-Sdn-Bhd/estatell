@@ -1,10 +1,12 @@
 <?php
 
 use App\Enums\KioskKeyMode;
+use App\Features\Kiosks;
 use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
+use Laravel\Pennant\Feature;
 use Spatie\Activitylog\Models\Activity;
 
 function kioskSettingsOwner(): User
@@ -12,6 +14,7 @@ function kioskSettingsOwner(): User
     $owner = User::factory()->owner()->create();
     $owner->property->forceFill(['status' => 'live'])->save();
     PropertySetting::factory()->for($owner->property)->create();
+    Feature::for($owner->property)->activate(Kiosks::class);
 
     return $owner;
 }

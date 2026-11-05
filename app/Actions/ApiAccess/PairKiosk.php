@@ -2,13 +2,15 @@
 
 namespace App\Actions\ApiAccess;
 
+use App\Features\Kiosks;
 use App\Models\Kiosk;
 use App\Services\ApiAccess\ApiSecrets;
 use Illuminate\Support\Facades\DB;
+use Laravel\Pennant\Feature;
 
 /**
  * A kiosk trades its pairing code for a token. The code works once: the row is locked, checked and cleared in one
- * transaction. Returns null, writing nothing, for a wrong, used, expired or revoked code or a suspended property.
+ * transaction. Returns null, writing nothing, for a wrong, used, expired or revoked code, a suspended property or a property whose Kiosks feature is off.
  */
 class PairKiosk
 {
@@ -30,7 +32,8 @@ class PairKiosk
                 || $kiosk->revoked_at !== null
                 || $kiosk->pairing_expires_at === null
                 || $kiosk->pairing_expires_at->isPast()
-                || $kiosk->property->suspended_at !== null) {
+                || $kiosk->property->suspended_at !== null
+                || ! Feature::for($kiosk->property)->active(Kiosks::class)) {
                 return null;
             }
 

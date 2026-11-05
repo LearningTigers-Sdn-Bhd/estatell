@@ -34,7 +34,8 @@ Turn optional capabilities on or off per property, without code changes. The fir
 
 ## Current features
 
-| Feature          | Default | Unlocks                            |
-| ---------------- | ------- | ---------------------------------- |
-| `ChannelManager` | Off     | [Channels](../21-channels/) module |
-| `Boats`          | Off     | [Boats](../24-boats/) module       |
+| Feature          | Default | Unlocks                                                                                                                                                                                                                           |
+| ---------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ChannelManager` | Off     | [Channels](../21-channels/) module                                                                                                                                                                                                |
+| `Boats`          | Off     | [Boats](../24-boats/) module                                                                                                                                                                                                      |
+| `Kiosks`         | Off     | [Kiosks](../28-api-access/02-kiosks.md): the Kiosks settings page, kiosk pairing and the kiosk API. While off, the settings routes answer 404, a pairing code is refused and a paired kiosk's token gets `401 kiosk_unauthorized` |

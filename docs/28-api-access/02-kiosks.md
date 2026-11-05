@@ -6,6 +6,8 @@ A kiosk is a device of one property that calls the API with its own [token](01-a
 
 The kiosk contract is `docs/KIOSK_API.md` in the estatell-kiosk repo. This file does not change it.
 
+Kiosks are a [platform feature](../01-platform/03-feature-flags.md), off for every property until a platform admin turns on **Kiosks** for it. While it is off, the Kiosks settings answer 404, a pairing code is refused and a paired kiosk's token gets `401 kiosk_unauthorized`, so the machine shows "out of service". Turning it off keeps the kiosks and their history; turning it on again makes them work again.
+
 ## Scope
 
 | Now                                          | Later                                                   |

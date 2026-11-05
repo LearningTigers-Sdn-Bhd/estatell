@@ -1,9 +1,11 @@
 <?php
 
+use App\Features\Kiosks;
 use App\Models\ApiIdempotencyKey;
 use App\Models\Kiosk;
 use App\Models\Property;
 use Illuminate\Support\Facades\DB;
+use Laravel\Pennant\Feature;
 use Spatie\Activitylog\Models\Activity;
 
 /**
@@ -37,6 +39,7 @@ it('keeps a paired kiosk signed in, with the same id and history', function () {
     $activity = Activity::query()->forceCreate(['log_name' => 'default', 'description' => 'Kiosk added', 'subject_type' => 'App\\Models\\ApiToken', 'subject_id' => $id]);
 
     $migration->up();
+    Feature::for($property)->activate(Kiosks::class);
 
     $kiosk = Kiosk::query()->findOrFail($id);
     expect($kiosk->tokens()->sole()->abilities)->toBe(['kiosk:*'])
