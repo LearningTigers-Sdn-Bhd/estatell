@@ -50,7 +50,7 @@ class PostCharge
      * The last step closes the folio when it is an Open Unit folio of a CheckedOut unit at 0 (`CloseSettledUnitFolio`).
      * See docs/13-folio/02-posting-charges.md.
      */
-    public function __invoke(User $actor, ReservationUnit $unit, NewChargeData $data): PostingResult
+    public function __invoke(?User $actor, ReservationUnit $unit, NewChargeData $data): PostingResult
     {
         return DB::transaction(function () use ($actor, $unit, $data): PostingResult {
             $locked = ReservationUnit::query()->lockForUpdate()->findOrFail($unit->id);
@@ -72,7 +72,7 @@ class PostCharge
                 return PostingResult::refused(PostingResult::REFUSAL_NO_BUSINESS_DATE);
             }
 
-            if (($locked->property_id !== $actor->property_id && ! $actor->is_admin) || ! in_array($locked->status, [UnitStatus::CheckedIn, UnitStatus::CheckedOut], true)) {
+            if (($actor !== null && $locked->property_id !== $actor->property_id && ! $actor->is_admin) || ! in_array($locked->status, [UnitStatus::CheckedIn, UnitStatus::CheckedOut], true)) {
                 return PostingResult::refused(PostingResult::REFUSAL_UNIT_NOT_POSTABLE);
             }
 

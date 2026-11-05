@@ -64,6 +64,22 @@ pushedAt: string | null,
 canRetry: boolean,
 };
 }
+namespace ApiAccess {
+export type KioskData = {
+id: number,
+name: string,
+deviceName: string | null,
+status: App.Data.Shared.BadgeData,
+pairedAt: string | null,
+lastUsedAt: string | null,
+canRevoke: boolean,
+};
+export type KioskSettingsData = {
+keyMode: string,
+walkInEnabled: boolean,
+idleTimeoutSeconds: number,
+};
+}
 namespace Boats {
 export type BoatDepartureData = {
 id: number,
@@ -1363,6 +1379,21 @@ reason: string | null,
 export type HousekeepingStaffData = {
 id: number,
 name: string,
+};
+}
+namespace Kiosk {
+export type KioskIdentityData = {
+document: App.Data.Guests.IdentityDocumentInputData,
+fullName: string,
+nationalityCode: string | null,
+dateOfBirth: string | null,
+gender: App.Enums.Gender | null,
+};
+export type KioskWalkInData = {
+arrival: string,
+nights: number,
+adults: number,
+childAges: number[],
 };
 }
 namespace Meals {
@@ -3130,6 +3161,37 @@ export type AddUnitOptionsData = {
 roomTypes: App.Data.Reservations.RoomTypeOptionData[],
 ratePlans: App.Data.Reservations.RatePlanOptionData[],
 };
+export type ArrivalImportRowData = {
+line: number,
+resNo: string,
+groupNo: string,
+guest: string,
+room: string | null,
+roomType: string | null,
+arrival: string | null,
+arrivalTime: string | null,
+departure: string | null,
+departureTime: string | null,
+adults: number,
+children: number,
+total: string | null,
+deposit: string | null,
+company: string | null,
+source: string | null,
+boatIn: string | null,
+boatOut: string | null,
+notes: string | null,
+outcome: App.Enums.ArrivalImportOutcome,
+outcomeBadge: App.Data.Shared.BadgeData,
+problems: string[],
+roomTypeId: number | null,
+roomId: number | null,
+ratePlanId: number | null,
+companyId: number | null,
+bookingSourceId: number | null,
+boatInDepartureId: number | null,
+boatOutDepartureId: number | null,
+};
 export type BookingBackData = {
 href: string,
 label: string,
@@ -4137,6 +4199,7 @@ export type AgeBandPricing = 'free' | 'percent' | 'fixed';
 export type ArInvoiceStatus = 'open' | 'settled' | 'void';
 export type ArInvoiceType = 'invoice' | 'credit_note';
 export type AriChangeKind = 'availability' | 'rates' | 'restrictions';
+export type ArrivalImportOutcome = 'booking' | 'hold' | 'past_in_house' | 'past_checked_out' | 'skipped' | 'already_imported';
 export type AuditCheck = 'in_house_without_room' | 'arrival_not_checked_in' | 'departure_not_checked_out' | 'folio_open_after_check_out' | 'master_not_billed' | 'money_held_on_closed_booking' | 'carried_exception';
 export type AuditExceptionType = 'missed_arrival' | 'overdue_departure' | 'room_charge' | 'add_on' | 'unexpected_error';
 export type AuditFix = 'assign' | 'no-show' | 'extend';
@@ -4200,6 +4263,8 @@ export type IdentityDocumentType = 'mykad' | 'passport' | 'other';
 export type ImpersonationReason = 'onboarding_help' | 'support' | 'setup_check';
 export type InclusionEnd = 'departure_day' | 'night_before_departure';
 export type InclusionStart = 'arrival_day' | 'day_after_arrival';
+export type KioskKeyMode = 'pin' | 'card' | 'both';
+export type KioskStatus = 'awaiting_pairing' | 'paired' | 'code_expired' | 'revoked';
 export type Locale = 'en' | 'ms';
 export type MailStatus = 'sent' | 'delivered' | 'bounced' | 'complained' | 'failed' | 'suppressed';
 export type ManualFolioReason = 'paper_folio' | 'missed_charge' | 'missed_payment' | 'old_system' | 'fix_mistake' | 'other';

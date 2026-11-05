@@ -2,6 +2,7 @@
 
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Accounting\AccountingSettingsController;
+use App\Http\Controllers\ApiAccess\KioskController;
 use App\Http\Controllers\Boats\BoatDepartureController;
 use App\Http\Controllers\Boats\BoatFareController;
 use App\Http\Controllers\Catalogues\ChargeItemController;
@@ -218,6 +219,13 @@ Route::prefix('settings')->name('settings.')->group(function () {
     Route::prefix('ota-lists')->name('ota-lists.')->middleware('can:'.PermissionEnum::SettingsOtaLists->value)->group(function () {
         Route::get('/', [OtaListSettingsController::class, 'edit'])->name('edit');
         Route::put('/', [OtaListSettingsController::class, 'update'])->name('update');
+    });
+
+    Route::prefix('kiosks')->name('kiosks.')->middleware('can:'.PermissionEnum::SettingsManage->value)->scopeBindings()->group(function () {
+        Route::get('/', [KioskController::class, 'index'])->name('index');
+        Route::post('/', [KioskController::class, 'store'])->name('store');
+        Route::put('settings', [KioskController::class, 'update'])->name('update');
+        Route::post('{kiosk}/revoke', [KioskController::class, 'revoke'])->name('revoke');
     });
 
     Route::prefix('booking-sources')->name('booking-sources.')->middleware('can:'.PermissionEnum::SettingsManage->value)->scopeBindings()->group(function () {

@@ -83,7 +83,7 @@ gray, icon          blue, letter           amber, icon
 | [List view](06-reservation-page.md#list-view) Source column | The badge, then the source name. OTA bookings add `external_reference` under the name                       |
 | Settings → Booking sources                                  | The badge before the name in each row, and a live preview in the Dialog                                     |
 
-The reservation page header and summary card keep the source name as text.
+The reservation page header keeps the source name as text.
 
 ## Defaults
 

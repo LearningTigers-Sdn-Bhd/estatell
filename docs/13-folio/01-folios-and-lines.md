@@ -55,7 +55,7 @@ erDiagram
 - `folio_lines` has no `property_id` and no `updated_at`. The folio scopes it.
 - A database trigger rejects every `UPDATE` and `DELETE` on `folio_lines`, so immutability does not depend on code discipline.
 - `payer_company_id` has no foreign key until module 15 adds companies.
-- CHECK constraints: not both payers; a Unit folio has a `reservation_unit_id` and a Master folio has none; `closed_at` and `closed_by` are set together; `quantity` is at least 1; `source_type` and `source_id` are set together.
+- CHECK constraints: not both payers; a Unit folio has a `reservation_unit_id` and a Master folio has none; `closed_by` requires `closed_at`, while automated closure can set `closed_at` without a staff actor (kiosk identity is recorded in the activity log); `quantity` is at least 1; `source_type` and `source_id` are set together.
 - `unit_add_ons.folio_line_id` (nullable, foreign key to `folio_lines`) marks a posted add-on.
 - `MergeGuests` moves the folios a merged guest pays through `RepointGuestFolios`. `AnonymizeGuest` refuses a guest who pays a folio with a balance other than 0 (voided folios are skipped).
 

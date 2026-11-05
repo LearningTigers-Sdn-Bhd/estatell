@@ -48,7 +48,7 @@ Target: about 81 tables including framework and package tables, down from 160.
 | Choice                                           | Reason                                                                                                                                                                                                                                                                                                                                                                                           |
 | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Laravel 13**                                   | Native backed enums (casts, `Rule::enum()`, route binding, `$request->enum()`), invokable classes for Actions (`make:class --invokable`), container attributes (`#[Bind]`, `#[Singleton]`, `#[Scoped]`, `#[CurrentUser]`), job batching, unique jobs, `WithoutOverlapping`, the scheduler and first-party packages (Fortify, Pennant, Boost). Most PMS needs are covered without extra packages. |
-| **Inertia 3 + React 19**                         | A single-page app without a separate API. Server routing, validation and authorization stay in Laravel. Inertia 3 adds polling, layout props and optimistic updates.                                                                                                                                                                                                                             |
+| **Inertia 3 + React 19**                         | A single-page app with no API for staff pages. Devices and integrations use a small JSON API under `/api` ([API access](28-api-access/)). Server routing, validation and authorization stay in Laravel. Inertia 3 adds polling, layout props and optimistic updates.                                                                                                                             |
 | **TypeScript + Wayfinder**                       | Typed route functions generated from Laravel routes. No hardcoded URLs in the frontend.                                                                                                                                                                                                                                                                                                          |
 | **spatie/laravel-data + typescript-transformer** | One typed data object per payload. TypeScript types for props and enums are generated, so the frontend and backend cannot drift.                                                                                                                                                                                                                                                                 |
 | **Tailwind 4 + shadcn/ui (Nova style, Base UI)** | Accessible, composable UI components that live in the repository and can be changed freely. Nova is compact, suited to dense PMS screens.                                                                                                                                                                                                                                                        |
@@ -200,33 +200,5 @@ Modules are numbered in build order. Each folder in `docs/` holds one module. Ea
 
 The build plan, as one commit per item, is in [checklist.md](checklist.md).
 
-| #   | Module                               | Summary                                                                                                     |
-| --- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
-| 01  | [Platform](01-platform/)             | Platform admins, platform settings, feature flags, impersonation, demo properties                           |
-| 02  | [Property](02-property/)             | Properties, settings, defaults seeding, age groups, printing settings                                       |
-| 03  | [Staff](03-staff/)                   | Staff invitations, roles and permissions                                                                    |
-| 04  | [Notifications](04-notifications/)   | Notification types and opt-out                                                                              |
-| 05  | [Rooms](05-rooms/)                   | Room types, rooms, beds, groups, blocks                                                                     |
-| 06  | [Catalogues](06-catalogues/)         | Transaction codes, charge items, taxes, payment methods, discounts, room revenue                            |
-| 07  | [Meals](07-meals/)                   | Meal periods and entitlements                                                                               |
-| 08  | [Rates](08-rates/)                   | Rate plans, daily rates, pricing strategies, derived plans, long-stay discounts                             |
-| 09  | [Packages](09-packages/)             | Inclusions and package prices                                                                               |
-| 10  | [Availability](10-availability/)     | Availability calculation                                                                                    |
-| 11  | [Guests](11-guests/)                 | Guest CRM, identity documents, privacy                                                                      |
-| 12  | [Reservations](12-reservations/)     | Shape, groups, beds, add-ons, booking form, reservation page, booking summary, booking sources              |
-| 13  | [Folio](13-folio/)                   | Folios, ledger lines, routing, posting, folio invoice                                                       |
-| 14  | [Payments](14-payments/)             | Payments and refunds                                                                                        |
-| 15  | [City ledger](15-city-ledger/)       | Companies, invoices, payments received, statements, aging                                                   |
-| 16  | [Registration](16-registration/)     | Registration cards and terms                                                                                |
-| 17  | [Onboarding](17-onboarding/)         | Account creation, partners, wizard, go-live and approval                                                    |
-| 18  | [Front desk](18-front-desk/)         | Check-in, check-out, assignment, dashboard, group check-out                                                 |
-| 19  | [Housekeeping](19-housekeeping/)     | Room status board, printed work sheet and property column layout                                            |
-| 20  | [Night audit](20-night-audit/)       | Business dates, readiness, audit run                                                                        |
-| 21  | [Channels](21-channels/)             | Channex connection, mapping, sync                                                                           |
-| 22  | [Reports](22-reports/)               | Core reports, column layouts, row export (PDF, CSV, Excel)                                                  |
-| 23  | [Company portal](23-company-portal/) | Company users book and view their own stays across linked properties                                        |
-| 24  | [Boats](24-boats/)                   | Boat departures, fares, trips per room and the boat manifest (feature flag)                                 |
-| 25  | [Guest requests](25-guest-requests/) | Housekeeping, maintenance and complaint requests, and their resolution times                                |
-| 26  | [Accounting](26-accounting/)         | Daily journal of each closed business date pushed to the accounting software (feature flag)                 |
-| 27  | [Door locks](27-door-locks/)         | TTLock PINs per stay: generated or custom, issued at check-in, removed at check-out (feature flag)          |
-| 28  | [E-Invoicing](28-einvoice/)          | LHDN MyInvois e-invoicing: folios, AR invoices, consolidation, credit notes, digital signing (feature flag) |
+| 28  | [API access](28-api-access/)         | Sanctum API tokens, kiosk pairing, the first kiosk check-in calls, idempotency and the `/api` error shape |
+| 29  | [E-Invoicing](29-einvoice/)          | LHDN MyInvois e-invoicing: folios, AR invoices, consolidation, credit notes, digital signing (feature flag) |

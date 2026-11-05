@@ -31,7 +31,7 @@ class CloseFolio
      * an empty folio without using a number of the invoice sequence; a later close with lines issues one. Ledger lines are never touched. Permissions are checked by the route.
      * See docs/13-folio/01-folios-and-lines.md.
      */
-    public function __invoke(User $actor, Folio $folio, bool $issueInvoiceNumber = true): FolioStatusResult
+    public function __invoke(?User $actor, Folio $folio, bool $issueInvoiceNumber = true): FolioStatusResult
     {
         return DB::transaction(function () use ($actor, $folio, $issueInvoiceNumber): FolioStatusResult {
             $current = Folio::query()->lockForUpdate()->findOrFail($folio->id);
@@ -59,7 +59,7 @@ class CloseFolio
             $current->forceFill([
                 'status' => FolioStatus::Closed,
                 'closed_at' => now(),
-                'closed_by' => $actor->id,
+                'closed_by' => $actor?->id,
                 'invoice_number' => $current->invoice_number ?? ($issueInvoiceNumber ? ($this->nextDocumentNumber)($current->property, DocumentType::Invoice)->reference : null),
             ])->save();
 

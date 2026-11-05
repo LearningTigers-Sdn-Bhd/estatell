@@ -6,6 +6,7 @@ use App\Enums\AccountingDocumentStatus;
 use App\Enums\AccountingSetupStatus;
 use App\Enums\AccountingSyncStatus;
 use App\Enums\ArInvoiceStatus;
+use App\Enums\ArrivalImportOutcome;
 use App\Enums\AuditStatus;
 use App\Enums\ChannelAlertEvent;
 use App\Enums\ChannelConnectionStatus;
@@ -39,6 +40,11 @@ class BadgeData extends Data
         public string $label,
         public Tone $tone,
     ) {}
+
+    public static function fromArrivalImportOutcome(ArrivalImportOutcome $outcome): self
+    {
+        return new self($outcome->value, $outcome->label(), $outcome->tone());
+    }
 
     public static function fromRegistrationCardStatus(RegistrationCardStatus $status): self
     {
