@@ -23,7 +23,7 @@ class BookingEngineModeData extends Data
     public static function forProperty(Property $property): self
     {
         return new self(
-            mode: $property->bookingSite()->first()?->mode ?? BookingEngineMode::Microsite,
+            mode: $property->bookingSite()->first()->mode ?? BookingEngineMode::Microsite,
             options: BookingEngineMode::options(),
         );
     }
