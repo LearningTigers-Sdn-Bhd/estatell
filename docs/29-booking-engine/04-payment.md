@@ -40,12 +40,11 @@ The checkout is Curlec's form, opened by Curlec's script on the microsite or the
 
 ## Build order
 
-The payment item covers payment and confirmation only. Two steps in this doc are added by later items. Both must ship before real money is collected, along with Commission fees.
+The payment item covers payment and confirmation only. One step in this doc is added by a later item, which must ship before real money is collected, along with Commission fees.
 
-| Step                                      | Added by                   | Until then                                                      |
-| ----------------------------------------- | -------------------------- | --------------------------------------------------------------- |
-| Automatic refund when the rooms are taken | `refund online payments`   | See [Paid after the hold expired](#paid-after-the-hold-expired) |
-| Saved cancellation terms                  | `let guests cancel online` | Nothing saved, so the live policy applies                       |
+| Step                     | Added by                   | Until then                                |
+| ------------------------ | -------------------------- | ----------------------------------------- |
+| Saved cancellation terms | `let guests cancel online` | Nothing saved, so the live policy applies |
 
 ## Data model
 
@@ -55,23 +54,25 @@ gateway_payments   id, property_id, booking_hold_id, gateway_account,
                    amount, status (GatewayPaymentStatus), gateway_payload (jsonb, nullable),
                    timestamps
 gateway_refunds    id, property_id, gateway_payment_id, gateway_refund_id (unique, nullable),
-                   amount, status (GatewayRefundStatus), reason (nullable),
-                   failure_reason (nullable), gateway_payload (jsonb, nullable),
-                   timestamps
+                   idempotency_key (unique per property), amount, status (GatewayRefundStatus),
+                   attempts, reason (nullable), failure_reason (nullable),
+                   requested_by (nullable), gateway_payload (jsonb, nullable), timestamps
+gateway_refund_parts
+                   id, gateway_refund_id, payment_id, amount, timestamps
 gateway_events     id, gateway_account, event_id (unique), event_type, payload (jsonb),
                    processed_at (nullable), timestamps
 ```
 
-- `gateway_refunds` comes with the refund item. The payment item adds the other two tables.
+- `gateway_refund_parts` names the `payments` rows a refund gives back, so one Curlec refund for a group costs one fee. A late payment whose rooms are taken has no parts, because it has no `payments` row.
 - `booking_hold_id` is unique on `gateway_payments`. A hold has one order, and a guest who retries gets the same one, so they cannot pay two orders.
 - The raw payloads use the jsonb allowlist for gateway payloads.
 - `gateway_account` records which Curlec account took the payment, so a later account move can still refund old payments.
 - **`payments` stays as it is.** A trigger rejects every UPDATE on it, so a row cannot go from Pending to Completed. `gateway_payments` tracks the attempt, and the `payments` row is written once the money is confirmed. `PaymentStatus::Pending`, `Failed` and the `gateway_payload` note in [Payments](../14-payments/01-payments-and-refunds.md) are not needed for this.
-- `GatewayPaymentStatus`: Created, Paid, Failed. `GatewayRefundStatus`: Pending, Processed, Failed.
+- `GatewayPaymentStatus`: Created, Paid, Failed. `GatewayRefundStatus`: Pending, Processed, Failed. A Failed refund goes back to Pending on a retry, with a new attempt.
 
 ## Gateway code
 
-- One class, `CurlecGateway` (`app/Services/Payments/`), with `createOrder`, `verifySignature` and `verifyWebhook`. The refund item adds `refund`.
+- One class, `CurlecGateway` (`app/Services/Payments/`), with `createOrder`, `refund`, `verifySignature` and `verifyWebhook`.
 - It is built from the wastays `razorpay` adapter's flow, using the Razorpay API that Curlec documents. There is no multi-gateway registry.
 - Keys are in `config/services.php`: `CURLEC_KEY_ID`, `CURLEC_KEY_SECRET`, `CURLEC_WEBHOOK_SECRET`. `CURLEC_ACCOUNT` names the account on each row, and defaults to `primary`.
 - Order notes hold `app: estatell` and the hold token only. Guest identity data never goes to the gateway.
@@ -109,11 +110,11 @@ A failed payment or a bad signature returns as `failed`. The page reads the real
 
 If the queue itself is down, the webhook answers 500 so Curlec delivers the event again.
 
-| Event                               | Does                                                                                                                     |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `order.paid`                        | Marks the hold Paid, then [confirms](#confirmation)                                                                      |
-| `payment.failed`                    | Records it. The guest can retry until the hold expires                                                                   |
-| `refund.processed`, `refund.failed` | See [Cancel and refund](05-cancel-and-refund.md#refund-status). Marked processed and ignored until the refund item ships |
+| Event                               | Does                                                           |
+| ----------------------------------- | -------------------------------------------------------------- |
+| `order.paid`                        | Marks the hold Paid, then [confirms](#confirmation)            |
+| `payment.failed`                    | Records it. The guest can retry until the hold expires         |
+| `refund.processed`, `refund.failed` | See [Cancel and refund](05-cancel-and-refund.md#refund-status) |
 
 ## Confirmation
 
@@ -143,7 +144,7 @@ A bank can confirm late. When `order.paid` arrives for an Expired hold, the room
 | Still free | Confirm as normal                                                                   |
 | Taken      | Refund the whole payment automatically, email the guest, and alert staff and admins |
 
-Until the refund item ships, the Taken case marks the `gateway_payments` row Paid and alerts admins (`OnlinePaymentNeedsAttention`), who refund from the Curlec dashboard. The hold stays Expired, because a Paid hold counts in availability.
+In the Taken case, the `gateway_payments` row becomes Paid and `RequestOnlineRefund` runs with no actor and no parts. A repeat of the event refunds and tells nobody again. The guest gets `LateOnlinePaymentRefunded`, staff with `payment.refund` get `OnlineRefundNeedsAttention`, and admins get `OnlinePaymentNeedsAttention`. The hold stays Expired, because a Paid hold counts in availability. If this refund fails, admins handle it in the Curlec dashboard, because there is no folio to retry from.
 
 ## On the folio
 

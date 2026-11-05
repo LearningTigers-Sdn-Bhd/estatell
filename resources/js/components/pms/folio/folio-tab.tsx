@@ -52,6 +52,7 @@ import { RoutingRulesSheet } from '@/components/pms/folio/routing-rules-sheet';
 import { ThirdPartyFolioDialog } from '@/components/pms/folio/third-party-folio-dialog';
 import { VoidInvoiceAndReopenDialog } from '@/components/pms/folio/void-invoice-and-reopen-dialog';
 import { MoneyText } from '@/components/pms/money-text';
+import { OnlineRefundNotices } from '@/components/pms/folio/online-refund-notices';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Alert, AlertAction, AlertDescription } from '@/components/ui/alert';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -536,6 +537,12 @@ export function FolioTab({
                             )}
                         </div>
                     </div>
+                    <OnlineRefundNotices
+                        reservationId={reservationId}
+                        folio={folio}
+                        currency={currency}
+                        canRetry={canCorrectMoney}
+                    />
                     {folio.closedNotice && (
                         <Alert className="flex flex-wrap items-center gap-x-2 gap-y-2 has-data-[slot=alert-action]:pr-2.5 *:[svg]:translate-y-0">
                             <Info />

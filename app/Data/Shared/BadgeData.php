@@ -16,6 +16,7 @@ use App\Enums\ChargeStatus;
 use App\Enums\CompanyStatus;
 use App\Enums\FolioRowTag;
 use App\Enums\FolioStatus;
+use App\Enums\GatewayRefundStatus;
 use App\Enums\MailStatus;
 use App\Enums\OtaCredentialStatus;
 use App\Enums\PartnerStatus;
@@ -40,6 +41,11 @@ class BadgeData extends Data
         public string $label,
         public Tone $tone,
     ) {}
+
+    public static function fromGatewayRefundStatus(GatewayRefundStatus $status): self
+    {
+        return new self($status->value, $status->label(), $status->tone());
+    }
 
     public static function fromArrivalImportOutcome(ArrivalImportOutcome $outcome): self
     {

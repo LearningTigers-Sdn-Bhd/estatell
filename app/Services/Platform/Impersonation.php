@@ -64,6 +64,7 @@ class Impersonation
         'reservations.folios.payments.refunds.store',
         'reservations.folios.payments.void',
         'reservations.folios.refund-credit.store',
+        'reservations.folios.online-refunds.retry',
         'reservations.folios.void-invoice-and-reopen',
         'registration.void',
         'finance.city-ledger.*.void',

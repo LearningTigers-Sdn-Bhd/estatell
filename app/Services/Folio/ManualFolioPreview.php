@@ -31,6 +31,7 @@ use App\Models\User;
 use App\Services\Catalogues\TaxCalculator;
 use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Payments\AvailablePaymentMethod;
+use App\Services\Payments\OnlineRefundLedger;
 use App\Services\Payments\PaymentQuote;
 use App\Services\Payments\PaymentRefusals;
 use App\Services\Reservations\UnitNationality;
@@ -61,6 +62,7 @@ class ManualFolioPreview
         private IncomingScheduledCharges $incomingScheduledCharges,
         private MoveChargesPreview $labels,
         private FolioRouter $folioRouter,
+        private OnlineRefundLedger $onlineRefundLedger,
     ) {}
 
     /**
@@ -389,8 +391,14 @@ class ManualFolioPreview
             return $this->refused($row, $zero, $this->paymentRefusals->errors(PaymentResult::REFUSAL_AMOUNT_INVALID));
         }
 
+        if ($payment->paymentMethod->type === PaymentMethodType::Online && blank($row->reference)) {
+            return $this->refused($row, $zero, $this->paymentRefusals->errors(PaymentResult::REFUSAL_REFERENCE_REQUIRED));
+        }
+
         $amount = Money::of($row->amount, $context['currency']);
-        $refunded = Money::of((string) ($payment->refunds()->sum('amount') ?: '0'), $context['currency'])->plus($context['refunded'][$payment->id] ?? $zero);
+        $refunded = Money::of((string) ($payment->refunds()->sum('amount') ?: '0'), $context['currency'])
+            ->plus($context['refunded'][$payment->id] ?? $zero)
+            ->plus(Money::of((string) $this->onlineRefundLedger->pendingOnPayment($payment), $context['currency']));
 
         if ($amount->isGreaterThan(Money::of($payment->amount, $context['currency'])->minus($refunded))) {
             return $this->refused($row, $zero, $this->paymentRefusals->errors(PaymentResult::REFUSAL_REFUND_EXCEEDS_PAYMENT));

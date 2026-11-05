@@ -101,6 +101,14 @@ class Payment extends Model
     }
 
     /**
+     * @return HasMany<GatewayRefundPart, $this>
+     */
+    public function gatewayRefundParts(): HasMany
+    {
+        return $this->hasMany(GatewayRefundPart::class);
+    }
+
+    /**
      * @return BelongsTo<FolioLine, $this>
      */
     public function folioLine(): BelongsTo

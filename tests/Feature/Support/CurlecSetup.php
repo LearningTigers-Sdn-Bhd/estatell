@@ -12,6 +12,7 @@ use App\Models\GatewayPayment;
 use App\Models\PaymentMethod;
 use App\Models\TransactionCode;
 use App\Services\Payments\CurlecGateway;
+use App\Services\Payments\CurlecRefundRefused;
 use App\Services\Payments\CurlecRequestFailed;
 use Database\Factories\BookingSourceFactory;
 use Illuminate\Testing\TestResponse;
@@ -28,7 +29,16 @@ class FakeCurlecGateway extends CurlecGateway
     /** @var list<array{amount: int, currency: string, receipt: string, token: string}> */
     public array $orders = [];
 
+    /** @var list<array{paymentId: string, amount: int, receipt: string, refundId: int}> */
+    public array $refunds = [];
+
     public bool $failing = false;
+
+    /** Curlec refuses every refund with this message. */
+    public ?string $refusing = null;
+
+    /** False acts as if Curlec answered a repeated receipt, so the row gets its ID from the webhook. */
+    public bool $answersWithId = true;
 
     public function createOrder(int $amountInSubunits, string $currency, string $receipt, string $holdToken): string
     {
@@ -39,6 +49,21 @@ class FakeCurlecGateway extends CurlecGateway
         $this->orders[] = ['amount' => $amountInSubunits, 'currency' => $currency, 'receipt' => $receipt, 'token' => $holdToken];
 
         return 'order_'.count($this->orders);
+    }
+
+    public function refund(string $paymentId, int $amountInSubunits, string $receipt, int $refundId): ?string
+    {
+        if ($this->failing) {
+            throw new CurlecRequestFailed('Curlec could not be reached.');
+        }
+
+        if ($this->refusing !== null) {
+            throw new CurlecRefundRefused($this->refusing);
+        }
+
+        $this->refunds[] = ['paymentId' => $paymentId, 'amount' => $amountInSubunits, 'receipt' => $receipt, 'refundId' => $refundId];
+
+        return $this->answersWithId ? 'rfnd_'.count($this->refunds) : null;
     }
 }
 
@@ -57,6 +82,7 @@ function curlecSetup(): array
     BusinessDate::factory()->create(['property_id' => $property->id]);
     BookingSourceFactory::systemFor($property->id, BookingSourceType::BookingEngine);
     $code = TransactionCode::factory()->for($property)->system(SystemTransactionCode::OnlinePayment)->create();
+    TransactionCode::factory()->for($property)->system(SystemTransactionCode::Refund)->create();
     $online = PaymentMethod::factory()->create(['property_id' => $property->id, 'transaction_code_id' => $code->id, 'name' => 'Online', 'type' => PaymentMethodType::Online, 'requires_reference' => false]);
     $gateway = new FakeCurlecGateway;
     app()->instance(CurlecGateway::class, $gateway);

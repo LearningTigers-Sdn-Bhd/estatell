@@ -1095,6 +1095,7 @@ oldSystemTitle: string | null,
 oldSystemTotal: string | null,
 refundCredit: string | null,
 canRefundOtherMethod: boolean,
+onlineRefunds: App.Data.Folio.OnlineRefundData[],
 };
 export type FolioDiscountOptionData = {
 id: number,
@@ -1379,6 +1380,13 @@ label: string,
 legacyNumber: string | null,
 rows: App.Data.Folio.OldFolioRowData[],
 openingBalance: string | null,
+};
+export type OnlineRefundData = {
+id: number,
+amount: string,
+status: App.Data.Shared.BadgeData,
+failureReason: string | null,
+canRetry: boolean,
 };
 export type PostFolioOptionData = {
 id: number | null,
@@ -4611,6 +4619,7 @@ export type FolioRowTag = 'scheduled' | 'overridden' | 'reversed' | 'reversal' |
 export type FolioStatus = 'open' | 'closed' | 'voided';
 export type FolioType = 'master' | 'unit' | 'third_party';
 export type GatewayPaymentStatus = 'created' | 'paid' | 'failed';
+export type GatewayRefundStatus = 'pending' | 'processed' | 'failed';
 export type Gender = 'male' | 'female';
 export type GoLiveDecision = 'approved' | 'rejected' | 'withdrawn';
 export type GuestBulkAction = 'mark-vip' | 'unmark-vip' | 'blacklist' | 'unblacklist' | 'anonymize';
@@ -4634,7 +4643,7 @@ export type MissedArrivalPolicy = 'mark_no_show' | 'keep_as_late_arrival';
 export type NavigationContext = 'front-desk' | 'finance' | 'reports' | 'settings';
 export type NearbyPlaceStatus = 'pending' | 'approved' | 'rejected';
 export type NotificationChannel = 'mail' | 'database';
-export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions' | 'night_audit_failed' | 'registration_card_link' | 'onboarding_reminder' | 'dorm_strategy_changed' | 'support_access_used' | 'go_live_approved' | 'go_live_rejected' | 'portal_booking_created' | 'portal_booking_cancelled' | 'portal_cancellation_requested' | 'channel_booking_received' | 'channel_booking_cancelled' | 'channel_removal_blocked' | 'payment_slip_received' | 'nearby_place_removed' | 'online_booking_received';
+export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions' | 'night_audit_failed' | 'registration_card_link' | 'onboarding_reminder' | 'dorm_strategy_changed' | 'support_access_used' | 'go_live_approved' | 'go_live_rejected' | 'portal_booking_created' | 'portal_booking_cancelled' | 'portal_cancellation_requested' | 'channel_booking_received' | 'channel_booking_cancelled' | 'channel_removal_blocked' | 'payment_slip_received' | 'nearby_place_removed' | 'online_booking_received' | 'online_refund_needs_attention';
 export type OldFolioMode = 'one_amount' | 'copy_line_by_line';
 export type OldFolioRowKind = 'room' | 'charge' | 'tax' | 'payment';
 export type OnboardingPhase = 'property' | 'rooms' | 'finance' | 'prices' | 'channels' | 'review';

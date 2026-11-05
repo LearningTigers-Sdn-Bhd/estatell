@@ -7,11 +7,14 @@ use App\Actions\BookingEngine\MarkBookingHoldPaid;
 use App\Enums\GatewayPaymentStatus;
 use App\Models\GatewayEvent;
 use App\Models\GatewayPayment;
+use App\Models\GatewayRefund;
+use App\Notifications\LateOnlinePaymentRefunded;
+use Illuminate\Support\Facades\Notification;
 
 /**
  * Act on one saved Curlec event. An order estatell did not create, and any event it does not use, is marked processed and
- * ignored. Returns false when the booking could not be made: the event stays unprocessed for the queue to retry, and
- * admins are alerted on the first attempt only. See docs/29-booking-engine/04-payment.md#webhook.
+ * ignored. Returns false when the booking or a refund's folio line could not be made: the event stays unprocessed for the
+ * queue to retry, and admins are alerted on the first attempt only. See docs/29-booking-engine/04-payment.md#webhook.
  */
 class ProcessCurlecEvent
 {
@@ -19,6 +22,10 @@ class ProcessCurlecEvent
         private MarkBookingHoldPaid $markBookingHoldPaid,
         private ConfirmBookingHold $confirmBookingHold,
         private AlertOnlinePaymentProblem $alert,
+        private AlertOnlineRefundProblem $alertRefund,
+        private RequestOnlineRefund $requestOnlineRefund,
+        private CompleteOnlineRefund $completeOnlineRefund,
+        private FailOnlineRefund $failOnlineRefund,
     ) {}
 
     public function __invoke(GatewayEvent $event, bool $isFirstAttempt = true): bool
@@ -30,6 +37,8 @@ class ProcessCurlecEvent
         $isDone = match ($event->event_type) {
             'order.paid' => $this->orderPaid($event, $isFirstAttempt),
             'payment.failed' => $this->paymentFailed($event),
+            'refund.processed' => $this->refundProcessed($event, $isFirstAttempt),
+            'refund.failed' => $this->refundFailed($event),
             default => true,
         };
 
@@ -53,7 +62,7 @@ class ProcessCurlecEvent
         $hold = $payment->hold;
 
         if (! ($this->markBookingHoldPaid)($hold)) {
-            ($this->alert)($payment, __('The guest paid after the hold expired and the rooms are taken. No booking was made. Refund the whole payment from the Curlec dashboard.'));
+            $this->refundLatePayment($payment->refresh());
 
             return true;
         }
@@ -83,6 +92,123 @@ class ProcessCurlecEvent
         }
 
         return true;
+    }
+
+    /**
+     * The rooms of a late payment are taken: give all of it back, and tell the guest, staff and admins once.
+     */
+    private function refundLatePayment(GatewayPayment $payment): void
+    {
+        $result = ($this->requestOnlineRefund)(null, $payment, [], $payment->amount, "late:{$payment->order_id}", __('Paid after the hold expired and the rooms are taken'));
+
+        if ($result->isRefused()) {
+            ($this->alert)($payment, __('The guest paid after the hold expired and the rooms are taken. No booking was made, and the refund was refused (:code). Refund the whole payment from the Curlec dashboard.', ['code' => $result->refusal]));
+
+            return;
+        }
+
+        if ($result->replayed || $result->refund === null) {
+            return;
+        }
+
+        ($this->alertRefund)($result->refund, __('A guest paid :amount after the hold expired and the rooms are taken. No booking was made, and the whole payment is being refunded automatically.', ['amount' => $payment->amount]));
+
+        $hold = $payment->hold;
+        $property = $payment->property()->with('settings')->firstOrFail();
+
+        if (filled($hold->guest_email)) {
+            Notification::route('mail', (string) $hold->guest_email)->notify(new LateOnlinePaymentRefunded(
+                $property->name,
+                (string) $hold->guest_name,
+                $property->settings->currency->getCurrencyCode().' '.$payment->amount,
+            ));
+        }
+    }
+
+    /**
+     * Curlec gave the money back. A refund with no row is left alone unless it is on a payment estatell took, which means it
+     * was made outside estatell, so admins are told to record it. Auto-refunds of uncaptured payments never have a row.
+     */
+    private function refundProcessed(GatewayEvent $event, bool $isFirstAttempt): bool
+    {
+        $entity = data_get($event->payload, 'payload.refund.entity');
+        $curlecRefundId = data_get($entity, 'id');
+        $refund = $this->refund($event);
+
+        if ($refund === null) {
+            $this->alertIfMadeOutsideEstatell($event);
+
+            return true;
+        }
+
+        if (! is_string($curlecRefundId) || $curlecRefundId === '') {
+            return true;
+        }
+
+        $refusal = ($this->completeOnlineRefund)($refund, $curlecRefundId, is_array($entity) ? $entity : null);
+
+        if ($refusal === null) {
+            return true;
+        }
+
+        if ($isFirstAttempt) {
+            ($this->alertRefund)($refund, __('Curlec refunded :amount but the folio refused the line (:code). It will be tried again.', ['amount' => $refund->amount, 'code' => $refusal]));
+        }
+
+        return false;
+    }
+
+    private function refundFailed(GatewayEvent $event): bool
+    {
+        $refund = $this->refund($event);
+
+        if ($refund !== null) {
+            $entity = data_get($event->payload, 'payload.refund.entity');
+            $reason = data_get($event->payload, 'payload.payment.entity.error_description');
+
+            ($this->failOnlineRefund)($refund, is_string($reason) && $reason !== '' ? $reason : __('Curlec could not process the refund.'), is_array($entity) ? $entity : null);
+        }
+
+        return true;
+    }
+
+    /**
+     * The row of a refund event: by Curlec's ID, or by our ID in the notes when the webhook beat the answer to our request.
+     */
+    private function refund(GatewayEvent $event): ?GatewayRefund
+    {
+        $entity = data_get($event->payload, 'payload.refund.entity');
+        $curlecRefundId = data_get($entity, 'id');
+
+        if (is_string($curlecRefundId) && $curlecRefundId !== '') {
+            $refund = GatewayRefund::query()->where('gateway_refund_id', $curlecRefundId)->first();
+
+            if ($refund !== null) {
+                return $refund;
+            }
+        }
+
+        $ourId = data_get($entity, 'notes.refund');
+
+        return data_get($entity, 'notes.app') === 'estatell' && is_numeric($ourId)
+            ? GatewayRefund::query()->whereKey((int) $ourId)->whereNull('gateway_refund_id')->first()
+            : null;
+    }
+
+    private function alertIfMadeOutsideEstatell(GatewayEvent $event): void
+    {
+        $entity = data_get($event->payload, 'payload.refund.entity');
+        $paymentId = data_get($entity, 'payment_id');
+
+        if (data_get($event->payload, 'payload.payment.entity.captured') !== true || data_get($entity, 'notes.app') === 'estatell' || ! is_string($paymentId)) {
+            return;
+        }
+
+        $payment = GatewayPayment::query()->where('gateway_payment_id', $paymentId)->first();
+
+        if ($payment !== null) {
+            ($this->alert)($payment, __('A refund was made outside estatell (:refund). Record it on the manual folio, with the refund ID as its reference.', ['refund' => (string) data_get($entity, 'id')]));
+        }
     }
 
     private function payment(mixed $orderId): ?GatewayPayment

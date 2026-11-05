@@ -86,6 +86,8 @@ payments    id, property_id, folio_id, payment_method_id, amount,
 - Key: `refund:{uuid}`, from the form's UUID. A repeated key returns the existing refund. A refund has no receipt number.
 - Logs `payment.refunded` on the reservation (`payment.voided` for a void). The log carries the method and the reason.
 
+An Online payment refunds only through Curlec: staff refunds go through `RefundHeldPayment`, and the line posts when Curlec confirms. See [Rules for Online payments](../29-booking-engine/05-cancel-and-refund.md#rules-for-online-payments).
+
 #### Refund to another method
 
 - The default is the method of the payment. `$methodId` names another one, only for a user with `payment.refund-other-method`, and only with a reason (`refund_reason`).

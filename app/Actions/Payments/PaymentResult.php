@@ -9,7 +9,7 @@ use App\Models\Payment;
  * What `RecordPayment` and `RefundPayment` return: the payment (or refund) row and the folio lines that were written,
  * or a refusal code. `lines` holds the surcharge line and its tax lines first, then the payment line. A repeated key
  * returns the existing row with `replayed` set, no lines, and writes nothing. The `TaxCalculator` refusal codes pass
- * through as they are.
+ * through as they are. A refund of an Online payment returns neither, because Curlec must confirm it first.
  */
 class PaymentResult
 {
@@ -49,6 +49,8 @@ class PaymentResult
 
     public const REFUSAL_CREDIT_NOT_REFUNDABLE = 'credit_not_refundable';
 
+    public const REFUSAL_ONLINE_REFUND_ONLY = 'online_refund_only';
+
     /**
      * @param  list<FolioLine>  $lines
      */
@@ -75,6 +77,14 @@ class PaymentResult
     public static function refused(string $refusal): self
     {
         return new self(null, [], false, $refusal);
+    }
+
+    /**
+     * The refund was asked of Curlec. No row is written until Curlec confirms it.
+     */
+    public static function requested(): self
+    {
+        return new self(null, [], false, null);
     }
 
     public function isRefused(): bool

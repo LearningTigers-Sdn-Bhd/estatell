@@ -789,6 +789,8 @@ Since then, **Keep for damages** posts the charge in the Dialog ([Keep the depos
 
 ### Refund the credit
 
+An Online part is asked of Curlec, so the unit checks out and its folio closes when Curlec confirms. See [Check-out](../29-booking-engine/05-cancel-and-refund.md#check-out).
+
 Built. Before this change `CheckOutAndRefund` refunded only security deposits (`heldDeposits()`), so a credit from an Advance or a Settlement payment, for example a prepaid stay cut short by [early check-out](#early-check-out), stayed on the folio, and check-out was refused as `balance_not_settled`. Staff had to refund on the folio tab first.
 
 Built: `CheckOutSettlement::refundPool()` lists the refund pool: the security deposits held (oldest first), then the other completed payments that still hold money (oldest first). Each part goes through `RefundPayment`.

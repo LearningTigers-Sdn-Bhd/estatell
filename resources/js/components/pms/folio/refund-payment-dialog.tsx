@@ -43,7 +43,7 @@ function RefundForm({
     options,
 }: FormProps) {
     useFormOptions(
-        open && canOtherMethod,
+        open && canOtherMethod && row.methodType !== 'online',
         options !== undefined,
         'paymentOptions',
     );
@@ -56,6 +56,7 @@ function RefundForm({
         reason: '',
     });
     const { data, errors } = form;
+    const isOnline = row.methodType === 'online';
 
     const submit = () => {
         form.transform((values) => ({
@@ -83,7 +84,11 @@ function RefundForm({
             open={open}
             onOpenChange={(next) => !next && onClose()}
             title={`Refund ${row.description}`}
-            description="The refund posts on this folio. A surcharge stays: reverse it on its own if needed."
+            description={
+                isOnline
+                    ? 'Curlec gives the money back to the card or bank that paid. The refund posts on this folio when Curlec confirms it.'
+                    : 'The refund posts on this folio. A surcharge stays: reverse it on its own if needed.'
+            }
             errors={errors}
             onSubmit={submit}
             submitLabel="Refund"
@@ -111,7 +116,7 @@ function RefundForm({
                 )}
                 <FieldError>{errors.amount}</FieldError>
             </Field>
-            {canOtherMethod && (
+            {canOtherMethod && !isOnline && (
                 <RefundMethodFields
                     idPrefix="refund"
                     methods={options?.methods ?? []}
@@ -125,22 +130,24 @@ function RefundForm({
                     errors={errors}
                 />
             )}
-            <Field data-invalid={!!errors.reference}>
-                <FieldLabel htmlFor="refund-reference">
-                    Reference (optional)
-                </FieldLabel>
-                <Input
-                    id="refund-reference"
-                    maxLength={100}
-                    placeholder="e.g. RF-1024"
-                    value={data.reference}
-                    onChange={(event) =>
-                        form.setData('reference', event.target.value)
-                    }
-                    aria-invalid={!!errors.reference}
-                />
-                <FieldError>{errors.reference}</FieldError>
-            </Field>
+            {!isOnline && (
+                <Field data-invalid={!!errors.reference}>
+                    <FieldLabel htmlFor="refund-reference">
+                        Reference (optional)
+                    </FieldLabel>
+                    <Input
+                        id="refund-reference"
+                        maxLength={100}
+                        placeholder="e.g. RF-1024"
+                        value={data.reference}
+                        onChange={(event) =>
+                            form.setData('reference', event.target.value)
+                        }
+                        aria-invalid={!!errors.reference}
+                    />
+                    <FieldError>{errors.reference}</FieldError>
+                </Field>
+            )}
         </FormOverlay>
     );
 }

@@ -77,6 +77,7 @@ test('notification enums expose labelled options', function () {
         ['value' => 'payment_slip_received', 'label' => 'Company payment slip'],
         ['value' => 'nearby_place_removed', 'label' => 'Nearby place removed'],
         ['value' => 'online_booking_received', 'label' => 'Online booking received'],
+        ['value' => 'online_refund_needs_attention', 'label' => 'Online refund needs attention'],
     ]);
 });
 

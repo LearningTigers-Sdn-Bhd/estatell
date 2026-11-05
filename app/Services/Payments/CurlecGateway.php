@@ -4,6 +4,7 @@ namespace App\Services\Payments;
 
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 
 /**
  * The one class that talks to Curlec, which documents the Razorpay API. Order notes hold only the app name and the hold
@@ -51,6 +52,49 @@ class CurlecGateway
         }
 
         return $orderId;
+    }
+
+    /**
+     * Ask Curlec to refund part or all of a payment, and return the refund's ID. `$receipt` is Curlec's idempotency key, so
+     * a repeat returns null: the first request reached Curlec, and the webhook will report it. `$refundId` goes in the notes,
+     * so a webhook that arrives before this answer still finds its row.
+     *
+     * @throws CurlecRequestFailed Worth asking again: Curlec is unreachable, its balance is too low, or the payment is busy.
+     * @throws CurlecRefundRefused Asking again will not help.
+     */
+    public function refund(string $paymentId, int $amountInSubunits, string $receipt, int $refundId): ?string
+    {
+        try {
+            $response = Http::withBasicAuth($this->keyId(), (string) config('services.curlec.key_secret'))
+                ->acceptJson()
+                ->connectTimeout(5)
+                ->timeout(15)
+                ->post(rtrim((string) config('services.curlec.base_url'), '/').'/payments/'.rawurlencode($paymentId).'/refund', [
+                    'amount' => $amountInSubunits,
+                    'receipt' => $receipt,
+                    'notes' => ['app' => 'estatell', 'refund' => (string) $refundId],
+                ]);
+        } catch (ConnectionException) {
+            throw new CurlecRequestFailed('Curlec could not be reached.');
+        }
+
+        $curlecRefundId = $response->json('id');
+
+        if ($response->successful() && is_string($curlecRefundId) && $curlecRefundId !== '') {
+            return $curlecRefundId;
+        }
+
+        $description = (string) $response->json('error.description');
+
+        if (Str::contains($description, 'duplicate', ignoreCase: true)) {
+            return null;
+        }
+
+        if ($response->serverError() || in_array($response->status(), [401, 429], true) || Str::contains($description, ['balance', 'in progress', 'already running'], ignoreCase: true)) {
+            throw new CurlecRequestFailed($description !== '' ? $description : 'Curlec answered the refund with status '.$response->status().'.');
+        }
+
+        throw new CurlecRefundRefused($description !== '' ? $description : 'Curlec refused the refund with status '.$response->status().'.');
     }
 
     /**

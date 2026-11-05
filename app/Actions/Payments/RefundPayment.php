@@ -38,11 +38,13 @@ class RefundPayment
      * existing refund. The last step closes the folio when it is an Open Unit folio of a CheckedOut unit at 0
      * (`CloseSettledUnitFolio`). `$methodId` gives the money back by another method: it needs `payment.refund-other-method`
      * and a `$reason`, and only a cash payment goes back in cash. `$void` refunds a whole payment taken on the current
-     * business date that has no refund yet. See docs/14-payments/01-payments-and-refunds.md.
+     * business date that has no refund yet. An Online payment refunds only through Curlec, so it is refused
+     * (`online_refund_only`) unless `$confirmedByCurlec` says Curlec already gave the money back: the webhook, or a hand
+     * recording on the manual folio with the Curlec refund ID as its reference. A null actor is the webhook's automatic refund. See docs/14-payments/01-payments-and-refunds.md.
      */
-    public function __invoke(User $actor, Payment $payment, string $amount, ?string $reference, string $idempotencyKey, ?string $serviceDate = null, ?int $manualBatchId = null, ?int $methodId = null, ?string $reason = null, bool $void = false): PaymentResult
+    public function __invoke(?User $actor, Payment $payment, string $amount, ?string $reference, string $idempotencyKey, ?string $serviceDate = null, ?int $manualBatchId = null, ?int $methodId = null, ?string $reason = null, bool $void = false, bool $confirmedByCurlec = false): PaymentResult
     {
-        return DB::transaction(function () use ($actor, $payment, $amount, $reference, $idempotencyKey, $serviceDate, $manualBatchId, $methodId, $reason, $void): PaymentResult {
+        return DB::transaction(function () use ($actor, $payment, $amount, $reference, $idempotencyKey, $serviceDate, $manualBatchId, $methodId, $reason, $void, $confirmedByCurlec): PaymentResult {
             $current = Payment::query()->findOrFail($payment->id);
             $folio = Folio::query()->lockForUpdate()->findOrFail($current->folio_id);
             $key = 'refund:'.$idempotencyKey;
@@ -65,6 +67,16 @@ class RefundPayment
 
             if ($current->refund_of_id !== null || $current->status !== PaymentStatus::Completed) {
                 return PaymentResult::refused(PaymentResult::REFUSAL_NOT_REFUNDABLE);
+            }
+
+            if ($current->paymentMethod->type === PaymentMethodType::Online) {
+                if (! $confirmedByCurlec || ($methodId !== null && $methodId !== $current->payment_method_id)) {
+                    return PaymentResult::refused(PaymentResult::REFUSAL_ONLINE_REFUND_ONLY);
+                }
+
+                if (blank($reference)) {
+                    return PaymentResult::refused(PaymentResult::REFUSAL_REFERENCE_REQUIRED);
+                }
             }
 
             if ($folio->status !== FolioStatus::Open) {
@@ -112,7 +124,7 @@ class RefundPayment
                     return PaymentResult::refused(PaymentResult::REFUSAL_METHOD_NOT_AVAILABLE);
                 }
 
-                if (! $actor->can(PermissionEnum::PaymentRefundOtherMethod->value)) {
+                if ($actor === null || ! $actor->can(PermissionEnum::PaymentRefundOtherMethod->value)) {
                     return PaymentResult::refused(PaymentResult::REFUSAL_OTHER_METHOD_NOT_ALLOWED);
                 }
 
@@ -151,7 +163,7 @@ class RefundPayment
             $line->manual_batch_id = $manualBatchId;
             $line->migrated = (bool) FolioLine::query()->whereKey($current->folio_line_id)->value('migrated');
             $line->idempotency_key = $key;
-            $line->user_id = $actor->id;
+            $line->user_id = $actor?->id;
             $line->save();
 
             $refund = new Payment([
@@ -165,7 +177,7 @@ class RefundPayment
                 'refund_reason' => $methodId === null ? null : $reason,
                 'voided' => $void,
                 'folio_line_id' => $line->id,
-                'received_by' => $actor->id,
+                'received_by' => $actor?->id,
                 'received_at' => now(),
             ]);
             $refund->property_id = $folio->property_id;

@@ -22,6 +22,7 @@ enum NotificationType: string
     case PaymentSlipReceived = 'payment_slip_received';
     case NearbyPlaceRemoved = 'nearby_place_removed';
     case OnlineBookingReceived = 'online_booking_received';
+    case OnlineRefundNeedsAttention = 'online_refund_needs_attention';
 
     public function label(): string
     {
@@ -44,6 +45,7 @@ enum NotificationType: string
             self::PaymentSlipReceived => __('Company payment slip'),
             self::NearbyPlaceRemoved => __('Nearby place removed'),
             self::OnlineBookingReceived => __('Online booking received'),
+            self::OnlineRefundNeedsAttention => __('Online refund needs attention'),
         };
     }
 
@@ -84,6 +86,7 @@ enum NotificationType: string
             self::NightAuditFailed => 'night-audit.run',
             self::PaymentSlipReceived => 'city-ledger.payment',
             self::PortalBookingCreated, self::PortalBookingCancelled, self::PortalCancellationRequested, self::ChannelBookingReceived, self::ChannelBookingCancelled, self::OnlineBookingReceived => 'reservations.manage',
+            self::OnlineRefundNeedsAttention => 'payment.refund',
             default => null,
         };
     }
