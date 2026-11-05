@@ -20,14 +20,17 @@ use App\Models\GatewayPayment;
 use App\Models\PaymentMethod;
 use App\Models\Reservation;
 use App\Models\RoomType;
+use App\Services\Rates\RateQuoteRequest;
+use App\Services\Rates\RateQuoteService;
 use App\Services\Reservations\AutoAddOns;
+use Brick\Math\BigDecimal;
 use Illuminate\Support\Facades\DB;
 
 /**
  * Turn a Paid hold into a booking, in one transaction, once per order. The hold is marked Confirmed first, because a Paid
  * hold counts in availability and `AddUnit` would otherwise refuse its own rooms. Other requests still see it as Paid until
  * the commit. Then a new guest and the booking, on the Booking Engine source with no staff actor, so every rule still
- * applies. Each unit has its own folio, and takes its line's share of the payment as an Advance with the key
+ * applies. A line whose rates changed since the hold keeps the price the guest paid, as a price override. Each unit has its own folio, and takes its line's share of the payment as an Advance with the key
  * `online:{order}:{unit}`. A refusal rolls it all back, and the hold stays Paid. See docs/29-booking-engine/04-payment.md#confirmation.
  */
 class ConfirmBookingHold
@@ -39,6 +42,7 @@ class ConfirmBookingHold
         private CreateBooking $createBooking,
         private RecordPayment $recordPayment,
         private AutoAddOns $autoAddOns,
+        private RateQuoteService $rateQuoteService,
     ) {}
 
     public function __invoke(BookingHold $hold, GatewayPayment $payment): ConfirmBookingHoldResult
@@ -62,7 +66,7 @@ class ConfirmBookingHold
             ->lockForUpdate()
             ->get(['id']);
 
-        $locked = BookingHold::query()->with(['property', 'lines.children'])->lockForUpdate()->findOrFail($hold->id);
+        $locked = BookingHold::query()->with(['property', 'lines.children', 'lines.roomType', 'lines.ratePlan'])->lockForUpdate()->findOrFail($hold->id);
 
         if ($locked->status === BookingHoldStatus::Confirmed && $locked->reservation_id !== null) {
             return ConfirmBookingHoldResult::confirmed(Reservation::query()->findOrFail($locked->reservation_id));
@@ -110,7 +114,9 @@ class ConfirmBookingHold
                 arrivalDate: $hold->arrival_date,
                 departureDate: $hold->departure_date,
                 adults: $line->adults,
-                childAges: array_values($line->children->pluck('age')->all()),
+                childAges: $childAges = array_values($line->children->pluck('age')->all()),
+                overrideTotal: $overrideTotal = $this->paidPrice($hold, $line, $childAges),
+                overrideReason: $overrideTotal === null ? null : __('Booked online'),
                 addOns: $addOns,
             ))->all()),
             guests: [new NewBookingGuestData(
@@ -125,6 +131,23 @@ class ConfirmBookingHold
             billingMode: BillingMode::EachPays,
             notes: $hold->special_requests,
         );
+    }
+
+    /**
+     * The price the guest paid, when today's rates give another one. With no change this is null, so the nights keep their
+     * own prices. A stay that can no longer be priced is left to `AddUnit`, which refuses it.
+     *
+     * @param  list<int>  $childAges
+     */
+    private function paidPrice(BookingHold $hold, BookingHoldLine $line, array $childAges): ?string
+    {
+        if ($line->room_total === null) {
+            return null;
+        }
+
+        $quote = $this->rateQuoteService->quote(new RateQuoteRequest($line->ratePlan, $line->roomType, $hold->arrival_date, $hold->departure_date, $line->adults, $childAges, 1));
+
+        return $quote->isRefused() || BigDecimal::of($line->room_total)->isEqualTo($quote->total->getAmount()) ? null : $line->room_total;
     }
 
     /**

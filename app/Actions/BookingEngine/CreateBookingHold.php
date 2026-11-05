@@ -149,6 +149,7 @@ class CreateBookingHold
             'rate_plan_id' => $line->ratePlanId,
             'adults' => $isBed ? 1 : $line->adults,
             'amount' => (string) $offer->price->onlineTotal->getAmount(),
+            'room_total' => (string) $offer->roomTotal?->getAmount(),
             'position' => $position,
         ]);
 

@@ -122,7 +122,7 @@ If the queue itself is down, the webhook answers 500 so Curlec delivers the even
 
 1. Mark the hold Confirmed. This comes first because a Paid hold counts in availability, so `AddUnit` would otherwise refuse the hold's own rooms. Other requests still see it as Paid until the commit, so nobody can take the rooms.
 2. Create a new guest from the hold's details. `GuestMatcher` is not used to merge; staff merge later.
-3. Create the booking through `CreateBooking`, with the Booking Engine source and each line's plan and price.
+3. Create the booking through `CreateBooking`, with the Booking Engine source and each line's plan and [paid price](#price).
 4. Save the [cancellation terms](05-cancel-and-refund.md#saved-terms) shown to the guest. Added by `let guests cancel online`.
 5. Post the payment on the folio.
 6. Link the reservation to the hold.
@@ -182,9 +182,17 @@ Curlec delivers webhooks only to public addresses and rejects localhost. Local c
 
 The test and live modes have separate keys and data. The dashboard's Test Mode switch only changes what the dashboard shows, so it never affects live payments. Each server uses its own keys.
 
-## Known limit
+## Price
 
-The guest pays the hold's price, but `AddUnit` prices the booking at the rates on the day it confirms. If a rate changes during the 20 minutes, or before a late payment, the folio shows a balance or a credit for staff to settle.
+A booking keeps the room price the guest paid, as an OTA booking keeps the OTA's price.
+
+| At confirmation           | Result                                                                                              |
+| ------------------------- | --------------------------------------------------------------------------------------------------- |
+| Rates give the same total | No override, and each night keeps its own price                                                     |
+| Rates give another total  | `overrideTotal` is the hold's `room_total`, spread over the nights, with the reason "Booked online" |
+| The stay cannot be priced | `AddUnit` refuses, and [confirmation is refused](#failures)                                         |
+
+The booking does not use `fromChannel`, so availability and restrictions are still checked. The price of an auto-added item and tax rates are not kept: a change to either during the hold shows as a balance or credit on the folio for staff to settle.
 
 ## To verify
 

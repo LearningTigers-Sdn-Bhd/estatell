@@ -147,6 +147,6 @@ class BookingOffers
             return $blocked((string) $price->refusal, __('This room cannot be booked online.'));
         }
 
-        return new BookingOffer($roomType, $plan, $left, $price, $policy);
+        return new BookingOffer($roomType, $plan, $left, $price, $policy, roomTotal: $quote->total);
     }
 }

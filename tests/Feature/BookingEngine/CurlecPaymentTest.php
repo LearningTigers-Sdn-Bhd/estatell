@@ -17,6 +17,7 @@ use App\Enums\PaymentPurpose;
 use App\Features\BookingEngine;
 use App\Jobs\ProcessCurlecEventJob;
 use App\Models\BookingClient;
+use App\Models\BookingHoldLine;
 use App\Models\BookingSource;
 use App\Models\FolioLine;
 use App\Models\GatewayEvent;
@@ -24,6 +25,7 @@ use App\Models\GatewayPayment;
 use App\Models\Guest;
 use App\Models\Payment;
 use App\Models\Property;
+use App\Models\Rate;
 use App\Models\Reservation;
 use App\Models\User;
 use App\Notifications\OnlinePaymentNeedsAttention;
@@ -36,6 +38,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Testing\TestResponse;
 use Laravel\Pennant\Feature;
+use Spatie\Activitylog\Models\Activity;
 
 function postHoldPayment(string $token, array $headers = []): TestResponse
 {
@@ -255,6 +258,65 @@ test('a late payment.failed does not undo a paid order', function () {
     postCurlecWebhook(curlecPaymentFailed(), eventId: 'evt_2')->assertOk();
 
     expect(GatewayPayment::query()->sole())->status->toBe(GatewayPaymentStatus::Paid)->gateway_payment_id->toBe('pay_123');
+});
+
+// The price the guest paid
+
+test('a hold saves the stay price before tax', function () {
+    $setup = curlecSetup();
+    bookingApiTaxes($setup['property'], $setup['roomCode']);
+
+    $this->postJson("/api/booking/v1/properties/{$setup['property']->code}/holds", [
+        'arrival' => '2026-10-20',
+        'departure' => '2026-10-22',
+        'total' => '216.00',
+        'guest' => ['name' => 'Aisyah Rahman', 'email' => 'aisyah@example.com', 'phone' => '0123456789', 'nationality' => 'MY'],
+        'lines' => [['room_type_id' => $setup['roomType']->id, 'rate_plan_id' => $setup['plan']->id, 'adults' => 2]],
+    ], ['Authorization' => 'Bearer '.BOOKING_API_TOKEN, 'X-Guest-IP' => '203.0.113.10'])->assertCreated();
+
+    expect(BookingHoldLine::query()->sole())->amount->toBe('216.00')->room_total->toBe('200.00');
+});
+
+test('a rate change after the hold does not change the price the guest paid', function () {
+    $setup = curlecSetup();
+    curlecOrder(curlecHold($setup));
+    Rate::query()->where('rate_plan_id', $setup['plan']->id)->update(['amount' => '150.00']);
+
+    postCurlecWebhook(curlecOrderPaid())->assertOk();
+
+    $nights = Reservation::query()->sole()->units()->sole()->nights()->get();
+
+    expect($nights->pluck('amount')->all())->toBe(['100.00', '100.00'])
+        ->and($nights->pluck('override_amount')->all())->toBe(['100.00', '100.00'])
+        ->and(Activity::query()->where('event', 'reservation.unit_added')->sole()->properties->get('override_reason'))->toBe('Booked online');
+});
+
+test('with no rate change the nights keep their own prices and no override', function () {
+    $setup = curlecSetup();
+    Rate::query()->where('rate_plan_id', $setup['plan']->id)->where('date', '2026-10-21')->update(['amount' => '120.00']);
+    $hold = curlecHold($setup);
+    $hold->lines()->update(['room_total' => '220.00', 'amount' => '220.00']);
+    $hold->update(['total_amount' => '220.00']);
+    curlecOrder($hold);
+
+    postCurlecWebhook(curlecOrderPaid())->assertOk();
+
+    $nights = Reservation::query()->sole()->units()->sole()->nights()->orderBy('date')->get();
+
+    expect($nights->pluck('amount')->all())->toBe(['100.00', '120.00'])
+        ->and($nights->pluck('override_amount')->all())->toBe([null, null]);
+});
+
+test('a hold with no saved price uses the rates when it confirms', function () {
+    $setup = curlecSetup();
+    $hold = curlecHold($setup);
+    $hold->lines()->update(['room_total' => null]);
+    curlecOrder($hold);
+    Rate::query()->where('rate_plan_id', $setup['plan']->id)->update(['amount' => '150.00']);
+
+    postCurlecWebhook(curlecOrderPaid())->assertOk();
+
+    expect(Reservation::query()->sole()->units()->sole()->nights()->pluck('override_amount')->all())->toBe([null, null]);
 });
 
 // Paid after the hold expired

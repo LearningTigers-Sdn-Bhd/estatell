@@ -21,10 +21,11 @@ booking_holds               id, property_id, booking_client_id, token (unique),
                             guest_phone, guest_nationality, special_requests,
                             guest_ip_hash, reservation_id (nullable), timestamps
 booking_hold_lines          id, booking_hold_id, room_type_id, rate_plan_id,
-                            adults, amount, position, timestamps
+                            adults, amount, room_total (nullable), position, timestamps
 booking_hold_line_children  id, booking_hold_line_id, age
 ```
 
+- `amount` is the line's online total. `room_total` is the stay price before tax, which [keeps the price the guest paid](04-payment.md#price).
 - One line is one room or bed, as a reservation unit is. One child row is one child, as in `reservation_unit_children`.
 - `booking_client_id` is the client that made the hold. Only that client can read or release it.
 - Guest details use Laravel's `encrypted` cast, because nothing searches them and most holds never become bookings. Guest records are different: their email and phone stay plaintext for search.

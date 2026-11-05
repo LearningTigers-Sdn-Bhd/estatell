@@ -75,7 +75,7 @@ function curlecHold(array $setup, string $state = 'held', int $rooms = 1): Booki
     $hold = ($state === 'held' ? $factory : $factory->{$state}())->create();
 
     foreach (range(1, $rooms) as $position) {
-        BookingHoldLine::factory()->create(['booking_hold_id' => $hold->id, 'room_type_id' => $setup['roomType']->id, 'rate_plan_id' => $setup['plan']->id, 'adults' => 2, 'amount' => '200.00', 'position' => $position]);
+        BookingHoldLine::factory()->create(['booking_hold_id' => $hold->id, 'room_type_id' => $setup['roomType']->id, 'rate_plan_id' => $setup['plan']->id, 'adults' => 2, 'amount' => '200.00', 'room_total' => '200.00', 'position' => $position]);
     }
 
     return $hold;
