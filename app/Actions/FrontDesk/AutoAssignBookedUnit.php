@@ -19,7 +19,7 @@ class AutoAssignBookedUnit
      * Nothing free is not a refusal: the unit stays as it is and check-in tries again. Returns null when skipped.
      * See docs/18-front-desk/02-room-and-bed-assignment.md.
      */
-    public function __invoke(User $actor, ReservationUnit $unit): ?AssignmentResult
+    public function __invoke(?User $actor, ReservationUnit $unit): ?AssignmentResult
     {
         $isOn = (bool) PropertySetting::query()->where('property_id', $unit->property_id)->value('auto_assign_rooms');
 

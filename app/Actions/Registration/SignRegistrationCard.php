@@ -42,11 +42,13 @@ class SignRegistrationCard
      * Sign a draft card: save the guest's details, resolve the terms again, check every checklist item is ticked,
      * store the signature and freeze the snapshot.
      *
+     * `$actor` is null when the guest signs alone at the kiosk.
+     *
      * Returns false, without writing, when the card is not a draft, the unit or guest is closed, the language has
      * no published terms, the ticks do not cover every checklist item, or the signature is not a PNG image.
      * Required fields are checked by the Form Request.
      */
-    public function __invoke(User $actor, RegistrationCard $card, SignRegistrationCardData $data): bool
+    public function __invoke(?User $actor, RegistrationCard $card, SignRegistrationCardData $data): bool
     {
         $signature = $this->signaturePng($data->signature);
 
@@ -130,7 +132,7 @@ class SignRegistrationCard
         return $required === $ticked;
     }
 
-    private function identityDocument(User $actor, Guest $guest, SignRegistrationCardData $data): ?GuestIdentityDocument
+    private function identityDocument(?User $actor, Guest $guest, SignRegistrationCardData $data): ?GuestIdentityDocument
     {
         if ($data->identity !== null) {
             return ($this->addIdentityDocument)($actor, $guest, $data->identity);

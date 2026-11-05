@@ -9,6 +9,7 @@ use Closure;
 use Illuminate\Auth\RequestGuard;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -27,6 +28,13 @@ class AuthenticateApiToken
         $kiosk = $this->usableKiosk($request);
 
         if ($kiosk === null || $kiosk->tokenCant($scope)) {
+            $key = 'api-token-rejections:'.(string) $request->ip();
+
+            if (RateLimiter::hit($key, 60) > 120) {
+                return ApiError::response('rate_limited', __('Too many requests. Wait a moment and try again.'), 429,
+                    ['Retry-After' => (string) RateLimiter::availableIn($key)]);
+            }
+
             return ApiError::response(
                 str_starts_with($scope, 'kiosk:') ? 'kiosk_unauthorized' : 'unauthorized',
                 __('This device is not signed in.'),

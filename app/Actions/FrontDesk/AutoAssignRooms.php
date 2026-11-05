@@ -29,7 +29,7 @@ class AutoAssignRooms
      * the next one is tried. The caller decides when to run it: `auto_assign_rooms` is a property setting.
      * Returns `no_free_unit` when nothing is free. See docs/18-front-desk/02-room-and-bed-assignment.md.
      */
-    public function __invoke(User $actor, ReservationUnit $unit): AssignmentResult
+    public function __invoke(?User $actor, ReservationUnit $unit): AssignmentResult
     {
         $roomType = RoomType::query()->findOrFail($unit->room_type_id);
         $isBed = $roomType->sell_unit === SellUnit::Bed;

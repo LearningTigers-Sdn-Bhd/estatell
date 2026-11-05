@@ -45,7 +45,7 @@ function kioskStayFor(Property $property, string $reference, array $unit = [], a
     $reservation = Reservation::factory()->create(['property_id' => $property->id, 'reference' => $reference, 'booker_guest_id' => $guest->id]);
     $unit = ReservationUnit::factory()->create([
         'reservation_id' => $reservation->id,
-        'room_type_id' => RoomType::factory()->create(['property_id' => $property->id, 'name' => 'Deluxe Double'])->id,
+        'room_type_id' => RoomType::query()->where('property_id', $property->id)->where('name', 'Deluxe Double')->first()?->id ?? RoomType::factory()->create(['property_id' => $property->id, 'name' => 'Deluxe Double'])->id,
         'arrival_date' => '2026-10-14',
         'departure_date' => '2026-10-16',
         ...$unit,
@@ -62,4 +62,12 @@ function kioskStayFor(Property $property, string $reference, array $unit = [], a
 function kioskPost(string $path, array $body = [], ?string $token = KIOSK_TEST_TOKEN, array $headers = []): TestResponse
 {
     return test()->postJson('/api/kiosk/v1'.$path, $body, [...($token === null ? [] : ['Authorization' => 'Bearer '.$token]), ...$headers]);
+}
+
+/**
+ * @param  array<string, string>  $headers
+ */
+function kioskRead(string $path, ?string $token = KIOSK_TEST_TOKEN, array $headers = []): TestResponse
+{
+    return test()->getJson('/api/kiosk/v1'.$path, [...($token === null ? [] : ['Authorization' => 'Bearer '.$token]), ...$headers]);
 }

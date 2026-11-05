@@ -15,7 +15,7 @@ reservations         id, property_id, reference, status (ReservationStatus),
                      booker_guest_id, company_id (nullable), group_name (nullable),
                      billing_mode (BillingMode), booking_source_id (FK booking_sources),
                      external_reference (nullable),
-                     notes (nullable text, up to 2000), created_by (FK users),
+                     notes (nullable text, up to 2000), created_by (nullable FK users; kiosk automation has no staff actor),
                      cancellation_requested_at, cancellation_requested_by (nullable),
                      timestamps
 reservation_units    id, reservation_id, property_id, room_type_id, rate_plan_id,

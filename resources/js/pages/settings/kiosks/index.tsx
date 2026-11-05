@@ -4,6 +4,12 @@ import { useEffect, useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { PageHeader } from '@/components/pms/page-header';
+import {
+    SettingsInput,
+    SettingsSelect,
+    SettingsSwitch,
+} from '@/components/pms/settings/form-fields';
+import { SettingsSection } from '@/components/pms/settings-section';
 import { StatusBadge } from '@/components/pms/status-badge';
 import {
     AlertDialog,
@@ -15,6 +21,7 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -40,7 +47,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { profile } from '@/routes/settings';
-import { index, revoke, store } from '@/routes/settings/kiosks';
+import { index, revoke, store, update } from '@/routes/settings/kiosks';
 
 type Kiosk = App.Data.ApiAccess.KioskData;
 type Pairing = { name: string; code: string; expiresAt: string | null };
@@ -57,7 +64,15 @@ function when(iso: string | null): string {
           });
 }
 
-export default function KiosksIndex({ kiosks }: { kiosks: Kiosk[] }) {
+export default function KiosksIndex({
+    kiosks,
+    settings,
+    keyModes,
+}: {
+    kiosks: Kiosk[];
+    settings: App.Data.ApiAccess.KioskSettingsData;
+    keyModes: { value: string; label: string }[];
+}) {
     const [adding, setAdding] = useState(false);
     const [revoking, setRevoking] = useState<Kiosk | null>(null);
     const [pairing, setPairing] = useState<Pairing | null>(null);
@@ -91,6 +106,49 @@ export default function KiosksIndex({ kiosks }: { kiosks: Kiosk[] }) {
                     description="Self check-in machines paired to this property. Revoke a kiosk to stop it at once."
                     actions={addButton}
                 />
+
+                <Card>
+                    <CardContent>
+                        <SettingsSection
+                            guardUnsavedChanges
+                            form={update.form()}
+                            title="Kiosk settings"
+                            description="How the kiosks of this property behave for guests."
+                            contentClassName="grid gap-5 md:grid-cols-2"
+                        >
+                            {(errors) => (
+                                <>
+                                    <SettingsSelect
+                                        name="key_mode"
+                                        label="Room key"
+                                        value={settings.keyMode}
+                                        options={keyModes}
+                                        description="What the guest gets after check-in. A key card needs a TTLock gateway at the lock."
+                                        error={errors.key_mode}
+                                    />
+                                    <SettingsInput
+                                        name="idle_timeout_seconds"
+                                        label="Idle time (seconds)"
+                                        type="number"
+                                        min={15}
+                                        max={600}
+                                        value={settings.idleTimeoutSeconds}
+                                        description="The screen goes back to the start after this long without a touch."
+                                        error={errors.idle_timeout_seconds}
+                                    />
+                                    <SettingsSwitch
+                                        bordered
+                                        name="walk_in_enabled"
+                                        label="Walk-in bookings"
+                                        checked={settings.walkInEnabled}
+                                        description="Guests with no booking can book a room at the kiosk. The room is held until the deposit is paid at the front desk."
+                                        error={errors.walk_in_enabled}
+                                    />
+                                </>
+                            )}
+                        </SettingsSection>
+                    </CardContent>
+                </Card>
 
                 {kiosks.length === 0 ? (
                     <EmptyState

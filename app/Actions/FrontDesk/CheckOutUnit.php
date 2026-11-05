@@ -57,7 +57,7 @@ class CheckOutUnit
      * checks out a one-night stay on its arrival date, before its departure date: its night posts first with the audit's
      * key, so the folio closes and the invoice is issued on that business date. Permissions are checked by the route. See docs/18-front-desk/01-check-in-and-check-out.md.
      */
-    public function __invoke(User $actor, ReservationUnit $unit, ?CarbonImmutable $asOf = null, bool $skipBalanceCheck = false, bool $sameDayLeaver = false, bool $groupSettled = false): UnitStayResult
+    public function __invoke(?User $actor, ReservationUnit $unit, ?CarbonImmutable $asOf = null, bool $skipBalanceCheck = false, bool $sameDayLeaver = false, bool $groupSettled = false): UnitStayResult
     {
         try {
             return $this->checkOut($actor, $unit, $asOf, $skipBalanceCheck, $sameDayLeaver, $groupSettled);
@@ -66,7 +66,7 @@ class CheckOutUnit
         }
     }
 
-    private function checkOut(User $actor, ReservationUnit $unit, ?CarbonImmutable $asOf, bool $skipBalanceCheck, bool $sameDayLeaver, bool $groupSettled): UnitStayResult
+    private function checkOut(?User $actor, ReservationUnit $unit, ?CarbonImmutable $asOf, bool $skipBalanceCheck, bool $sameDayLeaver, bool $groupSettled): UnitStayResult
     {
         return DB::transaction(function () use ($actor, $unit, $asOf, $skipBalanceCheck, $sameDayLeaver, $groupSettled): UnitStayResult {
             $locked = ReservationUnit::query()->lockForUpdate()->findOrFail($unit->id);
@@ -170,7 +170,7 @@ class CheckOutUnit
             ->get();
     }
 
-    private function markRoomDirty(User $actor, ?int $roomId): void
+    private function markRoomDirty(?User $actor, ?int $roomId): void
     {
         if ($roomId === null) {
             return;
@@ -178,7 +178,7 @@ class CheckOutUnit
 
         RoomStatus::query()->where('room_id', $roomId)->update([
             'status' => HousekeepingStatus::Dirty,
-            'last_changed_by' => $actor->id,
+            'last_changed_by' => $actor?->id,
             'last_changed_at' => now(),
         ]);
     }
