@@ -74,6 +74,26 @@ reservation_cancellation_terms
 
 `RefundPayment` posts straight away and rows cannot be edited, while a Curlec refund takes time and can fail. So the steps are:
 
+```
+Staff or the system asks for a refund
+        │
+        ▼
+estatell saves it as Pending
+(nothing on the folio yet)
+        │
+        ▼
+estatell asks Curlec ◄───────────── Curlec is down or its balance is low:
+        │                           stays Pending, asks again every 15 minutes
+        ▼
+Curlec gives its result
+        │
+        ├─ Success ─► Processed. The refund line posts on the folio.
+        │
+        └─ Failed ──► Failed. Staff and admins are alerted.
+                      The credit stays on the folio.
+                      Staff click Retry, and it goes back to Pending.
+```
+
 1. `RequestOnlineRefund` writes a `gateway_refunds` row (Pending) and one `gateway_refund_parts` row for each `payments` row it gives back. It locks the Curlec payment and the folios, so two requests cannot exceed a payment.
 2. After commit, `SendOnlineRefundJob` runs `SendOnlineRefund`, which calls Curlec. The `receipt` is `refund-{id}-{attempt}`, which Curlec treats as an idempotency key. The notes hold our row's ID, so a webhook that arrives before Curlec's answer still finds its row.
 3. On `refund.processed`, `CompleteOnlineRefund` marks the row Processed and calls `RefundPayment` once for each part, in one transaction. A group booking has one Curlec refund and one fee, with one line for each unit. If a line is refused, everything rolls back, the row stays Pending, and the queue tries again.
