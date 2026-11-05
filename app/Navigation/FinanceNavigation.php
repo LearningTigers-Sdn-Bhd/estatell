@@ -5,8 +5,10 @@ namespace App\Navigation;
 use App\Data\Navigation\NavGroupData;
 use App\Data\Navigation\NavItemData;
 use App\Enums\PermissionEnum;
+use App\Features\EInvoicing;
 use App\Models\Property;
 use App\Models\User;
+use Laravel\Pennant\Feature;
 
 /**
  * Sidebar groups for the Finance context. Items the user has no permission for are left out.
@@ -40,6 +42,16 @@ class FinanceNavigation
                     active: request()->routeIs('finance.city-ledger.aging*'),
                 ) : null,
             ]))),
+            ...(Feature::for($property)->active(EInvoicing::class) && $user->can(PermissionEnum::EInvoiceView->value) ? [
+                new NavGroupData(label: __('LHDN MyInvois'), items: [
+                    new NavItemData(
+                        title: __('Submissions'),
+                        href: route('finance.e-invoices.index', ['property' => $property->code], absolute: false),
+                        icon: 'file-check',
+                        active: request()->routeIs('finance.e-invoices.*'),
+                    ),
+                ]),
+            ] : []),
         ];
     }
 }

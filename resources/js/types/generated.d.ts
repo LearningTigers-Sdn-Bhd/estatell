@@ -900,6 +900,17 @@ oldSystemTitle: string | null,
 oldSystemTotal: string | null,
 refundCredit: string | null,
 canRefundOtherMethod: boolean,
+eInvoiceSubmissionId: number | null,
+eInvoiceStatus: string | null,
+eInvoiceStatusLabel: string | null,
+eInvoiceStatusTone: string | null,
+eInvoiceUuid: string | null,
+canSubmitEInvoice: boolean,
+payerGuestTin: string | null,
+payerGuestIdType: string | null,
+payerGuestIdValue: string | null,
+payerGuestCity: string | null,
+eInvoiceBuyer: Record<string, any> | null,
 };
 export type FolioDiscountOptionData = {
 id: number,
@@ -4231,6 +4242,10 @@ export type DiscountScope = 'room_only' | 'all_charges' | 'selected';
 export type DiscountType = 'percent' | 'fixed' | 'open';
 export type DocumentType = 'reservation' | 'folio' | 'invoice' | 'credit_note' | 'receipt' | 'registration_card';
 export type DormStrategy = 'bed_as_unit' | 'native_dorm';
+export type EInvoiceDocumentType = '01' | '02' | '03' | '04' | '11';
+export type EInvoiceEnvironment = 'mock' | 'sandbox' | 'production';
+export type EInvoiceScenario = 'folio' | 'ar_invoice' | 'consolidation';
+export type EInvoiceStatus = 'draft' | 'pending' | 'submitted' | 'valid' | 'invalid' | 'cancelled';
 export type EarlyDeparturePolicy = 'charge_full' | 'charge_used_nights';
 export type FieldVisibility = 'hidden' | 'optional' | 'required';
 export type FolioRowTag = 'scheduled' | 'overridden' | 'reversed' | 'reversal' | 'refund' | 'manual';
@@ -4280,8 +4295,8 @@ export type PaymentStatus = 'pending' | 'completed' | 'failed';
 export type PdfFont = 'office' | 'modern' | 'fancy' | 'handwritten';
 export type PdfFontSize = 'small' | 'medium' | 'large';
 export type PerformancePreset = '7d' | '30d' | 'month' | 'last-month' | '12m';
-export type PermissionEnum = 'settings.manage' | 'settings.ota-lists' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'reservations.change-price' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'folio.manual' | 'folio.view-manual-entries' | 'payment.record' | 'payment.refund' | 'payment.refund-other-method' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void' | 'front-desk.view' | 'front-desk.check-in' | 'front-desk.check-out' | 'front-desk.check-in-without-card' | 'front-desk.waive-fees' | 'front-desk.undo-check-in' | 'front-desk.undo-check-out' | 'night-audit.run' | 'night-audit.force' | 'night-audit.receive-report' | 'reports.view' | 'housekeeping.view' | 'housekeeping.update' | 'housekeeping.inspect';
-export type PlatformFeature = 'channel-manager' | 'boats' | 'accounting-integration' | 'door-locks' | 'kiosks';
+export type PermissionEnum = 'settings.manage' | 'settings.ota-lists' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'reservations.change-price' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'folio.manual' | 'folio.view-manual-entries' | 'payment.record' | 'payment.refund' | 'payment.refund-other-method' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void' | 'front-desk.view' | 'front-desk.check-in' | 'front-desk.check-out' | 'front-desk.check-in-without-card' | 'front-desk.waive-fees' | 'front-desk.undo-check-in' | 'front-desk.undo-check-out' | 'night-audit.run' | 'night-audit.force' | 'night-audit.receive-report' | 'reports.view' | 'housekeeping.view' | 'housekeeping.update' | 'housekeeping.inspect' | 'einvoice.view' | 'einvoice.manage';
+export type PlatformFeature = 'channel-manager' | 'boats' | 'accounting-integration' | 'door-locks' | 'e-invoicing' | 'kiosks';
 export type PolicyChargeMode = 'free' | 'fixed_amount' | 'percentage';
 export type PolicyRateBasis = 'booked_rate' | 'current_rate';
 export type PolicyScope = 'first_night' | 'whole_stay' | 'unused_nights' | 'one_charge';

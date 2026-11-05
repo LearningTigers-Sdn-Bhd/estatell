@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * What a company owes (an invoice, positive) or a correction of it (a credit note, negative, with
@@ -33,6 +34,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $created_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
+ * @property-read EInvoiceSubmission|null $latestEInvoiceSubmission
  */
 #[Fillable([
     'company_id', 'folio_id', 'credit_for_invoice_id', 'type', 'number', 'issued_on', 'due_on', 'amount', 'reason',
@@ -100,5 +102,17 @@ class ArInvoice extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /** @return HasMany<EInvoiceSubmission, $this> */
+    public function eInvoiceSubmissions(): HasMany
+    {
+        return $this->hasMany(EInvoiceSubmission::class);
+    }
+
+    /** @return HasOne<EInvoiceSubmission, $this> */
+    public function latestEInvoiceSubmission(): HasOne
+    {
+        return $this->hasOne(EInvoiceSubmission::class)->latestOfMany();
     }
 }

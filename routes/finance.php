@@ -10,6 +10,7 @@ use App\Http\Controllers\CityLedger\CompanyPaymentController;
 use App\Http\Controllers\CityLedger\CompanyPortalLoginController;
 use App\Http\Controllers\CityLedger\CompanyStatementController;
 use App\Http\Controllers\CityLedger\CompanyStatusController;
+use App\Http\Controllers\Finance\EInvoiceSubmissionsController;
 use App\Http\Requests\CityLedger\CompanyRequest;
 use Illuminate\Support\Facades\Route;
 
@@ -72,7 +73,18 @@ Route::prefix('finance')->name('finance.')->group(function () {
             Route::get('pdf', [ArInvoiceController::class, 'pdf'])->name('pdf');
             Route::post('credit-notes', [ArInvoiceController::class, 'storeCreditNote'])->middleware('can:'.PermissionEnum::CityLedgerCreditNote->value)->name('credit-notes.store');
             Route::post('void', [ArInvoiceController::class, 'void'])->name('void');
+            Route::post('e-invoice', [ArInvoiceController::class, 'submitEInvoice'])->middleware('can:'.PermissionEnum::EInvoiceManage->value)->name('e-invoice');
+            Route::post('e-invoice/cancel', [ArInvoiceController::class, 'cancelEInvoice'])->middleware('can:'.PermissionEnum::EInvoiceManage->value)->name('e-invoice.cancel');
         });
+    });
+
+    Route::prefix('e-invoices')->name('e-invoices.')->middleware('can:'.PermissionEnum::EInvoiceView->value)->scopeBindings()->group(function () {
+        Route::get('/', [EInvoiceSubmissionsController::class, 'index'])->name('index');
+        Route::get('{submission}', [EInvoiceSubmissionsController::class, 'show'])->name('show');
+        Route::post('{submission}/refresh', [EInvoiceSubmissionsController::class, 'refresh'])->middleware('can:'.PermissionEnum::EInvoiceManage->value)->name('refresh');
+        Route::post('{submission}/cancel', [EInvoiceSubmissionsController::class, 'cancel'])->middleware('can:'.PermissionEnum::EInvoiceManage->value)->name('cancel');
+        Route::post('{submission}/credit-note', [EInvoiceSubmissionsController::class, 'creditNote'])->middleware('can:'.PermissionEnum::EInvoiceManage->value)->name('credit-note');
+        Route::post('consolidate', [EInvoiceSubmissionsController::class, 'consolidate'])->middleware('can:'.PermissionEnum::EInvoiceManage->value)->name('consolidate');
     });
 
     Route::prefix('city-ledger/aging')->middleware('can:'.PermissionEnum::CompanyView->value)->group(function () {

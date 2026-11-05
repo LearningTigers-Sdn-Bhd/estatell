@@ -33,6 +33,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $state
  * @property string|null $postal_code
  * @property string|null $country_code
+ * @property string|null $tin
+ * @property string|null $state_code
  * @property bool $is_vip
  * @property CarbonImmutable|null $blacklisted_at
  * @property string|null $blacklist_reason
@@ -43,8 +45,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CarbonImmutable|null $updated_at
  */
 #[Fillable([
-    'full_name', 'email', 'phone', 'nationality_code', 'date_of_birth', 'gender', 'preferred_locale',
-    'address_line1', 'address_line2', 'city', 'state', 'postal_code', 'country_code',
+    'full_name', 'email', 'phone', 'tin', 'nationality_code', 'date_of_birth', 'gender', 'preferred_locale',
+    'address_line1', 'address_line2', 'city', 'state', 'state_code', 'postal_code', 'country_code',
 ])]
 class Guest extends Model
 {

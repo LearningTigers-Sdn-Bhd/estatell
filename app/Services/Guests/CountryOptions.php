@@ -64,6 +64,55 @@ class CountryOptions
     }
 
     /**
+     * The ISO 3166-1 alpha-3 code for an alpha-2 code (MY becomes MYS), from the intl data.
+     * An alpha-3 code is returned as it is. Null when the code is empty or unknown.
+     */
+    public function alpha3(?string $code): ?string
+    {
+        $code = strtoupper(trim((string) $code));
+
+        if ($code === '') {
+            return null;
+        }
+
+        $alpha3ByAlpha2 = $this->alpha3ByAlpha2();
+
+        if (strlen($code) === 3) {
+            return in_array($code, $alpha3ByAlpha2, true) ? $code : null;
+        }
+
+        return $alpha3ByAlpha2[$code] ?? null;
+    }
+
+    /**
+     * ICU codeMappings rows are [alpha-2, numeric, alpha-3].
+     *
+     * @return array<string, string>
+     */
+    private function alpha3ByAlpha2(): array
+    {
+        static $map = null;
+
+        if ($map !== null) {
+            return $map;
+        }
+
+        $map = [];
+        $rows = ResourceBundle::create('supplementalData', 'ICUDATA', false)?->get('codeMappings');
+
+        foreach ($rows ?? [] as $row) {
+            $alpha2 = (string) $row->get(0);
+            $alpha3 = (string) $row->get(2);
+
+            if (preg_match('/^[A-Z]{2}$/', $alpha2) === 1 && preg_match('/^[A-Z]{3}$/', $alpha3) === 1) {
+                $map[$alpha2] = $alpha3;
+            }
+        }
+
+        return $map;
+    }
+
+    /**
      * @return list<string>
      */
     public function codes(): array

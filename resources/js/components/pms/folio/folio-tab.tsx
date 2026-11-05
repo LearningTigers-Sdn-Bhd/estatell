@@ -18,6 +18,7 @@ import {
     Printer,
     RotateCcw,
     ReceiptText,
+    FileCheck,
     FileText,
     History,
     Split,
@@ -32,6 +33,7 @@ import { useCreditNoteFlow } from '@/components/pms/city-ledger/use-credit-note-
 import { EmptyState } from '@/components/pms/empty-state';
 import { ApplyDiscountDialog } from '@/components/pms/folio/apply-discount-dialog';
 import { CloseFolioDialog } from '@/components/pms/folio/close-folio-dialog';
+import { IssueFolioEInvoiceDialog } from '@/components/pms/folio/issue-folio-e-invoice-dialog';
 import { FolioRowsTable } from '@/components/pms/folio/folio-rows-table';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { ManualFolioReasonDialog } from '@/components/pms/folio/manual-folio-reason-dialog';
@@ -76,6 +78,7 @@ import {
 } from '@/components/pms/use-form-options';
 import { useCanCorrectMoney } from '@/hooks/use-is-impersonating';
 import { show as showArInvoice } from '@/routes/finance/city-ledger/invoices';
+import { show as showEInvoice } from '@/routes/finance/e-invoices';
 import { move as moveCharges } from '@/routes/reservations/folio';
 import { invoice, reopen } from '@/routes/reservations/folios';
 import { cn } from '@/lib/utils';
@@ -189,6 +192,7 @@ export function FolioTab({
     const [discounting, setDiscounting] = useState(false);
     const [managing, setManaging] = useState(false);
     const [closing, setClosing] = useState(false);
+    const [issuingEInvoice, setIssuingEInvoice] = useState(false);
     const [settling, setSettling] = useState(false);
     const [voucherOpen, setVoucherOpen] = useState(false);
     const [voucherInitial, setVoucherInitial] = useState<string[]>([]);
@@ -365,6 +369,28 @@ export function FolioTab({
                                 {folio.status && (
                                     <StatusBadge status={folio.status} />
                                 )}
+                                {folio.eInvoiceSubmissionId && (
+                                    <Link
+                                        href={showEInvoice.url({
+                                            submission:
+                                                folio.eInvoiceSubmissionId,
+                                        })}
+                                        className="inline-flex items-center gap-1 transition-opacity hover:opacity-80"
+                                        title="View LHDN E-Invoice submission"
+                                    >
+                                        <StatusBadge
+                                            status={{
+                                                value:
+                                                    folio.eInvoiceStatus ??
+                                                    'submitted',
+                                                label: `E-Invoice: ${folio.eInvoiceStatusLabel ?? 'Submitted'}`,
+                                                tone:
+                                                    (folio.eInvoiceStatusTone as App.Enums.Tone) ??
+                                                    'info',
+                                            }}
+                                        />
+                                    </Link>
+                                )}
                             </div>
                             {folio.number && (
                                 <p className="text-sm text-muted-foreground">
@@ -419,6 +445,15 @@ export function FolioTab({
                                         )}
                                     </DropdownMenuContent>
                                 </DropdownMenu>
+                            )}
+                            {folio.canSubmitEInvoice && (
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setIssuingEInvoice(true)}
+                                >
+                                    <FileCheck data-icon="inline-start" />
+                                    Issue e-invoice
+                                </Button>
                             )}
                             {folio.canClose && (
                                 <Button
@@ -546,8 +581,37 @@ export function FolioTab({
                                 folio.canReopen ||
                                 folio.canOpenArInvoice ||
                                 folio.canCreditArInvoice ||
-                                folio.canVoidAndReopen) && (
+                                folio.canVoidAndReopen ||
+                                folio.canSubmitEInvoice ||
+                                folio.eInvoiceSubmissionId !== null) && (
                                 <AlertAction className="static flex flex-wrap items-center gap-2">
+                                    {folio.canSubmitEInvoice && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() =>
+                                                setIssuingEInvoice(true)
+                                            }
+                                        >
+                                            <FileCheck data-icon="inline-start" />
+                                            Issue e-invoice
+                                        </Button>
+                                    )}
+                                    {folio.eInvoiceSubmissionId !== null && (
+                                        <Link
+                                            href={showEInvoice.url({
+                                                submission:
+                                                    folio.eInvoiceSubmissionId,
+                                            })}
+                                            className={buttonVariants({
+                                                variant: 'outline',
+                                                size: 'sm',
+                                            })}
+                                        >
+                                            <FileCheck data-icon="inline-start" />
+                                            View e-invoice
+                                        </Link>
+                                    )}
                                     {folio.arInvoiceId !== null ? (
                                         <DropdownMenu>
                                             <DropdownMenuTrigger
@@ -865,6 +929,14 @@ export function FolioTab({
                     <CloseFolioDialog
                         open={closing}
                         onOpenChange={setClosing}
+                        reservationId={reservationId}
+                        folio={folio}
+                    />
+                )}
+                {folio.canSubmitEInvoice && (
+                    <IssueFolioEInvoiceDialog
+                        open={issuingEInvoice}
+                        onOpenChange={setIssuingEInvoice}
                         reservationId={reservationId}
                         folio={folio}
                     />

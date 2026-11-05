@@ -6,6 +6,7 @@ use App\Features\AccountingIntegration;
 use App\Features\Boats;
 use App\Features\ChannelManager;
 use App\Features\DoorLocks;
+use App\Features\EInvoicing;
 use App\Features\Kiosks;
 
 /**
@@ -17,6 +18,7 @@ enum PlatformFeature: string
     case Boats = 'boats';
     case AccountingIntegration = 'accounting-integration';
     case DoorLocks = 'door-locks';
+    case EInvoicing = 'e-invoicing';
     case Kiosks = 'kiosks';
 
     public function label(): string
@@ -26,6 +28,7 @@ enum PlatformFeature: string
             self::Boats => __('Boats'),
             self::AccountingIntegration => __('Accounting integration'),
             self::DoorLocks => __('Door locks'),
+            self::EInvoicing => __('E-invoicing'),
             self::Kiosks => __('Kiosks'),
         };
     }
@@ -37,6 +40,7 @@ enum PlatformFeature: string
             self::Boats => __('Boat departures, fares and boat trips for island and jetty properties.'),
             self::AccountingIntegration => __('Push each closed business date to the property\'s accounting software.'),
             self::DoorLocks => __('Issue and remove TTLock door PINs for each stay.'),
+            self::EInvoicing => __('Submit folios, city ledger invoices and consolidated month-end e-invoices to LHDN MyInvois.'),
             self::Kiosks => __('Self check-in kiosks: pairing, settings and the kiosk API for this property.'),
         };
     }
@@ -51,6 +55,7 @@ enum PlatformFeature: string
             self::Boats => Boats::class,
             self::AccountingIntegration => AccountingIntegration::class,
             self::DoorLocks => DoorLocks::class,
+            self::EInvoicing => EInvoicing::class,
             self::Kiosks => Kiosks::class,
         };
     }

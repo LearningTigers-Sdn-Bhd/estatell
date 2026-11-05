@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\EInvoiceGuideController;
 use App\Http\Controllers\Admin\MailEventController;
 use App\Http\Controllers\Admin\OtaChannelController;
 use App\Http\Controllers\Admin\OwnerSetupLinkController;
@@ -87,4 +88,5 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
     Route::put('settings/channels', [PlatformSettingsController::class, 'updateChannels'])->middleware('support.2fa')->name('settings.channels.update');
     Route::get('settings/storage', [PlatformSettingsController::class, 'storage'])->name('settings.storage');
     Route::put('settings/storage', [PlatformSettingsController::class, 'updateStorage'])->middleware('support.2fa')->name('settings.storage.update');
+    Route::get('e-invoice-guide', EInvoiceGuideController::class)->name('e-invoice-guide');
 });

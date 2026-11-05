@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Reservations;
 
 use App\Actions\CityLedger\ArInvoiceResult;
+use App\Actions\EInvoice\CancelEInvoice;
+use App\Actions\EInvoice\SubmitFolioEInvoice;
 use App\Actions\Folio\ApplyDiscount;
 use App\Actions\Folio\CloseFolio;
 use App\Actions\Folio\PostCharge;
@@ -36,6 +38,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class ReservationFolioController extends Controller
@@ -134,6 +137,17 @@ class ReservationFolioController extends Controller
     {
         $result = $closeFolio($request->user(), $folio);
 
+        if ($result->isDone() && $property->eInvoiceSetting?->enabled && $property->eInvoiceSetting->auto_submit_on_checkout) {
+            try {
+                $eResult = app(SubmitFolioEInvoice::class)($folio, $request->user());
+                if (! $eResult->ok && $eResult->message) {
+                    Log::info("E-invoice auto-submit skipped for folio {$folio->id}: {$eResult->message}");
+                }
+            } catch (\Throwable $e) {
+                Log::error("Failed to auto-submit e-invoice for folio {$folio->id}: {$e->getMessage()}");
+            }
+        }
+
         Inertia::flash('toast', $result->isRefused()
             ? ['type' => 'error', 'message' => $refusals->message((string) $result->refusal, $result->rooms)]
             : ['type' => 'success', 'message' => __('Folio :number closed.', ['number' => $folio->number])]);
@@ -231,6 +245,78 @@ class ReservationFolioController extends Controller
 
         return $printedPdf->make($property, 'pdf.voucher', ['voucher' => $voucher->forUnit($property, $unit, $scheduled)])
             ->stream('voucher-'.$reservation->reference.'.pdf');
+    }
+
+    public function submitEInvoice(
+        Request $request,
+        Property $property,
+        Reservation $reservation,
+        Folio $folio,
+        SubmitFolioEInvoice $submitAction
+    ): RedirectResponse {
+        abort_unless($folio->reservation_id === $reservation->id, 404);
+
+        $requestedByGuest = (bool) $request->input('requested_by_guest', false);
+        $buyerSnapshot = null;
+
+        if ($request->has('buyer_snapshot')) {
+            $validated = $request->validate([
+                'buyer_snapshot' => ['required', 'array'],
+                'buyer_snapshot.name' => ['required', 'string', 'max:255'],
+                'buyer_snapshot.tin' => ['nullable', 'string', 'max:50'],
+                'buyer_snapshot.id_type' => ['required', 'string', 'in:NRIC,PASSPORT,BRN,ARMY'],
+                'buyer_snapshot.id_value' => ['required', 'string', 'max:50'],
+                'buyer_snapshot.email' => ['nullable', 'string', 'max:255'],
+                'buyer_snapshot.phone' => ['nullable', 'string', 'max:50'],
+                'buyer_snapshot.address_line1' => ['nullable', 'string', 'max:255'],
+                'buyer_snapshot.address_line2' => ['nullable', 'string', 'max:255'],
+                'buyer_snapshot.city' => ['required', 'string', 'max:100'],
+                'buyer_snapshot.postal_code' => ['nullable', 'string', 'max:20'],
+                'buyer_snapshot.state_code' => ['nullable', 'string', 'max:10'],
+                'buyer_snapshot.country_code' => ['required', 'string', 'max:3'],
+                'buyer_snapshot.sst_registration' => ['nullable', 'string', 'max:50'],
+            ]);
+            $buyerSnapshot = $validated['buyer_snapshot'];
+        }
+
+        $result = $submitAction($folio, $request->user(), $requestedByGuest, $buyerSnapshot);
+
+        if (! $result->ok) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => $result->message ?? __('Unable to submit e-invoice.')]);
+
+            return back(fallback: $this->page($property, $reservation, $folio))->with('error', $result->message ?? __('Unable to submit e-invoice.'));
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('E-invoice submitted to LHDN MyInvois.')]);
+
+        return back(fallback: $this->page($property, $reservation, $folio))->with('success', __('E-invoice submitted to LHDN MyInvois.'));
+    }
+
+    public function cancelEInvoice(
+        Request $request,
+        Property $property,
+        Reservation $reservation,
+        Folio $folio,
+        CancelEInvoice $cancelAction
+    ): RedirectResponse {
+        abort_unless($folio->reservation_id === $reservation->id, 404);
+
+        $submission = $folio->latestEInvoiceSubmission;
+        abort_unless($submission !== null, 404);
+
+        $request->validate(['reason' => ['required', 'string', 'max:500']]);
+
+        $result = $cancelAction($submission, $request->string('reason'), $request->user());
+
+        if (! $result->ok) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => $result->message ?? __('Unable to cancel e-invoice.')]);
+
+            return back(fallback: $this->page($property, $reservation, $folio))->with('error', $result->message ?? __('Unable to cancel e-invoice.'));
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('E-invoice has been cancelled.')]);
+
+        return back(fallback: $this->page($property, $reservation, $folio))->with('success', __('E-invoice has been cancelled.'));
     }
 
     private function page(Property $property, Reservation $reservation, Folio $folio): string

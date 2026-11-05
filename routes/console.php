@@ -3,6 +3,7 @@
 use App\Actions\ApiAccess\PruneIdempotencyKeys;
 use App\Actions\Guests\PurgeExpiredIdentityScans;
 use App\Actions\Notifications\PruneMailEvents;
+use App\Jobs\MonthlyConsolidationJob;
 use App\Jobs\ReleaseExpiredKioskHolds;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -63,5 +64,5 @@ Schedule::command('onboarding:send-reminders')->hourly()->withoutOverlapping()->
 
 Schedule::command('channels:full-sync')->dailyAt('03:00')->timezone('Asia/Kuala_Lumpur')->onOneServer();
 Schedule::command('channels:pull-revisions')->everyFiveMinutes()->onOneServer();
-
+Schedule::job(new MonthlyConsolidationJob)->monthlyOn(1, '04:00')->timezone('Asia/Kuala_Lumpur')->onOneServer();
 Schedule::job(new ReleaseExpiredKioskHolds)->everyMinute()->onOneServer();

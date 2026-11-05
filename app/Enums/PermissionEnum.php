@@ -67,6 +67,8 @@ enum PermissionEnum: string
     case HousekeepingView = 'housekeeping.view';
     case HousekeepingUpdate = 'housekeeping.update';
     case HousekeepingInspect = 'housekeeping.inspect';
+    case EInvoiceView = 'einvoice.view';
+    case EInvoiceManage = 'einvoice.manage';
 
     public function label(): string
     {
@@ -130,6 +132,8 @@ enum PermissionEnum: string
             self::HousekeepingView => __('View the housekeeping board'),
             self::HousekeepingUpdate => __('Update room status, assignments and flags'),
             self::HousekeepingInspect => __('Mark rooms as inspected'),
+            self::EInvoiceView => __('View e-invoices and submissions'),
+            self::EInvoiceManage => __('Submit, cancel, and configure e-invoices'),
         };
     }
 
@@ -154,6 +158,7 @@ enum PermissionEnum: string
             self::NightAuditRun, self::NightAuditForce, self::NightAuditReceiveReport => __('Night audit'),
             self::ReportsView => __('Reports'),
             self::HousekeepingView, self::HousekeepingUpdate, self::HousekeepingInspect => __('Housekeeping'),
+            self::EInvoiceView, self::EInvoiceManage => __('Finance'),
         };
     }
 
