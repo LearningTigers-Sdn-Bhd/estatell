@@ -12,7 +12,7 @@ use App\Models\ReservationUnit;
  * Finds the booking a guest types or scans at the kiosk and says whether the guest may start check-in today. It uses the
  * same arrival rule as `CheckInUnit` (the stay day, not the calendar date) and reads only. A QR token identifies one
  * stay; ambiguous typed references go to the front desk.
- * See docs/28-api-access/02-kiosk-check-in-endpoints.md.
+ * See docs/28-api-access/03-kiosk-check-in-endpoints.md.
  */
 class KioskBookingFinder
 {

@@ -11,7 +11,7 @@ use App\Data\Reservations\NewBookingData;
 use App\Data\Reservations\NewBookingGuestData;
 use App\Data\Reservations\NewUnitData;
 use App\Enums\BillingMode;
-use App\Models\ApiToken;
+use App\Models\Kiosk;
 use App\Models\KioskWalkInHold;
 use App\Models\RoomType;
 use App\Services\FrontDesk\SelfCheckInPayment;
@@ -26,7 +26,7 @@ class BookWalkIn
 
     public function __construct(private KioskWalkIn $walkIn, private CreateGuest $createGuest, private CreateBooking $createBooking, private AutoAddOns $autoAddOns, private SelfCheckInPayment $payment, private CreateFolio $createFolio) {}
 
-    public function __invoke(ApiToken $kiosk, KioskWalkInData $search, int $roomTypeId): KioskWalkInResult
+    public function __invoke(Kiosk $kiosk, KioskWalkInData $search, int $roomTypeId): KioskWalkInResult
     {
         try {
             return DB::transaction(function () use ($kiosk, $search, $roomTypeId): KioskWalkInResult {
@@ -56,7 +56,7 @@ class BookWalkIn
                 ($this->createFolio)($booking->reservation, $stay);
                 $hold = KioskWalkInHold::query()->create([
                     'property_id' => $property->id, 'reservation_unit_id' => $stay->id,
-                    'api_token_id' => $kiosk->id, 'expires_at' => now()->addMinutes(self::HOLD_MINUTES),
+                    'kiosk_id' => $kiosk->id, 'expires_at' => now()->addMinutes(self::HOLD_MINUTES),
                 ]);
                 activity()->performedOn($stay)->event('kiosk.walk_in_booked')
                     ->withProperties(['property_id' => $property->id, 'kiosk_id' => $kiosk->id])->log('Walk-in held at the kiosk');

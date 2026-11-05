@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('property_id')->constrained()->cascadeOnDelete();
             $table->foreignId('reservation_unit_id')->unique()->constrained()->cascadeOnDelete();
-            $table->foreignId('api_token_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('kiosk_id')->nullable()->constrained('kiosks')->nullOnDelete();
             $table->timestamp('expires_at')->index();
             $table->timestamp('released_at')->nullable();
             $table->timestamps();

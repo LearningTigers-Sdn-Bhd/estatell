@@ -2,12 +2,12 @@
 
 namespace App\Http\Resources\ApiAccess;
 
-use App\Models\ApiToken;
+use App\Models\Kiosk;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * @property ApiToken $resource
+ * @property Kiosk $resource
  */
 class KioskMeResource extends JsonResource
 {

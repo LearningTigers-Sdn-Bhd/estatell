@@ -1,4 +1,4 @@
-import { Link, useHttp } from '@inertiajs/react';
+import { Link, router, useHttp } from '@inertiajs/react';
 import {
     ChevronRight,
     Circle,
@@ -8,7 +8,7 @@ import {
     FileText,
     TriangleAlert,
 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { actionIcon } from '@/components/pms/action-icons';
 import { DateText } from '@/components/pms/date-text';
 import { FormOverlay } from '@/components/pms/form-overlay';
@@ -406,6 +406,17 @@ export function NightAuditSheet({
 
         return () => window.clearInterval(timer);
     }, [open, view, refresh]);
+
+    // The sidebar would see the new date on its next check. This shows it at once. See `useBusinessDate`.
+    const wasRunning = useRef(false);
+
+    useEffect(() => {
+        if (wasRunning.current && open && view !== 'running') {
+            router.reload({ only: ['businessDate'] });
+        }
+
+        wasRunning.current = view === 'running';
+    }, [open, view]);
 
     const close = (next: boolean) => {
         onOpenChange(next);

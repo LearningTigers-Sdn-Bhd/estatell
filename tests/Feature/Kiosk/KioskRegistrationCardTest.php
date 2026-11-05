@@ -5,20 +5,21 @@ use App\Actions\Registration\SeedRegistrationTerms;
 use App\Enums\Locale;
 use App\Enums\PropertyType;
 use App\Enums\RegistrationCardStatus;
-use App\Models\ApiToken;
 use App\Models\Guest;
 use App\Models\GuestIdentityDocument;
+use App\Models\Kiosk;
 use App\Models\Property;
 use App\Models\RegistrationCard;
 use App\Models\ReservationUnit;
 use App\Services\Registration\RegistrationTermsResolver;
+use Laravel\Sanctum\PersonalAccessToken;
 use Spatie\Activitylog\Models\Activity;
 
 require_once __DIR__.'/../Support/KioskSetup.php';
 
 const KIOSK_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
 
-/** @return array{property: Property, kiosk: ApiToken, unit: ReservationUnit, guest: Guest, version: int} */
+/** @return array{property: Property, kiosk: Kiosk, unit: ReservationUnit, guest: Guest, version: int} */
 function kioskCardSetup(): array
 {
     $setup = kioskStaySetup();
@@ -137,7 +138,7 @@ it('answers booking_not_found for a stay of another property, a missing stay and
 
 it('refuses a missing or wrong-scope token', function () {
     ['unit' => $unit, 'kiosk' => $kiosk] = kioskCardSetup();
-    $kiosk->forceFill(['scopes' => 'v1:read'])->save();
+    PersonalAccessToken::query()->update(['abilities' => ['v1:read']]);
 
     kioskRead("/stays/{$unit->id}/registration-card")->assertUnauthorized()->assertJsonPath('error.code', 'kiosk_unauthorized');
     kioskRead("/stays/{$unit->id}/registration-card", token: null)->assertUnauthorized();

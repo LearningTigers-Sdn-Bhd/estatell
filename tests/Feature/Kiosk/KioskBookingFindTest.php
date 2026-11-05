@@ -2,13 +2,14 @@
 
 use App\Enums\FieldVisibility;
 use App\Enums\RegistrationCardField;
-use App\Models\ApiToken;
+use App\Models\Kiosk;
 use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\RegistrationCardFieldSetting;
 use App\Models\ReservationUnit;
 use App\Services\Kiosk\KioskLookupLockout;
 use Illuminate\Support\Facades\RateLimiter;
+use Laravel\Sanctum\PersonalAccessToken;
 
 require_once __DIR__.'/../Support/KioskSetup.php';
 
@@ -113,7 +114,7 @@ it('refuses a missing, wrong or revoked token', function () {
 
 it('refuses a token without the kiosk scope', function () {
     kioskStaySetup();
-    ApiToken::query()->update(['scopes' => 'v1:read']);
+    PersonalAccessToken::query()->update(['abilities' => ['v1:read']]);
 
     kioskPost('/bookings/find', ['reference' => 'R-100'])->assertUnauthorized()->assertJsonPath('error.code', 'kiosk_unauthorized');
 });
@@ -172,7 +173,7 @@ it('counts an early arrival as a failed lookup too, so it cannot be used to conf
 
 it('keeps the lockout per kiosk', function () {
     ['property' => $property] = kioskStaySetup();
-    ApiToken::factory()->for($property)->withToken('est_live_secondkioskaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')->create();
+    Kiosk::factory()->for($property)->withToken('est_live_secondkioskaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')->create();
 
     foreach (range(1, KioskLookupLockout::MAX_FAILURES) as $guess) {
         kioskPost('/bookings/find', ['reference' => "X-{$guess}"]);

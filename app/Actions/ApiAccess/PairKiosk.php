@@ -2,8 +2,7 @@
 
 namespace App\Actions\ApiAccess;
 
-use App\Enums\ApiTokenKind;
-use App\Models\ApiToken;
+use App\Models\Kiosk;
 use App\Services\ApiAccess\ApiSecrets;
 use Illuminate\Support\Facades\DB;
 
@@ -14,32 +13,30 @@ use Illuminate\Support\Facades\DB;
 class PairKiosk
 {
     /**
-     * @return array{token: ApiToken, plain: string}|null
+     * @return array{kiosk: Kiosk, plain: string}|null
      */
     public function __invoke(string $code, ?string $deviceName): ?array
     {
         $hash = ApiSecrets::hash(ApiSecrets::normalizeCode($code));
 
         return DB::transaction(function () use ($hash, $deviceName): ?array {
-            $token = ApiToken::query()
+            $kiosk = Kiosk::query()
                 ->with('property')
-                ->where('kind', ApiTokenKind::Kiosk)
                 ->where('pairing_code_hash', $hash)
                 ->lockForUpdate()
                 ->first();
 
-            if ($token === null
-                || $token->revoked_at !== null
-                || $token->pairing_expires_at === null
-                || $token->pairing_expires_at->isPast()
-                || $token->property->suspended_at !== null) {
+            if ($kiosk === null
+                || $kiosk->revoked_at !== null
+                || $kiosk->pairing_expires_at === null
+                || $kiosk->pairing_expires_at->isPast()
+                || $kiosk->property->suspended_at !== null) {
                 return null;
             }
 
-            $plain = ApiSecrets::newToken();
+            $plain = $kiosk->createToken($kiosk->name, [Kiosk::TOKEN_ABILITY])->plainTextToken;
 
-            $token->forceFill([
-                'token_hash' => ApiSecrets::hash($plain),
+            $kiosk->forceFill([
                 'pairing_code_hash' => null,
                 'pairing_expires_at' => null,
                 'device_name' => $deviceName,
@@ -47,12 +44,12 @@ class PairKiosk
             ])->save();
 
             activity()
-                ->performedOn($token)
+                ->performedOn($kiosk)
                 ->event('api-access.kiosk-paired')
-                ->withProperties(['property_id' => $token->property_id, 'device_name' => $deviceName])
+                ->withProperties(['property_id' => $kiosk->property_id, 'device_name' => $deviceName])
                 ->log('Kiosk paired');
 
-            return ['token' => $token, 'plain' => $plain];
+            return ['kiosk' => $kiosk, 'plain' => $plain];
         });
     }
 }

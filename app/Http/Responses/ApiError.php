@@ -6,7 +6,7 @@ use Illuminate\Http\JsonResponse;
 
 /**
  * The one error shape of the device and integration API: `{ "error": { "code": "...", "message": "..." } }`.
- * Codes are stable; `message` is safe to show. See docs/28-api-access/01-api-tokens-and-kiosk-pairing.md.
+ * Codes are stable; `message` is safe to show. See docs/28-api-access/01-api-tokens.md.
  */
 class ApiError
 {

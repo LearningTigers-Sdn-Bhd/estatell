@@ -148,7 +148,6 @@ export default function GuestList({ tab, tabs, ...props }: Props) {
                     panelWidth="full"
                     className="flex-1 gap-4"
                     panelClassName="flex flex-1 flex-col"
-                    scrollable
                     tabs={tabs.map((item) => ({
                         value: item.value,
                         label: `${item.label} (${item.count})`,

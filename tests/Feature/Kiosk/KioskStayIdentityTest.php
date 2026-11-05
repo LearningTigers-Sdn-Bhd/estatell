@@ -2,12 +2,13 @@
 
 use App\Enums\Gender;
 use App\Enums\IdentityDocumentType;
-use App\Models\ApiToken;
 use App\Models\BusinessDate;
 use App\Models\Guest;
 use App\Models\GuestIdentityDocument;
+use App\Models\Kiosk;
 use App\Models\Property;
 use App\Models\Tax;
+use Laravel\Sanctum\PersonalAccessToken;
 use Spatie\Activitylog\Models\Activity;
 
 require_once __DIR__.'/../Support/KioskSetup.php';
@@ -239,7 +240,7 @@ it('does not replay after 24 hours, and runs the request again', function () {
 
 it('does not share an Idempotency-Key between kiosks', function () {
     ['unit' => $unit, 'property' => $property] = kioskStaySetup();
-    ApiToken::factory()->for($property)->withToken('est_live_secondkioskaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')->create();
+    Kiosk::factory()->for($property)->withToken('est_live_secondkioskaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')->create();
     $headers = ['Idempotency-Key' => 'b1f0c9de-7a0e-4a52-9d57-1a2f9d3c1003'];
 
     kioskPost("/stays/{$unit->id}/identity", kioskMyKadBody(), headers: $headers)->assertOk();
@@ -253,7 +254,7 @@ it('refuses a missing, wrong or wrong-scope token', function () {
     kioskPost("/stays/{$unit->id}/identity", kioskMyKadBody(), null)->assertUnauthorized()->assertJsonPath('error.code', 'kiosk_unauthorized');
     kioskPost("/stays/{$unit->id}/identity", kioskMyKadBody(), 'est_live_wrongwrongwrongwrongwrongwrongwrong0000')->assertUnauthorized();
 
-    ApiToken::query()->update(['scopes' => 'v1:read']);
+    PersonalAccessToken::query()->update(['abilities' => ['v1:read']]);
     kioskPost("/stays/{$unit->id}/identity", kioskMyKadBody())->assertUnauthorized()->assertJsonPath('error.code', 'kiosk_unauthorized');
     expect(GuestIdentityDocument::query()->exists())->toBeFalse();
 });

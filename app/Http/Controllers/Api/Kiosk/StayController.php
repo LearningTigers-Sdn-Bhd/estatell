@@ -18,7 +18,7 @@ class StayController extends KioskStayController
 
         return $stay instanceof JsonResponse
             ? $stay
-            : new KioskIdentityResource($saveIdentity($this->token($request), $stay, $request->toIdentityData()));
+            : new KioskIdentityResource($saveIdentity($this->kiosk($request), $stay, $request->toIdentityData()));
     }
 
     public function guest(UpdateStayGuestRequest $request, string $id, CorrectStayGuest $correctGuest): KioskAcceptedResource|JsonResponse
@@ -27,6 +27,6 @@ class StayController extends KioskStayController
 
         return $stay instanceof JsonResponse
             ? $stay
-            : new KioskAcceptedResource($correctGuest($this->token($request), $stay, $request->fullName(), $request->nationalityCode()));
+            : new KioskAcceptedResource($correctGuest($this->kiosk($request), $stay, $request->fullName(), $request->nationalityCode()));
     }
 }

@@ -35,7 +35,7 @@ class ReleaseExpiredKioskHold
             ($this->syncStatus)($stay->reservation);
             event(ReservationChanged::forUnit($stay));
             activity()->performedOn($stay)->event('kiosk.hold_expired')
-                ->withProperties(['property_id' => $hold->property_id, 'kiosk_id' => $hold->api_token_id])->log('Unpaid kiosk hold released');
+                ->withProperties(['property_id' => $hold->property_id, 'kiosk_id' => $hold->kiosk_id])->log('Unpaid kiosk hold released');
 
             return true;
         });

@@ -13,11 +13,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $id
  * @property int $property_id
  * @property int $reservation_unit_id
- * @property int|null $api_token_id
+ * @property int|null $kiosk_id
  * @property CarbonImmutable $expires_at
  * @property CarbonImmutable|null $released_at
  */
-#[Fillable(['property_id', 'reservation_unit_id', 'api_token_id', 'expires_at', 'released_at'])]
+#[Fillable(['property_id', 'reservation_unit_id', 'kiosk_id', 'expires_at', 'released_at'])]
 class KioskWalkInHold extends Model
 {
     /** @use HasFactory<KioskWalkInHoldFactory> */

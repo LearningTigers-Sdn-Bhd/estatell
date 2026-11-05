@@ -8,7 +8,7 @@ use App\Actions\FrontDesk\UnitStayRefused;
 use App\Actions\FrontDesk\UnitStayResult;
 use App\Enums\UnitStatus;
 use App\Features\DoorLocks;
-use App\Models\ApiToken;
+use App\Models\Kiosk;
 use App\Models\ReservationUnit;
 use App\Services\Kiosk\KioskCheckOut;
 use App\Services\Kiosk\KioskStays;
@@ -25,13 +25,13 @@ class CheckOutStay
         private RemoveDoorCard $removeCard,
     ) {}
 
-    public function __invoke(ApiToken $kiosk, ReservationUnit $stay, ?string $uid): UnitStayResult
+    public function __invoke(Kiosk $kiosk, ReservationUnit $stay, ?string $uid): UnitStayResult
     {
         return Cache::lock('kiosk-register-card:'.$stay->id, 120)->get(fn () => $this->checkOut($kiosk, $stay, $uid))
             ?: UnitStayResult::refused('lock_unavailable');
     }
 
-    private function checkOut(ApiToken $kiosk, ReservationUnit $stay, ?string $uid): UnitStayResult
+    private function checkOut(Kiosk $kiosk, ReservationUnit $stay, ?string $uid): UnitStayResult
     {
         try {
             $result = DB::transaction(function () use ($kiosk, $stay, $uid): UnitStayResult {

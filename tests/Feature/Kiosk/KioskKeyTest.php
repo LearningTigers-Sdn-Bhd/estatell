@@ -12,6 +12,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Laravel\Pennant\Feature;
+use Laravel\Sanctum\PersonalAccessToken;
 use Spatie\Activitylog\Models\Activity;
 
 require_once __DIR__.'/../Support/KioskKeySetup.php';
@@ -189,7 +190,7 @@ it('requires a kiosk token for keys and cards', function () {
     ['unit' => $unit, 'kiosk' => $kiosk] = kioskKeySetup();
     kioskRead("/stays/{$unit->id}/key", token: null)->assertUnauthorized();
     kioskPost("/stays/{$unit->id}/cards", ['uid' => '0DD25CE7'], token: null)->assertUnauthorized();
-    $kiosk->update(['scopes' => 'v1:read']);
+    PersonalAccessToken::query()->update(['abilities' => ['v1:read']]);
     kioskRead("/stays/{$unit->id}/key")->assertUnauthorized()->assertJsonPath('error.code', 'kiosk_unauthorized');
     kioskPost("/stays/{$unit->id}/cards", ['uid' => '0DD25CE7'])->assertUnauthorized();
     Http::assertNothingSent();

@@ -17,16 +17,16 @@ class CheckOutController extends KioskStayController
 {
     public function lookup(RegisterCardRequest $request, KioskCheckOut $checkOut): KioskCheckOutResource|JsonResponse
     {
-        $token = $this->token($request);
+        $kiosk = $this->kiosk($request);
 
-        if (! $this->lockout->attempt($token)) {
+        if (! $this->lockout->attempt($kiosk)) {
             return $this->rateLimited($request);
         }
 
-        $lookup = $checkOut->lookup($token->property, $request->string('uid')->toString());
+        $lookup = $checkOut->lookup($kiosk->property, $request->string('uid')->toString());
 
         if ($lookup['known']) {
-            $this->lockout->refund($token);
+            $this->lockout->refund($kiosk);
         }
 
         return new KioskCheckOutResource($lookup);
@@ -48,16 +48,16 @@ class CheckOutController extends KioskStayController
         }
 
         $uid = $request->has('uid') ? $request->string('uid')->toString() : null;
-        $token = $this->token($request);
+        $kiosk = $this->kiosk($request);
 
-        if ($uid !== null && ! $this->lockout->attempt($token)) {
+        if ($uid !== null && ! $this->lockout->attempt($kiosk)) {
             return $this->rateLimited($request);
         }
 
-        $result = $checkOut($token, $stay, $uid);
+        $result = $checkOut($kiosk, $stay, $uid);
 
         if ($uid !== null && $result->refusal !== 'card_unknown') {
-            $this->lockout->refund($token);
+            $this->lockout->refund($kiosk);
         }
 
         return match ($result->refusal) {
@@ -73,6 +73,6 @@ class CheckOutController extends KioskStayController
     private function rateLimited(Request $request): JsonResponse
     {
         return ApiError::response('rate_limited', __('Too many requests. Wait a moment and try again.'), 429,
-            ['Retry-After' => (string) $this->lockout->retryAfter($this->token($request))]);
+            ['Retry-After' => (string) $this->lockout->retryAfter($this->kiosk($request))]);
     }
 }

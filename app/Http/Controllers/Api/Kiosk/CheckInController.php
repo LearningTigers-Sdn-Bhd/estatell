@@ -29,7 +29,7 @@ class CheckInController extends KioskStayController
             return $stay;
         }
 
-        $result = $checkInStay($this->token($request), $stay);
+        $result = $checkInStay($this->kiosk($request), $stay);
 
         if ($result->refusal !== null) {
             return ApiError::response($result->refusal, $this->message($result->refusal), 409);

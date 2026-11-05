@@ -5,6 +5,7 @@ use App\Enums\UnitStatus;
 use App\Models\BookingPreCheckInToken;
 use App\Models\Property;
 use App\Models\ReservationUnit;
+use Laravel\Sanctum\PersonalAccessToken;
 use Spatie\Activitylog\Models\Activity;
 
 require_once __DIR__.'/../Support/KioskSetup.php';
@@ -96,7 +97,7 @@ it('requires the kiosk token and scope for QR lookups', function () {
     ['unit' => $unit, 'kiosk' => $kiosk] = kioskStaySetup();
     $link = app(IssueBookingPreCheckInToken::class)($unit);
     kioskPost('/bookings/find', ['qr_token' => $link], token: null)->assertUnauthorized();
-    $kiosk->forceFill(['scopes' => 'v1:read'])->save();
+    PersonalAccessToken::query()->update(['abilities' => ['v1:read']]);
 
     kioskPost('/bookings/find', ['qr_token' => $link])->assertUnauthorized()->assertJsonPath('error.code', 'kiosk_unauthorized');
 });

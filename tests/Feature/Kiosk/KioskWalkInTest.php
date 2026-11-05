@@ -8,10 +8,10 @@ use App\Enums\PaymentPurpose;
 use App\Enums\SystemTransactionCode;
 use App\Enums\UnitStatus;
 use App\Jobs\ReleaseExpiredKioskHolds;
-use App\Models\ApiToken;
 use App\Models\ChargeItem;
 use App\Models\Folio;
 use App\Models\Guest;
+use App\Models\Kiosk;
 use App\Models\KioskWalkInHold;
 use App\Models\Payment;
 use App\Models\Property;
@@ -25,6 +25,7 @@ use App\Models\RoomType;
 use App\Models\TransactionCode;
 use Database\Factories\BookingSourceFactory;
 use Illuminate\Support\Facades\Http;
+use Laravel\Sanctum\PersonalAccessToken;
 use Spatie\Activitylog\Models\Activity;
 
 require_once __DIR__.'/../Support/KioskSetup.php';
@@ -77,7 +78,7 @@ it('books an unpaid hold with a server price, a unit folio and an empty guest fo
         ->and($stay->reservation->created_by)->toBeNull()->and($stay->reservation->booker->full_name)->toBe('')
         ->and($stay->nights()->sum('amount'))->toBe('200.00')
         ->and($stay->nights()->whereNull('room_id')->count())->toBe(0)
-        ->and(KioskWalkInHold::query()->sole()->api_token_id)->toBe($kiosk->id)
+        ->and(KioskWalkInHold::query()->sole()->kiosk_id)->toBe($kiosk->id)
         ->and(Folio::query()->where('reservation_unit_id', $stay->id)->exists())->toBeTrue();
     kioskPost("/stays/{$stay->id}/identity", ['kind' => 'my_kad', 'number' => '900101141234', 'full_name' => 'AISHA RAHMAN', 'nationality' => 'MY'])->assertOk();
     expect($stay->reservation->booker->refresh()->full_name)->toBe('AISHA RAHMAN');
@@ -218,7 +219,7 @@ it('requires a token and kiosk scope on both walk-in routes', function () {
     ['type' => $type, 'kiosk' => $kiosk] = kioskWalkInSetup();
     foreach ([null, KIOSK_TEST_TOKEN] as $token) {
         if ($token !== null) {
-            $kiosk->forceFill(['scopes' => 'v1:read'])->save();
+            PersonalAccessToken::query()->update(['abilities' => ['v1:read']]);
         }
         kioskPost('/walk-in/quote', kioskWalkInBody(), token: $token)->assertUnauthorized()->assertJsonPath('error.code', 'kiosk_unauthorized');
         kioskPost('/walk-in/book', kioskWalkInBody(['room_type_id' => $type->id]), token: $token)->assertUnauthorized();
@@ -239,7 +240,7 @@ it('limits the shared IP even when several kiosk tokens are used', function () {
     ['property' => $property] = kioskWalkInSetup();
     foreach (range(1, 3) as $kiosk) {
         $token = 'est_live_walkinkiosk'.$kiosk;
-        ApiToken::factory()->for($property)->withToken($token)->create();
+        Kiosk::factory()->for($property)->withToken($token)->create();
         foreach (range(1, $kiosk === 3 ? 10 : 15) as $attempt) {
             kioskPost('/walk-in/quote', kioskWalkInBody(), token: $token)->assertOk();
         }
@@ -286,7 +287,7 @@ it('returns a safe server error without creating a guest when the walk-in source
 it('does not reveal another property expired hold through by-id calls', function () {
     ['type' => $type] = kioskWalkInSetup();
     $answer = kioskPost('/walk-in/book', kioskWalkInBody(['room_type_id' => $type->id]))->assertOk();
-    ApiToken::factory()->for(Property::factory()->create())->withToken('est_live_otherproperty')->create();
+    Kiosk::factory()->for(Property::factory()->create())->withToken('est_live_otherproperty')->create();
     $this->travelTo(now()->addMinutes(11));
 
     kioskRead('/stays/'.$answer->json('stay_id').'/eligibility', token: 'est_live_otherproperty')->assertNotFound()->assertJsonPath('error.code', 'booking_not_found');

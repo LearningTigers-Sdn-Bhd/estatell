@@ -4,16 +4,16 @@ namespace App\Http\Controllers\Api\Kiosk;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Kiosk\V1\KioskConfigResource;
-use App\Models\ApiToken;
+use App\Models\Kiosk;
 use Illuminate\Http\Request;
 
 class ConfigController extends Controller
 {
     public function __invoke(Request $request): KioskConfigResource
     {
-        /** @var ApiToken $token */
-        $token = $request->attributes->get('api_token');
+        /** @var Kiosk $kiosk */
+        $kiosk = $request->attributes->get('kiosk');
 
-        return new KioskConfigResource($token->property->loadMissing('settings'));
+        return new KioskConfigResource($kiosk->property->loadMissing('settings'));
     }
 }

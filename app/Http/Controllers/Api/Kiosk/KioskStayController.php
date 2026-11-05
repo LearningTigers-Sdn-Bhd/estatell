@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api\Kiosk;
 use App\Enums\UnitStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Responses\ApiError;
-use App\Models\ApiToken;
+use App\Models\Kiosk;
 use App\Models\ReservationUnit;
 use App\Services\Kiosk\KioskLookupLockout;
 use App\Services\Kiosk\KioskStays;
@@ -23,10 +23,10 @@ abstract class KioskStayController extends Controller
 {
     public function __construct(protected KioskStays $stays, protected KioskLookupLockout $lockout) {}
 
-    protected function token(Request $request): ApiToken
+    protected function kiosk(Request $request): Kiosk
     {
-        /** @var ApiToken */
-        return $request->attributes->get('api_token');
+        /** @var Kiosk */
+        return $request->attributes->get('kiosk');
     }
 
     /**
@@ -36,31 +36,31 @@ abstract class KioskStayController extends Controller
      */
     protected function stay(Request $request, string $id, array $statuses = [UnitStatus::Confirmed], bool $kioskCheckInOnly = false, bool $checkOut = false): ReservationUnit|JsonResponse
     {
-        $token = $this->token($request);
+        $kiosk = $this->kiosk($request);
 
-        if (! $this->lockout->attempt($token)) {
-            return ApiError::response('rate_limited', __('Too many requests. Wait a moment and try again.'), 429, ['Retry-After' => (string) $this->lockout->retryAfter($token)]);
+        if (! $this->lockout->attempt($kiosk)) {
+            return ApiError::response('rate_limited', __('Too many requests. Wait a moment and try again.'), 429, ['Retry-After' => (string) $this->lockout->retryAfter($kiosk)]);
         }
 
-        $stay = ctype_digit($id) ? $this->stays->find($token->property, (int) $id, $statuses, $checkOut) : null;
+        $stay = ctype_digit($id) ? $this->stays->find($kiosk->property, (int) $id, $statuses, $checkOut) : null;
 
         if ($stay !== null && $kioskCheckInOnly && $stay->status === UnitStatus::CheckedIn && ! $this->stays->checkedInByKiosk($stay)) {
             $stay = null;
         }
 
-        if ($stay !== null && $stay->status === UnitStatus::CheckedOut && ! $this->stays->checkedOutByKiosk($stay, $token)) {
+        if ($stay !== null && $stay->status === UnitStatus::CheckedOut && ! $this->stays->checkedOutByKiosk($stay, $kiosk)) {
             $stay = null;
         }
 
         if ($stay === null) {
-            if (! $checkOut && ctype_digit($id) && $this->stays->expiredHold($token->property, (int) $id)) {
+            if (! $checkOut && ctype_digit($id) && $this->stays->expiredHold($kiosk->property, (int) $id)) {
                 return ApiError::response('hold_expired', __('This room hold has expired. Please start again.'), 409);
             }
 
             return $this->notFound();
         }
 
-        $this->lockout->refund($token);
+        $this->lockout->refund($kiosk);
 
         return $stay;
     }

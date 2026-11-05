@@ -4185,7 +4185,6 @@ export type AccountingProvider = 'qne' | 'bukku';
 export type AccountingSetupStatus = 'not-connected' | 'needs-attention' | 'ready' | 'live';
 export type AccountingSyncStatus = 'pending' | 'pushed' | 'failed' | 'skipped';
 export type AgeBandPricing = 'free' | 'percent' | 'fixed';
-export type ApiTokenKind = 'kiosk' | 'integration';
 export type ArInvoiceStatus = 'open' | 'settled' | 'void';
 export type ArInvoiceType = 'invoice' | 'credit_note';
 export type AriChangeKind = 'availability' | 'rates' | 'restrictions';

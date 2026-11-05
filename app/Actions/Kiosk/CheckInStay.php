@@ -5,7 +5,7 @@ namespace App\Actions\Kiosk;
 use App\Actions\FrontDesk\CheckInUnit;
 use App\Actions\FrontDesk\UnitStayResult;
 use App\Enums\UnitStatus;
-use App\Models\ApiToken;
+use App\Models\Kiosk;
 use App\Models\ReservationUnit;
 use App\Services\Kiosk\KioskEligibility;
 use App\Services\Kiosk\KioskStays;
@@ -25,7 +25,7 @@ class CheckInStay
      * `arrival_not_reached`, and `server_error` for everything the guest cannot fix (no room ready, credit limit,
      * no business date). Nothing is logged with guest data; `kiosk.checked_in` holds the kiosk id only.
      */
-    public function __invoke(ApiToken $kiosk, ReservationUnit $stay): KioskCheckInResult
+    public function __invoke(Kiosk $kiosk, ReservationUnit $stay): KioskCheckInResult
     {
         if ($stay->status === UnitStatus::CheckedIn) {
             return KioskCheckInResult::done($this->stays->roomNumber($stay));

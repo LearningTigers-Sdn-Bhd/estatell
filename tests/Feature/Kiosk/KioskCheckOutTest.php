@@ -7,13 +7,13 @@ use App\Enums\SystemTransactionCode;
 use App\Enums\UnitStatus;
 use App\Events\StayCheckedOut;
 use App\Features\DoorLocks;
-use App\Models\ApiToken;
 use App\Models\BusinessDate;
 use App\Models\DoorCard;
 use App\Models\DoorLock;
 use App\Models\DoorLockConnection;
 use App\Models\Folio;
 use App\Models\FolioLine;
+use App\Models\Kiosk;
 use App\Models\Property;
 use App\Models\Room;
 use App\Models\RoomStatus;
@@ -26,6 +26,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Laravel\Pennant\Feature;
+use Laravel\Sanctum\PersonalAccessToken;
 use Spatie\Activitylog\Models\Activity;
 
 require_once __DIR__.'/../Support/KioskSetup.php';
@@ -234,7 +235,7 @@ it('does not allow check-out without an open business date', function () {
 
 it('restricts completed check-out retries to the same kiosk for thirty minutes', function () {
     ['unit' => $unit, 'property' => $property] = kioskCheckOutSetup();
-    ApiToken::factory()->for($property)->withToken('est_live_secondkioskaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')->create();
+    Kiosk::factory()->for($property)->withToken('est_live_secondkioskaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')->create();
     kioskPost("/stays/{$unit->id}/check-out")->assertOk();
     kioskPost("/stays/{$unit->id}/check-out", token: 'est_live_secondkioskaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')->assertNotFound();
     kioskRead("/stays/{$unit->id}/folio")->assertNotFound();
@@ -247,7 +248,7 @@ it('requires kiosk authentication and scope on all check-out routes', function (
     ['unit' => $unit, 'kiosk' => $kiosk] = kioskCheckOutSetup();
     foreach ([null, KIOSK_TEST_TOKEN] as $token) {
         if ($token !== null) {
-            $kiosk->forceFill(['scopes' => 'v1:read'])->save();
+            PersonalAccessToken::query()->update(['abilities' => ['v1:read']]);
         }
         kioskPost('/cards/lookup', ['uid' => '0DD25CE7'], token: $token)->assertUnauthorized()->assertJsonPath('error.code', 'kiosk_unauthorized');
         kioskRead("/stays/{$unit->id}/folio", token: $token)->assertUnauthorized();

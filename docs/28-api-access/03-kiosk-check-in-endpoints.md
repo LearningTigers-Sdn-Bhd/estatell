@@ -2,11 +2,11 @@
 
 ## Purpose
 
-The first three calls of the kiosk flow: find the booking, take the ID, take the guest's corrections. They sit on the [token layer](01-api-tokens-and-kiosk-pairing.md) and follow the contract `docs/KIOSK_API.md` in the estatell-kiosk repo. This file does not change the contract. The registration card, eligibility, check-in, keys, check-out and walk-in are in [the next file](03-kiosk-signing-check-in-and-keys.md).
+The first three calls of the kiosk flow: find the booking, take the ID, take the guest's corrections. They sit on the [token layer](01-api-tokens.md) and follow the contract `docs/KIOSK_API.md` in the estatell-kiosk repo. This file does not change the contract. The registration card, eligibility, check-in, keys, check-out and walk-in are in [the next file](05-kiosk-signing-check-in-and-keys.md).
 
 ## Calls
 
-All need `kiosk:*`, are scoped to the token's property and answer with the [error shape](01-api-tokens-and-kiosk-pairing.md#errors).
+All need `kiosk:*`, are scoped to the token's property and answer with the [error shape](01-api-tokens.md#errors).
 
 | Call                                     | Sends                                                                            | Returns                                                                               |
 | ---------------------------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
@@ -28,7 +28,7 @@ A **stay** is a reservation unit (`stay_id` is its id). A Confirmed stay **insid
 
 ## Guessing protection
 
-`bookings/find` counts every lookup that does not find an open booking (unknown reference or QR, ambiguous reference, expired QR, early arrival, ended stay, body with no reference) as a failure of the kiosk token (`KioskLookupLockout`, cache, per token). After 10 failures within 5 minutes the token gets `429 rate_limited` with `Retry-After` for every lookup, found or not, so the answer says nothing about whether a reference exists. Each lookup takes one attempt first (one atomic increment) and a lookup that finds a booking gives it back; a success never resets the failures, so knowing one valid reference does not help to guess others. This sits on top of the `api-token` limit (120 a minute).
+`bookings/find` counts every lookup that does not find an open booking (unknown reference or QR, ambiguous reference, expired QR, early arrival, ended stay, body with no reference) as a failure of the kiosk (`KioskLookupLockout`, cache, per kiosk). After 10 failures within 5 minutes the kiosk gets `429 rate_limited` with `Retry-After` for every lookup, found or not, so the answer says nothing about whether a reference exists. Each lookup takes one attempt first (one atomic increment) and a lookup that finds a booking gives it back; a success never resets the failures, so knowing one valid reference does not help to guess others. This sits on top of the `api-token` limit (120 a minute).
 
 ## Take the ID
 
@@ -51,8 +51,8 @@ A **stay** is a reservation unit (`stay_id` is its id). A Confirmed stay **insid
 | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Header     | `Idempotency-Key`, up to 100 characters. A request without one just runs                                                                                                                     |
 | Middleware | `api.idempotent` (`ReplayIdempotentRequest`) on the write routes, after `api.token`. `find` reads only and does not use it                                                                   |
-| Storage    | Table `api_idempotency_keys`: property, token, key, path, status, body. One row per token, key and path. Only the answer is stored, never the request, so no ID data is kept                 |
-| Replay     | The same token, key and path within 24 hours gets the first answer again, with the header `Idempotent-Replayed: true`, even if the body differs. Answers below 500 are stored, 5xx never are |
+| Storage    | Table `api_idempotency_keys`: property, kiosk, key, path, status, body. One row per kiosk, key and path. Only the answer is stored, never the request, so no ID data is kept                 |
+| Replay     | The same kiosk, key and path within 24 hours gets the first answer again, with the header `Idempotent-Replayed: true`, even if the body differs. Answers below 500 are stored, 5xx never are |
 | Race       | A cache lock per key runs two requests with one key one after the other, so the second replays                                                                                               |
 | Cleanup    | `PruneIdempotencyKeys` runs hourly (`prune-api-idempotency-keys`) and deletes rows older than 24 hours                                                                                       |
 

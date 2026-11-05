@@ -12,6 +12,7 @@ use App\Models\Property;
 use App\Models\Room;
 use App\Models\Tax;
 use App\Models\UnitNight;
+use Laravel\Sanctum\PersonalAccessToken;
 use Spatie\Activitylog\Models\Activity;
 
 require_once __DIR__.'/../Support/KioskSetup.php';
@@ -188,7 +189,7 @@ it('refuses a missing or wrong-scope token on every route of this slice', functi
     kioskRead('/config', token: null)->assertUnauthorized();
     kioskPost("/stays/{$unit->id}/check-in", token: null)->assertUnauthorized();
 
-    $kiosk->forceFill(['scopes' => 'v1:read'])->save();
+    PersonalAccessToken::query()->update(['abilities' => ['v1:read']]);
     kioskRead('/config')->assertUnauthorized()->assertJsonPath('error.code', 'kiosk_unauthorized');
     kioskPost("/stays/{$unit->id}/check-in")->assertUnauthorized();
 });

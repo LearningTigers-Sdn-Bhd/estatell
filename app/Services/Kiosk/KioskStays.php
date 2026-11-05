@@ -4,9 +4,9 @@ namespace App\Services\Kiosk;
 
 use App\Enums\StayType;
 use App\Enums\UnitStatus;
-use App\Models\ApiToken;
 use App\Models\BookingPreCheckInToken;
 use App\Models\Guest;
+use App\Models\Kiosk;
 use App\Models\Property;
 use App\Models\ReservationUnit;
 use App\Models\UnitGuest;
@@ -95,7 +95,7 @@ class KioskStays
         return $day->toDateString() >= $stay->departure_date->toDateString();
     }
 
-    public function checkedOutByKiosk(ReservationUnit $stay, ApiToken $kiosk): bool
+    public function checkedOutByKiosk(ReservationUnit $stay, Kiosk $kiosk): bool
     {
         return Activity::query()->forSubject($stay)->where('event', 'kiosk.checked_out')
             ->where('properties->kiosk_id', $kiosk->id)

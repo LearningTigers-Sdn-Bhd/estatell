@@ -218,7 +218,7 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('/', [KioskController::class, 'index'])->name('index');
         Route::post('/', [KioskController::class, 'store'])->name('store');
         Route::put('settings', [KioskController::class, 'update'])->name('update');
-        Route::post('{apiToken}/revoke', [KioskController::class, 'revoke'])->name('revoke');
+        Route::post('{kiosk}/revoke', [KioskController::class, 'revoke'])->name('revoke');
     });
 
     Route::prefix('booking-sources')->name('booking-sources.')->middleware('can:'.PermissionEnum::SettingsManage->value)->scopeBindings()->group(function () {
