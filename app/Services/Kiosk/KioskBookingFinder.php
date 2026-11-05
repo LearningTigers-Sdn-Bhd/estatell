@@ -7,6 +7,8 @@ use App\Enums\RegistrationCardField;
 use App\Enums\UnitStatus;
 use App\Models\Property;
 use App\Models\ReservationUnit;
+use App\Models\Tax;
+use App\Services\Reservations\UnitNationality;
 
 /**
  * Finds the booking a guest types or scans at the kiosk and says whether the guest may start check-in today. It uses the
@@ -16,7 +18,7 @@ use App\Models\ReservationUnit;
  */
 class KioskBookingFinder
 {
-    public function __construct(private KioskStays $stays, private KioskWalkInHolds $holds) {}
+    public function __construct(private KioskStays $stays, private KioskWalkInHolds $holds, private UnitNationality $nationality) {}
 
     public function byReference(Property $property, string $reference): KioskBookingLookup
     {
@@ -61,23 +63,31 @@ class KioskBookingFinder
 
         $stay->loadMissing(['reservation', 'roomType']);
 
-        return KioskBookingLookup::found($stay, (string) $this->stays->guest($stay)?->full_name, $this->stepsRequired($property));
+        return KioskBookingLookup::found($stay, (string) $this->stays->guest($stay)?->full_name, $this->stepsRequired($property, $stay));
     }
 
     /**
      * `registration_card` follows the property's rule that a signed card is needed to check in. `id` is on when the
-     * registration card marks the ID document field Required (the default for a new property).
+     * registration card marks the ID document field Required (the default for a new property), and also when a
+     * foreign-guests-only tax needs a nationality the stay does not have yet: only the ID step gives the kiosk one, and
+     * check-in refuses with `nationality_required` without it.
      *
      * @return array{id: bool, registration_card: bool}
      */
-    private function stepsRequired(Property $property): array
+    private function stepsRequired(Property $property, ReservationUnit $stay): array
     {
         $visibility = $property->registrationCardFields()->where('field', RegistrationCardField::IdentityDocument)->value('visibility')
             ?? RegistrationCardField::IdentityDocument->defaultVisibility()->value;
 
         return [
-            'id' => $visibility === FieldVisibility::Required->value,
+            'id' => $visibility === FieldVisibility::Required->value || $this->needsNationality($property, $stay),
             'registration_card' => (bool) $property->settings?->card_required_for_check_in,
         ];
+    }
+
+    private function needsNationality(Property $property, ReservationUnit $stay): bool
+    {
+        return $this->nationality->for($stay) === null
+            && Tax::query()->where('property_id', $property->id)->where('enabled', true)->where('foreign_guests_only', true)->exists();
     }
 }

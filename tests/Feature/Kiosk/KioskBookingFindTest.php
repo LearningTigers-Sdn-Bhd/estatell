@@ -7,6 +7,7 @@ use App\Models\Property;
 use App\Models\PropertySetting;
 use App\Models\RegistrationCardFieldSetting;
 use App\Models\ReservationUnit;
+use App\Models\Tax;
 use App\Services\Kiosk\KioskLookupLockout;
 use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Sanctum\PersonalAccessToken;
@@ -43,6 +44,17 @@ it('reports the pre-check-in settings in steps_required', function () {
     kioskPost('/bookings/find', ['reference' => 'R-100'])
         ->assertOk()
         ->assertJsonPath('steps_required', ['id' => false, 'registration_card' => true]);
+});
+
+it('asks for the ID when a foreign-only tax needs a nationality the stay does not have', function () {
+    ['property' => $property] = kioskStaySetup();
+    RegistrationCardFieldSetting::factory()->create(['property_id' => $property->id, 'field' => RegistrationCardField::IdentityDocument, 'visibility' => FieldVisibility::Optional]);
+
+    kioskPost('/bookings/find', ['reference' => 'R-100'])->assertOk()->assertJsonPath('steps_required.id', false);
+
+    Tax::factory()->for($property)->create(['enabled' => true, 'foreign_guests_only' => true]);
+
+    kioskPost('/bookings/find', ['reference' => 'R-100'])->assertOk()->assertJsonPath('steps_required.id', true);
 });
 
 it('answers booking_not_found for an unknown reference', function () {
