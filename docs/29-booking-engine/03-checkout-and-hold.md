@@ -54,7 +54,7 @@ booking_hold_line_children  id, booking_hold_line_id, age
 | The [open hold limits](#open-hold-limits) allow it                           | `hold_limit_reached`                  |
 | The total equals the total now                                               | `price_changed`, with `current_total` |
 
-- From the plan check on, the checks run under the room type lock. They use `BookingOffers`, so offers and holds follow the same rules.
+- From the plan check on, the checks run under the room type lock. They use `BookingBasket` and `BookingOffers`, so offers, [pricing](02-api.md#pricing) and holds follow the same rules.
 - The room type rows are locked together, in id order, so holds and staff bookings cannot sell the same room twice.
 - `AddUnit` locks one room type per line, in line order, so a booking with several room types can rarely deadlock with a hold. The hold's transaction retries, so the guest does not see an error.
 

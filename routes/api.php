@@ -71,6 +71,7 @@ Route::prefix('booking/v1')->name('api.booking.v1.')->group(function () {
         Route::get('room-types', [ContentController::class, 'roomTypes'])->name('properties.room-types');
         Route::get('calendar', [BookingStayController::class, 'calendar'])->name('properties.calendar');
         Route::post('offers', [BookingStayController::class, 'offers'])->name('properties.offers');
+        Route::post('pricing', [BookingStayController::class, 'pricing'])->name('properties.pricing');
     });
 
     Route::post('properties/{code}/holds', [HoldController::class, 'store'])

@@ -2,7 +2,6 @@
 
 namespace App\Actions\BookingEngine;
 
-use App\Actions\Reservations\ReservationResult;
 use App\Data\BookingEngine\NewBookingHoldData;
 use App\Data\BookingEngine\NewBookingHoldLineData;
 use App\Enums\BookingHoldStatus;
@@ -11,13 +10,11 @@ use App\Models\BookingClient;
 use App\Models\BookingHold;
 use App\Models\Property;
 use App\Models\RoomType;
+use App\Services\BookingEngine\BookingBasket;
 use App\Services\BookingEngine\BookingHoldLimits;
 use App\Services\BookingEngine\BookingOffer;
-use App\Services\BookingEngine\BookingOffers;
 use App\Services\BookingEngine\BookingWindow;
-use App\Services\Reservations\ReservationRefusals;
 use Brick\Math\BigDecimal;
-use Brick\Money\Money;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -32,9 +29,8 @@ class CreateBookingHold
 
     public function __construct(
         private BookingWindow $window,
-        private BookingOffers $offers,
+        private BookingBasket $basket,
         private BookingHoldLimits $limits,
-        private ReservationRefusals $refusals,
         private AnnounceBookingHoldRooms $announce,
     ) {}
 
@@ -62,25 +58,19 @@ class CreateBookingHold
             ->lockForUpdate()
             ->get(['id']);
 
-        $offers = $this->offers->forLines($property, $data->arrival, $data->departure, $data->lines, $data->guestNationality);
-        $refusal = $this->refusal($offers);
+        $price = $this->basket->price($property, $data->arrival, $data->departure, $data->lines, $data->guestNationality);
 
-        if ($refusal !== null) {
-            return $refusal;
+        if ($price->refusal !== null) {
+            return BookingHoldResult::refused($price->refusal, (string) $price->message);
         }
 
-        /** @var list<BookingOffer> $offers The refusal check found no empty line. */
+        /** @var list<BookingOffer> $offers The basket found no empty line. */
+        $offers = $price->offers;
+        $total = $price->onlineTotal;
+        $deskTotal = $price->deskTotal;
+
         if (! $this->limits->propertyAllows($property, count($offers)) || ($guestIpHash !== null && ! $this->limits->guestIpAllows($property, $guestIpHash))) {
             return BookingHoldResult::refused(BookingHoldResult::REFUSAL_HOLD_LIMIT_REACHED, __('Too many rooms are being booked at the moment. Try again in a few minutes.'));
-        }
-
-        $currency = $property->settings->currency->getCurrencyCode();
-        $total = Money::zero($currency);
-        $deskTotal = Money::zero($currency);
-
-        foreach ($offers as $offer) {
-            $total = $total->plus($offer->price->onlineTotal);
-            $deskTotal = $deskTotal->plus($offer->price->deskTotal);
         }
 
         if (! BigDecimal::of($data->total)->isEqualTo($total->getAmount())) {
@@ -111,34 +101,6 @@ class CreateBookingHold
         ($this->announce)($hold);
 
         return BookingHoldResult::held($hold, $deskTotal);
-    }
-
-    /**
-     * The first line that cannot be sold, or several lines that need more rooms than are left.
-     *
-     * @param  list<BookingOffer|null>  $offers
-     */
-    private function refusal(array $offers): ?BookingHoldResult
-    {
-        $needed = [];
-
-        foreach ($offers as $offer) {
-            if ($offer === null) {
-                return BookingHoldResult::refused(BookingHoldResult::REFUSAL_PLAN_NOT_AVAILABLE, __('This rate cannot be booked online.'));
-            }
-
-            if ($offer->blockedCode !== null) {
-                return BookingHoldResult::refused($offer->blockedCode, (string) $offer->blockedMessage);
-            }
-
-            $needed[$offer->roomType->id] = ($needed[$offer->roomType->id] ?? 0) + 1;
-
-            if ($needed[$offer->roomType->id] > $offer->roomsLeft) {
-                return BookingHoldResult::refused(ReservationResult::REFUSAL_NOT_AVAILABLE, $this->refusals->message(ReservationResult::REFUSAL_NOT_AVAILABLE));
-            }
-        }
-
-        return null;
     }
 
     private function addLine(BookingHold $hold, NewBookingHoldLineData $line, BookingOffer $offer, int $position): void

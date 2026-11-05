@@ -15,6 +15,7 @@ The one API behind the microsite, API only websites and, later, new-wastays. It 
 |                 | `GET /api/booking/v1/properties/{code}/room-types`   | Yes           | Yes      | Yes         |
 |                 | `GET /api/booking/v1/properties/{code}/calendar`     | Yes           | Yes      | Yes         |
 |                 | `POST /api/booking/v1/properties/{code}/offers`      | Yes           | Yes      | Yes         |
+|                 | `POST /api/booking/v1/properties/{code}/pricing`     | Yes           | Yes      | Yes         |
 | Checkout        | `POST /api/booking/v1/properties/{code}/holds`       | Yes           | Yes      | Yes         |
 |                 | `POST /api/booking/v1/holds/{token}/payment`         | Yes           | Yes      | Yes         |
 |                 | `GET /api/booking/v1/holds/{token}`                  | Yes           | Yes      | Yes         |
@@ -25,7 +26,7 @@ The one API behind the microsite, API only websites and, later, new-wastays. It 
 
 The marketplace endpoints are built and tested now, and nothing calls them until new-wastays exists. No token has the `booking:search` ability yet.
 
-**Built:** listing, marketplace, microsite, content and search, holds, `holds/{token}/payment` and manage booking.
+**Built:** listing, marketplace, microsite, content and search, pricing, holds, `holds/{token}/payment` and manage booking.
 
 ## What each returns
 
@@ -37,6 +38,7 @@ The marketplace endpoints are built and tested now, and nothing calls them until
 | `properties/{code}`      | Name, address, coordinates, Maps link, album photos (cover first), about text, amenities, nearby places, check-in times, policies                                                                                                                                                                                                        |
 | `room-types`             | Name, description, photos, amenities, guest limits, how it is sold                                                                                                                                                                                                                                                                       |
 | `calendar`               | Lowest one-night price before tax and closed dates for each date, at most 62 days at a time                                                                                                                                                                                                                                              |
+| `pricing`                | Currency, `online_total`, `pay_at_property` and one offer per line. See [Pricing](#pricing)                                                                                                                                                                                                                                              |
 | `offers`                 | Room types, public rate plans, rooms left, `pay_online` and `pay_at_property` with tax lines, cancellation terms, or a blocked reason                                                                                                                                                                                                    |
 | `holds` (POST)           | Hold token, expiry, online total, amount to pay at the property                                                                                                                                                                                                                                                                          |
 | `holds/{token}/payment`  | Curlec `key_id`, `order_id`, `amount` in sen, `currency`, `callback_url`, and `timeout` in seconds. Refusals: `hold_not_open`, `return_url_not_allowed`, 404 `property_not_found`, and 503 `payment_unavailable`, which is not stored for replay. An API only client sends `return_url`: see [API only mode](09-api-only-mode.md#access) |
@@ -66,6 +68,21 @@ The body of `offers` and `search` is the stay and the party of one room.
 - Cancellation terms come from the live `CANCEL` policy until a booking saves its own. See [Saved terms](05-cancel-and-refund.md#saved-terms).
 - `calendar` is a guide, one night at a time. A package plan opens a date but gives no nightly price. `offers` decides whether a stay can be booked.
 - `search` returns the lowest `pay_online` total, and leaves out a property with nothing to sell.
+
+## Pricing
+
+`POST properties/{code}/pricing` prices the rooms a guest chose, before a hold. It reads only and needs no key. It uses the same rules as a hold (`BookingBasket`), so its `online_total` is the `total` a hold accepts until prices or availability change.
+
+| Field         | Rule                                                                    |
+| ------------- | ----------------------------------------------------------------------- |
+| `arrival`     | Required. One stay for all lines                                        |
+| `departure`   | Required, after the arrival                                             |
+| `nationality` | Optional, a 2-letter country code in capitals. With none, a local guest |
+| `lines`       | Required, 1 to 50, the same shape as a hold's lines                     |
+
+- It answers `currency`, `online_total`, `pay_at_property` and `lines`. Each line is an offer, in line order. The totals are the sum of the lines.
+- It refuses with 422 and the same codes as a hold: `outside_window`, `plan_not_available`, `not_available` (including several lines that need more rooms than are left), and a blocked offer's code.
+- It does not check the open hold limits, and it keeps no rooms.
 
 ## Checkout
 
