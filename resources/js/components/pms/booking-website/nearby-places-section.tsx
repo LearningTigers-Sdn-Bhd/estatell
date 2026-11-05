@@ -325,7 +325,7 @@ export function NearbyPlacesSection({
 
     return (
         <div className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex flex-wrap items-start justify-between gap-3 ps-3 pt-2">
                 <div>
                     <h2 className="text-base font-medium">Nearby places</h2>
                     <p className="text-sm text-muted-foreground">

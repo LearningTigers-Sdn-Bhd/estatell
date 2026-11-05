@@ -2,6 +2,7 @@ import { Head } from '@inertiajs/react';
 import { useState } from 'react';
 import BookingWebsiteController from '@/actions/App/Http/Controllers/BookingEngine/BookingWebsiteController';
 import { BookingWebsiteShell } from '@/components/pms/booking-website/booking-website-shell';
+import { SectionHeader } from '@/components/pms/booking-website/section-header';
 import { SettingsSection } from '@/components/pms/settings-section';
 import {
     Field,
@@ -18,13 +19,18 @@ const DESCRIPTION_MAX = 160;
 function SeoFields({
     seo,
     errors,
+    title,
+    description,
+    onTitleChange,
+    onDescriptionChange,
 }: {
     seo: App.Data.BookingEngine.BookingWebsiteSeoData;
     errors: Record<string, string>;
+    title: string;
+    description: string;
+    onTitleChange: (title: string) => void;
+    onDescriptionChange: (description: string) => void;
 }) {
-    const [title, setTitle] = useState(seo.seoTitle ?? '');
-    const [description, setDescription] = useState(seo.seoDescription ?? '');
-
     return (
         <>
             <Field data-invalid={!!errors.seo_title}>
@@ -35,7 +41,7 @@ function SeoFields({
                     value={title}
                     maxLength={TITLE_MAX}
                     placeholder={`e.g. ${seo.propertyName}, Pangkor`}
-                    onChange={(event) => setTitle(event.target.value)}
+                    onChange={(event) => onTitleChange(event.target.value)}
                     aria-invalid={!!errors.seo_title}
                 />
                 <FieldDescription>
@@ -52,7 +58,9 @@ function SeoFields({
                     value={description}
                     maxLength={DESCRIPTION_MAX}
                     placeholder="e.g. Beachfront rooms with breakfast"
-                    onChange={(event) => setDescription(event.target.value)}
+                    onChange={(event) =>
+                        onDescriptionChange(event.target.value)
+                    }
                     aria-invalid={!!errors.seo_description}
                 />
                 <FieldDescription>
@@ -60,19 +68,6 @@ function SeoFields({
                 </FieldDescription>
                 <FieldError>{errors.seo_description}</FieldError>
             </Field>
-
-            <div className="flex flex-col gap-1 rounded-lg border bg-muted/40 p-4">
-                <span className="text-xs text-muted-foreground">
-                    Google preview
-                </span>
-                <span className="text-lg text-info">
-                    {title || seo.propertyName}
-                </span>
-                <span className="text-sm text-success">{seo.webAddress}</span>
-                <span className="text-sm text-muted-foreground">
-                    {description || 'No description yet.'}
-                </span>
-            </div>
         </>
     );
 }
@@ -82,24 +77,55 @@ export default function BookingWebsiteSeo({
 }: {
     seo: App.Data.BookingEngine.BookingWebsiteSeoData;
 }) {
+    const [title, setTitle] = useState(seo.seoTitle ?? '');
+    const [description, setDescription] = useState(seo.seoDescription ?? '');
+
     return (
         <>
             <Head title="Booking website SEO" />
             <BookingWebsiteShell
                 description="What Google shows for your booking website."
                 activeTab="seo"
+                asideLabel="Google preview"
+                aside={
+                    <div className="flex flex-col gap-4">
+                        <SectionHeader
+                            title="Google preview"
+                            description="How your website may look in search results."
+                        />
+                        <div className="flex flex-col gap-1 rounded-lg border bg-muted/40 p-4">
+                            <span className="text-lg text-info">
+                                {title || seo.propertyName}
+                            </span>
+                            <span className="text-sm break-all text-success">
+                                {seo.webAddress}
+                            </span>
+                            <span className="text-sm text-muted-foreground">
+                                {description || 'No description yet.'}
+                            </span>
+                        </div>
+                    </div>
+                }
             >
-                <div className="max-w-2xl">
-                    <SettingsSection
-                        guardUnsavedChanges
-                        form={BookingWebsiteController.updateSeo.form()}
-                        title="Google results"
-                        description="The title and description guests see in search results."
-                        contentClassName="grid gap-5"
-                    >
-                        {(errors) => <SeoFields seo={seo} errors={errors} />}
-                    </SettingsSection>
-                </div>
+                <SettingsSection
+                    headerClassName="ps-3 pt-2"
+                    guardUnsavedChanges
+                    form={BookingWebsiteController.updateSeo.form()}
+                    title="Google results"
+                    description="The title and description guests see in search results."
+                    contentClassName="grid gap-5"
+                >
+                    {(errors) => (
+                        <SeoFields
+                            seo={seo}
+                            errors={errors}
+                            title={title}
+                            description={description}
+                            onTitleChange={setTitle}
+                            onDescriptionChange={setDescription}
+                        />
+                    )}
+                </SettingsSection>
             </BookingWebsiteShell>
         </>
     );

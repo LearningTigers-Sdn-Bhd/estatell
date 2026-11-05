@@ -20,6 +20,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { cn } from '@/lib/utils';
 
 type Picker = App.Data.BookingEngine.AmenityPickerData;
 type Amenity = App.Data.BookingEngine.AmenityData;
@@ -104,10 +105,13 @@ export function AmenityPicker({
     readOnly,
     page,
     listUrl,
+    headerClassName,
 }: {
     picker: Picker;
     saveUrl: string;
     description: string;
+    /** Extra classes for the description, for example the heading inset inside a Workspace panel. */
+    headerClassName?: string;
     readOnly: boolean;
     page: number;
     listUrl: string;
@@ -128,7 +132,9 @@ export function AmenityPicker({
 
     return (
         <div className="flex flex-col gap-4">
-            <p className="text-sm text-muted-foreground">{description}</p>
+            <p className={cn('text-sm text-muted-foreground', headerClassName)}>
+                {description}
+            </p>
 
             <FilterBar
                 search={table.search}

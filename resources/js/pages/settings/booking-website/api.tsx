@@ -1,7 +1,8 @@
 import { Form, Head, router, useForm } from '@inertiajs/react';
-import { ExternalLink, KeyRound, Link2, Plus, Trash2 } from 'lucide-react';
+import { KeyRound, Link2, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import BookingApiController from '@/actions/App/Http/Controllers/BookingEngine/BookingApiController';
+import { ApiQuickStart } from '@/components/pms/booking-website/api-quick-start';
 import { BookingWebsiteShell } from '@/components/pms/booking-website/booking-website-shell';
 import { CopyField } from '@/components/pms/booking-website/copy-field';
 import { SectionHeader } from '@/components/pms/booking-website/section-header';
@@ -16,7 +17,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -130,6 +131,13 @@ export default function BookingWebsiteApi({
             <BookingWebsiteShell
                 description="Connect your own website to the booking engine. Your developer keeps the token on your web server."
                 activeTab="api"
+                asideLabel="Developer quick start"
+                aside={
+                    <ApiQuickStart
+                        apiAddress={api.apiAddress}
+                        docsUrl={api.docsUrl}
+                    />
+                }
             >
                 <div className="flex flex-col gap-8">
                     <section className="flex flex-col gap-4">
@@ -208,32 +216,6 @@ export default function BookingWebsiteApi({
                                 </TableBody>
                             </Table>
                         </div>
-                    </section>
-
-                    <section className="flex flex-col gap-4">
-                        <SectionHeader
-                            title="Developer guide"
-                            description="Endpoints, the test environment and the rules for a safe payment page."
-                            actions={
-                                <a
-                                    href={api.docsUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className={buttonVariants({
-                                        variant: 'outline',
-                                    })}
-                                >
-                                    Open API docs
-                                    <ExternalLink
-                                        aria-hidden
-                                        data-icon="inline-end"
-                                    />
-                                    <span className="sr-only">
-                                        (opens in a new tab)
-                                    </span>
-                                </a>
-                            }
-                        />
                     </section>
                 </div>
             </BookingWebsiteShell>

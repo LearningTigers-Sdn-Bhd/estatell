@@ -25,15 +25,17 @@ rate_plans               + bookable_online (bool, default false)
 
 Settings › Booking website (`/p/{code}/settings/booking-website`, `settings.booking-website.*`) appears when the flag is on. Each tab is its own URL, controller method and page.
 
-| Tab           | Microsite | API only | Holds                                                 | Permission                                                           |
-| ------------- | --------- | -------- | ----------------------------------------------------- | -------------------------------------------------------------------- |
-| General       | Yes       | Yes      | Status, checklist, web address, Maps link, about text | `booking-website.manage`; publishing needs `booking-website.publish` |
-| Design        | Yes       | No       | Template, images, main colour                         | `booking-website.manage`                                             |
-| Amenities     | Yes       | Yes      | Property amenities                                    | `booking-website.manage`                                             |
-| Nearby places | Yes       | Yes      | Add a place, suggestions, your places                 | `booking-website.manage`                                             |
-| Rates         | Yes       | Yes      | Which rate plans guests can book                      | `booking-website.manage`                                             |
-| SEO           | Yes       | No       | Google title and description                          | `booking-website.manage`                                             |
-| API           | No        | Yes      | Token, return addresses, docs link                    | `booking-website.api`                                                |
+| Tab           | Microsite | API only | Holds                                      | Right rail                    | Permission                                                           |
+| ------------- | --------- | -------- | ------------------------------------------ | ----------------------------- | -------------------------------------------------------------------- |
+| General       | Yes       | Yes      | Status, web address, Maps link, about text | Checklist, Publish or Go live | `booking-website.manage`; publishing needs `booking-website.publish` |
+| Design        | Yes       | No       | Template, main colour                      | Images                        | `booking-website.manage`                                             |
+| Amenities     | Yes       | Yes      | Property amenities                         | None                          | `booking-website.manage`                                             |
+| Nearby places | Yes       | Yes      | Add a place, suggestions, your places      | None                          | `booking-website.manage`                                             |
+| Rates         | Yes       | Yes      | Which rate plans guests can book           | None                          | `booking-website.manage`                                             |
+| SEO           | Yes       | No       | Google title and description               | Google preview                | `booking-website.manage`                                             |
+| API           | No        | Yes      | Token, return addresses                    | Developer quick start         | `booking-website.api`                                                |
+
+The tabs use `Workspace` with `scroll="page"`: bordered panels as on the reservation page that fill the height, but the page scrolls and the rail's content stays in view. Below `lg` the rail comes after the tab content. A tab with no rail has one full-width panel.
 
 ### General
 
@@ -173,16 +175,11 @@ Only active, nightly plans with `company_access` Everyone appear (`RatePlan::sco
 ### SEO
 
 ```
-┌─ SEO ──────────────────────────────────────────────────┐
-│ Page title     [ e.g. Sand Bay Resort, Pangkor       ] │
-│ Description    [ e.g. Beachfront rooms with breakfast ]│
-│                                                        │
-│ Google preview                                         │
-│ Sand Bay Resort, Pangkor                               │
-│ booking.estatell.com/sand-bay                          │
-│ Beachfront rooms with breakfast...                     │
-│                                                [ Save ]│
-└────────────────────────────────────────────────────────┘
+┌─ SEO ────────────────────────────────┐ ┌─ Google preview ──────────────┐
+│ Page title  [ e.g. Sand Bay Resort ] │ │ Sand Bay Resort, Pangkor      │
+│ Description [ e.g. Beachfront ...  ] │ │ booking.estatell.com/sand-bay │
+│                             [ Save ] │ │ Beachfront rooms with ...     │
+└──────────────────────────────────────┘ └───────────────────────────────┘
 ```
 
 ## What stays elsewhere

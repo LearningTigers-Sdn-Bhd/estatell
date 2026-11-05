@@ -20,6 +20,7 @@ export default function BookingWebsiteAmenities({
                 activeTab="amenities"
             >
                 <AmenityPicker
+                    headerClassName="ps-3 pt-2"
                     picker={amenities}
                     saveUrl={BookingWebsiteController.updateAmenities.url()}
                     description="Turn on what your property offers. Each switch saves at once. Room amenities are set on each room type."

@@ -70,7 +70,7 @@ export default function BookingWebsiteRates({
                 activeTab="rates"
             >
                 <div className="flex flex-col gap-4">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="flex flex-wrap items-start justify-between gap-3 ps-3 pt-2">
                         <div className="flex max-w-2xl flex-col gap-1">
                             <h2 className="font-heading text-base font-semibold">
                                 Online rate plans

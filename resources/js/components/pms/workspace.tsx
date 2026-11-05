@@ -5,17 +5,24 @@ function Panel({
     className,
     children,
     label,
+    scroll = 'panels',
+    sticky = false,
     ...props
 }: {
     className?: string;
     children: ReactNode;
     label?: string;
+    scroll?: WorkspaceScroll;
+    /** Holds sticky content, so the panel must not be a scroll container. */
+    sticky?: boolean;
 } & Pick<ComponentProps<'section'>, 'inert' | 'aria-hidden'>) {
     return (
         <section
             aria-label={label}
             className={cn(
-                'min-h-0 min-w-0 overflow-x-auto rounded-xl border bg-card p-1.5 lg:overflow-y-auto',
+                'min-h-0 min-w-0 rounded-xl border bg-card p-1.5',
+                !sticky && 'overflow-x-auto',
+                scroll === 'panels' && 'lg:overflow-y-auto',
                 className,
             )}
             {...props}
@@ -25,6 +32,9 @@ function Panel({
     );
 }
 
+/** `panels`: the body fills the shell height and each panel scrolls on its own. `page`: the page scrolls and the aside stays in view. */
+type WorkspaceScroll = 'panels' | 'page';
+
 /**
  * The fixed-height body of a workspace page (the reservation page, the manual folio, the channel connect and map pages):
  * up to three side-by-side panels (list, main, aside).
@@ -32,25 +42,50 @@ function Panel({
  * Below `lg` the panels stack in one column and the page scrolls as a whole, with the aside first.
  * `hideAside` shrinks the aside column to nothing (animated) so the centre panel takes the width. Below `lg` it
  * removes the aside panel.
+ * `scroll="page"` is for a settings page (Booking website): the panels fill the content height and grow with their
+ * content, the page scrolls, the aside content is sticky, and below `lg` the aside comes after the centre panel. Without an aside the centre panel takes the width.
  */
 export function Workspace({
     list,
     aside,
     asideLabel = 'Summary',
     hideAside = false,
+    scroll = 'panels',
     children,
 }: {
     /** Left panel, for example the unit chooser or the folio rail. */
     list?: ReactNode;
-    /** Right panel, for example the reservation summary. */
-    aside: ReactNode;
+    /** Right panel, for example the reservation summary. Optional with `scroll="page"`. */
+    aside?: ReactNode;
     /** The accessible name of the aside panel. */
     asideLabel?: string;
     /** Hides the aside panel. */
     hideAside?: boolean;
+    /** Whether each panel scrolls on its own or the page scrolls. */
+    scroll?: WorkspaceScroll;
     /** Centre panel, the content of the open tab. */
     children: ReactNode;
 }) {
+    if (scroll === 'page') {
+        return (
+            <div
+                className={cn(
+                    'grid grid-cols-1 gap-1.5 lg:flex-1',
+                    aside !== undefined && 'lg:grid-cols-[minmax(0,1fr)_20rem]',
+                )}
+            >
+                <Panel scroll="page" label="Details">
+                    {children}
+                </Panel>
+                {aside !== undefined && (
+                    <Panel scroll="page" sticky label={asideLabel}>
+                        <div className="lg:sticky lg:top-4">{aside}</div>
+                    </Panel>
+                )}
+            </div>
+        );
+    }
+
     return (
         <div
             className={cn(

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import type { RouteFormDefinition } from '@/wayfinder';
+import { cn } from '@/lib/utils';
 
 function focusFirstError(errors: Record<string, string>) {
     const first = Object.keys(errors)[0];
@@ -33,6 +34,7 @@ export function SettingsSection({
     readOnly = false,
     guardUnsavedChanges = false,
     actions,
+    headerClassName,
     children,
 }: {
     form: RouteFormDefinition<'post'>;
@@ -43,6 +45,8 @@ export function SettingsSection({
     readOnly?: boolean;
     guardUnsavedChanges?: boolean;
     actions?: SectionActions;
+    /** Extra classes for the header, for example the heading inset inside a Workspace panel. */
+    headerClassName?: string;
     children: (errors: Record<string, string>) => ReactNode;
 }) {
     const afterSave = useRef<(() => void) | null>(null);
@@ -67,6 +71,7 @@ export function SettingsSection({
                     readOnly={readOnly}
                     guardUnsavedChanges={guardUnsavedChanges}
                     actions={actions}
+                    headerClassName={headerClassName}
                     processing={processing}
                     isDirty={isDirty}
                     onSave={(onSaved) => {
@@ -89,6 +94,7 @@ function SettingsSectionContent({
     readOnly,
     guardUnsavedChanges,
     actions,
+    headerClassName,
     processing,
     isDirty,
     onSave,
@@ -101,6 +107,7 @@ function SettingsSectionContent({
     readOnly: boolean;
     guardUnsavedChanges: boolean;
     actions?: SectionActions;
+    headerClassName?: string;
     processing: boolean;
     isDirty: boolean;
     onSave: (onSaved: () => void) => void;
@@ -113,7 +120,12 @@ function SettingsSectionContent({
     return (
         <section className="flex flex-col gap-5">
             {actions ? (
-                <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+                <header
+                    className={cn(
+                        'flex flex-wrap items-start justify-between gap-x-4 gap-y-3',
+                        headerClassName,
+                    )}
+                >
                     <div className="min-w-0 space-y-1">
                         <h3 className="text-base font-medium">{title}</h3>
                         <p className="text-sm text-muted-foreground">
@@ -127,7 +139,7 @@ function SettingsSectionContent({
                     </div>
                 </header>
             ) : (
-                <header className="space-y-1">
+                <header className={cn('space-y-1', headerClassName)}>
                     <h3 className="text-base font-medium">{title}</h3>
                     <p className="text-sm text-muted-foreground">
                         {description}
