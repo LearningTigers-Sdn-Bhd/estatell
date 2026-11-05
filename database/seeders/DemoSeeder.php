@@ -16,8 +16,9 @@ class DemoSeeder extends Seeder
     public function run(): void
     {
         self::password();
+        DemoBookingEngineSeeder::token();
 
-        $this->call([OtaChannelSeeder::class, AmenitySeeder::class, SiteTemplateSeeder::class, PearlsideSeeder::class, BorenoSeeder::class]);
+        $this->call([OtaChannelSeeder::class, AmenitySeeder::class, SiteTemplateSeeder::class, PearlsideSeeder::class, BorenoSeeder::class, DemoBookingEngineSeeder::class]);
     }
 
     /**

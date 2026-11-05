@@ -2,6 +2,7 @@
 
 require_once __DIR__.'/../Support/BookingApiSetup.php';
 
+use App\Enums\BookingEngineMode;
 use App\Features\BookingEngine;
 use App\Models\BookingClient;
 use App\Models\Kiosk;
@@ -104,11 +105,20 @@ it('lets an API only client reach only its own property, in API only mode', func
     bookingApiGet('properties/'.$other->code)->assertNotFound();
 });
 
-it('lets a demo client reach nothing yet', function () {
-    ['property' => $property] = bookingApiProperty();
+it('lets a demo client reach a property with a booking site in either mode', function () {
+    ['property' => $microsite] = bookingApiProperty();
+    ['property' => $apiOnly, 'site' => $site] = bookingApiProperty('palm-beach');
+    $site->update(['mode' => BookingEngineMode::ApiOnly, 'published_at' => null]);
+    ['property' => $noSite, 'site' => $removed] = bookingApiProperty('coral-bay');
+    $removed->delete();
     BookingClient::factory()->demo()->withToken(BOOKING_API_TOKEN)->create();
 
-    bookingApiGet('properties/'.$property->code)->assertNotFound();
+    bookingApiGet('properties/'.$microsite->code)->assertOk();
+    bookingApiGet('properties/'.$apiOnly->code)->assertOk();
+    bookingApiGet('properties/'.$noSite->code)->assertNotFound();
+
+    Feature::for($apiOnly)->deactivate(BookingEngine::class);
+    bookingApiGet('properties/'.$apiOnly->code)->assertNotFound();
 });
 
 it('counts the rate limit per token and property', function () {

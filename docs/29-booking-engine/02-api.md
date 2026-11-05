@@ -104,12 +104,12 @@ See [Cancel and refund](05-cancel-and-refund.md).
 
 Laravel Sanctum, on the same [token layer](../28-api-access/01-api-tokens.md) as kiosks, with one token for each client. Sanctum is already installed. The token's `booking:*` abilities decide which endpoints it reaches, and its owner decides which properties. The owner is a `BookingClient` with a type and an optional property: see [Booking engine microsite](../28-api-access/04-booking-engine-microsite.md).
 
-| Token               | Can reach                                                                                                               | Source of bookings |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------ |
-| Microsite app       | Published sites in Microsite mode, flag on                                                                              | Booking Engine     |
-| API only            | One property, from the owner's server                                                                                   | Booking Engine     |
-| Demo test token     | Demo properties, on `demo.estatell.com` only. Reaches nothing until [Test mode](09-api-only-mode.md#test-mode) is built | Booking Engine     |
-| new-wastays (later) | Properties opted in; the setting comes later                                                                            | Decided later      |
+| Token               | Can reach                                                                                                                        | Source of bookings |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| Microsite app       | Published sites in Microsite mode, flag on                                                                                       | Booking Engine     |
+| API only            | One property, from the owner's server                                                                                            | Booking Engine     |
+| Demo test token     | Demo properties with a booking site, in either mode, on `demo.estatell.com` only: see [Test mode](09-api-only-mode.md#test-mode) | Booking Engine     |
+| new-wastays (later) | Properties opted in; the setting comes later                                                                                     | Decided later      |
 
 A property the token cannot reach, one with the flag off, or a suspended one returns 404 `property_not_found`. A booking made before the flag went off still works through its booking token.
 

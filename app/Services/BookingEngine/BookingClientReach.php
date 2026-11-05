@@ -14,7 +14,7 @@ use Laravel\Pennant\Feature;
 /**
  * Which properties a booking client can reach. A property must not be suspended and must have the Booking engine flag on.
  * A Microsite client reaches published sites in Microsite mode, an API only client its one property in API only mode.
- * A Demo client reaches nothing until the demo item is built. See docs/28-api-access/04-booking-engine-microsite.md.
+ * A Demo client reaches every property with a booking site, in either mode: only the demo database has one. See docs/28-api-access/04-booking-engine-microsite.md.
  */
 class BookingClientReach
 {
@@ -54,7 +54,7 @@ class BookingClientReach
         return match ($client->type) {
             BookingClientType::Microsite => $query->whereHas('bookingSite', fn (Builder $site) => $site->where('mode', BookingEngineMode::Microsite)->whereNotNull('published_at')),
             BookingClientType::ApiOnly => $query->whereKey($client->property_id)->whereHas('bookingSite', fn (Builder $site) => $site->where('mode', BookingEngineMode::ApiOnly)),
-            BookingClientType::Demo => $query->whereRaw('1 = 0'),
+            BookingClientType::Demo => $query->whereHas('bookingSite'),
         };
     }
 

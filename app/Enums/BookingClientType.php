@@ -52,4 +52,14 @@ enum BookingClientType: string
     {
         return $this === self::ApiOnly;
     }
+
+    /**
+     * Whether a payment may name any http or https return address. Every developer shares the demo token and no owner
+     * approves addresses there, and a developer often tests from `http://localhost`. Without one, the guest returns to
+     * the microsite's page for the hold.
+     */
+    public function acceptsAnyReturnAddress(): bool
+    {
+        return $this === self::Demo;
+    }
 }

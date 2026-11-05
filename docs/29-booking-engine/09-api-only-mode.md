@@ -2,7 +2,7 @@
 
 ## Purpose
 
-**Status: built**, except the [test mode](#test-mode) and the developer guide's content. Admins set the mode on the Features tab: see [Mode switch](07-settings-and-permissions.md#mode-switch).
+**Status: built**, except the developer guide's content. The [test mode](#test-mode) code is built; the demo's Coolify setup is still open. Admins set the mode on the Features tab: see [Mode switch](07-settings-and-permissions.md#mode-switch).
 
 Let an owner with their own website and developer sell rooms online, using the same API as the microsite. estatell still handles rooms, prices, bookings and money.
 
@@ -99,7 +99,20 @@ Going live changes only the API address and token.
 | No scheduler or queue workers   | No job expires holds; the queue is `sync`     | [Availability ignores expired holds](03-checkout-and-hold.md#holds-and-availability)                                                    |
 | A shared token                  | Developers can see each other's test activity | Acceptable for sample data; never use real guest details                                                                                |
 
-Demo needs the flag on for its properties, the test token and Curlec test keys, plus a public webhook. Curlec's test mode has test cards and a mock bank page with Success and Failure buttons.
+`DemoBookingEngineSeeder` (run by `DemoSeeder`) sets up the demo side:
+
+| Item           | Demo                                                                                                                                                                                          |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Flag and mode  | Booking engine on for both properties. Pearlside View Resort in Microsite mode (not published), Boreno Hotel in API only mode                                                                 |
+| Rate plans     | Every plan the Rates tab would list is bookable online                                                                                                                                        |
+| Test token     | One Demo client. Its token is `DEMO_BOOKING_API_TOKEN` (at least 32 characters, no `\|`). Empty means no client                                                                               |
+| Reach          | Every property with a booking site, in either mode. Only the demo database has a Demo client                                                                                                  |
+| Return address | Optional, and any `http` or `https` address with no `#` part, up to 500 characters, such as `http://localhost:4321/done`. Without one, the guest returns to the microsite's page for the hold |
+| Curlec         | Test keys in `CURLEC_KEY_ID`, `CURLEC_KEY_SECRET` and `CURLEC_WEBHOOK_SECRET`. No code change                                                                                                 |
+
+The return address rule is looser than in production because every developer shares the token, and no owner approves addresses on the demo.
+
+Still open, in Coolify: the demo app itself, `DEMO_BOOKING_API_TOKEN`, the Curlec test keys, and a Curlec test webhook pointing to `https://demo.estatell.com/webhooks/curlec`. Curlec's test mode has test cards and a mock bank page with Success and Failure buttons.
 
 The developer guide is published with the API, and shows the demo address, the test token and the test payment details.
 

@@ -259,6 +259,34 @@ test('the microsite ignores a return address and keeps its own page', function (
     expect(GatewayPayment::query()->sole()->return_url)->toBeNull();
 });
 
+test('the demo client may name any http or https return address, or none', function (?string $url, ?string $saved) {
+    $setup = curlecSetup();
+    $setup['client'] = BookingClient::factory()->demo()->withToken(API_ONLY_TOKEN)->create();
+    $hold = curlecHold($setup);
+
+    postApiOnlyPayment($hold->token, $url === null ? [] : ['return_url' => $url])->assertOk();
+
+    expect(GatewayPayment::query()->sole()->return_url)->toBe($saved);
+})->with([
+    'localhost' => ['http://localhost:4321/done', 'http://localhost:4321/done'],
+    'https' => ['https://dev.sandbay.com/done?lang=en', 'https://dev.sandbay.com/done?lang=en'],
+    'none' => [null, null],
+]);
+
+test('the demo client cannot name a return address that is not a plain web address', function (string $url) {
+    $setup = curlecSetup();
+    $setup['client'] = BookingClient::factory()->demo()->withToken(API_ONLY_TOKEN)->create();
+
+    postApiOnlyPayment(curlecHold($setup)->token, ['return_url' => $url])->assertStatus(422)->assertJsonPath('error.code', 'return_url_not_allowed');
+
+    expect($setup['gateway']->orders)->toBe([]);
+})->with([
+    'javascript' => ['javascript:alert(1)'],
+    'ftp' => ['ftp://dev.sandbay.com/done'],
+    'fragment' => ['http://localhost:4321/done#top'],
+    'too long' => ['https://dev.sandbay.com/'.str_repeat('a', 480)],
+]);
+
 test('the tabs get the property\'s mode, so each mode shows only its own tabs', function () {
     ['owner' => $owner, 'property' => $property, 'site' => $site] = apiOnlySetup();
 

@@ -24,6 +24,8 @@ return [
     | demo.estatell.com, reset every night. The demo uses the password to seed
     | its staff accounts. Production shows the link, the Owner logins and the
     | password on the partner Demo access card, only when the URL is set.
+    | The booking API token is the fixed test token developers use on the
+    | demo; without it the demo has no API client.
     | See docs/deployment/demo_environment.md.
     |
     */
@@ -31,6 +33,7 @@ return [
     'demo' => [
         'url' => env('DEMO_URL'),
         'password' => env('DEMO_PASSWORD'),
+        'booking_api_token' => env('DEMO_BOOKING_API_TOKEN'),
         'logins' => [
             ['property' => 'Pearlside View Resort', 'email' => 'pearlside@demo.estatell.com'],
             ['property' => 'Boreno Hotel', 'email' => 'boreno@demo.estatell.com'],

@@ -28,13 +28,13 @@ booking_clients   id, type (BookingClientType), property_id (nullable), name,
                   CHECK: an API only client has a property; the other types have none
 ```
 
-| `BookingClientType` | `property_id` | Tokens               | Reaches                                       |
-| ------------------- | ------------- | -------------------- | --------------------------------------------- |
-| Microsite           | Empty         | One for the app      | Published sites in Microsite mode, flag on    |
-| API only            | Set           | One per property     | Its one property, in API only mode, flag on   |
-| Demo                | Empty         | One fixed test token | Demo properties, on the demo environment only |
+| `BookingClientType` | `property_id` | Tokens               | Reaches                                                                               |
+| ------------------- | ------------- | -------------------- | ------------------------------------------------------------------------------------- |
+| Microsite           | Empty         | One for the app      | Published sites in Microsite mode, flag on                                            |
+| API only            | Set           | One per property     | Its one property, in API only mode, flag on                                           |
+| Demo                | Empty         | One fixed test token | Every property with a booking site, flag on. Only the demo database has a Demo client |
 
-No type reaches a suspended property. A Demo client reaches nothing until the [demo item](../29-booking-engine/09-api-only-mode.md#test-mode) is built. A partial unique index allows one active Microsite client.
+No type reaches a suspended property. The demo seeds its Demo client: see [Test mode](../29-booking-engine/09-api-only-mode.md#test-mode). A partial unique index allows one active Microsite client.
 
 Create the Microsite client and its token with this command. It prints the token once, and refuses when an active client exists.
 
