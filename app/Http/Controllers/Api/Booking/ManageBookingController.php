@@ -74,7 +74,7 @@ class ManageBookingController extends Controller
         $client = $request->attributes->get('booking_client');
 
         return BookingHold::query()
-            ->with(['reservation.booker', 'reservation.units.roomType'])
+            ->with(['property.settings', 'reservation.booker', 'reservation.units.roomType'])
             ->where('booking_client_id', $client->id)
             ->where('token', $token)
             ->where('status', BookingHoldStatus::Confirmed)

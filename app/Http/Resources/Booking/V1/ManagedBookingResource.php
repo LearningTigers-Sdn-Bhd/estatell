@@ -10,8 +10,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * A confirmed booking as its guest sees it on the Manage booking page. The caller has loaded `reservation` with its
- * `booker` and `units.roomType`. See docs/29-booking-engine/02-api.md#manage-booking.
+ * A confirmed booking as its guest sees it on the Manage booking page. The caller has loaded `property.settings`, and
+ * `reservation` with its `booker` and `units.roomType`. See docs/29-booking-engine/02-api.md#manage-booking.
  *
  * @property BookingHold $resource
  */
@@ -43,6 +43,7 @@ class ManagedBookingResource extends JsonResource
                 'room_type' => $unit->roomType->name,
                 'status' => $unit->status->value,
             ])->all()),
+            'currency' => $hold->property->settings?->currency->getCurrencyCode(),
             'amount_paid' => $hold->total_amount,
             'refund' => $refund === null ? null : ['status' => $refund->status->value, 'amount' => $refund->amount],
             'cancellation_terms' => $terms === null ? null : [

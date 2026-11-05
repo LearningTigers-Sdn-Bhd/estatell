@@ -223,6 +223,7 @@ test('a guest reads their booking with its terms and refund', function () {
             'status' => ReservationStatus::Cancelled->value,
             'arrival' => '2026-10-20',
             'guest' => 'Aisyah Rahman',
+            'currency' => 'MYR',
             'amount_paid' => '200.00',
             'refund' => ['status' => 'pending', 'amount' => '200.00'],
             'cancellation_terms' => ['free_until_days' => 3],
