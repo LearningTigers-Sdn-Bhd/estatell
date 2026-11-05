@@ -112,7 +112,7 @@ Going live changes only the API address and token.
 
 The return address rule is looser than in production because every developer shares the token, and no owner approves addresses on the demo.
 
-Still open, in Coolify: the demo app itself, `DEMO_BOOKING_API_TOKEN`, the Curlec test keys, and a Curlec test webhook pointing to `https://demo.estatell.com/webhooks/curlec`. Curlec's test mode has test cards and a mock bank page with Success and Failure buttons.
+`compose.demo.yaml` passes `DEMO_BOOKING_API_TOKEN` and the Curlec settings. Still open, in Coolify: the demo app itself, the values of `DEMO_BOOKING_API_TOKEN` and the Curlec test keys, and a Curlec test webhook pointing to `https://demo.estatell.com/webhooks/curlec`. Curlec's test mode has test cards and a mock bank page with Success and Failure buttons.
 
 The developer guide is published with the API, and shows the demo address, the test token and the test payment details.
 
