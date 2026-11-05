@@ -72,7 +72,7 @@ export default function BookingWebsiteGeneral({
                                     : 'Finish every step to go online.'
                             }
                         />
-                        <ul className="flex flex-col gap-2 ps-3">
+                        <ul className="flex flex-col gap-2">
                             {general.checklist.map((item) => (
                                 <li
                                     key={item.key}

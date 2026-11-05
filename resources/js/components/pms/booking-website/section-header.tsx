@@ -1,9 +1,10 @@
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { cn } from '@/lib/utils';
 
 /**
  * A section heading with its description and actions on the right. It sits in a Workspace panel, so only the heading
- * gets the normal inset. An optional icon sits before the title and description.
+ * gets the normal inset. With an icon, the icon box sets the heading apart, so it takes no inset.
  */
 export function SectionHeader({
     title,
@@ -17,7 +18,12 @@ export function SectionHeader({
     actions?: ReactNode;
 }) {
     return (
-        <div className="flex flex-wrap items-start justify-between gap-3 ps-3 pt-2">
+        <div
+            className={cn(
+                'flex flex-wrap items-start justify-between gap-3 pt-2',
+                !Icon && 'ps-3',
+            )}
+        >
             <div className="flex min-w-0 items-start gap-3">
                 {Icon && (
                     <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
