@@ -27,7 +27,7 @@ class PaymentMethodController extends Controller
 
         return Inertia::render('onboarding/payment-methods', [
             'paymentMethods' => $property->paymentMethods()
-                ->whereNotIn('type', [PaymentMethodType::OtaCollected->value, PaymentMethodType::OldSystem->value])
+                ->whereNotIn('type', [PaymentMethodType::OtaCollected->value, PaymentMethodType::OldSystem->value, PaymentMethodType::Online->value])
                 ->ordered()
                 ->get()
                 ->map(fn (PaymentMethod $paymentMethod): OnboardingPaymentMethodData => OnboardingPaymentMethodData::fromModel($paymentMethod)),

@@ -14,7 +14,8 @@ Staff with `settings.manage` can rename, activate, configure and reorder every m
 
 Staff can add methods, for example DuitNow QR or Touch 'n Go, so each one gets its own reports and surcharge.
 
-- The types staff can add are Cash, Card, Bank transfer and E-wallet (`PaymentMethodType::addableCases()`). OTA collected and City ledger stay system-only.
+- The types staff can add are Cash, Card, Bank transfer and E-wallet (`PaymentMethodType::addableCases()`). OTA collected, City ledger and Online stay system-only.
+- Every property also gets a system **Online** method for money the [booking engine](../29-booking-engine/04-payment.md#on-the-folio) collects. It is not shown in Settings, onboarding or any payment form, and only `ConfirmBookingHold` posts it.
 - Adding a method also creates its own payment transaction code. The code category follows the type (`PaymentMethodType::category()`).
 - Codes are upper case with `_` separators and at most 20 characters. They are unique among all transaction codes of the property. Custom codes can be edited; seeded codes cannot.
 - The type is chosen when the method is added and never changes.

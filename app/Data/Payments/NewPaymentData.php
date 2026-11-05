@@ -14,6 +14,7 @@ use Spatie\LaravelData\Data;
  * `allowOtaCollected` lets the method be an OTA collected one. The Record payment Dialog and the wastays replay set it; check-in and check-out collection do not.
  * `guestPaysTaxes` marks the Advance of Collect now for the taxes a guest pays while a company pays the room: it pays charges that stay on the unit folio, so `advance_on_master` does not apply.
  * `issueReceipt` off gives the payment no receipt number: `PostOtaCollectedPayment` posts money the OTA took, not the desk.
+ * `allowOnline` lets the method be the system Online one. Only `ConfirmBookingHold` sets it.
  * See docs/14-payments/01-payments-and-refunds.md.
  */
 class NewPaymentData extends Data
@@ -31,5 +32,6 @@ class NewPaymentData extends Data
         public bool $allowOtaCollected = false,
         public bool $issueReceipt = true,
         public bool $guestPaysTaxes = false,
+        public bool $allowOnline = false,
     ) {}
 }

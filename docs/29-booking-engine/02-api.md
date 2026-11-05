@@ -25,26 +25,26 @@ The one API behind the microsite, API only websites and, later, new-wastays. It 
 
 The marketplace endpoints are built and tested now, and nothing calls them until new-wastays exists. No token has the `booking:search` ability yet.
 
-**Built:** listing, marketplace, microsite, content and search, and holds. `holds/{token}/payment` and Manage booking are planned.
+**Built:** listing, marketplace, microsite, content and search, holds and `holds/{token}/payment`. Manage booking is planned.
 
 ## What each returns
 
-| Endpoint                 | Returns                                                                                                                               |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `properties`             | Code, slug, name and city of the properties the token can reach                                                                       |
-| `search`                 | The lowest price per property for the dates and party                                                                                 |
-| `sites/{slug}`           | Property code, template key, image slots, main colour, SEO title and description                                                      |
-| `properties/{code}`      | Name, address, coordinates, Maps link, album photos (cover first), about text, amenities, nearby places, check-in times, policies     |
-| `room-types`             | Name, description, photos, amenities, guest limits, how it is sold                                                                    |
-| `calendar`               | Lowest one-night price before tax and closed dates for each date, at most 62 days at a time                                           |
-| `offers`                 | Room types, public rate plans, rooms left, `pay_online` and `pay_at_property` with tax lines, cancellation terms, or a blocked reason |
-| `holds` (POST)           | Hold token, expiry, online total, amount to pay at the property                                                                       |
-| `holds/{token}/payment`  | Curlec `key_id`, `order_id`, amount, callback address, checkout timeout                                                               |
-| `holds/{token}` (GET)    | Held, Paid, Confirmed or Expired; the booking token once Confirmed                                                                    |
-| `holds/{token}` (DELETE) | The hold with its new status, Expired                                                                                                 |
-| `bookings/{token}`       | Dates, rooms, guest, amount paid, status, refund status, cancellation terms                                                           |
-| `cancellation` (GET)     | Whether it can be cancelled online, the fee, tax on the fee, the refund amount                                                        |
-| `cancellation` (POST)    | The new status and the refund amount                                                                                                  |
+| Endpoint                 | Returns                                                                                                                                                                                                                |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `properties`             | Code, slug, name and city of the properties the token can reach                                                                                                                                                        |
+| `search`                 | The lowest price per property for the dates and party                                                                                                                                                                  |
+| `sites/{slug}`           | Property code, template key, image slots, main colour, SEO title and description                                                                                                                                       |
+| `properties/{code}`      | Name, address, coordinates, Maps link, album photos (cover first), about text, amenities, nearby places, check-in times, policies                                                                                      |
+| `room-types`             | Name, description, photos, amenities, guest limits, how it is sold                                                                                                                                                     |
+| `calendar`               | Lowest one-night price before tax and closed dates for each date, at most 62 days at a time                                                                                                                            |
+| `offers`                 | Room types, public rate plans, rooms left, `pay_online` and `pay_at_property` with tax lines, cancellation terms, or a blocked reason                                                                                  |
+| `holds` (POST)           | Hold token, expiry, online total, amount to pay at the property                                                                                                                                                        |
+| `holds/{token}/payment`  | Curlec `key_id`, `order_id`, `amount` in sen, `currency`, `callback_url`, and `timeout` in seconds. Refusals: `hold_not_open`, 404 `property_not_found`, and 503 `payment_unavailable`, which is not stored for replay |
+| `holds/{token}` (GET)    | Held, Paid, Confirmed or Expired; the booking token once Confirmed                                                                                                                                                     |
+| `holds/{token}` (DELETE) | The hold with its new status, Expired                                                                                                                                                                                  |
+| `bookings/{token}`       | Dates, rooms, guest, amount paid, status, refund status, cancellation terms                                                                                                                                            |
+| `cancellation` (GET)     | Whether it can be cancelled online, the fee, tax on the fee, the refund amount                                                                                                                                         |
+| `cancellation` (POST)    | The new status and the refund amount                                                                                                                                                                                   |
 
 ## Offers
 
@@ -106,7 +106,7 @@ A property the token cannot reach, one with the flag off, or a suspended one ret
 | `booking:site`     | `sites/{slug}`                           | Yes       | No             |
 | `booking:content`  | `properties/{code}` and the routes below | Yes       | Yes            |
 | `booking:search`   | `search`                                 | No        | No             |
-| `booking:checkout` | `holds` and `holds/{token}`              | Yes       | Yes            |
+| `booking:checkout` | `holds`, `holds/{token}` and its payment | Yes       | Yes            |
 
 Sanctum matches abilities exactly, so `booking:*` is not a wildcard. The type's abilities are in `BookingClientType::abilities()`. A token made before `booking:checkout` existed does not have it, so it must be made again.
 
@@ -126,5 +126,6 @@ A client reaches only the holds it made. Another client's hold token answers 404
 
 - Routes in `routes/api.php`, under `/api/booking/v1`, with names under `api.booking.v1.`. They use `api.token:{scope}`, never `auth:sanctum`: see [Traps](../28-api-access/01-api-tokens.md#traps).
 - Controllers in `app/Http/Controllers/Api/Booking/`, thin, returning Eloquent API Resources without the `data` wrapper.
+- Payment starts in `StartBookingHoldPayment`. See [Payment](04-payment.md).
 - Services in `app/Services/BookingEngine/`: `BookingClientReach`, `BookingContent`, `BookingCalendar`, `BookingOffers`, `OnlineStayPrice`, `BookingSearch`, `BookingWindow`, `HeldUnits` and `BookingHoldLimits`.
 - Every query is scoped by `property_id`, taken from the path and checked against the token.

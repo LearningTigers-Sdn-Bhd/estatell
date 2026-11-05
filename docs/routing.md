@@ -165,6 +165,8 @@ Guest bulk actions use `POST /p/{code}/guests/bulk/{operation}`: `mark-vip`, `un
 | `GET /admin/properties/ES1142/channels`                           | `admin.properties.channels`                    | `pages/admin/properties/show.tsx`                |
 | `GET /admin/properties/ES1142/channels/connect/agoda`             | `admin.properties.channels.connect`            | `pages/admin/properties/channels/connect.tsx`    |
 | `POST /webhooks/channex`                                          | `webhooks.channex`                             | –                                                |
+| `POST /webhooks/curlec`                                           | `webhooks.curlec`                              | –                                                |
+| `GET, POST /webhooks/curlec/return/{token}`                       | `webhooks.curlec.return`                       | –                                                |
 
 The full list of admin channel routes is in [Admin Channels tab](21-channels/07-admin-channels-tab.md#routes).
 

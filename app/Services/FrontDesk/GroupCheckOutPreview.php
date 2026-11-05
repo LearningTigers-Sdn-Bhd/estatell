@@ -469,7 +469,7 @@ class GroupCheckOutPreview
     private function methods(Reservation $reservation): array
     {
         $data = array_values(PaymentMethod::query()->where('property_id', $reservation->property_id)->active()
-            ->whereNotIn('type', [PaymentMethodType::OtaCollected, PaymentMethodType::DirectBill])
+            ->whereNotIn('type', [PaymentMethodType::OtaCollected, PaymentMethodType::DirectBill, PaymentMethodType::Online])
             ->ordered()->get()
             ->map(PaymentMethodOptionData::fromModel(...))->all());
 

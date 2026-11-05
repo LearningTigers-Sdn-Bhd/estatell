@@ -131,7 +131,7 @@ class PaymentsReport implements HasBreakdown, HasTotals, Report
     /**
      * The summary under the table, by the `group` of the filters. By method (the default): the count, In, Out and Net of
      * the Completed rows for each payment method. By staff (the cash-up): the same for each method of each staff
-     * member, with a subtotal row for each staff member. In is the Completed payments, Out the Completed refunds
+     * member, with a subtotal row for each staff member, leaving out the money no staff member took (Online). In is the Completed payments, Out the Completed refunds
      * (negative) and Net is In plus Out.
      *
      * @param  list<PaymentRow>  $rows
@@ -166,7 +166,7 @@ class PaymentsReport implements HasBreakdown, HasTotals, Report
      */
     private function byStaff(array $rows): ReportBreakdown
     {
-        $completed = $this->completed($rows);
+        $completed = array_values(array_filter($this->completed($rows), fn (PaymentRow $row): bool => $row->staff_id !== 0));
         $byStaff = [];
 
         foreach ($completed as $row) {

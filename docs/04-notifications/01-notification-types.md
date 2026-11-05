@@ -30,6 +30,7 @@ Define every notification once, with its channels, defaults and recipients.
 | PaymentSlipReceived         | On   | On            | Both       | Staff with `city-ledger.payment`         |
 | CompanyLinkInvitation       | On   | On, mandatory | Mail only  | The invited company user                 |
 | GoLiveRequested             | On   | On            | Both       | Platform admins, and the partner         |
+| OnlinePaymentNeedsAttention | On   | On            | Both       | Platform admins                          |
 | GoLiveApproved              | On   | On, mandatory | Mail only  | Owner                                    |
 | GoLiveRejected              | On   | On, mandatory | Mail only  | Owner                                    |
 | ChannelBookingReceived      | On   | On            | Both       | Reservation staff (module 12 permission) |
@@ -39,6 +40,8 @@ Define every notification once, with its channels, defaults and recipients.
 | NearbyPlaceRemoved          | No   | On, mandatory | No         | Owner                                    |
 
 `PortalBookingCreated`, `PortalBookingCancelled` and `PortalCancellationRequested` are built (`PortalReservationNotification`, sent by `NotifyReservationStaff` after the save). The recipients are the active staff of the property with `reservations.manage`; each message names the company and the reference and links to the reservation. The matrix check constraints list the three types.
+
+`OnlinePaymentNeedsAttention` goes to platform admins, who have no property, so it skips the preference matrix and is always sent by mail and in-app. It holds no guest details. See [Payment](../29-booking-engine/04-payment.md#failures).
 
 `GoLiveRequested` goes to platform admins and the partner, who have no property, so it skips the preference matrix and is always sent by mail and in-app. `CompanyLinkInvitation` does the same for company users, who also have no property: it is a plain notification class, not a `NotificationType` case, and always goes by mail and in-app. `GoLiveApproved` and `GoLiveRejected` are `NotificationType` cases for the owner.
 

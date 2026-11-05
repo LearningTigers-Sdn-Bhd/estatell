@@ -64,6 +64,7 @@ gateway_events     id, gateway_account, event_id (unique), event_type, payload (
 ```
 
 - `gateway_refunds` comes with the refund item. The payment item adds the other two tables.
+- `booking_hold_id` is unique on `gateway_payments`. A hold has one order, and a guest who retries gets the same one, so they cannot pay two orders.
 - The raw payloads use the jsonb allowlist for gateway payloads.
 - `gateway_account` records which Curlec account took the payment, so a later account move can still refund old payments.
 - **`payments` stays as it is.** A trigger rejects every UPDATE on it, so a row cannot go from Pending to Completed. `gateway_payments` tracks the attempt, and the `payments` row is written once the money is confirmed. `PaymentStatus::Pending`, `Failed` and the `gateway_payload` note in [Payments](../14-payments/01-payments-and-refunds.md) are not needed for this.
@@ -71,9 +72,9 @@ gateway_events     id, gateway_account, event_id (unique), event_type, payload (
 
 ## Gateway code
 
-- One class, `CurlecGateway` (`app/Services/Payments/`), with `createOrder`, `fetchPayment`, `verifySignature`, `verifyWebhook` and `refund`.
+- One class, `CurlecGateway` (`app/Services/Payments/`), with `createOrder`, `verifySignature` and `verifyWebhook`. The refund item adds `refund`.
 - It is built from the wastays `razorpay` adapter's flow, using the Razorpay API that Curlec documents. There is no multi-gateway registry.
-- Keys are in config: `CURLEC_KEY_ID`, `CURLEC_KEY_SECRET`, `CURLEC_WEBHOOK_SECRET`.
+- Keys are in `config/services.php`: `CURLEC_KEY_ID`, `CURLEC_KEY_SECRET`, `CURLEC_WEBHOOK_SECRET`. `CURLEC_ACCOUNT` names the account on each row, and defaults to `primary`.
 - Order notes hold `app: estatell` and the hold token only. Guest identity data never goes to the gateway.
 
 ## Curlec rules
@@ -88,19 +89,32 @@ gateway_events     id, gateway_account, event_id (unique), event_type, payload (
 | Events can arrive more than once                                                      | One event row by `event_id`, one booking per order                                                   |
 | Up to 30 webhook URLs per account                                                     | estatell has its own webhook                                                                         |
 
+## Guest return
+
+`GET` or `POST /webhooks/curlec/return/{token}` (`webhooks.curlec.return`) is the callback address. It checks the signature and writes nothing, then sends the guest to the microsite with a 303:
+
+```
+{BOOKING_SITE_URL}/{slug}/book/{token}?payment=confirming
+{BOOKING_SITE_URL}/{slug}/book/{token}?payment=failed
+```
+
+A failed payment or a bad signature returns as `failed`. The page reads the real status from `GET /holds/{token}`. API only return addresses come with API only mode.
+
 ## Webhook
 
 `POST /webhooks/curlec` (`webhooks.curlec`) in `routes/webhooks.php`.
 
 1. Check the signature against the raw body. A bad signature returns 400 and saves nothing.
 2. Save the event by `event_id`, from the `x-razorpay-event-id` header, and answer 200.
-3. A queued job processes it. An order estatell did not create is marked processed and ignored.
+3. `ProcessCurlecEventJob` processes it. An order estatell did not create is marked processed and ignored. A repeat of an unprocessed event queues it again, which is safe because one order makes one booking.
 
-| Event                               | Does                                                           |
-| ----------------------------------- | -------------------------------------------------------------- |
-| `order.paid`                        | Marks the hold Paid, then [confirms](#confirmation)            |
-| `payment.failed`                    | Records it. The guest can retry until the hold expires         |
-| `refund.processed`, `refund.failed` | See [Cancel and refund](05-cancel-and-refund.md#refund-status) |
+If the queue itself is down, the webhook answers 500 so Curlec delivers the event again.
+
+| Event                               | Does                                                                                                                     |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `order.paid`                        | Marks the hold Paid, then [confirms](#confirmation)                                                                      |
+| `payment.failed`                    | Records it. The guest can retry until the hold expires                                                                   |
+| `refund.processed`, `refund.failed` | See [Cancel and refund](05-cancel-and-refund.md#refund-status). Marked processed and ignored until the refund item ships |
 
 ## Confirmation
 
@@ -130,18 +144,18 @@ A bank can confirm late. When `order.paid` arrives for an Expired hold, the room
 | Still free | Confirm as normal                                                                   |
 | Taken      | Refund the whole payment automatically, email the guest, and alert staff and admins |
 
-Until the refund item ships, the Taken case marks the `gateway_payments` row Paid and alerts admins, who refund from the Curlec dashboard. The hold stays Expired, because a Paid hold counts in availability.
+Until the refund item ships, the Taken case marks the `gateway_payments` row Paid and alerts admins (`OnlinePaymentNeedsAttention`), who refund from the Curlec dashboard. The hold stays Expired, because a Paid hold counts in availability.
 
 ## On the folio
 
-| Item          | Rule                                                                                                 |
-| ------------- | ---------------------------------------------------------------------------------------------------- |
-| Method        | A system **Online** method (`PaymentMethodType::Online`), no surcharge, left out of the desk cash-up |
-| Purpose       | Advance                                                                                              |
-| Reference     | The Curlec payment ID                                                                                |
-| Key           | `online:{order}:{unit}`, so a repeat posts nothing                                                   |
-| Group booking | One Curlec payment becomes one `payments` row per unit, each for that unit's share                   |
-| Receipt       | A receipt number, as for a payment at the desk, because the guest paid for this stay                 |
+| Item          | Rule                                                                                                                                              |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Method        | A system **Online** method (`PaymentMethodType::Online`), no surcharge, left out of the desk cash-up. Staff never see it in a form or in Settings |
+| Purpose       | Advance                                                                                                                                           |
+| Reference     | The Curlec payment ID                                                                                                                             |
+| Key           | `online:{order}:{unit}`, so a repeat posts nothing                                                                                                |
+| Group booking | One Curlec payment becomes one `payments` row per unit, each for that unit's share                                                                |
+| Receipt       | A receipt number, as for a payment at the desk, because the guest paid for this stay                                                              |
 
 `RecordPayment` needs a business date. A property in the module is Live, so it has one.
 
@@ -158,7 +172,7 @@ Until the refund item ships, the Taken case marks the `gateway_payments` row Pai
 
 | Environment     | Gateway                                   |
 | --------------- | ----------------------------------------- |
-| Automated tests | A fake gateway class, bound only in tests |
+| Automated tests | `FakeCurlecGateway`, bound only in tests  |
 | Local and demo  | Curlec test keys, with its mock bank page |
 | Production      | Curlec live keys only                     |
 
@@ -167,6 +181,10 @@ No route confirms a booking without a verified payment.
 Curlec delivers webhooks only to public addresses and rejects localhost. Local checks therefore stop before the booking is created, so test the full flow on the demo.
 
 The test and live modes have separate keys and data. The dashboard's Test Mode switch only changes what the dashboard shows, so it never affects live payments. Each server uses its own keys.
+
+## Known limit
+
+The guest pays the hold's price, but `AddUnit` prices the booking at the rates on the day it confirms. If a rate changes during the 20 minutes, or before a late payment, the folio shows a balance or a credit for staff to settle.
 
 ## To verify
 

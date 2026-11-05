@@ -2071,6 +2071,7 @@ lineKey: string | null,
 allowOtaCollected: boolean,
 issueReceipt: boolean,
 guestPaysTaxes: boolean,
+allowOnline: boolean,
 };
 export type PaymentFormOptionsData = {
 methods: App.Data.Payments.PaymentMethodOptionData[],
@@ -4609,6 +4610,7 @@ export type FieldVisibility = 'hidden' | 'optional' | 'required';
 export type FolioRowTag = 'scheduled' | 'overridden' | 'reversed' | 'reversal' | 'refund' | 'manual';
 export type FolioStatus = 'open' | 'closed' | 'voided';
 export type FolioType = 'master' | 'unit' | 'third_party';
+export type GatewayPaymentStatus = 'created' | 'paid' | 'failed';
 export type Gender = 'male' | 'female';
 export type GoLiveDecision = 'approved' | 'rejected' | 'withdrawn';
 export type GuestBulkAction = 'mark-vip' | 'unmark-vip' | 'blacklist' | 'unblacklist' | 'anonymize';
@@ -4646,7 +4648,7 @@ export type PartnerStatus = 'invited' | 'active' | 'suspended';
 export type PasscodeKind = 'generated' | 'custom';
 export type PasscodeMode = 'generated' | 'custom';
 export type PasscodeStatus = 'pending' | 'active' | 'failed' | 'revoked' | 'expired';
-export type PaymentMethodType = 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill' | 'old_system';
+export type PaymentMethodType = 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill' | 'old_system' | 'online';
 export type PaymentProofStatus = 'submitted' | 'accepted' | 'rejected';
 export type PaymentPurpose = 'advance' | 'settlement' | 'security_deposit';
 export type PaymentReportStatus = 'pending' | 'completed' | 'failed' | 'voided';
@@ -4694,14 +4696,14 @@ export type StayViewGrouping = 'none' | 'room_group' | 'room_type';
 export type StepState = 'locked' | 'not_started' | 'in_progress' | 'done' | 'needs_attention';
 export type SurchargeType = 'none' | 'fixed' | 'percent';
 export type SwatchColor = 'gray' | 'red' | 'orange' | 'amber' | 'green' | 'teal' | 'blue' | 'indigo' | 'violet' | 'pink';
-export type SystemTransactionCode = 'room_revenue' | 'no_show_revenue' | 'cancellation_revenue' | 'late_checkout_revenue' | 'early_departure_revenue' | 'day_use_revenue' | 'food_and_beverage_revenue' | 'laundry_revenue' | 'minibar_revenue' | 'fee_revenue' | 'damage_revenue' | 'sst_tax' | 'tourism_tax' | 'cash_payment' | 'card_payment' | 'bank_transfer_payment' | 'ewallet_payment' | 'ota_collected_payment' | 'direct_bill_payment' | 'security_deposit' | 'refund' | 'adjustment' | 'discount' | 'opening_balance' | 'old_system_payment';
+export type SystemTransactionCode = 'room_revenue' | 'no_show_revenue' | 'cancellation_revenue' | 'late_checkout_revenue' | 'early_departure_revenue' | 'day_use_revenue' | 'food_and_beverage_revenue' | 'laundry_revenue' | 'minibar_revenue' | 'fee_revenue' | 'damage_revenue' | 'sst_tax' | 'tourism_tax' | 'cash_payment' | 'card_payment' | 'bank_transfer_payment' | 'ewallet_payment' | 'ota_collected_payment' | 'direct_bill_payment' | 'security_deposit' | 'refund' | 'adjustment' | 'discount' | 'opening_balance' | 'old_system_payment' | 'online_payment';
 export type TabbedReport = 'guest-list' | 'daily-report';
 export type TaxRateType = 'percent' | 'flat';
 export type TemporaryPasswordExportFormat = 'message' | 'csv' | 'xlsx' | 'pdf';
 export type TermsPlaceholder = 'property_name' | 'check_in_time' | 'check_out_time' | 'security_deposit' | 'tourism_tax_rate';
 export type TermsPreset = 'standard_hotel' | 'hostel' | 'resort' | 'serviced_apartment' | 'homestay';
 export type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
-export type TransactionCategory = 'room' | 'food_and_beverage' | 'laundry' | 'minibar' | 'transport' | 'fee' | 'tax' | 'discount' | 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill' | 'deposit' | 'refund' | 'adjustment' | 'opening_balance' | 'old_system' | 'other';
+export type TransactionCategory = 'room' | 'food_and_beverage' | 'laundry' | 'minibar' | 'transport' | 'fee' | 'tax' | 'discount' | 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill' | 'deposit' | 'refund' | 'adjustment' | 'opening_balance' | 'old_system' | 'online' | 'other';
 export type TransactionKind = 'charge' | 'payment' | 'adjustment' | 'tax';
 export type UnitAction = 'check-in' | 'check-out' | 'check-out-as-day-use' | 'late-check-out' | 'change-dates' | 'cancel' | 'no-show' | 'reinstate' | 'move-room' | 'undo-check-in' | 'undo-check-out';
 export type UnitStatus = 'confirmed' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show';

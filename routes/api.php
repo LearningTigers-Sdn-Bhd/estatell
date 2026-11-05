@@ -79,5 +79,6 @@ Route::prefix('booking/v1')->name('api.booking.v1.')->group(function () {
     Route::middleware(['api.token:booking:checkout', 'throttle:api-token'])->prefix('holds/{token}')->group(function () {
         Route::get('/', [HoldController::class, 'show'])->name('holds.show');
         Route::delete('/', [HoldController::class, 'destroy'])->name('holds.destroy');
+        Route::post('payment', [HoldController::class, 'payment'])->middleware('api.idempotent')->name('holds.payment');
     });
 });

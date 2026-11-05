@@ -99,7 +99,7 @@ class RecordPayment
                 return PaymentResult::refused(PaymentResult::REFUSAL_ADVANCE_ON_MASTER);
             }
 
-            $method = $this->availablePaymentMethod->find($reservation, $data->paymentMethodId, $actor, $data->allowOtaCollected);
+            $method = $this->availablePaymentMethod->find($reservation, $data->paymentMethodId, $actor, $data->allowOtaCollected, $data->allowOnline);
 
             if ($method === null) {
                 return PaymentResult::refused(PaymentResult::REFUSAL_METHOD_NOT_AVAILABLE);

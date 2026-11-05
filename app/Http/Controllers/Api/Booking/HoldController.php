@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers\Api\Booking;
 
+use App\Actions\BookingEngine\BookingHoldPaymentResult;
 use App\Actions\BookingEngine\CreateBookingHold;
 use App\Actions\BookingEngine\ReleaseBookingHold;
+use App\Actions\BookingEngine\StartBookingHoldPayment;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Booking\StoreBookingHoldRequest;
+use App\Http\Resources\Booking\V1\BookingHoldPaymentResource;
 use App\Http\Resources\Booking\V1\BookingHoldResource;
 use App\Http\Responses\ApiError;
 use App\Models\BookingClient;
@@ -50,6 +53,32 @@ class HoldController extends Controller
         }
 
         return response()->json((new BookingHoldResource($hold))->resolve($request));
+    }
+
+    /**
+     * Start paying for a hold. `payment_unavailable` answers 503, so the client can retry with the same key.
+     */
+    public function payment(Request $request, string $token, StartBookingHoldPayment $startBookingHoldPayment): JsonResponse
+    {
+        $hold = $this->hold($request, $token);
+
+        if ($hold === null) {
+            return $this->notFound();
+        }
+
+        $result = $startBookingHoldPayment($request->attributes->get('booking_client'), $hold);
+
+        if ($result->payment === null) {
+            $status = match ($result->refusal) {
+                BookingHoldPaymentResult::REFUSAL_PROPERTY_NOT_FOUND => 404,
+                BookingHoldPaymentResult::REFUSAL_PAYMENT_UNAVAILABLE => 503,
+                default => 422,
+            };
+
+            return ApiError::response((string) $result->refusal, (string) $result->message, $status);
+        }
+
+        return response()->json((new BookingHoldPaymentResource($result->payment))->resolve($request));
     }
 
     /**

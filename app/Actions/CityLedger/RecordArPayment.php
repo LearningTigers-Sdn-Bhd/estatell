@@ -55,7 +55,7 @@ class RecordArPayment
             $method = PaymentMethod::query()
                 ->where('property_id', $locked->property_id)
                 ->active()
-                ->whereNotIn('type', [PaymentMethodType::OtaCollected, PaymentMethodType::DirectBill])
+                ->whereNotIn('type', [PaymentMethodType::OtaCollected, PaymentMethodType::DirectBill, PaymentMethodType::Online])
                 ->find($data->paymentMethodId);
 
             if ($method === null) {
