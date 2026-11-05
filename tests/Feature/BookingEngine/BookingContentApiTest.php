@@ -37,6 +37,7 @@ it('returns the site settings with images of current slots only', function () {
         ->assertJsonPath('code', $property->code)
         ->assertJsonPath('template_key', 'island-resort')
         ->assertJsonPath('main_color', '#0f766e')
+        ->assertJsonPath('currency', 'MYR')
         ->assertJsonPath('seo_title', 'Sand Bay')
         ->assertJsonPath('seo_description', 'A resort')
         ->assertJsonCount(1, 'images')

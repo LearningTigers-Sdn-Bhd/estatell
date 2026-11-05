@@ -38,6 +38,7 @@ class BookingSiteResource extends JsonResource
                 'thumb_url' => $image->getUrl('thumb'),
             ])->values()->all(),
             'main_color' => $site->main_color,
+            'currency' => $this->resource->settings?->currency->getCurrencyCode(),
             'seo_title' => $site->seo_title,
             'seo_description' => $site->seo_description,
         ];

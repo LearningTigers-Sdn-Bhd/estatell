@@ -47,6 +47,6 @@ class BookingContent
 
     public function site(Property $property): Property
     {
-        return $property->load(['bookingSite.media', 'bookingSite.siteTemplate.slots']);
+        return $property->load(['settings', 'bookingSite.media', 'bookingSite.siteTemplate.slots']);
     }
 }
