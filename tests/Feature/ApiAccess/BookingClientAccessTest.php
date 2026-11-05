@@ -2,9 +2,11 @@
 
 require_once __DIR__.'/../Support/BookingApiSetup.php';
 
+use App\Enums\BookingClientType;
 use App\Enums\BookingEngineMode;
 use App\Features\BookingEngine;
 use App\Models\BookingClient;
+use App\Models\BookingHold;
 use App\Models\Kiosk;
 use App\Models\Property;
 use App\Models\PropertyBookingSite;
@@ -13,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Pennant\Feature;
 use Laravel\Sanctum\PersonalAccessToken;
+use Spatie\Activitylog\Models\Activity;
 
 it('refuses a missing, wrong or revoked token with the shared error', function () {
     bookingApiGet('properties', null)->assertUnauthorized()->assertJsonPath('error.code', 'unauthorized');
@@ -153,4 +156,29 @@ it('creates the microsite client with its token once', function () {
     expect(PersonalAccessToken::query()->count())->toBe(1);
 
     expect(Artisan::output())->toContain('already exists');
+});
+
+it('replaces the microsite token, keeps the client and its holds, and stops the old token at once', function () {
+    ['property' => $property] = bookingApiProperty();
+    $client = bookingMicrositeClient();
+    $hold = BookingHold::factory()->for($property)->create(['booking_client_id' => $client->id]);
+
+    expect(Artisan::call('booking-engine:create-microsite-client', ['--replace' => true]))->toBe(0);
+    $newToken = trim(strtok(Artisan::output(), "\n"));
+
+    bookingApiGet('properties/'.$property->code)->assertUnauthorized();
+    bookingApiGet('properties/'.$property->code, $newToken)->assertOk();
+    bookingApiGet('holds/'.$hold->token, $newToken)->assertOk();
+
+    expect(BookingClient::query()->sole()->id)->toBe($client->id)
+        ->and($client->tokens()->sole()->abilities)->toBe(BookingClientType::Microsite->abilities())
+        ->and(Activity::query()->where('event', 'booking-api.microsite-token-replaced')->count())->toBe(1);
+});
+
+it('refuses to replace the microsite token when there is no active client', function () {
+    BookingClient::factory()->revoked()->withToken(BOOKING_API_TOKEN)->create();
+
+    expect(Artisan::call('booking-engine:create-microsite-client', ['--replace' => true]))->toBe(1)
+        ->and(Artisan::output())->toContain('no active microsite client')
+        ->and(PersonalAccessToken::query()->count())->toBe(1);
 });

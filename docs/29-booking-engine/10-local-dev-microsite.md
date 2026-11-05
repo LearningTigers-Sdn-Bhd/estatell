@@ -34,7 +34,7 @@ The browser never calls estatell's API. Only the microsite's server routes do.
     php artisan booking-engine:create-microsite-client
     ```
 
-    Only one active microsite client may exist. To get a new token after a fresh database, run it again.
+    Only one active microsite client may exist. To get a new token after a fresh database, run it again. If you lose the token, add `--replace` to get a new one; the old one stops at once.
 
 3. Prepare one property. The microsite client reaches only a published site in Microsite mode, with the flag on.
 

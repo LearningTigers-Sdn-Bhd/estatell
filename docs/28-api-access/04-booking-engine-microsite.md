@@ -42,6 +42,8 @@ Create the Microsite client and its token with this command. It prints the token
 php artisan booking-engine:create-microsite-client
 ```
 
+`--replace` gives the active client a new token (`ReplaceMicrositeToken`) and logs it. The old token stops at once, and the client row stays, so its holds and bookings stay reachable. It refuses when there is no active client. See [Booking microsite token](../deployment/production_environment.md#booking-microsite-token).
+
 Each later client with a booking purpose, such as new-wastays, adds a type and a reach rule. An API with another purpose gets its own owner model and prefix, as kiosks do.
 
 ## On each request
