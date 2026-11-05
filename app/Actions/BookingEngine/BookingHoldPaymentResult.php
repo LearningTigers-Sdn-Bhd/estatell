@@ -16,6 +16,8 @@ class BookingHoldPaymentResult
 
     public const string REFUSAL_PAYMENT_UNAVAILABLE = 'payment_unavailable';
 
+    public const string REFUSAL_RETURN_URL_NOT_ALLOWED = 'return_url_not_allowed';
+
     private function __construct(
         public readonly ?GatewayPayment $payment,
         public readonly ?string $refusal,

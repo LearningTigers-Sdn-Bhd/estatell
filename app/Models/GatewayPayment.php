@@ -22,11 +22,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $gateway_payment_id
  * @property string $amount
  * @property GatewayPaymentStatus $status
+ * @property string|null $return_url
  * @property array<string, mixed>|null $gateway_payload
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['property_id', 'booking_hold_id', 'gateway_account', 'order_id', 'gateway_payment_id', 'amount', 'status', 'gateway_payload'])]
+#[Fillable(['property_id', 'booking_hold_id', 'gateway_account', 'order_id', 'gateway_payment_id', 'amount', 'status', 'return_url', 'gateway_payload'])]
 class GatewayPayment extends Model
 {
     /** @use HasFactory<GatewayPaymentFactory> */

@@ -15,14 +15,15 @@ use Brick\Money\Money;
 /**
  * Create the Curlec order of an open hold, for the amount estatell calculated. A hold has one order: a guest who retries
  * gets the same one, so they cannot pay twice. The order is created before the row is saved, because the call must not
- * hold a database lock. When two requests race, the second order is never shown and cannot be paid.
- * See docs/29-booking-engine/04-payment.md#flow.
+ * hold a database lock. When two requests race, the second order is never shown and cannot be paid. An API only client
+ * names an approved return address; a retry may name another, and the guest returns to the last one.
+ * See docs/29-booking-engine/04-payment.md#flow and docs/29-booking-engine/09-api-only-mode.md#access.
  */
 class StartBookingHoldPayment
 {
     public function __construct(private CurlecGateway $gateway, private BookingClientReach $reach) {}
 
-    public function __invoke(BookingClient $client, BookingHold $hold): BookingHoldPaymentResult
+    public function __invoke(BookingClient $client, BookingHold $hold, ?string $returnUrl = null): BookingHoldPaymentResult
     {
         $property = $hold->property;
 
@@ -34,9 +35,19 @@ class StartBookingHoldPayment
             return BookingHoldPaymentResult::refused(BookingHoldPaymentResult::REFUSAL_HOLD_NOT_OPEN, __('This hold is no longer open. Start the booking again.'));
         }
 
+        $returnUrl = $client->type->requiresReturnAddress() ? $returnUrl : null;
+
+        if ($client->type->requiresReturnAddress() && ($returnUrl === null || ! $property->bookingReturnAddresses()->where('url', $returnUrl)->exists())) {
+            return BookingHoldPaymentResult::refused(BookingHoldPaymentResult::REFUSAL_RETURN_URL_NOT_ALLOWED, __('Use one of the return addresses approved in the booking website settings.'));
+        }
+
         $existing = GatewayPayment::query()->where('booking_hold_id', $hold->id)->first();
 
         if ($existing !== null) {
+            if ($existing->return_url !== $returnUrl) {
+                $existing->forceFill(['return_url' => $returnUrl])->save();
+            }
+
             return BookingHoldPaymentResult::started($existing);
         }
 
@@ -63,6 +74,7 @@ class StartBookingHoldPayment
                 'order_id' => $orderId,
                 'amount' => $hold->total_amount,
                 'status' => GatewayPaymentStatus::Created,
+                'return_url' => $returnUrl,
             ],
         ));
     }

@@ -6,6 +6,7 @@ use App\Http\Controllers\ApiAccess\KioskController;
 use App\Http\Controllers\Boats\BoatController;
 use App\Http\Controllers\Boats\BoatDepartureController;
 use App\Http\Controllers\Boats\BoatFareController;
+use App\Http\Controllers\BookingEngine\BookingApiController;
 use App\Http\Controllers\BookingEngine\BookingWebsiteController;
 use App\Http\Controllers\BookingEngine\NearbyPlaceController;
 use App\Http\Controllers\Catalogues\ChargeItemController;
@@ -255,6 +256,13 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::middleware('can:'.PermissionEnum::BookingWebsitePublish->value)->group(function () {
             Route::post('publish', [BookingWebsiteController::class, 'publish'])->name('publish');
             Route::post('unpublish', [BookingWebsiteController::class, 'unpublish'])->name('unpublish');
+        });
+        Route::middleware('can:'.PermissionEnum::BookingWebsiteApi->value)->group(function () {
+            Route::get('api', [BookingApiController::class, 'show'])->name('api');
+            Route::post('api/token', [BookingApiController::class, 'issueToken'])->name('api.token.store');
+            Route::delete('api/token', [BookingApiController::class, 'revokeToken'])->name('api.token.destroy');
+            Route::post('api/return-addresses', [BookingApiController::class, 'storeReturnAddress'])->name('api.return-addresses.store');
+            Route::delete('api/return-addresses/{bookingReturnAddress}', [BookingApiController::class, 'destroyReturnAddress'])->whereNumber('bookingReturnAddress')->name('api.return-addresses.destroy');
         });
     });
 

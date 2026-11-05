@@ -98,7 +98,13 @@ gateway_events     id, gateway_account, event_id (unique), event_type, payload (
 {BOOKING_SITE_URL}/{slug}/book/{token}?payment=failed
 ```
 
-A failed payment or a bad signature returns as `failed`. The page reads the real status from `GET /holds/{token}`. API only return addresses come with API only mode.
+A failed payment or a bad signature returns as `failed`. The page reads the real status from `GET /holds/{token}`.
+
+For an API only property, the guest goes to the return address the payment named (`gateway_payments.return_url`), with the hold token and status added to its query:
+
+```
+https://www.sandbayresort.com/booking/done?hold={token}&payment=confirming
+```
 
 ## Webhook
 

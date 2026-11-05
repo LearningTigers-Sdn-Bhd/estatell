@@ -1,10 +1,20 @@
-import { FileText, MapPin, Palette, Search, Sparkles, Tag } from 'lucide-react';
+import {
+    FileText,
+    KeyRound,
+    MapPin,
+    Palette,
+    Search,
+    Sparkles,
+    Tag,
+} from 'lucide-react';
+import { usePage } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 import { PageHeader } from '@/components/pms/page-header';
 import { TabLinks } from '@/components/pms/tab-links';
 import type { TabLink } from '@/components/pms/tab-links';
 import {
     amenities,
+    api,
     design,
     general,
     nearbyPlaces,
@@ -18,10 +28,12 @@ export type BookingWebsiteTab =
     | 'amenities'
     | 'nearby-places'
     | 'rates'
-    | 'seo';
+    | 'seo'
+    | 'api';
 
 /**
  * Header and tab links of Settings › Booking website. Each tab is its own page and URL, and loads only its own data.
+ * Design and SEO belong to Microsite mode, API to API only mode.
  */
 export function BookingWebsiteShell({
     description,
@@ -34,7 +46,8 @@ export function BookingWebsiteShell({
     activeTab: BookingWebsiteTab;
     children: ReactNode;
 }) {
-    const tabs: TabLink[] = [
+    const apiOnly = usePage().props.bookingMode === 'api-only';
+    const allTabs: (TabLink & { mode?: 'microsite' | 'api-only' })[] = [
         {
             value: 'general',
             label: 'General',
@@ -46,6 +59,7 @@ export function BookingWebsiteShell({
             label: 'Design',
             icon: Palette,
             href: design.url(),
+            mode: 'microsite',
         },
         {
             value: 'amenities',
@@ -70,8 +84,23 @@ export function BookingWebsiteShell({
             label: 'SEO',
             icon: Search,
             href: seo.url(),
+            mode: 'microsite',
+        },
+        {
+            value: 'api',
+            label: 'API',
+            icon: KeyRound,
+            href: api.url(),
+            mode: 'api-only',
         },
     ];
+    const tabs: TabLink[] = allTabs
+        .filter(
+            (tab) =>
+                tab.mode === undefined ||
+                tab.mode === (apiOnly ? 'api-only' : 'microsite'),
+        )
+        .map(({ mode: _mode, ...tab }) => tab);
 
     return (
         <div className="flex flex-1 flex-col gap-6 p-4">

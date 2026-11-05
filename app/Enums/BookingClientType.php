@@ -44,4 +44,12 @@ enum BookingClientType: string
     {
         return $this === self::Microsite;
     }
+
+    /**
+     * Whether a payment must name one of the property's approved return addresses. The microsite's own page is fixed.
+     */
+    public function requiresReturnAddress(): bool
+    {
+        return $this === self::ApiOnly;
+    }
 }

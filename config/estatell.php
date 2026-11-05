@@ -63,6 +63,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Booking API developer guide
+    |--------------------------------------------------------------------------
+    |
+    | The guide for an API only owner's developer: endpoints, the demo test
+    | path and the page security rules. The API tab links to it. See
+    | docs/29-booking-engine/09-api-only-mode.md.
+    |
+    */
+
+    'booking_api_docs_url' => env('BOOKING_API_DOCS_URL', 'https://docs.estatell.com/en/docs/developers/booking-api'),
+
+    /*
+    |--------------------------------------------------------------------------
     | MyKad Reader download
     |--------------------------------------------------------------------------
     |

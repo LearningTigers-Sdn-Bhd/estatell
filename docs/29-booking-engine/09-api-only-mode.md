@@ -2,6 +2,8 @@
 
 ## Purpose
 
+**Status: built**, except the [test mode](#test-mode) and the developer guide's content. Admins set the mode on the Features tab: see [Mode switch](07-settings-and-permissions.md#mode-switch).
+
 Let an owner with their own website and developer sell rooms online, using the same API as the microsite. estatell still handles rooms, prices, bookings and money.
 
 ```
@@ -25,25 +27,28 @@ Commission applies as on the microsite, because estatell still provides booking 
 ## Access
 
 ```
-booking_return_addresses   id, property_id, url, timestamps
-                           unique (property_id, url)
+booking_return_addresses   id, property_id, url (up to 500), timestamps
+                           unique (property_id, url), CHECK url starts with https://
+gateway_payments           + return_url (nullable): the address the payment named
+booking_clients            + partial unique index: one API only client per property
 ```
 
-| Item             | Rule                                                                                                                                                                             |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Token            | One [Sanctum token](02-api.md#access) per property, shown once, replaceable and revocable                                                                                        |
-| Use              | Server only, because the API allows no browser calls                                                                                                                             |
-| Return addresses | Full `https` addresses. A payment names one, and anything else is refused                                                                                                        |
-| Limits on holds  | A cap on open holds per property, so a bug cannot hold every room. The guest IP is an optional extra limit: see [Limits](../28-api-access/04-booking-engine-microsite.md#limits) |
-| Endpoints        | Content, search, checkout and manage booking only: see [API](02-api.md#endpoints)                                                                                                |
+| Item             | Rule                                                                                                                                                                                                                                                                                                               |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Token            | One [Sanctum token](02-api.md#access) per property, shown once, replaceable and revocable. The property keeps one client row, so a new token still reaches its holds                                                                                                                                               |
+| Use              | Server only, because the API allows no browser calls                                                                                                                                                                                                                                                               |
+| Return addresses | Full `https` addresses with no `#` part, up to 10. Most sites need one or two, such as an English and a Malay page; the cap keeps the list short enough for the owner to check. `POST holds/{token}/payment` takes `return_url`; anything else refuses with 422 `return_url_not_allowed`. A retry may name another |
+| Limits on holds  | A cap on open holds per property, so a bug cannot hold every room. The guest IP is an optional extra limit: see [Limits](../28-api-access/04-booking-engine-microsite.md#limits)                                                                                                                                   |
+| Endpoints        | Content, search, checkout and manage booking only: see [API](02-api.md#endpoints)                                                                                                                                                                                                                                  |
 
-Curlec always returns the guest to estatell's callback, which sends them to the approved address. The Curlec allowlist therefore holds only estatell's domain.
+Curlec always returns the guest to estatell's callback, which sends them to the approved address with `hold={token}&payment=confirming|failed` added. The Curlec allowlist therefore holds only estatell's domain. Removing an address stops new payments from using it; a payment that already named it still returns there.
 
 ## API tab
 
 ```
 ┌─ API ──────────────────────────────────────────────────┐
-│ Property code   ES1142                                 │
+│ API address     https://app.estatell.com/api/booking/  │
+│                 v1/properties/ES1142          [ Copy ] │
 │                                                        │
 │ API token       Created 3 Nov 2026, last used today    │
 │                 [ Replace token ]  [ Revoke ]          │
@@ -56,6 +61,14 @@ Curlec always returns the guest to estatell's callback, which sends them to the 
 ```
 
 Owners manage the token and return addresses, and admins set the mode. Support cannot change them through view as.
+
+| Piece      | Where                                                                                                                                               |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Route      | `/p/{code}/settings/booking-website/api` (`settings.booking-website.api`, `.api.token.*`, `.api.return-addresses.*`), behind `booking-website.api`  |
+| Controller | `BookingApiController`. A Microsite property answers 404                                                                                            |
+| Actions    | `IssueBookingApiToken` (create or replace), `RevokeBookingApiToken`, `AddBookingReturnAddress`, `RemoveBookingReturnAddress`. Each change is logged |
+| New token  | Flashed once as `apiToken` and shown in a dialog, never stored or put in the URL                                                                    |
+| Guide link | `estatell.booking_api_docs_url` (`BOOKING_API_DOCS_URL`)                                                                                            |
 
 Sanctum's own `last_used_at` is off, so the token's owner records "last used", as a kiosk does.
 

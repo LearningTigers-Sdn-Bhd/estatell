@@ -411,6 +411,14 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
         return $this->hasOne(PropertyBookingSite::class);
     }
 
+    /**
+     * @return HasMany<BookingReturnAddress, $this>
+     */
+    public function bookingReturnAddresses(): HasMany
+    {
+        return $this->hasMany(BookingReturnAddress::class);
+    }
+
     /** @return HasOne<DoorLockConnection, $this> */
     public function doorLockConnection(): HasOne
     {

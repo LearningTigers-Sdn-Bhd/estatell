@@ -73,12 +73,13 @@ class Impersonation
     ];
 
     /**
-     * Route names denied for every method except GET and HEAD, so the staff lists stay readable.
+     * Route names denied for every method except GET and HEAD, so the staff lists and the booking API tab stay readable.
      *
      * @var list<string>
      */
     private const array BLOCKED_NON_GET_ROUTES = [
         'settings.staff.*',
+        'settings.booking-website.api.*',
     ];
 
     /**

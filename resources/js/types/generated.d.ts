@@ -209,11 +209,24 @@ export type AmenityPickerData = {
 amenities: App.Data.BookingEngine.AmenityData[],
 selectedIds: number[],
 };
+export type BookingReturnAddressData = {
+id: number,
+url: string,
+};
 export type BookingSiteChecklistItemData = {
 key: string,
 label: string,
 done: boolean,
 detail: string | null,
+};
+export type BookingWebsiteApiData = {
+apiAddress: string,
+hasToken: boolean,
+tokenCreatedAt: string | null,
+tokenLastUsedAt: string | null,
+returnAddresses: App.Data.BookingEngine.BookingReturnAddressData[],
+returnAddressLimit: number,
+docsUrl: string,
 };
 export type BookingWebsiteDesignData = {
 siteTemplateId: number | null,
@@ -2222,6 +2235,13 @@ createdAt: string,
 export type AdminWaitingPropertyData = {
 sentOn: string,
 warningsCount: number,
+};
+export type BookingEngineModeData = {
+mode: App.Enums.BookingEngineMode,
+options: {
+value: string,
+label: string,
+}[],
 };
 export type DemoAccessData = {
 url: string,

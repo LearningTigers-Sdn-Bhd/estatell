@@ -58,6 +58,7 @@ export default function PropertyShow({
     tab,
     staff = [],
     features = [],
+    bookingEngineMode,
     otaLists = [],
     channel,
     channelManagerOn,
@@ -67,6 +68,7 @@ export default function PropertyShow({
     tab: Tab;
     staff?: StaffMember[];
     features?: PropertyFeature[];
+    bookingEngineMode?: App.Data.Platform.BookingEngineModeData;
     otaLists?: OtaListRow[];
     channel?: Channel;
     channelManagerOn: boolean;
@@ -245,6 +247,7 @@ export default function PropertyShow({
                         <PropertyFeatures
                             code={property.code}
                             features={features}
+                            bookingEngineMode={bookingEngineMode}
                         />
                     )}
                     {tab === 'ota-lists' && (

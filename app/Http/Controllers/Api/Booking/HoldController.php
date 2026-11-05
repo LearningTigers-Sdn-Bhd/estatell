@@ -56,7 +56,8 @@ class HoldController extends Controller
     }
 
     /**
-     * Start paying for a hold. `payment_unavailable` answers 503, so the client can retry with the same key.
+     * Start paying for a hold. `payment_unavailable` answers 503, so the client can retry with the same key. An API only
+     * client sends `return_url`, one of the property's approved return addresses.
      */
     public function payment(Request $request, string $token, StartBookingHoldPayment $startBookingHoldPayment): JsonResponse
     {
@@ -66,7 +67,8 @@ class HoldController extends Controller
             return $this->notFound();
         }
 
-        $result = $startBookingHoldPayment($request->attributes->get('booking_client'), $hold);
+        $returnUrl = $request->input('return_url');
+        $result = $startBookingHoldPayment($request->attributes->get('booking_client'), $hold, is_string($returnUrl) ? $returnUrl : null);
 
         if ($result->payment === null) {
             $status = match ($result->refusal) {

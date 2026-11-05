@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\PartnerInvitationController;
 use App\Http\Controllers\Admin\PartnerStatusController;
 use App\Http\Controllers\Admin\PartnerTemporaryPasswordController;
 use App\Http\Controllers\Admin\PlatformSettingsController;
+use App\Http\Controllers\Admin\PropertyBookingEngineModeController;
 use App\Http\Controllers\Admin\PropertyChannelConnectionController;
 use App\Http\Controllers\Admin\PropertyChannelController;
 use App\Http\Controllers\Admin\PropertyController;
@@ -54,6 +55,7 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
         Route::post('properties/{property:code}/channels/connections/{connection}/import-bookings', [PropertyChannelConnectionController::class, 'import'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}', 'connection' => '[0-9]+'])->middleware('support.2fa')->name('properties.channels.connections.import');
     });
     Route::put('properties/{property:code}/features/{feature}', [PropertyFeatureController::class, 'update'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}'])->middleware('support.2fa')->name('properties.features.update');
+    Route::put('properties/{property:code}/booking-engine-mode', [PropertyBookingEngineModeController::class, 'update'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}'])->middleware('support.2fa')->name('properties.booking-engine-mode.update');
     Route::get('properties/{property:code}/go-live', [PropertyGoLiveController::class, 'show'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}'])->name('properties.go-live.show');
     Route::post('properties/{property:code}/go-live/approve', [PropertyGoLiveController::class, 'approve'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}'])->middleware('support.2fa')->name('properties.go-live.approve');
     Route::post('properties/{property:code}/go-live/reject', [PropertyGoLiveController::class, 'reject'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}'])->middleware('support.2fa')->name('properties.go-live.reject');

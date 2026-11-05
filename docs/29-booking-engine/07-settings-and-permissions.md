@@ -19,7 +19,7 @@ rate_plans               + bookable_online (bool, default false)
 - `BookingEngineMode`: Microsite, ApiOnly.
 - Slugs are lower case letters, digits and hyphens, 3 to 50 characters. A property gets one from its name when the General tab is first opened (`SetUpBookingSite`, which also creates the `property_booking_sites` row as Microsite). Until it is published, the owner can edit it on the General tab. After publishing, only admins change it, because a change breaks links already shared.
 - `site_template_id` is a foreign key to `site_templates`, and a template in use cannot be deleted.
-- **Built so far:** the flag, the tables, the three permissions, the General tab with Publish and Unpublish, the Amenities and Nearby places tabs, the property location read from the Maps link, and the checklist service (`BookingSiteChecklist`) with the Template, Required images, Property photos, Room photos and Location rows, the [template registry](08-microsite.md#template-registry), the Design and SEO tabs with Choose from album, and the Rates tab with the Public rate plan row. Each later item adds its own checklist row. The about text on the General tab (up to 1000 characters, empty clears it). Not built yet: the admin switch for the mode, and the admin change of a published slug.
+- **Built so far:** the flag, the tables, the three permissions, the General tab with Publish and Unpublish, the Amenities and Nearby places tabs, the property location read from the Maps link, and the checklist service (`BookingSiteChecklist`) with the Template, Required images, Property photos, Room photos and Location rows, the [template registry](08-microsite.md#template-registry), the Design and SEO tabs with Choose from album, and the Rates tab with the Public rate plan row. Each later item adds its own checklist row. The about text on the General tab (up to 1000 characters, empty clears it). The admin switch for the mode (see [Mode switch](#mode-switch)). Not built yet: the admin change of a published slug.
 
 ## Booking website settings
 
@@ -108,7 +108,7 @@ The owner fills each slot in one of two ways. Both replace what the slot held an
 - The picker lists Available Standard templates, the property's own Available Custom templates, and the template already in use, even if it was retired. The server refuses any other template.
 - The main colour shows only when the saved template allows it. It is a six digit hex value, such as `#0F766E`, and it is cleared when the template does not allow one.
 - "Required images added" on the checklist lists the required slots of the saved template that are still empty.
-- Design and SEO answer 404 for an API only property. Until the admin switch for the mode is built, the tabs show for every property.
+- Design and SEO answer 404 for an API only property, and the API tab answers 404 for a Microsite property. The `booking-engine` middleware shares `bookingMode`, so the tab links show only the tabs of the property's mode.
 
 ### Amenities
 
@@ -214,5 +214,17 @@ Each role can change in [Roles and permissions](../03-staff/02-roles-and-permiss
 | Admin only                        | The flag, the mode, Curlec setup, slug changes after publishing, and the three registries                                      |
 
 - API token and return address changes use `block.impersonation`, like passwords.
+
+### Mode switch
+
+Admins set the mode on the admin property page's **Features** tab. A Microsite / API only toggle shows under the Booking engine switch while the flag is on. Partners see the mode read-only.
+
+| Item    | Rule                                                                                                                                       |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Route   | `PUT /admin/properties/{code}/booking-engine-mode` (`admin.properties.booking-engine-mode.update`), `can:admin` and `support.2fa`          |
+| Action  | `SetBookingEngineMode`. Refuses, writing nothing, when the flag is off or the mode is unchanged. Logs `booking-website.mode-changed`       |
+| Effects | The new mode starts offline: a published site is unpublished. Leaving API only revokes the API token, so the owner's website stops at once |
+| Confirm | The toggle asks first, because the change takes the current online booking offline                                                         |
+
 - Every publish, unpublish and template change is logged with who did it.
 - Partners see the flag read-only, as on the Features tab.
