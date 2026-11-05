@@ -49,9 +49,7 @@ class KioskBookingFinder
             return KioskBookingLookup::refused('hold_expired');
         }
 
-        $window = $stay->status === UnitStatus::CheckedIn
-            ? ($this->stays->checkOutWindow($stay) ? KioskStays::OPEN : KioskStays::ENDED)
-            : $this->stays->window($stay);
+        $window = $stay->status === UnitStatus::CheckedIn ? KioskStays::OPEN : $this->stays->window($stay);
 
         if ($window !== KioskStays::OPEN) {
             return KioskBookingLookup::refused(match ($window) {
@@ -63,7 +61,7 @@ class KioskBookingFinder
 
         $stay->loadMissing(['reservation', 'roomType']);
 
-        return KioskBookingLookup::found($stay, (string) $this->stays->guest($stay)?->full_name, $this->stepsRequired($property, $stay));
+        return KioskBookingLookup::found($stay, (string) $this->stays->guest($stay)?->full_name, $this->stepsRequired($property, $stay), $this->state($stay));
     }
 
     /**
@@ -82,6 +80,28 @@ class KioskBookingFinder
         return [
             'id' => $visibility === FieldVisibility::Required->value || $this->needsNationality($property, $stay),
             'registration_card' => (bool) $property->settings?->card_required_for_check_in,
+        ];
+    }
+
+    /**
+     * Where the stay is: still to check in, or in-house. An in-house stay says whether check-out is open, and gives
+     * its room only while this kiosk may still show a key (`checkedInByKiosk`).
+     *
+     * @return array{status: string, check_out_open: bool, key_available: bool, room_number: string|null}
+     */
+    private function state(ReservationUnit $stay): array
+    {
+        if ($stay->status !== UnitStatus::CheckedIn) {
+            return ['status' => 'confirmed', 'check_out_open' => false, 'key_available' => false, 'room_number' => null];
+        }
+
+        $keyAvailable = $this->stays->checkedInByKiosk($stay);
+
+        return [
+            'status' => 'checked_in',
+            'check_out_open' => $this->stays->checkOutWindow($stay),
+            'key_available' => $keyAvailable,
+            'room_number' => $keyAvailable ? $this->stays->roomNumber($stay) : null,
         ];
     }
 

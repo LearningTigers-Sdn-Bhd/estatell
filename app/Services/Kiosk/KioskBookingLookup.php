@@ -20,20 +20,26 @@ final readonly class KioskBookingLookup
 
     /**
      * @param  array{id: bool, registration_card: bool}|null  $steps
+     * @param  array{status: string, check_out_open: bool, key_available: bool, room_number: string|null}|null  $state
      */
     private function __construct(
         public ?ReservationUnit $stay,
         public ?string $guestName,
         public ?array $steps,
         public ?string $refusal,
+        public ?array $state = null,
     ) {}
 
     /**
+     * `state` says whether the stay is still to check in or already in-house, whether check-out is open, and, only
+     * while the kiosk may still show a key, the room (`key_available`, see `KioskStays::KEY_WINDOW_MINUTES`).
+     *
      * @param  array{id: bool, registration_card: bool}  $steps
+     * @param  array{status: string, check_out_open: bool, key_available: bool, room_number: string|null}  $state
      */
-    public static function found(ReservationUnit $stay, string $guestName, array $steps): self
+    public static function found(ReservationUnit $stay, string $guestName, array $steps, array $state): self
     {
-        return new self($stay, $guestName, $steps, null);
+        return new self($stay, $guestName, $steps, null, $state);
     }
 
     public static function refused(string $refusal): self
