@@ -1,4 +1,5 @@
 import { Form } from '@inertiajs/react';
+import type { LucideIcon } from 'lucide-react';
 import { useRef, type ReactNode } from 'react';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
 import { Button } from '@/components/ui/button';
@@ -35,6 +36,8 @@ export function SettingsSection({
     guardUnsavedChanges = false,
     actions,
     headerClassName,
+    submitInHeader = false,
+    submitIcon,
     children,
 }: {
     form: RouteFormDefinition<'post'>;
@@ -47,6 +50,10 @@ export function SettingsSection({
     actions?: SectionActions;
     /** Extra classes for the header, for example the heading inset inside a Workspace panel. */
     headerClassName?: string;
+    /** Puts the save button on the right of the header instead of below the fields. */
+    submitInHeader?: boolean;
+    /** An icon before the save button label. */
+    submitIcon?: LucideIcon;
     children: (errors: Record<string, string>) => ReactNode;
 }) {
     const afterSave = useRef<(() => void) | null>(null);
@@ -72,6 +79,8 @@ export function SettingsSection({
                     guardUnsavedChanges={guardUnsavedChanges}
                     actions={actions}
                     headerClassName={headerClassName}
+                    submitInHeader={submitInHeader}
+                    submitIcon={submitIcon}
                     processing={processing}
                     isDirty={isDirty}
                     onSave={(onSaved) => {
@@ -95,6 +104,8 @@ function SettingsSectionContent({
     guardUnsavedChanges,
     actions,
     headerClassName,
+    submitInHeader,
+    submitIcon: SubmitIcon,
     processing,
     isDirty,
     onSave,
@@ -108,6 +119,8 @@ function SettingsSectionContent({
     guardUnsavedChanges: boolean;
     actions?: SectionActions;
     headerClassName?: string;
+    submitInHeader: boolean;
+    submitIcon?: LucideIcon;
     processing: boolean;
     isDirty: boolean;
     onSave: (onSaved: () => void) => void;
@@ -117,9 +130,25 @@ function SettingsSectionContent({
         guardUnsavedChanges && !readOnly && isDirty,
     );
 
+    const saveButton = (
+        <Button
+            type="submit"
+            disabled={processing || (guardUnsavedChanges && !isDirty)}
+            focusableWhenDisabled
+        >
+            {processing ? (
+                <Spinner data-icon={SubmitIcon ? 'inline-start' : undefined} />
+            ) : (
+                SubmitIcon && <SubmitIcon data-icon="inline-start" />
+            )}
+            {submitLabel}
+        </Button>
+    );
+    const showSaveInHeader = submitInHeader && !readOnly;
+
     return (
         <section className="flex flex-col gap-5">
-            {actions ? (
+            {actions || showSaveInHeader ? (
                 <header
                     className={cn(
                         'flex flex-wrap items-start justify-between gap-x-4 gap-y-3',
@@ -136,6 +165,7 @@ function SettingsSectionContent({
                         {typeof actions === 'function'
                             ? actions({ isDirty })
                             : actions}
+                        {showSaveInHeader && saveButton}
                     </div>
                 </header>
             ) : (
@@ -147,19 +177,8 @@ function SettingsSectionContent({
                 </header>
             )}
             <div className={contentClassName}>{children}</div>
-            {!readOnly && (
-                <footer className="flex justify-end">
-                    <Button
-                        type="submit"
-                        disabled={
-                            processing || (guardUnsavedChanges && !isDirty)
-                        }
-                        focusableWhenDisabled
-                    >
-                        {processing && <Spinner />}
-                        {submitLabel}
-                    </Button>
-                </footer>
+            {!readOnly && !submitInHeader && (
+                <footer className="flex justify-end">{saveButton}</footer>
             )}
             {guardUnsavedChanges && !readOnly && (
                 <UnsavedChangesDialog

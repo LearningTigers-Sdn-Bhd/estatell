@@ -1,4 +1,5 @@
 import { Head } from '@inertiajs/react';
+import { Images } from 'lucide-react';
 import BookingWebsiteController from '@/actions/App/Http/Controllers/BookingEngine/BookingWebsiteController';
 import { BookingWebsiteShell } from '@/components/pms/booking-website/booking-website-shell';
 import { SectionHeader } from '@/components/pms/booking-website/section-header';
@@ -31,6 +32,7 @@ export default function BookingWebsiteDesign({
                     <div className="flex flex-col gap-4">
                         <SectionHeader
                             title="Images"
+                            icon={Images}
                             description={`JPEG, PNG or WebP, up to ${Math.round(design.imageMaxKb / 1024)} MB each. Choose a photo from your album, or upload one for the website only. Each image saves as soon as you pick it.`}
                         />
                         {design.siteTemplateId === null ? (

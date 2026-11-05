@@ -1,4 +1,5 @@
 import { Head } from '@inertiajs/react';
+import { Search } from 'lucide-react';
 import { useState } from 'react';
 import BookingWebsiteController from '@/actions/App/Http/Controllers/BookingEngine/BookingWebsiteController';
 import { BookingWebsiteShell } from '@/components/pms/booking-website/booking-website-shell';
@@ -90,6 +91,7 @@ export default function BookingWebsiteSeo({
                     <div className="flex flex-col gap-4">
                         <SectionHeader
                             title="Google preview"
+                            icon={Search}
                             description="How your website may look in search results."
                         />
                         <div className="flex flex-col gap-1 rounded-lg border bg-muted/40 p-4">

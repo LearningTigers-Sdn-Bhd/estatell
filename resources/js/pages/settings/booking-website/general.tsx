@@ -1,5 +1,15 @@
 import { Form, Head } from '@inertiajs/react';
-import { Check, Copy, ExternalLink, Globe, X } from 'lucide-react';
+import {
+    Check,
+    CloudOff,
+    CloudUpload,
+    Copy,
+    ExternalLink,
+    Globe,
+    ListChecks,
+    Save,
+    X,
+} from 'lucide-react';
 import BookingWebsiteController from '@/actions/App/Http/Controllers/BookingEngine/BookingWebsiteController';
 import { BookingWebsiteShell } from '@/components/pms/booking-website/booking-website-shell';
 import { SectionHeader } from '@/components/pms/booking-website/section-header';
@@ -55,29 +65,36 @@ export default function BookingWebsiteGeneral({
                     <div className="flex flex-col gap-4">
                         <SectionHeader
                             title="Before you publish"
+                            icon={ListChecks}
                             description={
                                 general.checklist.length === 0
                                     ? 'Nothing is needed yet.'
                                     : 'Finish every step to go online.'
                             }
                         />
-                        <ul className="flex flex-col gap-2">
+                        <ul className="flex flex-col gap-2 ps-3">
                             {general.checklist.map((item) => (
                                 <li
                                     key={item.key}
-                                    className="flex items-start gap-2 text-sm"
+                                    className="flex items-start gap-3 text-sm"
                                 >
-                                    {item.done ? (
-                                        <Check
-                                            aria-hidden
-                                            className="mt-0.5 size-4 text-success"
-                                        />
-                                    ) : (
-                                        <X
-                                            aria-hidden
-                                            className="mt-0.5 size-4 text-muted-foreground"
-                                        />
-                                    )}
+                                    <span className="flex w-8 shrink-0 justify-center">
+                                        {item.done ? (
+                                            <span className="flex size-5 items-center justify-center rounded-full bg-success/10 text-success">
+                                                <Check
+                                                    aria-hidden
+                                                    className="size-3"
+                                                />
+                                            </span>
+                                        ) : (
+                                            <span className="flex size-5 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                                                <X
+                                                    aria-hidden
+                                                    className="size-3"
+                                                />
+                                            </span>
+                                        )}
+                                    </span>
                                     <span className="flex flex-col">
                                         <span>{item.label}</span>
                                         {item.detail && (
@@ -93,34 +110,40 @@ export default function BookingWebsiteGeneral({
                         {general.published ? (
                             <Form
                                 {...BookingWebsiteController.unpublish.form()}
-                                className="flex justify-end"
                             >
                                 {({ processing }) => (
                                     <Button
                                         type="submit"
                                         variant="outline"
+                                        className="w-full"
                                         disabled={processing}
                                         focusableWhenDisabled
                                     >
-                                        {processing && <Spinner />}
+                                        {processing ? (
+                                            <Spinner data-icon="inline-start" />
+                                        ) : (
+                                            <CloudOff data-icon="inline-start" />
+                                        )}
                                         Unpublish
                                     </Button>
                                 )}
                             </Form>
                         ) : (
-                            <Form
-                                {...BookingWebsiteController.publish.form()}
-                                className="flex justify-end"
-                            >
+                            <Form {...BookingWebsiteController.publish.form()}>
                                 {({ processing }) => (
                                     <Button
                                         type="submit"
+                                        className="w-full"
                                         disabled={
                                             !general.canPublish || processing
                                         }
                                         focusableWhenDisabled
                                     >
-                                        {processing && <Spinner />}
+                                        {processing ? (
+                                            <Spinner data-icon="inline-start" />
+                                        ) : (
+                                            <CloudUpload data-icon="inline-start" />
+                                        )}
                                         {apiOnly ? 'Go live' : 'Publish'}
                                     </Button>
                                 )}
@@ -131,6 +154,8 @@ export default function BookingWebsiteGeneral({
             >
                 <SettingsSection
                     headerClassName="ps-3 pt-2"
+                    submitInHeader
+                    submitIcon={Save}
                     guardUnsavedChanges
                     form={BookingWebsiteController.updateGeneral.form()}
                     title="Web address"
