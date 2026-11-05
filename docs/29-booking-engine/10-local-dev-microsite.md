@@ -47,8 +47,6 @@ The browser never calls estatell's API. Only the microsite's server routes do.
     | Turn on at least one rate plan                                               | Settings › Booking website › Rates                       |
     | **Publish**                                                                  | Settings › Booking website › General                     |
 
-    On the current local database, Sandbay Resort (`ES1103`, slug `sandbay-resort`) already has a booking site with the `custom-sandbay` template, not yet published.
-
 ## Microsite setup
 
 The microsite repo owns its own settings. These names are a proposal until that repo is created.
@@ -60,10 +58,10 @@ The microsite repo owns its own settings. These names are a proposal until that 
 
 Every server call sends `Authorization: Bearer {token}`. Creating a hold also needs `X-Guest-IP`, because the microsite client must send it. Locally, send `127.0.0.1`. Writes take an `Idempotency-Key`: a new key for each new attempt, the same key for a retry.
 
-Check the token works:
+Check the token works. Use the slug of the property you published:
 
 ```bash
-curl -H "Authorization: Bearer $ESTATELL_API_TOKEN" http://localhost:8000/api/booking/v1/sites/sandbay-resort
+curl -H "Authorization: Bearer $ESTATELL_API_TOKEN" http://localhost:8000/api/booking/v1/sites/{slug}
 ```
 
 A 404 means the site is not published, not in Microsite mode, or the flag is off.
