@@ -4,15 +4,9 @@ import BookingWebsiteController from '@/actions/App/Http/Controllers/BookingEngi
 import { BookingWebsiteShell } from '@/components/pms/booking-website/booking-website-shell';
 import { SectionHeader } from '@/components/pms/booking-website/section-header';
 import { SiteImageSlotRow } from '@/components/pms/booking-website/site-image-slot-row';
-import { EnumSelect } from '@/components/pms/enum-select';
+import { SiteTemplatePicker } from '@/components/pms/booking-website/site-template-picker';
 import { SettingsInput } from '@/components/pms/settings/form-fields';
 import { SettingsSection } from '@/components/pms/settings-section';
-import {
-    Field,
-    FieldDescription,
-    FieldError,
-    FieldLabel,
-} from '@/components/ui/field';
 
 export default function BookingWebsiteDesign({
     design,
@@ -37,7 +31,7 @@ export default function BookingWebsiteDesign({
                         />
                         {design.siteTemplateId === null ? (
                             <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-                                Save a template to see its image slots.
+                                Pick a template to see its image slots.
                             </p>
                         ) : design.slots.length === 0 ? (
                             <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
@@ -59,8 +53,10 @@ export default function BookingWebsiteDesign({
                 }
             >
                 <SettingsSection
+                    key={design.siteTemplateId ?? 'none'}
                     headerClassName="ps-3 pt-2"
                     guardUnsavedChanges
+                    readOnly={!design.allowsMainColor}
                     form={BookingWebsiteController.updateDesign.form()}
                     title="Template"
                     description="Changing the template keeps images in slots the new one also has. A template that allows it also has a main colour."
@@ -68,42 +64,23 @@ export default function BookingWebsiteDesign({
                 >
                     {(errors) => (
                         <>
-                            <Field data-invalid={!!errors.site_template_id}>
-                                <FieldLabel htmlFor="site_template_id">
-                                    Template
-                                </FieldLabel>
-                                <EnumSelect
-                                    id="site_template_id"
-                                    name="site_template_id"
-                                    options={design.templates}
-                                    defaultValue={
-                                        design.siteTemplateId === null
-                                            ? ''
-                                            : String(design.siteTemplateId)
-                                    }
-                                    allLabel="No template"
-                                    placeholder="Choose a template"
-                                    aria-invalid={!!errors.site_template_id}
-                                />
-                                {design.templates.length === 0 && (
-                                    <FieldDescription>
-                                        No template is available yet. Ask
-                                        support.
-                                    </FieldDescription>
-                                )}
-                                <FieldError>
-                                    {errors.site_template_id}
-                                </FieldError>
-                            </Field>
+                            <SiteTemplatePicker design={design} />
                             {design.allowsMainColor && (
-                                <SettingsInput
-                                    name="main_color"
-                                    label="Main colour"
-                                    value={design.mainColor}
-                                    placeholder="e.g. #0F766E"
-                                    description="A hex colour. Leave empty to use the template's own."
-                                    error={errors.main_color}
-                                />
+                                <>
+                                    <input
+                                        type="hidden"
+                                        name="site_template_id"
+                                        value={design.siteTemplateId ?? ''}
+                                    />
+                                    <SettingsInput
+                                        name="main_color"
+                                        label="Main colour"
+                                        value={design.mainColor}
+                                        placeholder="e.g. #0F766E"
+                                        description="A hex colour. Leave empty to use the template's own."
+                                        error={errors.main_color}
+                                    />
+                                </>
                             )}
                         </>
                     )}

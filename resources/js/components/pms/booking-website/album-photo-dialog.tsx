@@ -60,7 +60,7 @@ export function AlbumPhotoDialog({
 
     return (
         <Dialog open={open} onOpenChange={close}>
-            <DialogContent className="sm:max-w-2xl">
+            <DialogContent className="sm:max-w-3xl">
                 <DialogHeader>
                     <DialogTitle>Choose the {slot.label}</DialogTitle>
                     <DialogDescription>
@@ -70,7 +70,7 @@ export function AlbumPhotoDialog({
                     </DialogDescription>
                 </DialogHeader>
                 {photos.length > 0 && (
-                    <ul className="grid max-h-96 grid-cols-2 gap-3 overflow-y-auto md:grid-cols-3">
+                    <ul className="grid max-h-112 min-h-80 auto-rows-min grid-cols-2 gap-4 overflow-y-auto rounded-lg border bg-muted/40 p-3 md:grid-cols-3">
                         {photos.map((photo) => (
                             <li key={photo.id}>
                                 <button

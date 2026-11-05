@@ -84,7 +84,7 @@ The checklist is calculated from data. In API only mode, Publish becomes **Go li
 └──────────────────────────────────────────────────────────┘
 ```
 
-The rows follow the saved template's [image slots](08-microsite.md#template-registry), so they appear after the template is saved. Images are media on `PropertyBookingSite`, on a public disk, with the slot key as a custom property. Changing the template keeps images in slots the new template also has, because images are matched by slot key.
+Picking a template saves it at once, like the images, so its rows show straight away. The rows follow the saved template's [image slots](08-microsite.md#template-registry). Images are media on `PropertyBookingSite`, on a public disk, with the slot key as a custom property. Changing the template keeps images in slots the new template also has, because images are matched by slot key.
 
 The owner fills each slot in one of two ways. Both replace what the slot held and save at once.
 
@@ -110,7 +110,7 @@ The owner fills each slot in one of two ways. Both replace what the slot held an
 - The dialog needs `booking-website.manage`. With an empty album, it says so and links to the Photos tab. The album itself is managed with `settings.manage`.
 
 - The picker lists Available Standard templates, the property's own Available Custom templates, and the template already in use, even if it was retired. The server refuses any other template.
-- The main colour shows only when the saved template allows it. It is a six digit hex value, such as `#0F766E`, and it is cleared when the template does not allow one.
+- The main colour shows only when the saved template allows it, and it has its own Save button. Picking a template sends the saved main colour along. It is a six digit hex value, such as `#0F766E`, and it is cleared when the template does not allow one.
 - "Required images added" on the checklist lists the required slots of the saved template that are still empty.
 - Design and SEO answer 404 for an API only property, and the API tab answers 404 for a Microsite property. The `booking-engine` middleware shares `bookingMode`, so the tab links show only the tabs of the property's mode.
 
