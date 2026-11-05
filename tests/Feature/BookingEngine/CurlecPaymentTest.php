@@ -28,12 +28,15 @@ use App\Models\Property;
 use App\Models\Rate;
 use App\Models\Reservation;
 use App\Models\User;
+use App\Notifications\OnlineBookingConfirmed;
+use App\Notifications\OnlineBookingReceived;
 use App\Notifications\OnlinePaymentNeedsAttention;
 use App\Services\Availability\AvailabilityService;
 use App\Services\Payments\CurlecGateway;
 use App\Services\Property\CountryProfiles;
 use App\Services\Reservations\ReservationFormOptions;
 use Illuminate\Http\Client\Request;
+use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Testing\TestResponse;
@@ -353,6 +356,54 @@ test('a late payment whose rooms are taken makes no booking and alerts admins', 
         ->and(app(AvailabilityService::class)->availableForStay($setup['roomType'], $hold->arrival_date, $hold->departure_date))->toBe(0);
 
     Notification::assertSentTo($admin, OnlinePaymentNeedsAttention::class, fn (OnlinePaymentNeedsAttention $notification): bool => $notification->orderId === 'order_abc' && $notification->paymentId === 'pay_123');
+});
+
+// Confirmation messages
+
+test('a confirmed booking emails the guest the Manage booking link and notifies reservation staff once', function () {
+    Notification::fake();
+    $setup = curlecSetup();
+    $staff = User::factory()->for($setup['property'])->withPermissions(['reservations.manage'])->create();
+    $other = User::factory()->for($setup['property'])->withPermissions(['rooms.manage'])->create();
+    $hold = curlecHold($setup);
+    curlecOrder($hold);
+
+    postCurlecWebhook(curlecOrderPaid())->assertOk();
+    postCurlecWebhook(curlecOrderPaid(), eventId: 'evt_2')->assertOk();
+
+    $reservation = Reservation::query()->sole();
+    $manageUrl = rtrim((string) config('estatell.booking_site_url'), '/')."/sand-bay/manage/{$hold->token}";
+
+    Notification::assertSentOnDemandTimes(OnlineBookingConfirmed::class, 1);
+    Notification::assertSentOnDemand(OnlineBookingConfirmed::class, fn (OnlineBookingConfirmed $notification, array $channels, object $notifiable): bool => $notifiable->routes['mail'] === 'aisyah@example.com'
+        && $notification->reference === $reservation->reference
+        && $notification->manageUrl === $manageUrl
+        && $notification->guestName === 'Aisyah Rahman');
+    Notification::assertSentToTimes($staff, OnlineBookingReceived::class, 1);
+    Notification::assertNotSentTo($other, OnlineBookingReceived::class);
+});
+
+test('a refused booking sends nothing to the guest or staff', function () {
+    Notification::fake();
+    $setup = curlecSetup();
+    User::factory()->for($setup['property'])->withPermissions(['reservations.manage'])->create();
+    $setup['online']->delete();
+    curlecOrder(curlecHold($setup));
+
+    postCurlecWebhook(curlecOrderPaid());
+
+    Notification::assertNothingSentTo(User::query()->where('property_id', $setup['property']->id)->first());
+    Notification::assertSentOnDemandTimes(OnlineBookingConfirmed::class, 0);
+});
+
+test('the guest email shows the booking and the Manage booking button', function () {
+    $setup = curlecSetup();
+    $hold = curlecHold($setup);
+    $notification = new OnlineBookingConfirmed('RES-1', 'Sand Bay', 'Aisyah Rahman', '2026-10-20', '2026-10-22', ['Deluxe'], 'MYR 200.00', 'https://booking.example/sand-bay/manage/abc');
+
+    $html = (string) $notification->toMail(new AnonymousNotifiable)->render();
+
+    expect($html)->toContain('Hello Aisyah Rahman,', 'RES-1', 'MYR 200.00', 'Manage booking', 'https://booking.example/sand-bay/manage/abc');
 });
 
 // A refused confirmation

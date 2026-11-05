@@ -40,13 +40,12 @@ The checkout is Curlec's form, opened by Curlec's script on the microsite or the
 
 ## Build order
 
-The payment item covers payment and confirmation only. Three steps in this doc are added by later items. All three must ship before real money is collected, along with Commission fees.
+The payment item covers payment and confirmation only. Two steps in this doc are added by later items. Both must ship before real money is collected, along with Commission fees.
 
-| Step                                      | Added by                           | Until then                                                      |
-| ----------------------------------------- | ---------------------------------- | --------------------------------------------------------------- |
-| Automatic refund when the rooms are taken | `refund online payments`           | See [Paid after the hold expired](#paid-after-the-hold-expired) |
-| Guest email and staff notification        | `email the guest and notify staff` | No email. The booking shows in the PMS                          |
-| Saved cancellation terms                  | `let guests cancel online`         | Nothing saved, so the live policy applies                       |
+| Step                                      | Added by                   | Until then                                                      |
+| ----------------------------------------- | -------------------------- | --------------------------------------------------------------- |
+| Automatic refund when the rooms are taken | `refund online payments`   | See [Paid after the hold expired](#paid-after-the-hold-expired) |
+| Saved cancellation terms                  | `let guests cancel online` | Nothing saved, so the live policy applies                       |
 
 ## Data model
 
@@ -126,7 +125,7 @@ If the queue itself is down, the webhook answers 500 so Curlec delivers the even
 4. Save the [cancellation terms](05-cancel-and-refund.md#saved-terms) shown to the guest. Added by `let guests cancel online`.
 5. Post the payment on the folio.
 6. Link the reservation to the hold.
-7. After commit: email the guest the confirmation and Manage booking link, and notify staff. Added by `email the guest and notify staff`.
+7. After commit: `NotifyOnlineBooking` emails the guest the confirmation and Manage booking link (`OnlineBookingConfirmed`), and notifies reservation staff (`OnlineBookingReceived`). A repeat event for a confirmed hold sends nothing again. The link is `{BOOKING_SITE_URL}/{slug}/manage/{hold token}`: the hold's long random token is the booking token, so there is no second token. If the hold has no email, only staff are told.
 
 A guest is not a `User`, so the actor is null in `CreateBooking`, `AddUnit`, `CancelUnits` and `RecordPayment`, and in the Actions they call.
 

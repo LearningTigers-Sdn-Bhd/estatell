@@ -21,6 +21,7 @@ enum NotificationType: string
     case ChannelRemovalBlocked = 'channel_removal_blocked';
     case PaymentSlipReceived = 'payment_slip_received';
     case NearbyPlaceRemoved = 'nearby_place_removed';
+    case OnlineBookingReceived = 'online_booking_received';
 
     public function label(): string
     {
@@ -42,6 +43,7 @@ enum NotificationType: string
             self::ChannelRemovalBlocked => __('Archive blocked by a channel'),
             self::PaymentSlipReceived => __('Company payment slip'),
             self::NearbyPlaceRemoved => __('Nearby place removed'),
+            self::OnlineBookingReceived => __('Online booking received'),
         };
     }
 
@@ -81,7 +83,7 @@ enum NotificationType: string
             self::NightAuditCompleted, self::NightAuditExceptions => 'night-audit.receive-report',
             self::NightAuditFailed => 'night-audit.run',
             self::PaymentSlipReceived => 'city-ledger.payment',
-            self::PortalBookingCreated, self::PortalBookingCancelled, self::PortalCancellationRequested, self::ChannelBookingReceived, self::ChannelBookingCancelled => 'reservations.manage',
+            self::PortalBookingCreated, self::PortalBookingCancelled, self::PortalCancellationRequested, self::ChannelBookingReceived, self::ChannelBookingCancelled, self::OnlineBookingReceived => 'reservations.manage',
             default => null,
         };
     }

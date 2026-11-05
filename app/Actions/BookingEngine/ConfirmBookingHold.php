@@ -31,7 +31,7 @@ use Illuminate\Support\Facades\DB;
  * hold counts in availability and `AddUnit` would otherwise refuse its own rooms. Other requests still see it as Paid until
  * the commit. Then a new guest and the booking, on the Booking Engine source with no staff actor, so every rule still
  * applies. A line whose rates changed since the hold keeps the price the guest paid, as a price override. Each unit has its own folio, and takes its line's share of the payment as an Advance with the key
- * `online:{order}:{unit}`. A refusal rolls it all back, and the hold stays Paid. See docs/29-booking-engine/04-payment.md#confirmation.
+ * `online:{order}:{unit}`. A refusal rolls it all back, and the hold stays Paid. After the commit, `NotifyOnlineBooking` emails the guest and notifies staff, once. See docs/29-booking-engine/04-payment.md#confirmation.
  */
 class ConfirmBookingHold
 {
@@ -43,6 +43,7 @@ class ConfirmBookingHold
         private RecordPayment $recordPayment,
         private AutoAddOns $autoAddOns,
         private RateQuoteService $rateQuoteService,
+        private NotifyOnlineBooking $notifyOnlineBooking,
     ) {}
 
     public function __invoke(BookingHold $hold, GatewayPayment $payment): ConfirmBookingHoldResult
@@ -98,6 +99,8 @@ class ConfirmBookingHold
         $reservation = $booking->reservation;
         $this->postPayments($locked, $payment, $reservation, $method);
         $locked->update(['reservation_id' => $reservation->id]);
+
+        DB::afterCommit(fn () => ($this->notifyOnlineBooking)($locked, $reservation));
 
         return ConfirmBookingHoldResult::confirmed($reservation);
     }
