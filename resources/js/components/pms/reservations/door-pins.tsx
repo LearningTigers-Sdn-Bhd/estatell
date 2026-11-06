@@ -69,10 +69,12 @@ function split(passcodes: Passcode[]): {
 function PinRow({
     passcode,
     removing,
+    updating,
     onSet,
 }: {
     passcode: Passcode;
     removing: boolean;
+    updating: boolean;
     onSet: () => void;
 }) {
     const [copiedText, copy] = useClipboard();
@@ -104,7 +106,12 @@ function PinRow({
                 <span className="text-sm text-muted-foreground">
                     {passcode.lockName} · until {when(passcode.endsAt)}
                 </span>
-                {passcode.canReplace && !removing && (
+                {updating && !removing && (
+                    <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <Spinner /> Updating the end time…
+                    </span>
+                )}
+                {passcode.canReplace && !removing && !updating && (
                     <Button
                         variant="outline"
                         size="sm"
@@ -148,6 +155,7 @@ export function DoorPins({
         pins.passcodes.some((p) => p.status.value === 'active');
     const busy =
         making ||
+        pins.updating ||
         removing ||
         pins.passcodes.some((p) => p.status.value === 'pending');
 
@@ -173,6 +181,13 @@ export function DoorPins({
             </h4>
             <div className="flex min-w-0 flex-1 flex-col gap-2">
                 {waiting && <PinPoller />}
+                {pins.updating && gaveUp && (
+                    <p className="text-sm text-warning">
+                        The PIN end time did not update to match the stay. The
+                        lock may be unreachable, or a Generated PIN cannot be
+                        shortened. It is removed at check-out.
+                    </p>
+                )}
                 {pins.sendNewPin && (
                     <p className="text-sm text-warning">
                         The stay was extended. Give the guest the newest PIN.
@@ -184,6 +199,7 @@ export function DoorPins({
                             key={passcode.id}
                             passcode={passcode}
                             removing={waiting && removing}
+                            updating={waiting && pins.updating}
                             onSet={() => setSetting(passcode)}
                         />
                     ))}

@@ -66,6 +66,7 @@ function fakeTtlock(): void
         '*/v3/identityCard/add' => Http::response(['cardId' => 7001]),
         '*/v3/identityCard/delete' => Http::response(['errcode' => 0]),
         '*/v3/lock/unlock' => Http::response(['errcode' => 0]),
+        '*/v3/keyboardPwd/change' => Http::response(['errcode' => 0]),
         '*/v3/gateway/list' => Http::response(['list' => [['gatewayId' => 77, 'gatewayName' => 'G2 Hall', 'isOnline' => 1]], 'pages' => 1]),
         '*/v3/gateway/listLock' => Http::response(['list' => [['lockId' => 555]]]),
         '*/v3/lock/queryDate' => Http::response(['date' => now()->addSeconds(90)->getTimestampMs()]),

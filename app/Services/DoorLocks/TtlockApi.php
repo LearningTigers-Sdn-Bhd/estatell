@@ -123,6 +123,21 @@ class TtlockApi
     }
 
     /**
+     * Move the end of a PIN we sent through the gateway, so the guest keeps the same PIN. TTLock needs the start date too,
+     * and ignores the change without it.
+     */
+    public function changePasscodePeriod(string $accessToken, int $lockId, int $passcodeId, CarbonInterface $startsAt, CarbonInterface $endsAt): void
+    {
+        $this->post('/v3/keyboardPwd/change', $accessToken, [
+            'lockId' => $lockId,
+            'keyboardPwdId' => $passcodeId,
+            'startDate' => $startsAt->getTimestampMs(),
+            'endDate' => $endsAt->getTimestampMs(),
+            'changeType' => 2,
+        ], remote: true);
+    }
+
+    /**
      * A PIN the lock works out itself from the time window. Needs no gateway.
      *
      * @return array{code: string, id: int}

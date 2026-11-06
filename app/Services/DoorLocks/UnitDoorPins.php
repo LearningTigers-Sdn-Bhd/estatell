@@ -11,6 +11,7 @@ use App\Enums\UnitStatus;
 use App\Models\DoorLock;
 use App\Models\DoorPasscode;
 use App\Models\ReservationUnit;
+use Illuminate\Support\Collection;
 
 /**
  * Reads the door PINs of a stay unit for the reservation page. Returns null when there is nothing to show: no PIN was ever
@@ -60,6 +61,7 @@ class UnitDoorPins
             passcodes: array_values($passcodes->map(DoorPasscodeData::fromModel(...))->all()),
             locksWithoutPin: $locksWithoutPin,
             sendNewPin: $sendNewPin,
+            updating: $unit->status === UnitStatus::CheckedIn && $this->endsBeforeStay($unit, $passcodes),
         );
     }
 
@@ -76,5 +78,29 @@ class UnitDoorPins
         [, $endsAt] = $this->passcodeWindow->forUnit($unit, PasscodeKind::Generated, $timeZone);
 
         return $endsAt->lte(now()) ? __('The stay has already ended, so a PIN would be out of date.') : null;
+    }
+
+    /**
+     * True when a lock of the unit has live PINs whose end is not the end of the stay yet (a Custom PIN) or does not reach it (a Generated PIN): the sync after a date change has not caught up.
+     *
+     * @param  Collection<int, DoorPasscode>  $passcodes
+     */
+    private function endsBeforeStay(ReservationUnit $unit, $passcodes): bool
+    {
+        $timeZone = $unit->property->settings->time_zone ?? 'Asia/Kuala_Lumpur';
+
+        return $passcodes
+            ->whereIn('status', [PasscodeStatus::Pending, PasscodeStatus::Active])
+            ->groupBy('door_lock_id')
+            ->contains(function ($live) use ($unit, $timeZone): bool {
+                [, $endsAt] = $this->passcodeWindow->forUnit($unit, $live->first()->kind, $timeZone);
+
+                $latest = $live->max('ends_at');
+
+                // A Custom PIN is moved to the stay's end both ways. A Generated PIN is only ever replaced by a later one.
+                return $live->first()->kind === PasscodeKind::Custom
+                    ? $latest->diffInSeconds($endsAt, true) > 60
+                    : $latest->lt($endsAt);
+            });
     }
 }

@@ -21,6 +21,7 @@ class SyncStayPasscodes
     public function __construct(
         private IssueDoorPasscode $issueDoorPasscode,
         private RevokeDoorPasscode $revokeDoorPasscode,
+        private MoveDoorPasscodeEnd $moveDoorPasscodeEnd,
         private PasscodeWindow $passcodeWindow,
         private StayLocks $stayLocks,
     ) {}
@@ -47,11 +48,19 @@ class SyncStayPasscodes
             $key = "stay:{$unit->id}:{$lock->id}";
             $live = DoorPasscode::query()->where('reservation_unit_id', $unit->id)->where('door_lock_id', $lock->id)->whereIn('status', [PasscodeStatus::Pending, PasscodeStatus::Active]);
 
+            // A Custom PIN is moved to the new end through the gateway, later or earlier, so the guest keeps the same PIN.
+            $current = $live->clone()->where('kind', PasscodeKind::Custom)->latest('id')->first();
+
+            if ($current !== null && ($this->moveDoorPasscodeEnd)($current->load('doorLock.property.doorLockConnection'), $endsAt)) {
+                continue;
+            }
+
+            // A PIN that already lasts to the end of the stay stays as it is. A Generated PIN cannot be shortened; check-out revokes it.
             if ($live->clone()->where('ends_at', '>=', $endsAt)->exists()) {
                 continue;
             }
 
-            // A longer stay needs a new PIN: a generated PIN cannot be edited without a gateway. The old one is left to run out.
+            // Otherwise a longer stay needs a new PIN: a generated PIN cannot be edited without a gateway. The old one is left to run out.
             if ($live->clone()->where('idempotency_key', $key)->exists()) {
                 $key .= ':'.$endsAt->getTimestamp();
             }

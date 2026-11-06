@@ -828,6 +828,7 @@ export type UnitDoorPinsData = {
 passcodes: App.Data.DoorLocks.DoorPasscodeData[],
 locksWithoutPin: App.Data.DoorLocks.LockWithoutPinData[],
 sendNewPin: boolean,
+updating: boolean,
 };
 }
 namespace Folio {

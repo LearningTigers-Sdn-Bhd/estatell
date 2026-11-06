@@ -20,6 +20,7 @@ use Illuminate\Http\Client\Factory;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Sleep;
 
 require_once __DIR__.'/../Support/DoorLockSetup.php';
 
@@ -401,6 +402,42 @@ it('gives up after three earlier starts', function () {
         ->and(ttlockCalls('/v3/keyboardPwd/get'))->toBe(4);
 });
 
+it('moves a custom PIN to the new end through the gateway so the guest keeps it', function () {
+    ['property' => $property, 'room' => $room, 'connection' => $connection] = doorLockSetup(gateway: true);
+    $connection->update(['passcode_mode' => 'custom']);
+    $unit = doorLockStay($property, $room);
+    fakeTtlock();
+    app(SyncStayPasscodes::class)($unit);
+    $before = DoorPasscode::query()->sole();
+    $unit->update(['departure_date' => '2026-10-18']);
+
+    app(SyncStayPasscodes::class)($unit->refresh());
+
+    $after = DoorPasscode::query()->sole();
+    expect($after->id)->toBe($before->id)
+        ->and($after->code)->toBe($before->code)
+        ->and($after->ends_at->gt($before->ends_at))->toBeTrue()
+        ->and(ttlockCalls('/v3/keyboardPwd/change'))->toBe(1)
+        ->and(ttlockCalls('/v3/keyboardPwd/add'))->toBe(1);
+    Http::assertSent(fn ($request) => str_contains($request->url(), '/v3/keyboardPwd/change') && $request['changeType'] === 2 && isset($request['startDate'], $request['endDate']));
+});
+
+it('issues a new custom PIN when TTLock refuses to move the old one', function () {
+    Sleep::fake();
+    ['property' => $property, 'room' => $room, 'connection' => $connection] = doorLockSetup(gateway: true);
+    $connection->update(['passcode_mode' => 'custom']);
+    $unit = doorLockStay($property, $room);
+    Http::fake(['*/v3/keyboardPwd/change' => Http::response(['errcode' => -1, 'errmsg' => 'no'])]);
+    fakeTtlock();
+    app(SyncStayPasscodes::class)($unit);
+    $unit->update(['departure_date' => '2026-10-18']);
+
+    app(SyncStayPasscodes::class)($unit->refresh());
+
+    expect(DoorPasscode::query()->count())->toBe(2)
+        ->and(ttlockCalls('/v3/keyboardPwd/add'))->toBe(2);
+});
+
 function healthUrl($property, $lock): string
 {
     return route('settings.door-locks.health', ['property' => $property, 'doorLock' => $lock]);
@@ -449,4 +486,57 @@ it('only reads the battery of a lock without a gateway', function () {
     expect($lock->refresh()->battery_percent)->toBe(55)
         ->and($lock->gateway_name)->toBeNull()
         ->and(ttlockCalls('/v3/gateway/list'))->toBe(0);
+});
+
+it('moves a custom PIN to an earlier end when the stay is shortened', function () {
+    ['property' => $property, 'room' => $room, 'connection' => $connection] = doorLockSetup(gateway: true);
+    $connection->update(['passcode_mode' => 'custom']);
+    $unit = doorLockStay($property, $room);
+    $unit->update(['departure_date' => '2026-10-18']);
+    fakeTtlock();
+    app(SyncStayPasscodes::class)($unit->refresh());
+    $before = DoorPasscode::query()->sole();
+    $unit->update(['departure_date' => '2026-10-16']);
+
+    app(SyncStayPasscodes::class)($unit->refresh());
+
+    $after = DoorPasscode::query()->sole();
+    expect($after->id)->toBe($before->id)
+        ->and($after->ends_at->lt($before->ends_at))->toBeTrue()
+        ->and(ttlockCalls('/v3/keyboardPwd/change'))->toBe(1)
+        ->and(ttlockCalls('/v3/keyboardPwd/add'))->toBe(1);
+});
+
+it('leaves a custom PIN as it is when TTLock refuses to shorten it', function () {
+    Sleep::fake();
+    ['property' => $property, 'room' => $room, 'connection' => $connection] = doorLockSetup(gateway: true);
+    $connection->update(['passcode_mode' => 'custom']);
+    $unit = doorLockStay($property, $room);
+    $unit->update(['departure_date' => '2026-10-18']);
+    Http::fake(['*/v3/keyboardPwd/change' => Http::response(['errcode' => -1, 'errmsg' => 'no'])]);
+    fakeTtlock();
+    app(SyncStayPasscodes::class)($unit->refresh());
+    $unit->update(['departure_date' => '2026-10-16']);
+
+    app(SyncStayPasscodes::class)($unit->refresh());
+
+    expect(DoorPasscode::query()->count())->toBe(1)
+        ->and(DoorPasscode::query()->sole()->status)->toBe(PasscodeStatus::Active);
+});
+
+it('tries again once when moving the PIN end fails the first time', function () {
+    Sleep::fake();
+    ['property' => $property, 'room' => $room, 'connection' => $connection] = doorLockSetup(gateway: true);
+    $connection->update(['passcode_mode' => 'custom']);
+    $unit = doorLockStay($property, $room);
+    Http::fake(['*/v3/keyboardPwd/change' => Http::sequence()->push(['errcode' => -1, 'errmsg' => 'busy'])->push(['errcode' => 0])]);
+    fakeTtlock();
+    app(SyncStayPasscodes::class)($unit);
+    $unit->update(['departure_date' => '2026-10-18']);
+
+    app(SyncStayPasscodes::class)($unit->refresh());
+
+    expect(DoorPasscode::query()->count())->toBe(1)
+        ->and(ttlockCalls('/v3/keyboardPwd/change'))->toBe(2);
+    Sleep::assertSleptTimes(1);
 });

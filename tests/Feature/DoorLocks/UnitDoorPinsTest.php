@@ -114,3 +114,19 @@ it('keeps the Delete PIN note on a revoked PIN only while its window is open', f
 
     unitPage($owner, $unit)->assertInertia(fn (Assert $page) => $page->where('doorPins.passcodes.0.revokeNote', null));
 });
+
+it('flags the PIN as updating until the sync after a date change has run', function () {
+    ['owner' => $owner, 'property' => $property, 'room' => $room, 'connection' => $connection] = doorLockSetup(gateway: true);
+    $connection->update(['passcode_mode' => 'custom']);
+    $unit = doorLockStay($property, $room);
+    fakeTtlock();
+    app(SyncStayPasscodes::class)($unit);
+
+    unitPage($owner, $unit)->assertInertia(fn (Assert $page) => $page->where('doorPins.updating', false));
+
+    $unit->update(['departure_date' => '2026-10-18']);
+    unitPage($owner, $unit->refresh())->assertInertia(fn (Assert $page) => $page->where('doorPins.updating', true));
+
+    app(SyncStayPasscodes::class)($unit->refresh());
+    unitPage($owner, $unit->refresh())->assertInertia(fn (Assert $page) => $page->where('doorPins.updating', false));
+});
