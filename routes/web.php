@@ -16,6 +16,11 @@ use Symfony\Component\HttpFoundation\Response;
 Route::inertia('/', 'landing')->name('home');
 Route::inertia('terms-and-conditions', 'legal/terms')->name('terms');
 Route::inertia('privacy-policy', 'legal/privacy')->name('privacy');
+
+// One public page per service. Keep in step with resources/js/components/landing/services.ts and public/sitemap.xml.
+foreach (['hotel-pms', 'channel-manager', 'booking-engine', 'ai-concierge', 'smart-locks', 'check-in-kiosk'] as $serviceSlug) {
+    Route::inertia("services/{$serviceSlug}", 'services/show', ['slug' => $serviceSlug])->name("services.{$serviceSlug}");
+}
 Route::get('downloads/mykad-reader/{platform}', MykadReaderDownloadController::class)->whereIn('platform', ['windows', 'mac'])->name('mykad-reader.download');
 
 Route::get('_preview/errors/{status}', function (Request $request, int $status): Response {

@@ -1,5 +1,8 @@
 User-agent: *
 Allow: /$
+Allow: /services/
 Allow: /terms-and-conditions
 Allow: /privacy-policy
 Disallow: /
+
+Sitemap: https://estatell.com/sitemap.xml
