@@ -88,7 +88,7 @@ class ChangeUnitParty
                     ])->save();
                 }
 
-                $reason = __('Guests changed: :from to :to', ['from' => $this->partyLabel($previous['adults'], $previous['child_ages']), 'to' => $this->partyLabel($plan->adults, $plan->childAges)]);
+                $reason = __('Guests changed: :from to :to', ['from' => $this->partyLabel($previous['adults'], array_values($previous['child_ages'])), 'to' => $this->partyLabel($plan->adults, $plan->childAges)]);
                 $corrected = 0;
 
                 foreach ($toCorrect as $price => $nights) {

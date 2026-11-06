@@ -72,7 +72,7 @@ class RatePlanRequest extends FormRequest
                 'group_rate_plan_id' => [
                     'nullable', 'integer',
                     function (string $attribute, mixed $value, Closure $fail) use ($property, $current): void {
-                        $group = RatePlan::query()->where('property_id', $property->id)->active()->whereKeyNot($current->id)->find($value);
+                        $group = RatePlan::query()->where('property_id', $property->id)->active()->whereKeyNot($current->id)->find((int) $value);
 
                         if ($group === null || in_array($group->pricing_basis, [PricingBasis::PerBed, PricingBasis::DayUse], true)) {
                             $fail(__('Pick another active rate plan of this property.'));

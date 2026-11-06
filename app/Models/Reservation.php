@@ -62,9 +62,6 @@ class Reservation extends Model
     }
 
     /**
-     * @return BelongsTo<Property, $this>
-     */
-    /**
      * The bookings whose agent payments are still followed up: Confirmed and In-house, and Completed while a folio the
      * company pays is still Open, because the guests can leave before the agent has paid.
      *
@@ -80,6 +77,9 @@ class Reservation extends Model
                 ->whereHas('folios', fn (Builder $folios): Builder => $folios->where('status', FolioStatus::Open->value)->whereNotNull('payer_company_id'))));
     }
 
+    /**
+     * @return BelongsTo<Property, $this>
+     */
     public function property(): BelongsTo
     {
         return $this->belongsTo(Property::class);

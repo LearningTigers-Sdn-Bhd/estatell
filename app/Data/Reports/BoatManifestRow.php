@@ -81,7 +81,7 @@ class BoatManifestRow extends Data implements ReportRow
     {
         $reservation = $unit->reservation;
 
-        return $reservation->company?->name
+        return $reservation->company->name
             ?? ($reservation->bookingSource === null || $reservation->bookingSource->type === BookingSourceType::Direct || $reservation->bookingSource->type === BookingSourceType::WalkIn
                 ? __('Direct booking')
                 : $reservation->bookingSource->name);

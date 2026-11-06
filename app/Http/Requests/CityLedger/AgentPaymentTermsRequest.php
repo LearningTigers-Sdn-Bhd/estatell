@@ -33,6 +33,10 @@ class AgentPaymentTermsRequest extends FormRequest
      */
     public function terms(): array
     {
-        return array_map(intval(...), $this->validated());
+        return [
+            'agent_deposit_percent' => $this->integer('agent_deposit_percent'),
+            'agent_deposit_hours' => $this->integer('agent_deposit_hours'),
+            'agent_full_payment_days' => $this->integer('agent_full_payment_days'),
+        ];
     }
 }

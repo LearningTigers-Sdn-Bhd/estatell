@@ -58,8 +58,8 @@ class BoatManifestReport implements HasPrintView, HasSections, HasTotals, Report
 
             $tripByUnit = $trips->keyBy('reservation_unit_id');
             $rooms = fn (array $unitIds): array => $direction === BoatDirection::In
-                ? $this->roomBox->assignmentsForUnits($unitIds)
-                : $this->roomBox->lastNightAssignmentsForUnits($unitIds);
+                ? $this->roomBox->assignmentsForUnits(array_values(array_map(intval(...), $unitIds)))
+                : $this->roomBox->lastNightAssignmentsForUnits(array_values(array_map(intval(...), $unitIds)));
 
             $tripRows = $tripByUnit->isEmpty() ? [] : $this->unitRows->rows(
                 ReservationUnit::query()

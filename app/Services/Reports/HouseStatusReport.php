@@ -282,7 +282,7 @@ class HouseStatusReport implements HasPrintView, HasSections, HasTotals, Report
 
     private function label(?Room $room, RoomType $roomType): string
     {
-        return $room?->print_label ?? $roomType->print_label ?? $this->initials($roomType->name);
+        return $room->print_label ?? $roomType->print_label ?? $this->initials($roomType->name);
     }
 
     /**

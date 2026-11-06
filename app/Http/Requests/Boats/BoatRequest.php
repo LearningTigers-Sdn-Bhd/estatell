@@ -36,15 +36,16 @@ class BoatRequest extends FormRequest
         /** @var Property $property */
         $property = $this->route('property');
         $boat = $this->route('boat');
+        $boatId = $boat instanceof Boat ? $boat->id : null;
 
         return [
             'name' => [
                 'required', 'string', 'max:60',
-                function (string $attribute, mixed $value, Closure $fail) use ($property, $boat): void {
+                function (string $attribute, mixed $value, Closure $fail) use ($property, $boatId): void {
                     $taken = Boat::query()
                         ->where('property_id', $property->id)
                         ->whereRaw('lower(name) = ?', [mb_strtolower((string) $value)])
-                        ->when($boat instanceof Boat, fn ($query) => $query->whereKeyNot($boat->id))
+                        ->when($boatId !== null, fn ($query) => $query->whereKeyNot($boatId))
                         ->exists();
 
                     if ($taken) {

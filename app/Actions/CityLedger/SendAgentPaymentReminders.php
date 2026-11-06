@@ -47,7 +47,9 @@ class SendAgentPaymentReminders
     {
         $emails = $this->emailsOf($reservation);
 
-        if ($emails === [] || $reservation->first_arrival === null) {
+        $firstArrival = $reservation->getAttribute('first_arrival');
+
+        if ($emails === [] || ! is_string($firstArrival)) {
             return 0;
         }
 
@@ -79,7 +81,7 @@ class SendAgentPaymentReminders
                 propertyCode: $reservation->property->code,
                 reservationId: $reservation->id,
                 reference: $reservation->reference,
-                arrival: CarbonImmutable::parse($reservation->first_arrival)->format('j M Y'),
+                arrival: CarbonImmutable::parse($firstArrival)->format('j M Y'),
                 stages: array_map(fn (array $one): array => [
                     'label' => match ($one['kind']) {
                         'deposit' => __('Deposit :percent%', ['percent' => $reservation->deposit_percent]),

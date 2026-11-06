@@ -90,6 +90,7 @@ class ScheduledFolioRows
             ->flip();
         $resolve = $this->folioRouter->resolverFor($reservation);
         $guestTaxIds = $this->collectedTaxPayer->resolverFor($reservation);
+        /** @var array<int, int>|null $unitFolioIds */
         $unitFolioIds = null;
         $nationalities = $this->unitNationality->forUnits($units);
         $goLive = $this->firstBusinessDate->date($property)?->toDateString();
