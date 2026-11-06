@@ -6,20 +6,50 @@ use App\Actions\BookingEngine\CancelBookingOnline;
 use App\Enums\BookingHoldStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Booking\CancelOnlineBookingRequest;
+use App\Http\Requests\Booking\FindOnlineBookingRequest;
 use App\Http\Resources\Booking\V1\ManagedBookingResource;
 use App\Http\Responses\ApiError;
 use App\Models\BookingClient;
 use App\Models\BookingHold;
+use App\Models\Property;
+use App\Services\BookingEngine\BookingLookupLockout;
+use App\Services\BookingEngine\OnlineBookingLookup;
 use App\Services\BookingEngine\OnlineCancellationQuotes;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * The guest's Manage booking endpoints. The hold's long random token is the booking token. They do not check the property's
- * reach, because a booking made before the flag went off still works. See docs/29-booking-engine/02-api.md#manage-booking.
+ * The guest's Manage booking endpoints. The hold's long random token is the booking token. The endpoints that take it do not
+ * check the property's reach, because a booking made before the flag went off still works. See docs/29-booking-engine/02-api.md#manage-booking.
  */
 class ManageBookingController extends Controller
 {
+    /**
+     * Swap a booking's short code and email for its token. Every miss answers the same 404.
+     */
+    public function find(FindOnlineBookingRequest $request, OnlineBookingLookup $lookup, BookingLookupLockout $lockout): JsonResponse
+    {
+        /** @var Property $property */
+        $property = $request->attributes->get('booking_property');
+        $guestIp = $request->guestIp();
+
+        if (! $lockout->attempt($property, $guestIp)) {
+            return ApiError::response('rate_limited', __('Too many requests. Wait a moment and try again.'), 429, ['Retry-After' => (string) $lockout->retryAfter($property, $guestIp)]);
+        }
+
+        /** @var BookingClient $client */
+        $client = $request->attributes->get('booking_client');
+        $hold = $lookup->find($client, $property, $request->string('short_code')->toString(), $request->string('email')->toString());
+
+        if ($hold === null) {
+            return $this->notFound();
+        }
+
+        $lockout->refund($property, $guestIp);
+
+        return response()->json(['token' => $hold->token]);
+    }
+
     public function show(Request $request, string $token): JsonResponse
     {
         $hold = $this->booking($request, $token);

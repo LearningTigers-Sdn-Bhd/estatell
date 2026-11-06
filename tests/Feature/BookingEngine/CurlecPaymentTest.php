@@ -377,6 +377,7 @@ test('a confirmed booking emails the guest the Manage booking link and notifies 
     Notification::assertSentOnDemandTimes(OnlineBookingConfirmed::class, 1);
     Notification::assertSentOnDemand(OnlineBookingConfirmed::class, fn (OnlineBookingConfirmed $notification, array $channels, object $notifiable): bool => $notifiable->routes['mail'] === 'aisyah@example.com'
         && $notification->reference === $reservation->reference
+        && $notification->shortCode === $reservation->short_code
         && $notification->manageUrl === $manageUrl
         && $notification->guestName === 'Aisyah Rahman');
     Notification::assertSentToTimes($staff, OnlineBookingReceived::class, 1);
@@ -399,11 +400,11 @@ test('a refused booking sends nothing to the guest or staff', function () {
 test('the guest email shows the booking and the Manage booking button', function () {
     $setup = curlecSetup();
     $hold = curlecHold($setup);
-    $notification = new OnlineBookingConfirmed('RES-1', 'Sand Bay', 'Aisyah Rahman', '2026-10-20', '2026-10-22', ['Deluxe'], 'MYR 200.00', 'https://booking.example/sand-bay/manage/abc');
+    $notification = new OnlineBookingConfirmed('RES-1', 'K7M2QX', 'Sand Bay', 'Aisyah Rahman', '2026-10-20', '2026-10-22', ['Deluxe'], 'MYR 200.00', 'https://booking.example/sand-bay/manage/abc');
 
     $html = (string) $notification->toMail(new AnonymousNotifiable)->render();
 
-    expect($html)->toContain('Hello Aisyah Rahman,', 'RES-1', 'MYR 200.00', 'Manage booking', 'https://booking.example/sand-bay/manage/abc');
+    expect($html)->toContain('Hello Aisyah Rahman,', 'RES-1', 'Booking code', 'K7M2QX', 'MYR 200.00', 'Manage booking', 'https://booking.example/sand-bay/manage/abc');
 });
 
 // A refused confirmation

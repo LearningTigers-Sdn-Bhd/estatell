@@ -35,6 +35,7 @@ class ManagedBookingResource extends JsonResource
 
         return [
             'reference' => $reservation->reference,
+            'short_code' => $reservation->short_code,
             'status' => $reservation->status->value,
             'arrival' => $hold->arrival_date->toDateString(),
             'departure' => $hold->departure_date->toDateString(),

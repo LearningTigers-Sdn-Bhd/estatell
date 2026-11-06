@@ -14,7 +14,7 @@ Let a guest cancel an online booking and get their money back, following the ter
 ## Flow
 
 ```
-Guest opens the Manage booking link
+Guest opens the Manage booking link, or finds the booking with its code and email
         │
         ▼
 Preview: fee RM 216.00, refund RM 216.00

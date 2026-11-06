@@ -3965,6 +3965,7 @@ email: string | null,
 export type ReservationData = {
 id: number,
 reference: string,
+shortCode: string,
 title: string,
 groupName: string | null,
 isGroup: boolean,

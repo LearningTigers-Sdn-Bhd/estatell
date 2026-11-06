@@ -11,7 +11,7 @@ One structure for single rooms, groups and dorm beds.
 ## Data model
 
 ```
-reservations         id, property_id, reference, status (ReservationStatus),
+reservations         id, property_id, reference, short_code (varchar 12), status (ReservationStatus),
                      booker_guest_id, company_id (nullable), group_name (nullable),
                      billing_mode (BillingMode), booking_source_id (FK booking_sources),
                      external_reference (nullable),
@@ -91,6 +91,7 @@ It has no `canTransitionTo()` because nothing sets it by hand.
 - `reservation_unit_children` holds one row per child, so the count always matches `children`. Extending a stay, changing plan or reinstating re-prices from these ages.
 - Every action works on one unit. Group actions loop over units.
 - `reference` comes from `document_sequences`.
+- `short_code` is the code a guest types on the microsite's Manage booking page. `CreateReservation` sets it with `reference`, so every booking gets one: staff, walk-in, OTA and online. It never changes. `ReservationShortCode` picks 6 random characters without the look-alikes I, L, O, 0 and 1, which gives 887,503,681 codes for each property. It is unique per property (`property_id`, `short_code`). When a code is in use it tries another, up to 5 times, then stops with an error. The column holds 12 characters, so codes can grow with no schema change. See [Find a booking](../29-booking-engine/02-api.md#find-a-booking).
 - `company_id` is a nullable column without a foreign key until [Companies](../15-city-ledger/01-companies.md) adds the table and the key.
 - `external_reference` holds the OTA booking number or the company reference (the company's voucher number).
 - `booking_source_id` is required. Its type sets the rules: an OTA source needs `external_reference`, the Company / Travel agent source needs `company_id`, and the Walk-in source needs a room or bed on every unit. See [Booking sources](11-booking-sources.md).

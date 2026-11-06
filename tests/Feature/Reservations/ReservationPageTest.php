@@ -133,6 +133,7 @@ test('the header and summary carry the reservation figures from units that hold 
         ->where('reservation.stayTotal', '700.00')
         ->where('reservation.billingMode', 'each_pays')
         ->where('reservation.externalReference', 'OTA-1')
+        ->where('reservation.shortCode', $reservation->short_code)
         ->where('reservation.createdBy', $reservation->creator->name)
         ->where('reservation.booker.name', 'Tan Wei Ming')
         ->where('reservation.booker.isVip', true)

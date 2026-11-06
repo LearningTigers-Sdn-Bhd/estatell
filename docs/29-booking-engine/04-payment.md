@@ -132,7 +132,7 @@ If the queue itself is down, the webhook answers 500 so Curlec delivers the even
 4. Save the [cancellation terms](05-cancel-and-refund.md#saved-terms) shown to the guest. Added by `let guests cancel online`.
 5. Post the payment on the folio.
 6. Link the reservation to the hold.
-7. After commit: `NotifyOnlineBooking` emails the guest the confirmation and Manage booking link (`OnlineBookingConfirmed`), and notifies reservation staff (`OnlineBookingReceived`). A repeat event for a confirmed hold sends nothing again. The link is `{BOOKING_SITE_URL}/{slug}/manage/{hold token}`: the hold's long random token is the booking token, so there is no second token. If the hold has no email, only staff are told.
+7. After commit: `NotifyOnlineBooking` emails the guest the confirmation, the booking code and the Manage booking link (`OnlineBookingConfirmed`), and notifies reservation staff (`OnlineBookingReceived`). A repeat event for a confirmed hold sends nothing again. The link is `{BOOKING_SITE_URL}/{slug}/manage/{hold token}`: the hold's long random token is the booking token, so there is no second token. If the hold has no email, only staff are told.
 
 A guest is not a `User`, so the actor is null in `CreateBooking`, `AddUnit`, `CancelUnits` and `RecordPayment`, and in the Actions they call.
 

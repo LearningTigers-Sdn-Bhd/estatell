@@ -84,6 +84,12 @@ Route::prefix('booking/v1')->name('api.booking.v1.')->group(function () {
         Route::post('payment', [HoldController::class, 'payment'])->middleware('api.idempotent')->name('holds.payment');
     });
 
+    // Only `BookingLookupLockout` limits this route. Guests share one microsite token, so `api-token` would let one guest
+    // use up the limit of the property's whole site.
+    Route::post('properties/{code}/bookings/find', [ManageBookingController::class, 'find'])
+        ->middleware(['api.token:booking:checkout', 'api.booking.reach'])
+        ->name('bookings.find');
+
     Route::middleware(['api.token:booking:checkout', 'throttle:api-token'])->prefix('bookings/{token}')->group(function () {
         Route::get('/', [ManageBookingController::class, 'show'])->name('bookings.show');
         Route::get('cancellation', [ManageBookingController::class, 'cancellation'])->name('bookings.cancellation');

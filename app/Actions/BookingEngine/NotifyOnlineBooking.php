@@ -31,6 +31,7 @@ class NotifyOnlineBooking
         if ($hold->guest_email !== null && $hold->guest_email !== '') {
             Notification::route('mail', $hold->guest_email)->notify(new OnlineBookingConfirmed(
                 $reservation->reference,
+                $reservation->short_code,
                 $property->name,
                 $guestName,
                 $hold->arrival_date->toDateString(),

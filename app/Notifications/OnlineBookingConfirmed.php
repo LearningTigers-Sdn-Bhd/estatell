@@ -21,6 +21,7 @@ class OnlineBookingConfirmed extends Notification implements ShouldQueue
      */
     public function __construct(
         public string $reference,
+        public string $shortCode,
         public string $propertyName,
         public string $guestName,
         public string $arrivalDate,
@@ -48,6 +49,7 @@ class OnlineBookingConfirmed extends Notification implements ShouldQueue
                 'propertyName' => $this->propertyName,
                 'mailDetails' => [
                     __('Reference') => $this->reference,
+                    __('Booking code') => $this->shortCode,
                     __('Check-in') => $this->arrivalDate,
                     __('Check-out') => $this->departureDate,
                     __('Rooms') => implode(', ', $this->rooms),

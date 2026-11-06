@@ -6,23 +6,24 @@ The one API behind the microsite, API only websites and, later, new-wastays. It 
 
 ## Endpoints
 
-| Group           | Endpoint                                             | Microsite     | API only | new-wastays |
-| --------------- | ---------------------------------------------------- | ------------- | -------- | ----------- |
-| Listing         | `GET /api/booking/v1/properties`                     | Yes (sitemap) | No       | Yes         |
-| Marketplace     | `POST /api/booking/v1/search`                        | No            | No       | Yes         |
-| Microsite       | `GET /api/booking/v1/sites/{slug}`                   | Yes           | No       | No          |
-| Content, search | `GET /api/booking/v1/properties/{code}`              | Yes           | Yes      | Yes         |
-|                 | `GET /api/booking/v1/properties/{code}/room-types`   | Yes           | Yes      | Yes         |
-|                 | `GET /api/booking/v1/properties/{code}/calendar`     | Yes           | Yes      | Yes         |
-|                 | `POST /api/booking/v1/properties/{code}/offers`      | Yes           | Yes      | Yes         |
-|                 | `POST /api/booking/v1/properties/{code}/pricing`     | Yes           | Yes      | Yes         |
-| Checkout        | `POST /api/booking/v1/properties/{code}/holds`       | Yes           | Yes      | Yes         |
-|                 | `POST /api/booking/v1/holds/{token}/payment`         | Yes           | Yes      | Yes         |
-|                 | `GET /api/booking/v1/holds/{token}`                  | Yes           | Yes      | Yes         |
-|                 | `DELETE /api/booking/v1/holds/{token}`               | Yes           | Yes      | Yes         |
-| Manage booking  | `GET /api/booking/v1/bookings/{token}`               | Yes           | Yes      | Yes         |
-|                 | `GET /api/booking/v1/bookings/{token}/cancellation`  | Yes           | Yes      | Yes         |
-|                 | `POST /api/booking/v1/bookings/{token}/cancellation` | Yes           | Yes      | Yes         |
+| Group           | Endpoint                                               | Microsite     | API only | new-wastays |
+| --------------- | ------------------------------------------------------ | ------------- | -------- | ----------- |
+| Listing         | `GET /api/booking/v1/properties`                       | Yes (sitemap) | No       | Yes         |
+| Marketplace     | `POST /api/booking/v1/search`                          | No            | No       | Yes         |
+| Microsite       | `GET /api/booking/v1/sites/{slug}`                     | Yes           | No       | No          |
+| Content, search | `GET /api/booking/v1/properties/{code}`                | Yes           | Yes      | Yes         |
+|                 | `GET /api/booking/v1/properties/{code}/room-types`     | Yes           | Yes      | Yes         |
+|                 | `GET /api/booking/v1/properties/{code}/calendar`       | Yes           | Yes      | Yes         |
+|                 | `POST /api/booking/v1/properties/{code}/offers`        | Yes           | Yes      | Yes         |
+|                 | `POST /api/booking/v1/properties/{code}/pricing`       | Yes           | Yes      | Yes         |
+| Checkout        | `POST /api/booking/v1/properties/{code}/holds`         | Yes           | Yes      | Yes         |
+|                 | `POST /api/booking/v1/holds/{token}/payment`           | Yes           | Yes      | Yes         |
+|                 | `GET /api/booking/v1/holds/{token}`                    | Yes           | Yes      | Yes         |
+|                 | `DELETE /api/booking/v1/holds/{token}`                 | Yes           | Yes      | Yes         |
+| Manage booking  | `POST /api/booking/v1/properties/{code}/bookings/find` | Yes           | Yes      | Yes         |
+|                 | `GET /api/booking/v1/bookings/{token}`                 | Yes           | Yes      | Yes         |
+|                 | `GET /api/booking/v1/bookings/{token}/cancellation`    | Yes           | Yes      | Yes         |
+|                 | `POST /api/booking/v1/bookings/{token}/cancellation`   | Yes           | Yes      | Yes         |
 
 The marketplace endpoints are built and tested now, and nothing calls them until new-wastays exists. No token has the `booking:search` ability yet.
 
@@ -44,7 +45,7 @@ The marketplace endpoints are built and tested now, and nothing calls them until
 | `holds/{token}/payment`  | Curlec `key_id`, `order_id`, `amount` in sen, `currency`, `callback_url`, and `timeout` in seconds. Refusals: `hold_not_open`, `return_url_not_allowed`, 404 `property_not_found`, and 503 `payment_unavailable`, which is not stored for replay. An API only client sends `return_url`: see [API only mode](09-api-only-mode.md#access) |
 | `holds/{token}` (GET)    | Held, Paid, Confirmed or Expired; the booking token once Confirmed                                                                                                                                                                                                                                                                       |
 | `holds/{token}` (DELETE) | The hold with its new status, Expired                                                                                                                                                                                                                                                                                                    |
-| `bookings/{token}`       | Reference, dates, rooms, guest, currency, amount paid, status, refund status, saved cancellation terms. See [Manage booking](#manage-booking)                                                                                                                                                                                            |
+| `bookings/{token}`       | Reference, short code, dates, rooms, guest, currency, amount paid, status, refund status, saved cancellation terms. See [Manage booking](#manage-booking)                                                                                                                                                                                |
 | `cancellation` (GET)     | `can_cancel`, `refusal`, `message`, `paid`, `fee`, `tax` on the fee, `refund`                                                                                                                                                                                                                                                            |
 | `cancellation` (POST)    | The new `status` and the `refund`. Takes `expected_refund`, the amount the guest saw                                                                                                                                                                                                                                                     |
 
@@ -117,6 +118,28 @@ The booking token is the hold's token, so a Confirmed hold opens its booking. An
 
 See [Cancel and refund](05-cancel-and-refund.md).
 
+### Find a booking
+
+`POST properties/{code}/bookings/find` swaps a guest's short code and email for the booking token. The guest gets the code in the confirmation email. The caller keeps the token on its server. The microsite puts it in its cookie.
+
+| Field        | Rules                                                        |
+| ------------ | ------------------------------------------------------------ |
+| `short_code` | Required, up to 12 characters. Case and spaces do not matter |
+| `email`      | Required, a valid email. Case and spaces do not matter       |
+
+Send the guest's address in the `X-Guest-IP` header. Without a valid one, the limit counts the caller's own address, so all its guests share it.
+
+| Answer                   | When                                                                                                                  |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| 200 `{ token }`          | The code is at this property, the email is the booker's, and this client made the booking. A cancelled booking counts |
+| 404 `booking_not_found`  | Anything else, including a booking with no online hold. Every miss answers the same                                   |
+| 404 `property_not_found` | The client cannot reach the property. An offline site or a flag that is off leaves the guest the emailed link         |
+| 429 `rate_limited`       | Too many failures, with `Retry-After`. It answers the same for right and wrong details                                |
+
+- **The email is the booker's.** `PurgeBookingHoldGuestDetails` empties the hold's copy after 30 days, and a guest can book up to 6 months ahead.
+- **The limit:** 10 failures from one guest address at one property within 5 minutes (`BookingLookupLockout`). A lookup that finds a booking does not count, and it does not clear earlier failures. The lockout leaves the booking, its emailed link and other properties alone.
+- **This route skips `api-token`.** All microsite guests share one token, so that limit would let one guest use up a property's whole site.
+
 ## Access
 
 Laravel Sanctum, on the same [token layer](../28-api-access/01-api-tokens.md) as kiosks, with one token for each client. Sanctum is already installed. The token's `booking:*` abilities decide which endpoints it reaches, and its owner decides which properties. The owner is a `BookingClient` with a type and an optional property: see [Booking engine microsite](../28-api-access/04-booking-engine-microsite.md).
@@ -130,13 +153,13 @@ Laravel Sanctum, on the same [token layer](../28-api-access/01-api-tokens.md) as
 
 A property the token cannot reach, one with the flag off, or a suspended one returns 404 `property_not_found`. A booking made before the flag went off still works through its booking token.
 
-| Ability            | Endpoints                                                    | Microsite | API only, Demo |
-| ------------------ | ------------------------------------------------------------ | --------- | -------------- |
-| `booking:listing`  | `properties`                                                 | Yes       | No             |
-| `booking:site`     | `sites/{slug}`                                               | Yes       | No             |
-| `booking:content`  | `properties/{code}` and the routes below                     | Yes       | Yes            |
-| `booking:search`   | `search`                                                     | No        | No             |
-| `booking:checkout` | `holds`, `holds/{token}` and its payment, `bookings/{token}` | Yes       | Yes            |
+| Ability            | Endpoints                                                                     | Microsite | API only, Demo |
+| ------------------ | ----------------------------------------------------------------------------- | --------- | -------------- |
+| `booking:listing`  | `properties`                                                                  | Yes       | No             |
+| `booking:site`     | `sites/{slug}`                                                                | Yes       | No             |
+| `booking:content`  | `properties/{code}` and the routes below                                      | Yes       | Yes            |
+| `booking:search`   | `search`                                                                      | No        | No             |
+| `booking:checkout` | `holds`, `holds/{token}` and its payment, `bookings/find`, `bookings/{token}` | Yes       | Yes            |
 
 Sanctum matches abilities exactly, so `booking:*` is not a wildcard. The type's abilities are in `BookingClientType::abilities()`. A token made before `booking:checkout` existed does not have it, so it must be made again.
 

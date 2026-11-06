@@ -303,15 +303,17 @@ test('the status tabs are sent with their labels in order', function () {
         ->where('statusCounts.4.value', 'cancelled'));
 });
 
-test('search finds the reference, the external reference and the booker', function () {
+test('search finds the reference, the short code, the external reference and the booker', function () {
     [$user, $property] = listOwner();
     $byReference = listReservation($property, ['external_reference' => 'OTA-5521']);
+    $byCode = listReservation($property, ['short_code' => 'K7M2QX']);
     $booker = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Zainab Karim', 'email' => 'zainab@example.com']);
     $byBooker = listReservation($property, ['booker_guest_id' => $booker->id]);
     listReservation($property);
 
     expect(listedReferences($user, $property, ['filter' => ['search' => $byReference->reference]]))->toBe([$byReference->reference])
         ->and(listedReferences($user, $property, ['filter' => ['search' => 'ota-5521']]))->toBe([$byReference->reference])
+        ->and(listedReferences($user, $property, ['filter' => ['search' => 'k7m2qx']]))->toBe([$byCode->reference])
         ->and(listedReferences($user, $property, ['filter' => ['search' => 'zainab k']]))->toBe([$byBooker->reference])
         ->and(listedReferences($user, $property, ['filter' => ['search' => 'zainab@example']]))->toBe([$byBooker->reference])
         ->and(listedReferences($user, $property, ['filter' => ['search' => 'nobody at all']]))->toBe([]);
