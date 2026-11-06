@@ -11,6 +11,7 @@ use App\Data\Folio\FolioRowData;
 use App\Data\Folio\NewChargeData;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\FolioStatus;
+use App\Enums\PaymentPurpose;
 use App\Enums\RoutingRuleSource;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TaxRateType;
@@ -306,6 +307,32 @@ test('posted room charges ticked with no schedule choice say the nights stay beh
     expect($preview['notes'])->toBe(['2 scheduled nights of Room '.$label.' will still be charged to '.app(MoveChargesPreview::class)->folioLabel($setup['folios'][0]).'.']);
 });
 
+test('a room on its last night offers tonight\'s night', function () {
+    $setup = mcSetup();
+    $unit = ReservationUnit::factory()->for($setup['reservation'])->withNights()->checkedIn()->create(['arrival_date' => '2026-10-10', 'departure_date' => '2026-10-11']);
+    UnitNight::query()->where('reservation_unit_id', $unit->id)->update(['base_amount' => '100.00', 'amount' => '100.00']);
+    app(CreateFolio::class)($setup['reservation'], $unit);
+
+    $preview = mcPreview($setup, mcBody($setup['master'], [], [$unit->id => 'room']))->assertOk()->json();
+
+    expect(collect($preview['schedules'])->firstWhere('unitId', $unit->id)['choices'][0]['detail'])->toContain('10 Oct · 1 night')
+        ->and($preview['projectedAfter'])->toBe('100.00');
+});
+
+test('money paid on a room\'s own folio is named when its charges leave, and not when they stay', function () {
+    $setup = mcSetup();
+    Payment::factory()->create(['folio_id' => $setup['folios'][0]->id, 'purpose' => PaymentPurpose::Advance, 'amount' => '50.00']);
+    $room = mcPost($setup, 0, $setup['folios'][0]);
+    $label = app(MoveChargesPreview::class)->unitLabels($setup['reservation'])[$setup['units'][0]->id];
+    $unitId = $setup['units'][0]->id;
+    $paidNote = fn (array $preview): array => array_values(array_filter($preview['notes'], fn (string $note): bool => str_contains($note, 'paid on its own folio')));
+
+    expect($paidNote(mcPreview($setup, mcBody($setup['master'], [], [$unitId => 'room']))->json()))->toHaveCount(1)
+        ->and($paidNote(mcPreview($setup, mcBody($setup['master'], [$room]))->json())[0])->toContain('Room '.$label.' has')
+        ->and($paidNote(mcPreview($setup, mcBody($setup['master'], [], [$setup['units'][1]->id => 'room']))->json()))->toBe([])
+        ->and($paidNote(mcPreview($setup, mcBody($setup['folios'][0], [], [$unitId => 'room']))->json()))->toBe([]);
+});
+
 test('a same-selector Manual rule is replaced and a BillingMode rule is untouched', function () {
     $setup = mcSetup();
     $agent = Folio::factory()->thirdParty()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id]);
@@ -390,7 +417,8 @@ test('the Action refuses an empty move, a unit with nothing scheduled and anothe
 })->with([
     'nothing to move' => [fn () => [[], [], null], MoveChargesResult::REFUSAL_NOTHING_TO_MOVE],
     'a cancelled unit' => [fn (array $setup, FolioLine $charge, Reservation $other) => [[$charge], [['unit' => ReservationUnit::factory()->cancelled()->withNights()->create(['reservation_id' => $setup['reservation']->id, 'arrival_date' => '2026-10-11', 'departure_date' => '2026-10-13']), 'scope' => 'room']], null], MoveChargesResult::REFUSAL_NOTHING_SCHEDULED],
-    'a unit with no night after the business date' => [fn (array $setup, FolioLine $charge) => [[$charge], [['unit' => ReservationUnit::factory()->checkedIn()->withNights()->create(['reservation_id' => $setup['reservation']->id, 'arrival_date' => '2026-10-08', 'departure_date' => '2026-10-10']), 'scope' => 'room']], null], MoveChargesResult::REFUSAL_NOTHING_SCHEDULED],
+    'a unit with no night left' => [fn (array $setup, FolioLine $charge) => [[$charge], [['unit' => ReservationUnit::factory()->checkedIn()->withNights()->create(['reservation_id' => $setup['reservation']->id, 'arrival_date' => '2026-10-08', 'departure_date' => '2026-10-10']), 'scope' => 'room']], null], MoveChargesResult::REFUSAL_NOTHING_SCHEDULED],
+    'a unit checked out on its last night' => [fn (array $setup, FolioLine $charge) => [[$charge], [['unit' => ReservationUnit::factory()->checkedOut()->withNights()->create(['reservation_id' => $setup['reservation']->id, 'arrival_date' => '2026-10-10', 'departure_date' => '2026-10-11']), 'scope' => 'room']], null], MoveChargesResult::REFUSAL_NOTHING_SCHEDULED],
     'a unit of another reservation' => [fn (array $setup, FolioLine $charge, Reservation $other) => [[], [['unit' => ReservationUnit::factory()->checkedIn()->create(['reservation_id' => $other->id]), 'scope' => 'room']], null], PostingResult::REFUSAL_DIFFERENT_RESERVATION],
     'a line of another reservation' => [fn (array $setup, FolioLine $charge, Reservation $other) => [[FolioLine::factory()->create(['folio_id' => Folio::factory()->master()->create(['property_id' => $setup['property']->id, 'reservation_id' => $other->id])->id])], [], null], PostingResult::REFUSAL_DIFFERENT_RESERVATION],
     'a closed target' => [fn (array $setup, FolioLine $charge) => [[$charge], [], Folio::factory()->thirdParty()->closed()->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['reservation']->id])], PostingResult::REFUSAL_FOLIO_NOT_OPEN],
