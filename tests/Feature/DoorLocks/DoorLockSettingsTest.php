@@ -113,7 +113,7 @@ it('refuses a custom PIN without a gateway and writes nothing', function () {
         'door_lock_id' => $lock->id,
         'kind' => 'custom',
         'label' => 'Contractor',
-        'code' => '123456',
+        'code' => '135790',
         'ends_at' => '2026-10-15T18:00',
     ])->assertRedirect()->assertInertiaFlash('toast.type', 'error');
 
@@ -129,15 +129,15 @@ it('sends a custom PIN through a gateway', function () {
         'door_lock_id' => $lock->id,
         'kind' => 'custom',
         'label' => 'Contractor',
-        'code' => '123456',
+        'code' => '135790',
         'ends_at' => '2026-10-15T18:00',
     ])->assertRedirect();
 
     $passcode = DoorPasscode::query()->sole();
     expect($passcode->status)->toBe(PasscodeStatus::Active)
-        ->and($passcode->code)->toBe('123456')
+        ->and($passcode->code)->toBe('135790')
         ->and($passcode->ttlock_passcode_id)->toBe(9002);
-    Http::assertSent(fn ($request) => str_contains($request->url(), '/v3/keyboardPwd/add') && $request['addType'] === 2 && $request['keyboardPwd'] === '123456');
+    Http::assertSent(fn ($request) => str_contains($request->url(), '/v3/keyboardPwd/add') && $request['addType'] === 2 && $request['keyboardPwd'] === '135790');
 });
 
 it('rejects a PIN that is not 4 to 9 digits', function () {

@@ -667,6 +667,11 @@ export default function DoorLocksIndex({
                             <FieldError>{pinErrors.ends_at}</FieldError>
                         </Field>
                     </div>
+                    <p className="text-xs text-muted-foreground">
+                        {pin.data.kind === 'generated'
+                            ? 'A Generated PIN is valid by the whole hour: From is rounded down and Until is rounded up, so 09:53 to 09:55 becomes 09:00 to 10:00. Choose a Custom PIN for exact minutes.'
+                            : 'A Custom PIN keeps the exact minutes.'}
+                    </p>
                 </FieldGroup>
             </FormOverlay>
         </>

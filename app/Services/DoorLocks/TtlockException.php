@@ -21,6 +21,9 @@ class TtlockException extends RuntimeException
 
     public bool $duplicate = false;
 
+    /** TTLock `errcode` of a refusal, or 0 for any other failure. */
+    public int $ttlockCode = 0;
+
     public static function refused(int $code, string $message): self
     {
         $exception = new self(match ($code) {
@@ -31,6 +34,7 @@ class TtlockException extends RuntimeException
             default => __('TTLock refused the request (:code): :message', ['code' => $code, 'message' => $message]),
         });
         $exception->duplicate = $code === -3007;
+        $exception->ttlockCode = $code;
 
         return $exception;
     }

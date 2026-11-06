@@ -14,6 +14,7 @@ use App\Models\DoorCard;
 use App\Models\DoorLock;
 use App\Models\DoorPasscode;
 use App\Models\Room;
+use App\Services\DoorLocks\PinStrength;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
@@ -254,7 +255,7 @@ it('keeps a PIN staff typed and says it is already used', function () {
     ['lock' => $lock] = doorLockSetup(gateway: true);
     Http::fake(['*/v3/keyboardPwd/add' => Http::response(['errcode' => -3007, 'errmsg' => 'exists'])]);
 
-    $result = app(IssueDoorPasscode::class)($lock, PasscodeKind::Custom, 'Stay', now(), now()->addDay(), 'k2', '123456');
+    $result = app(IssueDoorPasscode::class)($lock, PasscodeKind::Custom, 'Stay', now(), now()->addDay(), 'k2', '135790');
 
     expect($result->passcode->status)->toBe(PasscodeStatus::Failed)
         ->and($result->passcode->error)->toContain('already used')
@@ -340,4 +341,62 @@ it('answers 404 to the staff PIN route while Door locks is off', function () {
     $passcode = DoorPasscode::factory()->create(['door_lock_id' => DoorLock::query()->where('property_id', $property->id)->value('id'), 'reservation_unit_id' => $unit->id]);
 
     $this->actingAs($owner)->post(replaceUrl($unit, $passcode), ['code' => '246810'])->assertNotFound();
+});
+
+it('spots the PINs TTLock calls too simple', function (string $code, bool $simple) {
+    expect(PinStrength::isSimple($code))->toBe($simple);
+})->with([
+    ['1234', true],
+    ['4321', true],
+    ['1111', true],
+    ['123456', true],
+    ['9876', true],
+    ['1122', false],
+    ['135790', false],
+    ['2468', false],
+    ['1235', false],
+]);
+
+it('never makes a simple random PIN', function () {
+    foreach (range(1, 300) as $ignored) {
+        expect(PinStrength::isSimple(PinStrength::random(4)))->toBeFalse();
+    }
+});
+
+it('refuses a typed PIN that is too simple before it reaches TTLock', function () {
+    ['lock' => $lock] = doorLockSetup(gateway: true);
+    fakeTtlock();
+
+    $result = app(IssueDoorPasscode::class)($lock, PasscodeKind::Custom, 'Stay', now(), now()->addDay(), 'k3', '1234');
+
+    expect($result->isRefused())->toBeTrue()
+        ->and($result->message)->toContain('too simple')
+        ->and(ttlockCalls('/v3/keyboardPwd/add'))->toBe(0)
+        ->and(DoorPasscode::query()->count())->toBe(0);
+});
+
+it('starts a generated PIN an hour earlier when TTLock says that window was made and deleted before', function () {
+    ['lock' => $lock] = doorLockSetup(gateway: true);
+    Http::fake([
+        '*/v3/keyboardPwd/get' => Http::sequence()
+            ->push(['errcode' => -1026, 'errmsg' => 'made before and deleted'])
+            ->push(['keyboardPwd' => '482913', 'keyboardPwdId' => 9001]),
+    ]);
+
+    $result = app(IssueDoorPasscode::class)($lock, PasscodeKind::Generated, 'Stay', now(), now()->addHours(5), 'k4');
+
+    expect($result->passcode->status)->toBe(PasscodeStatus::Active)
+        ->and($result->passcode->starts_at->equalTo(now()->startOfHour()->subHour()))->toBeTrue()
+        ->and(ttlockCalls('/v3/keyboardPwd/get'))->toBe(2);
+});
+
+it('gives up after three earlier starts', function () {
+    ['lock' => $lock] = doorLockSetup(gateway: true);
+    Http::fake(['*/v3/keyboardPwd/get' => Http::response(['errcode' => -1026, 'errmsg' => 'made before and deleted'])]);
+
+    $result = app(IssueDoorPasscode::class)($lock, PasscodeKind::Generated, 'Stay', now(), now()->addHours(5), 'k5');
+
+    expect($result->isRefused())->toBeTrue()
+        ->and($result->passcode->status)->toBe(PasscodeStatus::Failed)
+        ->and(ttlockCalls('/v3/keyboardPwd/get'))->toBe(4);
 });
