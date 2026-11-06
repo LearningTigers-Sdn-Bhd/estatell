@@ -84,6 +84,17 @@ class AppServiceProvider extends ServiceProvider
         $this->configureMailLog();
         $this->configureChannelEvents();
         $this->configureApiRateLimiting();
+        $this->configureInertiaSsr();
+    }
+
+    /**
+     * Only the public pages are server-rendered, so crawlers and answer engines get real HTML. The staff app sits behind a
+     * login, so rendering it on the server would only add load. When the SSR server is down Inertia falls back to the
+     * browser render. A closure here replaces the config switch, so it still honours INERTIA_SSR_ENABLED.
+     */
+    private function configureInertiaSsr(): void
+    {
+        Inertia::disableSsr(fn (): bool => ! config('inertia.ssr.enabled') || ! request()->routeIs('home', 'services.show', 'terms', 'privacy'));
     }
 
     /**

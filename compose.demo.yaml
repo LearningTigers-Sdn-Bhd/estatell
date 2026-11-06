@@ -38,6 +38,8 @@ services:
             BOOKING_SITE_URL: ${BOOKING_SITE_URL:-https://booking.estatell.com}
             BOOKING_API_DOCS_URL: ${BOOKING_API_DOCS_URL:-https://docs.estatell.com/en/docs/developers/booking-api}
             AUTORUN_ENABLED: 'true'
+            # The demo has no ssr service, and is not for search engines.
+            INERTIA_SSR_ENABLED: 'false'
         volumes:
             # Uploads. The nightly reset clears this folder.
             - demo-media:/var/www/html/storage/app/private
