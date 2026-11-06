@@ -22,6 +22,7 @@ use App\Enums\CompanyStatus;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
 use App\Enums\SellUnit;
+use App\Features\Boats;
 use App\Models\BookingSource;
 use App\Models\ChargeItem;
 use App\Models\Company;
@@ -39,6 +40,7 @@ use App\Services\Rates\RestrictionCheck;
 use App\Services\Reservations\AutoAddOns;
 use Brick\Math\BigDecimal;
 use Illuminate\Support\Facades\DB;
+use Laravel\Pennant\Feature;
 
 class CreatePortalReservation
 {
@@ -228,6 +230,7 @@ class CreatePortalReservation
     private function bookingData(Company $company, BookingSource $source, NewPortalBookingData $data, array $roomTypes): array
     {
         $addOns = $this->autoAddOns->forUnit($company->property);
+        $boatTrips = Feature::for($company->property)->active(Boats::class) ? $data->boatTrips : [];
         $units = [];
         $lineOfUnit = [];
         $guests = [];
@@ -245,6 +248,7 @@ class CreatePortalReservation
                     childAges: $isBed ? [] : $line->childAges,
                     beds: $isBed ? max(1, $line->beds) : 1,
                     addOns: $addOns,
+                    boatTrips: $boatTrips,
                 );
                 $lineOfUnit[] = $index;
             }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Portal;
 
+use App\Actions\Boats\SetBoatTrips;
 use App\Actions\Portal\CancelPortalReservation;
 use App\Actions\Portal\PortalBookingResult;
 use App\Actions\Portal\RequestPortalCancellation;
@@ -13,6 +14,7 @@ use App\Data\Reservations\PaymentScheduleData;
 use App\Enums\CompanyStatus;
 use App\Enums\IdentityDocumentType;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Portal\UpdatePortalBoatsRequest;
 use App\Http\Requests\Portal\UpdatePortalGuestsRequest;
 use App\Models\CompanyUser;
 use App\Models\PaymentProof;
@@ -21,6 +23,7 @@ use App\Services\Guests\CountryOptions;
 use App\Services\Portal\PortalBookingMessages;
 use App\Services\Portal\PortalBookings;
 use App\Services\Reservations\AgentBill;
+use App\Services\Reservations\ReservationRefusals;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -74,8 +77,36 @@ class PortalBookingController extends Controller
             'companySuspended' => $link->company->status === CompanyStatus::Suspended,
             'idTypes' => IdentityDocumentType::options(),
             'countries' => app(CountryOptions::class)->options(),
+            'boatDepartures' => $bookings->boatDepartures($property),
+            'boatSetup' => $bookings->boatSetup($link->company, $booking, $property),
             'currency' => CurrencyData::forProperty($property),
         ]);
+    }
+
+    /**
+     * Set the boats of the booking's rooms: Boat in until check-in, Boat out until check-out. One refusal saves nothing.
+     */
+    public function updateBoats(UpdatePortalBoatsRequest $request, Property $property, int $reservation, PortalBookings $bookings, SetBoatTrips $setBoatTrips, ReservationRefusals $refusals): RedirectResponse
+    {
+        $link = $this->link($request);
+        $booking = $bookings->find($link->company, $reservation);
+        $page = route('portal.bookings.show', ['property' => $property, 'reservation' => $reservation]);
+
+        if ($link->company->status === CompanyStatus::Suspended) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('Your company is suspended. Contact the property.')]);
+
+            return back(fallback: $page);
+        }
+
+        $result = $setBoatTrips($request->user(), $booking, $request->changes());
+
+        if ($result->isRefused()) {
+            return back(fallback: $page)->withErrors($refusals->boatTripsErrors((string) $result->refusal, (string) $result->unitLabel));
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Boats saved.')]);
+
+        return back(fallback: $page);
     }
 
     /**

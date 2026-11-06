@@ -162,3 +162,7 @@ wastays stored `boat_in_at`, `boat_out_at`, `boat_in_type` and `boat_out_type` o
 ## Automatic fare items
 
 A room that already has the departure's fare item as its own add-on, such as one added automatically, is not charged the fare again when a trip is set.
+
+## Company portal
+
+An agent sets boats when it books (one pick for every room) and on the booking (per room). It uses the same Actions and rules as staff, and it does not see seat counts. See [Company portal](../23-company-portal/01-company-portal.md#booking).

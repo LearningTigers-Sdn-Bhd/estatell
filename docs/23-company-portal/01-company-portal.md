@@ -188,6 +188,7 @@ The layout breakpoints are the staff form's: below `xl` the summary rail moves u
 - The stay dates and nights, one row per line (quantity, room type, line total), the total with the auto-add items ("Includes Breakfast."), **Billed to {company}**, the free-cancellation date ("Free cancellation until {date}", or "Free cancellation has ended for these dates. You can ask the property to cancel."), the guest names and **Confirm booking**.
 - **Confirm booking** is disabled until every line has an open price and every unit has a guest name.
 - There is no billing select: billing is always MasterPays.
+- **Boat in and Boat out** show when the property uses boats. The agent picks a departure, Charter or Own boat, with the time for the last two. The pick applies to every room. A fare or charter charge shows on the booking after it is confirmed, and the agent does not see the seats taken.
 
 **Shared with the staff form**
 
@@ -228,6 +229,7 @@ The layout breakpoints are the staff form's: below `xl` the summary rail moves u
 
 - 20 per page. Search by our reference or the company's reference.
 - Detail: rooms, plans, guests, add-ons, total and references. No folio internals and no staff notes.
+- **Set boats:** on the booking, per room, with a button to copy the first room to all. Boat in closes at check-in and Boat out at check-out, the same rule as staff (`SetBoatTrips`). A Suspended company is read only.
 - **Edit guests:** names, phone, nationality and ID of the booking's own guests, until check-in and not after the arrival date. Dates, rooms, plans and prices cannot change.
 - **Cancel:** whole reservation only. On or before `arrival_date - portal_cancel_cutoff_days` (the page shows the date), the company user cancels with no charge. After it, or when the cut-off is empty, they can only request, once. A request sets `cancellation_requested_at` and `cancellation_requested_by` and notifies the property. Staff decide on any charge in the [Cancel reservation](../18-front-desk/01-check-in-and-check-out.md#cancel-reservation) Dialog, which shows the request and resolves it. Changes to some rooms go through the property.
 - A Suspended company sees its bookings. Book, Edit guests, Cancel and Request are refused and their buttons are hidden.
@@ -241,6 +243,7 @@ The layout breakpoints are the staff form's: below `xl` the summary rail moves u
  Payments   RCP-0040  5 Oct  Bank transfer  BT-PAY-77  RM 1,200  [Receipt]
 ```
 
+- **Send a payment slip** for a company on credit terms. See [Payment slips](../15-city-ledger/03-ar-payments.md#payment-slips).
 - Open and Settled AR invoices, non-void AR payments, the statement with aging, **Payments on bookings** (money paid per booking, outside the balance), and the invoice, receipt and statement PDFs, from the staff city ledger services. The invoice PDF is the staff one, including payments made at the hotel.
 - Voided invoices and payments are hidden; their PDFs return 404. Allocations are not shown.
 - Every document is looked up through the linked company at the property in the URL, never by id alone.

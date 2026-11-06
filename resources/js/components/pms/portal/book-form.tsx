@@ -1,3 +1,8 @@
+import { PortalBoatField } from '@/components/pms/portal/portal-boat-fields';
+import {
+    boatTripPayload,
+    NOT_SET,
+} from '@/components/pms/reservations/boat-trips';
 import { useForm } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -84,6 +89,7 @@ export function BookForm({
     today,
     cancelCutoffDays,
     autoAddOns,
+    boatDepartures,
     companyName,
     currency,
 }: {
@@ -97,6 +103,7 @@ export function BookForm({
     today: string;
     cancelCutoffDays: number | null;
     autoAddOns: string[];
+    boatDepartures: App.Data.Boats.BoatDepartureOptionData[];
     companyName: string;
     currency: App.Data.Property.CurrencyData | null;
 }) {
@@ -108,6 +115,10 @@ export function BookForm({
         guests: {} as Record<string, BookGuest>,
         group_name: '',
         external_reference: '',
+        boat_in: NOT_SET,
+        boat_in_time: '',
+        boat_out: NOT_SET,
+        boat_out_time: '',
     }));
     const form = useForm(initial);
     const [refresh, setRefresh] = useState(0);
@@ -233,6 +244,8 @@ export function BookForm({
                     id_number: id_number === '' ? null : id_number,
                 };
             }),
+            boat_in: boatTripPayload(current.boat_in, current.boat_in_time),
+            boat_out: boatTripPayload(current.boat_out, current.boat_out_time),
         }));
         form.post(store.url({ property: propertyCode }), {
             preserveScroll: true,
@@ -315,6 +328,45 @@ export function BookForm({
                                 <FieldError>{errors.departure_date}</FieldError>
                             </Field>
                         </div>
+                        {boatDepartures.length > 0 && (
+                            <div className="grid items-start gap-4 sm:grid-cols-2">
+                                <PortalBoatField
+                                    id="book-boat-in"
+                                    direction="in"
+                                    departures={boatDepartures}
+                                    choice={data.boat_in}
+                                    time={data.boat_in_time}
+                                    error={errors.boat_in}
+                                    onChange={(choice, time) =>
+                                        form.setData({
+                                            ...data,
+                                            boat_in: choice,
+                                            boat_in_time: time,
+                                        })
+                                    }
+                                />
+                                <PortalBoatField
+                                    id="book-boat-out"
+                                    direction="out"
+                                    departures={boatDepartures}
+                                    choice={data.boat_out}
+                                    time={data.boat_out_time}
+                                    error={errors.boat_out}
+                                    onChange={(choice, time) =>
+                                        form.setData({
+                                            ...data,
+                                            boat_out: choice,
+                                            boat_out_time: time,
+                                        })
+                                    }
+                                />
+                                <p className="text-sm text-muted-foreground sm:col-span-2">
+                                    The boats apply to every room, and each room
+                                    can change later. A fare or charter charge
+                                    shows on the booking after you confirm.
+                                </p>
+                            </div>
+                        )}
                         <div className="grid items-start gap-4 sm:grid-cols-2">
                             <Field data-invalid={!!errors.external_reference}>
                                 <FieldLabel htmlFor="book-reference">

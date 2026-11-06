@@ -21,6 +21,7 @@ use App\Services\Guests\CountryOptions;
 use App\Services\Portal\PortalBookingMessages;
 use App\Services\Portal\PortalBookingQuote;
 use App\Services\Portal\PortalBookingRules;
+use App\Services\Portal\PortalBookings;
 use App\Services\Portal\PortalRatePlans;
 use App\Services\Reservations\AutoAddOns;
 use Illuminate\Http\JsonResponse;
@@ -38,7 +39,7 @@ class PortalBookController extends Controller
     /**
      * The new booking page. A Suspended company gets the page without the form.
      */
-    public function create(Request $request, Property $property, PortalRatePlans $portalRatePlans, PortalBookingRules $rules, AutoAddOns $autoAddOns): Response
+    public function create(Request $request, Property $property, PortalBookings $bookings, PortalRatePlans $portalRatePlans, PortalBookingRules $rules, AutoAddOns $autoAddOns): Response
     {
         $link = $this->link($request);
         $property->loadMissing('settings');
@@ -59,6 +60,7 @@ class PortalBookController extends Controller
             'countries' => app(CountryOptions::class)->options(),
             'genders' => Gender::options(),
             'locales' => Locale::options(),
+            'boatDepartures' => $suspended ? [] : $bookings->boatDepartures($property),
             'autoAddOns' => array_map(fn (ChargeItem $item): string => $item->name, $autoAddOns->items($property)),
             'currency' => CurrencyData::forProperty($property),
         ]);

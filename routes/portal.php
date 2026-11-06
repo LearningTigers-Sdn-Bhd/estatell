@@ -6,6 +6,7 @@ use App\Http\Controllers\Portal\PortalCompanyController;
 use App\Http\Controllers\Portal\PortalController;
 use App\Http\Controllers\Portal\PortalLinkController;
 use App\Http\Controllers\Portal\PortalPaymentProofController;
+use App\Http\Controllers\Portal\PortalPaymentSlipController;
 use App\Http\Controllers\Portal\PortalStatementController;
 use App\Http\Controllers\Property\PropertyLogoController;
 use Illuminate\Support\Facades\Route;
@@ -28,6 +29,7 @@ Route::middleware(['auth', 'verified'])->prefix('portal')->name('portal.')->grou
             Route::get('new', [PortalBookController::class, 'create'])->name('create');
             Route::get('{reservation}', [PortalBookingController::class, 'show'])->whereNumber('reservation')->name('show');
             Route::put('{reservation}/guests', [PortalBookingController::class, 'updateGuests'])->whereNumber('reservation')->name('guests.update');
+            Route::put('{reservation}/boats', [PortalBookingController::class, 'updateBoats'])->whereNumber('reservation')->name('boats.update');
             Route::get('{reservation}/payment-proofs/{paymentProof}', [PortalPaymentProofController::class, 'file'])->whereNumber('reservation')->name('payment-proofs.file');
             // The book page asks for new prices after each change, so offers have their own, higher limit.
             Route::post('offers', [PortalBookController::class, 'offers'])->middleware('throttle:60,1')->name('offers');
@@ -43,6 +45,8 @@ Route::middleware(['auth', 'verified'])->prefix('portal')->name('portal.')->grou
             Route::get('/', [PortalStatementController::class, 'show']);
             Route::get('pdf', [PortalStatementController::class, 'pdf'])->name('.pdf');
             Route::get('invoices/{invoice}/pdf', [PortalStatementController::class, 'invoicePdf'])->whereNumber('invoice')->name('.invoices.pdf');
+            Route::post('payment-slips', [PortalPaymentSlipController::class, 'store'])->middleware('throttle:20,1')->name('.payment-slips.store');
+            Route::get('payment-slips/{paymentProof}', [PortalPaymentSlipController::class, 'file'])->whereNumber('paymentProof')->name('.payment-slips.file');
             Route::get('payments/{payment}/receipt', [PortalStatementController::class, 'receipt'])->whereNumber('payment')->name('.payments.receipt');
         });
 

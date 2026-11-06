@@ -1,5 +1,6 @@
 import { Head } from '@inertiajs/react';
 import { useState } from 'react';
+import { BookingBoatsDialog } from '@/components/pms/portal/booking-boats-dialog';
 import { BookingCancelActions } from '@/components/pms/portal/booking-cancel-actions';
 import { BookingGuestsSheet } from '@/components/pms/portal/booking-guests-sheet';
 import { BookingPaymentSection } from '@/components/pms/portal/booking-payment-section';
@@ -20,6 +21,8 @@ export default function PortalBookingShow({
     companySuspended,
     idTypes,
     countries,
+    boatDepartures,
+    boatSetup,
     currency,
     paymentSchedule,
     agentBill,
@@ -30,12 +33,19 @@ export default function PortalBookingShow({
     companySuspended: boolean;
     idTypes: EnumOption[];
     countries: EnumOption[];
+    boatDepartures: App.Data.Boats.BoatDepartureOptionData[];
+    boatSetup: App.Data.Boats.BoatSetupUnitData[];
     currency: App.Data.Property.CurrencyData | null;
     paymentSchedule: App.Data.Reservations.PaymentScheduleData | null;
     agentBill: App.Data.Reservations.AgentBillData;
     paymentProofs: App.Data.Payments.PaymentProofData[];
 }) {
     const [editing, setEditing] = useState(false);
+    const [editingBoats, setEditingBoats] = useState(false);
+    const [boatSaves, setBoatSaves] = useState(0);
+    const canChangeBoats = boatSetup.some(
+        (unit) => unit.canSetBoatIn || unit.canSetBoatOut,
+    );
     const [saves, setSaves] = useState(0);
 
     return (
@@ -108,6 +118,56 @@ export default function PortalBookingShow({
                     }
                     currency={currency}
                 />
+
+                {boatSetup.length > 0 && (
+                    <section className="flex max-w-3xl flex-col gap-3 rounded-lg border p-4">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                            <h2 className="text-base font-medium">Boats</h2>
+                            {canChangeBoats && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setEditingBoats(true)}
+                                >
+                                    Set boats
+                                </Button>
+                            )}
+                        </div>
+                        <ul className="flex flex-col gap-2 text-sm">
+                            {boatSetup.map((unit) => (
+                                <li key={unit.id} className="flex flex-col">
+                                    <span className="font-medium">
+                                        {unit.label}
+                                    </span>
+                                    <span className="text-muted-foreground">
+                                        Boat in:{' '}
+                                        {unit.boatIn?.summary ?? 'Not set'}
+                                    </span>
+                                    <span className="text-muted-foreground">
+                                        Boat out:{' '}
+                                        {unit.boatOut?.summary ?? 'Not set'}
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+                    </section>
+                )}
+
+                {editingBoats && (
+                    <BookingBoatsDialog
+                        key={boatSaves}
+                        open
+                        onOpenChange={(next) => {
+                            setEditingBoats(next);
+                            setBoatSaves((value) => value + 1);
+                        }}
+                        propertyCode={propertyCode}
+                        reservationId={booking.id}
+                        units={boatSetup}
+                        departures={boatDepartures}
+                    />
+                )}
 
                 <section className="flex flex-col gap-3">
                     <h2 className="text-base font-medium">Rooms</h2>

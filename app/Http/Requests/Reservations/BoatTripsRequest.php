@@ -32,11 +32,12 @@ class BoatTripsRequest extends FormRequest
     public function rules(): array
     {
         $property = $this->route('property');
-        $reservation = $this->route('reservation');
 
-        if (! $property instanceof Property || ! $reservation instanceof Reservation) {
-            throw new LogicException('The property and reservation route bindings are missing.');
+        if (! $property instanceof Property) {
+            throw new LogicException('The property route binding is missing.');
         }
+
+        $reservationId = $this->reservationId();
 
         return [
             'units' => ['required', 'array', 'min:1'],
@@ -45,7 +46,7 @@ class BoatTripsRequest extends FormRequest
                 'integer',
                 'distinct',
                 Rule::exists('reservation_units', 'id')
-                    ->where('reservation_id', $reservation->id)
+                    ->where('reservation_id', $reservationId)
                     ->where('property_id', $property->id),
             ],
             'units.*.in' => ['sometimes', 'nullable', 'array'],
@@ -59,6 +60,17 @@ class BoatTripsRequest extends FormRequest
             'units.*.out.time' => ['nullable', 'date_format:H:i'],
             'units.*.out.note' => ['nullable', 'string', 'max:255'],
         ];
+    }
+
+    protected function reservationId(): int
+    {
+        $reservation = $this->route('reservation');
+
+        if (! $reservation instanceof Reservation) {
+            throw new LogicException('The reservation route binding is missing.');
+        }
+
+        return $reservation->id;
     }
 
     /**

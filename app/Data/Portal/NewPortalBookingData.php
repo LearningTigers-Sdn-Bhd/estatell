@@ -2,6 +2,7 @@
 
 namespace App\Data\Portal;
 
+use App\Data\Boats\BoatTripData;
 use Carbon\CarbonImmutable;
 use Spatie\LaravelData\Attributes\WithCast;
 use Spatie\LaravelData\Casts\DateTimeInterfaceCast;
@@ -16,6 +17,7 @@ class NewPortalBookingData extends Data
 {
     /**
      * @param  list<NewPortalLineData>  $lines
+     * @param  list<BoatTripData>  $boatTrips  The trips of every room of the booking.
      * @param  list<NewPortalGuestData>  $guests
      */
     public function __construct(
@@ -28,5 +30,6 @@ class NewPortalBookingData extends Data
         public ?string $groupName,
         public ?string $externalReference,
         public string $expectedTotal,
+        public array $boatTrips = [],
     ) {}
 }
