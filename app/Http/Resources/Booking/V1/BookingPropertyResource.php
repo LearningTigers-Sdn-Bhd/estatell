@@ -42,6 +42,8 @@ class BookingPropertyResource extends JsonResource
             'latitude' => $property->latitude,
             'longitude' => $property->longitude,
             'google_maps_url' => $property->google_maps_url,
+            'contact_phone' => $property->contact_phone,
+            'contact_email' => $property->contact_email,
             'photos' => $property->getMedia(Property::PHOTOS)->map(fn (Media $photo): array => [
                 'url' => $photo->getUrl('web'),
                 'thumb_url' => $photo->getUrl('thumb'),

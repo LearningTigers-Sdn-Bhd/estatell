@@ -47,7 +47,7 @@ it('returns the site settings with images of current slots only', function () {
 it('returns the property content with active nearby places and no review status', function () {
     ['property' => $property] = bookingApiProperty();
     bookingMicrositeClient();
-    $property->update(['address_line1' => 'Jalan Pantai']);
+    $property->update(['address_line1' => 'Jalan Pantai', 'contact_phone' => '+60 12-345 6789', 'contact_email' => 'hello@example.com']);
     $property->bookingSite->update(['about_text' => 'By the sea']);
     $property->amenities()->attach(Amenity::factory()->create(['name' => 'Pool']));
     $shown = NearbyPlace::factory()->create(['name' => 'Jetty', 'status' => NearbyPlaceStatus::Pending]);
@@ -58,6 +58,8 @@ it('returns the property content with active nearby places and no review status'
 
     $response = bookingApiGet('properties/'.$property->code)->assertOk()
         ->assertJsonPath('address.line1', 'Jalan Pantai')
+        ->assertJsonPath('contact_phone', '+60 12-345 6789')
+        ->assertJsonPath('contact_email', 'hello@example.com')
         ->assertJsonPath('about_text', 'By the sea')
         ->assertJsonPath('amenities.0.name', 'Pool')
         ->assertJsonCount(1, 'nearby_places')
