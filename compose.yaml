@@ -30,6 +30,10 @@ x-app: &app
         R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-}
         R2_BUCKET: ${R2_BUCKET:-}
         R2_ENDPOINT: ${R2_ENDPOINT:-}
+        # Images that guests see. See docs/deployment/production_environment.md.
+        MEDIA_PUBLIC_DISK: ${MEDIA_PUBLIC_DISK:-public}
+        R2_PUBLIC_BUCKET: ${R2_PUBLIC_BUCKET:-}
+        R2_PUBLIC_URL: ${R2_PUBLIC_URL:-}
         # Partner Demo access card. See docs/deployment/production_environment.md.
         DEMO_URL: ${DEMO_URL:-}
         DEMO_PASSWORD: ${DEMO_PASSWORD:-}
