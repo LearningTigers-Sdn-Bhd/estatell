@@ -29,6 +29,10 @@ class RoomTypeRequest extends FormRequest
             'description' => filled($this->input('description')) ? trim((string) $this->input('description')) : null,
         ]);
 
+        if ($this->has('print_label')) {
+            $this->merge(['print_label' => filled($this->input('print_label')) ? mb_strtoupper(trim((string) $this->input('print_label'))) : null]);
+        }
+
         if ($this->has('terms_document_id')) {
             $this->merge(['terms_document_id' => filled($this->input('terms_document_id')) ? $this->input('terms_document_id') : null]);
         }
@@ -60,6 +64,7 @@ class RoomTypeRequest extends FormRequest
                 },
             ],
             'description' => ['nullable', 'string', 'max:2000'],
+            'print_label' => ['sometimes', 'nullable', 'string', 'max:12'],
             'sell_unit' => [
                 'required', Rule::enum(SellUnit::class),
                 function (string $attribute, mixed $value, Closure $fail) use ($current): void {

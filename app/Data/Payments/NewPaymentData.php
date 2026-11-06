@@ -12,6 +12,7 @@ use Spatie\LaravelData\Data;
  * payment must give `serviceDate`, the day the old PMS took the money (any real day up to the business date).
  * `SaveOldFolios` also gives `migrated` (the line is copied from the old system) and `lineKey` (the key of the payment line, `migrated:{folio_id}:{uuid}`, in place of `payment:{idempotencyKey}`).
  * `allowOtaCollected` lets the method be an OTA collected one. The Record payment Dialog and the wastays replay set it; check-in and check-out collection do not.
+ * `guestPaysTaxes` marks the Advance of Collect now for the taxes a guest pays while a company pays the room: it pays charges that stay on the unit folio, so `advance_on_master` does not apply.
  * `issueReceipt` off gives the payment no receipt number: `PostOtaCollectedPayment` posts money the OTA took, not the desk.
  * See docs/14-payments/01-payments-and-refunds.md.
  */
@@ -29,5 +30,6 @@ class NewPaymentData extends Data
         public ?string $lineKey = null,
         public bool $allowOtaCollected = false,
         public bool $issueReceipt = true,
+        public bool $guestPaysTaxes = false,
     ) {}
 }

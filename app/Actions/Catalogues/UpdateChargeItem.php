@@ -37,6 +37,10 @@ class UpdateChargeItem
                 $attributes['auto_add'] = false;
             }
 
+            if (! ($attributes['auto_add'] ?? $chargeItem->auto_add)) {
+                $attributes['auto_add_channels'] = false;
+            }
+
             if (! $chargeItem->active && $attributes['active']) {
                 $attributes['position'] = ((int) ChargeItem::query()
                     ->where('property_id', $chargeItem->property_id)

@@ -6,8 +6,10 @@ use App\Data\Navigation\NavGroupData;
 use App\Data\Navigation\NavItemData;
 use App\Enums\PermissionEnum;
 use App\Enums\PropertyStatus;
+use App\Features\Boats;
 use App\Models\Property;
 use App\Models\User;
+use Laravel\Pennant\Feature;
 
 /**
  * Sidebar groups for the Front desk context. Items the user has no permission for are left out.
@@ -54,6 +56,12 @@ class FrontDeskNavigation
                     icon: 'spray-can',
                     active: request()->routeIs('housekeeping.*'),
                 ) : null,
+                $user->can(PermissionEnum::ReportsView->value) ? new NavItemData(
+                    title: __('House status'),
+                    href: route('reports.house-status', ['property' => $property->code], absolute: false),
+                    icon: 'layout-grid',
+                    active: request()->routeIs('reports.house-status'),
+                ) : null,
             ]))),
             new NavGroupData(label: __('Reservations'), items: array_filter([
                 $user->can(PermissionEnum::ReservationsView->value) ? new NavItemData(
@@ -63,14 +71,20 @@ class FrontDeskNavigation
                     active: request()->routeIs('reservations.*'),
                 ) : null,
             ])),
-            new NavGroupData(label: __('Guests'), items: array_filter([
+            new NavGroupData(label: __('Guests'), items: array_values(array_filter([
                 $user->can(PermissionEnum::GuestsView->value) ? new NavItemData(
                     title: __('Guests'),
                     href: route('guests.index', ['property' => $property->code], absolute: false),
                     icon: 'users',
                     active: request()->routeIs('guests.*'),
                 ) : null,
-            ])),
+                $user->can(PermissionEnum::ReportsView->value) && Feature::for($property)->active(Boats::class) ? new NavItemData(
+                    title: __('Boat manifest'),
+                    href: route('reports.boat-manifest', ['property' => $property->code], absolute: false),
+                    icon: 'ship',
+                    active: request()->routeIs('reports.boat-manifest'),
+                ) : null,
+            ]))),
             new NavGroupData(label: __('Operations'), items: array_values(array_filter([
                 $user->can(PermissionEnum::RatesView->value) ? new NavItemData(
                     title: __('Rate calendar'),

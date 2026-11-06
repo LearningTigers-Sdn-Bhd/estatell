@@ -13,6 +13,7 @@ class RatePlanStayDiscountData extends Data
         public int $minNights,
         public StayDiscountType $discountType,
         public string $value,
+        public bool $perRoom,
         public int $fromNight,
     ) {}
 
@@ -22,6 +23,7 @@ class RatePlanStayDiscountData extends Data
             minNights: $discount->min_nights,
             discountType: $discount->discount_type,
             value: $discount->value,
+            perRoom: $discount->per_room,
             fromNight: $discount->from_night,
         );
     }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\KioskKeyMode;
 use App\Enums\Locale;
 use App\Enums\MissedArrivalPolicy;
 use App\Enums\OverdueDeparturePolicy;
@@ -37,6 +38,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property bool $allow_support_money_corrections
  * @property WeekendNights $weekend_nights
  * @property int $migration_window_days
+ * @property int $agent_deposit_percent The share of the booking total an agent pays first.
+ * @property int $agent_deposit_hours Hours after booking the deposit is due.
+ * @property int $agent_full_payment_days Days before arrival the whole booking is due.
+ * @property int|null $charter_charge_item_id The charge item a Charter boat trip adds once (Sand Bay: Charter Boat RM280). Null: nothing is added.
+ * @property KioskKeyMode $kiosk_key_mode
+ * @property bool $kiosk_walk_in_enabled
+ * @property int $kiosk_idle_timeout_seconds
  */
 #[Fillable([
     'currency', 'time_zone', 'default_locale', 'check_in_time', 'check_out_time',
@@ -44,7 +52,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'missed_arrival_policy', 'overdue_departure_policy',
     'registration_card_scope', 'card_required_for_check_in', 'id_document_retention_days',
     'security_deposit_amount', 'allow_support_access', 'allow_support_money_corrections', 'weekend_nights',
-    'migration_window_days',
+    'migration_window_days', 'charter_charge_item_id', 'agent_deposit_percent', 'agent_deposit_hours', 'agent_full_payment_days',
+    'kiosk_key_mode', 'kiosk_walk_in_enabled', 'kiosk_idle_timeout_seconds',
 ])]
 class PropertySetting extends Model
 {
@@ -69,6 +78,13 @@ class PropertySetting extends Model
             'allow_support_money_corrections' => 'boolean',
             'weekend_nights' => WeekendNights::class,
             'migration_window_days' => 'integer',
+            'charter_charge_item_id' => 'integer',
+            'agent_deposit_percent' => 'integer',
+            'agent_deposit_hours' => 'integer',
+            'agent_full_payment_days' => 'integer',
+            'kiosk_key_mode' => KioskKeyMode::class,
+            'kiosk_walk_in_enabled' => 'boolean',
+            'kiosk_idle_timeout_seconds' => 'integer',
         ];
     }
 

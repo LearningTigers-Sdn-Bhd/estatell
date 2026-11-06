@@ -150,6 +150,12 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
         return $this->hasMany(BoatDeparture::class);
     }
 
+    /** @return HasMany<Boat, $this> */
+    public function boats(): HasMany
+    {
+        return $this->hasMany(Boat::class);
+    }
+
     /** @return HasMany<BookingSource, $this> */
     public function bookingSources(): HasMany
     {
@@ -348,6 +354,12 @@ class Property extends Model implements FeatureScopeSerializeable, HasMedia
     public function documentPrefixHistories(): HasMany
     {
         return $this->hasMany(PropertyDocumentPrefixHistory::class);
+    }
+
+    /** @return HasMany<Kiosk, $this> */
+    public function kiosks(): HasMany
+    {
+        return $this->hasMany(Kiosk::class);
     }
 
     /** @return HasOne<DoorLockConnection, $this> */

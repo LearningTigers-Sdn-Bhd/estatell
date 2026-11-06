@@ -5,6 +5,7 @@ namespace App\Services\Reports;
 use App\Data\Reports\DepartureRow;
 use App\Data\Reports\ReportFilters;
 use App\Enums\BoatDirection;
+use App\Enums\StayType;
 use App\Enums\UnitStatus;
 use App\Features\Boats;
 use App\Models\Property;
@@ -27,7 +28,7 @@ class DeparturesReport implements Report
     ) {}
 
     /**
-     * The units that depart in the range, without order or relations. The Guest list counts them with it.
+     * The units that depart in the range, without order or relations. The Guest list counts them with it. With `boatNotSet`, only the overnight units with no Boat out trip.
      *
      * @return Builder<ReservationUnit>
      */
@@ -36,7 +37,10 @@ class DeparturesReport implements Report
         return ReservationUnit::query()
             ->where('property_id', $property->id)
             ->whereBetween('departure_date', [$filters->from, $filters->to])
-            ->whereIn('status', UnitStatus::holdingInventory());
+            ->whereIn('status', UnitStatus::holdingInventory())
+            ->when($filters->boatNotSet, fn (Builder $query) => $query
+                ->where('stay_type', StayType::Overnight->value)
+                ->whereDoesntHave('boatTrips', fn (Builder $trips) => $trips->where('direction', BoatDirection::Out->value)));
     }
 
     /**

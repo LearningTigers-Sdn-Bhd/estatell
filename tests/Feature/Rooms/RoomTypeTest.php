@@ -499,3 +499,14 @@ test('changing rooms needs rooms.manage', function () {
 
     $this->actingAs($viewer)->put(route('settings.room-types.rooms.update', [$viewer->property->code, $roomType]), ['rooms' => []])->assertForbidden();
 });
+
+test('a room type saves its print label in capitals', function () {
+    $owner = User::factory()->owner()->create();
+    $roomType = RoomType::factory()->for($owner->property)->create();
+
+    $this->actingAs($owner)
+        ->put(route('settings.room-types.update', [$owner->property->code, $roomType]), roomTypePayload(['print_label' => 'sking']))
+        ->assertSessionHasNoErrors();
+
+    expect($roomType->refresh()->print_label)->toBe('SKING');
+});

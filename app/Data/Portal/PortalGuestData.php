@@ -17,6 +17,7 @@ class PortalGuestData extends Data
         public ?string $phone,
         public ?string $idType,
         public ?string $idTypeLabel,
+        public ?string $nationalityCode = null,
     ) {}
 
     /**
@@ -26,6 +27,6 @@ class PortalGuestData extends Data
     {
         $document = $guest->documents->sortBy('id')->first();
 
-        return new self($guest->id, $guest->full_name, $guest->phone, $document?->type->value, $document?->type->label());
+        return new self($guest->id, $guest->full_name, $guest->phone, $document?->type->value, $document?->type->label(), $guest->nationality_code);
     }
 }

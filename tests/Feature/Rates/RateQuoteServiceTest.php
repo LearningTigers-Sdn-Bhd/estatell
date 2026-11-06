@@ -310,3 +310,17 @@ test('a night never goes below zero after the discount', function () {
     expect(quoteTotal($quote))->toBe('0.00')
         ->and((string) $quote->discountAmount->getAmount())->toBe('60.00');
 });
+
+test('a per-guest amount discount can be taken off once per room instead of per guest', function () {
+    [, $plan, $roomType] = quoteSetup(['pricing_basis' => PricingBasis::PerGuest]);
+    foreach (['2026-11-02', '2026-11-03', '2026-11-04'] as $date) {
+        quoteRate($plan, $roomType, $date, '625.00');
+    }
+    $rule = stayDiscount($plan, ['min_nights' => 2, 'discount_type' => StayDiscountType::Amount, 'value' => '200.00', 'from_night' => 2]);
+
+    expect(quoteTotal(quoteFor($plan, $roomType, adults: 2, departure: '2026-11-05')))->toBe('2950.00');
+
+    $rule->update(['per_room' => true]);
+
+    expect(quoteTotal(quoteFor($plan, $roomType, adults: 2, departure: '2026-11-05')))->toBe('3350.00');
+});

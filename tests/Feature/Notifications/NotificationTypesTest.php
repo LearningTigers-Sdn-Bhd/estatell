@@ -72,6 +72,7 @@ test('notification enums expose labelled options', function () {
         ['value' => 'channel_booking_received', 'label' => 'Channel booking received'],
         ['value' => 'channel_booking_cancelled', 'label' => 'Channel booking cancelled'],
         ['value' => 'channel_removal_blocked', 'label' => 'Archive blocked by a channel'],
+        ['value' => 'payment_slip_received', 'label' => 'Company payment slip'],
     ]);
 });
 

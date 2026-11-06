@@ -170,6 +170,11 @@ class RatePlanController extends Controller
             'ratePlan' => RatePlanData::fromModel($ratePlan->load('roomTypes')),
             'currency' => CurrencyData::forProperty($property),
             'nightsLockedReason' => $ratePlan->pricing_basis === PricingBasis::Package ? $derivedRatePlans->nightsLockMessage($ratePlan) : null,
+            'groupRateOptions' => $property->ratePlans()->active()->whereKeyNot($ratePlan->id)->whereNotNull('min_rooms')
+                ->whereNotIn('pricing_basis', [PricingBasis::PerBed->value, PricingBasis::DayUse->value])
+                ->orderBy('position')->orderBy('id')->get()
+                ->map(fn (RatePlan $plan): array => ['value' => (string) $plan->id, 'label' => __(':name (from :count rooms)', ['name' => $plan->name, 'count' => $plan->min_rooms])])
+                ->values()->all(),
         ]);
     }
 

@@ -160,6 +160,21 @@ test('the pages need an Active link at the property in the URL', function () {
 });
 
 describe('edit guests', function () {
+    test('a guest\'s nationality can be added and an empty one keeps what is there', function () {
+        $setup = portalBookingSetup();
+        $reservation = portalMakeBooking($setup);
+        $guest = $reservation->booker;
+        $save = fn (array $fields) => $this->actingAs($setup['portalUser'])
+            ->put(route('portal.bookings.guests.update', ['property' => $setup['property'], 'reservation' => $reservation->id]), ['guests' => [['guest_id' => $guest->id, 'full_name' => $guest->full_name, ...$fields]]])
+            ->assertSessionHasNoErrors();
+
+        $save(['nationality_code' => 'cn']);
+        expect($guest->refresh()->nationality_code)->toBe('CN');
+
+        $save(['nationality_code' => '']);
+        expect($guest->refresh()->nationality_code)->toBe('CN');
+    });
+
     test('the guests of the booking change their name, phone and ID', function () {
         $setup = portalBookingSetup();
         $reservation = portalMakeBooking($setup);

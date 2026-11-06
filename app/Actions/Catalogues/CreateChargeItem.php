@@ -35,6 +35,11 @@ class CreateChargeItem
 
             if ($attributes['default_amount'] === null) {
                 $attributes['allow_override'] = true;
+                $attributes['auto_add'] = false;
+            }
+
+            if (! ($attributes['auto_add'] ?? false)) {
+                $attributes['auto_add_channels'] = false;
             }
 
             $transactionCode = $property->transactionCodes()->create([

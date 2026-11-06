@@ -635,3 +635,44 @@ test('the settings sidebar lists rate plans under Rates', function () {
             ->where('navigation.contexts.3.groups.2.items.0.title', 'Rate plans')
             ->where('navigation.contexts.3.groups.2.items.0.active', true));
 });
+
+test('rooms per booking is saved on the details, empty means no limit, and the most cannot be below the fewest', function () {
+    [$owner, $property] = ratePlanOwner();
+    $plan = RatePlan::factory()->for($property)->perGuest()->create();
+    $url = route('settings.rate-plans.update', [$property->code, $plan]);
+
+    $this->actingAs($owner)->put($url, ['name' => $plan->name, 'single_supplement' => '0', 'min_rooms' => '5', 'max_rooms' => ''])->assertSessionHasNoErrors();
+
+    expect($plan->refresh()->min_rooms)->toBe(5)->and($plan->max_rooms)->toBeNull();
+
+    $this->put($url, ['name' => $plan->name, 'single_supplement' => '0', 'min_rooms' => '5', 'max_rooms' => '4'])->assertSessionHasErrors('max_rooms');
+
+    $this->put($url, ['name' => $plan->name, 'single_supplement' => '0', 'min_rooms' => '', 'max_rooms' => ''])->assertSessionHasNoErrors();
+
+    expect($plan->refresh()->min_rooms)->toBeNull();
+});
+
+test('a FIT rate names the group rate larger bookings use, which must start above its most rooms', function () {
+    [$owner, $property] = ratePlanOwner();
+    $fit = RatePlan::factory()->for($property)->perGuest()->create(['name' => 'Agent FIT', 'min_rooms' => 1, 'max_rooms' => 4]);
+    $group = RatePlan::factory()->for($property)->perGuest()->create(['name' => 'Agent Group', 'min_rooms' => 5]);
+    $open = RatePlan::factory()->for($property)->perGuest()->create(['name' => 'Basic']);
+    $other = RatePlan::factory()->perGuest()->create(['min_rooms' => 5]);
+    $url = route('settings.rate-plans.update', [$property->code, $fit]);
+    $body = ['name' => 'Agent FIT', 'single_supplement' => '0', 'min_rooms' => '1', 'max_rooms' => '4'];
+
+    $this->actingAs($owner)->get(route('settings.rate-plans.edit', [$property->code, $fit]))->assertInertia(fn (Assert $page) => $page
+        ->where('groupRateOptions', [['value' => (string) $group->id, 'label' => 'Agent Group (from 5 rooms)']]));
+
+    $this->put($url, [...$body, 'group_rate_plan_id' => $open->id])->assertSessionHasErrors('group_rate_plan_id');
+    $this->put($url, [...$body, 'group_rate_plan_id' => $other->id])->assertSessionHasErrors('group_rate_plan_id');
+    $this->put($url, [...$body, 'max_rooms' => '6', 'group_rate_plan_id' => $group->id])->assertSessionHasErrors('group_rate_plan_id');
+    $this->put($url, [...$body, 'max_rooms' => '', 'group_rate_plan_id' => $group->id])->assertSessionHasErrors('max_rooms');
+    $this->put($url, [...$body, 'group_rate_plan_id' => $group->id])->assertSessionHasNoErrors();
+
+    expect($fit->refresh()->group_rate_plan_id)->toBe($group->id);
+
+    $this->put($url, [...$body, 'group_rate_plan_id' => ''])->assertSessionHasNoErrors();
+
+    expect($fit->refresh()->group_rate_plan_id)->toBeNull();
+});

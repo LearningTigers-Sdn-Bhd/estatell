@@ -14,7 +14,8 @@ use Carbon\CarbonImmutable;
 class ServiceDateRange
 {
     /**
-     * The first day a manual line may be dated.
+     * The first day a manual line may be dated: the day the reservation was made, or its arrival when that is earlier (a
+     * past stay entered late), and never before the property's first business date.
      */
     public function earliest(Property $property, Reservation $reservation): ?CarbonImmutable
     {
@@ -25,9 +26,11 @@ class ServiceDateRange
         }
 
         $created = CarbonImmutable::parse($reservation->created_at->toDateString());
+        $arrival = $reservation->units()->min('arrival_date');
+        $start = $arrival !== null && CarbonImmutable::parse($arrival)->lessThan($created) ? CarbonImmutable::parse($arrival) : $created;
         $opened = CarbonImmutable::parse((string) $first);
 
-        return $created->greaterThan($opened) ? $created : $opened;
+        return $start->greaterThan($opened) ? $start : $opened;
     }
 
     /**

@@ -96,3 +96,15 @@ Viewing the Payments tab and the receipt needs `company.view`.
 ## Lessons from wastays
 
 `ar_payment_allocation_reversals` becomes three columns on `ar_allocations`.
+
+## Payment slips
+
+A company on credit terms sends a slip for its account on the portal's **Statements** page: the file (image or PDF, up to 10 MB), the amount and the bank reference. The form shows for a company on direct billing, or with an open invoice from when it was. It gets a clear message when the slip is sent or refused, and each slip shows its status, with the reason if it was rejected.
+
+| Step   | What happens                                                                                                                                                                    |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sent   | `UploadCompanyPaymentSlip` saves a `payment_proofs` row with `company_id` and no reservation. It is not a payment. `PaymentSlipReceived` tells staff with `city-ledger.payment` |
+| Accept | On the company's **Payments** tab. `AcceptCompanyPaymentSlip` runs `RecordArPayment` with the slip's reference and the key `slip:{id}`, matched to the oldest open invoices     |
+| Reject | Needs a reason, and the company sees it. Nothing is recorded                                                                                                                    |
+
+A company that pays per booking sends its proof on the booking instead. See [Agent payment schedule](06-agent-payment-schedule.md#payment-proof). Logs: `payment_slip.uploaded`, `payment_slip.accepted`, `payment_proof.rejected` on the company.

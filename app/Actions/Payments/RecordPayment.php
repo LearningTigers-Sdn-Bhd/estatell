@@ -94,7 +94,7 @@ class RecordPayment
                 return PaymentResult::refused(PaymentResult::REFUSAL_PURPOSE_NOT_OFFERED);
             }
 
-            if ($data->purpose === PaymentPurpose::Advance && $this->roomsGoToMaster($reservation, $lockedUnit, $target)) {
+            if ($data->purpose === PaymentPurpose::Advance && ! $data->guestPaysTaxes && $this->roomsGoToMaster($reservation, $lockedUnit, $target)) {
                 return PaymentResult::refused(PaymentResult::REFUSAL_ADVANCE_ON_MASTER);
             }
 

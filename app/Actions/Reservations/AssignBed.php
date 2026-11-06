@@ -21,7 +21,7 @@ class AssignBed
      * so two staff cannot give the same bed to two units. Every check runs before the write, so a refusal writes and
      * logs nothing. A unit that already has a bed is moved. See docs/12-reservations/05-booking-form.md.
      */
-    public function __invoke(User $actor, ReservationUnit $unit, Bed $bed): AssignmentResult
+    public function __invoke(?User $actor, ReservationUnit $unit, Bed $bed): AssignmentResult
     {
         return DB::transaction(function () use ($actor, $unit, $bed): AssignmentResult {
             $locked = ReservationUnit::query()->lockForUpdate()->findOrFail($unit->id);

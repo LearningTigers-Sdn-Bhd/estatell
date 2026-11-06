@@ -14,6 +14,7 @@ class RoomTypeData extends Data
     public function __construct(
         public int $id,
         public string $name,
+        public ?string $printLabel,
         public ?string $description,
         public SellUnit $sellUnit,
         public int $maxAdults,
@@ -30,6 +31,7 @@ class RoomTypeData extends Data
         return new self(
             id: $roomType->id,
             name: $roomType->name,
+            printLabel: $roomType->print_label,
             description: $roomType->description,
             sellUnit: $roomType->sell_unit,
             maxAdults: $roomType->max_adults,

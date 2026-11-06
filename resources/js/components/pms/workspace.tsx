@@ -15,7 +15,7 @@ function Panel({
         <section
             aria-label={label}
             className={cn(
-                'min-h-0 rounded-xl border bg-card p-1.5 lg:overflow-y-auto',
+                'min-h-0 min-w-0 overflow-x-auto rounded-xl border bg-card p-1.5 lg:overflow-y-auto',
                 className,
             )}
             {...props}
@@ -54,7 +54,7 @@ export function Workspace({
     return (
         <div
             className={cn(
-                'grid gap-1.5 transition-[grid-template-columns] duration-200 ease-out motion-reduce:transition-none lg:min-h-0 lg:flex-1 lg:grid-rows-[minmax(0,1fr)]',
+                'grid grid-cols-1 gap-1.5 transition-[grid-template-columns] duration-200 ease-out motion-reduce:transition-none lg:min-h-0 lg:flex-1 lg:grid-rows-[minmax(0,1fr)]',
                 list
                     ? hideAside
                         ? 'lg:grid-cols-[14rem_minmax(0,1fr)_0rem]'
@@ -66,14 +66,14 @@ export function Workspace({
         >
             <Panel
                 className={cn(
-                    'order-1 transition-[opacity,margin] duration-200 ease-out motion-reduce:transition-none lg:order-3',
+                    'order-1 transition-[opacity,margin] duration-200 ease-out motion-reduce:transition-none lg:order-3 lg:overflow-x-hidden',
                     hideAside &&
                         'pointer-events-none max-lg:hidden lg:-ms-1.5 lg:overflow-hidden lg:border-0 lg:p-0 lg:opacity-0',
                 )}
                 label={asideLabel}
                 inert={hideAside}
             >
-                <div className="lg:w-77">{aside}</div>
+                <div className={cn(hideAside && 'lg:w-77')}>{aside}</div>
             </Panel>
             {list && (
                 <Panel className="order-2 lg:order-1" label="Choose">

@@ -39,6 +39,7 @@ type Rule = {
     min_nights: string;
     discount_type: string;
     value: string;
+    per_room?: boolean;
     from_night: string;
 };
 type View = 'night' | 'length';

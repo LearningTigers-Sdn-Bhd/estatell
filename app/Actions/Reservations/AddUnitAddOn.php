@@ -37,7 +37,7 @@ class AddUnitAddOn
      * business date. On a CheckedIn day use unit the add-on posts at once through `PostCharge`, because the guest leaves
      * before the night audit, and a posting refusal removes the row and is returned. See docs/12-reservations/04-add-ons.md.
      */
-    public function __invoke(User $actor, ReservationUnit $unit, NewAddOnData $data): AddOnResult
+    public function __invoke(?User $actor, ReservationUnit $unit, NewAddOnData $data): AddOnResult
     {
         return DB::transaction(function () use ($actor, $unit, $data): AddOnResult {
             $locked = ReservationUnit::query()->lockForUpdate()->findOrFail($unit->id);

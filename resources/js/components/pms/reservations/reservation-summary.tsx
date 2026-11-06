@@ -1,14 +1,10 @@
 import { Link } from '@inertiajs/react';
 import {
+    CalendarClock,
     BedDouble,
     Building2,
-    CalendarArrowDown,
-    CalendarArrowUp,
     CalendarPlus,
-    ExternalLink,
-    Globe,
     HandCoins,
-    Hash,
     Landmark,
     Mail,
     Moon,
@@ -22,9 +18,11 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { BookingSourceBadge } from '@/components/pms/booking-source-badge';
 import { DateText } from '@/components/pms/date-text';
 import { MoneyText } from '@/components/pms/money-text';
+import { AgentBillBreakdown } from '@/components/pms/payments/agent-bill-breakdown';
+import { PaymentProofReview } from '@/components/pms/payments/payment-proof-review';
+import { PaymentScheduleList } from '@/components/pms/payments/payment-schedule-list';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { show as showCompany } from '@/routes/finance/city-ledger/companies';
@@ -44,27 +42,36 @@ function Row({
 }) {
     return (
         <div className="flex items-baseline justify-between gap-3 text-sm">
-            <dt className="flex items-center gap-2 text-muted-foreground">
+            <dt className="flex shrink-0 items-center gap-2 text-muted-foreground">
                 <Icon aria-hidden className="size-4 shrink-0 self-center" />
                 {label}
             </dt>
-            <dd className="text-right">{children}</dd>
+            <dd className="min-w-0 text-right wrap-break-word">{children}</dd>
         </div>
     );
 }
 
 /**
- * The side card of the reservation page: the booker, the stay figures and the booking details.
+ * The side card of the reservation page: the booker, the money figures and the booking details.
+ * The stay dates, Ref, source and Ext. ref sit in the page header, so they are not repeated here.
  * Phone, email and the link to the guest are sent only to staff who may view guests.
  */
 export function ReservationSummary({
     reservation,
     money,
+    paymentSchedule = null,
+    agentBill = null,
+    paymentProofs = [],
+    proofPaymentMethods = [],
     canViewCompany,
     currency,
 }: {
     reservation: Reservation;
     money: Money;
+    paymentSchedule?: App.Data.Reservations.PaymentScheduleData | null;
+    agentBill?: App.Data.Reservations.AgentBillData | null;
+    paymentProofs?: App.Data.Payments.PaymentProofData[];
+    proofPaymentMethods?: { value: string; label: string }[];
     canViewCompany: boolean;
     currency: App.Data.Property.CurrencyData | null;
 }) {
@@ -120,27 +127,6 @@ export function ReservationSummary({
             </section>
             <Separator />
             <dl className="flex flex-col gap-2">
-                <Row icon={CalendarArrowDown} label="Earliest arrival">
-                    <DateText date={reservation.firstArrival} />
-                </Row>
-                <Row icon={CalendarArrowUp} label="Latest departure">
-                    <DateText date={reservation.lastDeparture} />
-                </Row>
-                <Row icon={BedDouble} label="Units">
-                    <span className="tabular-nums">
-                        {reservation.unitCount}
-                    </span>
-                </Row>
-                <Row
-                    icon={Moon}
-                    label={
-                        reservation.stayLabel === null ? 'Room nights' : 'Stay'
-                    }
-                >
-                    <span className="tabular-nums">
-                        {reservation.stayLabel ?? reservation.roomNights}
-                    </span>
-                </Row>
                 <Row icon={Wallet} label="Total">
                     <MoneyText amount={money.total} currency={currency} />
                 </Row>
@@ -161,6 +147,7 @@ export function ReservationSummary({
                 >
                     <span
                         className={cn(
+                            'font-semibold',
                             !money.isCredit &&
                                 Number(money.stillToPay) > 0 &&
                                 'text-destructive',
@@ -173,37 +160,60 @@ export function ReservationSummary({
                     </span>
                 </Row>
             </dl>
+            {(paymentSchedule !== null || paymentProofs.length > 0) && (
+                <>
+                    <Separator />
+                    <section className="flex flex-col gap-2">
+                        <h2 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                            <CalendarClock aria-hidden className="size-4" />
+                            Payment schedule
+                        </h2>
+                        {agentBill !== null && (
+                            <AgentBillBreakdown
+                                bill={agentBill}
+                                agentLabel="Agent pays"
+                                currency={currency}
+                            />
+                        )}
+                        {paymentSchedule !== null && (
+                            <PaymentScheduleList
+                                schedule={paymentSchedule}
+                                currency={currency}
+                            />
+                        )}
+                        {paymentProofs.length > 0 && (
+                            <PaymentProofReview
+                                reservationId={reservation.id}
+                                proofs={paymentProofs}
+                                methods={proofPaymentMethods}
+                                currency={currency}
+                            />
+                        )}
+                    </section>
+                </>
+            )}
             <Separator />
             <dl className="flex flex-col gap-2">
+                <Row icon={BedDouble} label="Units">
+                    <span className="tabular-nums">
+                        {reservation.unitCount}
+                    </span>
+                </Row>
+                <Row
+                    icon={Moon}
+                    label={
+                        reservation.stayLabel === null ? 'Room nights' : 'Stay'
+                    }
+                >
+                    <span className="tabular-nums">
+                        {reservation.stayLabel ?? reservation.roomNights}
+                    </span>
+                </Row>
                 {reservation.unitCount > 1 && (
                     <Row icon={Receipt} label="Billing">
                         {reservation.billingModeLabel}
                     </Row>
                 )}
-                <Row icon={Hash} label="Ref">
-                    <strong className="font-semibold">
-                        {reservation.reference}
-                    </strong>
-                </Row>
-                <Row icon={Globe} label="Source">
-                    <span className="inline-flex items-center gap-1.5">
-                        <BookingSourceBadge
-                            source={reservation.source}
-                            size="sm"
-                            tooltip={false}
-                        />
-                        {reservation.source.name}
-                    </span>
-                </Row>
-                <Row icon={ExternalLink} label="Ext. ref">
-                    {reservation.externalReference === null ? (
-                        <span className="text-muted-foreground">None</span>
-                    ) : (
-                        <strong className="font-semibold break-all">
-                            {reservation.externalReference}
-                        </strong>
-                    )}
-                </Row>
                 <Row icon={Building2} label="Company">
                     {reservation.companyId === null ? (
                         <span className="text-muted-foreground">None</span>

@@ -1,0 +1,73 @@
+<?php
+
+namespace App\Http\Middleware;
+
+use App\Actions\ApiAccess\RecordKioskUse;
+use App\Features\Kiosks;
+use App\Http\Responses\ApiError;
+use App\Models\Kiosk;
+use Closure;
+use Illuminate\Auth\RequestGuard;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
+use Laravel\Pennant\Feature;
+use Symfony\Component\HttpFoundation\Response;
+
+/**
+ * Bearer-token check for the device and integration API (`api.token:{scope}`). Sanctum finds the token; this class
+ * keeps the rest, so every refusal is our 401 JSON error. This app's exception handler maps an authentication exception
+ * to `500 server_error`; that is not Sanctum's default response. The route names the ability it needs. The kiosk's
+ * property is the only property the request can see: controllers read `$request->attributes->get('kiosk')->property`
+ * and never take a property from the URL or body.
+ */
+class AuthenticateApiToken
+{
+    public function __construct(private RecordKioskUse $recordUse) {}
+
+    public function handle(Request $request, Closure $next, string $scope): Response
+    {
+        $kiosk = $this->usableKiosk($request);
+
+        if ($kiosk === null || $kiosk->tokenCant($scope)) {
+            $key = 'api-token-rejections:'.(string) $request->ip();
+
+            if (RateLimiter::hit($key, 60) > 120) {
+                return ApiError::response('rate_limited', __('Too many requests. Wait a moment and try again.'), 429,
+                    ['Retry-After' => (string) RateLimiter::availableIn($key)]);
+            }
+
+            return ApiError::response(
+                str_starts_with($scope, 'kiosk:') ? 'kiosk_unauthorized' : 'unauthorized',
+                __('This device is not signed in.'),
+                401,
+            );
+        }
+
+        $request->attributes->set('kiosk', $kiosk);
+        ($this->recordUse)($kiosk);
+
+        return $next($request);
+    }
+
+    /**
+     * The kiosk behind the bearer token, or null when it is unknown, expired or revoked, its property is suspended or the
+     * property's Kiosks feature is off.
+     * The guard remembers its user for as long as the application lives, so it is cleared for each request.
+     */
+    private function usableKiosk(Request $request): ?Kiosk
+    {
+        /** @var RequestGuard $guard */
+        $guard = Auth::guard('sanctum');
+        /** @var mixed $kiosk Static analysis assumes the guard returns a User, but Sanctum returns the token owner. */
+        $kiosk = $guard->setRequest($request)->forgetUser()->user();
+
+        if (! $kiosk instanceof Kiosk || $kiosk->revoked_at !== null) {
+            return null;
+        }
+
+        $property = $kiosk->loadMissing('property')->property;
+
+        return $property->suspended_at === null && Feature::for($property)->active(Kiosks::class) ? $kiosk : null;
+    }
+}

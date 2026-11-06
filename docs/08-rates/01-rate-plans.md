@@ -17,6 +17,7 @@ rate_plans              id, property_id, name, description, pricing_basis (Prici
                         early_departure_policy (EarlyDeparturePolicy),
                         company_access (CompanyAccess, default Everyone),
                         company_at_desk, company_in_portal (booleans, default true),
+                        min_rooms, max_rooms (nullable, 1–200),
                         position, archived_at, timestamps
 rate_plan_room_types    id, rate_plan_id, room_type_id, timestamps
                         unique (rate_plan_id, room_type_id)
@@ -25,7 +26,7 @@ rate_plan_child_prices  id, rate_plan_id, property_age_group_id,
                         unique (rate_plan_id, property_age_group_id)
 rate_plan_stay_discounts
                         id, rate_plan_id, min_nights, discount_type (StayDiscountType),
-                        value, from_night, timestamps
+                        value, per_room (default false), from_night, timestamps
                         unique (rate_plan_id, min_nights)
 ```
 
@@ -187,6 +188,28 @@ Unlinking a room type with no future reservations deletes the pair's future `rat
 
 A plan or pair synced to Channex but not mapped on an active OTA is removed from Channex first, then archived or unlinked. See [Archive guard](../21-channels/02-mappings-and-capability.md#archive-guard).
 
+## Rooms per booking
+
+FIT and group rates: a plan can say how many rooms a booking needs to use it. Sand Bay sets FIT to 1–4 rooms and GROUP to 5 or more. GROUP has its own prices or follows FIT with a percent off as a [derived plan](04-derived-rate-plans.md). wastays had no such rule.
+
+| Plan                       | Min rooms | Max rooms | 3-room booking | 6-room booking |
+| -------------------------- | --------- | --------- | -------------- | -------------- |
+| Malaysian Agent Rate (FIT) | 1         | 4         | Offered        | Not offered    |
+| Malaysian Agent Group Rate | 5         | —         | Not offered    | Offered        |
+| Basic Rate (no limit)      | —         | —         | Offered        | Offered        |
+
+With **Larger bookings use: Malaysian Agent Group Rate** on the FIT plan, the 5th room moves every FIT room of the booking to the group rate.
+
+- **Columns:** `rate_plans.min_rooms` and `max_rooms`, nullable (no limit), 1–200, CHECK min ≤ max. Set on the Details tab as **Rooms per booking: from [ ] to [ ]**. Not offered on Per bed and Day use plans.
+- **Count:** the rooms of the booking that hold inventory on a Room room type, on any plan. A dorm bed does not count.
+- **Booking form:** `plansFor()` hides a plan whose range does not hold the booking's room count (`roomsInBooking()`), from `minRooms` and `maxRooms` on `RatePlanOptionData`, with no request. A plan already picked on a line stays in its list, so the server's message shows on the line.
+- **Server:** `AddUnit` refuses `rooms_below_min` ("This rate needs more rooms in one booking. Pick another rate.") or `rooms_above_max` ("This rate is for fewer rooms in one booking. Pick the group rate."). `CreateReservation` passes the room count of the whole booking; Add unit counts the reservation's live rooms plus the new one. The company portal books through `CreateReservation`, so the same check applies.
+- **Larger bookings use** (`rate_plans.group_rate_plan_id`, nullable, `nullOnDelete`; CHECK it is not the plan itself and the plan has a Max rooms). On the FIT plan, pick the group rate. The request accepts an active plan of the property, not Per bed or Day use, whose Min rooms is above this plan's Max rooms; the Select lists only plans with a Min rooms, as "Agent Group (from 5 rooms)". Clearing Max rooms clears the link.
+- **Setting it up, in this order:** 1. On the group plan, set Rooms per booking from 5 and leave "to" empty, then save. 2. On the FIT plan, set 1 to 4, pick the group plan in **Larger bookings use**, then save. While no other active plan has a Min rooms the list is empty, and the field says so.
+- **The switch** (`groupRateSwitch()` and `switchGroupRates()` in `booking-lines.ts`): when the booking's room count changes, a line whose plan no longer fits moves to the plan's group rate, or back to the FIT rate that names its plan when the booking shrinks. The new plan must fit the count, sell the line's room type and be bookable (open to the booking's company at the desk; listed for the agent in the portal). An Alert says "4 rooms moved to Agent Group for a booking of 5 rooms." Staff can pick another plan on a line afterwards; the switch runs again only when the room count changes. The portal counts the Rooms of each room line and also hides plans that do not fit. The server does not switch: it still refuses a plan that does not fit.
+- **Channels:** ignored (`fromChannel`).
+- **Later changes:** a room cancelled or added later does not re-check the other rooms, which keep their plan and price.
+
 ## Long-stay discounts
 
 "Stay at least N nights, get X off", on one rate plan.
@@ -202,6 +225,7 @@ A plan or pair synced to Channex but not mapped on an active OTA is removed from
 - A night never goes below zero.
 - `RateQuoteService` applies the rule after the pricing strategy, because a night's price depends on the stay length (see [Pricing strategies](03-pricing-strategies.md)).
 - A Percent is taken off the night total (base, extra guests and children, and supplement) and rounded half up. An Amount is taken off per guest (adults and children) on PerGuest plans, per bed on PerBed plans and per room on PerRoom plans.
+- **Taken off** (PerGuest plans, Amount rules only): **Each guest** (default, as wastays) or **The room** (`per_room`), which takes the Amount once per room each night. Example, 2 adults, 3 nights at RM1,250, "2+ nights, RM200 off from night 2": each guest gives 1,250 + 850 + 850 = RM2,950; the room gives 1,250 + 1,050 + 1,050 = RM3,350. `SaveRatePlanStayDiscounts` stores `per_room` false on every other rule and plan. The Discounts tab shows the column only on PerGuest plans; a Percent row reads "Night total".
 - Direct bookings only. Long-stay discounts are never sent to the channel manager.
 - `SaveRatePlanStayDiscounts` saves the whole list in one transaction and matches rows by `min_nights`. It refuses an archived or Package plan. A save that changes nothing is not logged. The database checks `min_nights` ≥ 2, `from_night` from 1 to `min_nights`, Percent 1–100 and Amount above 0.
 - Example: "3+ nights, 20% off from night 2". A 3-night stay at RM200 a night costs 200 + 160 + 160 = RM520.
@@ -244,7 +268,7 @@ A full page with tab links (one URL per tab): **Details · Room types · Pricing
 
 | Tab           | Content                                                                                                                                             |
 | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Details       | Name, description (shown to guests and company users), extra guest charges, single supplement                                                       |
+| Details       | Name, description (shown to guests and company users), rooms per booking, extra guest charges, single supplement                                    |
 | Room types    | A checkbox per room type. Room types of the other family are shown disabled, with the reason in a tooltip.                                          |
 | Pricing rules | Step 1: "Set prices directly" or "Follow another plan". Package plans show package prices instead, or follow a package with a percent.              |
 | Saved prices  | Read only. The rate calendar for this plan alone, for every plan type. See [Saved prices tab](02-daily-rates-and-restrictions.md#saved-prices-tab). |

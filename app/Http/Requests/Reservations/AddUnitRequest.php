@@ -3,10 +3,14 @@
 namespace App\Http\Requests\Reservations;
 
 use App\Data\Reservations\NewUnitData;
+use App\Enums\SellUnit;
 use App\Enums\StayType;
+use App\Models\Property;
+use App\Models\RoomType;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class AddUnitRequest extends FormRequest
 {
@@ -51,6 +55,32 @@ class AddUnitRequest extends FormRequest
         return [
             'override_total.regex' => __('Enter an amount such as 840.00.'),
         ];
+    }
+
+    /**
+     * The room type's limit, the same as the booking form. A dorm has no limit.
+     *
+     * @return array<int, callable(Validator): void>
+     */
+    public function after(): array
+    {
+        return [function (Validator $validator): void {
+            /** @var Property $property */
+            $property = $this->route('property');
+            $roomType = RoomType::query()->where('property_id', $property->id)->find($this->integer('room_type_id'));
+
+            if ($roomType === null || $roomType->sell_unit === SellUnit::Bed) {
+                return;
+            }
+
+            if ($this->integer('adults') > $roomType->max_adults) {
+                $validator->errors()->add('adults', __('This room type takes up to :max adults.', ['max' => $roomType->max_adults]));
+            }
+
+            if (count((array) $this->input('child_ages', [])) > $roomType->max_children) {
+                $validator->errors()->add('child_ages', __('This room type takes up to :max children.', ['max' => $roomType->max_children]));
+            }
+        }];
     }
 
     public function toUnitData(): NewUnitData

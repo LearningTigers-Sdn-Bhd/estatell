@@ -51,6 +51,7 @@ class UpdatePortalGuestsRequest extends FormRequest
             'guests.*.guest_id' => ['required', 'integer', 'distinct'],
             'guests.*.full_name' => ['required', 'string', 'max:150'],
             'guests.*.phone' => ['nullable', 'string', 'max:30', (new Phone)->country($this->phoneRegion())->international()],
+            'guests.*.nationality_code' => ['nullable', 'string', 'size:2'],
             'guests.*.id_type' => ['nullable', 'required_with:guests.*.id_number', Rule::enum(IdentityDocumentType::class)],
             'guests.*.id_number' => [
                 'nullable', 'required_with:guests.*.id_type', 'string', 'min:4', 'max:40',
@@ -86,7 +87,7 @@ class UpdatePortalGuestsRequest extends FormRequest
     }
 
     /**
-     * @return list<array{guest_id: int, full_name: string, phone: ?string, id_type: ?string, id_number: ?string}>
+     * @return list<array{guest_id: int, full_name: string, phone: ?string, nationality_code: ?string, id_type: ?string, id_number: ?string}>
      */
     public function guests(): array
     {
@@ -94,6 +95,7 @@ class UpdatePortalGuestsRequest extends FormRequest
             'guest_id' => (int) $guest['guest_id'],
             'full_name' => trim($guest['full_name']),
             'phone' => filled($guest['phone'] ?? null) ? (new PhoneNumber($guest['phone'], $this->phoneRegion()))->formatE164() : null,
+            'nationality_code' => filled($guest['nationality_code'] ?? null) ? mb_strtoupper($guest['nationality_code']) : null,
             'id_type' => $guest['id_type'] ?? null,
             'id_number' => $guest['id_number'] ?? null,
         ], $this->validated('guests')));

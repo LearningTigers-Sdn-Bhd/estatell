@@ -1,3 +1,4 @@
+import { StatementBookingPayments } from '@/components/pms/city-ledger/statement-booking-payments';
 import { router } from '@inertiajs/react';
 import { Printer } from 'lucide-react';
 import { useState } from 'react';
@@ -243,6 +244,10 @@ export function CompanyStatement({
                     ))}
                 </dl>
             </div>
+            <StatementBookingPayments
+                payments={data.bookingPayments}
+                currency={currency}
+            />
         </section>
     );
 }

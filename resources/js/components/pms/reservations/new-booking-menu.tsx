@@ -7,12 +7,13 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { newMethod, walkIn } from '@/routes/reservations';
+import { importMethod, newMethod, walkIn } from '@/routes/reservations';
 
 /**
- * The New menu of the Reservations list: a booking taken ahead, or a walk-in at the desk.
+ * The New menu of the Reservations list: a booking taken ahead, a walk-in at the desk, or (with `folio.manual`) an
+ * import of the arrival list from the old PMS.
  */
-export function NewBookingMenu() {
+export function NewBookingMenu({ canImport = false }: { canImport?: boolean }) {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger className={buttonVariants()}>
@@ -27,6 +28,13 @@ export function NewBookingMenu() {
                 <DropdownMenuItem render={<Link href={walkIn.url()} />}>
                     Walk-in
                 </DropdownMenuItem>
+                {canImport && (
+                    <DropdownMenuItem
+                        render={<Link href={importMethod.url()} />}
+                    >
+                        Import arrivals
+                    </DropdownMenuItem>
+                )}
             </DropdownMenuContent>
         </DropdownMenu>
     );

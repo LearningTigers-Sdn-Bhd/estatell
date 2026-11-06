@@ -28,6 +28,10 @@ class RoomRequest extends FormRequest
             'number' => trim((string) $this->input('number')),
             'room_group_id' => filled($this->input('room_group_id')) ? $this->input('room_group_id') : null,
         ]);
+
+        if ($this->has('print_label')) {
+            $this->merge(['print_label' => filled($this->input('print_label')) ? mb_strtoupper(trim((string) $this->input('print_label'))) : null]);
+        }
     }
 
     /**
@@ -40,6 +44,7 @@ class RoomRequest extends FormRequest
         $current = $this->route('room');
 
         return [
+            'print_label' => ['sometimes', 'nullable', 'string', 'max:12'],
             'number' => [
                 'required', 'string', 'max:30',
                 function (string $attribute, mixed $value, Closure $fail) use ($property, $current): void {

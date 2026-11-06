@@ -121,7 +121,7 @@ class WalkInPayment
             taxes: $taxRows,
             taxesTotal: (string) $taxesTotal->toScale(2),
             deposit: $depositUnits === 0 ? null : ['amount' => (string) BigDecimal::of($depositAmount)->toScale(2), 'units' => $depositUnits, 'total' => (string) $deposit->toScale(2)],
-            totalWithRoomCharges: (string) ($hidden ? $deposit : $roomCharges->plus($deposit))->toScale(2),
+            totalWithRoomCharges: (string) ($hidden ? $taxesTotal->plus($deposit) : $roomCharges->plus($deposit))->toScale(2),
             totalWithoutRoomCharges: (string) $taxesTotal->plus($deposit)->toScale(2),
         );
     }

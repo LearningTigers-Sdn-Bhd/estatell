@@ -2,6 +2,7 @@
 
 namespace App\Services\Portal;
 
+use App\Actions\Boats\BoatTripResult;
 use App\Actions\Portal\PortalBookingResult;
 use App\Actions\Reservations\BookingResult;
 use App\Actions\Reservations\ReservationResult;
@@ -84,6 +85,8 @@ class PortalBookingMessages
             PortalBookingResult::REFUSAL_PAST_CUT_OFF => [self::FORM, __('The free cancellation period has ended. Ask the property to cancel.')],
             PortalBookingResult::REFUSAL_NOT_CANCELLABLE => [self::FORM, __('This booking cannot be cancelled or have a cancellation requested now.')],
             PortalBookingResult::REFUSAL_ALREADY_REQUESTED => [self::FORM, __('You already asked the property to cancel this booking.')],
+            BoatTripResult::REFUSAL_DEPARTURE_NOT_FOUND => ['boat_in', __('This boat is not available. Pick another.')],
+            BoatTripResult::REFUSAL_TIME_REQUIRED => ['boat_in', __('Enter the boat time for a charter or own boat.')],
             default => $this->generic($code),
         };
     }

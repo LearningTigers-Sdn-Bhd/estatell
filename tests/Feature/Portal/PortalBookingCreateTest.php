@@ -2,18 +2,28 @@
 
 use App\Enums\BillingMode;
 use App\Enums\BookingSourceType;
+use App\Enums\FolioType;
 use App\Enums\IdentityDocumentType;
 use App\Enums\PackageUnit;
 use App\Enums\PricingBasis;
 use App\Enums\ReservationStatus;
+use App\Enums\RoutingRuleSource;
+use App\Enums\SystemTransactionCode;
+use App\Enums\TaxRateType;
+use App\Models\ChargeItem;
 use App\Models\Company;
+use App\Models\FolioRoutingRule;
 use App\Models\Guest;
 use App\Models\Rate;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
+use App\Models\Tax;
+use App\Models\TransactionCode;
 use App\Models\UnitAddOn;
 use App\Models\User;
 use App\Notifications\PortalBookingCreated;
+use App\Services\Folio\FolioRouter;
+use App\Services\Reservations\AgentBill;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Spatie\Activitylog\Models\Activity;
@@ -51,6 +61,47 @@ test('a booking is Confirmed, billed to the company and sourced as Company / Tra
     $log = Activity::query()->where('event', 'reservation.created')->sole();
 
     expect($log->causer_id)->toBe($setup['portalUser']->id);
+});
+
+test('the company pays the auto-add items and the guest keeps any other extra', function () {
+    $setup = portalBookingSetup();
+    TransactionCode::factory()->for($setup['property'])->system(SystemTransactionCode::RoomRevenue)->create();
+    $autoItem = portalAutoAddOn($setup['property']);
+    $otherItem = ChargeItem::factory()->for($setup['property'])->create(['name' => 'Sea fishing']);
+
+    portalBook($setup, portalBookingBody($setup, [portalRoomLine($setup)], ['expected_total' => '210.00']))->assertSessionHasNoErrors();
+
+    $reservation = Reservation::query()->sole();
+    $unit = $reservation->units()->sole();
+    $master = $reservation->folios()->where('type', FolioType::Master)->sole();
+    $bill = app(AgentBill::class)->for($reservation);
+
+    expect(app(FolioRouter::class)->targetFor($unit, $autoItem->transactionCode)?->id)->toBe($master->id)
+        ->and(app(FolioRouter::class)->targetFor($unit, $otherItem->transactionCode)?->id)->not->toBe($master->id)
+        ->and(collect($bill->agentLines)->pluck('label')->all())->toContain('Cleaning fee')
+        ->and(collect($bill->guestLines)->pluck('label')->all())->not->toContain('Cleaning fee')
+        ->and(FolioRoutingRule::query()->where('transaction_code_id', $autoItem->transaction_code_id)->sole()->source)->toBe(RoutingRuleSource::Manual);
+});
+
+test('tourism tax follows each room\'s own guest, and a missing nationality is flagged until the company adds it', function () {
+    $setup = portalBookingSetup();
+    $room = TransactionCode::factory()->for($setup['property'])->system(SystemTransactionCode::RoomRevenue)->create();
+    $tax = Tax::factory()->for($setup['property'])->create(['name' => 'Tourism tax', 'rate_type' => TaxRateType::Flat, 'rate' => '10.00', 'foreign_guests_only' => true]);
+    $tax->applicableTransactionCodes()->attach($room);
+
+    portalBook($setup, portalBookingBody($setup, [portalRoomLine($setup), portalRoomLine($setup)], [
+        'guests' => [['full_name' => 'Tan', 'nationality_code' => 'MY'], ['full_name' => 'Wang', 'nationality_code' => 'CN']],
+        'expected_total' => '400.00',
+    ]))->assertSessionHasNoErrors();
+
+    $bill = app(AgentBill::class)->for(Reservation::query()->sole());
+    $taxLine = collect([...$bill->agentLines, ...$bill->guestLines])->firstWhere('label', 'Tourism tax');
+
+    expect($taxLine['amount'])->toBe('20.00')->and($bill->nationalityMissing)->toBeFalse();
+
+    Reservation::query()->sole()->booker->forceFill(['nationality_code' => null])->save();
+
+    expect(app(AgentBill::class)->for(Reservation::query()->sole())->nationalityMissing)->toBeTrue();
 });
 
 test('the reservation staff are notified after a booking', function () {

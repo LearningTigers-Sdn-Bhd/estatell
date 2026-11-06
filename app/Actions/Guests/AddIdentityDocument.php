@@ -15,9 +15,10 @@ class AddIdentityDocument
      * Add an ID document with its optional scans. Returns null when the guest was merged into another guest
      * or anonymized, because those profiles are closed.
      *
+     * @param  User|null  $actor  Null when a device (the kiosk) saves the document.
      * @param  IdentityDocumentInputData  $data  The validated document fields, with the number normalized.
      */
-    public function __invoke(User $actor, Guest $guest, IdentityDocumentInputData $data, ?UploadedFile $frontScan = null, ?UploadedFile $backScan = null): ?GuestIdentityDocument
+    public function __invoke(?User $actor, Guest $guest, IdentityDocumentInputData $data, ?UploadedFile $frontScan = null, ?UploadedFile $backScan = null): ?GuestIdentityDocument
     {
         return DB::transaction(function () use ($actor, $guest, $data, $frontScan, $backScan): ?GuestIdentityDocument {
             $guest = Guest::query()->lockForUpdate()->findOrFail($guest->id);

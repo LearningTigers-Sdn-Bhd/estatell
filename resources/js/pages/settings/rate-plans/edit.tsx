@@ -1,4 +1,5 @@
 import { Head } from '@inertiajs/react';
+import type { EnumOption } from '@/components/pms/enum-select';
 import { DetailsForm } from '@/components/pms/rate-plans/details-form';
 import {
     RatePlanShell,
@@ -11,10 +12,12 @@ export default function RatePlanEdit({
     ratePlan,
     currency,
     nightsLockedReason,
+    groupRateOptions,
 }: {
     ratePlan: RatePlan;
     currency: App.Data.Property.CurrencyData;
     nightsLockedReason: string | null;
+    groupRateOptions: EnumOption[];
 }) {
     return (
         <>
@@ -24,6 +27,7 @@ export default function RatePlanEdit({
                     ratePlan={ratePlan}
                     currency={currency}
                     nightsLockedReason={nightsLockedReason}
+                    groupRateOptions={groupRateOptions}
                 />
             </RatePlanShell>
         </>

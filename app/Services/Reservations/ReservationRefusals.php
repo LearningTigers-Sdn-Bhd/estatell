@@ -7,6 +7,7 @@ use App\Actions\Folio\FolioStatusResult;
 use App\Actions\Folio\PostingResult;
 use App\Actions\FrontDesk\UnitStayResult;
 use App\Actions\Reservations\AddOnResult;
+use App\Actions\Reservations\ArrivalImportResult;
 use App\Actions\Reservations\AssignmentResult;
 use App\Actions\Reservations\AttachGuestResult;
 use App\Actions\Reservations\BookingResult;
@@ -78,6 +79,21 @@ class ReservationRefusals
         $field = (string) array_key_first($errors);
 
         return in_array($field, ['night_ids', 'price', 'reason'], true) ? $errors : [self::FORM => $errors[$field]];
+    }
+
+    /**
+     * The message of a refused Change guests: its own codes, else the shared unit and quote messages.
+     */
+    public function partyMessage(string $code): string
+    {
+        return match ($code) {
+            UnitPartyChangePreview::REFUSAL_UNIT_NOT_OPEN => __('Only a confirmed or checked-in room can change its guests.'),
+            UnitPartyChangePreview::REFUSAL_DAY_USE => __('A day use booking keeps its guests. Cancel it and book again.'),
+            UnitPartyChangePreview::REFUSAL_BED_UNIT => __('A bed takes one guest. Add or remove beds instead.'),
+            UnitPartyChangePreview::REFUSAL_TOO_MANY_GUESTS => __('This room type takes fewer guests.'),
+            UnitPartyChangePreview::REFUSAL_NOTHING_CHANGED => __('The guests are the same as now.'),
+            default => (string) array_values($this->unitErrors($code))[0],
+        };
     }
 
     /**
@@ -199,11 +215,16 @@ class ReservationRefusals
         $day = $date?->format('d M Y') ?? '';
 
         return match ($code) {
+            ArrivalImportResult::REFUSAL_HAS_PROBLEMS => [self::FORM, __('Some rows have problems. Fix the file and upload it again.')],
+            ArrivalImportResult::REFUSAL_NOTHING_TO_IMPORT => [self::FORM, __('Nothing to import: every row is skipped or already imported.')],
+            ArrivalImportResult::REFUSAL_NO_OLD_SYSTEM_METHOD => [self::FORM, __('This property has no Old system payment method, so deposits cannot be recorded.')],
             ReservationResult::REFUSAL_RESERVATION_CLOSED => [self::FORM, __('This reservation is closed, so it cannot change.')],
             ReservationResult::REFUSAL_BOOKING_SOURCE_NOT_AVAILABLE => ['booking_source_id', __('This booking source is not available. Pick another.')],
             ReservationResult::REFUSAL_COMPANY_NOT_AVAILABLE => ['company_id', __('This company is not available. Pick an active company.')],
             ReservationResult::REFUSAL_RATE_PLAN_NOT_LINKED_TO_COMPANY => ['rate_plan_id', __('This rate plan is for certain companies only. Pick one of them on the reservation first.')],
             ReservationResult::REFUSAL_COMPANY_PLAN_CONFLICT => ['company_id', __('Units use plans only the old company can book.')],
+            ReservationResult::REFUSAL_ROOMS_BELOW_MIN => ['rate_plan_id', __('This rate needs more rooms in one booking. Pick another rate.')],
+            ReservationResult::REFUSAL_ROOMS_ABOVE_MAX => ['rate_plan_id', __('This rate is for fewer rooms in one booking. Pick the group rate.')],
             ReservationResult::REFUSAL_CREDIT_LIMIT_EXCEEDED => ['credit_override_reason', __('This company is over its credit limit.')],
             ReservationResult::REFUSAL_MASTER_HAS_PAYMENTS => ['company_id', __('Refund the :amount payment on the Master folio first, then change the company.', ['amount' => $detail])],
             ReservationResult::REFUSAL_MASTER_HAS_AR_INVOICE => ['company_id', __('Void invoice :number first, then change the company.', ['number' => $detail])],

@@ -19,16 +19,16 @@ import { Input } from '@/components/ui/input';
 
 /**
  * The columns of a line from `lg`: room type, rate plan, room or beds, adults, children, rate and remove. The header row in
- * `BookingLinesHeader` uses the same template. Below `lg` the cells stack and show their labels.
+ * `BookingLinesHeader` uses the same template. Below `2xl` the cells stack and show their labels.
  */
 export const LINE_COLUMNS =
-    'lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1.3fr)_minmax(0,1fr)_4.5rem_4.5rem_minmax(0,12rem)_2rem]';
+    'sm:grid-cols-2 2xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1.3fr)_minmax(0,1fr)_4.5rem_4.5rem_minmax(0,12rem)_2rem]';
 
-/** The header of the lines table. Hidden below `lg`, where each cell shows its own label. */
+/** The header of the lines table. Hidden below `2xl`, where each cell shows its own label. */
 export function BookingLinesHeader() {
     return (
         <div
-            className={`hidden gap-3 border-b bg-muted px-3 py-2 text-xs font-medium text-muted-foreground lg:grid ${LINE_COLUMNS}`}
+            className={`hidden gap-3 border-b bg-muted px-3 py-2 text-xs font-medium text-muted-foreground 2xl:grid ${LINE_COLUMNS}`}
         >
             <span>Room type</span>
             <span>Rate plan</span>
@@ -66,6 +66,7 @@ export function BookingLineRow({
     onQuote,
     goLiveDate = null,
     walkIn = false,
+    roomCount = null,
 }: {
     index: number;
     line: BookingLine;
@@ -86,10 +87,19 @@ export function BookingLineRow({
     goLiveDate?: string | null;
     /** A walk-in: the pickers mark rooms that are not ready. */
     walkIn?: boolean;
+    /** Rooms in the booking: plans with Rooms per booking that do not fit are hidden, except the one picked. */
+    roomCount?: number | null;
 }) {
     const roomType = roomTypeOf(line, options.roomTypes);
     const isBed = roomType?.isBed === true;
-    const plans = plansFor(options.ratePlans, line.room_type_id, companyId);
+    const plans = plansFor(
+        options.ratePlans,
+        line.room_type_id,
+        companyId,
+        false,
+        roomCount,
+        line.rate_plan_id,
+    );
     const quotable = isQuotable(line, arrival, departure);
     const { quote: quoted, loading } = useBookingQuote(
         line,
@@ -129,7 +139,7 @@ export function BookingLineRow({
             <Field data-invalid={!!error('room_type_id')}>
                 <FieldLabel
                     htmlFor={`line-${index}-room_type_id`}
-                    className="lg:sr-only"
+                    className="2xl:sr-only"
                 >
                     Room type
                 </FieldLabel>
@@ -157,7 +167,7 @@ export function BookingLineRow({
             <Field data-invalid={!!error('rate_plan_id')}>
                 <FieldLabel
                     htmlFor={`line-${index}-rate_plan_id`}
-                    className="lg:sr-only"
+                    className="2xl:sr-only"
                 >
                     Rate plan
                 </FieldLabel>
@@ -181,7 +191,7 @@ export function BookingLineRow({
                     <Field data-invalid={!!error('beds')}>
                         <FieldLabel
                             htmlFor={`line-${index}-beds`}
-                            className="lg:sr-only"
+                            className="2xl:sr-only"
                         >
                             Beds
                         </FieldLabel>
@@ -209,14 +219,14 @@ export function BookingLineRow({
                         />
                         <FieldError>{error('beds')}</FieldError>
                     </Field>
-                    <div className="max-lg:hidden lg:col-span-2" />
+                    <div className="max-2xl:hidden 2xl:col-span-2" />
                 </>
             ) : (
                 <>
                     <Field data-invalid={!!error('room_id')}>
                         <FieldLabel
                             htmlFor={`line-${index}-room_id`}
-                            className="lg:sr-only"
+                            className="2xl:sr-only"
                         >
                             Room
                         </FieldLabel>
@@ -238,7 +248,7 @@ export function BookingLineRow({
                     <Field data-invalid={!!error('adults')}>
                         <FieldLabel
                             htmlFor={`line-${index}-adults`}
-                            className="lg:sr-only"
+                            className="2xl:sr-only"
                         >
                             Adults
                         </FieldLabel>
@@ -264,7 +274,7 @@ export function BookingLineRow({
                     <Field>
                         <FieldLabel
                             htmlFor={`line-${index}-children`}
-                            className="lg:sr-only"
+                            className="2xl:sr-only"
                         >
                             Children
                         </FieldLabel>
@@ -296,7 +306,7 @@ export function BookingLineRow({
                 </>
             )}
 
-            <div className="flex items-center justify-between lg:justify-end">
+            <div className="flex items-center justify-between 2xl:justify-end">
                 <BookingQuoteCell
                     quote={quote}
                     goLiveDate={goLiveDate}
@@ -323,7 +333,7 @@ export function BookingLineRow({
             </div>
 
             {isBed && (
-                <div className="grid gap-3 sm:grid-cols-2 lg:col-span-full lg:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-2 2xl:col-span-full 2xl:grid-cols-3">
                     {beds.map((bedId, bed) => (
                         <Field
                             key={bed}
@@ -362,7 +372,7 @@ export function BookingLineRow({
 
             {!isBed && line.child_ages.length > 0 && (
                 <Field
-                    className="lg:col-span-full"
+                    className="2xl:col-span-full"
                     data-invalid={agesError !== undefined}
                 >
                     <FieldLabel>Children's ages</FieldLabel>
@@ -398,14 +408,14 @@ export function BookingLineRow({
             )}
 
             {quoteErrors.length > 0 && (
-                <p className="text-sm text-destructive lg:col-span-full">
+                <p className="text-sm text-destructive 2xl:col-span-full">
                     {quoteErrors.join(' ')}
                 </p>
             )}
             {quote &&
                 quoteErrors.length === 0 &&
                 quote.available < (isBed ? bedCount : 1) && (
-                    <p className="text-sm text-destructive lg:col-span-full">
+                    <p className="text-sm text-destructive 2xl:col-span-full">
                         {quote.available === 0
                             ? 'No unit is free for these dates.'
                             : `Only ${quote.available} free for these dates.`}

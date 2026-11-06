@@ -94,7 +94,8 @@ class NightPriceChangePreview
         }
 
         $liveLines = $this->liveLines($changing->filter(fn (UnitNight $night): bool => $charged->has('night:'.$night->id)));
-        $folios = Folio::query()->whereIn('id', $liveLines->pluck('folio_id')->unique()->all())->orderBy('id')->get();
+        $childFolioIds = FolioLine::query()->whereIn('parent_line_id', $liveLines->pluck('id')->all())->pluck('folio_id')->all();
+        $folios = Folio::query()->whereIn('id', array_unique([...$liveLines->pluck('folio_id')->all(), ...$childFolioIds]))->orderBy('id')->get();
 
         foreach ($folios as $folio) {
             if ($folio->status !== FolioStatus::Open) {

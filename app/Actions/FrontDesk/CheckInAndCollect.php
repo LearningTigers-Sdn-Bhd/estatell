@@ -101,6 +101,7 @@ class CheckInAndCollect
                 $amount,
                 $collect->reference,
                 $collect->idempotencyKey.':'.$part,
+                guestPaysTaxes: $part === 'taxes',
             ));
 
             if ($result->isRefused()) {

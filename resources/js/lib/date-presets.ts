@@ -52,7 +52,7 @@ export const defaultReportPresets: App.Enums.ReportDatePreset[] = [
  */
 export function reportDatePresets(
     businessDate: string,
-    keys: App.Enums.ReportDatePreset[] = defaultReportPresets,
+    keys: App.Enums.ReportDatePreset[] | null = defaultReportPresets,
 ): DateRangePreset[] {
     const today = parse(businessDate);
     const year = today.getUTCFullYear();
@@ -105,7 +105,7 @@ export function reportDatePresets(
         },
     };
 
-    return keys.map((key) => ranges[key]);
+    return (keys ?? defaultReportPresets).map((key) => ranges[key]);
 }
 
 /**

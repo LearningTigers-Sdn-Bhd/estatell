@@ -40,6 +40,11 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
  * @property string|null $credit_limit
  * @property int|null $payment_terms_days
  * @property bool $direct_bill_enabled
+ * @property bool $payment_schedule_enabled A company that pays per booking follows the payment schedule. Off for a trusted agent.
+ * @property int|null $agent_deposit_percent Null: the property's.
+ * @property int|null $agent_deposit_hours Null: the property's.
+ * @property int|null $agent_full_payment_days Null: the property's.
+ * @property bool $pays_collected_taxes The company pays the taxes flagged Collect at check-in; off means the guest pays them.
  * @property int|null $portal_cancel_cutoff_days
  * @property bool $profile_managed_by_company Set by the company in the portal: hotel staff may no longer edit the tax numbers and billing address.
  * @property CompanyStatus $status
@@ -51,7 +56,7 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
     'name', 'type', 'market', 'brn', 'tin', 'sst_registration_number', 'contact_email', 'contact_phone',
     'billing_address_line1', 'billing_address_line2', 'billing_city', 'billing_state_code',
     'billing_postal_code', 'billing_country_code', 'credit_limit', 'payment_terms_days',
-    'direct_bill_enabled', 'portal_cancel_cutoff_days', 'status', 'profile_managed_by_company',
+    'direct_bill_enabled', 'pays_collected_taxes', 'payment_schedule_enabled', 'agent_deposit_percent', 'agent_deposit_hours', 'agent_full_payment_days', 'portal_cancel_cutoff_days', 'status', 'profile_managed_by_company',
 ])]
 class Company extends Model
 {
@@ -68,6 +73,11 @@ class Company extends Model
             'credit_limit' => 'decimal:2',
             'payment_terms_days' => 'integer',
             'direct_bill_enabled' => 'boolean',
+            'pays_collected_taxes' => 'boolean',
+            'payment_schedule_enabled' => 'boolean',
+            'agent_deposit_percent' => 'integer',
+            'agent_deposit_hours' => 'integer',
+            'agent_full_payment_days' => 'integer',
             'portal_cancel_cutoff_days' => 'integer',
             'profile_managed_by_company' => 'boolean',
         ];
@@ -133,5 +143,15 @@ class Company extends Model
     public function scopeOrdered(Builder $query): void
     {
         $query->orderByRaw('lower(name)')->orderBy('id');
+    }
+
+    /**
+     * The payment slips the company sent for its account.
+     *
+     * @return HasMany<PaymentProof, $this>
+     */
+    public function paymentProofs(): HasMany
+    {
+        return $this->hasMany(PaymentProof::class);
     }
 }

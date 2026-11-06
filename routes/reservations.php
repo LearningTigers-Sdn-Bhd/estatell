@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\PermissionEnum;
+use App\Http\Controllers\Reservations\ArrivalImportController;
 use App\Http\Controllers\Reservations\BookingSummaryController;
 use App\Http\Controllers\Reservations\ReservationBoatTripController;
 use App\Http\Controllers\Reservations\ReservationBookerController;
@@ -8,6 +9,7 @@ use App\Http\Controllers\Reservations\ReservationBookingController;
 use App\Http\Controllers\Reservations\ReservationCityLedgerController;
 use App\Http\Controllers\Reservations\ReservationCompanyController;
 use App\Http\Controllers\Reservations\ReservationController;
+use App\Http\Controllers\Reservations\ReservationDoorPinController;
 use App\Http\Controllers\Reservations\ReservationFolioController;
 use App\Http\Controllers\Reservations\ReservationFolioLineController;
 use App\Http\Controllers\Reservations\ReservationFolioManualController;
@@ -17,9 +19,11 @@ use App\Http\Controllers\Reservations\ReservationGroupController;
 use App\Http\Controllers\Reservations\ReservationNightPriceController;
 use App\Http\Controllers\Reservations\ReservationOldFolioController;
 use App\Http\Controllers\Reservations\ReservationPaymentController;
+use App\Http\Controllers\Reservations\ReservationPaymentProofController;
 use App\Http\Controllers\Reservations\ReservationRoutingController;
 use App\Http\Controllers\Reservations\ReservationUnitAddOnController;
 use App\Http\Controllers\Reservations\ReservationUnitController;
+use App\Http\Controllers\Reservations\ReservationUnitPartyController;
 use App\Http\Controllers\Reservations\ReservationUnitStayController;
 use Illuminate\Support\Facades\Route;
 
@@ -36,6 +40,10 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
             Route::get('migrated', [ReservationBookingController::class, 'migrated'])->name('migrated');
             Route::get('old', [ReservationBookingController::class, 'old'])->name('old');
             Route::post('past', [ReservationBookingController::class, 'storePast'])->name('store-past');
+            Route::get('import', [ArrivalImportController::class, 'create'])->name('import');
+            Route::post('import/preview', [ArrivalImportController::class, 'preview'])->name('import.preview');
+            Route::post('import', [ArrivalImportController::class, 'store'])->name('import.store');
+            Route::get('import-template.{format}', [ArrivalImportController::class, 'template'])->name('import-template');
         });
         Route::get('free-units', [ReservationBookingController::class, 'freeUnits'])->name('free-units');
         Route::get('day-use-offers', [ReservationBookingController::class, 'dayUseOffers'])->name('day-use-offers');
@@ -104,7 +112,11 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                 Route::post('folio/move', [ReservationFolioMoveController::class, 'store'])->name('folio.move.store');
             });
 
+            Route::get('payment-proofs/{paymentProof}', [ReservationPaymentProofController::class, 'file'])->name('payment-proofs.file');
+
             Route::middleware('can:'.PermissionEnum::PaymentRecord->value)->group(function () {
+                Route::post('payment-proofs/{paymentProof}/accept', [ReservationPaymentProofController::class, 'accept'])->name('payment-proofs.accept');
+                Route::post('payment-proofs/{paymentProof}/reject', [ReservationPaymentProofController::class, 'reject'])->name('payment-proofs.reject');
                 Route::post('payments/quote', [ReservationPaymentController::class, 'quote'])->name('payments.quote');
                 Route::post('units/{unit}/payments', [ReservationPaymentController::class, 'storeForUnit'])->name('units.payments.store');
             });
@@ -136,6 +148,7 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                 Route::middleware('can:'.PermissionEnum::FrontDeskCheckIn->value)->group(function () {
                     Route::post('check-in/preview', [ReservationUnitStayController::class, 'checkInPreview'])->name('check-in-preview');
                     Route::post('check-in', [ReservationUnitStayController::class, 'checkIn'])->name('check-in');
+                    Route::post('door-pins/{doorPasscode}/replace', [ReservationDoorPinController::class, 'replace'])->middleware('door-locks')->name('door-pins.replace');
                 });
 
                 Route::middleware('can:'.PermissionEnum::FrontDeskCheckOut->value)->group(function () {
@@ -185,6 +198,8 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                 Route::post('no-show', [ReservationUnitStayController::class, 'noShow'])->name('no-show');
                 Route::post('reinstate/preview', [ReservationUnitStayController::class, 'reinstatePreview'])->name('reinstate-preview');
                 Route::post('reinstate', [ReservationUnitStayController::class, 'reinstate'])->name('reinstate');
+                Route::post('party/preview', [ReservationUnitPartyController::class, 'preview'])->name('party.preview');
+                Route::put('party', [ReservationUnitPartyController::class, 'store'])->name('party');
                 Route::post('dates/preview', [ReservationUnitStayController::class, 'datesPreview'])->name('dates-preview');
                 Route::put('dates', [ReservationUnitStayController::class, 'changeDates'])->name('dates');
                 Route::post('early-check-out', [ReservationUnitStayController::class, 'earlyCheckOut'])->middleware('can:'.PermissionEnum::FrontDeskCheckOut->value)->name('early-check-out');

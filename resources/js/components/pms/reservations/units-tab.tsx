@@ -2,10 +2,7 @@ import { Link, router } from '@inertiajs/react';
 import {
     BedDouble,
     CalendarDays,
-    Check,
-    Copy,
     Info,
-    KeyRound,
     Ship,
     Tag,
     User,
@@ -19,7 +16,9 @@ import { EnumSelect } from '@/components/pms/enum-select';
 import { Badge } from '@/components/ui/badge';
 import { MoneyText } from '@/components/pms/money-text';
 import { ChangeBoatTripDialog } from '@/components/pms/reservations/change-boat-trip-dialog';
+import { ChangeGuestsDialog } from '@/components/pms/reservations/change-guests-dialog';
 import { ChangeNightPriceDialog } from '@/components/pms/reservations/change-night-price-dialog';
+import { DoorPins } from '@/components/pms/reservations/door-pins';
 import { UnitActionsMenu } from '@/components/pms/reservations/unit-actions-menu';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Button } from '@/components/ui/button';
@@ -33,7 +32,6 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { useClipboard } from '@/hooks/use-clipboard';
 import { cn } from '@/lib/utils';
 import { show as showGuest } from '@/routes/guests';
 import { show } from '@/routes/reservations';
@@ -87,87 +85,10 @@ function Detail({
                 <Icon aria-hidden className="size-4" />
                 {label}
             </span>
-            <span className="flex items-center gap-1">{children}</span>
+            <span className="flex flex-wrap items-center gap-1">
+                {children}
+            </span>
         </div>
-    );
-}
-
-const PIN_TIME: Intl.DateTimeFormatOptions = {
-    day: '2-digit',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-};
-
-/**
- * The door PINs of the stay, so staff can read one out at check-in. Shown only when a lock is linked to the unit's room.
- */
-function DoorPins({ pins }: { pins: App.Data.DoorLocks.UnitDoorPinsData }) {
-    const [copiedText, copy] = useClipboard();
-
-    return (
-        <Detail icon={KeyRound} label="Door PIN">
-            <div className="flex flex-col gap-1">
-                {pins.sendNewPin && (
-                    <span className="text-warning">
-                        The stay was extended. Give the guest the newest PIN.
-                    </span>
-                )}
-                {pins.passcodes.map((passcode) => (
-                    <div
-                        key={passcode.id}
-                        className="flex flex-wrap items-center gap-x-3 gap-y-1"
-                    >
-                        <span className="font-mono text-base font-medium tracking-wider tabular-nums">
-                            {passcode.code ?? '—'}
-                        </span>
-                        {passcode.code !== null && (
-                            <Button
-                                variant="outline"
-                                size="icon-sm"
-                                aria-label="Copy PIN"
-                                onClick={() => copy(passcode.code!)}
-                            >
-                                {copiedText === passcode.code ? (
-                                    <Check />
-                                ) : (
-                                    <Copy />
-                                )}
-                            </Button>
-                        )}
-                        <StatusBadge status={passcode.status} />
-                        <span className="text-muted-foreground">
-                            {passcode.lockName} ·{' '}
-                            {new Date(passcode.startsAt).toLocaleString(
-                                'en-GB',
-                                PIN_TIME,
-                            )}{' '}
-                            →{' '}
-                            {new Date(passcode.endsAt).toLocaleString(
-                                'en-GB',
-                                PIN_TIME,
-                            )}
-                        </span>
-                        {passcode.error && (
-                            <span className="text-destructive">
-                                {passcode.error}
-                            </span>
-                        )}
-                        {passcode.revokeNote && (
-                            <span className="text-warning">
-                                {passcode.revokeNote}
-                            </span>
-                        )}
-                    </div>
-                ))}
-                {pins.locksWithoutPin.map((lock) => (
-                    <span key={lock.name} className="text-muted-foreground">
-                        No PIN yet for {lock.name}
-                        {lock.reason && ` · ${lock.reason}`}
-                    </span>
-                ))}
-            </div>
-        </Detail>
     );
 }
 
@@ -192,7 +113,7 @@ export function UnitsList({
                     aria-label="Choose unit"
                     options={units.map((option) => ({
                         value: String(option.id),
-                        label: `${option.label} · ${option.status.label}`,
+                        label: `${option.label} · ${option.status.label} · ${option.primaryGuest ?? 'No primary guest'}`,
                     }))}
                     value={String(activeUnitId)}
                     onValueChange={(value) =>
@@ -228,6 +149,15 @@ export function UnitsList({
                         )}
                     >
                         <span className="font-medium">{option.roomType}</span>
+                        <span
+                            className={cn(
+                                'truncate',
+                                option.primaryGuest === null &&
+                                    'text-muted-foreground',
+                            )}
+                        >
+                            {option.primaryGuest ?? 'No primary guest'}
+                        </span>
                         <span className="text-muted-foreground">
                             {option.assigned ??
                                 (autoAssignRooms
@@ -270,6 +200,7 @@ export function UnitsTab({
 }) {
     const [ticked, setTicked] = useState<number[]>([]);
     const [changingPrice, setChangingPrice] = useState(false);
+    const [changingGuests, setChangingGuests] = useState(false);
     const [boatChange, setBoatChange] = useState<{
         direction: App.Enums.BoatDirection;
         open: boolean;
@@ -286,7 +217,7 @@ export function UnitsTab({
 
     return (
         <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between gap-3 ps-3 pt-2">
+            <div className="flex flex-wrap items-center justify-between gap-3 ps-3 pt-2">
                 <h2 className="font-heading text-base font-medium">
                     {unit.roomType} · {unit.ratePlan}
                 </h2>
@@ -383,10 +314,27 @@ export function UnitsTab({
                         {roomText(unit, autoAssignRooms)}
                     </Detail>
                     <Detail icon={Users} label="Guests">
-                        {guestsText(unit)}
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                            <span>{guestsText(unit)}</span>
+                            {unit.canChangeGuests && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setChangingGuests(true)}
+                                >
+                                    Change
+                                </Button>
+                            )}
+                        </div>
                     </Detail>
                 </div>
-                {doorPins !== null && <DoorPins pins={doorPins} />}
+                {doorPins !== null && (
+                    <DoorPins
+                        pins={doorPins}
+                        reservationId={reservationId}
+                        unitId={unit.id}
+                    />
+                )}
                 <Detail icon={User} label="Primary">
                     {unit.primaryGuest === null ? (
                         <span className="text-muted-foreground">
@@ -541,6 +489,16 @@ export function UnitsTab({
                         departures={boatDepartures}
                     />
                 )}
+            {unit.canChangeGuests && (
+                <ChangeGuestsDialog
+                    open={changingGuests}
+                    onOpenChange={setChangingGuests}
+                    reservationId={reservationId}
+                    unit={unit}
+                    canChangePrice={unit.canChangePrice}
+                    currency={currency}
+                />
+            )}
             {unit.canChangePrice && (
                 <ChangeNightPriceDialog
                     open={changingPrice}

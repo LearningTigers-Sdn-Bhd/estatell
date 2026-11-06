@@ -1,7 +1,10 @@
 <?php
 
+use App\Actions\ApiAccess\PruneIdempotencyKeys;
 use App\Actions\Guests\PurgeExpiredIdentityScans;
 use App\Actions\Notifications\PruneMailEvents;
+use App\Jobs\ExpireDoorCredentials;
+use App\Jobs\ReleaseExpiredKioskHolds;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -53,9 +56,17 @@ Schedule::call(fn (): int => app(PurgeExpiredIdentityScans::class)())->name('pur
 
 Schedule::call(fn (): int => app(PruneMailEvents::class)())->name('prune-mail-events')->dailyAt('03:45')->onOneServer();
 
+Schedule::call(fn (): int => app(PruneIdempotencyKeys::class)())->name('prune-api-idempotency-keys')->hourly()->onOneServer();
+
 Schedule::command('night-audit:dispatch-scheduled')->everyFiveMinutes()->withoutOverlapping()->onOneServer();
 
 Schedule::command('onboarding:send-reminders')->hourly()->withoutOverlapping()->onOneServer();
 
+Schedule::command('agent-payments:send-reminders')->everyFifteenMinutes()->withoutOverlapping()->onOneServer();
+
 Schedule::command('channels:full-sync')->dailyAt('03:00')->timezone('Asia/Kuala_Lumpur')->onOneServer();
 Schedule::command('channels:pull-revisions')->everyFiveMinutes()->onOneServer();
+
+Schedule::job(new ReleaseExpiredKioskHolds)->everyMinute()->onOneServer();
+
+Schedule::job(new ExpireDoorCredentials)->everyFiveMinutes()->onOneServer();

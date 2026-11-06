@@ -206,19 +206,19 @@ The Units list is hidden for one unit, and the Folio rail for one folio, so thos
 │ ┌ Choose unit ───────┐┌──────────────────────────────────┐ │ +60 12-345 6789             │
 │ │ ▸ Deluxe King      ││ Deluxe King · BAR Room Only      │ │                             │
 │ │   101 · Confirmed  ││ ●Confirmed                  [⋯]  │ │ ─────────────────────────── │
-│ │   Dorm 6-Bed       ││ Stay   12 Oct → 15 Oct · 3 nights│ │ Earliest arrival  12 Oct    │
-│ │   D1-2 · Confirmed ││ Guests 2 adults, 2 children (4,9)│ │ Latest departure  15 Oct    │
-│ │   Dorm 6-Bed       ││ Room   101 (all nights)          │ │ Units             5         │
-│ │   — · Confirmed    ││ Primary Tan Wei Ming             │ │ Room nights       15        │
-│ │   Dorm 6-Bed       ││                                  │ │ Stay total   RM 2,390.00    │
-│ │   — · Cancelled    ││ Night      Room  Rate     Amount │ │ Balance      from folio     │
-│ │   Family Suite     ││ Mon 12 Oct 101   BAR RO   280.00 │ │ ─────────────────────────── │
-│ │   auto · Confirmed ││ Tue 13 Oct 101   BAR RO   280.00 │ │ Billing   Master pays rooms │
-│ │                    ││ Wed 14 Oct 101   BAR RO   280.00 │ │ Ref       WA1-0142          │
-│ │                    ││                  Total    840.00 │ │ Source    [☎] Phone         │
-│ │                    ││                                  │ │ Ext. ref  None              │
-│ │                    ││                                  │ │ Company   —                 │
-│ │                    ││ ⓘ Price override by Aina:        │ │ Created   02 Oct · Aina     │
+│ │   Dorm 6-Bed       ││ Stay   12 Oct → 15 Oct · 3 nights│ │ Total        RM 2,390.00    │
+│ │   D1-2 · Confirmed ││ Guests 2 adults, 2 children (4,9)│ │ Paid         RM 1,000.00    │
+│ │   Dorm 6-Bed       ││ Room   101 (all nights)          │ │ Still to pay RM 1,390.00    │
+│ │   — · Confirmed    ││ Primary Tan Wei Ming             │ │ ─────────────────────────── │
+│ │   Dorm 6-Bed       ││                                  │ │ Units     5                 │
+│ │   — · Cancelled    ││ Night      Room  Rate     Amount │ │ Room nights 15              │
+│ │   Family Suite     ││ Mon 12 Oct 101   BAR RO   280.00 │ │ Billing   Master pays rooms │
+│ │   auto · Confirmed ││ Tue 13 Oct 101   BAR RO   280.00 │ │ Company   None              │
+│ │                    ││ Wed 14 Oct 101   BAR RO   280.00 │ │ Created at 02 Oct 2026      │
+│ │                    ││                  Total    840.00 │ │ Created by Aina             │
+│ │                    ││                                  │ │                             │
+│ │                    ││                                  │ │                             │
+│ │                    ││ ⓘ Price override by Aina:        │ │                             │
 │ │                    ││   "Corporate rate"               │ │                             │
 │ └────────────────────┘└──────────────────────────────────┘ │                             │
 └────────────────────────────────────────────────────────────┴─────────────────────────────┘
@@ -236,8 +236,8 @@ The Units list is hidden for one unit, and the Folio rail for one folio, so thos
 
 The page shows no dash for an empty value: a missing room is `Not assigned` (an `Unassigned` badge in the night table), no primary guest says so, a missing balance says `No folio` or `Not started`, and the company says `None`.
 
-- **Choose unit** list on the left: room type, assigned room or bed (`Not assigned`, or `Auto` when `auto_assign_rooms` is on; the tooltip reads "No free room when booked. Check-in assigns one."), status. Hidden when the reservation has one unit. Below `lg` it becomes a select.
-- The unit panel: room type and rate plan, status, then three detail rows, each label with an icon before it: Stay (dates with the expected times, and nights); Room and Guests side by side (room or bed, per night when it changes mid-stay; adults and child ages); Primary guest. Below them a rounded, bordered night table from `unit_nights` (date, room or bed, rate plan, amount). An override shows a note from the activity log (`hasPriceOverride`), with the reason when one was given. With `reservations.change-price` the table has a checkbox per night and **Change price** for a Confirmed, CheckedIn or CheckedOut unit (see [Change a night's price](09-change-night-price.md)).
+- **Choose unit** list on the left: room type, primary guest (`No primary guest` when there is none), assigned room or bed (`Not assigned`, or `Auto` when `auto_assign_rooms` is on; the tooltip reads "No free room when booked. Check-in assigns one."), status. Hidden when the reservation has one unit. Below `lg` it becomes a select.
+- The unit panel: room type and rate plan, status, then three detail rows, each label with an icon before it: Stay (dates with the expected times, and nights); Room and Guests side by side (Guests has **Change**, see [Change guests](14-change-guests.md)) (room or bed, per night when it changes mid-stay; adults and child ages); Primary guest. Below them a rounded, bordered night table from `unit_nights` (date, room or bed, rate plan, amount). An override shows a note from the activity log (`hasPriceOverride`), with the reason when one was given. With `reservations.change-price` the table has a checkbox per night and **Change price** for a Confirmed, CheckedIn or CheckedOut unit (see [Change a night's price](09-change-night-price.md)).
 - The unit **⋯** menu shows only the actions that exist and that `UnitStatus::canTransitionTo()` allows: Change room, Cancel unit, Mark no-show, Reinstate, Change dates, Check in, Check out. They arrive with [front desk](../18-front-desk/01-check-in-and-check-out.md). The server sends the list as `unit.actions`, and the menu is hidden when it is empty. Built so far: Check in, Check out, Late check-out, Cancel unit, Mark no-show, Reinstate and Change dates.
 
 ### Guests tab
@@ -418,7 +418,7 @@ A title row (Requests, with **+ New request** on the right for `guest-requests.m
 
 ### Summary card
 
-Booker (name, VIP, phone, email; the name is an underlined link to the guest that opens in a new tab), earliest arrival, latest departure, units, room nights, the money figures (below), billing mode (2 or more units, with the `BillingMode` label), Ref (the reference, bold), source (the [source badge](11-booking-sources.md#badge) and the booking source name), Ext. ref (`external_reference` in bold, or "None"), company (the name, a link to the [company page](../15-city-ledger/01-companies.md#pages) for staff with `company.view`, or "None"), Created at (the date) and Created by (the user, or "System" when there is none) as two rows. Every row has an icon before its label, and only the top row (the Booker block) has `ps-3 pt-2`, like the title rows of the tab panels. Notes, when the booking has them, show in a rounded, bordered box of fixed height (`h-32`, the text scrolls inside) under the summary figures (added with the booking form).
+Booker (name, VIP, phone, email; the name is an underlined link to the guest that opens in a new tab), the money figures (below, with Still to pay in bold), units, room nights, billing mode (2 or more units, with the `BillingMode` label), company (the name, a link to the [company page](../15-city-ledger/01-companies.md#pages) for staff with `company.view`, or "None"), Created at (the date) and Created by (the user, or "System" when there is none) as two rows. The stay dates, Ref, source and Ext. ref are in the [header](#header) only, so the card does not repeat them. The card fills its panel and shrinks when a scrollbar takes width, so it never scrolls sideways; long values wrap. Every row has an icon before its label, and only the top row (the Booker block) has `ps-3 pt-2`, like the title rows of the tab panels. Notes, when the booking has them, show in a rounded, bordered box of fixed height (`h-32`, the text scrolls inside) under the summary figures (added with the booking form).
 
 **Money figures.** The summary card shows the full figures of the reservation, from `BookingSummary` (the same service and numbers as the [booking summary](08-booking-summary.md) PDF):
 

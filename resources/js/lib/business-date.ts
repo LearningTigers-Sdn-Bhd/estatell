@@ -21,6 +21,42 @@ export type BusinessDateView = {
 
 const DAY_MS = 86_400_000;
 
+/**
+ * How often the sidebar asks the server for the business date, in milliseconds, or null for not at all.
+ * A running audit finishes soon, so it is checked more often than an audit that is only due.
+ */
+export function businessDatePollInterval(
+    state: BusinessDateState,
+): number | null {
+    switch (state) {
+        case 'auditing':
+            return 5_000;
+        case 'audit-pending':
+        case 'overdue':
+            return 15_000;
+        default:
+            return null;
+    }
+}
+
+type BusinessDateOnPage = { url: string; date: string | null };
+
+/**
+ * Whether the business date moved while the same page stayed open, so its data is out of date. A visit to another
+ * page, or to another property, already brought fresh data.
+ */
+export function businessDateMovedOnPage(
+    seen: BusinessDateOnPage,
+    current: BusinessDateOnPage,
+): boolean {
+    return (
+        seen.url === current.url &&
+        seen.date !== null &&
+        current.date !== null &&
+        seen.date !== current.date
+    );
+}
+
 function toUtcMs(day: string): number {
     const [year, month, date] = day.split('-').map(Number);
 

@@ -21,13 +21,15 @@ use Illuminate\Support\Collection;
  */
 class HousekeepingBoardBuilder
 {
+    public function __construct(private RoomCleanings $roomCleanings) {}
+
     /**
      * Rows are ordered by `due`: departures by `departure_time`, then arrivals by `arrival_time`, then the other
      * rooms by room order, and rooms out of service last.
      *
      * @return list<HousekeepingRoomData>
      */
-    public function rows(Property $property, CarbonImmutable $date, bool $canUpdate, bool $canInspect, bool $canBlock): array
+    public function rows(Property $property, CarbonImmutable $date, bool $canUpdate, bool $canInspect, bool $canBlock, bool $canEditTimes = false): array
     {
         $rooms = Room::query()
             ->where('property_id', $property->id)
@@ -45,8 +47,10 @@ class HousekeepingBoardBuilder
 
         $stays = $this->staysByRoom($property, $date);
         $dateString = $date->toDateString();
+        $cleanings = $this->roomCleanings->latestByRoom($property, $dateString);
+        $timeZone = $property->loadMissing('settings')->settings->time_zone ?? config('app.timezone');
 
-        $rows = $rooms->map(function (Room $room) use ($blocks, $stays, $canUpdate, $canInspect, $canBlock, $dateString): array {
+        $rows = $rooms->map(function (Room $room) use ($blocks, $stays, $canUpdate, $canInspect, $canBlock, $canEditTimes, $dateString, $cleanings, $timeZone): array {
             $roomBlocks = $blocks->get($room->id, collect());
             $wholeRoom = $roomBlocks->first(fn (RoomBlock $block): bool => $block->bed_id === null);
             $bedBlocks = $roomBlocks->filter(fn (RoomBlock $block): bool => $block->bed_id !== null)
@@ -64,6 +68,7 @@ class HousekeepingBoardBuilder
                 canInspect: $canInspect,
                 canBlock: $canBlock,
                 date: $dateString,
+                cleaning: $this->roomCleanings->state($room, $cleanings->get($room->id), $timeZone, $canUpdate, $canEditTimes, $wholeRoom !== null),
             );
 
             return ['row' => $row, 'due' => $wholeRoom !== null ? '3' : $stay['due']];

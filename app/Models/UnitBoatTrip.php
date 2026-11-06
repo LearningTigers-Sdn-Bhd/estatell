@@ -22,10 +22,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property BoatMode $mode
  * @property int|null $boat_departure_id
  * @property string|null $note
+ * @property CarbonImmutable|null $ticked_at When someone ticked on the manifest that the guests arrived or left.
+ * @property int|null $ticked_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['property_id', 'reservation_unit_id', 'direction', 'mode', 'boat_departure_id', 'note'])]
+#[Fillable(['property_id', 'reservation_unit_id', 'direction', 'mode', 'boat_departure_id', 'note', 'ticked_at', 'ticked_by'])]
 class UnitBoatTrip extends Model
 {
     /** @use HasFactory<UnitBoatTripFactory> */
@@ -37,6 +39,7 @@ class UnitBoatTrip extends Model
         return [
             'direction' => BoatDirection::class,
             'mode' => BoatMode::class,
+            'ticked_at' => 'datetime',
         ];
     }
 

@@ -53,7 +53,7 @@ class ReverseLine
                 return PostingResult::refused(PostingResult::REFUSAL_PAYMENT_LINE);
             }
 
-            if ($folio->status !== FolioStatus::Open) {
+            if ($folio->status !== FolioStatus::Open || $current->children()->whereHas('folio', fn ($folios) => $folios->where('status', '<>', FolioStatus::Open))->exists()) {
                 return PostingResult::refused(PostingResult::REFUSAL_FOLIO_NOT_OPEN);
             }
 

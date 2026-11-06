@@ -53,7 +53,10 @@ class ChannelRevisionMapper
 
             $occupancy = $room['occupancy'] ?? [];
             $children = (int) ($occupancy['children'] ?? 0);
+            $infants = max(0, (int) ($occupancy['infants'] ?? 0));
             $ages = array_values(array_map('intval', is_array($occupancy['ages'] ?? null) ? $occupancy['ages'] : []));
+            // A child with no age counts as 5 (the child price); an infant as 0, so it is free and still on the manifest.
+            $childAges = [...(count($ages) === $children ? $ages : array_fill(0, $children, 5)), ...array_fill(0, $infants, 0)];
 
             return new NewUnitData(
                 roomTypeId: $mapping->room_type_id,
@@ -61,7 +64,7 @@ class ChannelRevisionMapper
                 arrivalDate: CarbonImmutable::parse((string) $room['checkin_date'])->startOfDay(),
                 departureDate: CarbonImmutable::parse((string) $room['checkout_date'])->startOfDay(),
                 adults: max(1, (int) ($occupancy['adults'] ?? 1)),
-                childAges: count($ages) === $children ? $ages : array_fill(0, $children, 5),
+                childAges: $childAges,
                 overrideTotal: number_format((float) ($room['amount'] ?? 0), 2, '.', ''),
                 overrideReason: __('Booked on :channel', ['channel' => $channelName]),
             );
