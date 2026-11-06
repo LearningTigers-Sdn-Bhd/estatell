@@ -139,3 +139,20 @@ it('cancels a pending job once and refuses after the PC claimed it', function ()
     $claimed = KeyportJob::factory()->claimedBy($device)->create();
     expect(app(CancelKeyportJob::class)($owner, $claimed))->toBeFalse();
 });
+
+it('refuses a lock outside the stay room, a guest who is not checked in, and a key from another stay', function () {
+    ['owner' => $owner, 'property' => $property, 'lock' => $lock, 'unit' => $unit] = keyportElockSetup();
+    $elsewhere = DoorLock::factory()->elock('1.1.202')->for($property)->create(['room_id' => Room::factory()->create(['property_id' => $property->id])->id]);
+
+    expect(app(CreateKeyportJob::class)($owner, $unit, $elsewhere, KeyportJobType::Issue))->toBeString();
+
+    $unit->forceFill(['status' => 'confirmed'])->save();
+    expect(app(CreateKeyportJob::class)($owner, $unit->refresh(), $lock, KeyportJobType::Issue))->toBeString()
+        ->and(KeyportJob::query()->count())->toBe(0);
+
+    $unit->forceFill(['status' => 'checked_in'])->save();
+    app(CreateKeyportJob::class)($owner, $unit->refresh(), $lock, KeyportJobType::Issue, 'checkin:1:1');
+    $other = keyportElockSetup();
+
+    expect(app(CreateKeyportJob::class)($other['owner'], $other['unit'], $other['lock'], KeyportJobType::Issue, 'checkin:1:1'))->toBeString();
+});

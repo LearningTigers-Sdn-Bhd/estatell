@@ -19,7 +19,7 @@ class PairKeyportDevice
     {
         return DB::transaction(function () use ($code, $deviceName, $platform, $agentVersion): KeyportPairingData|KeyportApiError {
             $row = KeyportPairingCode::query()
-                ->where('code_hash', hash('sha256', strtoupper(trim($code))))
+                ->where('code_hash', hash('sha256', $this->canonical($code)))
                 ->lockForUpdate()
                 ->first();
 
@@ -55,5 +55,16 @@ class PairKeyportDevice
 
             return KeyportPairingData::fromDevice($device->load('property'), $token);
         });
+    }
+
+    /**
+     * The code as `CreateKeyportPairingCode` shows it, `K7F2-9QXM`, whatever way it was typed or copied: without the dash, in
+     * lower case, or with spaces. Only the eight characters count.
+     */
+    private function canonical(string $code): string
+    {
+        $characters = strtoupper((string) preg_replace('/[^A-Za-z0-9]/', '', $code));
+
+        return substr($characters, 0, 4).'-'.substr($characters, 4);
     }
 }
