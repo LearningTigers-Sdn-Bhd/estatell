@@ -23,6 +23,7 @@ use App\Services\Catalogues\TaxCalculationResult;
 use App\Services\Catalogues\TaxCalculator;
 use App\Services\NightAudit\FirstBusinessDate;
 use App\Services\Reservations\AddOnLabel;
+use App\Services\Reservations\UnitNationality;
 use Brick\Money\Money;
 use Illuminate\Support\Collection;
 
@@ -32,7 +33,7 @@ use Illuminate\Support\Collection;
  * nothing is written. Each block is a charge with its discount and tax children, placed on the folio the router
  * would choose (null while the unit has no folio). Tax is worked out with `TaxCalculator`, on the discounted amount.
  * A night before the go-live date is never charged, so it is never Scheduled (it keeps its quoted amount in `unit_nights`).
- * Assumes the booker's nationality drives foreign-guest taxes, as `PostCharge` does. Expects the property's `settings` and
+ * Each unit's lead guest drives its foreign-guest taxes, as `PostRoomCharges` and `PostCharge` do. Expects the property's `settings` and
  * the reservation's `booker` to be loaded. See docs/13-folio/05-folio-page.md.
  */
 class ScheduledFolioRows
@@ -47,6 +48,7 @@ class ScheduledFolioRows
         private DayUseChargeQuote $dayUseChargeQuote,
         private FirstBusinessDate $firstBusinessDate,
         private CollectedTaxPayer $collectedTaxPayer,
+        private UnitNationality $unitNationality,
     ) {}
 
     /**
@@ -89,7 +91,7 @@ class ScheduledFolioRows
         $resolve = $this->folioRouter->resolverFor($reservation);
         $guestTaxIds = $this->collectedTaxPayer->resolverFor($reservation);
         $unitFolioIds = null;
-        $nationality = $reservation->booker->nationality_code;
+        $nationalities = $this->unitNationality->forUnits($units);
         $goLive = $this->firstBusinessDate->date($property)?->toDateString();
         $blocks = [];
 
@@ -98,7 +100,7 @@ class ScheduledFolioRows
             $first = true;
 
             if ($unit->stay_type === StayType::DayUse && $unit->dayUse !== null && $dayUseCode !== null && ! $posted->has('dayuse:'.$unit->id)) {
-                $quote = $this->dayUseChargeQuote->quote($property, $this->propertyTaxes ??= $this->nightChargeQuote->propertyTaxes($property), $unit, $unit->dayUse, $dayUseCode, $nationality);
+                $quote = $this->dayUseChargeQuote->quote($property, $this->propertyTaxes ??= $this->nightChargeQuote->propertyTaxes($property), $unit, $unit->dayUse, $dayUseCode, $nationalities[$unit->id] ?? null);
 
                 foreach ($quote->isRefused() ? [] : $quote->charges as $charge) {
                     $blocks[] = [
@@ -119,7 +121,7 @@ class ScheduledFolioRows
                     continue;
                 }
 
-                $quote = $this->nightChargeQuote->quote($property, $this->propertyTaxes ??= $this->nightChargeQuote->propertyTaxes($property), $unit, $night, $isFirst, $roomCode, $nationality);
+                $quote = $this->nightChargeQuote->quote($property, $this->propertyTaxes ??= $this->nightChargeQuote->propertyTaxes($property), $unit, $night, $isFirst, $roomCode, $nationalities[$unit->id] ?? null);
 
                 if ($quote->isRefused()) {
                     continue;
@@ -160,7 +162,7 @@ class ScheduledFolioRows
                     'unit' => $unit->id,
                     'date' => $date,
                     'code' => $code,
-                    'rows' => $this->addOnRows($property, $addOn, $code, $date, $currency, $nationality, $label),
+                    'rows' => $this->addOnRows($property, $addOn, $code, $date, $currency, $nationalities[$unit->id] ?? null, $label),
                 ];
             }
         }

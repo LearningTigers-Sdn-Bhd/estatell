@@ -23,7 +23,7 @@ type Props = {
     from: string;
     to: string;
     maxRangeDays: number | null;
-    presets: App.Enums.ReportDatePreset[];
+    presets: App.Enums.ReportDatePreset[] | null;
     canRelease: boolean;
     canWaiveFees: boolean;
     currency: App.Data.Property.CurrencyData | null;
@@ -51,7 +51,7 @@ export default function AgentPaymentsReport({
                         tone: row.overdue ? 'danger' : 'warning',
                     }}
                 />
-                {row.overdue && canRelease && (
+                {row.overdue && !row.stay_ended && canRelease && (
                     <Button
                         type="button"
                         size="sm"

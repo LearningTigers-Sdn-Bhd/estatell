@@ -199,6 +199,7 @@ The layout breakpoints are the staff form's: below `xl` the summary rail moves u
 - Prices come from the same `BookingQuote` as the staff form. Auto-add charge items are added by the server, shown in the summary, and cannot be removed (see [Add-ons](../12-reservations/04-add-ons.md#added-automatically)).
 - The page sends the total it showed (`expected_total`). The server prices every line again and refuses when the total differs.
 - A new portal booking has the **Company / Travel agent** [booking source](../12-reservations/11-booking-sources.md) (the same row staff use for company bookings), `company_id` set, billing mode MasterPays with the company as folio payer, `created_by` the company user, and the company's reference in `external_reference`. Its status is Confirmed.
+- Each auto-add item's transaction code gets a Manual routing rule to the Master folio, so the company pays those items and any other extra stays with the guest. Each rule logs `routing_rule.created`, and staff can remove it in Routing rules. See [Agent payment schedule](../15-city-ledger/06-agent-payment-schedule.md#breakdown).
 - The first unit's guest is the booker. A guest ID is saved as the guest's first ID document, the same way as Edit guests. The number is never sent back to the browser.
 - A portal booking is refused, with no override, and writes nothing:
 
@@ -227,7 +228,7 @@ The layout breakpoints are the staff form's: below `xl` the summary rail moves u
 
 - 20 per page. Search by our reference or the company's reference.
 - Detail: rooms, plans, guests, add-ons, total and references. No folio internals and no staff notes.
-- **Edit guests:** names, phone and ID of the booking's own guests, until check-in and not after the arrival date. Dates, rooms, plans and prices cannot change.
+- **Edit guests:** names, phone, nationality and ID of the booking's own guests, until check-in and not after the arrival date. Dates, rooms, plans and prices cannot change.
 - **Cancel:** whole reservation only. On or before `arrival_date - portal_cancel_cutoff_days` (the page shows the date), the company user cancels with no charge. After it, or when the cut-off is empty, they can only request, once. A request sets `cancellation_requested_at` and `cancellation_requested_by` and notifies the property. Staff decide on any charge in the [Cancel reservation](../18-front-desk/01-check-in-and-check-out.md#cancel-reservation) Dialog, which shows the request and resolves it. Changes to some rooms go through the property.
 - A Suspended company sees its bookings. Book, Edit guests, Cancel and Request are refused and their buttons are hidden.
 
@@ -240,7 +241,7 @@ The layout breakpoints are the staff form's: below `xl` the summary rail moves u
  Payments   RCP-0040  5 Oct  Bank transfer  BT-PAY-77  RM 1,200  [Receipt]
 ```
 
-- Open and Settled AR invoices, non-void AR payments, the statement with aging, and the invoice, receipt and statement PDFs, from the staff city ledger services. The invoice PDF is the staff one, including payments made at the hotel.
+- Open and Settled AR invoices, non-void AR payments, the statement with aging, **Payments on bookings** (money paid per booking, outside the balance), and the invoice, receipt and statement PDFs, from the staff city ledger services. The invoice PDF is the staff one, including payments made at the hotel.
 - Voided invoices and payments are hidden; their PDFs return 404. Allocations are not shown.
 - Every document is looked up through the linked company at the property in the URL, never by id alone.
 - The statement shows the true closing balance: a credit is negative. A Suspended company keeps full access.

@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { useForm } from '@inertiajs/react';
 import { FileText } from 'lucide-react';
 import { MoneyText } from '@/components/pms/money-text';
+import { AgentBillBreakdown } from '@/components/pms/payments/agent-bill-breakdown';
 import { PaymentScheduleList } from '@/components/pms/payments/payment-schedule-list';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Button } from '@/components/ui/button';
@@ -15,13 +17,14 @@ import { Spinner } from '@/components/ui/spinner';
 import { store } from '@/routes/portal/bookings/payment-proofs';
 
 /**
- * Paying for a portal booking: the payment schedule, the proofs the agent sent with their status, and a form to send
+ * Paying for a portal booking: what the agent and the guest each pay, the payment schedule, the proofs the agent sent with their status, and a form to send
  * a new proof (image or PDF, the amount and the bank reference). A proof is not a payment until the property accepts it.
  */
 export function BookingPaymentSection({
     propertyCode,
     reservationId,
     schedule,
+    bill,
     proofs,
     canUpload,
     currency,
@@ -29,10 +32,12 @@ export function BookingPaymentSection({
     propertyCode: string;
     reservationId: number;
     schedule: App.Data.Reservations.PaymentScheduleData | null;
+    bill: App.Data.Reservations.AgentBillData;
     proofs: App.Data.Payments.PaymentProofData[];
     canUpload: boolean;
     currency: App.Data.Property.CurrencyData | null;
 }) {
+    const [fileKey, setFileKey] = useState(0);
     const form = useForm<{
         file: File | null;
         amount: string;
@@ -43,10 +48,6 @@ export function BookingPaymentSection({
         reference: '',
     });
 
-    if (schedule === null && proofs.length === 0) {
-        return null;
-    }
-
     const submit = (event: React.FormEvent) => {
         event.preventDefault();
         form.post(
@@ -54,7 +55,10 @@ export function BookingPaymentSection({
             {
                 forceFormData: true,
                 preserveScroll: true,
-                onSuccess: () => form.reset(),
+                onSuccess: () => {
+                    form.reset();
+                    setFileKey((key) => key + 1);
+                },
             },
         );
     };
@@ -62,6 +66,11 @@ export function BookingPaymentSection({
     return (
         <section className="flex max-w-3xl flex-col gap-4 rounded-lg border p-4">
             <h2 className="text-base font-medium">Payment</h2>
+            <AgentBillBreakdown
+                bill={bill}
+                agentLabel="You pay"
+                currency={currency}
+            />
             {schedule !== null && (
                 <PaymentScheduleList schedule={schedule} currency={currency} />
             )}
@@ -114,6 +123,7 @@ export function BookingPaymentSection({
                         </FieldLabel>
                         <Input
                             id="proof-file"
+                            key={fileKey}
                             type="file"
                             accept="image/jpeg,image/png,image/webp,application/pdf"
                             onChange={(event) =>

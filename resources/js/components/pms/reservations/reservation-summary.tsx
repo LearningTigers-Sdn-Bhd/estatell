@@ -26,6 +26,7 @@ import type { ReactNode } from 'react';
 import { BookingSourceBadge } from '@/components/pms/booking-source-badge';
 import { DateText } from '@/components/pms/date-text';
 import { MoneyText } from '@/components/pms/money-text';
+import { AgentBillBreakdown } from '@/components/pms/payments/agent-bill-breakdown';
 import { PaymentProofReview } from '@/components/pms/payments/payment-proof-review';
 import { PaymentScheduleList } from '@/components/pms/payments/payment-schedule-list';
 import { Separator } from '@/components/ui/separator';
@@ -64,6 +65,7 @@ export function ReservationSummary({
     reservation,
     money,
     paymentSchedule = null,
+    agentBill = null,
     paymentProofs = [],
     proofPaymentMethods = [],
     canViewCompany,
@@ -72,6 +74,7 @@ export function ReservationSummary({
     reservation: Reservation;
     money: Money;
     paymentSchedule?: App.Data.Reservations.PaymentScheduleData | null;
+    agentBill?: App.Data.Reservations.AgentBillData | null;
     paymentProofs?: App.Data.Payments.PaymentProofData[];
     proofPaymentMethods?: { value: string; label: string }[];
     canViewCompany: boolean;
@@ -190,6 +193,13 @@ export function ReservationSummary({
                             <CalendarClock aria-hidden className="size-4" />
                             Payment schedule
                         </h2>
+                        {agentBill !== null && (
+                            <AgentBillBreakdown
+                                bill={agentBill}
+                                agentLabel="Agent pays"
+                                currency={currency}
+                            />
+                        )}
                         {paymentSchedule !== null && (
                             <PaymentScheduleList
                                 schedule={paymentSchedule}

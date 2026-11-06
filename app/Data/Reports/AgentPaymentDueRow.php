@@ -23,6 +23,7 @@ class AgentPaymentDueRow extends Data implements ReportRow
         public string $status,
         public string $time_zone,
         public bool $overdue = false,
+        public bool $stay_ended = false,
     ) {}
 
     /**

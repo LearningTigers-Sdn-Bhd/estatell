@@ -4,15 +4,20 @@ use App\Actions\CityLedger\SendAgentPaymentReminders;
 use App\Actions\Reservations\CreateReservation;
 use App\Data\Reservations\NewReservationData;
 use App\Enums\CompanyUserStatus;
+use App\Enums\FolioStatus;
+use App\Enums\FolioType;
+use App\Enums\ReservationStatus;
 use App\Enums\SystemTransactionCode;
 use App\Models\AgentPaymentReminder as SentReminder;
 use App\Models\Company;
 use App\Models\CompanyUser;
+use App\Models\Folio;
 use App\Models\Rate;
 use App\Models\Reservation;
 use App\Models\TransactionCode;
 use App\Models\User;
 use App\Notifications\AgentPaymentReminder;
+use App\Services\Reservations\AgentPaymentSchedule;
 use Carbon\CarbonImmutable;
 use Database\Factories\BookingSourceFactory;
 use Illuminate\Notifications\AnonymousNotifiable;
@@ -107,4 +112,33 @@ test('the schedule email lists every stage and links to the portal booking', fun
             && str_contains($html, 'Balance: 500.00 by 20 Nov 2026, 23:59')
             && str_contains($html, "/portal/{$reservation->property->code}/bookings/{$reservation->id}");
     });
+});
+
+test('a company that moves to direct billing or turns the schedule off is no longer chased', function (array $change) {
+    [$reservation, $company] = reminderBooking();
+    $send = app(SendAgentPaymentReminders::class);
+    $send(CarbonImmutable::parse('2026-10-14 12:15', 'UTC'));
+    $company->update($change);
+
+    expect($send(CarbonImmutable::parse('2026-10-18 12:15', 'UTC')))->toBe(0)
+        ->and(remindersSent())->toBe(['all:schedule'])
+        ->and(app(AgentPaymentSchedule::class)->stages($reservation->fresh()))->toBe([]);
+})->with([
+    'direct billing on' => [['direct_bill_enabled' => true]],
+    'payment schedule off' => [['payment_schedule_enabled' => false]],
+]);
+
+test('after check-out an agent that still owes on the Master folio is chased, and one whose Master folio closed is not', function () {
+    [$reservation] = reminderBooking();
+    $master = Folio::query()->where('reservation_id', $reservation->id)->where('type', FolioType::Master)->sole();
+    $reservation->forceFill(['status' => ReservationStatus::Completed])->save();
+    $master->forceFill(['status' => FolioStatus::Closed, 'closed_at' => now(), 'closed_by' => $reservation->created_by])->save();
+    $send = app(SendAgentPaymentReminders::class);
+
+    expect($send(CarbonImmutable::parse('2026-10-18 12:15', 'UTC')))->toBe(0);
+
+    $master->forceFill(['status' => FolioStatus::Open, 'closed_at' => null, 'closed_by' => null])->save();
+
+    expect($send(CarbonImmutable::parse('2026-10-18 12:15', 'UTC')))->toBe(2)
+        ->and(remindersSent())->toBe(['all:schedule', 'deposit:overdue']);
 });

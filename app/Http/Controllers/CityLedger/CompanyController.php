@@ -5,6 +5,7 @@ namespace App\Http\Controllers\CityLedger;
 use App\Actions\CityLedger\CreateCompany;
 use App\Actions\CityLedger\UpdateCompany;
 use App\Actions\CityLedger\UpdateCompanyBilling;
+use App\Data\CityLedger\AgentPaymentTermsData;
 use App\Data\CityLedger\CompanyData;
 use App\Data\CityLedger\CompanyRowData;
 use App\Data\CityLedger\CreditExposureData;
@@ -76,11 +77,14 @@ class CompanyController extends Controller
     }
 
     /**
-     * Company page, Credit tab: credit limit, payment terms and direct billing.
+     * Company page, Credit tab: credit limit, payment terms and direct billing, with the property's agent terms that
+     * empty fields follow.
      */
     public function credit(Request $request, Property $property, Company $company): Response
     {
-        return $this->renderTab($request, $property, $company, 'credit');
+        return $this->renderTab($request, $property, $company, 'credit', [
+            'agentPaymentDefaults' => AgentPaymentTermsData::forProperty($property),
+        ]);
     }
 
     /**

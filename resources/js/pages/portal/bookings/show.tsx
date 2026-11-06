@@ -19,16 +19,20 @@ export default function PortalBookingShow({
     propertyCode,
     companySuspended,
     idTypes,
+    countries,
     currency,
     paymentSchedule,
+    agentBill,
     paymentProofs,
 }: {
     booking: Booking;
     propertyCode: string;
     companySuspended: boolean;
     idTypes: EnumOption[];
+    countries: EnumOption[];
     currency: App.Data.Property.CurrencyData | null;
     paymentSchedule: App.Data.Reservations.PaymentScheduleData | null;
+    agentBill: App.Data.Reservations.AgentBillData;
     paymentProofs: App.Data.Payments.PaymentProofData[];
 }) {
     const [editing, setEditing] = useState(false);
@@ -82,7 +86,10 @@ export default function PortalBookingShow({
                         {booking.externalReference ?? '—'}
                     </Fact>
                     <Fact label="Total">
-                        <MoneyText amount={booking.total} currency={currency} />
+                        <MoneyText
+                            amount={agentBill.total}
+                            currency={currency}
+                        />
                     </Fact>
                 </dl>
 
@@ -90,6 +97,7 @@ export default function PortalBookingShow({
                     propertyCode={propertyCode}
                     reservationId={booking.id}
                     schedule={paymentSchedule}
+                    bill={agentBill}
                     proofs={paymentProofs}
                     canUpload={
                         !companySuspended &&
@@ -206,6 +214,7 @@ export default function PortalBookingShow({
                         reservationId={booking.id}
                         guests={booking.guests}
                         idTypes={idTypes}
+                        countries={countries}
                         onSaved={() => setSaves((count) => count + 1)}
                     />
                 )}

@@ -78,4 +78,32 @@
             <td class="num">{{ $money($statement->aging->over90) }}</td>
         </tr>
     </table>
+
+    @if ($statement->bookingPayments !== [])
+        <table class="gap-24">
+            <thead>
+                <tr class="rule">
+                    <th colspan="5">{{ __('Payments on bookings (not part of the balance above)') }}</th>
+                </tr>
+                <tr class="rule">
+                    <th>{{ __('Date') }}</th>
+                    <th>{{ __('Booking') }}</th>
+                    <th>{{ __('Method') }}</th>
+                    <th>{{ __('Reference') }}</th>
+                    <th class="num">{{ __('Amount') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($statement->bookingPayments as $payment)
+                    <tr>
+                        <td>{{ $date($payment->date) }}</td>
+                        <td>{{ $payment->booking }}</td>
+                        <td>{{ $payment->method }}</td>
+                        <td>{{ $payment->reference ?? '—' }}</td>
+                        <td class="num">{{ $money($payment->amount) }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
 @endsection

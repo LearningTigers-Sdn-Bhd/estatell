@@ -17,8 +17,10 @@ use App\Http\Requests\Portal\UpdatePortalGuestsRequest;
 use App\Models\CompanyUser;
 use App\Models\PaymentProof;
 use App\Models\Property;
+use App\Services\Guests\CountryOptions;
 use App\Services\Portal\PortalBookingMessages;
 use App\Services\Portal\PortalBookings;
+use App\Services\Reservations\AgentBill;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -52,7 +54,7 @@ class PortalBookingController extends Controller
     /**
      * One booking.
      */
-    public function show(Request $request, Property $property, int $reservation, PortalBookings $bookings): Response
+    public function show(Request $request, Property $property, int $reservation, PortalBookings $bookings, AgentBill $agentBill): Response
     {
         $link = $this->link($request);
         $property->loadMissing('settings');
@@ -63,6 +65,7 @@ class PortalBookingController extends Controller
             'propertyCode' => $property->code,
             'booking' => $bookings->detail($link->company, $booking, $property),
             'paymentSchedule' => PaymentScheduleData::forReservation($booking),
+            'agentBill' => $agentBill->for($booking),
             'paymentProofs' => array_values(PaymentProof::query()->where('reservation_id', $booking->id)->with('uploader')->latest('id')->get()
                 ->map(fn (PaymentProof $proof): PaymentProofData => PaymentProofData::fromModel(
                     $proof,
@@ -70,6 +73,7 @@ class PortalBookingController extends Controller
                 ))->all()),
             'companySuspended' => $link->company->status === CompanyStatus::Suspended,
             'idTypes' => IdentityDocumentType::options(),
+            'countries' => app(CountryOptions::class)->options(),
             'currency' => CurrencyData::forProperty($property),
         ]);
     }

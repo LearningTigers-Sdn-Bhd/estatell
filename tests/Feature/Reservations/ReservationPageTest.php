@@ -231,7 +231,21 @@ test('the unit panel shows the plan, guests, child ages, rooms, nights and prima
         ->where('unit.nights.2.assigned', '102')
         ->where('unit.nights.2.isOverridden', true)
         ->where('unit.nights.0.isOverridden', false)
-        ->where('units.0.label', 'Deluxe King · 101'));
+        ->where('units.0.label', 'Deluxe King · 101')
+        ->where('units.0.primaryGuest', 'Ahmad Faiz'));
+});
+
+test('the unit list names only the primary guest of each unit', function () {
+    [$user, $property] = pageOwner();
+    $reservation = pageReservation($property);
+    $withGuests = pageUnit($reservation);
+    pageUnit($reservation);
+    UnitGuest::factory()->create(['reservation_unit_id' => $withGuests->id, 'guest_id' => Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Second Guest'])->id]);
+    UnitGuest::factory()->primary()->create(['reservation_unit_id' => $withGuests->id, 'guest_id' => Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Ahmad Faiz'])->id]);
+
+    $this->actingAs($user)->get(pageUrl($property, $reservation))->assertInertia(fn (Assert $page) => $page
+        ->where('units.0.primaryGuest', 'Ahmad Faiz')
+        ->where('units.1.primaryGuest', null));
 });
 
 test('a unit with no room shows a dash and no assigned rooms', function () {
@@ -244,6 +258,7 @@ test('a unit with no room shows a dash and no assigned rooms', function () {
         ->where('unit.allNightsAssigned', false)
         ->where('unit.primaryGuest', null)
         ->where('units.0.assigned', null)
+        ->where('units.0.primaryGuest', null)
         ->where('autoAssignRooms', false));
 });
 
@@ -479,7 +494,7 @@ test('the page needs a constant number of queries however many units it has', fu
         $few = $queries(2, $route);
         $many = $queries(7, $route);
 
-        expect($many)->toBe($few, "queries on {$route}")->and($many)->toBeLessThanOrEqual(48); // 25 for the page, 21 more for the summary card (`BookingSummary`), 2 for the booking source
+        expect($many)->toBe($few, "queries on {$route}")->and($many)->toBeLessThanOrEqual(49); // 26 for the page, 21 more for the summary card (`BookingSummary`), 2 for the booking source
     }
 });
 

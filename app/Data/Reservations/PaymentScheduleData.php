@@ -12,7 +12,7 @@ use Spatie\LaravelData\Data;
 /**
  * The agent payment schedule card of the reservation page and the portal booking: each stage with its amount, due
  * time (ISO, UTC) and status (paid, proof, due or overdue; `proof` when the agent sent a proof staff have not checked
- * yet). Null when the reservation has no schedule.
+ * yet), what the agent has paid and what is left. Null when the reservation has no schedule.
  */
 class PaymentScheduleData extends Data
 {
@@ -22,18 +22,20 @@ class PaymentScheduleData extends Data
     public function __construct(
         public array $stages,
         public int $depositPercent,
+        public string $paid = '0.00',
+        public string $left = '0.00',
     ) {}
 
-    public static function forReservation(Reservation $reservation, ?ReservationMoneyData $money = null): ?self
+    public static function forReservation(Reservation $reservation): ?self
     {
         if ($reservation->deposit_due_at === null || $reservation->deposit_percent === null) {
             return null;
         }
 
         $schedule = app(AgentPaymentSchedule::class);
-        $stages = $money === null
-            ? $schedule->stages($reservation)
-            : $schedule->stagesFrom($reservation, BigDecimal::of($money->total), BigDecimal::of($money->paid));
+        $stages = $schedule->stages($reservation);
+        $paid = $schedule->paid($reservation);
+        $total = $schedule->total($reservation);
         $proofSent = PaymentProof::query()->where('reservation_id', $reservation->id)->where('status', PaymentProofStatus::Submitted)->exists();
 
         return new self(
@@ -53,6 +55,8 @@ class PaymentScheduleData extends Data
                 },
             ], $stages),
             $reservation->deposit_percent,
+            (string) $paid->toScale(2),
+            (string) BigDecimal::max(BigDecimal::zero(), $total->minus($paid))->toScale(2),
         );
     }
 }

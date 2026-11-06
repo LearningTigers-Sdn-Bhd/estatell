@@ -7,14 +7,14 @@ use App\Enums\TransactionKind;
 use App\Models\FolioLine;
 use App\Models\PropertySetting;
 use App\Models\Reservation;
-use App\Services\Folio\ScheduledFolioRows;
+use App\Services\CityLedger\AgentPaymentTerms;
 use Brick\Math\BigDecimal;
 use Brick\Math\RoundingMode;
 use Carbon\CarbonImmutable;
 
 /**
  * The agent payment schedule of a reservation: the deadlines set at booking, and the amounts worked out from the
- * whole booking total (posted charges and Scheduled rows, with add-ons and taxes) and the payments on its folios. The
+ * agent's part of the booking (`AgentBill`: what lands on a folio a company pays) and the payments on those folios. The
  * rules follow wastays (`Bookings::PaymentSchedule`): deadlines are wall-clock in the property time zone, the deposit
  * is due within the hold but never after arrival and never less than 30 minutes from booking, the rest is due at the
  * end of the day `days` before arrival, and when that day is not after the deposit day there is one stage for the
@@ -24,7 +24,7 @@ class AgentPaymentSchedule
 {
     public const int MINIMUM_HOLD_MINUTES = 30;
 
-    public function __construct(private ScheduledFolioRows $scheduledFolioRows) {}
+    public function __construct(private AgentBill $agentBill, private AgentPaymentTerms $terms) {}
 
     /**
      * @param  array{percent: int, hours: int, days: int}  $terms
@@ -50,7 +50,7 @@ class AgentPaymentSchedule
 
     /**
      * The stages of a reservation with a schedule, each with its amount, due time and whether it is paid or late.
-     * Empty when the reservation has none.
+     * Empty when the reservation has none, or its company no longer pays per booking.
      *
      * @return list<array{kind: string, amount: string, due_at: CarbonImmutable, paid: bool, overdue: bool}>
      */
@@ -64,14 +64,19 @@ class AgentPaymentSchedule
     }
 
     /**
-     * The stages for a total and a paid amount the caller already has, such as the reservation page's Booking summary
-     * figures, so the card and the schedule always agree.
+     * The stages for a total and a paid amount the caller already has.
      *
      * @return list<array{kind: string, amount: string, due_at: CarbonImmutable, paid: bool, overdue: bool}>
      */
     public function stagesFrom(Reservation $reservation, BigDecimal $total, BigDecimal $paid, ?CarbonImmutable $now = null): array
     {
         if ($reservation->deposit_due_at === null || $reservation->deposit_percent === null) {
+            return [];
+        }
+
+        $company = $reservation->loadMissing('company')->company;
+
+        if ($company === null || ! $this->terms->applyTo($company)) {
             return [];
         }
 
@@ -118,34 +123,22 @@ class AgentPaymentSchedule
     }
 
     /**
-     * The whole booking: what the folios already hold (charges, taxes and adjustments) and what is still to post.
+     * The agent's part of the booking: what its folios already hold (charges, taxes and adjustments) and what is still
+     * to post on them. What the guest pays at the resort does not count.
      */
     public function total(Reservation $reservation): BigDecimal
     {
-        $posted = (string) FolioLine::query()
-            ->whereHas('folio', fn ($folios) => $folios->where('reservation_id', $reservation->id)->where('status', '<>', FolioStatus::Voided->value))
-            ->where('kind', '<>', TransactionKind::Payment->value)
-            ->sum('amount');
-
-        $reservation->loadMissing(['booker', 'property.settings']);
-        $scheduled = BigDecimal::zero();
-
-        foreach ($this->scheduledFolioRows->forReservation($reservation->property, $reservation, []) as $block) {
-            foreach ($block['rows'] as $row) {
-                $scheduled = $scheduled->plus($row->amount);
-            }
-        }
-
-        return BigDecimal::of($posted)->plus($scheduled)->toScale(2);
+        return BigDecimal::of($this->agentBill->for($reservation)->agentTotal);
     }
 
     /**
-     * The money received on the reservation's folios, net of refunds.
+     * The money received on the folios a company pays, net of refunds. What the guest paid on their own folio does not
+     * count: it pays the guest's part.
      */
     public function paid(Reservation $reservation): BigDecimal
     {
         $payments = (string) FolioLine::query()
-            ->whereHas('folio', fn ($folios) => $folios->where('reservation_id', $reservation->id)->where('status', '<>', FolioStatus::Voided->value))
+            ->whereHas('folio', fn ($folios) => $folios->where('reservation_id', $reservation->id)->whereNotNull('payer_company_id')->where('status', '<>', FolioStatus::Voided->value))
             ->where('kind', TransactionKind::Payment->value)
             ->sum('amount');
 

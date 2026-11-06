@@ -1,7 +1,10 @@
 <?php
 
+use App\Data\Reservations\PaymentScheduleData;
+use App\Enums\FolioStatus;
 use App\Enums\PaymentMethodType;
 use App\Enums\PaymentProofStatus;
+use App\Enums\ReservationStatus;
 use App\Enums\SystemTransactionCode;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
@@ -9,6 +12,7 @@ use App\Models\PaymentProof;
 use App\Models\Reservation;
 use App\Models\TransactionCode;
 use App\Models\User;
+use App\Services\CityLedger\StatementBuilder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
@@ -116,4 +120,39 @@ test('staff reject a proof with a reason the agent sees, and need payment.record
 
     $this->actingAs($setup['portalUser'])->get(route('portal.bookings.show', ['property' => $setup['property'], 'reservation' => $reservation->id]))
         ->assertInertia(fn (Assert $page) => $page->where('paymentProofs.0.rejectReason', 'Not in our account yet')->where('paymentSchedule.stages.0.status', 'due'));
+});
+
+test('after check-out an agent that still owes can send a proof, and the money shows on the schedule and the statement', function () {
+    [$setup, $reservation] = proofBooking();
+    $reservation->forceFill(['status' => ReservationStatus::Completed])->save();
+
+    proofUpload($setup, $reservation, $setup['portalUser'], ['amount' => '80.00'])->assertSessionHasNoErrors();
+
+    $proof = PaymentProof::query()->sole();
+    $method = PaymentMethod::factory()->create(['property_id' => $setup['property']->id, 'type' => PaymentMethodType::BankTransfer]);
+
+    test()->actingAs($setup['user'])
+        ->post(route('reservations.payment-proofs.accept', [$setup['property'], $reservation, $proof]), ['payment_method_id' => $method->id, 'amount' => '80.00'])
+        ->assertSessionHasNoErrors();
+
+    $schedule = PaymentScheduleData::forReservation($reservation->fresh());
+    $statement = app(StatementBuilder::class)->build($setup['company']->fresh(), now()->toImmutable()->subDays(5), now()->toImmutable());
+
+    expect($schedule->paid)->toBe('80.00')
+        ->and($schedule->left)->toBe('120.00')
+        ->and($statement->bookingPayments)->toHaveCount(1)
+        ->and($statement->bookingPayments[0]->booking)->toBe($reservation->reference)
+        ->and($statement->bookingPayments[0]->reference)->toBe('MBB-778812')
+        ->and($statement->bookingPayments[0]->amount)->toBe('80.00')
+        ->and($statement->closingBalance)->toBe('0.00');
+});
+
+test('a proof is refused once the stay ended and the company folio is closed', function () {
+    [$setup, $reservation] = proofBooking();
+    $reservation->forceFill(['status' => ReservationStatus::Completed])->save();
+    $reservation->folios()->whereNotNull('payer_company_id')->update(['status' => FolioStatus::Closed, 'closed_at' => now(), 'closed_by' => $setup['user']->id]);
+
+    proofUpload($setup, $reservation, $setup['portalUser'])->assertInertiaFlash('toast', ['type' => 'error', 'message' => 'This booking is closed. Contact the property.']);
+
+    expect(PaymentProof::query()->count())->toBe(0);
 });

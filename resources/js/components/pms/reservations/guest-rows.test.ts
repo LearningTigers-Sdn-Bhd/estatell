@@ -45,6 +45,7 @@ function unit(id: number, isBed = false, capacity = isBed ? 1 : 2): Unit {
         isBed,
         capacity,
         assigned: null,
+        primaryGuest: null,
         label: `Unit ${id}`,
         status: badge('confirmed'),
         arrival: '2026-10-12',

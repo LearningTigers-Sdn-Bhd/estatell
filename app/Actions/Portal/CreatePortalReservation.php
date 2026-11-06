@@ -2,6 +2,7 @@
 
 namespace App\Actions\Portal;
 
+use App\Actions\Folio\CreateRoutingRule;
 use App\Actions\Guests\AddIdentityDocument;
 use App\Actions\Reservations\AttachGuestResult;
 use App\Actions\Reservations\BookingRefused;
@@ -18,11 +19,15 @@ use App\Data\Reservations\NewUnitData;
 use App\Enums\BillingMode;
 use App\Enums\BookingSourceType;
 use App\Enums\CompanyStatus;
+use App\Enums\FolioStatus;
+use App\Enums\FolioType;
 use App\Enums\SellUnit;
 use App\Models\BookingSource;
+use App\Models\ChargeItem;
 use App\Models\Company;
 use App\Models\CompanyUser;
 use App\Models\Guest;
+use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\RoomType;
 use App\Models\User;
@@ -49,6 +54,7 @@ class CreatePortalReservation
         private AvailabilityService $availability,
         private AddIdentityDocument $addIdentityDocument,
         private NotifyReservationStaff $notifyReservationStaff,
+        private CreateRoutingRule $createRoutingRule,
     ) {}
 
     /**
@@ -57,7 +63,7 @@ class CreatePortalReservation
      * are checked again, and the auto-add items are added here. A line with N rooms books N units; a dorm line books
      * one unit for each bed. Every unit needs its own lead guest, always a new guest record, with an optional ID. The
      * first unit's guest is the booker. The booking uses the Company / Travel agent source, bills the company as the
-     * Master folio payer (MasterPays), has no override of any kind and is Confirmed at once. The shared `CreateBooking`
+     * Master folio payer (MasterPays) with its auto-add items on that folio, has no override of any kind and is Confirmed at once. The shared `CreateBooking`
      * and the IDs are saved in one transaction, so a refusal writes nothing. `PortalBookingCreated` goes to the
      * reservation staff after the save. See docs/23-company-portal/01-company-portal.md#booking.
      */
@@ -98,6 +104,7 @@ class CreatePortalReservation
 
                 if (! $result->isRefused()) {
                     $this->saveIds($user, $result->reservation, $data->guests);
+                    $this->billAutoAddOnsToCompany($user, $property, $result->reservation);
                 }
 
                 return $result;
@@ -113,6 +120,25 @@ class CreatePortalReservation
         ($this->notifyReservationStaff)($result->reservation, PortalBookingCreated::class);
 
         return PortalBookingResult::done($result->reservation);
+    }
+
+    /**
+     * The auto-add items are part of what the company sells, so each one gets a Manual rule for its transaction code to
+     * the Master folio. Anything else the guest buys stays on the unit's folio under MasterPays. Staff can remove a rule
+     * in Routing rules. See docs/15-city-ledger/06-agent-payment-schedule.md#breakdown.
+     */
+    private function billAutoAddOnsToCompany(User $user, Property $property, Reservation $reservation): void
+    {
+        $codeIds = array_unique(array_map(fn (ChargeItem $item): int => $item->transaction_code_id, $this->autoAddOns->items($property)));
+        $master = $reservation->folios()->where('type', FolioType::Master)->where('status', '<>', FolioStatus::Voided)->first();
+
+        if ($master === null) {
+            return;
+        }
+
+        foreach ($codeIds as $codeId) {
+            $this->createRoutingRule->manual($user, $reservation, $master, transactionCodeId: $codeId);
+        }
     }
 
     /**

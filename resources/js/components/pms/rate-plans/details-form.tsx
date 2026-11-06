@@ -242,7 +242,9 @@ export function DetailsForm({
                         <FieldDescription>
                             {form.data.max_rooms === ''
                                 ? 'Set the most rooms first.'
-                                : `A booking with more than ${form.data.max_rooms} rooms switches its rooms on this rate to the group rate, at the desk and in the agent portal, and back when it has fewer.`}
+                                : groupRateOptions.length === 0
+                                  ? 'No group rate to pick yet. Open the group rate plan, set its Rooms per booking to start above this plan (for example from 5, leave "to" empty) and save. It then shows here.'
+                                  : `A booking with more than ${form.data.max_rooms} rooms switches its rooms on this rate to the group rate, at the desk and in the agent portal, and back when it has fewer.`}
                         </FieldDescription>
                         <FieldError>
                             {form.errors.group_rate_plan_id}

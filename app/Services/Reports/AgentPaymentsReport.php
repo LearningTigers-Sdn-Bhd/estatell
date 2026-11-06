@@ -34,7 +34,7 @@ class AgentPaymentsReport implements HasTotals, Report
         $reservations = Reservation::query()
             ->where('property_id', $property->id)
             ->whereNotNull('deposit_due_at')
-            ->whereIn('status', [ReservationStatus::Confirmed->value, ReservationStatus::InHouse->value])
+            ->agentPaymentsOpen()
             ->when($rowKeys !== null, fn ($query) => $query->whereKey($rowKeys))
             ->with(['company', 'booker', 'property.settings'])
             ->withMin(['units as first_arrival' => fn ($units) => $units->whereIn('status', array_map(fn (UnitStatus $status): string => $status->value, UnitStatus::holdingInventory()))], 'arrival_date')
@@ -65,6 +65,7 @@ class AgentPaymentsReport implements HasTotals, Report
                 status: $next['overdue'] ? __('Overdue') : __('Due'),
                 time_zone: $zone,
                 overdue: $next['overdue'],
+                stay_ended: $reservation->status === ReservationStatus::Completed,
             );
         }
 

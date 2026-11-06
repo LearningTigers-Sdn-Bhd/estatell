@@ -24,7 +24,7 @@ The reservation stores the **deadlines only**. The amounts are always worked out
 - `CreateReservation` saves a desk or portal booking with such a company (never a channel booking), or
 - `UpdateReservationCompany` puts such a company on a reservation that has no deadlines yet (booked "now").
 
-A reservation that has deadlines keeps them: a later change of terms never moves a promise.
+A reservation that has deadlines keeps them: a later change of terms never moves a promise. If the company later moves to direct billing or turns **Payment schedule** off, the schedule stops showing and nobody is chased. The deadlines stay stored, and they apply again if the company moves back.
 
 ## Deadlines
 
@@ -41,22 +41,46 @@ Example: booked 14 Oct 20:00 (Kuala Lumpur) for 20 Dec, 50/72/30: deposit 50% by
 
 ## Amounts and status
 
-- **Base (decided):** the whole booking: the folio lines that are not payments (charges, taxes, discounts) plus the Scheduled rows (nights, add-ons such as the jetty fee, taxes). **Paid:** the payment lines of the reservation's folios, net of refunds. Voided folios do not count.
+- **Base (decided 5 Nov 2026, follows the folios):** the agent's part of the booking (`AgentBill`): the charges, taxes and discounts on a folio a company pays, posted and Scheduled. It replaces "the whole booking": money paid by the agent sits on the Master folio, so a charge on the guest's folio counted in the base was asked for twice, once from the agent and once at the desk. **Paid:** the payment lines of those folios, net of refunds. What the guest pays on their own folio does not count. Voided folios do not count.
 - **Deposit** = total × percent, rounded up to the sen. **Balance** = total − deposit.
-- A stage is **Paid** when the payments cover it (the deposit, then the whole total), **Overdue** after its due time, else **Due**.
-- The reservation page uses the Booking summary's Total and Paid (`stagesFrom()`), so the card and the summary agree.
+- A stage is **Paid** when the payments cover it (the deposit, then the whole total), **Overdue** after its due time, else **Due**. Once the agent has paid anything, the schedule shows **Paid** and **Left to pay**.
+- **Nationality:** each room's tourism tax follows that room's lead guest. A room with no nationality shows a note on the breakdown until someone adds it, on the portal's Edit guests or at the desk.
+- **On the statement:** these payments are per booking, so they are not city ledger entries. The staff and portal statements list them under **Payments on bookings**, outside the balance.
+- The reservation page shows the same figures as the portal. The Booking summary's Total and Paid stay the whole booking, so they can differ from the schedule when the guest pays a part.
+
+## Breakdown
+
+The agent sees every charge and who pays it, on the portal booking (**Payment**), in each reminder email, and staff see it on the reservation page.
+
+```
+You pay                              Guest pays at the resort
+  Room                 2,400.00        Tourism tax              40.00
+  SST                    192.00        Jetty Fee · Adult × 2    20.00
+  Total                2,592.00        Total                    60.00
+```
+
+`AgentBill` (`app/Services/Reservations/`, `AgentBillData`) follows the folios, so nothing is decided twice:
+
+| The charge lands on                                     | Part  |
+| ------------------------------------------------------- | ----- |
+| A folio a company pays (Master, or a third-party folio) | Agent |
+| The guest's unit folio, another folio, or no folio yet  | Guest |
+
+- **Staff decide with the existing settings.** **Company pays tourism tax** moves the tourism tax to the agent. Billing mode **Master folio pays all** moves add-ons such as the jetty fee to the agent. Under **Master folio pays** they stay with the guest, except on a portal booking: there, the automatic add-ons such as the jetty fee go to the agent, because the agent sold them in the package (decided 6 Nov 2026). Other extras such as food stay with the guest. A routing rule or Move charges moves a charge, and the breakdown follows.
+- Room nights make one line. Other charges keep their name, with the quantity. A line and its reversal are left out.
+- The portal's **Total** on the booking is the whole booking from this breakdown, tax included. The bookings list still shows rooms and add-ons before tax.
 
 ## Screens
 
 - **Settings › Agent payments** (`settings.agent-payments.edit|update`, `settings.manage`, Billing setup): Deposit (%), Deposit due within (hours), Full payment (days before arrival). `SaveAgentPaymentTerms` logs `agent_payment_terms.updated`.
-- **Company › Credit**, with **Pay at check-out**: **Payment schedule** (switch) and the three terms, empty for the property's.
+- **Company › Credit**, with **Pay at check-out**: **Payment schedule** (switch) and the three terms, empty for the property's. The page shows the property's terms (`AgentPaymentTermsData`) in each empty field and in the switch's description. Deposit due within converts the hours to days as staff type (`depositHoursHint`, display only).
 - **Reservation page:** a **Payment schedule** section in the summary card (`PaymentScheduleData`): each stage with its amount, "by 17 Oct, 20:00" and Paid, Due or Overdue.
 
 ## Follow-up
 
-**Reports › Finance › Agent payments due** (`ReportKey::AgentPayments`, `AgentPaymentsReport`): the Confirmed and In-house agent bookings with a stage not paid yet, overdue first, then by due time. Columns: Reservation, Agent, Arrival, Stage, Amount due (what is still missing to cover that stage), Due by, Status. The total sums Amount due. Each reservation is priced on its own, which suits a property's open agent bookings.
+**Reports › Finance › Agent payments due** (`ReportKey::AgentPayments`, `AgentPaymentsReport`): the Confirmed and In-house agent bookings with a stage not paid yet, and Completed ones while a folio the company pays is still Open, because guests can leave before the agent has paid. Overdue first, then by due time. Columns: Reservation, Agent, Arrival, Stage, Amount due (what is still missing to cover that stage), Due by, Status. The total sums Amount due. Each reservation is priced on its own, which suits a property's open agent bookings.
 
-The Reservation cell opens the booking. An overdue row has **Release rooms** for staff with `reservations.manage`: it opens the reservation page's **Cancel reservation** Dialog (the same preview, cancellation fees, Do not charge for `front-desk.waive-fees`, and Remove add-ons) with the reason "Deposit 50% not paid by the due time" filled in. The booking leaves the list once cancelled. No email goes to the agent yet.
+The Reservation cell opens the booking. An overdue row whose stay has not ended has **Release rooms** for staff with `reservations.manage`: it opens the reservation page's **Cancel reservation** Dialog (the same preview, cancellation fees, Do not charge for `front-desk.waive-fees`, and Remove add-ons) with the reason "Deposit 50% not paid by the due time" filled in. The booking leaves the list once cancelled. No email goes to the agent yet.
 
 ## Late deposit (decided)
 
@@ -74,7 +98,7 @@ payment_proofs   id, property_id, reservation_id, uploaded_by (FK users), amount
                  media: the `file` collection (jpg, png, webp or pdf), on the platform's private media disk
 ```
 
-- **Portal** (`portal.bookings.payment-proofs.store`, throttled; `.file` to open one): the booking page gets a **Payment** section (`BookingPaymentSection`) with the schedule, the proofs sent (amount, reference, status, the reject reason) and a form: the file (image or PDF, ≤ 10 MB), Amount paid and Bank reference. The form shows while a stage is not paid and the company is not suspended. `UploadPaymentProof` refuses a cancelled or completed booking. The booking is found through the agent's company, so another company gets a 404.
+- **Portal** (`portal.bookings.payment-proofs.store`, throttled; `.file` to open one): the booking page gets a **Payment** section (`BookingPaymentSection`) with the schedule, the proofs sent (amount, reference, status, the reject reason) and a form: the file (image or PDF, ≤ 10 MB), Amount paid and Bank reference. The form shows while a stage is not paid and the company is not suspended. `UploadPaymentProof` refuses a cancelled booking, and a completed one once no folio the company pays is still Open, so an agent can still send a proof after the guests leave. The booking is found through the agent's company, so another company gets a 404.
 - **Schedule:** a stage that is not paid reads **Proof received** while a proof waits for staff.
 - **Staff**, in the reservation summary card (`PaymentProofReview`): each proof with its file link, who sent it and the reference. With `payment.record`: **Accept** (method, amount received, prefilled with the proof's amount) runs `AcceptPaymentProof`: `RecordPayment` as an Advance with the proof's reference and the key `proof:{id}`, on the open Master folio, else the first live room; the proof becomes Accepted and keeps the payment id. **Reject** asks for a reason the agent sees. A proof already checked refuses both.
 - Logs: `payment_proof.uploaded`, `payment_proof.accepted`, `payment_proof.rejected` on the reservation.
@@ -82,7 +106,7 @@ payment_proofs   id, property_id, reservation_id, uploaded_by (FK users), amount
 
 ## Reminders
 
-`agent-payments:send-reminders` runs every 15 minutes (`routes/console.php`, on one server) and calls `SendAgentPaymentReminders`. For each Confirmed or In-house booking with a schedule, it emails `AgentPaymentReminder` (mail only, queued, on demand):
+`agent-payments:send-reminders` runs every 15 minutes (`routes/console.php`, on one server) and calls `SendAgentPaymentReminders`. For each booking in the same set as the report, it emails `AgentPaymentReminder` (mail only, queued, on demand):
 
 | Email      | When                                                   | Says                                                          |
 | ---------- | ------------------------------------------------------ | ------------------------------------------------------------- |

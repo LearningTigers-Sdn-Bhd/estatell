@@ -18,7 +18,7 @@ folio_routing_rules    id, reservation_id,
 - The table has no `property_id`: the reservation scopes it.
 - `target_folio_id` is any folio of the same reservation. A CHECK cannot say this, so the Action refuses a folio of another reservation.
 - Two rules cannot match the same thing: a unique index over the three selector columns treats nulls as equal (Postgres `NULLS NOT DISTINCT`, Postgres 15 and later; checked on 18.1).
-- `RoutingRuleSource`: BillingMode (made by `SyncRoutingRules`), Manual (made by staff).
+- `RoutingRuleSource`: BillingMode (made by `SyncRoutingRules`), Manual (made by staff, Move charges, or a portal booking for its auto-add items).
 
 ## Folio types
 
@@ -61,7 +61,7 @@ A tax with **Collect at check-in** (the tourism tax) follows the room line, exce
 - **Reversal:** `ReverseLine` already posts each reversal on the folio of its line, so the tax is reversed on the unit folio. It refuses with `folio_not_open` when that folio is not Open. Change price checks the folios of the children too.
 - **Move:** `TransferLines` reverses such a child and copies it on its own folio, under the copy of its charge, so the tax stays with the guest. That folio must be Open.
 - **Scheduled rows:** `ScheduledFolioRows` puts these tax rows in a block of their own on the unit folio, marked `guestTax`. Move charges leaves those blocks out. The lookup runs only for a reservation with a company, so on a reservation with no company a third-party folio that a company pays shows its tax until the night posts.
-- **Check-in:** `CheckInCollection` shows the tax rows when the guest pays them, even when the room charges go to the Master. Collect now records the Advance on the unit folio. Walk-in totals include them.
+- **Check-in:** `CheckInCollection` shows the tax rows when the guest pays them, even when the room charges go to the Master. Collect now records the Advance on the unit folio (`NewPaymentData::$guestPaysTaxes` lets it past `advance_on_master`, because it pays charges that stay on that folio). Walk-in totals include them.
 
 ## Billing mode rules
 

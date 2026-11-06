@@ -57,6 +57,7 @@ use App\Services\Guests\CountryOptions;
 use App\Services\Payments\PaymentReceipt;
 use App\Services\Platform\Impersonation;
 use App\Services\Property\MigrationWindow;
+use App\Services\Reservations\AgentBill;
 use App\Services\Reservations\BookingSourceOptions;
 use App\Services\Reservations\BookingSummary;
 use App\Services\Reservations\ReservationActivityLog;
@@ -372,7 +373,8 @@ class ReservationController extends Controller
         return Inertia::render('reservations/show', [
             'reservation' => $overview['reservation'],
             'money' => $money,
-            'paymentSchedule' => PaymentScheduleData::forReservation($reservation, $money),
+            'paymentSchedule' => PaymentScheduleData::forReservation($reservation),
+            'agentBill' => $reservation->deposit_due_at === null ? null : app(AgentBill::class)->for($reservation),
             ...$this->paymentProofProps($user, $property, $reservation),
             'units' => $overview['units'],
             'tab' => $tab,

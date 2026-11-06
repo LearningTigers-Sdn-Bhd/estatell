@@ -19,7 +19,8 @@ class UploadPaymentProof
      */
     public function __invoke(User $actor, Reservation $reservation, UploadedFile $file, string $amount, ?string $reference): ?PaymentProof
     {
-        if (in_array($reservation->status, [ReservationStatus::Cancelled, ReservationStatus::Completed], true)) {
+        if ($reservation->status === ReservationStatus::Cancelled
+            || ($reservation->status === ReservationStatus::Completed && ! Reservation::query()->whereKey($reservation->id)->agentPaymentsOpen()->exists())) {
             return null;
         }
 

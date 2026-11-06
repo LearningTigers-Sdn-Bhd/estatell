@@ -19,6 +19,7 @@ import { CompanyStatement } from '@/components/pms/city-ledger/company-statement
 import { ArPaymentsTab } from '@/components/pms/city-ledger/ar-payments-tab';
 import { CompanyPortalSection } from '@/components/pms/city-ledger/company-portal-section';
 import { CompanyRatesTable } from '@/components/pms/city-ledger/company-rates-table';
+import { depositHoursHint } from '@/components/pms/city-ledger/deposit-hours';
 import { CountrySelect } from '@/components/pms/country-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { MoneyText } from '@/components/pms/money-text';
@@ -199,16 +200,23 @@ function CountryField({
 function CreditFields({
     company,
     currency,
+    agentPaymentDefaults: defaults,
     readOnly,
     errors,
 }: {
     company: Company;
     currency: App.Data.Property.CurrencyData | null;
+    agentPaymentDefaults: App.Data.CityLedger.AgentPaymentTermsData | null;
     readOnly: boolean;
     errors: Record<string, string>;
 }) {
     const [billing, setBilling] = useState(
         company.directBillEnabled ? '1' : '0',
+    );
+    const [depositHours, setDepositHours] = useState(
+        company.agentDepositHours === null
+            ? ''
+            : String(company.agentDepositHours),
     );
 
     return (
@@ -254,7 +262,11 @@ function CreditFields({
                     checked={company.paymentScheduleEnabled}
                     disabled={readOnly}
                     error={errors.payment_schedule_enabled}
-                    description="Ask for a deposit soon after booking and the rest before arrival, with reminders. Turn off for a trusted agent. Empty terms below follow Settings, Agent payments."
+                    description={`Ask for a deposit soon after booking and the rest before arrival, with reminders. Turn off for a trusted agent. Empty terms below follow Settings, Agent payments${
+                        defaults
+                            ? `: ${defaults.depositPercent}% within ${defaults.depositHours} hours, the whole booking ${defaults.fullPaymentDays} days before arrival.`
+                            : '.'
+                    }`}
                 />
                 <SettingsInput
                     name="agent_deposit_percent"
@@ -262,7 +274,11 @@ function CreditFields({
                     type="number"
                     min={1}
                     max={100}
-                    placeholder="Property default"
+                    placeholder={
+                        defaults
+                            ? `Property default: ${defaults.depositPercent}%`
+                            : 'Property default'
+                    }
                     value={company.agentDepositPercent}
                     disabled={readOnly}
                     error={errors.agent_deposit_percent}
@@ -274,11 +290,19 @@ function CreditFields({
                     type="number"
                     min={1}
                     max={8760}
-                    placeholder="Property default"
+                    placeholder={
+                        defaults
+                            ? `Property default: ${defaults.depositHours} hours`
+                            : 'Property default'
+                    }
                     value={company.agentDepositHours}
                     disabled={readOnly}
                     error={errors.agent_deposit_hours}
-                    description="For example 72 for 3 days after booking."
+                    description={depositHoursHint(
+                        depositHours,
+                        defaults?.depositHours ?? null,
+                    )}
+                    onValueChange={setDepositHours}
                 />
                 <SettingsInput
                     name="agent_full_payment_days"
@@ -286,7 +310,11 @@ function CreditFields({
                     type="number"
                     min={1}
                     max={365}
-                    placeholder="Property default"
+                    placeholder={
+                        defaults
+                            ? `Property default: ${defaults.fullPaymentDays} days`
+                            : 'Property default'
+                    }
                     value={company.agentFullPaymentDays}
                     disabled={readOnly}
                     error={errors.agent_full_payment_days}
@@ -539,6 +567,7 @@ export default function CompanyShow({
     currency,
     canManage,
     canAddOldSystem = false,
+    agentPaymentDefaults = null,
     types = [],
     markets = [],
     countries = [],
@@ -555,6 +584,7 @@ export default function CompanyShow({
     currency: App.Data.Property.CurrencyData | null;
     canManage: boolean;
     canAddOldSystem?: boolean;
+    agentPaymentDefaults?: App.Data.CityLedger.AgentPaymentTermsData | null;
     types?: EnumOption[];
     markets?: EnumOption[];
     countries?: EnumOption[];
@@ -781,6 +811,7 @@ export default function CompanyShow({
                                 <CreditFields
                                     company={company}
                                     currency={currency}
+                                    agentPaymentDefaults={agentPaymentDefaults}
                                     readOnly={readOnly}
                                     errors={errors}
                                 />

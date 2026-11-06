@@ -3,10 +3,12 @@
 namespace App\Models;
 
 use App\Enums\BillingMode;
+use App\Enums\FolioStatus;
 use App\Enums\ReservationStatus;
 use Carbon\CarbonImmutable;
 use Database\Factories\ReservationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -62,6 +64,22 @@ class Reservation extends Model
     /**
      * @return BelongsTo<Property, $this>
      */
+    /**
+     * The bookings whose agent payments are still followed up: Confirmed and In-house, and Completed while a folio the
+     * company pays is still Open, because the guests can leave before the agent has paid.
+     *
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
+    public function scopeAgentPaymentsOpen(Builder $query): Builder
+    {
+        return $query->where(fn (Builder $bookings): Builder => $bookings
+            ->whereIn('status', [ReservationStatus::Confirmed->value, ReservationStatus::InHouse->value])
+            ->orWhere(fn (Builder $stayEnded): Builder => $stayEnded
+                ->where('status', ReservationStatus::Completed->value)
+                ->whereHas('folios', fn (Builder $folios): Builder => $folios->where('status', FolioStatus::Open->value)->whereNotNull('payer_company_id'))));
+    }
+
     public function property(): BelongsTo
     {
         return $this->belongsTo(Property::class);

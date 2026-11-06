@@ -19,6 +19,8 @@ class AgentPaymentReminder extends Notification implements ShouldQueue
 
     /**
      * @param  list<array{label: string, amount: string, due: string}>  $stages
+     * @param  list<string>  $agentLines  What the agent pays, one text line each.
+     * @param  list<string>  $guestLines  What the guest pays at the resort, one text line each.
      */
     public function __construct(
         public string $kind,
@@ -30,6 +32,8 @@ class AgentPaymentReminder extends Notification implements ShouldQueue
         public array $stages,
         public string $amountDue,
         public string $dueText,
+        public array $agentLines = [],
+        public array $guestLines = [],
     ) {
         $this->afterCommit();
     }
@@ -62,6 +66,22 @@ class AgentPaymentReminder extends Notification implements ShouldQueue
                 'reminder' => __('Please pay :amount by :due.', ['amount' => $this->amountDue, 'due' => $this->dueText]),
                 default => __(':amount was due by :due and is not paid yet. Please pay now, or send us your payment proof.', ['amount' => $this->amountDue, 'due' => $this->dueText]),
             });
+
+        if ($this->agentLines !== []) {
+            $mail->line(__('**You pay**'));
+
+            foreach ($this->agentLines as $line) {
+                $mail->line($line);
+            }
+        }
+
+        if ($this->guestLines !== []) {
+            $mail->line(__('**The guest pays at the resort**'));
+
+            foreach ($this->guestLines as $line) {
+                $mail->line($line);
+            }
+        }
 
         foreach ($this->stages as $stage) {
             $mail->line(__(':label: :amount by :due', $stage));

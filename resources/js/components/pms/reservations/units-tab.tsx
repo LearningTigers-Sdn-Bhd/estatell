@@ -193,7 +193,7 @@ export function UnitsList({
                     aria-label="Choose unit"
                     options={units.map((option) => ({
                         value: String(option.id),
-                        label: `${option.label} · ${option.status.label}`,
+                        label: `${option.label} · ${option.status.label} · ${option.primaryGuest ?? 'No primary guest'}`,
                     }))}
                     value={String(activeUnitId)}
                     onValueChange={(value) =>
@@ -229,6 +229,15 @@ export function UnitsList({
                         )}
                     >
                         <span className="font-medium">{option.roomType}</span>
+                        <span
+                            className={cn(
+                                'truncate',
+                                option.primaryGuest === null &&
+                                    'text-muted-foreground',
+                            )}
+                        >
+                            {option.primaryGuest ?? 'No primary guest'}
+                        </span>
                         <span className="text-muted-foreground">
                             {option.assigned ??
                                 (autoAssignRooms

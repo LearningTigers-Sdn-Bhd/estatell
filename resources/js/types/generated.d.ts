@@ -455,6 +455,11 @@ isOther: boolean,
 };
 }
 namespace CityLedger {
+export type AgentPaymentTermsData = {
+depositPercent: number,
+depositHours: number,
+fullPaymentDays: number,
+};
 export type AgingReportData = {
 asAt: string,
 rows: App.Data.CityLedger.AgingRowData[],
@@ -630,6 +635,14 @@ number: string,
 dueOn: string | null,
 balance: string,
 };
+export type StatementBookingPaymentData = {
+date: string,
+booking: string,
+method: string,
+reference: string | null,
+receipt: string | null,
+amount: string,
+};
 export type StatementData = {
 from: string,
 to: string,
@@ -637,6 +650,7 @@ openingBalance: string,
 lines: App.Data.CityLedger.StatementLineData[],
 closingBalance: string,
 aging: App.Data.CityLedger.AgingRowData,
+bookingPayments: App.Data.CityLedger.StatementBookingPaymentData[],
 };
 export type StatementLineData = {
 date: string,
@@ -1374,10 +1388,28 @@ needsMaintenance: boolean,
 canDismissMaintenance: boolean,
 doNotDisturb: boolean,
 reason: string | null,
+cleaning: App.Data.Housekeeping.RoomCleaningStateData,
 };
 export type HousekeepingStaffData = {
 id: number,
 name: string,
+};
+export type RoomCleaningData = {
+id: number,
+housekeeperId: number,
+housekeeperName: string,
+date: string,
+inTime: string,
+outTime: string | null,
+minutes: number | null,
+};
+export type RoomCleaningStateData = {
+roomId: number,
+roomNumber: string,
+cleaning: App.Data.Housekeeping.RoomCleaningData | null,
+canStart: boolean,
+canFinish: boolean,
+canEdit: boolean,
 };
 }
 namespace Meals {
@@ -1852,6 +1884,7 @@ migrated: boolean,
 lineKey: string | null,
 allowOtaCollected: boolean,
 issueReceipt: boolean,
+guestPaysTaxes: boolean,
 };
 export type PaymentFormOptionsData = {
 methods: App.Data.Payments.PaymentMethodOptionData[],
@@ -2176,6 +2209,7 @@ fullName: string,
 phone: string | null,
 idType: string | null,
 idTypeLabel: string | null,
+nationalityCode: string | null,
 };
 export type PortalInvitationData = {
 linkId: number,
@@ -2804,6 +2838,7 @@ due_at: string,
 status: string,
 time_zone: string,
 overdue: boolean,
+stay_ended: boolean,
 };
 export type ArrivalRow = {
 key: number,
@@ -2841,6 +2876,10 @@ boat_departure_id: number | null,
 seats: number | null,
 direction: string,
 not_set: boolean,
+boat: string | null,
+crew: string | null,
+ticked: boolean,
+mode: string | null,
 };
 export type CheckedOutRow = {
 key: number,
@@ -2962,6 +3001,7 @@ group_key: string,
 group_order: (number| string)[],
 checked_out: boolean,
 warning: boolean,
+cleaning: App.Data.Housekeeping.RoomCleaningStateData | null,
 };
 export type HousekeepingItemRow = {
 key: string,
@@ -2973,6 +3013,16 @@ quantity: number,
 action: string,
 arrival: string,
 departure: string,
+};
+export type HousekeepingLogRow = {
+key: number,
+date: string,
+room: string,
+room_type: string,
+housekeeper: string,
+in: string,
+out: string | null,
+minutes: number | null,
 };
 export type HousekeepingTaskRow = {
 key: number,
@@ -3205,6 +3255,22 @@ namespace Reservations {
 export type AddUnitOptionsData = {
 roomTypes: App.Data.Reservations.RoomTypeOptionData[],
 ratePlans: App.Data.Reservations.RatePlanOptionData[],
+};
+export type AgentBillData = {
+agentLines: {
+label: string,
+quantity: number,
+amount: string,
+}[],
+agentTotal: string,
+guestLines: {
+label: string,
+quantity: number,
+amount: string,
+}[],
+guestTotal: string,
+total: string,
+nationalityMissing: boolean,
 };
 export type ArrivalImportRowData = {
 line: number,
@@ -3615,6 +3681,8 @@ dueAt: string,
 status: string,
 }[],
 depositPercent: number,
+paid: string,
+left: string,
 };
 export type RatePlanOptionData = {
 id: number,
@@ -3817,6 +3885,7 @@ roomType: string,
 isBed: boolean,
 capacity: number,
 assigned: string | null,
+primaryGuest: string | null,
 label: string,
 status: App.Data.Shared.BadgeData,
 arrival: string,
@@ -4340,7 +4409,7 @@ export type GuestBulkAction = 'mark-vip' | 'unmark-vip' | 'blacklist' | 'unblack
 export type GuestMatchReason = 'phone' | 'email' | 'id_number' | 'name_and_birth_date' | 'name';
 export type HousekeepingBulkAction = 'assign' | 'mark_clean' | 'mark_inspected' | 'set_priority' | 'clear_priority' | 'add_remark' | 'needs_maintenance';
 export type HousekeepingReason = 'departed' | 'stay_over';
-export type HousekeepingRefusal = 'out_of_service' | 'invalid_transition';
+export type HousekeepingRefusal = 'out_of_service' | 'invalid_transition' | 'cleaning_in_progress' | 'cleaning_not_started';
 export type HousekeepingStatus = 'clean' | 'dirty' | 'inspected';
 export type IdentityDocumentType = 'mykad' | 'passport' | 'other';
 export type ImpersonationReason = 'onboarding_help' | 'support' | 'setup_check';
@@ -4377,7 +4446,7 @@ export type PaymentStatus = 'pending' | 'completed' | 'failed';
 export type PdfFont = 'office' | 'modern' | 'fancy' | 'handwritten';
 export type PdfFontSize = 'small' | 'medium' | 'large';
 export type PerformancePreset = '7d' | '30d' | 'month' | 'last-month' | '12m';
-export type PermissionEnum = 'settings.manage' | 'settings.ota-lists' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'reservations.change-price' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'folio.manual' | 'folio.view-manual-entries' | 'payment.record' | 'payment.refund' | 'payment.refund-other-method' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void' | 'front-desk.view' | 'front-desk.check-in' | 'front-desk.check-out' | 'front-desk.check-in-without-card' | 'front-desk.waive-fees' | 'front-desk.undo-check-in' | 'front-desk.undo-check-out' | 'night-audit.run' | 'night-audit.force' | 'night-audit.receive-report' | 'reports.view' | 'housekeeping.view' | 'housekeeping.update' | 'housekeeping.inspect';
+export type PermissionEnum = 'settings.manage' | 'settings.ota-lists' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'reservations.change-price' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'folio.manual' | 'folio.view-manual-entries' | 'payment.record' | 'payment.refund' | 'payment.refund-other-method' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void' | 'front-desk.view' | 'front-desk.check-in' | 'front-desk.check-out' | 'front-desk.check-in-without-card' | 'front-desk.waive-fees' | 'front-desk.undo-check-in' | 'front-desk.undo-check-out' | 'night-audit.run' | 'night-audit.force' | 'night-audit.receive-report' | 'reports.view' | 'housekeeping.view' | 'housekeeping.update' | 'housekeeping.inspect' | 'housekeeping.edit-times';
 export type PlatformFeature = 'channel-manager' | 'boats' | 'accounting-integration' | 'door-locks';
 export type PolicyChargeMode = 'free' | 'fixed_amount' | 'percentage';
 export type PolicyRateBasis = 'booked_rate' | 'current_rate';
@@ -4398,7 +4467,7 @@ export type RegistrationCardStatus = 'draft' | 'signed' | 'void';
 export type ReportCategory = 'front-desk' | 'revenue' | 'finance' | 'kitchen' | 'audit';
 export type ReportDatePreset = 'today' | 'yesterday' | 'tomorrow' | 'next-7-days' | 'this-week' | 'last-week' | 'next-week' | 'this-month' | 'last-month' | 'this-year' | 'last-30-days';
 export type ReportGroup = 'day' | 'month' | 'method' | 'staff';
-export type ReportKey = 'arrivals' | 'departures' | 'in-house' | 'occupancy' | 'revenue' | 'payments' | 'folio-ledger' | 'tax' | 'meal-counts' | 'night-audit-history' | 'outstanding-balance' | 'deposit-liability' | 'non-national-guests' | 'police-report' | 'housekeeping-tasks' | 'housekeeping-items' | 'house-status' | 'agent-payments' | 'boat-manifest' | 'checked-out' | 'daily-revenue' | 'daily-charges';
+export type ReportKey = 'arrivals' | 'departures' | 'in-house' | 'occupancy' | 'revenue' | 'payments' | 'folio-ledger' | 'tax' | 'meal-counts' | 'night-audit-history' | 'outstanding-balance' | 'deposit-liability' | 'non-national-guests' | 'police-report' | 'housekeeping-tasks' | 'housekeeping-items' | 'housekeeping-log' | 'house-status' | 'agent-payments' | 'boat-manifest' | 'checked-out' | 'daily-revenue' | 'daily-charges';
 export type ReservationRoomBoxState = 'assigned' | 'unassigned' | 'auto_assign' | 'cancelled' | 'no_show';
 export type ReservationStatus = 'confirmed' | 'in_house' | 'completed' | 'cancelled';
 export type RevisionKind = 'new' | 'modified' | 'cancelled';

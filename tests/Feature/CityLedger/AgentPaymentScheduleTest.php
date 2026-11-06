@@ -4,7 +4,9 @@ use App\Actions\Reservations\CreateReservation;
 use App\Data\Reports\AgentPaymentDueRow;
 use App\Data\Reports\ReportFilters;
 use App\Data\Reservations\NewReservationData;
+use App\Enums\FolioStatus;
 use App\Enums\PolicyScope;
+use App\Enums\ReservationStatus;
 use App\Enums\SystemTransactionCode;
 use App\Models\BusinessDate;
 use App\Models\Company;
@@ -114,10 +116,10 @@ test('a stage is paid once the payments cover it, and overdue after its time', f
     expect(array_map(fn (array $stage): array => [$stage['paid'], $stage['overdue']], $later))->toBe([[true, false], [false, true]]);
 });
 
-test('the total counts the whole booking and the paid amount the payments of its folios', function () {
+test('the total counts what lands on the company folio and the paid amount the payments of that folio', function () {
     $setup = agentScheduleSetup();
     $reservation = agentBook($setup);
-    $folio = Folio::query()->where('reservation_id', $reservation->id)->first() ?? Folio::factory()->master()->create(['property_id' => $setup['property']->id, 'reservation_id' => $reservation->id]);
+    $folio = Folio::query()->where('reservation_id', $reservation->id)->whereNotNull('payer_company_id')->firstOrFail();
     FolioLine::factory()->create(['folio_id' => $folio->id, 'kind' => 'payment', 'amount' => '-300.00']);
     $schedule = app(AgentPaymentSchedule::class);
 
@@ -141,6 +143,29 @@ test('the report lists the bookings still owing a stage, overdue first, and the 
 
     $this->actingAs($setup['user'])->get(route('reservations.show', [$setup['property']->code, $later]))
         ->assertInertia(fn (Assert $page) => $page->where('paymentSchedule.stages.0.label', 'Deposit 50%')->where('paymentSchedule.stages.0.amount', '500.00')->where('paymentSchedule.stages.1.status', 'due'));
+});
+
+test('after check-out a booking still owing stays on the report, without Release rooms, until its Master folio closes', function () {
+    $setup = agentScheduleSetup();
+    $booking = agentBook($setup);
+    $booking->forceFill(['status' => ReservationStatus::Completed])->save();
+    $rows = fn (): array => app(AgentPaymentsReport::class)->rows($setup['property'], new ReportFilters(from: '2026-10-14', to: '2026-10-14'));
+
+    expect($rows())->toHaveCount(1)->and($rows()[0]->stay_ended)->toBeTrue();
+
+    Folio::query()->where('reservation_id', $booking->id)->update(['status' => FolioStatus::Closed, 'closed_at' => now(), 'closed_by' => $setup['user']->id]);
+
+    expect($rows())->toBe([]);
+});
+
+test('a booking that moves to direct billing leaves the report and shows no schedule', function () {
+    $setup = agentScheduleSetup();
+    $booking = agentBook($setup);
+    $booking->company->update(['direct_bill_enabled' => true]);
+
+    expect(app(AgentPaymentsReport::class)->rows($setup['property'], new ReportFilters(from: '2026-10-14', to: '2026-10-14')))->toBe([]);
+    $this->actingAs($setup['user'])->get(route('reservations.show', [$setup['property']->code, $booking]))
+        ->assertInertia(fn (Assert $page) => $page->where('paymentSchedule.stages', []));
 });
 
 test('an overdue booking offers Release rooms, which cancels it from the report', function () {
@@ -170,6 +195,25 @@ test('an overdue booking offers Release rooms, which cancels it from the report'
 
     $viewer = User::factory()->for($setup['property'])->withPermissions(['reports.view'])->create();
     $this->actingAs($viewer)->get($report)->assertInertia(fn (Assert $page) => $page->where('canRelease', false));
+});
+
+test('the company credit tab sends the property terms that empty fields follow', function () {
+    $owner = User::factory()->owner()->create();
+    PropertySetting::factory()->for($owner->property)->create(['agent_deposit_percent' => 40, 'agent_deposit_hours' => 48, 'agent_full_payment_days' => 21]);
+    $company = Company::factory()->for($owner->property)->create(['direct_bill_enabled' => false, 'agent_deposit_hours' => 24]);
+
+    $this->actingAs($owner)->get(route('finance.city-ledger.companies.credit', [$owner->property->code, $company]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('company.agentDepositHours', 24)
+            ->where('agentPaymentDefaults', ['depositPercent' => 40, 'depositHours' => 48, 'fullPaymentDays' => 21]));
+});
+
+test('the company credit tab sends no terms while the property has no settings', function () {
+    $owner = User::factory()->owner()->create();
+    $company = Company::factory()->for($owner->property)->create();
+
+    $this->actingAs($owner)->get(route('finance.city-ledger.companies.credit', [$owner->property->code, $company]))
+        ->assertInertia(fn (Assert $page) => $page->where('agentPaymentDefaults', null));
 });
 
 test('owners save the property terms and a company its own', function () {

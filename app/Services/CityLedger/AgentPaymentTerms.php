@@ -17,7 +17,7 @@ class AgentPaymentTerms
      */
     public function for(Company $company, PropertySetting $settings): ?array
     {
-        if ($company->direct_bill_enabled || ! $company->payment_schedule_enabled) {
+        if (! $this->applyTo($company)) {
             return null;
         }
 
@@ -26,5 +26,14 @@ class AgentPaymentTerms
             'hours' => $company->agent_deposit_hours ?? $settings->agent_deposit_hours,
             'days' => $company->agent_full_payment_days ?? $settings->agent_full_payment_days,
         ];
+    }
+
+    /**
+     * Whether the company pays per booking right now. A company with direct billing is invoiced after the stay, and one
+     * with **Payment schedule** off is not chased, even on a booking that kept its deadlines.
+     */
+    public function applyTo(Company $company): bool
+    {
+        return ! $company->direct_bill_enabled && $company->payment_schedule_enabled;
     }
 }

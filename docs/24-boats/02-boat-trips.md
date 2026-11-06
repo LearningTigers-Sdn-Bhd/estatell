@@ -158,3 +158,7 @@ The [room status board](../19-housekeeping/01-room-status-board.md) sorts depart
 ## Lessons from wastays
 
 wastays stored `boat_in_at`, `boat_out_at`, `boat_in_type` and `boat_out_type` on each `booking_guest`, copied again on `reservation_import_rows`, with times as strings in some places. The date lived inside the datetime, so a date change needed `Boats::ResolveTimes` to rebuild it. estatell stores one trip per unit and direction, keeps the time on the unit and takes the date from the stay.
+
+## Automatic fare items
+
+A room that already has the departure's fare item as its own add-on, such as one added automatically, is not charged the fare again when a trip is set.

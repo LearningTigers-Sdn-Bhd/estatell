@@ -38,6 +38,7 @@ type Props = {
     reservation: App.Data.Reservations.ReservationData;
     money: App.Data.Reservations.ReservationMoneyData;
     paymentSchedule: App.Data.Reservations.PaymentScheduleData | null;
+    agentBill: App.Data.Reservations.AgentBillData | null;
     paymentProofs: App.Data.Payments.PaymentProofData[];
     proofPaymentMethods: { value: string; label: string }[];
     units: App.Data.Reservations.ReservationUnitOptionData[];
@@ -95,6 +96,7 @@ export default function ReservationShow({
     reservation,
     money,
     paymentSchedule,
+    agentBill,
     paymentProofs,
     proofPaymentMethods,
     units,
@@ -330,6 +332,7 @@ export default function ReservationShow({
                                 reservation={reservation}
                                 money={money}
                                 paymentSchedule={paymentSchedule}
+                                agentBill={agentBill}
                                 paymentProofs={paymentProofs}
                                 proofPaymentMethods={proofPaymentMethods}
                                 canViewCompany={canViewCompany}
