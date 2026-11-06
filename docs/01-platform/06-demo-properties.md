@@ -31,7 +31,7 @@ A separate Boreno copy can run in production for internal use through `BorenoPro
 
 ## Data
 
-`DemoSeeder` runs `OtaChannelSeeder`, `PearlsideSeeder` and `BorenoSeeder` through the real Actions only, so the ledger, AR balances and reports add up. It runs at every [reset](../deployment/demo_environment.md#reset) and takes about 3.5 s (measured locally).
+`DemoSeeder` runs `OtaChannelSeeder`, `PearlsideSeeder`, `BorenoSeeder` and `DemoBookingEngineSeeder` through the real Actions only, so the ledger, AR balances and reports add up. It runs at every [reset](../deployment/demo_environment.md#reset) and takes about 3.5 s (measured locally).
 
 1. Setup: room types, rooms, taxes, rates, charge items, discounts, companies.
 2. Open the business date on today.

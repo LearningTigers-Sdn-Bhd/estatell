@@ -53,10 +53,11 @@ class RecordPayment
      * `issueReceipt` off (an OTA collected payment a channel booking posts) takes no receipt number either. A surcharge
      * posts as a charge on the same folio, and the payment line covers the amount, the fee and its tax, so the balance
      * falls by the amount entered. The key `payment:{uuid}` (or the given `lineKey`) makes a repeat return the existing payment. The route
-     * checks the permission and that the folio or unit belongs to the reservation's property.
+     * checks the permission and that the folio or unit belongs to the reservation's property. `$actor` is null for a
+     * payment no staff member took (the booking engine): `received_by` stays empty and an Old system method is refused.
      * See docs/14-payments/01-payments-and-refunds.md.
      */
-    public function __invoke(User $actor, Reservation $reservation, ?Folio $folio, ?ReservationUnit $unit, NewPaymentData $data): PaymentResult
+    public function __invoke(?User $actor, Reservation $reservation, ?Folio $folio, ?ReservationUnit $unit, NewPaymentData $data): PaymentResult
     {
         if (($folio === null) === ($unit === null)) {
             throw new InvalidArgumentException('Record a payment on a folio or on a unit, not both and not neither.');
@@ -98,7 +99,7 @@ class RecordPayment
                 return PaymentResult::refused(PaymentResult::REFUSAL_ADVANCE_ON_MASTER);
             }
 
-            $method = $this->availablePaymentMethod->find($reservation, $data->paymentMethodId, $actor, $data->allowOtaCollected);
+            $method = $this->availablePaymentMethod->find($reservation, $data->paymentMethodId, $actor, $data->allowOtaCollected, $data->allowOnline);
 
             if ($method === null) {
                 return PaymentResult::refused(PaymentResult::REFUSAL_METHOD_NOT_AVAILABLE);
@@ -156,7 +157,7 @@ class RecordPayment
             $line->manual_batch_id = $data->manualBatchId;
             $line->migrated = $data->migrated;
             $line->idempotency_key = $key;
-            $line->user_id = $actor->id;
+            $line->user_id = $actor?->id;
             $line->save();
 
             $payment = new Payment([
@@ -169,7 +170,7 @@ class RecordPayment
                 'receipt_number' => $receiptNumber,
                 'folio_line_id' => $line->id,
                 'surcharge_line_id' => $surchargeLines[0]->id ?? null,
-                'received_by' => $actor->id,
+                'received_by' => $actor?->id,
                 'received_at' => now(),
             ]);
             $payment->property_id = $reservation->property_id;

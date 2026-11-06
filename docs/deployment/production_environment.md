@@ -16,6 +16,19 @@ The shared PHP base stage installs `exif` for Spatie Media Library and `intl` fo
 
 `APP_ENV=production` turns on `DB::prohibitDestructiveCommands` (`AppServiceProvider::configureDefaults`), so `migrate:fresh`, `db:wipe` and similar commands refuse to run.
 
+## Amenity list
+
+Deploy first, so the amenity migrations run. Then run this command once in the production `web` container:
+
+```sh
+php artisan db:seed --class=AmenitySeeder --force --no-interaction
+```
+
+- Data: the shared list from `database/seeders/data/amenities.json`. See [Amenities](../29-booking-engine/06-content-registries.md#amenities).
+- It is safe to run again. Existing amenities keep the changes admins made, and no row is removed.
+- An amenity an admin renamed comes back under its old name if the command runs again. Retire the extra row if this happens.
+- Do not run plain `db:seed` in production. `DatabaseSeeder` also creates a `test@example.com` user.
+
 ## Boreno Hotel for internal use
 
 Boreno can also exist in production as a normal property with the full sample data. It has no internal flag or schema changes. The public demo remains separate.
@@ -50,14 +63,30 @@ From `routes/console.php`.
 
 ## Environment variables that need care
 
-| Variable                                                               | Note                                                                                                            |
-| ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `CIPHERSWEET_KEY`                                                      | Encrypts ID numbers. Generate once with `php artisan ciphersweet:generate-key --show`. Never change or lose it. |
-| `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_ENDPOINT` | Optional. Without all four, media can only be stored on the server.                                             |
-| `SUPPORT_REQUIRE_2FA`                                                  | Keep `true` in production. See [Platform admins](../01-platform/01-platform-admins.md).                         |
-| `DEMO_URL`, `DEMO_PASSWORD`                                            | Shown on the partner **Demo access** card. Must match the demo environment.                                     |
+| Variable                                                               | Note                                                                                                                                                                                                                                                                |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CIPHERSWEET_KEY`                                                      | Encrypts ID numbers. Generate once with `php artisan ciphersweet:generate-key --show`. Never change or lose it.                                                                                                                                                     |
+| `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_ENDPOINT` | Optional. Without all four, media can only be stored on the server.                                                                                                                                                                                                 |
+| `SUPPORT_REQUIRE_2FA`                                                  | Keep `true` in production. See [Platform admins](../01-platform/01-platform-admins.md).                                                                                                                                                                             |
+| `DEMO_URL`, `DEMO_PASSWORD`                                            | Shown on the partner **Demo access** card. Must match the demo environment.                                                                                                                                                                                         |
+| `CURLEC_KEY_ID`, `CURLEC_KEY_SECRET`, `CURLEC_WEBHOOK_SECRET`          | Curlec **live** keys only. Without them, online payment answers `payment_unavailable`. In Curlec's live dashboard, add the webhook `https://app.estatell.com/webhooks/curlec` with the same secret. See [Payment](../29-booking-engine/04-payment.md#environments). |
+| `BOOKING_SITE_URL`, `BOOKING_API_DOCS_URL`                             | Optional. Default to `https://booking.estatell.com` and the developer guide on `docs.estatell.com`.                                                                                                                                                                 |
 
 The `media` volume holds `storage/app/private` (media stored on "This server"). It is shared by all three services. Back it up.
+
+## Booking microsite token
+
+The microsite app reaches the API with one token. Run this once in the `web` container, and put the printed token in the microsite app's environment in Coolify. It is shown once.
+
+```sh
+php artisan booking-engine:create-microsite-client
+```
+
+If the token is lost or leaked, replace it. The old token stops at once, so the microsite fails until its environment has the new token and it restarts. Holds and bookings stay reachable, because the client stays the same.
+
+```sh
+php artisan booking-engine:create-microsite-client --replace
+```
 
 ## Postgres
 

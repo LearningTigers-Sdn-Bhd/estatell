@@ -24,6 +24,6 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        $this->call([AdminSeeder::class, OtaChannelSeeder::class]);
+        $this->call([AdminSeeder::class, OtaChannelSeeder::class, AmenitySeeder::class]);
     }
 }

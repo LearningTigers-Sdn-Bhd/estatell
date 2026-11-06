@@ -57,6 +57,11 @@ class RatePlanFactory extends Factory
         return $this->state(fn (array $attributes) => ['pricing_basis' => PricingBasis::PerBed]);
     }
 
+    public function bookableOnline(): static
+    {
+        return $this->state(fn (array $attributes) => ['bookable_online' => true]);
+    }
+
     public function archived(): static
     {
         return $this->state(fn (array $attributes) => ['archived_at' => now()]);

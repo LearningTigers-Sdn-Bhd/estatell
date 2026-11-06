@@ -168,7 +168,7 @@ The toast names the result with the currency code: "Reservation R-1042: 3 of 3 c
         - An OTA source makes External reference required (`external_reference` error "Enter the OTA booking number.").
         - Company / Travel agent makes Company required (`company_id` error "Select the company."). A Direct or OTA booking can still pick a company.
         - **Walk-in** fixes the source to Walk-in.
-        - `StoreBookingRequest` checks the same rules: the source must be active, of the property, and its type must be allowed for the staff member (Company / Travel agent needs `company.view`). It checks the type and the permission, not the form mode, because both modes post to `reservations.store`. The walk-in room rule follows the Walk-in type.
+        - `StoreBookingRequest` checks the same rules: the source must be active, of the property, and its type must be allowed for the staff member (Company / Travel agent needs `company.view`, and Booking Engine is never allowed). It checks the type and the permission, not the form mode, because both modes post to `reservations.store`. The walk-in room rule follows the Walk-in type.
 
         ```
         Source [Booking.com ▾]   External reference* [BK-12345 ]   Company [Search…   ▾]   Group name [____]

@@ -4,6 +4,7 @@ namespace App\Enums;
 
 use App\Features\AccountingIntegration;
 use App\Features\Boats;
+use App\Features\BookingEngine;
 use App\Features\ChannelManager;
 use App\Features\DoorLocks;
 use App\Features\Kiosks;
@@ -18,6 +19,7 @@ enum PlatformFeature: string
     case AccountingIntegration = 'accounting-integration';
     case DoorLocks = 'door-locks';
     case Kiosks = 'kiosks';
+    case BookingEngine = 'booking-engine';
 
     public function label(): string
     {
@@ -27,6 +29,7 @@ enum PlatformFeature: string
             self::AccountingIntegration => __('Accounting integration'),
             self::DoorLocks => __('Door locks'),
             self::Kiosks => __('Kiosks'),
+            self::BookingEngine => __('Booking engine'),
         };
     }
 
@@ -38,6 +41,7 @@ enum PlatformFeature: string
             self::AccountingIntegration => __('Push each closed business date to the property\'s accounting software.'),
             self::DoorLocks => __('Issue and remove TTLock door PINs for each stay.'),
             self::Kiosks => __('Self check-in kiosks: pairing, settings and the kiosk API for this property.'),
+            self::BookingEngine => __('Let guests book and pay online, on a booking website or through the API.'),
         };
     }
 
@@ -52,6 +56,7 @@ enum PlatformFeature: string
             self::AccountingIntegration => AccountingIntegration::class,
             self::DoorLocks => DoorLocks::class,
             self::Kiosks => Kiosks::class,
+            self::BookingEngine => BookingEngine::class,
         };
     }
 }

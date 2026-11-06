@@ -22,6 +22,8 @@ class FolioStatusResult
 
     public const REFUSAL_RECEIVES_SCHEDULED_CHARGES = 'folio_receives_scheduled_charges';
 
+    public const REFUSAL_ONLINE_REFUND_PENDING = 'online_refund_pending';
+
     private function __construct(
         public readonly ?Folio $folio,
         public readonly ?string $refusal,

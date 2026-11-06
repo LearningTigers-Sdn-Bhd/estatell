@@ -57,6 +57,7 @@ class PaymentRefusals
             PaymentResult::REFUSAL_REASON_REQUIRED => ['reason', __('Add a reason for refunding to another method.')],
             PaymentResult::REFUSAL_VOID_NOT_SAME_DAY => [self::FORM, __('This payment was taken on an earlier day. Refund it instead of voiding it.')],
             PaymentResult::REFUSAL_VOID_HAS_REFUND => [self::FORM, __('This payment already has a refund, so it can\'t be voided.')],
+            PaymentResult::REFUSAL_ONLINE_REFUND_ONLY => [self::FORM, __('An online payment can only be refunded through Curlec, to the card or bank that paid.')],
             PaymentResult::REFUSAL_CREDIT_NOT_REFUNDABLE => ['amount', __('This folio has no credit that can be refunded.')],
             TaxCalculator::REFUSAL_NATIONALITY_REQUIRED => [self::FORM, __('The surcharge has a tax that depends on nationality. Add the booker\'s nationality to the guest first.')],
             TaxCalculator::REFUSAL_INCLUSIVE_TAX_EXCEEDS_AMOUNT => [self::FORM, __('The tax in the surcharge is more than the surcharge.')],

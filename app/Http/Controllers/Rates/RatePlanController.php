@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Rates;
 
+use App\Actions\BookingEngine\SetRatePlanBookableOnline;
 use App\Actions\Channels\QueueChannelRemoval;
 use App\Actions\Rates\ArchiveRatePlan;
 use App\Actions\Rates\CopyParentStayDiscounts;
@@ -37,6 +38,7 @@ use App\Data\Rates\RatePlanStayDiscountData;
 use App\Data\Rates\RatePricingRoomTypeData;
 use App\Data\Rates\StayDiscountPreviewData;
 use App\Enums\AgeBandPricing;
+use App\Enums\BookableOnlineResult;
 use App\Enums\ChannelRemovalKind;
 use App\Enums\ChargingUnit;
 use App\Enums\InclusionEnd;
@@ -50,6 +52,7 @@ use App\Enums\SellUnit;
 use App\Enums\StayDiscountType;
 use App\Enums\Weekday;
 use App\Enums\WeekendNights;
+use App\Features\BookingEngine;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Rates\ArchiveRatePlanRequest;
 use App\Http\Requests\Rates\CreateDerivedRatePlanRequest;
@@ -85,8 +88,10 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Inertia\Inertia;
 use Inertia\Response;
+use Laravel\Pennant\Feature;
 
 class RatePlanController extends Controller
 {
@@ -110,6 +115,7 @@ class RatePlanController extends Controller
             'derivations' => RateDerivation::options(),
             'currency' => CurrencyData::forProperty($property),
             'companies' => $request->user()->can(PermissionEnum::CompanyManage->value) ? $companyOptions->active($property) : [],
+            'onlineBooking' => Feature::for($property)->active(BookingEngine::class) && $request->user()->can(PermissionEnum::BookingWebsiteManage->value),
         ]);
     }
 
@@ -164,7 +170,7 @@ class RatePlanController extends Controller
     /**
      * The Details tab of the plan editor. Each tab is its own URL and loads only its own data.
      */
-    public function edit(Property $property, RatePlan $ratePlan, DerivedRatePlans $derivedRatePlans): Response
+    public function edit(Request $request, Property $property, RatePlan $ratePlan, DerivedRatePlans $derivedRatePlans): Response
     {
         return Inertia::render('settings/rate-plans/edit', [
             'ratePlan' => RatePlanData::fromModel($ratePlan->load('roomTypes')),
@@ -175,6 +181,7 @@ class RatePlanController extends Controller
                 ->orderBy('position')->orderBy('id')->get()
                 ->map(fn (RatePlan $plan): array => ['value' => (string) $plan->id, 'label' => __(':name (from :count rooms)', ['name' => $plan->name, 'count' => $plan->min_rooms])])
                 ->values()->all(),
+            'onlineBooking' => Feature::for($property)->active(BookingEngine::class) && $request->user()->can(PermissionEnum::BookingWebsiteManage->value),
         ]);
     }
 
@@ -357,9 +364,24 @@ class RatePlanController extends Controller
         ]);
     }
 
-    public function update(RatePlanRequest $request, Property $property, RatePlan $ratePlan, UpdateRatePlan $updateRatePlan): RedirectResponse
+    public function update(RatePlanRequest $request, Property $property, RatePlan $ratePlan, UpdateRatePlan $updateRatePlan, SetRatePlanBookableOnline $setRatePlanBookableOnline): RedirectResponse
     {
-        Inertia::flash('toast', $updateRatePlan($request->user(), $ratePlan, $request->validated())
+        $details = Arr::except($request->validated(), 'bookable_online');
+        $editsOnlineBooking = $request->has('bookable_online')
+            && Feature::for($property)->active(BookingEngine::class)
+            && $request->user()->can(PermissionEnum::BookingWebsiteManage->value);
+
+        if ($editsOnlineBooking) {
+            $result = $setRatePlanBookableOnline($request->user(), $property, $ratePlan->id, $request->boolean('bookable_online'));
+
+            if ($result !== BookableOnlineResult::Saved) {
+                Inertia::flash('toast', ['type' => 'error', 'message' => $result->message()]);
+
+                return to_route('settings.rate-plans.edit', ['property' => $property, 'ratePlan' => $ratePlan]);
+            }
+        }
+
+        Inertia::flash('toast', $updateRatePlan($request->user(), $ratePlan, $details)
             ? ['type' => 'success', 'message' => __(':name saved.', ['name' => $request->string('name')->trim()])]
             : ['type' => 'error', 'message' => $ratePlan->archived_at !== null
                 ? __(':name is archived. Restore it before editing.', ['name' => $ratePlan->name])

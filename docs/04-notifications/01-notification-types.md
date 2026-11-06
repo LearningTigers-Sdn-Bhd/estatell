@@ -30,18 +30,33 @@ Define every notification once, with its channels, defaults and recipients.
 | PaymentSlipReceived         | On   | On            | Both       | Staff with `city-ledger.payment`         |
 | CompanyLinkInvitation       | On   | On, mandatory | Mail only  | The invited company user                 |
 | GoLiveRequested             | On   | On            | Both       | Platform admins, and the partner         |
+| OnlinePaymentNeedsAttention | On   | On            | Both       | Platform admins                          |
 | GoLiveApproved              | On   | On, mandatory | Mail only  | Owner                                    |
 | GoLiveRejected              | On   | On, mandatory | Mail only  | Owner                                    |
 | ChannelBookingReceived      | On   | On            | Both       | Reservation staff (module 12 permission) |
 | ChannelBookingCancelled     | On   | On            | Both       | Reservation staff (module 12 permission) |
 | ChannelRemovalBlocked       | On   | On, mandatory | Mail only  | The staff member who archived            |
 | ChannelHelpRequested        | On   | On, mandatory | Mail only  | Owner                                    |
+| NearbyPlaceRemoved          | No   | On, mandatory | No         | Owner                                    |
+| OnlineBookingReceived       | On   | On            | Both       | Reservation staff (module 12 permission) |
+| OnlineRefundNeedsAttention  | On   | On            | Both       | Staff with `payment.refund`              |
+| OnlineBookingCancelled      | On   | On            | Both       | Reservation staff (module 12 permission) |
 
 `PortalBookingCreated`, `PortalBookingCancelled` and `PortalCancellationRequested` are built (`PortalReservationNotification`, sent by `NotifyReservationStaff` after the save). The recipients are the active staff of the property with `reservations.manage`; each message names the company and the reference and links to the reservation. The matrix check constraints list the three types.
+
+`OnlinePaymentNeedsAttention` goes to platform admins, who have no property, so it skips the preference matrix and is always sent by mail and in-app. It holds no guest details. See [Payment](../29-booking-engine/04-payment.md#failures).
 
 `GoLiveRequested` goes to platform admins and the partner, who have no property, so it skips the preference matrix and is always sent by mail and in-app. `CompanyLinkInvitation` does the same for company users, who also have no property: it is a plain notification class, not a `NotificationType` case, and always goes by mail and in-app. `GoLiveApproved` and `GoLiveRejected` are `NotificationType` cases for the owner.
 
 `ChannelBookingReceived` and `ChannelBookingCancelled` are built (`ChannelReservationNotification`, sent by `NotifyChannelReservationStaff` after the channel booking is saved). The recipients are the active staff of the property with `reservations.manage`; each message names the channel and the reference and links to the reservation. The matrix check constraints list the two types. `ChannelRemovalBlocked` is sent to the staff member who archived a room type or rate plan (or unlinked room types) when an OTA still used it at the channel manager, so it was not done; the estatell team has the same news as an alert. The matrix check constraints list it. `ChannelHelpRequested` is planned with the [Channels](../21-channels/) module and is sent when an admin asks the owner for help with a channel.
+
+`NearbyPlaceRemoved` is planned with the [Booking engine](../29-booking-engine/06-content-registries.md#nearby-places). It is in-app only. It is sent to the property's first active Owner when an admin rejects a nearby place, and it reads "Pangkor Jetty was removed from your nearby places." It stays in the notification list until the owner reads it. The matrix check constraints must list it.
+
+`OnlineBookingReceived` is built (`NotifyOnlineBooking`, run by `ConfirmBookingHold` after its transaction commits, once per order). The recipients are the active staff of the property with `reservations.manage`; the message names the guest and the reference and links to the reservation. The matrix check constraints list it. The guest's confirmation email, `OnlineBookingConfirmed`, is a plain notification class, not a `NotificationType` case: a guest is not a user, so it skips the preference matrix and always goes by mail to the address on the hold. It shows the reference, dates, rooms and amount paid, with a **Manage booking** button. See [Confirmation](../29-booking-engine/04-payment.md#confirmation).
+
+`OnlineBookingCancelled` is built (`OnlineBookingCancelledByGuest`, sent by `NotifyOnlineCancellation` after `CancelBookingOnline` commits). The recipients are the active staff of the property with `reservations.manage`. The guest's email (`OnlineBookingCancelled`) skips the preference matrix. See [Cancel and refund](../29-booking-engine/05-cancel-and-refund.md#flow).
+
+`OnlineRefundNeedsAttention` is built (`AlertOnlineRefundProblem`). It is sent when an online refund fails and when a late payment is refunded automatically. See [Cancel and refund](../29-booking-engine/05-cancel-and-refund.md#refund-status).
 
 `SupportAccessUsed` (label "Money correction by support") is in-app only. It is sent once for each money correction (refund, void, credit note, allocation reversal) that support makes while viewing a property as its staff, right when the activity log entry is created (`NotifySupportMoneyCorrection`). The recipient is the property's first active Owner. It names the support user, the partner, the action, the amount and the reference. Starting and ending a session send nothing. The enum value stays `support_access_used`, so the check constraints are unchanged.
 

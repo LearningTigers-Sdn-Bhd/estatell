@@ -24,6 +24,14 @@ return [
         'client_secret' => env('TTLOCK_CLIENT_SECRET'),
     ],
 
+    'curlec' => [
+        'base_url' => env('CURLEC_BASE_URL', 'https://api.razorpay.com/v1'),
+        'account' => env('CURLEC_ACCOUNT', 'primary'),
+        'key_id' => env('CURLEC_KEY_ID'),
+        'key_secret' => env('CURLEC_KEY_SECRET'),
+        'webhook_secret' => env('CURLEC_WEBHOOK_SECRET'),
+    ],
+
     'channex' => [
         'base_url' => env('CHANNEX_BASE_URL', 'https://staging.channex.io/api/v1'),
         'api_key' => env('CHANNEX_API_KEY'),

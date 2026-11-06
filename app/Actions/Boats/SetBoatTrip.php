@@ -38,7 +38,7 @@ class SetBoatTrip
      * checks `reservations.manage` and the `boats` middleware; this checks the feature for other callers (bookings, Add
      * unit). See docs/24-boats/02-boat-trips.md.
      */
-    public function __invoke(User $actor, ReservationUnit $unit, BoatTripData $data): BoatTripResult
+    public function __invoke(?User $actor, ReservationUnit $unit, BoatTripData $data): BoatTripResult
     {
         $property = Property::query()->findOrFail($unit->property_id);
 
@@ -53,7 +53,7 @@ class SetBoatTrip
         }
     }
 
-    private function save(User $actor, ReservationUnit $unit, BoatTripData $data): BoatTripResult
+    private function save(?User $actor, ReservationUnit $unit, BoatTripData $data): BoatTripResult
     {
         $departure = $data->mode->needsDeparture()
             ? BoatDeparture::query()

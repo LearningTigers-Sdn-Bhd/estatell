@@ -321,8 +321,8 @@ class AddUnit
     }
 
     /**
-     * Whether the actor may book past restrictions in the reservation's property. The permission team is switched to
-     * that property and put back afterwards.
+     * Whether the actor may book past restrictions in the reservation's property. A booking with no actor never may.
+     * The permission team is switched to that property and put back afterwards.
      */
     private function canOverrideRestrictions(?User $actor, Reservation $reservation): bool
     {

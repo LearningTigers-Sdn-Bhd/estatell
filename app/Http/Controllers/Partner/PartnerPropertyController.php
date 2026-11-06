@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Partner;
 use App\Actions\Onboarding\CreatePropertyForOwner;
 use App\Data\Platform\AdminPropertyData;
 use App\Data\Platform\AdminPropertyStaffData;
+use App\Data\Platform\BookingEngineModeData;
 use App\Data\Platform\DemoAccessData;
 use App\Data\Platform\PartnerPropertyRowData;
 use App\Data\Platform\PropertyFeatureData;
@@ -106,6 +107,7 @@ class PartnerPropertyController extends Controller
 
         return $this->renderTab($property, 'features', [
             'features' => PropertyFeatureData::forProperty($property),
+            'bookingEngineMode' => BookingEngineModeData::forProperty($property),
         ]);
     }
 

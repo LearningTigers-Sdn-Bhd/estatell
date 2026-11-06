@@ -6,9 +6,9 @@ use App\Enums\FolioStatus;
 use App\Enums\PaymentPurpose;
 use App\Models\Folio;
 use App\Models\FolioLine;
+use App\Models\GatewayRefund;
 use App\Models\Payment;
 use App\Models\User;
-use App\Services\Folio\FolioBalance;
 use App\Services\FrontDesk\CheckOutSettlement;
 use Brick\Math\BigDecimal;
 use Illuminate\Support\Facades\DB;
@@ -17,15 +17,14 @@ use Throwable;
 class RefundFolioCredit
 {
     public function __construct(
-        private RefundPayment $refundPayment,
+        private RefundHeldPayment $refundHeldPayment,
         private CheckOutSettlement $settlement,
-        private FolioBalance $folioBalance,
     ) {}
 
     /**
      * Give back the credit of an Open folio without a check-out. The parts come from the payments the folio still holds:
      * the newest first, because an overpayment is usually the latest, and security deposits last, because the guest is
-     * still in house. Check-out uses its own order (`CheckOutSettlement::refundPool()`). Each goes through `RefundPayment` with the
+     * still in house. Check-out uses its own order (`CheckOutSettlement::refundPool()`). Each goes through `RefundHeldPayment` with the
      * key `{key}:{payment id}`, so a repeat returns the first refund and writes nothing. The amount is at most the credit and at most what
      * the payments hold. A folio that holds money no payment can give back offers no refund. Any refusal rolls back
      * every part. See docs/14-payments/01-payments-and-refunds.md.
@@ -59,6 +58,10 @@ class RefundFolioCredit
             return PaymentResult::replayed($replayed);
         }
 
+        if (GatewayRefund::query()->where('property_id', $locked->property_id)->where('idempotency_key', 'like', $idempotencyKey.':%')->exists()) {
+            return PaymentResult::requested();
+        }
+
         if ($locked->status !== FolioStatus::Open) {
             return PaymentResult::refused(PaymentResult::REFUSAL_FOLIO_NOT_OPEN);
         }
@@ -68,7 +71,7 @@ class RefundFolioCredit
         }
 
         $folios = $locked->newCollection([$locked]);
-        $balance = BigDecimal::of($this->folioBalance->forFolio($locked));
+        $balance = $this->settlement->settledBalance($locked);
         $pool = $this->settlement->heldPayments($folios)
             ->sort(fn (Payment $a, Payment $b): int => [$a->purpose === PaymentPurpose::SecurityDeposit, $b->id] <=> [$b->purpose === PaymentPurpose::SecurityDeposit, $a->id])
             ->values();
@@ -90,7 +93,7 @@ class RefundFolioCredit
 
             $available = $this->settlement->refundable($payment);
             $part = $left->isLessThan($available) ? $left : $available;
-            $result = ($this->refundPayment)($actor, $payment, (string) $part->toScale(2), null, $idempotencyKey.':'.$payment->id, methodId: $methodId, reason: $reason);
+            $result = ($this->refundHeldPayment)($actor, $payment, (string) $part->toScale(2), null, $idempotencyKey.':'.$payment->id, methodId: $methodId, reason: $reason);
 
             if ($result->isRefused()) {
                 return $result;
@@ -100,7 +103,7 @@ class RefundFolioCredit
             $left = $left->minus($part);
         }
 
-        return PaymentResult::recorded($first, []);
+        return $first === null ? PaymentResult::requested() : PaymentResult::recorded($first, []);
 
     }
 }

@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Controllers\Api\Booking\ContentController;
+use App\Http\Controllers\Api\Booking\HoldController;
+use App\Http\Controllers\Api\Booking\ManageBookingController;
+use App\Http\Controllers\Api\Booking\StayController as BookingStayController;
 use App\Http\Controllers\Api\Kiosk\BookingController;
 use App\Http\Controllers\Api\Kiosk\CheckInController;
 use App\Http\Controllers\Api\Kiosk\CheckOutController;
@@ -42,5 +46,53 @@ Route::prefix('kiosk/v1')->name('api.kiosk.v1.')->group(function () {
             Route::post('stays/{id}/check-in', [CheckInController::class, 'checkIn'])->name('stays.check-in');
             Route::post('stays/{id}/registration-card/sign', [RegistrationCardController::class, 'sign'])->name('stays.registration-card.sign');
         });
+    });
+});
+
+/*
+ * The booking engine API. A route names its ability, and the reach check finds the property in the path.
+ * See docs/29-booking-engine/02-api.md.
+ */
+Route::prefix('booking/v1')->name('api.booking.v1.')->group(function () {
+    Route::get('properties', [ContentController::class, 'properties'])
+        ->middleware(['api.token:booking:listing', 'throttle:api-token'])
+        ->name('properties.index');
+
+    Route::post('search', [BookingStayController::class, 'search'])
+        ->middleware(['api.token:booking:search', 'throttle:api-token'])
+        ->name('search');
+
+    Route::get('sites/{slug}', [ContentController::class, 'site'])
+        ->middleware(['api.token:booking:site', 'throttle:api-token', 'api.booking.reach'])
+        ->name('sites.show');
+
+    Route::middleware(['api.token:booking:content', 'throttle:api-token', 'api.booking.reach'])->prefix('properties/{code}')->group(function () {
+        Route::get('/', [ContentController::class, 'property'])->name('properties.show');
+        Route::get('room-types', [ContentController::class, 'roomTypes'])->name('properties.room-types');
+        Route::get('calendar', [BookingStayController::class, 'calendar'])->name('properties.calendar');
+        Route::post('offers', [BookingStayController::class, 'offers'])->name('properties.offers');
+        Route::post('pricing', [BookingStayController::class, 'pricing'])->name('properties.pricing');
+    });
+
+    Route::post('properties/{code}/holds', [HoldController::class, 'store'])
+        ->middleware(['api.token:booking:checkout', 'throttle:api-token', 'throttle:api-booking-holds', 'api.booking.reach', 'api.idempotent'])
+        ->name('holds.store');
+
+    Route::middleware(['api.token:booking:checkout', 'throttle:api-token'])->prefix('holds/{token}')->group(function () {
+        Route::get('/', [HoldController::class, 'show'])->name('holds.show');
+        Route::delete('/', [HoldController::class, 'destroy'])->name('holds.destroy');
+        Route::post('payment', [HoldController::class, 'payment'])->middleware('api.idempotent')->name('holds.payment');
+    });
+
+    // Only `BookingLookupLockout` limits this route. Guests share one microsite token, so `api-token` would let one guest
+    // use up the limit of the property's whole site.
+    Route::post('properties/{code}/bookings/find', [ManageBookingController::class, 'find'])
+        ->middleware(['api.token:booking:checkout', 'api.booking.reach'])
+        ->name('bookings.find');
+
+    Route::middleware(['api.token:booking:checkout', 'throttle:api-token'])->prefix('bookings/{token}')->group(function () {
+        Route::get('/', [ManageBookingController::class, 'show'])->name('bookings.show');
+        Route::get('cancellation', [ManageBookingController::class, 'cancellation'])->name('bookings.cancellation');
+        Route::post('cancellation', [ManageBookingController::class, 'cancel'])->middleware('api.idempotent')->name('bookings.cancel');
     });
 });

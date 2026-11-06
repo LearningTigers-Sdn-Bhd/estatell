@@ -1,6 +1,9 @@
 <?php
 
+use App\Http\Controllers\Admin\AmenityCategoryController;
+use App\Http\Controllers\Admin\AmenityController;
 use App\Http\Controllers\Admin\MailEventController;
+use App\Http\Controllers\Admin\NearbyPlaceController;
 use App\Http\Controllers\Admin\OtaChannelController;
 use App\Http\Controllers\Admin\OwnerSetupLinkController;
 use App\Http\Controllers\Admin\PartnerBulkAddController;
@@ -10,6 +13,7 @@ use App\Http\Controllers\Admin\PartnerInvitationController;
 use App\Http\Controllers\Admin\PartnerStatusController;
 use App\Http\Controllers\Admin\PartnerTemporaryPasswordController;
 use App\Http\Controllers\Admin\PlatformSettingsController;
+use App\Http\Controllers\Admin\PropertyBookingEngineModeController;
 use App\Http\Controllers\Admin\PropertyChannelConnectionController;
 use App\Http\Controllers\Admin\PropertyChannelController;
 use App\Http\Controllers\Admin\PropertyController;
@@ -18,6 +22,7 @@ use App\Http\Controllers\Admin\PropertyGoLiveController;
 use App\Http\Controllers\Admin\PropertyOtaListController;
 use App\Http\Controllers\Admin\PropertyPartnerController;
 use App\Http\Controllers\Admin\PropertyStatusController;
+use App\Http\Controllers\Admin\SiteTemplateController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group(function () {
@@ -50,6 +55,7 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
         Route::post('properties/{property:code}/channels/connections/{connection}/import-bookings', [PropertyChannelConnectionController::class, 'import'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}', 'connection' => '[0-9]+'])->middleware('support.2fa')->name('properties.channels.connections.import');
     });
     Route::put('properties/{property:code}/features/{feature}', [PropertyFeatureController::class, 'update'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}'])->middleware('support.2fa')->name('properties.features.update');
+    Route::put('properties/{property:code}/booking-engine-mode', [PropertyBookingEngineModeController::class, 'update'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}'])->middleware('support.2fa')->name('properties.booking-engine-mode.update');
     Route::get('properties/{property:code}/go-live', [PropertyGoLiveController::class, 'show'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}'])->name('properties.go-live.show');
     Route::post('properties/{property:code}/go-live/approve', [PropertyGoLiveController::class, 'approve'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}'])->middleware('support.2fa')->name('properties.go-live.approve');
     Route::post('properties/{property:code}/go-live/reject', [PropertyGoLiveController::class, 'reject'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}'])->middleware('support.2fa')->name('properties.go-live.reject');
@@ -81,6 +87,25 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
     Route::put('channels/order', [OtaChannelController::class, 'reorder'])->middleware('support.2fa')->name('channels.reorder');
     Route::put('channels/{channel}', [OtaChannelController::class, 'update'])->whereNumber('channel')->middleware('support.2fa')->name('channels.update');
     Route::put('channels/{channel}/active', [OtaChannelController::class, 'active'])->whereNumber('channel')->middleware('support.2fa')->name('channels.active.update');
+    Route::get('amenities', [AmenityController::class, 'index'])->name('amenities.index');
+    Route::post('amenities', [AmenityController::class, 'store'])->middleware('support.2fa')->name('amenities.store');
+    Route::put('amenities/order', [AmenityController::class, 'reorder'])->middleware('support.2fa')->name('amenities.reorder');
+    Route::put('amenities/{amenity}', [AmenityController::class, 'update'])->whereNumber('amenity')->middleware('support.2fa')->name('amenities.update');
+    Route::put('amenities/{amenity}/active', [AmenityController::class, 'active'])->whereNumber('amenity')->middleware('support.2fa')->name('amenities.active.update');
+    Route::post('amenities/categories', [AmenityCategoryController::class, 'store'])->middleware('support.2fa')->name('amenities.categories.store');
+    Route::put('amenities/categories/order', [AmenityCategoryController::class, 'reorder'])->middleware('support.2fa')->name('amenities.categories.reorder');
+    Route::put('amenities/categories/{amenityCategory}', [AmenityCategoryController::class, 'update'])->whereNumber('amenityCategory')->middleware('support.2fa')->name('amenities.categories.update');
+    Route::delete('amenities/categories/{amenityCategory}', [AmenityCategoryController::class, 'destroy'])->whereNumber('amenityCategory')->middleware('support.2fa')->name('amenities.categories.destroy');
+
+    Route::get('nearby-places', [NearbyPlaceController::class, 'index'])->name('nearby-places.index');
+    Route::post('nearby-places', [NearbyPlaceController::class, 'store'])->middleware('support.2fa')->name('nearby-places.store');
+    Route::put('nearby-places/{nearbyPlace}', [NearbyPlaceController::class, 'update'])->whereNumber('nearbyPlace')->middleware('support.2fa')->name('nearby-places.update');
+    Route::put('nearby-places/{nearbyPlace}/approve', [NearbyPlaceController::class, 'approve'])->whereNumber('nearbyPlace')->middleware('support.2fa')->name('nearby-places.approve');
+    Route::put('nearby-places/{nearbyPlace}/reject', [NearbyPlaceController::class, 'reject'])->whereNumber('nearbyPlace')->middleware('support.2fa')->name('nearby-places.reject');
+    Route::get('site-templates', [SiteTemplateController::class, 'index'])->name('site-templates.index');
+    Route::post('site-templates', [SiteTemplateController::class, 'store'])->middleware('support.2fa')->name('site-templates.store');
+    Route::put('site-templates/{siteTemplate}', [SiteTemplateController::class, 'update'])->whereNumber('siteTemplate')->middleware('support.2fa')->name('site-templates.update');
+    Route::put('site-templates/{siteTemplate}/status', [SiteTemplateController::class, 'status'])->whereNumber('siteTemplate')->middleware('support.2fa')->name('site-templates.status.update');
     Route::get('settings', [PlatformSettingsController::class, 'edit'])->name('settings.edit');
     Route::put('settings', [PlatformSettingsController::class, 'update'])->middleware('support.2fa')->name('settings.update');
     Route::get('settings/channels', [PlatformSettingsController::class, 'channels'])->name('settings.channels');

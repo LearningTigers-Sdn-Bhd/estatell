@@ -24,7 +24,7 @@ beforeEach(function () {
     $this->save = fn (array $rows) => $this->actingAs($this->owner)
         ->put(route('onboarding.payment-methods.update', $this->property->code), ['rows' => $rows]);
     $this->rowsOf = fn () => $this->property->paymentMethods()
-        ->whereNotIn('type', [PaymentMethodType::OtaCollected, PaymentMethodType::OldSystem])
+        ->whereNotIn('type', [PaymentMethodType::OtaCollected, PaymentMethodType::OldSystem, PaymentMethodType::Online])
         ->ordered()->get()
         ->map(fn (PaymentMethod $method): array => [
             'id' => $method->id,
@@ -179,7 +179,7 @@ test('a save that turns every addable method off is refused', function () {
 
     ($this->save)($rows)->assertSessionHasErrors('rows');
 
-    expect($this->property->paymentMethods()->active()->count())->toBe(5);
+    expect($this->property->paymentMethods()->active()->count())->toBe(6);
 });
 
 test('a new row needs a type and only an addable type', function () {

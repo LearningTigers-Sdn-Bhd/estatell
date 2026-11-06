@@ -17,6 +17,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Public Media Disk
+    |--------------------------------------------------------------------------
+    |
+    | Images that guests see, such as room type photos. Local and tests use the
+    | public disk; production sets MEDIA_PUBLIC_DISK=r2-public.
+    |
+    */
+
+    'public_media' => env('MEDIA_PUBLIC_DISK', 'public'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Filesystem Disks
     |--------------------------------------------------------------------------
     |
@@ -69,6 +81,20 @@ return [
             'endpoint' => env('R2_ENDPOINT'),
             'use_path_style_endpoint' => true,
             'visibility' => 'private',
+            'throw' => false,
+            'report' => false,
+        ],
+
+        'r2-public' => [
+            'driver' => 's3',
+            'key' => env('R2_ACCESS_KEY_ID'),
+            'secret' => env('R2_SECRET_ACCESS_KEY'),
+            'region' => 'auto',
+            'bucket' => env('R2_PUBLIC_BUCKET'),
+            'endpoint' => env('R2_ENDPOINT'),
+            'url' => env('R2_PUBLIC_URL'),
+            'use_path_style_endpoint' => true,
+            'visibility' => 'public',
             'throw' => false,
             'report' => false,
         ],

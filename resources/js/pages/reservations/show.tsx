@@ -243,10 +243,15 @@ export default function ReservationShow({
                                         {reservation.reference}
                                     </strong>
                                 </span>
-                                <span>·</span>
-                                <DateText
-                                    date={reservation.firstArrival}
-                                /> →{' '}
+                                <span>
+                                    · Code:{' '}
+                                    <strong className="font-semibold text-foreground">
+                                        {reservation.shortCode}
+                                    </strong>
+                                </span>
+                            </span>
+                            <span className="flex flex-wrap items-center gap-x-2">
+                                <DateText date={reservation.firstArrival} /> →{' '}
                                 <DateText date={reservation.lastDeparture} />
                                 <span>
                                     · {reservation.unitCount}{' '}

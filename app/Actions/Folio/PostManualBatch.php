@@ -10,6 +10,7 @@ use App\Data\Payments\NewPaymentData;
 use App\Enums\FolioStatus;
 use App\Enums\FolioType;
 use App\Enums\ManualRowType;
+use App\Enums\PaymentMethodType;
 use App\Enums\PaymentPurpose;
 use App\Models\Folio;
 use App\Models\FolioManualBatch;
@@ -191,7 +192,7 @@ class PostManualBatch
             throw new InvalidArgumentException('The payment must belong to a folio of the reservation.');
         }
 
-        $result = ($this->refundPayment)($actor, $payment, $row->amount, $row->reference, $key, $row->serviceDate, $batch->id);
+        $result = ($this->refundPayment)($actor, $payment, $row->amount, $row->reference, $key, $row->serviceDate, $batch->id, confirmedByCurlec: $payment->paymentMethod->type === PaymentMethodType::Online);
 
         return $result->isRefused() ? ManualBatchResult::refused((string) $result->refusal, $row->key, $row->type) : null;
     }

@@ -148,7 +148,7 @@ class ReservationFormOptions
     {
         $methods = PaymentMethod::query()->where('property_id', $property->id)
             ->where(function ($query) use ($property, $user): void {
-                $query->where(fn ($active) => $active->active()->whereNotIn('type', [PaymentMethodType::DirectBill, PaymentMethodType::OldSystem]));
+                $query->where(fn ($active) => $active->active()->whereNotIn('type', [PaymentMethodType::DirectBill, PaymentMethodType::OldSystem, PaymentMethodType::Online]));
 
                 if ($user !== null && app(AvailablePaymentMethod::class)->oldSystemOffered($property, $user)) {
                     $query->orWhere('type', PaymentMethodType::OldSystem);

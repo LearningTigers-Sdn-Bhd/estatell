@@ -30,7 +30,7 @@ class SyncBoatFare
      * A refusal is returned, and the caller rolls back its transaction. Call it only with the unit row already locked by
      * the caller. See docs/24-boats/02-boat-trips.md#fare.
      */
-    public function __invoke(User $actor, ReservationUnit $unit, UnitBoatTrip $trip, ?BoatDeparture $departure): BoatTripResult
+    public function __invoke(?User $actor, ReservationUnit $unit, UnitBoatTrip $trip, ?BoatDeparture $departure): BoatTripResult
     {
         $links = BoatTripAddOn::query()
             ->where('unit_boat_trip_id', $trip->id)

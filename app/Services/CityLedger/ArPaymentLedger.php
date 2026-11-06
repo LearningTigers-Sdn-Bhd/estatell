@@ -104,7 +104,7 @@ class ArPaymentLedger
         return array_values(PaymentMethod::query()
             ->where('property_id', $company->property_id)
             ->active()
-            ->whereNotIn('type', [PaymentMethodType::OtaCollected, PaymentMethodType::DirectBill])
+            ->whereNotIn('type', [PaymentMethodType::OtaCollected, PaymentMethodType::DirectBill, PaymentMethodType::Online])
             ->orderBy('position')
             ->orderBy('id')
             ->get()

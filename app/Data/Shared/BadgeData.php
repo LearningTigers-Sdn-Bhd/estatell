@@ -8,6 +8,7 @@ use App\Enums\AccountingSyncStatus;
 use App\Enums\ArInvoiceStatus;
 use App\Enums\ArrivalImportOutcome;
 use App\Enums\AuditStatus;
+use App\Enums\BookingEngineMode;
 use App\Enums\ChannelAlertEvent;
 use App\Enums\ChannelConnectionStatus;
 use App\Enums\ChannelPropertyStatus;
@@ -16,6 +17,7 @@ use App\Enums\ChargeStatus;
 use App\Enums\CompanyStatus;
 use App\Enums\FolioRowTag;
 use App\Enums\FolioStatus;
+use App\Enums\GatewayRefundStatus;
 use App\Enums\MailStatus;
 use App\Enums\OtaCredentialStatus;
 use App\Enums\PartnerStatus;
@@ -41,6 +43,11 @@ class BadgeData extends Data
         public Tone $tone,
     ) {}
 
+    public static function fromGatewayRefundStatus(GatewayRefundStatus $status): self
+    {
+        return new self($status->value, $status->label(), $status->tone());
+    }
+
     public static function fromArrivalImportOutcome(ArrivalImportOutcome $outcome): self
     {
         return new self($outcome->value, $outcome->label(), $outcome->tone());
@@ -54,6 +61,11 @@ class BadgeData extends Data
     public static function fromAuditStatus(AuditStatus $status): self
     {
         return new self($status->value, $status->label(), $status->tone());
+    }
+
+    public static function fromBookingEngineMode(BookingEngineMode $mode): self
+    {
+        return new self($mode->value, $mode->label(), $mode->tone());
     }
 
     public static function fromStatus(PropertyStatus $status): self

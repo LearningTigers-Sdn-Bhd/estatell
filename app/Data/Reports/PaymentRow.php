@@ -14,7 +14,8 @@ use Spatie\LaravelData\Data;
  * One row of the Payments report: a folio payment or refund, or a city ledger payment. The property names are the
  * column keys of `ReportKey::Payments`. `key` is `p:{id}` for a folio payment and `ar:{id}` for a city ledger payment.
  * `date` is the business date. A refund has a negative `amount` and `refund_of` is the receipt number of the payment it
- * gives back. `staff_id` is the user who received it, for the totals of each staff member; it is not a column.
+ * gives back. `staff_id` is the user who received it, for the totals of each staff member, or 0 when no staff member did
+ * (a booking engine payment); it is not a column.
  */
 class PaymentRow extends Data implements ReportRow
 {
@@ -88,11 +89,11 @@ class PaymentRow extends Data implements ReportRow
             payer: $payment->folio->reservation->reference,
             method: $payment->paymentMethod->name,
             status: BadgeData::fromPaymentReportStatus(PaymentReportStatus::fromPaymentStatus($payment->status)),
-            staff: $payment->receiver->name,
+            staff: $payment->receiver->name ?? __('Booking Engine'),
             amount: $payment->refund_of_id === null ? $payment->amount : (string) BigDecimal::of($payment->amount)->negated(),
             reference: $payment->reference,
             refund_of: $payment->refundOf?->receipt_number,
-            staff_id: $payment->received_by,
+            staff_id: $payment->received_by ?? 0,
         );
     }
 

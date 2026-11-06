@@ -27,11 +27,13 @@ export default function PartnerPropertyShow({
     tab,
     staff = [],
     features = [],
+    bookingEngineMode,
 }: {
     property: Property;
     tab: Tab;
     staff?: StaffMember[];
     features?: PropertyFeature[];
+    bookingEngineMode?: App.Data.Platform.BookingEngineModeData;
 }) {
     return (
         <>
@@ -82,6 +84,7 @@ export default function PartnerPropertyShow({
                         <PropertyFeatures
                             code={property.code}
                             features={features}
+                            bookingEngineMode={bookingEngineMode}
                             readOnly
                         />
                     )}

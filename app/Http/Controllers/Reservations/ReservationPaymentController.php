@@ -5,7 +5,8 @@ namespace App\Http\Controllers\Reservations;
 use App\Actions\Payments\PaymentResult;
 use App\Actions\Payments\RecordPayment;
 use App\Actions\Payments\RefundFolioCredit;
-use App\Actions\Payments\RefundPayment;
+use App\Actions\Payments\RefundHeldPayment;
+use App\Actions\Payments\RetryOnlineRefund;
 use App\Actions\Payments\VoidPayment;
 use App\Data\Payments\PaymentQuoteData;
 use App\Http\Controllers\Controller;
@@ -14,6 +15,7 @@ use App\Http\Requests\Payments\StorePaymentRequest;
 use App\Http\Requests\Payments\StoreRefundRequest;
 use App\Http\Requests\Payments\StoreVoidRequest;
 use App\Models\Folio;
+use App\Models\GatewayRefund;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
 use App\Models\Property;
@@ -25,6 +27,7 @@ use App\Services\Payments\PaymentRefusals;
 use App\Services\Property\PrintedPdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Inertia\Inertia;
 
@@ -69,16 +72,18 @@ class ReservationPaymentController extends Controller
     /**
      * Refund part or all of a payment. A refusal goes back to the Dialog as an error.
      */
-    public function refund(StoreRefundRequest $request, Property $property, Reservation $reservation, Folio $folio, Payment $payment, RefundPayment $refundPayment, PaymentRefusals $refusals): RedirectResponse
+    public function refund(StoreRefundRequest $request, Property $property, Reservation $reservation, Folio $folio, Payment $payment, RefundHeldPayment $refundHeldPayment, PaymentRefusals $refusals): RedirectResponse
     {
-        $result = $refundPayment($request->user(), $payment, $request->string('amount')->toString(), $request->reference(), $request->string('idempotency_key')->toString(), methodId: $request->methodId(), reason: $request->reason());
+        $result = $refundHeldPayment($request->user(), $payment, $request->string('amount')->toString(), $request->reference(), $request->string('idempotency_key')->toString(), methodId: $request->methodId(), reason: $request->reason());
         $page = $this->page($property, $reservation, $folio->id);
 
         if ($result->isRefused()) {
             return back(fallback: $page)->withErrors($refusals->errors((string) $result->refusal));
         }
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Refund of :amount recorded.', ['amount' => $result->payment?->amount])]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => $result->payment === null
+            ? __('Refund of :amount sent to Curlec. It posts on the folio when Curlec confirms it.', ['amount' => $request->string('amount')->toString()])
+            : __('Refund of :amount recorded.', ['amount' => $result->payment->amount])]);
 
         return back(fallback: $page);
     }
@@ -112,7 +117,30 @@ class ReservationPaymentController extends Controller
             return back(fallback: $page)->withErrors($refusals->errors((string) $result->refusal));
         }
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Refund of :amount recorded.', ['amount' => $request->string('amount')->toString()])]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => $result->payment === null
+            ? __('Refund of :amount sent to Curlec. It posts on the folio when Curlec confirms it.', ['amount' => $request->string('amount')->toString()])
+            : __('Refund of :amount recorded.', ['amount' => $request->string('amount')->toString()])]);
+
+        return back(fallback: $page);
+    }
+
+    /**
+     * Ask Curlec again for a refund that failed. A refund of another property or folio is a 404.
+     */
+    public function retryOnlineRefund(Request $request, Property $property, Reservation $reservation, Folio $folio, int $gatewayRefund, RetryOnlineRefund $retryOnlineRefund, PaymentRefusals $refusals): RedirectResponse
+    {
+        $refund = GatewayRefund::query()
+            ->where('property_id', $property->id)
+            ->whereHas('parts.payment', fn ($query) => $query->where('folio_id', $folio->id))
+            ->findOrFail($gatewayRefund);
+        $result = $retryOnlineRefund($request->user(), $refund);
+        $page = $this->page($property, $reservation, $folio->id);
+
+        if ($result->isRefused()) {
+            return back(fallback: $page)->withErrors($refusals->errors((string) $result->refusal));
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Refund of :amount sent to Curlec again.', ['amount' => $refund->amount])]);
 
         return back(fallback: $page);
     }
