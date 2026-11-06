@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from '@inertiajs/react';
 import { ArrowRight, MessageCircle, Copy, Check } from 'lucide-react';
+import { services } from './services';
 import { Container } from './ui';
 import { useScrollReveal, useStaggerReveal } from './use-reveal';
 import { privacy, terms } from '@/routes';
@@ -173,35 +174,25 @@ export function Closing() {
                         </p>
                     </div>
                 </Container>
-                <Container className="flex flex-col gap-5 border-t border-border pt-6 lg:flex-row lg:items-center lg:justify-end lg:gap-10">
+                <Container className="flex flex-col gap-2 border-t border-border pt-6 lg:flex-row lg:items-center lg:justify-between lg:gap-10">
                     <nav
-                        className="flex flex-wrap gap-x-5 gap-y-2"
-                        aria-label="Footer"
+                        className="grid grid-cols-2 gap-x-5 sm:flex sm:flex-wrap"
+                        aria-label="Services"
                     >
-                        <a
-                            href="#platform"
-                            className="inline-flex min-h-11 items-center transition-colors hover:text-foreground"
-                        >
-                            Platform
-                        </a>
-                        <a
-                            href="#channels"
-                            className="inline-flex min-h-11 items-center transition-colors hover:text-foreground"
-                        >
-                            Channels
-                        </a>
-                        <a
-                            href="#plans"
-                            className="inline-flex min-h-11 items-center transition-colors hover:text-foreground"
-                        >
-                            Pricing
-                        </a>
-                        <a
-                            href="#contact"
-                            className="inline-flex min-h-11 items-center transition-colors hover:text-foreground"
-                        >
-                            Contact
-                        </a>
+                        {services.map((service) => (
+                            <a
+                                key={service.slug}
+                                href={`/services/${service.slug}`}
+                                className="inline-flex min-h-11 items-center transition-colors hover:text-foreground"
+                            >
+                                {service.name}
+                            </a>
+                        ))}
+                    </nav>
+                    <nav
+                        className="mt-2 flex flex-wrap gap-x-5 border-t border-border pt-2 lg:mt-0 lg:border-0 lg:pt-0"
+                        aria-label="Legal"
+                    >
                         <Link
                             href={terms()}
                             className="inline-flex min-h-11 items-center transition-colors hover:text-foreground"

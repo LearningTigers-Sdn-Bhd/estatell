@@ -1,4 +1,3 @@
-import { Head } from '@inertiajs/react';
 import { useEffect } from 'react';
 import { Channels } from '@/components/landing/channels';
 import { CheckinModules } from '@/components/landing/checkin-modules';
@@ -10,11 +9,14 @@ import { PlansSteps } from '@/components/landing/plans-steps';
 import { Platform } from '@/components/landing/platform';
 import { PricingEngine } from '@/components/landing/pricing-engine';
 import { SavingsCalculator } from '@/components/landing/savings-calculator';
+import { PageMeta, useSiteUrl } from '@/components/landing/seo';
 
 const description =
     'PMS, Channel Manager and Booking Engine in one system. AI, automation and self-service layered on top to run your hotel end to end.';
 
 export default function Landing() {
+    const siteUrl = useSiteUrl();
+
     // Nav links and the logo scroll smoothly on this page only; reduced motion keeps the instant jump.
     useEffect(() => {
         const classes = ['scroll-smooth', 'motion-reduce:scroll-auto'];
@@ -28,14 +30,19 @@ export default function Landing() {
 
     return (
         <>
-            <Head title="The Hotel Operating Core">
-                <meta name="description" content={description} />
-                <meta
-                    property="og:title"
-                    content="Estatell — The Hotel Operating Core"
-                />
-                <meta property="og:description" content={description} />
-            </Head>
+            <PageMeta
+                title="The Hotel Operating Core"
+                description={description}
+                path="/"
+                nodes={[
+                    {
+                        '@type': 'WebSite',
+                        name: 'Estatell',
+                        url: siteUrl,
+                        publisher: { '@id': `${siteUrl}/#organization` },
+                    },
+                ]}
+            />
             <Navbar />
             <main id="top" tabIndex={-1}>
                 <Hero />

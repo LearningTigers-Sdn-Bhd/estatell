@@ -7,7 +7,7 @@ import laravel from 'laravel-vite-plugin';
 import { bunny, local } from 'laravel-vite-plugin/fonts';
 import { defineConfig, lazyPlugins } from 'vite-plus';
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
     plugins: lazyPlugins(() => [
         laravel({
             input: ['resources/css/app.css', 'resources/js/app.tsx'],
@@ -64,6 +64,9 @@ export default defineConfig({
             formVariants: true,
         }),
     ]),
+    // Bundle every dependency into the SSR build, so the production image runs it with only the Node binary (no
+    // node_modules). Build only: the dev server renders through Vite and breaks on inlined CommonJS such as React.
+    ...(command === 'build' ? { ssr: { noExternal: true } } : {}),
     server: {
         watch: {
             ignored: [
@@ -123,4 +126,4 @@ export default defineConfig({
             stylesheet: 'resources/css/app.css',
         },
     },
-});
+}));
