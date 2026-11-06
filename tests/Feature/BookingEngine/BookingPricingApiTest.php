@@ -111,7 +111,7 @@ it('refuses what a hold would refuse', function (string $code, Closure $body) {
 ]);
 
 it('validates the stay, the nationality and the lines', function (string $field, array $body) {
-    postPricing(pricingSetup(), $body)->assertUnprocessable()->assertJsonValidationErrors($field);
+    postPricing(pricingSetup(), $body)->assertUnprocessable()->assertJsonValidationErrors($field, 'error.fields');
 })->with([
     'no lines' => ['lines', ['lines' => []]],
     'an unknown nationality' => ['nationality', ['nationality' => 'ZZ']],

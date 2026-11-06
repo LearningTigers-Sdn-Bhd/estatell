@@ -59,14 +59,20 @@ class BookingPropertyResource extends JsonResource
                 'longitude' => $place->longitude,
                 'google_maps_url' => $place->google_maps_url,
             ])->values()->all(),
-            'check_in_time' => $property->settings?->check_in_time,
-            'check_out_time' => $property->settings?->check_out_time,
+            'check_in_time' => $this->stayTime($property->settings?->check_in_time),
+            'check_out_time' => $this->stayTime($property->settings?->check_out_time),
             'currency' => $property->settings?->currency->getCurrencyCode(),
             'policies' => [
                 'cancellation' => $this->policy(SystemTransactionCode::CancellationRevenue),
                 'no_show' => $this->policy(SystemTransactionCode::NoShowRevenue),
             ],
         ];
+    }
+
+    /** A stay time as `15:00`. The column also holds seconds. */
+    private function stayTime(?string $time): ?string
+    {
+        return $time === null ? null : substr($time, 0, 5);
     }
 
     /**

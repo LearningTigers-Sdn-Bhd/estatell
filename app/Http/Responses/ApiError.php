@@ -12,7 +12,7 @@ class ApiError
 {
     /**
      * @param  array<string, string>  $headers
-     * @param  array<string, string>  $details
+     * @param  array<string, mixed>  $details
      */
     public static function response(string $code, string $message, int $status, array $headers = [], array $details = []): JsonResponse
     {

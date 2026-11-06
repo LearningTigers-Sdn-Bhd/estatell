@@ -157,7 +157,7 @@ it('validates the stay', function (array $body, string $field) {
     $setup = bookingApiProperty();
     bookingMicrositeClient();
 
-    bookingApiPost('properties/'.$setup['property']->code.'/offers', bookingApiStay($body))->assertJsonValidationErrors($field);
+    bookingApiPost('properties/'.$setup['property']->code.'/offers', bookingApiStay($body))->assertJsonValidationErrors($field, 'error.fields');
 })->with([
     'departure not after arrival' => [['departure' => '2026-10-20'], 'departure'],
     'no adults' => [['adults' => 0], 'adults'],
@@ -200,7 +200,7 @@ it('limits the calendar to 62 days', function () {
     $path = 'properties/'.$setup['property']->code.'/calendar?from=2026-10-14&to=';
 
     bookingApiGet($path.'2026-12-14')->assertOk()->assertJsonCount(62);
-    bookingApiGet($path.'2026-12-15')->assertJsonValidationErrors('to');
+    bookingApiGet($path.'2026-12-15')->assertJsonValidationErrors('to', 'error.fields');
 });
 
 it('searches the lowest online price per property, leaving out those with nothing to sell', function () {

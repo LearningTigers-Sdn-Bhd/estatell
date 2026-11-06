@@ -197,11 +197,21 @@ it('refuses the room when an earlier hold took the last one', function () {
     postHold($setup, headers: ['X-Guest-IP' => '203.0.113.12'])->assertUnprocessable()->assertJsonPath('error.code', 'not_available');
 });
 
+it('answers field errors in the one error shape', function () {
+    $setup = bookingApiProperty();
+    bookingMicrositeClient();
+
+    postHold($setup, ['guest' => []])->assertUnprocessable()
+        ->assertJsonPath('error.code', 'invalid_fields')
+        ->assertJsonMissingPath('errors')
+        ->assertJsonStructure(['error' => ['message', 'fields' => ['guest.name']]]);
+});
+
 it('validates the guest details and the lines', function (string $field, array $body) {
     $setup = bookingApiProperty();
     bookingMicrositeClient();
 
-    postHold($setup, $body)->assertUnprocessable()->assertJsonValidationErrors($field);
+    postHold($setup, $body)->assertUnprocessable()->assertJsonValidationErrors($field, 'error.fields');
 })->with([
     'no name' => ['guest.name', ['guest' => ['email' => 'a@example.com', 'phone' => '0123456789', 'nationality' => 'MY']]],
     'no email' => ['guest.email', ['guest' => ['name' => 'A', 'phone' => '0123456789', 'nationality' => 'MY']]],

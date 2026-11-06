@@ -109,6 +109,10 @@ return Application::configure(basePath: dirname(__DIR__))
             ? ApiError::response('rate_limited', __('Too many requests. Wait a moment and try again.'), 429, $exception->getHeaders())
             : null);
 
+        $exceptions->render(fn (ValidationException $exception, Request $request) => $request->is('api/booking/*')
+            ? ApiError::response('invalid_fields', $exception->getMessage(), $exception->status, details: ['fields' => $exception->errors()])
+            : null);
+
         $exceptions->render(fn (Throwable $exception, Request $request) => $request->is('api/*') && ! $exception instanceof HttpExceptionInterface && ! $exception instanceof ValidationException
             ? ApiError::response('server_error', __('Something went wrong. Please see the front desk.'), 500)
             : null);

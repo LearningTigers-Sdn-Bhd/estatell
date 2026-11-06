@@ -35,7 +35,7 @@ The marketplace endpoints are built and tested now, and nothing calls them until
 | `properties`             | Code, slug, name and city of the properties the token can reach                                                                                                                                                                                                                                                                          |
 | `search`                 | The lowest price per property for the dates and party                                                                                                                                                                                                                                                                                    |
 | `sites/{slug}`           | Property code, template key, image slots, main colour, currency, SEO title and description                                                                                                                                                                                                                                               |
-| `properties/{code}`      | Name, address, coordinates, Maps link, album photos (cover first), about text, amenities, nearby places, check-in times, policies                                                                                                                                                                                                        |
+| `properties/{code}`      | Name, address, coordinates, Maps link, album photos (cover first), about text, amenities, nearby places, check-in and check-out times as `15:00`, policies                                                                                                                                                                               |
 | `room-types`             | Name, description, photos, amenities, guest limits, how it is sold                                                                                                                                                                                                                                                                       |
 | `calendar`               | Lowest one-night price before tax and closed dates for each date, at most 62 days at a time                                                                                                                                                                                                                                              |
 | `pricing`                | Currency, `online_total`, `pay_at_property` and one offer per line. See [Pricing](#pricing)                                                                                                                                                                                                                                              |
@@ -150,20 +150,7 @@ A client reaches only the holds it made. Another client's hold token answers 404
 - **Rate limits.** Per token and property, tighter on writes than reads, with limits on open holds per property and per guest IP. See [Limits](../28-api-access/04-booking-engine-microsite.md#limits).
 - **Guest tokens.** Hold and booking tokens are long and random. A booking number alone opens nothing.
 - **Not exposed.** Folios, guest search, staff data and commission.
-- **Errors.** Refusals return 422 with a stable `code` and a message, like the Action refusal codes elsewhere. A missing, wrong or revoked token returns 401 `unauthorized`, in the [shared error shape](../28-api-access/01-api-tokens.md#errors).
-
-## Planned contract changes
-
-Not built yet. Agreed on 2026-11-06. Only the microsite uses this API today, so these change `v1` in place. Until they are built, the sections above describe the code.
-
-| Change          | Now                                                          | After                                                                                               |
-| --------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
-| Stay times      | `check_in_time` and `check_out_time` are `15:00:00`          | `15:00`                                                                                             |
-| One error shape | Field errors keep Laravel's `{ message, errors: { field } }` | `{ "error": { "code": "invalid_fields", "message": "...", "fields": { "guest.email": ["..."] } } }` |
-
-The new error shape applies under `/api/booking/v1` only. Kiosk endpoints keep theirs.
-
-Left for later, because the current calls work: the room photo and guest limit inside each offer, and several parties in one `offers` call.
+- **Errors.** Refusals return 422 with a stable `code` and a message, like the Action refusal codes elsewhere. Field errors use the same shape, with the code `invalid_fields` and `fields`: `{ "error": { "code": "invalid_fields", "message": "...", "fields": { "guest.email": ["..."] } } }`. A missing, wrong or revoked token returns 401 `unauthorized`, in the [shared error shape](../28-api-access/01-api-tokens.md#errors).
 
 ## Code
 

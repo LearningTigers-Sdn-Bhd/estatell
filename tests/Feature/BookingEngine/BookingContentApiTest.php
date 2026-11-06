@@ -63,7 +63,8 @@ it('returns the property content with active nearby places and no review status'
         ->assertJsonCount(1, 'nearby_places')
         ->assertJsonPath('nearby_places.0.name', 'The jetty')
         ->assertJsonPath('policies.cancellation.text_en', 'Free until 3 days')
-        ->assertJsonPath('policies.no_show', null);
+        ->assertJsonPath('policies.no_show', null)
+        ->assertJsonPath('check_in_time', '15:00');
 
     expect($response->json('nearby_places.0'))->not->toHaveKey('status');
 });

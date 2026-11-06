@@ -44,12 +44,13 @@ New tokens look like `12|est_live_` plus 40 random characters and a checksum. Cl
 
 Shape: `{ "error": { "code": "...", "message": "..." } }`. Rendered by `ApiError` and the exception handler for every `/api/*` path.
 
-| Code                 | Status | When                                                                          |
-| -------------------- | ------ | ----------------------------------------------------------------------------- |
-| `kiosk_unauthorized` | 401    | Token or pairing code missing, wrong, revoked or expired, or wrong ability    |
-| `unauthorized`       | 401    | Same as `kiosk_unauthorized` for non-kiosk scopes, such as `/api/booking/v1`  |
-| `rate_limited`       | 429    | A limit above. `Retry-After` is kept                                          |
-| `server_error`       | 500    | Any exception that is not an HTTP or validation error. The message is generic |
+| Code                 | Status | When                                                                                  |
+| -------------------- | ------ | ------------------------------------------------------------------------------------- |
+| `kiosk_unauthorized` | 401    | Token or pairing code missing, wrong, revoked or expired, or wrong ability            |
+| `unauthorized`       | 401    | Same as `kiosk_unauthorized` for non-kiosk scopes, such as `/api/booking/v1`          |
+| `rate_limited`       | 429    | A limit above. `Retry-After` is kept                                                  |
+| `invalid_fields`     | 422    | Field errors under `/api/booking/v1`, with `fields`. Other paths keep Laravel's shape |
+| `server_error`       | 500    | Any exception that is not an HTTP or validation error. The message is generic         |
 
 ## Code
 
