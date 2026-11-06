@@ -152,6 +152,19 @@ A client reaches only the holds it made. Another client's hold token answers 404
 - **Not exposed.** Folios, guest search, staff data and commission.
 - **Errors.** Refusals return 422 with a stable `code` and a message, like the Action refusal codes elsewhere. A missing, wrong or revoked token returns 401 `unauthorized`, in the [shared error shape](../28-api-access/01-api-tokens.md#errors).
 
+## Planned contract changes
+
+Not built yet. Agreed on 2026-11-06. Only the microsite uses this API today, so these change `v1` in place. Until they are built, the sections above describe the code.
+
+| Change          | Now                                                          | After                                                                                               |
+| --------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| Stay times      | `check_in_time` and `check_out_time` are `15:00:00`          | `15:00`                                                                                             |
+| One error shape | Field errors keep Laravel's `{ message, errors: { field } }` | `{ "error": { "code": "invalid_fields", "message": "...", "fields": { "guest.email": ["..."] } } }` |
+
+The new error shape applies under `/api/booking/v1` only. Kiosk endpoints keep theirs.
+
+Left for later, because the current calls work: the room photo and guest limit inside each offer, and several parties in one `offers` call.
+
 ## Code
 
 - Routes in `routes/api.php`, under `/api/booking/v1`, with names under `api.booking.v1.`. They use `api.token:{scope}`, never `auth:sanctum`: see [Traps](../28-api-access/01-api-tokens.md#traps).
