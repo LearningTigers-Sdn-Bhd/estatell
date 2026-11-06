@@ -144,6 +144,7 @@ test('the booking page query count stays the same however much the property has'
 
 test('a booking is saved and the user lands on the reservation page', function () {
     $setup = bookingSetup();
+    $setup['roomType']->update(['max_children' => 2]);
 
     $response = $this->actingAs($setup['user'])->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, [
         'group_name' => 'Tan family trip',
@@ -208,6 +209,20 @@ test('a refused booking goes back with an error on the line and saves nothing', 
     expect(Reservation::query()->count())->toBe(0)
         ->and(Activity::query()->count())->toBe(0);
 })->with(['an arrival in the past', 'no stock on the second line', 'a plan not sold for the room type', 'a bed that is not a bed of the dorm', 'a room of another property', 'an unknown booker']);
+
+test('a room line cannot hold more guests than its room type takes', function (array $line, string $field) {
+    $setup = bookingSetup();
+    $setup['roomType']->update(['max_adults' => 3, 'max_children' => 1]);
+
+    $this->actingAs($setup['user'])
+        ->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, ['lines' => [bookingFormLine($setup, $line)]]))
+        ->assertSessionHasErrors($field);
+
+    expect(Reservation::query()->count())->toBe(0);
+})->with([
+    'adults' => [['adults' => 4], 'lines.0.adults'],
+    'children' => [['child_ages' => [5, 6]], 'lines.0.child_ages'],
+]);
 
 test('a stay that breaks a restriction asks for a reason from staff who may override', function (DefaultRoleEnum $role, string $key) {
     $setup = bookingSetup();

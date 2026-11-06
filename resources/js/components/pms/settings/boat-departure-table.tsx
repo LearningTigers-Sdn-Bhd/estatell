@@ -132,13 +132,13 @@ export function BoatDepartureTable({
 }) {
     return (
         <div className="overflow-auto rounded-lg border">
-            <Table className="table-fixed">
+            <Table className="min-w-[1340px] table-fixed">
                 <TableHeader>
                     <TableRow>
                         <TableHead className="w-28">Available</TableHead>
                         <TableHead className="w-24">Leaves</TableHead>
                         <TableHead className="w-24">Arrives</TableHead>
-                        <TableHead>Pick-up point</TableHead>
+                        <TableHead className="w-48">Pick-up point</TableHead>
                         <TableHead className="w-20 text-right">Seats</TableHead>
                         <TableHead className="w-48">
                             Default boat & crew
