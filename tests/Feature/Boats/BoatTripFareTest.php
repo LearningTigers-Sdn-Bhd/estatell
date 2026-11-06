@@ -416,3 +416,13 @@ test('cancelling a unit with remove add-ons removes its fare rows and their link
         ->and(fareRows($setup['unit']))->toHaveCount(0)
         ->and(BoatTripAddOn::query()->count())->toBe(0);
 });
+
+test('a room that already has the fare item as its own add-on is not charged again', function () {
+    $setup = fareTripSetup();
+    UnitAddOn::factory()->create(['reservation_unit_id' => $setup['unit']->id, 'charge_item_id' => $setup['fare']->id, 'quantity' => 2, 'unit_amount' => '35.00']);
+
+    fareSetTrip($setup, $setup['unit'], BoatDirection::In, BoatMode::Scheduled, $setup['in']->id);
+
+    expect(UnitAddOn::query()->where('reservation_unit_id', $setup['unit']->id)->count())->toBe(1)
+        ->and(BoatTripAddOn::query()->count())->toBe(0);
+});

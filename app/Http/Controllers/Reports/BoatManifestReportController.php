@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Reports;
 
+use App\Data\Boats\BoatData;
 use App\Data\Property\CurrencyData;
 use App\Data\Reports\BoatManifestRow;
 use App\Enums\BoatDirection;
@@ -10,6 +11,7 @@ use App\Enums\PermissionEnum;
 use App\Enums\ReportKey;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Reports\ReportFiltersRequest;
+use App\Models\Boat;
 use App\Models\Property;
 use App\Services\Reports\BoatManifestReport;
 use App\Services\Reports\ReportLayoutResolver;
@@ -49,16 +51,20 @@ class BoatManifestReportController extends Controller
             'to' => $filters->to,
             'maxRangeDays' => $key->maxRangeDays(),
             'currency' => CurrencyData::forProperty($property),
-            'direction' => $direction->value,
-            'directionOptions' => BoatDirection::options(),
+            'direction' => $filters->bothDirections ? 'both' : $direction->value,
+            'directionOptions' => [...BoatDirection::options(), ['value' => 'both', 'label' => __('Boat in and out')]],
             'emptyTitle' => match (true) {
                 ! $hasDepartures => __('No departures yet'),
+                $filters->bothDirections => __('No boat trips on :date.', ['date' => $date]),
                 $direction === BoatDirection::Out => __('No boat out trips on :date.', ['date' => $date]),
                 default => __('No boat in trips on :date.', ['date' => $date]),
             },
             'emptyDescription' => $hasDepartures
                 ? __('Pick another date or direction to see the boat trips.')
                 : __('Add departures in Settings, Boats.'),
+            'runs' => $manifest->runs($property, $filters),
+            'boats' => Boat::query()->where('property_id', $property->id)->where('active', true)->orderBy('name')->get()->map(fn (Boat $boat): BoatData => BoatData::fromModel($boat))->all(),
+            'canSetRuns' => $request->user()->can(PermissionEnum::ReservationsManage->value),
             'settingsUrl' => ! $hasDepartures && $canManageSettings
                 ? route('settings.boats.departures.index', ['property' => $property->code], absolute: false)
                 : null,

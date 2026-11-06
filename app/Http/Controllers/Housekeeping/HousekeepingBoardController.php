@@ -9,7 +9,6 @@ use App\Actions\Housekeeping\SetNeedsMaintenance;
 use App\Actions\Housekeeping\SetRoomPriority;
 use App\Actions\Housekeeping\SetRoomRemark;
 use App\Actions\Housekeeping\UpdateRoomStatus;
-use App\Data\Housekeeping\HousekeepingStaffData;
 use App\Data\Rooms\RoomGroupData;
 use App\Data\Shared\BadgeData;
 use App\Enums\HousekeepingStatus;
@@ -25,12 +24,11 @@ use App\Http\Requests\Housekeeping\SetRoomPriorityRequest;
 use App\Http\Requests\Housekeeping\SetRoomRemarkRequest;
 use App\Http\Requests\Housekeeping\UpdateRoomStatusRequest;
 use App\Models\Property;
-use App\Models\Role;
 use App\Models\Room;
 use App\Models\RoomGroup;
-use App\Models\User;
 use App\Services\Housekeeping\HousekeepingBoardBuilder;
 use App\Services\Housekeeping\HousekeepingDate;
+use App\Services\Housekeeping\HousekeepingStaff;
 use App\Services\Reports\ReportLayoutResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -42,21 +40,22 @@ class HousekeepingBoardController extends Controller
     /**
      * Every active room for the board date. Filtering, grouping and sorting happen in the browser.
      */
-    public function index(Request $request, Property $property, HousekeepingDate $housekeepingDate, HousekeepingBoardBuilder $builder, ReportLayoutResolver $layoutResolver): Response
+    public function index(Request $request, Property $property, HousekeepingDate $housekeepingDate, HousekeepingBoardBuilder $builder, ReportLayoutResolver $layoutResolver, HousekeepingStaff $housekeepingStaff): Response
     {
         $user = $request->user();
         $date = $housekeepingDate->for($property);
         $canUpdate = $user->can(PermissionEnum::HousekeepingUpdate->value);
         $canInspect = $user->can(PermissionEnum::HousekeepingInspect->value);
         $canBlock = $user->can(PermissionEnum::RoomsBlock->value);
+        $canEditTimes = $user->can(PermissionEnum::HousekeepingEditTimes->value);
 
         return Inertia::render('housekeeping/index', [
             'date' => $date->toDateString(),
-            'rooms' => $builder->rows($property, $date, $canUpdate, $canInspect, $canBlock),
+            'rooms' => $builder->rows($property, $date, $canUpdate, $canInspect, $canBlock, $canEditTimes),
             'roomGroups' => $property->roomGroups()->orderBy('position')->orderBy('id')->get()
                 ->map(fn (RoomGroup $group): RoomGroupData => RoomGroupData::fromModel($group)),
             'statuses' => array_map(fn (HousekeepingStatus $status): BadgeData => new BadgeData($status->value, $status->label(), $status->tone()), HousekeepingStatus::cases()),
-            'staff' => $canUpdate ? $this->staff($property) : [],
+            'staff' => $canUpdate || $canEditTimes ? $housekeepingStaff->for($property) : [],
             'layout' => $layoutResolver->resolve($property, ReportKey::HousekeepingTasks),
             'orientationOptions' => PageOrientation::options(),
             'canEditLayout' => $user->can(PermissionEnum::SettingsManage->value),
@@ -156,27 +155,5 @@ class HousekeepingBoardController extends Controller
         $setNeedsMaintenance($request->user(), $room, $request->boolean('needs_maintenance'));
 
         return to_route('housekeeping.index', $property);
-    }
-
-    /**
-     * Active staff of the property who can update the board.
-     *
-     * @return list<HousekeepingStaffData>
-     */
-    private function staff(Property $property): array
-    {
-        $roleIds = Role::query()
-            ->where('property_id', $property->id)
-            ->whereHas('permissions', fn ($query) => $query->where('name', PermissionEnum::HousekeepingUpdate->value))
-            ->pluck('id');
-
-        return array_values(User::query()
-            ->where('property_id', $property->id)
-            ->whereNull('deactivated_at')
-            ->whereHas('roles', fn ($query) => $query->whereIn('roles.id', $roleIds))
-            ->orderBy('name')
-            ->get()
-            ->map(fn (User $staff): HousekeepingStaffData => HousekeepingStaffData::fromModel($staff))
-            ->all());
     }
 }

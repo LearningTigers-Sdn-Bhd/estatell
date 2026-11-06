@@ -42,6 +42,7 @@ class RatePlanStayDiscountsRequest extends FormRequest
                     }
                 },
             ],
+            'discounts.*.per_room' => ['sometimes', 'boolean'],
             'discounts.*.from_night' => [
                 'required', 'integer', 'min:1',
                 function (string $attribute, mixed $value, Closure $fail): void {
@@ -57,7 +58,7 @@ class RatePlanStayDiscountsRequest extends FormRequest
     }
 
     /**
-     * @return list<array{min_nights: int, discount_type: string, value: string, from_night: int}>
+     * @return list<array{min_nights: int, discount_type: string, value: string, per_room: bool, from_night: int}>
      */
     public function discounts(): array
     {
@@ -66,6 +67,7 @@ class RatePlanStayDiscountsRequest extends FormRequest
                 'min_nights' => (int) $discount['min_nights'],
                 'discount_type' => $discount['discount_type'],
                 'value' => (string) $discount['value'],
+                'per_room' => filter_var($discount['per_room'] ?? false, FILTER_VALIDATE_BOOLEAN),
                 'from_night' => (int) $discount['from_night'],
             ],
             array_values($this->validated('discounts')),

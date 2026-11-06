@@ -20,13 +20,14 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property int $room_type_id
  * @property int|null $room_group_id
  * @property string $number
+ * @property string|null $print_label The label of this room on the House status report when it differs from its room type's (1KING+TWIN).
  * @property int $position
  * @property CarbonImmutable|null $archived_at
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  * @property-read int $beds_count Set by withCount('beds').
  */
-#[Fillable(['room_type_id', 'room_group_id', 'number', 'position', 'archived_at'])]
+#[Fillable(['room_type_id', 'room_group_id', 'number', 'print_label', 'position', 'archived_at'])]
 class Room extends Model
 {
     /** @use HasFactory<RoomFactory> */
@@ -80,6 +81,14 @@ class Room extends Model
     public function status(): HasOne
     {
         return $this->hasOne(RoomStatus::class);
+    }
+
+    /**
+     * @return HasMany<RoomCleaning, $this>
+     */
+    public function cleanings(): HasMany
+    {
+        return $this->hasMany(RoomCleaning::class);
     }
 
     /**

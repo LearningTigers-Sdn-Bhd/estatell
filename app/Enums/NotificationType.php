@@ -19,6 +19,7 @@ enum NotificationType: string
     case ChannelBookingReceived = 'channel_booking_received';
     case ChannelBookingCancelled = 'channel_booking_cancelled';
     case ChannelRemovalBlocked = 'channel_removal_blocked';
+    case PaymentSlipReceived = 'payment_slip_received';
 
     public function label(): string
     {
@@ -38,6 +39,7 @@ enum NotificationType: string
             self::ChannelBookingReceived => __('Channel booking received'),
             self::ChannelBookingCancelled => __('Channel booking cancelled'),
             self::ChannelRemovalBlocked => __('Archive blocked by a channel'),
+            self::PaymentSlipReceived => __('Company payment slip'),
         };
     }
 
@@ -76,6 +78,7 @@ enum NotificationType: string
         return match ($this) {
             self::NightAuditCompleted, self::NightAuditExceptions => 'night-audit.receive-report',
             self::NightAuditFailed => 'night-audit.run',
+            self::PaymentSlipReceived => 'city-ledger.payment',
             self::PortalBookingCreated, self::PortalBookingCancelled, self::PortalCancellationRequested, self::ChannelBookingReceived, self::ChannelBookingCancelled => 'reservations.manage',
             default => null,
         };

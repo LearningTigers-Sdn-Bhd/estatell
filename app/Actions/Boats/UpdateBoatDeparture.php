@@ -78,7 +78,7 @@ class UpdateBoatDeparture
         });
     }
 
-    /** @return array{direction: string, leaves_at: string, arrives_at: string, pickup_point: string|null, seats: int|null, charge_item_id: int|null, active: bool} */
+    /** @return array{direction: string, leaves_at: string, arrives_at: string, pickup_point: string|null, seats: int|null, charge_item_id: int|null, default_boat_id: int|null, default_crew: string|null, active: bool} */
     private function snapshot(BoatDeparture $boatDeparture): array
     {
         return [
@@ -88,6 +88,8 @@ class UpdateBoatDeparture
             'pickup_point' => $boatDeparture->pickup_point,
             'seats' => $boatDeparture->seats,
             'charge_item_id' => $boatDeparture->charge_item_id,
+            'default_boat_id' => $boatDeparture->default_boat_id,
+            'default_crew' => $boatDeparture->default_crew,
             'active' => $boatDeparture->active,
         ];
     }

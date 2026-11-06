@@ -3,10 +3,12 @@
 namespace App\Models;
 
 use App\Enums\BillingMode;
+use App\Enums\FolioStatus;
 use App\Enums\ReservationStatus;
 use Carbon\CarbonImmutable;
 use Database\Factories\ReservationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -29,6 +31,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $notes
  * @property int|null $created_by
  * @property CarbonImmutable|null $cancellation_requested_at
+ * @property int|null $deposit_percent The agent payment schedule, set at booking (`SetReservationPaymentSchedule`): the deposit share.
+ * @property CarbonImmutable|null $deposit_due_at When the deposit (or the whole booking, with no full payment date) is due.
+ * @property CarbonImmutable|null $full_payment_due_at When the whole booking is due. Null with one stage.
  * @property int|null $cancellation_requested_by
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
@@ -50,7 +55,26 @@ class Reservation extends Model
             'status' => ReservationStatus::class,
             'billing_mode' => BillingMode::class,
             'cancellation_requested_at' => 'datetime',
+            'deposit_percent' => 'integer',
+            'deposit_due_at' => 'datetime',
+            'full_payment_due_at' => 'datetime',
         ];
+    }
+
+    /**
+     * The bookings whose agent payments are still followed up: Confirmed and In-house, and Completed while a folio the
+     * company pays is still Open, because the guests can leave before the agent has paid.
+     *
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
+    public function scopeAgentPaymentsOpen(Builder $query): Builder
+    {
+        return $query->where(fn (Builder $bookings): Builder => $bookings
+            ->whereIn('status', [ReservationStatus::Confirmed->value, ReservationStatus::InHouse->value])
+            ->orWhere(fn (Builder $stayEnded): Builder => $stayEnded
+                ->where('status', ReservationStatus::Completed->value)
+                ->whereHas('folios', fn (Builder $folios): Builder => $folios->where('status', FolioStatus::Open->value)->whereNotNull('payer_company_id'))));
     }
 
     /**
@@ -107,6 +131,12 @@ class Reservation extends Model
     public function units(): HasMany
     {
         return $this->hasMany(ReservationUnit::class);
+    }
+
+    /** @return HasMany<PaymentProof, $this> The payment proofs the agent sent in the portal. */
+    public function paymentProofs(): HasMany
+    {
+        return $this->hasMany(PaymentProof::class);
     }
 
     /**

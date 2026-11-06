@@ -272,3 +272,9 @@ Copied lines sit in their own section above POSTED:
 | 5    | `feat(reservations): edit old folios and show the old system section` | Editing inside the window, switching between One amount and Copy line by line, the OLD SYSTEM section on the folio tab, the invoice and the voucher, Move charges keeping `migrated` |
 | 6    | `feat(reservations): add migrated stays already checked out`          | The Status switch on Migrated stay, `CheckOutUnit` with `asOf` and `skipBalanceCheck` in `CreateMigratedStay`, `departure_after_today`, the Settle dialog after One amount           |
 | 7    | `feat(reservations): add old stays for guest history`                 | The Old stay mode and route, `CreateOldStay`, `departure_not_before_go_live`, the Closed folio with no lines. Needs: migrated stays already checked out                              |
+
+## Entering stays late
+
+Run the night audit up to today before entering a guest who left or is due after the current business date: each run moves one day, and a past stay's departure cannot be after the business date while it is Already checked out.
+
+A manual line or payment on a past stay can be dated from the stay's arrival, not just from the day the reservation was entered, and never before go-live. It posts on the business date and keeps its date as the service date. The money from before go-live uses the Old system method.

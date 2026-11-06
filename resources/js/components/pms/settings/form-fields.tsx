@@ -24,6 +24,7 @@ export function SettingsInput({
     disabled,
     description,
     placeholder,
+    onValueChange,
 }: {
     name: string;
     label: ReactNode;
@@ -36,6 +37,7 @@ export function SettingsInput({
     disabled?: boolean;
     description?: string;
     placeholder?: string;
+    onValueChange?: (value: string) => void;
 }) {
     return (
         <Field>
@@ -51,6 +53,7 @@ export function SettingsInput({
                 placeholder={placeholder}
                 disabled={disabled}
                 aria-invalid={!!error}
+                onChange={(event) => onValueChange?.(event.target.value)}
             />
             {description && <FieldDescription>{description}</FieldDescription>}
             <FieldError>{error}</FieldError>

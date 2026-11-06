@@ -16,6 +16,7 @@ import { EnumSelect } from '@/components/pms/enum-select';
 import { Badge } from '@/components/ui/badge';
 import { MoneyText } from '@/components/pms/money-text';
 import { ChangeBoatTripDialog } from '@/components/pms/reservations/change-boat-trip-dialog';
+import { ChangeGuestsDialog } from '@/components/pms/reservations/change-guests-dialog';
 import { ChangeNightPriceDialog } from '@/components/pms/reservations/change-night-price-dialog';
 import { DoorPins } from '@/components/pms/reservations/door-pins';
 import { UnitActionsMenu } from '@/components/pms/reservations/unit-actions-menu';
@@ -112,7 +113,7 @@ export function UnitsList({
                     aria-label="Choose unit"
                     options={units.map((option) => ({
                         value: String(option.id),
-                        label: `${option.label} · ${option.status.label}`,
+                        label: `${option.label} · ${option.status.label} · ${option.primaryGuest ?? 'No primary guest'}`,
                     }))}
                     value={String(activeUnitId)}
                     onValueChange={(value) =>
@@ -148,6 +149,15 @@ export function UnitsList({
                         )}
                     >
                         <span className="font-medium">{option.roomType}</span>
+                        <span
+                            className={cn(
+                                'truncate',
+                                option.primaryGuest === null &&
+                                    'text-muted-foreground',
+                            )}
+                        >
+                            {option.primaryGuest ?? 'No primary guest'}
+                        </span>
                         <span className="text-muted-foreground">
                             {option.assigned ??
                                 (autoAssignRooms
@@ -190,6 +200,7 @@ export function UnitsTab({
 }) {
     const [ticked, setTicked] = useState<number[]>([]);
     const [changingPrice, setChangingPrice] = useState(false);
+    const [changingGuests, setChangingGuests] = useState(false);
     const [boatChange, setBoatChange] = useState<{
         direction: App.Enums.BoatDirection;
         open: boolean;
@@ -303,7 +314,18 @@ export function UnitsTab({
                         {roomText(unit, autoAssignRooms)}
                     </Detail>
                     <Detail icon={Users} label="Guests">
-                        {guestsText(unit)}
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                            <span>{guestsText(unit)}</span>
+                            {unit.canChangeGuests && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setChangingGuests(true)}
+                                >
+                                    Change
+                                </Button>
+                            )}
+                        </div>
                     </Detail>
                 </div>
                 {doorPins !== null && (
@@ -467,6 +489,16 @@ export function UnitsTab({
                         departures={boatDepartures}
                     />
                 )}
+            {unit.canChangeGuests && (
+                <ChangeGuestsDialog
+                    open={changingGuests}
+                    onOpenChange={setChangingGuests}
+                    reservationId={reservationId}
+                    unit={unit}
+                    canChangePrice={unit.canChangePrice}
+                    currency={currency}
+                />
+            )}
             {unit.canChangePrice && (
                 <ChangeNightPriceDialog
                     open={changingPrice}

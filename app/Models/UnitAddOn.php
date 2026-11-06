@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * An extra sold with one unit. Nightly charge items have one row per night. The total is `quantity × unit_amount`
@@ -73,5 +74,15 @@ class UnitAddOn extends Model
     public function ageGroup(): BelongsTo
     {
         return $this->belongsTo(PropertyAgeGroup::class, 'property_age_group_id');
+    }
+
+    /**
+     * The links to the boat trips whose fare this add-on is.
+     *
+     * @return HasMany<BoatTripAddOn, $this>
+     */
+    public function boatTripLinks(): HasMany
+    {
+        return $this->hasMany(BoatTripAddOn::class);
     }
 }

@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import {
+    CalendarClock,
     BedDouble,
     Building2,
     CalendarPlus,
@@ -19,6 +20,9 @@ import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { DateText } from '@/components/pms/date-text';
 import { MoneyText } from '@/components/pms/money-text';
+import { AgentBillBreakdown } from '@/components/pms/payments/agent-bill-breakdown';
+import { PaymentProofReview } from '@/components/pms/payments/payment-proof-review';
+import { PaymentScheduleList } from '@/components/pms/payments/payment-schedule-list';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { show as showCompany } from '@/routes/finance/city-ledger/companies';
@@ -55,11 +59,19 @@ function Row({
 export function ReservationSummary({
     reservation,
     money,
+    paymentSchedule = null,
+    agentBill = null,
+    paymentProofs = [],
+    proofPaymentMethods = [],
     canViewCompany,
     currency,
 }: {
     reservation: Reservation;
     money: Money;
+    paymentSchedule?: App.Data.Reservations.PaymentScheduleData | null;
+    agentBill?: App.Data.Reservations.AgentBillData | null;
+    paymentProofs?: App.Data.Payments.PaymentProofData[];
+    proofPaymentMethods?: { value: string; label: string }[];
     canViewCompany: boolean;
     currency: App.Data.Property.CurrencyData | null;
 }) {
@@ -148,6 +160,38 @@ export function ReservationSummary({
                     </span>
                 </Row>
             </dl>
+            {(paymentSchedule !== null || paymentProofs.length > 0) && (
+                <>
+                    <Separator />
+                    <section className="flex flex-col gap-2">
+                        <h2 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                            <CalendarClock aria-hidden className="size-4" />
+                            Payment schedule
+                        </h2>
+                        {agentBill !== null && (
+                            <AgentBillBreakdown
+                                bill={agentBill}
+                                agentLabel="Agent pays"
+                                currency={currency}
+                            />
+                        )}
+                        {paymentSchedule !== null && (
+                            <PaymentScheduleList
+                                schedule={paymentSchedule}
+                                currency={currency}
+                            />
+                        )}
+                        {paymentProofs.length > 0 && (
+                            <PaymentProofReview
+                                reservationId={reservation.id}
+                                proofs={paymentProofs}
+                                methods={proofPaymentMethods}
+                                currency={currency}
+                            />
+                        )}
+                    </section>
+                </>
+            )}
             <Separator />
             <dl className="flex flex-col gap-2">
                 <Row icon={BedDouble} label="Units">

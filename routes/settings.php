@@ -3,6 +3,7 @@
 use App\Enums\PermissionEnum;
 use App\Http\Controllers\Accounting\AccountingSettingsController;
 use App\Http\Controllers\ApiAccess\KioskController;
+use App\Http\Controllers\Boats\BoatController;
 use App\Http\Controllers\Boats\BoatDepartureController;
 use App\Http\Controllers\Boats\BoatFareController;
 use App\Http\Controllers\Catalogues\ChargeItemController;
@@ -12,6 +13,7 @@ use App\Http\Controllers\Catalogues\RoomRevenueController;
 use App\Http\Controllers\Catalogues\RoomRevenueDayUseController;
 use App\Http\Controllers\Catalogues\RoomRevenuePolicyController;
 use App\Http\Controllers\Catalogues\TaxController;
+use App\Http\Controllers\CityLedger\AgentPaymentTermsController;
 use App\Http\Controllers\DoorLocks\DoorLockSettingsController;
 use App\Http\Controllers\Meals\MealPeriodController;
 use App\Http\Controllers\Onboarding\RecommendedItemDismissalController;
@@ -153,11 +155,22 @@ Route::prefix('settings')->name('settings.')->group(function () {
             Route::put('{boatDeparture}', [BoatDepartureController::class, 'update'])->name('update');
             Route::delete('{boatDeparture}', [BoatDepartureController::class, 'destroy'])->name('destroy');
         });
+        Route::prefix('boats/boats')->name('boats.boats.')->group(function () {
+            Route::get('/', [BoatController::class, 'index'])->name('index');
+            Route::post('/', [BoatController::class, 'store'])->name('store');
+            Route::put('{boat}', [BoatController::class, 'update'])->name('update');
+        });
+        Route::put('boats/charter', [BoatController::class, 'charter'])->name('boats.charter');
         Route::prefix('boats/fares')->name('boats.fares.')->group(function () {
             Route::get('/', [BoatFareController::class, 'index'])->name('index');
             Route::post('/', [BoatFareController::class, 'store'])->name('store');
             Route::put('{chargeItem}', [BoatFareController::class, 'update'])->name('update');
         });
+    });
+
+    Route::middleware('can:'.PermissionEnum::SettingsManage->value)->group(function () {
+        Route::get('agent-payments', [AgentPaymentTermsController::class, 'edit'])->name('agent-payments.edit');
+        Route::put('agent-payments', [AgentPaymentTermsController::class, 'update'])->name('agent-payments.update');
     });
 
     Route::prefix('taxes')->name('taxes.')->middleware('can:'.PermissionEnum::SettingsManage->value)->scopeBindings()->group(function () {

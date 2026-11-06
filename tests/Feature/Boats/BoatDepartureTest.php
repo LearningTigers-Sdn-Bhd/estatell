@@ -6,6 +6,7 @@ use App\Enums\ChargingUnit;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\TransactionCategory;
 use App\Features\Boats;
+use App\Models\Boat;
 use App\Models\BoatDeparture;
 use App\Models\BusinessDate;
 use App\Models\ChargeItem;
@@ -432,4 +433,58 @@ test('the departures page counts the bookings whose upcoming trips use each depa
     $this->actingAs($owner)
         ->get(route('settings.boats.departures.index', ['property' => $property->code]))
         ->assertInertia(fn (Assert $page) => $page->where('departures.0.upcomingBookings', 1));
+});
+
+test('owners can set and update default boat and default crew on departures', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    boatDepartureEnable($property);
+
+    $boat1 = Boat::factory()->for($property)->create(['name' => 'MV Sand Bay 1']);
+    $boat2 = Boat::factory()->for($property)->create(['name' => 'MV Sand Bay 2']);
+    $otherPropertyBoat = Boat::factory()->create(['name' => 'Other Boat']);
+    $inactiveBoat = Boat::factory()->for($property)->create(['name' => 'Inactive Boat', 'active' => false]);
+
+    // Validation: cannot use boat from other property or inactive boat
+    $this->actingAs($owner)
+        ->post(route('settings.boats.departures.store', $property->code), boatDeparturePayload([
+            'default_boat_id' => $otherPropertyBoat->id,
+        ]))
+        ->assertSessionHasErrors('default_boat_id');
+
+    $this->post(route('settings.boats.departures.store', $property->code), boatDeparturePayload([
+        'default_boat_id' => $inactiveBoat->id,
+    ]))
+        ->assertSessionHasErrors('default_boat_id');
+
+    // Create with default boat and crew
+    $this->post(route('settings.boats.departures.store', $property->code), boatDeparturePayload([
+        'default_boat_id' => $boat1->id,
+        'default_crew' => 'Awang / Daus',
+    ]))
+        ->assertSessionHasNoErrors();
+
+    $departure = BoatDeparture::query()->sole();
+    expect($departure->default_boat_id)->toBe($boat1->id)
+        ->and($departure->default_crew)->toBe('Awang / Daus');
+
+    // Index exposes boats list and departure defaults
+    $this->get(route('settings.boats.departures.index', $property->code))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('boats', 2)
+            ->where('boats.0.name', 'MV Sand Bay 1')
+            ->where('departures.0.defaultBoatId', $boat1->id)
+            ->where('departures.0.defaultBoatName', 'MV Sand Bay 1')
+            ->where('departures.0.defaultCrew', 'Awang / Daus'));
+
+    // Update departure to new default boat and crew
+    $this->put(route('settings.boats.departures.update', ['property' => $property->code, 'boatDeparture' => $departure->id]), boatDeparturePayload([
+        'default_boat_id' => $boat2->id,
+        'default_crew' => 'Din / Razak',
+    ]))
+        ->assertSessionHasNoErrors();
+
+    $departure->refresh();
+    expect($departure->default_boat_id)->toBe($boat2->id)
+        ->and($departure->default_crew)->toBe('Din / Razak');
 });

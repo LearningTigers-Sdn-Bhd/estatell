@@ -22,12 +22,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $pickup_point
  * @property int|null $seats
  * @property int|null $charge_item_id The fare.
+ * @property int|null $default_boat_id Default boat from settings.
+ * @property string|null $default_crew Default crew from settings.
  * @property bool $active
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  * @property-read int $departures Set by a selectRaw alias of count(*) in BoatFareUsage.
  */
-#[Fillable(['direction', 'leaves_at', 'arrives_at', 'pickup_point', 'seats', 'charge_item_id', 'active'])]
+#[Fillable(['direction', 'leaves_at', 'arrives_at', 'pickup_point', 'seats', 'charge_item_id', 'default_boat_id', 'default_crew', 'active'])]
 class BoatDeparture extends Model
 {
     /** @use HasFactory<BoatDepartureFactory> */
@@ -53,6 +55,12 @@ class BoatDeparture extends Model
     public function chargeItem(): BelongsTo
     {
         return $this->belongsTo(ChargeItem::class);
+    }
+
+    /** @return BelongsTo<Boat, $this> */
+    public function defaultBoat(): BelongsTo
+    {
+        return $this->belongsTo(Boat::class, 'default_boat_id');
     }
 
     /** @param Builder<BoatDeparture> $query */

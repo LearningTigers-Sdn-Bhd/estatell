@@ -10,7 +10,8 @@ use App\Models\Property;
 
 /**
  * The charge items that go on every new room: active items with `auto_add`. A day use room gets only the items that
- * do not charge by the night. See docs/12-reservations/04-add-ons.md#added-automatically.
+ * do not charge by the night. A channel booking gets only the items that also have `auto_add_channels`. See
+ * docs/12-reservations/04-add-ons.md#added-automatically.
  */
 class AutoAddOns
 {
@@ -28,6 +29,19 @@ class AutoAddOns
             ->filter(fn (ChargeItem $item): bool => $stayType !== StayType::DayUse || ! in_array($item->charging_unit, [ChargingUnit::PerNight, ChargingUnit::PerGuestNight], true))
             ->values()
             ->all());
+    }
+
+    /**
+     * The add-ons of a room booked on a channel: the auto-add items that are also added to channel bookings. Channel
+     * rooms are always overnight.
+     *
+     * @return list<NewAddOnData>
+     */
+    public function forChannelUnit(Property $property): array
+    {
+        $items = array_filter($this->items($property), fn (ChargeItem $item): bool => $item->auto_add_channels);
+
+        return array_values(array_map(fn (ChargeItem $item): NewAddOnData => new NewAddOnData($item->id), $items));
     }
 
     /**

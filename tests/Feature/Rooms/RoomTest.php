@@ -262,3 +262,20 @@ test('a room with stays from the business date cannot change type', function () 
     $this->put($url, ['number' => '306', 'room_type_id' => $newType->id])->assertSessionHasNoErrors();
     expect($room->refresh()->room_type_id)->toBe($newType->id);
 });
+
+test('a room can print its own label, in capitals, and a save without the field keeps it', function () {
+    $owner = User::factory()->owner()->create();
+    $property = $owner->property;
+    $type = RoomType::factory()->for($property)->create();
+    $room = Room::factory()->for($property)->create(['room_type_id' => $type->id, 'number' => 'D01']);
+    $url = route('settings.rooms.update', [$property->code, $room]);
+
+    $this->actingAs($owner)->put($url, ['number' => 'D01', 'room_type_id' => $type->id, 'print_label' => '1king+twin'])->assertSessionHasNoErrors();
+    expect($room->refresh()->print_label)->toBe('1KING+TWIN');
+
+    $this->put($url, ['number' => 'D01', 'room_type_id' => $type->id])->assertSessionHasNoErrors();
+    expect($room->refresh()->print_label)->toBe('1KING+TWIN');
+
+    $this->put($url, ['number' => 'D01', 'room_type_id' => $type->id, 'print_label' => ''])->assertSessionHasNoErrors();
+    expect($room->refresh()->print_label)->toBeNull();
+});

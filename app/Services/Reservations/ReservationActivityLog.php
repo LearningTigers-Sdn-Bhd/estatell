@@ -118,6 +118,9 @@ class ReservationActivityLog
                 'amount' => data_get($properties->get('nights', []), '0.new_amount'),
             ]),
             'reservation.boat_trip_set' => $this->boatTripSetText($properties),
+            'reservation.boat_trip_ticked' => $properties->get('ticked')
+                ? __(':direction: ticked on the manifest.', ['direction' => BoatDirection::from((string) $properties->get('direction'))->label()])
+                : __(':direction: tick removed on the manifest.', ['direction' => BoatDirection::from((string) $properties->get('direction'))->label()]),
             'reservation.boat_trip_cleared' => __(':direction: not set.', ['direction' => BoatDirection::from((string) $properties->get('direction'))->label()]),
             default => (string) $activity->description,
         };

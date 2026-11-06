@@ -159,8 +159,23 @@ test('with auto-assign on the added unit gets a room for the whole stay', functi
         ->and($rooms->first())->not->toBeNull();
 });
 
+test('a unit cannot hold more guests than its room type takes', function (array $party, string $field) {
+    $setup = actionsSetup();
+
+    $this->actingAs($setup['user'])
+        ->from(actionsRoute($setup, 'reservations.show'))
+        ->post(actionsRoute($setup, 'reservations.units.store'), actionsUnitPayload($setup, $party))
+        ->assertSessionHasErrors($field);
+
+    expect($setup['reservation']->units()->count())->toBe(1);
+})->with([
+    'adults' => [['adults' => 3], 'adults'],
+    'children' => [['adults' => 2, 'child_ages' => [4, 9]], 'child_ages'],
+]);
+
 test('a unit is added with a toast and a log', function () {
     $setup = actionsSetup();
+    RoomType::query()->where('property_id', $setup['user']->property_id)->update(['max_children' => 2]);
 
     $this->actingAs($setup['user'])
         ->from(actionsRoute($setup, 'reservations.show'))

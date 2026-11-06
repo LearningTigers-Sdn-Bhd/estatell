@@ -82,6 +82,21 @@ class ReservationRefusals
     }
 
     /**
+     * The message of a refused Change guests: its own codes, else the shared unit and quote messages.
+     */
+    public function partyMessage(string $code): string
+    {
+        return match ($code) {
+            UnitPartyChangePreview::REFUSAL_UNIT_NOT_OPEN => __('Only a confirmed or checked-in room can change its guests.'),
+            UnitPartyChangePreview::REFUSAL_DAY_USE => __('A day use booking keeps its guests. Cancel it and book again.'),
+            UnitPartyChangePreview::REFUSAL_BED_UNIT => __('A bed takes one guest. Add or remove beds instead.'),
+            UnitPartyChangePreview::REFUSAL_TOO_MANY_GUESTS => __('This room type takes fewer guests.'),
+            UnitPartyChangePreview::REFUSAL_NOTHING_CHANGED => __('The guests are the same as now.'),
+            default => (string) array_values($this->unitErrors($code))[0],
+        };
+    }
+
+    /**
      * The errors of the boat trip Dialog, keyed by field. `unit_not_open` is shared with other Actions, so the boat
      * trip messages stay here and do not change the shared list.
      *
@@ -208,6 +223,8 @@ class ReservationRefusals
             ReservationResult::REFUSAL_COMPANY_NOT_AVAILABLE => ['company_id', __('This company is not available. Pick an active company.')],
             ReservationResult::REFUSAL_RATE_PLAN_NOT_LINKED_TO_COMPANY => ['rate_plan_id', __('This rate plan is for certain companies only. Pick one of them on the reservation first.')],
             ReservationResult::REFUSAL_COMPANY_PLAN_CONFLICT => ['company_id', __('Units use plans only the old company can book.')],
+            ReservationResult::REFUSAL_ROOMS_BELOW_MIN => ['rate_plan_id', __('This rate needs more rooms in one booking. Pick another rate.')],
+            ReservationResult::REFUSAL_ROOMS_ABOVE_MAX => ['rate_plan_id', __('This rate is for fewer rooms in one booking. Pick the group rate.')],
             ReservationResult::REFUSAL_CREDIT_LIMIT_EXCEEDED => ['credit_override_reason', __('This company is over its credit limit.')],
             ReservationResult::REFUSAL_MASTER_HAS_PAYMENTS => ['company_id', __('Refund the :amount payment on the Master folio first, then change the company.', ['amount' => $detail])],
             ReservationResult::REFUSAL_MASTER_HAS_AR_INVOICE => ['company_id', __('Void invoice :number first, then change the company.', ['number' => $detail])],

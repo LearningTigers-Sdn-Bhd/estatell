@@ -7,6 +7,7 @@ use App\Http\Controllers\CityLedger\CompanyBulkAddController;
 use App\Http\Controllers\CityLedger\CompanyController;
 use App\Http\Controllers\CityLedger\CompanyOldSystemController;
 use App\Http\Controllers\CityLedger\CompanyPaymentController;
+use App\Http\Controllers\CityLedger\CompanyPaymentSlipController;
 use App\Http\Controllers\CityLedger\CompanyPortalLoginController;
 use App\Http\Controllers\CityLedger\CompanyStatementController;
 use App\Http\Controllers\CityLedger\CompanyStatusController;
@@ -37,6 +38,9 @@ Route::prefix('finance')->name('finance.')->group(function () {
                 Route::get('statement', [CompanyController::class, 'statement'])->name('statement');
                 Route::get('statement.pdf', [CompanyStatementController::class, 'pdf'])->name('statement.pdf');
                 Route::get('payments/{payment}/receipt', [CompanyPaymentController::class, 'receipt'])->name('payments.receipt');
+                Route::get('payment-slips/{paymentProof}', [CompanyPaymentSlipController::class, 'file'])->name('payment-slips.file');
+                Route::post('payment-slips/{paymentProof}/accept', [CompanyPaymentSlipController::class, 'accept'])->middleware('can:'.PermissionEnum::CityLedgerPayment->value)->name('payment-slips.accept');
+                Route::post('payment-slips/{paymentProof}/reject', [CompanyPaymentSlipController::class, 'reject'])->middleware('can:'.PermissionEnum::CityLedgerPayment->value)->name('payment-slips.reject');
             });
 
             Route::prefix('payments')->name('payments.')->group(function () {

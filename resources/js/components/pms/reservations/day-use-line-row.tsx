@@ -30,16 +30,16 @@ import { Input } from '@/components/ui/input';
 
 /**
  * The columns of a day use line from `lg`: room type, rate plan, hours, room, adults, children, rate and remove.
- * `DayUseLinesHeader` uses the same template. Below `lg` the cells stack and show their labels.
+ * `DayUseLinesHeader` uses the same template. Below `2xl` the cells stack and show their labels.
  */
 export const DAY_USE_LINE_COLUMNS =
-    'lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.1fr)_4rem_4rem_minmax(0,12rem)_2rem]';
+    'sm:grid-cols-2 2xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.1fr)_4rem_4rem_minmax(0,12rem)_2rem]';
 
 /** The header of the day use lines table. Hidden below `lg`, where each cell shows its own label. */
 export function DayUseLinesHeader() {
     return (
         <div
-            className={`hidden gap-3 border-b bg-muted px-3 py-2 text-xs font-medium text-muted-foreground lg:grid ${DAY_USE_LINE_COLUMNS}`}
+            className={`hidden gap-3 border-b bg-muted px-3 py-2 text-xs font-medium text-muted-foreground 2xl:grid ${DAY_USE_LINE_COLUMNS}`}
         >
             <span>Room type</span>
             <span>Rate plan</span>
@@ -156,7 +156,7 @@ export function DayUseLineRow({
             <Field data-invalid={!!error('room_type_id')}>
                 <FieldLabel
                     htmlFor={`line-${index}-room_type_id`}
-                    className="lg:sr-only"
+                    className="2xl:sr-only"
                 >
                     Room type
                 </FieldLabel>
@@ -192,7 +192,7 @@ export function DayUseLineRow({
             <Field data-invalid={!!error('rate_plan_id')}>
                 <FieldLabel
                     htmlFor={`line-${index}-rate_plan_id`}
-                    className="lg:sr-only"
+                    className="2xl:sr-only"
                 >
                     Rate plan
                 </FieldLabel>
@@ -220,7 +220,7 @@ export function DayUseLineRow({
             <Field data-invalid={!!error('hours')}>
                 <FieldLabel
                     htmlFor={`line-${index}-hours`}
-                    className="lg:sr-only"
+                    className="2xl:sr-only"
                 >
                     Hours
                 </FieldLabel>
@@ -265,7 +265,7 @@ export function DayUseLineRow({
             <Field data-invalid={!!error('room_id')}>
                 <FieldLabel
                     htmlFor={`line-${index}-room_id`}
-                    className="lg:sr-only"
+                    className="2xl:sr-only"
                 >
                     Room
                 </FieldLabel>
@@ -287,7 +287,7 @@ export function DayUseLineRow({
             <Field data-invalid={!!error('adults')}>
                 <FieldLabel
                     htmlFor={`line-${index}-adults`}
-                    className="lg:sr-only"
+                    className="2xl:sr-only"
                 >
                     Adults
                 </FieldLabel>
@@ -309,7 +309,7 @@ export function DayUseLineRow({
             <Field>
                 <FieldLabel
                     htmlFor={`line-${index}-children`}
-                    className="lg:sr-only"
+                    className="2xl:sr-only"
                 >
                     Children
                 </FieldLabel>
@@ -333,7 +333,7 @@ export function DayUseLineRow({
                     }
                 />
             </Field>
-            <div className="flex items-center justify-between lg:justify-end">
+            <div className="flex items-center justify-between 2xl:justify-end">
                 <BookingQuoteCell
                     quote={quote}
                     loading={loading}
@@ -361,7 +361,7 @@ export function DayUseLineRow({
 
             {line.child_ages.length > 0 && (
                 <Field
-                    className="lg:col-span-full"
+                    className="2xl:col-span-full"
                     data-invalid={agesError !== undefined}
                 >
                     <FieldLabel>Children's ages</FieldLabel>
@@ -397,12 +397,12 @@ export function DayUseLineRow({
             )}
 
             {quoteErrors.length > 0 && (
-                <p className="text-sm text-destructive lg:col-span-full">
+                <p className="text-sm text-destructive 2xl:col-span-full">
                     {quoteErrors.join(' ')}
                 </p>
             )}
             {quote && quoteErrors.length === 0 && quote.available < 1 && (
-                <p className="text-sm text-destructive lg:col-span-full">
+                <p className="text-sm text-destructive 2xl:col-span-full">
                     No room is free for these hours.
                 </p>
             )}

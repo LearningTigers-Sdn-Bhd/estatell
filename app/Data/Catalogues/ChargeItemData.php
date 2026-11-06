@@ -24,6 +24,8 @@ class ChargeItemData extends Data
         public ChargingUnit $chargingUnit,
         public bool $allowOverride,
         public bool $autoAdd,
+        public bool $autoAddChannels,
+        public bool $housekeepingItem,
         public bool $needsChildPriceReview,
         public bool $active,
         public array $taxIds,
@@ -42,6 +44,8 @@ class ChargeItemData extends Data
             chargingUnit: $chargeItem->charging_unit,
             allowOverride: $chargeItem->allow_override,
             autoAdd: $chargeItem->auto_add,
+            autoAddChannels: $chargeItem->auto_add_channels,
+            housekeepingItem: $chargeItem->housekeeping_item,
             needsChildPriceReview: $chargeItem->needs_child_price_review,
             active: $chargeItem->active,
             taxIds: array_values($chargeItem->transactionCode->applicableTaxes

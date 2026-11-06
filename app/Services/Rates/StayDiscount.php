@@ -12,7 +12,8 @@ use Illuminate\Support\Collection;
 
 /**
  * Takes the long-stay discount off a priced stay. The longest rule the stay qualifies for wins and applies from its
- * `from_night`. A percent is of the night total. An amount is per unit (guest, bed or room). A night never goes below zero.
+ * `from_night`. A percent is of the night total. An amount is per unit (guest, bed or room), or once per room when the rule is
+ * `per_room`. A night never goes below zero.
  */
 class StayDiscount
 {
@@ -57,7 +58,7 @@ class StayDiscount
         $total = $night->total();
         $discount = $rule->discount_type === StayDiscountType::Percent
             ? $total->multipliedBy(BigDecimal::of($rule->value)->dividedBy(100, 8), RoundingMode::HalfUp)
-            : Money::of($rule->value, $total->getCurrency())->multipliedBy($units);
+            : Money::of($rule->value, $total->getCurrency())->multipliedBy($rule->per_room ? 1 : $units);
 
         return $discount->isGreaterThan($total) ? $total : $discount;
     }

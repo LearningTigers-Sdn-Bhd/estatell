@@ -2,15 +2,19 @@
 
 namespace App\Services\CityLedger;
 
+use App\Data\CityLedger\StatementBookingPaymentData;
 use App\Data\CityLedger\StatementData;
 use App\Data\CityLedger\StatementLineData;
 use App\Enums\ArInvoiceStatus;
 use App\Enums\ArInvoiceType;
+use App\Enums\PaymentStatus;
 use App\Models\ArInvoice;
 use App\Models\ArPayment;
 use App\Models\Company;
+use App\Models\Payment;
 use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 
 /**
  * The statement of account of one company between two dates: the opening balance, then its invoices (+), credit
@@ -86,7 +90,34 @@ class StatementBuilder
             lines: $lines,
             closingBalance: $balance,
             aging: $this->agingReport->forCompany($company, $to),
+            bookingPayments: $this->bookingPayments($company, $from, $to),
         );
+    }
+
+    /**
+     * The Completed payments and refunds on folios the company pays, by business date. They are paid per booking and
+     * never reach the city ledger, so they stay out of the balance and show beside it.
+     *
+     * @return list<StatementBookingPaymentData>
+     */
+    private function bookingPayments(Company $company, CarbonImmutable $from, CarbonImmutable $to): array
+    {
+        return array_values(Payment::query()
+            ->where('status', PaymentStatus::Completed->value)
+            ->whereHas('folio', fn (Builder $folios): Builder => $folios->where('payer_company_id', $company->id))
+            ->whereHas('folioLine', fn (Builder $lines): Builder => $lines->whereBetween('posting_date', [$from->toDateString(), $to->toDateString()]))
+            ->with(['folio.reservation:id,reference', 'folioLine:id,posting_date', 'paymentMethod:id,name'])
+            ->orderBy('id')
+            ->get()
+            ->map(fn (Payment $payment): StatementBookingPaymentData => new StatementBookingPaymentData(
+                date: $payment->folioLine->posting_date->toDateString(),
+                booking: $payment->folio->reservation->reference ?? '',
+                method: $payment->paymentMethod->name,
+                reference: $payment->reference,
+                receipt: $payment->receipt_number,
+                amount: (string) BigDecimal::of($payment->amount)->multipliedBy($payment->refund_of_id === null ? 1 : -1)->toScale(2),
+            ))
+            ->all());
     }
 
     /**

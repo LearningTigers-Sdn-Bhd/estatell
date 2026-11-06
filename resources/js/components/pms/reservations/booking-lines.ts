@@ -159,6 +159,14 @@ export function roomTypeOf(
     return roomTypes.find((type) => String(type.id) === line.room_type_id);
 }
 
+/** How many rooms the booking holds: its lines that are not dorm beds. Rooms per booking on a plan counts these. */
+export function roomsInBooking(
+    lines: BookingLine[],
+    roomTypes: RoomTypeOption[],
+): number {
+    return lines.filter((line) => !roomTypeOf(line, roomTypes)?.isBed).length;
+}
+
 /** How many units a line adds: one for each bed of a dorm line, otherwise one. */
 export function unitsInLine(
     line: BookingLine,
@@ -519,14 +527,109 @@ export function plansFor(
     roomTypeId: string,
     companyId: string,
     dayUse = false,
+    roomCount: number | null = null,
+    keepPlanId = '',
 ): App.Data.Reservations.RatePlanOptionData[] {
     return plans.filter(
         (plan) =>
             plan.isDayUse === dayUse &&
             (roomTypeId === '' ||
                 plan.roomTypeIds.includes(Number(roomTypeId))) &&
-            planOpenToCompany(plan, companyId),
+            planOpenToCompany(plan, companyId) &&
+            (String(plan.id) === keepPlanId || planFitsRooms(plan, roomCount)),
     );
+}
+
+/**
+ * Whether a plan with Rooms per booking (FIT and group rates) fits a booking of `roomCount` rooms. With no count
+ * (the Add unit Sheet), every plan fits and the server checks.
+ */
+export function planFitsRooms(
+    plan: Pick<RoomLimitedPlan, 'minRooms' | 'maxRooms'>,
+    roomCount: number | null,
+): boolean {
+    return (
+        roomCount === null ||
+        ((plan.minRooms === null || roomCount >= plan.minRooms) &&
+            (plan.maxRooms === null || roomCount <= plan.maxRooms))
+    );
+}
+
+/** What the group rate switch reads from a plan, on the staff form and in the agent portal. */
+export type RoomLimitedPlan = {
+    id: number;
+    roomTypeIds: number[];
+    minRooms: number | null;
+    maxRooms: number | null;
+    groupRatePlanId: number | null;
+};
+
+/**
+ * The plan a line moves to when the booking's room count no longer fits its plan: the plan's group rate (Larger
+ * bookings use) once the booking has more rooms than it allows, or the FIT rate that names the line's plan once the
+ * booking drops below the group rate. The new plan must fit the count, sell the line's room type and be in `plans`
+ * (the plans this booking can use). Null keeps the line as it is.
+ */
+export function groupRateSwitch(
+    plans: RoomLimitedPlan[],
+    planId: string,
+    roomTypeId: string,
+    roomCount: number,
+): string | null {
+    const plan = plans.find((one) => String(one.id) === planId);
+
+    if (!plan || planFitsRooms(plan, roomCount)) {
+        return null;
+    }
+
+    const usable = (one: RoomLimitedPlan) =>
+        planFitsRooms(one, roomCount) &&
+        (roomTypeId === '' || one.roomTypeIds.includes(Number(roomTypeId)));
+    const group = plans.find((one) => one.id === plan.groupRatePlanId);
+
+    if (group && usable(group)) {
+        return String(group.id);
+    }
+
+    const fit = plans.find(
+        (one) => one.groupRatePlanId === plan.id && usable(one),
+    );
+
+    return fit ? String(fit.id) : null;
+}
+
+/**
+ * The lines with `groupRateSwitch()` applied, and the name of the plan the switched lines moved to (the last one),
+ * or null when no line moved. The same array comes back when nothing changed.
+ */
+export function switchGroupRates<
+    T extends { rate_plan_id: string; room_type_id: string },
+>(
+    lines: T[],
+    plans: (RoomLimitedPlan & { name: string })[],
+    roomCount: number,
+): { lines: T[]; switchedTo: string | null; count: number } {
+    let switchedTo: string | null = null;
+    let count = 0;
+    const next = lines.map((line) => {
+        const to = groupRateSwitch(
+            plans,
+            line.rate_plan_id,
+            line.room_type_id,
+            roomCount,
+        );
+
+        if (to === null) {
+            return line;
+        }
+
+        switchedTo = plans.find((plan) => String(plan.id) === to)?.name ?? null;
+        count++;
+
+        return { ...line, rate_plan_id: to };
+    });
+
+    return { lines: count === 0 ? lines : next, switchedTo, count };
 }
 
 function planOpenToCompany(

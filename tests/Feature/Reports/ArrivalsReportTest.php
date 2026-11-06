@@ -263,6 +263,8 @@ test('the Reports navigation groups the reports by category and needs reports.vi
                     'items' => [
                         ['title' => 'Guest list', 'href' => "/p/{$property->code}/reports/guest-list", 'icon' => 'users', 'external' => false, 'active' => true, 'action' => null, 'badge' => null],
                         ['title' => 'Police report', 'href' => "/p/{$property->code}/reports/police-report", 'icon' => 'id-card', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
+                        ['title' => 'Housekeeping items', 'href' => "/p/{$property->code}/reports/housekeeping-items", 'icon' => 'spray-can', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
+                        ['title' => 'Housekeeping log', 'href' => "/p/{$property->code}/reports/housekeeping-log", 'icon' => 'clock', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
                     ],
                 ],
                 [
@@ -282,6 +284,7 @@ test('the Reports navigation groups the reports by category and needs reports.vi
                         ['title' => 'Folio ledger', 'href' => "/p/{$property->code}/reports/folio-ledger", 'icon' => 'receipt', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
                         ['title' => 'Outstanding balance', 'href' => "/p/{$property->code}/reports/outstanding-balance", 'icon' => 'wallet', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
                         ['title' => 'Deposit liability', 'href' => "/p/{$property->code}/reports/deposit-liability", 'icon' => 'shield', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
+                        ['title' => 'Agent payments due', 'href' => "/p/{$property->code}/reports/agent-payments", 'icon' => 'wallet', 'external' => false, 'active' => false, 'action' => null, 'badge' => null],
                     ],
                 ],
                 [

@@ -21,6 +21,7 @@ room_types    id, property_id, name, description, sell_unit (SellUnit),
 
 - `sell_unit` is set on the room type, not on the property. A hostel can sell private rooms and dorm beds.
 - A Bed room type has rooms with [beds](03-beds.md). Inventory is counted in beds.
+- `print_label` (optional, ≤ 12, capitals) is the short label on the [House status](../22-reports/03-house-status-and-items.md#house-status) report (KING, SKING). A room can override it with `rooms.print_label`.
 - `base_occupancy` is "Guests included": the number of guests a PerRoom price covers. It lives only on the room type, because a villa and a standard room differ.
 - A room type sells many rate plans through `rate_plan_room_types`. A Bed room type links only PerBed and Package plans (see [Rate plans](../08-rates/01-rate-plans.md)).
 - A new room type is linked to the first active rate plan (by position) whose pricing basis fits its sell unit, normally "Basic Rate". If none fits, it stays unlinked. Changing the sell unit removes links that no longer fit and links the first plan that does. Restoring an archived room type links it again when it has no active plan.

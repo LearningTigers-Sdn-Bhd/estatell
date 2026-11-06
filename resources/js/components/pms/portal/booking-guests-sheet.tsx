@@ -2,9 +2,11 @@ import { useForm } from '@inertiajs/react';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
+import { CountrySelect } from '@/components/pms/country-select';
 import { PhoneInput } from '@/components/pms/phone-input';
 import {
     Field,
+    FieldDescription,
     FieldError,
     FieldGroup,
     FieldLabel,
@@ -27,6 +29,7 @@ export function BookingGuestsSheet({
     reservationId,
     guests,
     idTypes,
+    countries,
     onSaved,
 }: {
     open: boolean;
@@ -35,6 +38,7 @@ export function BookingGuestsSheet({
     reservationId: number;
     guests: Guest[];
     idTypes: EnumOption[];
+    countries: EnumOption[];
     /** Called after a save, so the page can open a fresh form with the new values. */
     onSaved: () => void;
 }) {
@@ -43,6 +47,7 @@ export function BookingGuestsSheet({
             guest_id: guest.guestId,
             full_name: guest.fullName,
             phone: guest.phone ?? '',
+            nationality_code: guest.nationalityCode ?? '',
             id_type: guest.idType ?? '',
             id_number: '',
         })),
@@ -80,7 +85,7 @@ export function BookingGuestsSheet({
             open={open}
             onOpenChange={onOpenChange}
             title="Edit guests"
-            description="Names, phone numbers and IDs. Dates, rooms and prices change through the property."
+            description="Names, phone numbers, nationality and IDs. Dates, rooms and prices change through the property."
             errors={errors}
             dirty={form.isDirty}
             discardTitle="Discard the guest changes?"
@@ -133,6 +138,31 @@ export function BookingGuestsSheet({
                             />
                             <FieldError>
                                 {errors[`guests.${index}.phone`]}
+                            </FieldError>
+                        </Field>
+                        <Field
+                            data-invalid={
+                                !!errors[`guests.${index}.nationality_code`]
+                            }
+                        >
+                            <FieldLabel htmlFor={`guest-${index}-nationality`}>
+                                Nationality
+                            </FieldLabel>
+                            <CountrySelect
+                                id={`guest-${index}-nationality`}
+                                options={countries}
+                                value={guest.nationality_code}
+                                onValueChange={(value) =>
+                                    setGuest(index, {
+                                        nationality_code: value ?? '',
+                                    })
+                                }
+                            />
+                            <FieldDescription>
+                                Foreign guests pay tourism tax.
+                            </FieldDescription>
+                            <FieldError>
+                                {errors[`guests.${index}.nationality_code`]}
                             </FieldError>
                         </Field>
                         <div className="grid gap-4 sm:grid-cols-2">

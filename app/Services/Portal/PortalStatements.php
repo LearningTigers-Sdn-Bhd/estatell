@@ -4,11 +4,13 @@ namespace App\Services\Portal;
 
 use App\Data\CityLedger\ArInvoiceRowData;
 use App\Data\CityLedger\StatementData;
+use App\Data\Payments\PaymentProofData;
 use App\Data\Portal\PortalPaymentRowData;
 use App\Enums\ArInvoiceStatus;
 use App\Models\ArInvoice;
 use App\Models\ArPayment;
 use App\Models\Company;
+use App\Models\PaymentProof;
 use App\Models\Property;
 use App\Services\CityLedger\ArInvoiceDirectory;
 use App\Services\CityLedger\StatementBuilder;
@@ -35,6 +37,33 @@ class PortalStatements
     public function statement(Company $company, CarbonImmutable $from, CarbonImmutable $to): StatementData
     {
         return $this->statementBuilder->build($company, $from, $to);
+    }
+
+    /**
+     * Whether the company can send a payment slip for its account: it is on direct billing, or it still has an open
+     * invoice from when it was.
+     */
+    public function canSendSlip(Company $company): bool
+    {
+        return $company->direct_bill_enabled
+            || ArInvoice::query()->where('company_id', $company->id)->where('status', ArInvoiceStatus::Open->value)->exists();
+    }
+
+    /**
+     * The slips the company sent for its account, newest first.
+     *
+     * @return list<PaymentProofData>
+     */
+    public function slips(Property $property, Company $company): array
+    {
+        return array_values(PaymentProof::query()
+            ->where('company_id', $company->id)
+            ->with('uploader')
+            ->latest('id')
+            ->limit(20)
+            ->get()
+            ->map(fn (PaymentProof $slip): PaymentProofData => PaymentProofData::fromModel($slip, route('portal.statements.payment-slips.file', ['property' => $property->code, 'paymentProof' => $slip->id])))
+            ->all());
     }
 
     /**

@@ -81,12 +81,14 @@ type Props<TRow extends { key: number | string }> = {
     refundsOnly?: boolean;
     /** The Foreign only filter of the Police report. */
     foreignOnly?: boolean;
+    /** The Boat not set filter of Arrivals and Departures; null or missing hides it. */
+    boatNotSet?: boolean | null;
     /** A short note under the title, such as "Status as of today". */
     note?: string | null;
     /** A small summary table under the main table (Payments: the total for each method). */
     breakdown?: App.Data.Reports.ReportBreakdown | null;
     /** The quick dates of a range report, from `ReportKey::datePresets()`. Without it the standard list shows. */
-    presets?: App.Enums.ReportDatePreset[];
+    presets?: App.Enums.ReportDatePreset[] | null;
     /** The Bucket filter of Daily report › Charges (`''` or null for every bucket), with its options. */
     bucket?: string | null;
     bucketOptions?: EnumOption[];
@@ -106,6 +108,8 @@ type Props<TRow extends { key: number | string }> = {
     embedded?: boolean;
     /** The name in the Layout Sheet title, such as "Guest list › Arrivals". Defaults to the title. */
     layoutLabel?: string;
+    /** Content between the header and the filters, such as the Boats and crew panel of the Boat manifest. */
+    aside?: ReactNode;
 };
 
 const MAX_SELECTED = 500;
@@ -142,6 +146,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
     staffOptions = [],
     refundsOnly,
     foreignOnly,
+    boatNotSet = null,
     breakdown = null,
     note = null,
     presets,
@@ -156,6 +161,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
     query,
     embedded = false,
     layoutLabel,
+    aside = null,
 }: Props<TRow>) {
     const column = useMemo(() => dataTableColumns<TRow>(), []);
     const [draft, setDraft] = useState<Layout | null>(null);
@@ -172,6 +178,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
             ...(staff ? { staff } : {}),
             ...(refundsOnly ? { refunds: '1' } : {}),
             ...(foreignOnly ? { foreign: '1' } : {}),
+            ...(boatNotSet ? { no_boat: '1' } : {}),
             ...(direction ? { direction } : {}),
             ...(bucket ? { bucket } : {}),
             ...(search ? { search } : {}),
@@ -185,6 +192,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
             staff,
             refundsOnly,
             foreignOnly,
+            boatNotSet,
             direction,
             bucket,
             search,
@@ -338,6 +346,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
             staff?: string;
             refundsOnly?: boolean;
             foreignOnly?: boolean;
+            boatNotSet?: boolean;
             direction?: string;
             bucket?: string;
             search?: string;
@@ -351,6 +360,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
                 staff: staff ?? '',
                 refundsOnly: refundsOnly ?? false,
                 foreignOnly: foreignOnly ?? false,
+                boatNotSet: boatNotSet ?? false,
                 direction: direction ?? '',
                 bucket: bucket ?? '',
                 search: search ?? '',
@@ -365,6 +375,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
                 next.staff !== (staff ?? '') ||
                 next.refundsOnly !== (refundsOnly ?? false) ||
                 next.foreignOnly !== (foreignOnly ?? false) ||
+                next.boatNotSet !== (boatNotSet ?? false) ||
                 next.direction !== (direction ?? '') ||
                 next.bucket !== (bucket ?? '') ||
                 next.search !== (search ?? '')
@@ -383,6 +394,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
                     ...(next.staff ? { staff: next.staff } : {}),
                     ...(next.refundsOnly ? { refunds: '1' } : {}),
                     ...(next.foreignOnly ? { foreign: '1' } : {}),
+                    ...(next.boatNotSet ? { no_boat: '1' } : {}),
                     ...(next.direction ? { direction: next.direction } : {}),
                     ...(next.bucket ? { bucket: next.bucket } : {}),
                     ...(next.search ? { search: next.search } : {}),
@@ -403,6 +415,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
             staff,
             refundsOnly,
             foreignOnly,
+            boatNotSet,
             direction,
             bucket,
             search,
@@ -443,6 +456,8 @@ export function ReportScreen<TRow extends { key: number | string }>({
                         {note}
                     </p>
                 )}
+
+                {aside}
 
                 <div className="flex flex-wrap items-center gap-2">
                     {isOneDate ? (
@@ -565,6 +580,17 @@ export function ReportScreen<TRow extends { key: number | string }>({
                                 }
                             />
                             Foreign only
+                        </Label>
+                    ) : null}
+                    {boatNotSet !== null ? (
+                        <Label className="flex items-center gap-2 text-sm font-normal">
+                            <Checkbox
+                                checked={boatNotSet}
+                                onCheckedChange={(checked) =>
+                                    visit({ boatNotSet: checked })
+                                }
+                            />
+                            Boat not set
                         </Label>
                     ) : null}
                     <div className="ml-auto flex items-center gap-2">

@@ -68,7 +68,7 @@ When the trip is Scheduled and its departure has a fare, the trip adds the fare 
 - **Child prices** apply: the rows split by age group as for any per-guest item.
 - **Package skip.** No fare is added when the unit's rate plan has an inclusion for the same charge item (an island package that includes the boat). The check reads the plan through a Rates service (`RatePlanIncludes::includesChargeItem`), not the Rates models. Any inclusion row counts, whatever its amount or dates. It is read when the trip is set; a later plan change does not re-sync fare rows.
 - **Changing or clearing a trip** first removes the trip's unposted fare rows with `RemoveUnitAddOn`, then adds the new fare if there is one. A posted fare row is kept, and its link stays. The success toast then says, as a warning: "The old fare is already posted. Reverse it on the folio if needed." (the Dialog closes on success; Set boats shows the same). The fix is `ReverseLine` on the folio. Nothing is reversed automatically.
-- **Charter and Own** add nothing. Staff add a charter charge by hand, for example with an Enter when charging item.
+- **Charter** adds the property's charter charge once (`charter_charge_item_id`, set on the [Boats tab](01-boat-settings.md#boats-tab)), as an undated add-on linked to the trip in `boat_trip_add_ons`, so changing or clearing the trip removes it while it is not posted. With no item set, or when a posted charter charge is kept, nothing is added. **Own** adds nothing.
 - **Guest counts and stay changes** leave fare rows alone. Guest counts cannot change after booking, and stay changes leave undated rows as they are ([Add-ons rules](../12-reservations/04-add-ons.md#rules)), so fare rows keep their link. A future guest count change must link any new age-group fare row to its trip.
 - Cancel, no-show and reinstate treat fare rows like any add-on: they stay as history and come back on reinstate. With **Also remove add-ons**, unposted fare rows are removed with the others and their links go with them. Reinstate then brings back the trip without its fare; staff add it again with **Change**.
 - A departure's new fare applies to new trips only. Booked trips keep the fare rows they have.
@@ -158,3 +158,11 @@ The [room status board](../19-housekeeping/01-room-status-board.md) sorts depart
 ## Lessons from wastays
 
 wastays stored `boat_in_at`, `boat_out_at`, `boat_in_type` and `boat_out_type` on each `booking_guest`, copied again on `reservation_import_rows`, with times as strings in some places. The date lived inside the datetime, so a date change needed `Boats::ResolveTimes` to rebuild it. estatell stores one trip per unit and direction, keeps the time on the unit and takes the date from the stay.
+
+## Automatic fare items
+
+A room that already has the departure's fare item as its own add-on, such as one added automatically, is not charged the fare again when a trip is set.
+
+## Company portal
+
+An agent sets boats when it books (one pick for every room) and on the booking (per room). It uses the same Actions and rules as staff, and it does not see seat counts. See [Company portal](../23-company-portal/01-company-portal.md#booking).

@@ -7,8 +7,10 @@ use App\Actions\FrontDesk\CancelUnits;
 use App\Actions\FrontDesk\ChangeUnitDates;
 use App\Actions\Guests\CreateGuest;
 use App\Actions\Reservations\AddUnit;
+use App\Actions\Reservations\AddUnitAddOn;
 use App\Actions\Reservations\AttachGuest;
 use App\Actions\Reservations\ChangeNightPrice;
+use App\Actions\Reservations\ChangeUnitParty;
 use App\Actions\Reservations\CreateReservation;
 use App\Actions\Reservations\EnsureOtaBookingSource;
 use App\Data\Reservations\NewReservationData;
@@ -33,6 +35,7 @@ use App\Services\Channels\ChannelRevisionRefused;
 use App\Services\Channels\Channex\ChannexRequestFailed;
 use App\Services\Channels\Channex\ChannexRetryLater;
 use App\Services\Guests\GuestMatcher;
+use App\Services\Reservations\AutoAddOns;
 use App\Services\Staff\PropertyOwners;
 use Brick\Math\BigDecimal;
 use Brick\Math\RoundingMode;
@@ -56,6 +59,9 @@ class IngestChannelBooking
         private AutoAssignBookedUnit $autoAssignBookedUnit,
         private AttachGuest $attachGuest,
         private PostOtaCollectedPayment $postOtaCollectedPayment,
+        private AutoAddOns $autoAddOns,
+        private AddUnitAddOn $addUnitAddOn,
+        private ChangeUnitParty $changeUnitParty,
     ) {}
 
     /**
@@ -63,7 +69,8 @@ class IngestChannelBooking
      * acknowledged: a revision that is saved but not yet acknowledged only repeats the acknowledgement, so nothing is
      * booked twice. A refused revision keeps its `error`, is not acknowledged, and shows on the admin Channels tab. A
      * New revision creates a reservation with one unit for each room; a Modified one moves the units to the new rooms
-     * and dates (matched in order); a Cancelled one cancels the units without a fee. OTA bookings are always
+     * and dates (matched in order), and a kept room takes the revision's guests through `ChangeUnitParty`, so the
+     * manifest, meals and per-guest add-ons such as a jetty fee follow; a Cancelled one cancels the units without a fee. OTA bookings are always
      * accepted: availability, restrictions and missing prices do not refuse them. The reservation is created by the
      * property's owner. A New or Modified revision the OTA collected posts what is still due as an OTA collected payment
      * (`PostOtaCollectedPayment`). Staff are notified after the save. See docs/21-channels/05-booking-ingestion.md.
@@ -182,6 +189,7 @@ class IngestChannelBooking
         foreach ($result->reservation->units()->orderBy('id')->get() as $unit) {
             ($this->attachGuest)($actor, $unit, $booker);
             ($this->autoAssignBookedUnit)($actor, $unit);
+            $this->addChannelAddOns($actor, $unit);
         }
 
         return $result->reservation;
@@ -236,6 +244,7 @@ class IngestChannelBooking
                 }
             }
 
+            $this->syncParty($actor, $unit->refresh(), $line);
             $this->repriceNights($actor, $unit, $line, $rooms[$index] ?? [], $reason);
         }
 
@@ -319,6 +328,38 @@ class IngestChannelBooking
             }
 
             ($this->autoAssignBookedUnit)($actor, $result->unit->refresh());
+            $this->addChannelAddOns($actor, $result->unit);
+        }
+    }
+
+    /**
+     * Give a kept unit the adults and child ages of the revision. The OTA price stays (the nights are priced from the
+     * revision next), and a refusal (a dorm bed, a day use unit) leaves the guests as they were: an OTA booking is
+     * always accepted. See docs/12-reservations/14-change-guests.md#channel-bookings.
+     */
+    private function syncParty(User $actor, ReservationUnit $unit, NewUnitData $line): void
+    {
+        $ages = $line->childAges;
+        $current = array_map(intval(...), $unit->childAges()->pluck('age')->all());
+        sort($ages);
+        sort($current);
+
+        if ($unit->adults === $line->adults && $ages === $current) {
+            return;
+        }
+
+        ($this->changeUnitParty)($actor, $unit, $line->adults, $line->childAges, channelRevision: true);
+    }
+
+    /**
+     * Add the charge items that go on every channel booking (`auto_add_channels`), such as a jetty fee the guest pays
+     * at the property. They are added after the unit, one by one, so an add-on the unit refuses is skipped: an OTA
+     * booking is always accepted. See docs/12-reservations/04-add-ons.md#added-automatically.
+     */
+    private function addChannelAddOns(User $actor, ReservationUnit $unit): void
+    {
+        foreach ($this->autoAddOns->forChannelUnit($unit->property) as $addOn) {
+            ($this->addUnitAddOn)($actor, $unit, $addOn);
         }
     }
 

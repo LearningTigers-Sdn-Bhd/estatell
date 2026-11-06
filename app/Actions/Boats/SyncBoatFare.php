@@ -8,6 +8,7 @@ use App\Data\Reservations\NewAddOnData;
 use App\Models\BoatDeparture;
 use App\Models\BoatTripAddOn;
 use App\Models\ReservationUnit;
+use App\Models\UnitAddOn;
 use App\Models\UnitBoatTrip;
 use App\Models\User;
 use App\Services\Rates\RatePlanIncludes;
@@ -25,6 +26,7 @@ class SyncBoatFare
      * result says so. Then, when `$departure` has a fare the plan does not include, the fare is added as an undated
      * add-on through `AddUnitAddOn` and linked to the trip. Pass null to only remove (Clear).
      *
+     * A room that already has this item as an add-on of its own, such as an automatic one, is not charged a second time.
      * A refusal is returned, and the caller rolls back its transaction. Call it only with the unit row already locked by
      * the caller. See docs/24-boats/02-boat-trips.md#fare.
      */
@@ -52,6 +54,16 @@ class SyncBoatFare
         }
 
         if ($this->ratePlanIncludes->includesChargeItem($unit->rate_plan_id, $departure->charge_item_id)) {
+            return BoatTripResult::done($postedFareKept);
+        }
+
+        $alreadyCharged = UnitAddOn::query()
+            ->where('reservation_unit_id', $unit->id)
+            ->where('charge_item_id', $departure->charge_item_id)
+            ->whereDoesntHave('boatTripLinks')
+            ->exists();
+
+        if ($alreadyCharged) {
             return BoatTripResult::done($postedFareKept);
         }
 

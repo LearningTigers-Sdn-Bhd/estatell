@@ -134,6 +134,12 @@ class SettingsNavigation
                     icon: 'percent',
                     active: request()->routeIs('settings.discounts.*'),
                 ) : null,
+                $user->can(PermissionEnum::SettingsManage->value) ? new NavItemData(
+                    title: __('Agent payments'),
+                    href: route('settings.agent-payments.edit', ['property' => $property->code], absolute: false),
+                    icon: 'credit-card',
+                    active: request()->routeIs('settings.agent-payments.*'),
+                ) : null,
             ]))),
             new NavGroupData(label: __('Team'), items: array_values(array_filter([
                 $user->can(PermissionEnum::StaffView->value) ? new NavItemData(

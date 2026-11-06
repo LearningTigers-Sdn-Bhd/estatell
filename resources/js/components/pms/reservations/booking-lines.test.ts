@@ -6,6 +6,7 @@ import {
     bookingPayload,
     chargeableQuote,
     emptyLine,
+    groupRateSwitch,
     isQuotable,
     moveAddOn,
     nightsBetween,
@@ -14,6 +15,7 @@ import {
     resizeAges,
     resizeBeds,
     sumMoney,
+    switchGroupRates,
     totalUnits,
     unitsInLine,
 } from './booking-lines';
@@ -444,4 +446,86 @@ test('a migrated stay quote leaves the nights before go-live out of its totals',
             1,
         )?.unitTotal,
     ).toBe('80.00');
+});
+
+test('a plan with rooms per booking shows only when the booking has that many rooms, and a picked plan stays', () => {
+    const plan = (
+        id: number,
+        minRooms: number | null,
+        maxRooms: number | null,
+    ) =>
+        ({
+            id,
+            name: `P${id}`,
+            roomTypeIds: [1],
+            fixedNights: null,
+            companyAccess: 'everyone',
+            companyAtDesk: true,
+            companyIds: [],
+            companyMarket: 'all',
+            marketCompanyIds: [],
+            isDayUse: false,
+            minRooms,
+            maxRooms,
+        }) as unknown as App.Data.Reservations.RatePlanOptionData;
+    const plans = [plan(1, null, null), plan(2, 1, 4), plan(3, 5, null)];
+    const ids = (rooms: number | null, keep = '') =>
+        plansFor(plans, '1', '', false, rooms, keep).map((one) => one.id);
+
+    expect(ids(3)).toEqual([1, 2]);
+    expect(ids(5)).toEqual([1, 3]);
+    expect(ids(5, '2')).toEqual([1, 2, 3]);
+    expect(ids(null)).toEqual([1, 2, 3]);
+});
+
+test('a FIT line moves to its group rate once the booking outgrows it, and back when it shrinks', () => {
+    const plan = (
+        id: number,
+        minRooms: number | null,
+        maxRooms: number | null,
+        groupRatePlanId: number | null = null,
+        roomTypeIds = [1],
+    ) => ({
+        id,
+        name: `P${id}`,
+        roomTypeIds,
+        minRooms,
+        maxRooms,
+        groupRatePlanId,
+    });
+    const fit = plan(1, 1, 4, 2);
+    const group = plan(2, 5, null);
+    const lines = (planId: string, count: number) =>
+        Array.from({ length: count }, () => ({
+            rate_plan_id: planId,
+            room_type_id: '1',
+        }));
+
+    const grown = switchGroupRates(lines('1', 5), [fit, group], 5);
+    expect(grown.lines.map((line) => line.rate_plan_id)).toEqual([
+        '2',
+        '2',
+        '2',
+        '2',
+        '2',
+    ]);
+    expect(grown.switchedTo).toBe('P2');
+    expect(grown.count).toBe(5);
+
+    const shrunk = switchGroupRates(lines('2', 4), [fit, group], 4);
+    expect(shrunk.lines.map((line) => line.rate_plan_id)).toEqual([
+        '1',
+        '1',
+        '1',
+        '1',
+    ]);
+
+    const kept = lines('1', 3);
+    expect(switchGroupRates(kept, [fit, group], 3).lines).toBe(kept);
+
+    // No switch when the group rate does not sell the room type, or the agent cannot book it.
+    expect(
+        groupRateSwitch([fit, plan(2, 5, null, null, [9])], '1', '1', 5),
+    ).toBeNull();
+    expect(groupRateSwitch([fit], '1', '1', 5)).toBeNull();
 });

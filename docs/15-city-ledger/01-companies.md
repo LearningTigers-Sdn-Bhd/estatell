@@ -13,6 +13,7 @@ companies            id, property_id, name, type (CompanyType), brn, tin, sst_re
                      billing_address_line1, billing_address_line2, billing_city,
                      billing_state_code, billing_postal_code, billing_country_code,
                      credit_limit, payment_terms_days, direct_bill_enabled,
+                     pays_collected_taxes (default false),
                      portal_cancel_cutoff_days (nullable),
                      profile_managed_by_company (bool, default false),
                      status (CompanyStatus), timestamps
@@ -101,6 +102,7 @@ Finance › City ledger › Companies                     [Add company]
 - **Add company** is a Sheet with 8 fields in two sections: Company (name, type, market, contact email, contact phone) and Credit (how the company pays, then credit limit and payment terms). After saving, the company page opens; tax numbers and the billing address are added there. The company portal adds a third section, Portal (portal login email and cancel days).
 - The company page follows the Settings pattern: each tab is a link with its own URL, and each section is one form saved on its own. **Details tab:** a Details form (name, type, market, contact email and phone; Market is a select of Local and International with an empty choice, and the hint "Not set: only plans open to every market show."), then a **Tax numbers and billing address** form (BRN, TIN, SST, address lines, city, postcode, state, country). When the company manages them, that second section is read-only with the address in a read-only text area. **Credit tab:** how the company pays, then credit limit (empty means no limit) and payment terms. **Rates tab (read only):** a "Market: {Local, International or Not set}" line, then the plans this company can use (rows of Only these companies plans, plus All companies plans, left out when the plan's market does not match), with the columns Rate plan, Pricing, Front desk and Portal (Yes or —). Each plan name links to the plan's Companies tab for staff with `settings.manage`, where the rate is set. Empty state: "No company rates yet. Set them on a rate plan's Companies tab." **Portal tab:** the company's one portal login (login email and free cancellation days), then its status with **Copy message**, **Reset password** and **Resend**. Saving, Reset password and Resend return to the Portal tab. Tab order: Details, Credit, Rates, Portal, Payments, Statement.
 - **How the company pays** is two radio cards, side by side (stacked on phones). They set `direct_bill_enabled`. Direct billing is the default.
+- **Company pays tourism tax** is a switch under them (`pays_collected_taxes`, off). Off: the guest pays taxes collected at check-in at the desk, even when the company pays the room. See [Collected taxes](../13-folio/03-routing.md#collected-taxes).
 
     | Card                           | Description                                                                                                          |
     | ------------------------------ | -------------------------------------------------------------------------------------------------------------------- |

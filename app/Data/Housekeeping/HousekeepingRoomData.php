@@ -44,6 +44,7 @@ class HousekeepingRoomData extends Data
         public bool $canDismissMaintenance,
         public bool $doNotDisturb,
         public ?string $reason,
+        public RoomCleaningStateData $cleaning,
     ) {}
 
     /**
@@ -62,6 +63,7 @@ class HousekeepingRoomData extends Data
         bool $canInspect,
         bool $canBlock,
         string $date,
+        RoomCleaningStateData $cleaning,
     ): self {
         $roomStatus = $room->status;
         $moves = [];
@@ -102,6 +104,7 @@ class HousekeepingRoomData extends Data
             canDismissMaintenance: $canBlock && $roomStatus->needs_maintenance,
             doNotDisturb: $roomStatus->do_not_disturb_on?->toDateString() === $date,
             reason: $roomStatus->status === HousekeepingStatus::Dirty ? $reason?->label() : null,
+            cleaning: $cleaning,
         );
     }
 }

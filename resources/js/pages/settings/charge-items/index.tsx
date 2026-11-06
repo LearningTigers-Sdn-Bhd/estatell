@@ -227,7 +227,9 @@ function ChargeItemTable({
                                             {chargeItem.name}
                                             {chargeItem.autoAdd && (
                                                 <Badge variant="outline">
-                                                    Auto
+                                                    {chargeItem.autoAddChannels
+                                                        ? 'Auto, channels too'
+                                                        : 'Auto'}
                                                 </Badge>
                                             )}
                                             {chargeItem.needsChildPriceReview && (

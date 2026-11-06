@@ -202,7 +202,7 @@ test('the sidebar lists the finance reports under the Finance category', functio
     [$user, $property] = reportSetup();
 
     $this->actingAs($user)->get(paymentsUrl($property))->assertInertia(fn (Assert $page) => $page
-        ->where('navigation.contexts.2.groups', fn ($groups) => collect(collect($groups)->firstWhere('label', 'Finance')['items'])->pluck('title')->all() === ['Payments', 'Folio ledger', 'Outstanding balance', 'Deposit liability']));
+        ->where('navigation.contexts.2.groups', fn ($groups) => collect(collect($groups)->firstWhere('label', 'Finance')['items'])->pluck('title')->all() === ['Payments', 'Folio ledger', 'Outstanding balance', 'Deposit liability', 'Agent payments due']));
 });
 
 /**

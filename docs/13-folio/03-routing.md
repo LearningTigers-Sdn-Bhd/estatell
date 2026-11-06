@@ -18,7 +18,7 @@ folio_routing_rules    id, reservation_id,
 - The table has no `property_id`: the reservation scopes it.
 - `target_folio_id` is any folio of the same reservation. A CHECK cannot say this, so the Action refuses a folio of another reservation.
 - Two rules cannot match the same thing: a unique index over the three selector columns treats nulls as equal (Postgres `NULLS NOT DISTINCT`, Postgres 15 and later; checked on 18.1).
-- `RoutingRuleSource`: BillingMode (made by `SyncRoutingRules`), Manual (made by staff).
+- `RoutingRuleSource`: BillingMode (made by `SyncRoutingRules`), Manual (made by staff, Move charges, or a portal booking for its auto-add items).
 
 ## Folio types
 
@@ -36,13 +36,32 @@ The router follows one rule and stops. A rule target is final, so there are no c
 
 ## Rules
 
-- **Children follow their parent.** Tax and discount lines go to the folio of their charge. A rule never matches them, so a charge and its tax are never split.
+- **Children follow their parent.** Tax and discount lines go to the folio of their charge. A rule never matches them. The one exception is [collected taxes](#collected-taxes) the guest pays.
 - **Reversals and transfers skip the router.** `ReverseLine` posts on the line's own folio. `TransferLines` posts on the chosen target.
 - **A closed target refuses the posting** (`folio_not_open`). There is never a silent fallback to the unit's folio. In the night audit this becomes an exception row that names the folio.
 - **A target settled to the city ledger** (Closed, with an AR invoice that is not Void) refuses with `folio_settled_to_city_ledger` instead, in `PostCharge`, `PostRoomCharges` and `PostScheduledAddOns`. That folio cannot reopen, so the message says what to do: "The folio these charges go to is settled to the city ledger. Open a third-party folio for the company, add a routing rule for this room and this charge category to it, then post again." `FolioPostability` (`app/Services/Folio/`) picks the code, only on the refusal path. `PostUnitPolicyFee` keeps `folio_not_open`.
 - **A late charge after the company invoice** goes on a second invoice: a third-party folio with the company as payer, a Manual rule for that unit to it, then **Settle to City ledger** on that folio. The Manual rule must be more specific than the BillingMode rule: under MasterPays use "this unit + Room" (a category rule for all units scores 2, so "this unit + all charges" scores only 1); under MasterPaysAll "this unit + all charges" is enough.
 - **Posted lines never move on their own.** A rule change affects only later postings. A re-run of a night finds its `night:{unit_night_id}` line and posts nothing new. `TransferLines` moves old lines by hand.
 - Rules are per reservation. Staff-made rules (Manual) are never touched by the billing mode.
+
+## Collected taxes
+
+A tax with **Collect at check-in** (the tourism tax) follows the room line, except when the guest pays it and a company pays the room. Sand Bay's agents pay the room; the foreign guest pays RM10 a night at the desk, as in wastays (`BillRoomChargesToCompany` with `bill_tourism_tax_to_company` off).
+
+| Room night goes to                                                     | Collected tax goes to                                        |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------ |
+| The unit's own folio                                                   | The unit's own folio (no change)                             |
+| A folio a company pays, the company's **Company pays tourism tax** off | **The unit's own folio**, offered in Collect now at check-in |
+| A folio a company pays, the switch on                                  | That folio, with the room                                    |
+| A folio no company pays (a Master the booker pays)                     | That folio, with the room                                    |
+
+- **Setting:** `companies.pays_collected_taxes` (default false), the switch **Company pays tourism tax** in the company's credit form ("How does this company pay?").
+- **Which lines:** only the taxes of the room line of a night. SST and other taxes, inclusions and add-ons follow their charge.
+- **Posting:** `CollectedTaxPayer` (`app/Services/Folio/`) names the tax ids. `PostNightLines` passes them to `PostFolioCharge` as `taxFolios`, so the Tax line goes on the unit folio (created when missing) and keeps `parent_line_id` and the key `{night key}:tax:{tax_id}`. The audit, Change price and every night posting go through it.
+- **Reversal:** `ReverseLine` already posts each reversal on the folio of its line, so the tax is reversed on the unit folio. It refuses with `folio_not_open` when that folio is not Open. Change price checks the folios of the children too.
+- **Move:** `TransferLines` reverses such a child and copies it on its own folio, under the copy of its charge, so the tax stays with the guest. That folio must be Open.
+- **Scheduled rows:** `ScheduledFolioRows` puts these tax rows in a block of their own on the unit folio, marked `guestTax`. Move charges leaves those blocks out. The lookup runs only for a reservation with a company, so on a reservation with no company a third-party folio that a company pays shows its tax until the night posts.
+- **Check-in:** `CheckInCollection` shows the tax rows when the guest pays them, even when the room charges go to the Master. Collect now records the Advance on the unit folio (`NewPaymentData::$guestPaysTaxes` lets it past `advance_on_master`, because it pays charges that stay on that folio). Walk-in totals include them.
 
 ## Billing mode rules
 

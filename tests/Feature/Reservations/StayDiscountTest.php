@@ -157,3 +157,31 @@ test('the database refuses a from night past the minimum nights', function () {
     expect(fn () => RatePlanStayDiscount::factory()->for($plan)->create(['min_nights' => 3, 'from_night' => 4]))
         ->toThrow(QueryException::class);
 });
+
+test('an amount rule on a per-guest plan can be taken off per room, and every other rule stays per unit', function () {
+    [$owner, $property, $plan] = discountSetup(['pricing_basis' => PricingBasis::PerGuest]);
+    $url = route('settings.rate-plans.discounts.update', [$property->code, $plan]);
+
+    $this->actingAs($owner)->put($url, ['discounts' => [
+        ['min_nights' => 2, 'discount_type' => 'amount', 'value' => '200', 'per_room' => true, 'from_night' => 2],
+        ['min_nights' => 5, 'discount_type' => 'percent', 'value' => '10', 'per_room' => true, 'from_night' => 1],
+    ]])->assertSessionHasNoErrors();
+
+    $rules = $plan->stayDiscounts()->orderBy('min_nights')->get();
+    expect($rules->pluck('per_room')->all())->toBe([true, false]);
+
+    $this->put($url, ['discounts' => [
+        ['min_nights' => 2, 'discount_type' => 'amount', 'value' => '200', 'from_night' => 2],
+        ['min_nights' => 5, 'discount_type' => 'percent', 'value' => '10', 'from_night' => 1],
+    ]])->assertSessionHasNoErrors();
+
+    expect($plan->stayDiscounts()->orderBy('min_nights')->pluck('per_room')->all())->toBe([false, false])
+        ->and(Activity::query()->where('event', 'rate_plan.stay_discounts_updated')->count())->toBe(2);
+
+    [$roomOwner, $roomProperty, $roomPlan] = discountSetup(['pricing_basis' => PricingBasis::PerRoom]);
+    $this->actingAs($roomOwner)->put(route('settings.rate-plans.discounts.update', [$roomProperty->code, $roomPlan]), ['discounts' => [
+        ['min_nights' => 2, 'discount_type' => 'amount', 'value' => '50', 'per_room' => true, 'from_night' => 1],
+    ]])->assertSessionHasNoErrors();
+
+    expect($roomPlan->stayDiscounts()->sole()->per_room)->toBeFalse();
+});

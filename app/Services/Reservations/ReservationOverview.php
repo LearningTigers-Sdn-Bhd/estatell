@@ -14,8 +14,8 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * The header, summary figures and unit list of one reservation, in four queries (units with room types, the
- * night and day use totals, the first-night rooms and the folio balance). Figures come from the units that hold inventory. Dates fall back to all
+ * The header, summary figures and unit list of one reservation, in five queries (units with room types, the
+ * night and day use totals, the first-night rooms, the primary guests and the folio balance). Figures come from the units that hold inventory. Dates fall back to all
  * units when none does.
  */
 class ReservationOverview
@@ -31,6 +31,7 @@ class ReservationOverview
     {
         $units = $reservation->units()->with('roomType')->orderBy('id')->get();
         $assigned = $this->roomBox->assignmentsForUnits(array_values(array_map(intval(...), $units->pluck('id')->all())));
+        $primaryGuests = $this->primaryGuests($units);
         $nights = $this->nightTotals($units);
         $live = $units->filter(fn (ReservationUnit $unit): bool => $unit->status->holdsInventory());
         $dated = $live->isEmpty() ? $units : $live;
@@ -50,7 +51,7 @@ class ReservationOverview
                 balance: $this->balance($reservation),
                 canViewGuest: $canViewGuest,
             ),
-            'units' => array_values($units->map(fn (ReservationUnit $unit): ReservationUnitOptionData => ReservationUnitOptionData::fromModel($unit, $assigned[$unit->id] ?? null))->all()),
+            'units' => array_values($units->map(fn (ReservationUnit $unit): ReservationUnitOptionData => ReservationUnitOptionData::fromModel($unit, $assigned[$unit->id] ?? null, $primaryGuests[$unit->id] ?? null))->all()),
             'models' => $units,
         ];
     }
@@ -68,6 +69,20 @@ class ReservationOverview
             ->first();
 
         return (int) $row->folio_count === 0 ? null : (string) $row->balance;
+    }
+
+    /**
+     * @param  EloquentCollection<int, ReservationUnit>  $units
+     * @return array<int, string> The primary guest's name by unit id
+     */
+    private function primaryGuests(Collection $units): array
+    {
+        return DB::table('unit_guests')
+            ->join('guests', 'guests.id', '=', 'unit_guests.guest_id')
+            ->whereIn('unit_guests.reservation_unit_id', $units->pluck('id')->all())
+            ->where('unit_guests.is_primary', true)
+            ->pluck('guests.full_name', 'unit_guests.reservation_unit_id')
+            ->all();
     }
 
     /**

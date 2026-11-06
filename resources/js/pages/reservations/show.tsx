@@ -37,6 +37,10 @@ type Tab = 'units' | 'guests' | 'add-ons' | 'folio' | 'activity';
 type Props = {
     reservation: App.Data.Reservations.ReservationData;
     money: App.Data.Reservations.ReservationMoneyData;
+    paymentSchedule: App.Data.Reservations.PaymentScheduleData | null;
+    agentBill: App.Data.Reservations.AgentBillData | null;
+    paymentProofs: App.Data.Payments.PaymentProofData[];
+    proofPaymentMethods: { value: string; label: string }[];
     units: App.Data.Reservations.ReservationUnitOptionData[];
     tab: Tab;
     autoAssignRooms: boolean;
@@ -91,6 +95,10 @@ type Props = {
 export default function ReservationShow({
     reservation,
     money,
+    paymentSchedule,
+    agentBill,
+    paymentProofs,
+    proofPaymentMethods,
     units,
     tab,
     autoAssignRooms,
@@ -323,6 +331,10 @@ export default function ReservationShow({
                             <ReservationSummary
                                 reservation={reservation}
                                 money={money}
+                                paymentSchedule={paymentSchedule}
+                                agentBill={agentBill}
+                                paymentProofs={paymentProofs}
+                                proofPaymentMethods={proofPaymentMethods}
                                 canViewCompany={canViewCompany}
                                 currency={currency}
                             />

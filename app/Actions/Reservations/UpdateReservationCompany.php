@@ -24,6 +24,7 @@ class UpdateReservationCompany
         private RecordCreditOverride $recordCreditOverride,
         private StayChargeTotal $stayChargeTotal,
         private CompanyRateAccess $companyRateAccess,
+        private SetReservationPaymentSchedule $setPaymentSchedule,
     ) {}
 
     /**
@@ -86,6 +87,7 @@ class UpdateReservationCompany
             $locked->save();
 
             $routing = ($this->syncRoutingRules)($locked);
+            ($this->setPaymentSchedule)($locked);
 
             activity()
                 ->performedOn($locked)

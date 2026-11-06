@@ -1,9 +1,12 @@
-import { Link } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import { Ship } from 'lucide-react';
 import type { EnumOption } from '@/components/pms/enum-select';
+import { BoatsAndCrewPanel } from '@/components/pms/reports/boats-and-crew-panel';
 import { ReportScreen } from '@/components/pms/reports/report-screen';
 import { buttonVariants } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { boatManifest } from '@/routes/reports';
+import { tick as tickRoute } from '@/routes/reports/boat-manifest';
 
 type Row = App.Data.Reports.BoatManifestRow;
 type Layout = App.Data.Reports.ReportLayoutData;
@@ -25,15 +28,48 @@ type Props = {
     emptyTitle: string;
     emptyDescription: string;
     settingsUrl: string | null;
+    runs: App.Data.Boats.BoatDepartureRunData[];
+    boats: App.Data.Boats.BoatData[];
+    canSetRuns: boolean;
 };
 
 export default function BoatManifestReport(props: Props) {
+    const setTick = (row: Row, ticked: boolean) =>
+        router.put(
+            tickRoute.url({ trip: row.key }),
+            { ticked },
+            { preserveScroll: true, preserveState: true },
+        );
+
     return (
         <ReportScreen
             {...props}
             report="boat-manifest"
             title="Boat manifest"
-            description="The guests on each boat of the date, one list per departure. Charter and own boat trips come last, for the front desk."
+            description="The guests on each boat of the date, one list per departure. Tick a row when its guests have arrived or left. Charter and own boat trips come next, then the rooms with no boat set, to follow up."
+            cells={{
+                tick: (row) =>
+                    row.not_set ? (
+                        <span className="text-muted-foreground">—</span>
+                    ) : (
+                        <Checkbox
+                            aria-label={`${row.lead_guest}: ${row.direction === 'in' ? 'arrived' : 'left'}`}
+                            checked={row.ticked}
+                            disabled={!props.canSetRuns}
+                            onCheckedChange={(checked) =>
+                                setTick(row, checked === true)
+                            }
+                        />
+                    ),
+            }}
+            aside={
+                <BoatsAndCrewPanel
+                    runs={props.runs}
+                    boats={props.boats}
+                    date={props.from}
+                    canSet={props.canSetRuns}
+                />
+            }
             emptyIcon={Ship}
             emptyTitle={props.emptyTitle}
             emptyDescription={props.emptyDescription}

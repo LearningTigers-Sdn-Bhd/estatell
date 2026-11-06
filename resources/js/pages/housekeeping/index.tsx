@@ -25,6 +25,7 @@ import { DateText } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect, type EnumOption } from '@/components/pms/enum-select';
 import { BulkRemarkDialog } from '@/components/pms/housekeeping/bulk-remark-dialog';
+import { CleaningCell } from '@/components/pms/housekeeping/cleaning-cell';
 import { PageHeader } from '@/components/pms/page-header';
 import { ReportExportMenu } from '@/components/pms/reports/report-export-menu';
 import { ReportLayoutSheet } from '@/components/pms/reports/report-layout-sheet';
@@ -685,6 +686,7 @@ export default function HousekeepingIndex({
                                                 sort={sort}
                                                 onSort={cycleSort}
                                             />
+                                            <TableHead>Cleaning</TableHead>
                                             <TableHead>Notes</TableHead>
                                             <TableHead className="w-10">
                                                 <span className="sr-only">
@@ -905,7 +907,7 @@ function GroupRows({
         <>
             {name !== null && (
                 <TableRow className="bg-muted/50 hover:bg-muted/50">
-                    <TableCell colSpan={9}>
+                    <TableCell colSpan={10}>
                         <div className="flex items-center gap-3">
                             {can.update && (
                                 <Checkbox
@@ -1097,6 +1099,14 @@ function GroupRows({
                             <StayCell
                                 date={room.departureDate}
                                 time={room.departureTime}
+                            />
+                        </TableCell>
+                        <TableCell>
+                            <CleaningCell
+                                state={room.cleaning}
+                                staffOptions={staffOptions.filter(
+                                    (option) => option.value !== 'unassigned',
+                                )}
                             />
                         </TableCell>
                         <TableCell>

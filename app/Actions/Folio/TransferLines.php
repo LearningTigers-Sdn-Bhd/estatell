@@ -24,6 +24,8 @@ class TransferLines
      * one reservation. All lines of one transfer share one `transfer_group_id`. Every involved folio row is locked in id
      * order, and every check runs before the first write, so a refusal writes nothing. It writes no activity entry: the
      * caller logs what it did (`MoveCharges` writes `folio.charges_moved`).
+     * A child that sits on another folio than its charge (a collected tax the guest pays, see `CollectedTaxPayer`) stays
+     * on that folio: it is reversed and copied there, under the copy of its charge, and that folio must be Open too.
      * A copy keeps the `migrated` flag of its line. A line that a payment owns is refused. The result lists the copies on the target. With `$closeSettled` (the default) the last step closes each source
      * and the target when it is an Open Unit folio of a CheckedOut unit at 0 (`CloseSettledUnitFolio`); `MoveCharges` passes
      * false and closes the sources itself after it saved its routing rules. See docs/13-folio/02-posting-charges.md.
@@ -41,9 +43,10 @@ class TransferLines
                 return PostingResult::refused(PostingResult::REFUSAL_TRANSFER_INVALID);
             }
 
-            $folios = Folio::query()->whereIn('id', [...$sourceFolioIds, $target->id])->orderBy('id')->lockForUpdate()->get()->keyBy('id');
+            $childFolioIds = FolioLine::query()->whereIn('parent_line_id', $ids)->whereNotIn('folio_id', $sourceFolioIds)->distinct()->pluck('folio_id')->all();
+            $folios = Folio::query()->whereIn('id', array_unique([...$sourceFolioIds, ...$childFolioIds, $target->id]))->orderBy('id')->lockForUpdate()->get()->keyBy('id');
             $targetFolio = $folios[$target->id];
-            $sourceFolios = $folios->except([$target->id]);
+            $sourceFolios = $folios->only($sourceFolioIds)->except([$target->id]);
             $businessDate = $this->currentBusinessDate->date($targetFolio->property);
 
             if ($businessDate === null) {
@@ -109,7 +112,7 @@ class TransferLines
                 continue;
             }
 
-            $copy = $this->copy($actor, $child, $target, $postingDate, $group, $parentCopyId);
+            $copy = $this->copy($actor, $child, $child->folio_id === $line->folio_id ? $target : $child->folio, $postingDate, $group, $parentCopyId);
             $copies = [...$copies, $copy, ...$this->copyChildren($actor, $child, $target, $postingDate, $group, $copy->id)];
         }
 

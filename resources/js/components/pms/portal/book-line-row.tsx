@@ -26,13 +26,13 @@ type Errors = Record<string, string | undefined>;
  * uses the same template. Below `lg` the cells stack and show their labels. It follows the staff lines table.
  */
 const LINE_COLUMNS =
-    'lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1.3fr)_4.5rem_4.5rem_4.5rem_minmax(0,10rem)_2rem]';
+    'sm:grid-cols-2 2xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1.3fr)_4.5rem_4.5rem_4.5rem_minmax(0,10rem)_2rem]';
 
 /** The header of the lines table. Hidden below `lg`, where each cell shows its own label. */
 export function BookLinesHeader() {
     return (
         <div
-            className={`hidden gap-3 border-b bg-muted px-3 py-2 text-xs font-medium text-muted-foreground lg:grid ${LINE_COLUMNS}`}
+            className={`hidden gap-3 border-b bg-muted px-3 py-2 text-xs font-medium text-muted-foreground 2xl:grid ${LINE_COLUMNS}`}
         >
             <span>Rate plan</span>
             <span>Room type</span>
@@ -142,7 +142,7 @@ export function BookLineRow({
             <Field data-invalid={!!error('rate_plan_id')}>
                 <FieldLabel
                     htmlFor={`line-${index}-rate_plan_id`}
-                    className="lg:sr-only"
+                    className="2xl:sr-only"
                 >
                     Rate plan
                 </FieldLabel>
@@ -182,7 +182,7 @@ export function BookLineRow({
             <Field data-invalid={!!error('room_type_id')}>
                 <FieldLabel
                     htmlFor={`line-${index}-room_type_id`}
-                    className="lg:sr-only"
+                    className="2xl:sr-only"
                 >
                     Room type
                 </FieldLabel>
@@ -262,11 +262,11 @@ export function BookLineRow({
             {isBed ? (
                 <Field
                     data-invalid={!!error('rooms') || !!error('beds')}
-                    className="lg:col-span-3"
+                    className="2xl:col-span-3"
                 >
                     <FieldLabel
                         htmlFor={`line-${index}-beds`}
-                        className="lg:sr-only"
+                        className="2xl:sr-only"
                     >
                         Beds
                     </FieldLabel>
@@ -277,7 +277,7 @@ export function BookLineRow({
                         max={99}
                         placeholder="e.g. 4"
                         aria-label="Number of beds"
-                        className="lg:w-24"
+                        className="2xl:w-24"
                         value={line.beds}
                         onChange={(event) =>
                             onChange({ beds: event.target.value })
@@ -291,7 +291,7 @@ export function BookLineRow({
                     <Field data-invalid={!!error('rooms')}>
                         <FieldLabel
                             htmlFor={`line-${index}-rooms`}
-                            className="lg:sr-only"
+                            className="2xl:sr-only"
                         >
                             Rooms
                         </FieldLabel>
@@ -313,7 +313,7 @@ export function BookLineRow({
                     <Field data-invalid={!!adultsError}>
                         <FieldLabel
                             htmlFor={`line-${index}-adults`}
-                            className="lg:sr-only"
+                            className="2xl:sr-only"
                         >
                             Adults
                         </FieldLabel>
@@ -342,7 +342,7 @@ export function BookLineRow({
                     >
                         <FieldLabel
                             htmlFor={`line-${index}-children`}
-                            className="lg:sr-only"
+                            className="2xl:sr-only"
                         >
                             Children
                         </FieldLabel>
@@ -379,8 +379,8 @@ export function BookLineRow({
                 </>
             )}
 
-            <div className="flex items-center justify-between lg:justify-end">
-                <span className="text-sm text-muted-foreground lg:sr-only">
+            <div className="flex items-center justify-between 2xl:justify-end">
+                <span className="text-sm text-muted-foreground 2xl:sr-only">
                     Rate
                     {roomType &&
                         ` · ${unitCount(line, isBed)} ${isBed ? 'beds' : 'rooms'}`}
@@ -416,7 +416,7 @@ export function BookLineRow({
 
             {!isBed && line.child_ages.length > 0 && (
                 <Field
-                    className="lg:col-span-full"
+                    className="2xl:col-span-full"
                     data-invalid={agesError !== undefined}
                 >
                     <FieldLabel>
@@ -455,7 +455,7 @@ export function BookLineRow({
             )}
 
             {warning && (
-                <p className="flex items-center gap-2 text-sm text-destructive lg:col-span-full">
+                <p className="flex items-center gap-2 text-sm text-destructive 2xl:col-span-full">
                     <TriangleAlert className="size-4 shrink-0" />
                     {warning}
                 </p>

@@ -63,15 +63,15 @@ All need `settings.manage` and the `Boats` feature.
 Settings › Boats
 [ Departures ]  Fares
 
-Boat in                                                                                      [+ Add departure]
- Available  Leaves  Arrives  Pick-up point       Seats  Fare                 Meals ⓘ
- [●  ]      09:00   09:45    Kuala Besut jetty   20     Speedboat · RM35.00  Breakfast · Lunch · Dinner  ⋯
- [●  ]      13:00   13:45    Kuala Besut jetty   20     Speedboat · RM35.00  Lunch · Dinner              ⋯
- [  ○]      16:00   16:45    Kuala Besut jetty   —      No fare              Dinner                      ⋯   (muted)
+Boat in                                                                                                         [+ Add departure]
+ Available  Leaves  Arrives  Pick-up point       Seats  Default boat & crew          Fare                 Meals ⓘ
+ [●  ]      09:00   09:45    Kuala Besut jetty   20     MV Sand Bay 1 · Awang / Daus Speedboat · RM35.00  Breakfast · Lunch · Dinner  ⋯
+ [●  ]      13:00   13:45    Kuala Besut jetty   20     MV Sand Bay 2 · Din / Razak  Speedboat · RM35.00  Lunch · Dinner              ⋯
+ [  ○]      16:00   16:45    Kuala Besut jetty   —      —                            No fare              Dinner                      ⋯   (muted)
 
-Boat out                                                                                     [+ Add departure]
- [●  ]      08:00   08:45    Resort jetty        20     Speedboat · RM35.00  Breakfast                   ⋯
- [●  ]      12:00   12:45    Resort jetty        —      Ferry · RM25.00      Breakfast                   ⋯
+Boat out                                                                                                        [+ Add departure]
+ [●  ]      08:00   08:45    Resort jetty        20     MV Sand Bay 1 · Awang / Daus Speedboat · RM35.00  Breakfast                   ⋯
+ [●  ]      12:00   12:45    Resort jetty        —      MV Sea Eagle                 Ferry · RM25.00      Breakfast                   ⋯
 ```
 
 - Two tables, Boat in then Boat out, each sorted by **Leaves**. There is no manual order, as with meal periods.
@@ -138,6 +138,8 @@ Pick-up point  [Kuala Besut jetty          ]
 Seats          [20]   Leave empty for no limit
 Fare           [Speedboat · RM35.00       ▾]
                No fare · Speedboat · Ferry
+Default boat   [MV Sand Bay 1             ▾]  Prefills on manifest
+Default crew   [Awang / Daus               ]  Prefills on manifest
                               [Cancel] [Add departure]
 ```
 
@@ -247,6 +249,18 @@ Boats never write `charge_items` directly. Both Actions live in `app/Actions/Boa
 - On the edit page of a charge item that any departure uses (available or not), **Add to every new booking** is disabled with "Added by boat trips", so a fare is never charged twice. `ChargeItemRequest` also refuses `auto_add` on for such an item.
 - The Charge items list cannot turn off a fare that an available departure uses either. `ChargeItemRequest` refuses `active` off with "This fare is used by an available departure. Change their fare first.", shown as an error toast.
 - Changing a fare's charging unit there is allowed but not useful. The Fares tab shows the charging unit in muted text when it is not Per guest.
+
+## Boats tab
+
+`settings.boats.boats.index|store|update` (`BoatController`, `settings.manage`): the boats the property runs, picked per departure and date on the [manifest](03-boat-manifest.md#boats-and-crew).
+
+```
+boats    id, property_id, name (≤ 60, unique per property ignoring case), registration (nullable, ≤ 30),
+         active (default true), timestamps
+```
+
+- A table of Name, Registration and Status (In use, Not in use) with **Add boat** and an edit button per row. The Dialog (`FormOverlay`, `sm`) has Name, Registration (optional) and **In use**. `SaveBoat` adds or changes a boat and logs `boat.created` or `boat.updated`. A boat is never deleted; turn it off instead, so old runs keep its name.
+- **Charter boat** below the table: **Charge for a charter** (`property_settings.charter_charge_item_id`, an active charge item with a fixed price, or "Nothing (charge by hand)"). `SetCharterChargeItem` saves it (`settings.boats.charter`) and logs `boats.charter_item_set`. See [Charter charge](02-boat-trips.md#fare).
 
 ## Build order
 

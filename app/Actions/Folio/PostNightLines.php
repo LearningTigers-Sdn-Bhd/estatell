@@ -2,11 +2,13 @@
 
 namespace App\Actions\Folio;
 
+use App\Enums\FolioType;
 use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\ReservationUnit;
 use App\Models\UnitNight;
 use App\Models\User;
+use App\Services\Folio\CollectedTaxPayer;
 use App\Services\Folio\NightQuote;
 use App\Services\Folio\QuotedDiscount;
 
@@ -15,13 +17,15 @@ class PostNightLines
     public function __construct(
         private CreateFolio $createFolio,
         private PostFolioCharge $postFolioCharge,
+        private CollectedTaxPayer $collectedTaxPayer,
     ) {}
 
     /**
      * Post the charges of a checked night quote, with no checks. Each charge goes to its folio in `$targets` (keyed by
      * the charge key, as `FolioRouter` chose it), or to the unit folio, which is created when the unit has none.
      * `$roomDescription` replaces the description of the room line (the first charge). A discount with no code of its
-     * own takes `$stayDiscountCodeId`. The caller checks the quote, the folios and the codes first, inside its own
+     * own takes `$stayDiscountCodeId`. The collected taxes of the room line (the first charge) post on the unit folio when
+     * the guest pays them (`CollectedTaxPayer`). The caller checks the quote, the folios and the codes first, inside its own
      * transaction: `PostRoomCharges` and `ChangeNightPrice`. See docs/13-folio/02-posting-charges.md.
      *
      * @param  array<string, Folio|null>  $targets
@@ -34,6 +38,11 @@ class PostNightLines
 
         foreach ($quote->charges as $index => $charge) {
             $folio = $targets[$charge->key] ?? $unitFolio ??= ($this->createFolio)($unit->reservation, $unit);
+            $taxFolios = [];
+
+            foreach ($index === 0 ? $this->collectedTaxPayer->guestTaxIds($unit, $folio) : [] as $taxId) {
+                $taxFolios[$taxId] = $unitFolio ??= $this->unitFolio($unit);
+            }
             $discounts = array_map(
                 fn (QuotedDiscount $discount): QuotedDiscount => new QuotedDiscount($discount->key, $discount->description, $discount->amount, $discount->transactionCodeId ?? $stayDiscountCodeId),
                 $charge->discounts,
@@ -52,10 +61,20 @@ class PostNightLines
                 $charge->lineAmount,
                 $discounts,
                 $night->date->toDateString(),
+                taxFolios: $taxFolios,
             );
             array_push($result, ...$lines);
         }
 
         return $result;
+    }
+
+    private function unitFolio(ReservationUnit $unit): Folio
+    {
+        return Folio::query()
+            ->where('reservation_unit_id', $unit->id)
+            ->where('type', FolioType::Unit)
+            ->oldest('id')
+            ->first() ?? ($this->createFolio)($unit->reservation, $unit);
     }
 }
