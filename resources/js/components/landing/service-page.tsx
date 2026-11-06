@@ -1,61 +1,50 @@
-import { Head } from '@inertiajs/react';
 import { ArrowUpRight } from 'lucide-react';
 import { Closing } from './closing';
 import { Navbar } from './navbar';
+import { PageMeta, useSiteUrl } from './seo';
 import { ServiceVisual } from './service-visuals';
 import { services, type Service } from './services';
 import { Container } from './ui';
 import { useHeroTimeline, useStaggerReveal } from './use-reveal';
 
-const origin = 'https://estatell.com';
-
-// One @graph carries everything a crawler or answer engine needs: what the
-// service is, where it sits in the site, and the questions the page answers.
-function structuredData(service: Service) {
-    const url = `${origin}/services/${service.slug}`;
-
-    return {
-        '@context': 'https://schema.org',
-        '@graph': [
-            {
-                '@type': 'Service',
-                name: `Estatell ${service.name}`,
-                description: service.description,
-                url,
-                serviceType: service.name,
-                provider: {
-                    '@type': 'Organization',
+// What a crawler or answer engine needs beyond the Organization: the service,
+// where it sits in the site, and the questions the page answers.
+function schemaNodes(service: Service, siteUrl: string, url: string) {
+    return [
+        {
+            '@type': 'Service',
+            name: `Estatell ${service.name}`,
+            description: service.description,
+            url,
+            serviceType: service.name,
+            provider: { '@id': `${siteUrl}/#organization` },
+        },
+        {
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+                {
+                    '@type': 'ListItem',
+                    position: 1,
                     name: 'Estatell',
-                    url: origin,
+                    item: siteUrl,
                 },
-            },
-            {
-                '@type': 'BreadcrumbList',
-                itemListElement: [
-                    {
-                        '@type': 'ListItem',
-                        position: 1,
-                        name: 'Estatell',
-                        item: origin,
-                    },
-                    {
-                        '@type': 'ListItem',
-                        position: 2,
-                        name: service.name,
-                        item: url,
-                    },
-                ],
-            },
-            {
-                '@type': 'FAQPage',
-                mainEntity: service.faqs.map((faq) => ({
-                    '@type': 'Question',
-                    name: faq.q,
-                    acceptedAnswer: { '@type': 'Answer', text: faq.a },
-                })),
-            },
-        ],
-    };
+                {
+                    '@type': 'ListItem',
+                    position: 2,
+                    name: service.name,
+                    item: url,
+                },
+            ],
+        },
+        {
+            '@type': 'FAQPage',
+            mainEntity: service.faqs.map((faq) => ({
+                '@type': 'Question',
+                name: faq.q,
+                acceptedAnswer: { '@type': 'Answer', text: faq.a },
+            })),
+        },
+    ];
 }
 
 // The identity motif: outlined numerals, the same treatment as the footer wordmark.
@@ -79,7 +68,16 @@ function Numeral({
 const pad = 'py-12 sm:py-16 lg:py-24';
 
 export function ServicePage({ service }: { service: Service }) {
-    const url = `${origin}/services/${service.slug}`;
+    const siteUrl = useSiteUrl();
+    const path = `/services/${service.slug}`;
+    const image =
+        service.visual.type === 'photo'
+            ? {
+                  src: service.visual.src,
+                  width: service.visual.width,
+                  height: service.visual.height,
+              }
+            : undefined;
     const others = services.filter((item) => item.slug !== service.slug);
     const heroRef = useHeroTimeline();
     const featuresRef = useStaggerReveal(0.08);
@@ -88,20 +86,13 @@ export function ServicePage({ service }: { service: Service }) {
 
     return (
         <>
-            <Head title={service.metaTitle}>
-                <meta name="description" content={service.description} />
-                <link rel="canonical" href={url} />
-                <meta property="og:type" content="website" />
-                <meta property="og:title" content={service.metaTitle} />
-                <meta property="og:description" content={service.description} />
-                <meta property="og:url" content={url} />
-                <script type="application/ld+json">
-                    {JSON.stringify(structuredData(service)).replace(
-                        /</g,
-                        '\\u003c',
-                    )}
-                </script>
-            </Head>
+            <PageMeta
+                title={service.metaTitle}
+                description={service.description}
+                path={path}
+                image={image}
+                nodes={schemaNodes(service, siteUrl, `${siteUrl}${path}`)}
+            />
             <Navbar />
             <main id="top" tabIndex={-1}>
                 <section
@@ -305,17 +296,10 @@ export function ServicePage({ service }: { service: Service }) {
                                                                         loading="lazy"
                                                                         className="h-auto w-full mix-blend-multiply"
                                                                     />
-                                                                    <figcaption className="flex flex-wrap items-baseline justify-between gap-x-2 px-4 pb-3 text-sm font-medium text-background">
+                                                                    <figcaption className="px-4 pb-3 text-sm font-medium text-background">
                                                                         {
                                                                             model.name
                                                                         }
-                                                                        {model.note && (
-                                                                            <span className="text-xs font-normal text-background/70">
-                                                                                {
-                                                                                    model.note
-                                                                                }
-                                                                            </span>
-                                                                        )}
                                                                     </figcaption>
                                                                 </figure>
                                                             </li>

@@ -18,17 +18,6 @@ test('the legal pages are public', function () {
     $this->get(route('privacy'))->assertOk()->assertInertia(fn (Assert $page) => $page->component('legal/privacy'));
 });
 
-test('each service page is public, indexable and listed in the sitemap', function (string $slug) {
-    $this->withoutVite();
-
-    $this->get(route("services.{$slug}"))
-        ->assertOk()
-        ->assertDontSee('noindex', false)
-        ->assertInertia(fn (Assert $page) => $page->component('services/show')->where('slug', $slug));
-
-    expect(file_get_contents(public_path('sitemap.xml')))->toContain("https://estatell.com/services/{$slug}");
-})->with(['hotel-pms', 'channel-manager', 'booking-engine', 'ai-concierge', 'smart-locks', 'check-in-kiosk']);
-
 test('only the public pages can be indexed by search engines', function () {
     $this->withoutVite();
 

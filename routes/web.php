@@ -3,11 +3,14 @@
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Guests\MykadReaderDownloadController;
 use App\Http\Controllers\HomeRedirectController;
+use App\Http\Controllers\Landing\SearchEngineController;
+use App\Http\Controllers\Landing\ServicePageController;
 use App\Http\Controllers\Platform\CommandSearchController;
 use App\Http\Controllers\Platform\ImpersonationController;
 use App\Http\Controllers\Platform\ViewAsController;
 use App\Http\Controllers\Property\PropertyLogoController;
 use App\Http\Middleware\EnsurePropertyAccess;
+use App\Services\Landing\ServicePages;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -17,10 +20,11 @@ Route::inertia('/', 'landing')->name('home');
 Route::inertia('terms-and-conditions', 'legal/terms')->name('terms');
 Route::inertia('privacy-policy', 'legal/privacy')->name('privacy');
 
-// One public page per service. Keep in step with resources/js/components/landing/services.ts and public/sitemap.xml.
-foreach (['hotel-pms', 'channel-manager', 'booking-engine', 'ai-concierge', 'smart-locks', 'check-in-kiosk'] as $serviceSlug) {
-    Route::inertia("services/{$serviceSlug}", 'services/show', ['slug' => $serviceSlug])->name("services.{$serviceSlug}");
-}
+// One public page per service. The slugs come from resources/js/components/landing/services.json, the same file the pages render.
+Route::get('services/{slug}', [ServicePageController::class, 'show'])->whereIn('slug', ServicePages::slugs())->name('services.show');
+Route::get('robots.txt', [SearchEngineController::class, 'robots'])->name('robots');
+Route::get('sitemap.xml', [SearchEngineController::class, 'sitemap'])->name('sitemap');
+Route::get('llms.txt', [SearchEngineController::class, 'llms'])->name('llms');
 Route::get('downloads/mykad-reader/{platform}', MykadReaderDownloadController::class)->whereIn('platform', ['windows', 'mac'])->name('mykad-reader.download');
 
 Route::get('_preview/errors/{status}', function (Request $request, int $status): Response {

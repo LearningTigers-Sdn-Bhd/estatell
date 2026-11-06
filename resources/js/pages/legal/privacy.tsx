@@ -1,5 +1,5 @@
-import { Head } from '@inertiajs/react';
 import { LegalPage } from '@/components/landing/legal-page';
+import { PageMeta } from '@/components/landing/seo';
 
 const description =
     'How Estatell handles website enquiries and personal data associated with hotel bookings, guest services, integrations, and your privacy choices.';
@@ -103,9 +103,11 @@ const sections = [
 export default function PrivacyPolicy() {
     return (
         <>
-            <Head title="Privacy Policy">
-                <meta name="description" content={description} />
-            </Head>
+            <PageMeta
+                title="Privacy Policy"
+                description={description}
+                path="/privacy-policy"
+            />
             <LegalPage
                 current="privacy"
                 title="Privacy Policy"

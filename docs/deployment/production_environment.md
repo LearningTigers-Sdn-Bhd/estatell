@@ -8,11 +8,12 @@ Deployed with Coolify (Docker Compose build pack): `compose.yaml` builds the `Do
 
 The shared PHP base stage installs `exif` for Spatie Media Library and `intl` for country names (`ResourceBundle` and `Locale`). Both the build and runtime stages inherit these extensions.
 
-| Service     | Command                 | Notes                                              |
-| ----------- | ----------------------- | -------------------------------------------------- |
-| `web`       | FrankenPHP on `:8080`   | Runs migrations on start (`AUTORUN_ENABLED=true`). |
-| `horizon`   | `artisan horizon`       | Queue workers. Dashboard at `/horizon`.            |
-| `scheduler` | `artisan schedule:work` | Runs the scheduled tasks below.                    |
+| Service     | Command                     | Notes                                                                          |
+| ----------- | --------------------------- | ------------------------------------------------------------------------------ |
+| `web`       | FrankenPHP on `:8080`       | Runs migrations on start (`AUTORUN_ENABLED=true`).                             |
+| `horizon`   | `artisan horizon`           | Queue workers. Dashboard at `/horizon`.                                        |
+| `scheduler` | `artisan schedule:work`     | Runs the scheduled tasks below.                                                |
+| `ssr`       | `node bootstrap/ssr/app.js` | Renders the public pages to HTML. See [Search visibility](#search-visibility). |
 
 `APP_ENV=production` turns on `DB::prohibitDestructiveCommands` (`AppServiceProvider::configureDefaults`), so `migrate:fresh`, `db:wipe` and similar commands refuse to run.
 
@@ -28,6 +29,28 @@ php artisan db:seed --class=AmenitySeeder --force --no-interaction
 - It is safe to run again. Existing amenities keep the changes admins made, and no row is removed.
 - An amenity an admin renamed comes back under its old name if the command runs again. Retire the extra row if this happens.
 - Do not run plain `db:seed` in production. `DatabaseSeeder` also creates a `test@example.com` user.
+
+## Search visibility
+
+The public pages (home, `/services/*`, terms, privacy) must reach crawlers and AI answer engines as finished HTML. Most of them do not run JavaScript, so a browser-only render shows them an empty page.
+
+| Part                        | What it does                                                                                                                                                                                                   |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ssr` service               | Runs the Inertia server-render bundle (`bootstrap/ssr`, built by `npm run build:ssr`). The bundle holds its own dependencies, so the image only adds the Node binary. It needs no secrets, database or volume. |
+| `INERTIA_SSR_URL`           | Set on `web`. Default `http://ssr:13714`. Leave it as is.                                                                                                                                                      |
+| `INERTIA_SSR_ENABLED`       | Default `true`. The demo sets `false` because it has no `ssr` service.                                                                                                                                         |
+| Which pages                 | Only the public pages are server-rendered (`AppServiceProvider::configureInertiaSsr`). The staff app is behind a login and is not.                                                                             |
+| If `ssr` is down            | Pages still work. Laravel falls back to the browser render, and crawlers lose the benefit until `ssr` is back. Watch the service health in Coolify.                                                            |
+| `/robots.txt`               | Built per request. Production allows the public pages and names the sitemap. Every other `APP_ENV` (demo, staging) blocks all crawlers.                                                                        |
+| `/sitemap.xml`, `/llms.txt` | Built from `resources/js/components/landing/services.json` and `APP_URL`. Adding a service there adds it to both.                                                                                              |
+
+`APP_URL` must be the domain that serves the public pages, with `https`. Canonical links, Open Graph URLs, the sitemap and `llms.txt` all come from it, never from the request host.
+
+To check after a deploy, read the raw HTML without JavaScript and look for the page heading and the `application/ld+json` block:
+
+```sh
+curl -s https://<domain>/services/hotel-pms | grep -c '<h1'
+```
 
 ## Boreno Hotel for internal use
 

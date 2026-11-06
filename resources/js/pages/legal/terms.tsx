@@ -1,5 +1,5 @@
-import { Head } from '@inertiajs/react';
 import { LegalPage } from '@/components/landing/legal-page';
+import { PageMeta } from '@/components/landing/seo';
 
 const description =
     'Terms for using Estatell’s website and hotel operating software, including subscriptions, hotel responsibilities, integrations, and AI-assisted features.';
@@ -105,9 +105,11 @@ const sections = [
 export default function TermsAndConditions() {
     return (
         <>
-            <Head title="Terms and Conditions">
-                <meta name="description" content={description} />
-            </Head>
+            <PageMeta
+                title="Terms and Conditions"
+                description={description}
+                path="/terms-and-conditions"
+            />
             <LegalPage
                 current="terms"
                 title="Terms and Conditions"
