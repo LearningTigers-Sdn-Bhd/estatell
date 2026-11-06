@@ -58,7 +58,7 @@ The payment page is the main target. A script injected into it cannot fake a boo
 | Rule               | Detail                                                                                                                                                                            |
 | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Escape all content | Hotel text stays escaped. Do not use `set:html` or `dangerouslySetInnerHTML` on it. Sanitise on the server if it ever needs formatting                                            |
-| Content policy     | A strict Content Security Policy allows scripts only from the microsite and `checkout.razorpay.com`. Test Curlec's other domains                                                  |
+| Frame protection   | A `frame-ancestors 'none'` header stops other sites framing the pages. The microsite has no script or style policy, so escaped text and the payment step rule are the protection  |
 | Payment step       | No analytics, chat or other third-party scripts, including in custom designs                                                                                                      |
 | Return address     | Send guests only to the microsite or an approved owner address                                                                                                                    |
 | Hold token         | The token arrives in the [return address](04-payment.md#guest-return), `/{slug}/book/{token}`. Decide how the browser stores it, because a script on the page can read and use it |
@@ -81,7 +81,7 @@ site_template_slots   id, site_template_id, key, label, required, position, time
 - The key, type and property are set when the template is added and never change, because sites use them. An admin can change the name, preview link and slots.
 - `allows_main_color` says whether the Design tab offers the main colour. When it is off, a saved colour is cleared. The seeded templates allow it.
 - `preview_url` is where an admin checks a Draft before making it Available. The microsite repo does not exist yet, so it is a plain link.
-- `SiteTemplateSeeder` adds `island-resort` and `city-hotel` as Draft Standard templates, each with a required Hero image slot and optional Logo, About image and Icon slots. The Icon is the small image in the browser tab, and a site with none uses the plain estatell icon from the microsite. The demo seeder runs it. On production an admin runs it once, or adds the rows by hand.
+- `SiteTemplateSeeder` adds `island-resort` and `city-hotel` as Draft Standard templates, each with a required Hero image slot and optional Logo, About image and Icon slots. Island resort also requires the About image. Running the seeder again leaves existing templates alone, so an admin sets this on an existing template in the registry. The checklist only blocks publishing, so a site already published stays online. The Icon is the small image in the browser tab, and a site with none uses the plain estatell icon from the microsite. The demo seeder runs it. On production an admin runs it once, or adds the rows by hand.
 - Each template sets its own slots, because its code decides which images it can show. There are no system default slots.
 - Removing a slot from a template leaves the uploaded images in storage. They show again if the key comes back.
 

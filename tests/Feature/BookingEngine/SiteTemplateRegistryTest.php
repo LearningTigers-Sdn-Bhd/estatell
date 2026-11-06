@@ -21,6 +21,16 @@ test('the seeder adds two draft templates once', function () {
         ->and(SiteTemplate::query()->where('key', 'city-hotel')->firstOrFail()->status)->toBe(SiteTemplateStatus::Available);
 });
 
+test('the seeder requires the about image only for island resort', function () {
+    $this->seed(SiteTemplateSeeder::class);
+
+    $required = fn (string $key): bool => SiteTemplate::query()->where('key', $key)->firstOrFail()
+        ->slots()->where('key', 'about')->firstOrFail()->required;
+
+    expect($required('island-resort'))->toBeTrue()
+        ->and($required('city-hotel'))->toBeFalse();
+});
+
 test('the database refuses a custom template without a property and a standard one with a property', function () {
     expect(fn () => SiteTemplate::factory()->create(['type' => SiteTemplateType::Custom, 'property_id' => null]))->toThrow(QueryException::class);
     expect(fn () => SiteTemplate::factory()->create(['type' => SiteTemplateType::Standard, 'property_id' => Property::factory()->create()->id]))->toThrow(QueryException::class);
