@@ -94,6 +94,10 @@ door_passcodes          id, property_id, door_lock_id, reservation_unit_id (null
 - `ExpireDoorCredentials` (scheduled every five minutes) sets Active PINs and cards past `ends_at` to Expired. The lock already refuses them. On a lock with a gateway it also deletes them from the lock once, so the lock memory does not fill up. A failed delete is not retried: the row is Expired anyway and the dead PIN stays on the lock until it is deleted by hand. Add a `removed_from_lock_at` column and a retry if that fills a lock.
 - The staff PIN route also sits behind the `door-locks` feature middleware, like the settings routes.
 
+## Room moves
+
+A PIN goes on the lock of the room the guest sleeps in **now** (`StayLocks::current()`): the room of the latest night dated today or earlier, or of the first night when none has begun. When staff move the unit (`MoveUnit` dispatches `StayRoomChanged`), the sync issues a PIN on the new room's lock and revokes the PIN on the old room's lock, so the guest cannot open a room they have left, which another guest may now sleep in. The guest gets a new PIN, which staff read from the Door PIN line. A PIN is not put on a room the guest has not moved to yet. A move planned for a later date has no event on that date, so its PIN changes at the next sync, not on the day; a scheduled daily sync would fix that and is not built. The kiosk card still covers every room of the stay (`StayLocks::for()`), because a physical card is written once.
+
 ## Validity window
 
 `PasscodeWindow` (`app/Services/DoorLocks/`) works out the start and end:

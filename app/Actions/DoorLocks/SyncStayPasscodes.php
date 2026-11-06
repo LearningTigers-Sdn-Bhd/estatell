@@ -35,7 +35,7 @@ class SyncStayPasscodes
             return;
         }
 
-        $locks = $unit->status === UnitStatus::CheckedIn ? $this->stayLocks->for($unit) : collect();
+        $locks = $unit->status === UnitStatus::CheckedIn ? $this->stayLocks->current($unit) : collect();
 
         $unit->loadMissing('reservation.booker');
         $label = $this->label($unit);

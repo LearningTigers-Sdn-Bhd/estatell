@@ -540,3 +540,49 @@ it('tries again once when moving the PIN end fails the first time', function () 
         ->and(ttlockCalls('/v3/keyboardPwd/change'))->toBe(2);
     Sleep::assertSleptTimes(1);
 });
+
+it('takes the PIN off the old room when the guest moves part way through the stay', function () {
+    ['property' => $property, 'room' => $room, 'connection' => $connection] = doorLockSetup(gateway: true);
+    $other = Room::factory()->create(['property_id' => $property->id, 'number' => '102']);
+    $newLock = DoorLock::factory()->for($property)->create(['room_id' => $other->id, 'has_gateway' => true]);
+    $oldLock = DoorLock::query()->where('room_id', $room->id)->sole();
+    $unit = doorLockStay($property, $room);
+    fakeTtlock();
+    app(SyncStayPasscodes::class)($unit);
+
+    // Day two: only the nights from then on move to the new room, as `MoveUnit` does. The first night stays in the old room.
+    $this->travelTo('2026-10-15 09:00:00');
+    $unit->nights()->whereDate('date', '2026-10-15')->update(['room_id' => $other->id]);
+    app(SyncStayPasscodes::class)($unit->refresh());
+
+    expect(DoorPasscode::query()->where('door_lock_id', $newLock->id)->sole()->status)->toBe(PasscodeStatus::Active)
+        ->and(DoorPasscode::query()->where('door_lock_id', $oldLock->id)->sole()->status)->toBe(PasscodeStatus::Revoked);
+});
+
+it('does not put a PIN on a room the guest has not moved to yet', function () {
+    ['property' => $property, 'room' => $room] = doorLockSetup(gateway: true);
+    $other = Room::factory()->create(['property_id' => $property->id, 'number' => '102']);
+    $futureLock = DoorLock::factory()->for($property)->create(['room_id' => $other->id, 'has_gateway' => true]);
+    $unit = doorLockStay($property, $room);
+    $unit->nights()->whereDate('date', '2026-10-15')->update(['room_id' => $other->id]);
+    fakeTtlock();
+
+    app(SyncStayPasscodes::class)($unit);
+
+    expect(DoorPasscode::query()->where('door_lock_id', $futureLock->id)->count())->toBe(0)
+        ->and(DoorPasscode::query()->count())->toBe(1);
+});
+
+it('puts no PIN on an unlinked lock when the stay has no room on any night', function () {
+    ['property' => $property, 'room' => $room, 'lock' => $linked] = doorLockSetup(gateway: true);
+    $unlinked = DoorLock::factory()->for($property)->create(['room_id' => null, 'has_gateway' => true]);
+    $unit = doorLockStay($property, $room);
+    $unit->nights()->update(['room_id' => null]);
+    fakeTtlock();
+
+    app(SyncStayPasscodes::class)($unit);
+
+    expect(DoorPasscode::query()->count())->toBe(0)
+        ->and(DoorPasscode::query()->where('door_lock_id', $unlinked->id)->exists())->toBeFalse()
+        ->and($linked->exists)->toBeTrue();
+});

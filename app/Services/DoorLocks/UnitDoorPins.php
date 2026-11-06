@@ -8,7 +8,6 @@ use App\Data\DoorLocks\UnitDoorPinsData;
 use App\Enums\PasscodeKind;
 use App\Enums\PasscodeStatus;
 use App\Enums\UnitStatus;
-use App\Models\DoorLock;
 use App\Models\DoorPasscode;
 use App\Models\ReservationUnit;
 use Illuminate\Support\Collection;
@@ -19,7 +18,7 @@ use Illuminate\Support\Collection;
  */
 class UnitDoorPins
 {
-    public function __construct(private PasscodeWindow $passcodeWindow) {}
+    public function __construct(private PasscodeWindow $passcodeWindow, private StayLocks $stayLocks) {}
 
     public function forUnit(ReservationUnit $unit): ?UnitDoorPinsData
     {
@@ -38,10 +37,8 @@ class UnitDoorPins
 
             $reason = $this->reasonWithoutPin($unit);
 
-            $locksWithoutPin = array_values(DoorLock::query()
-                ->where('property_id', $unit->property_id)
-                ->whereIn('room_id', $unit->nights()->whereNotNull('room_id')->select('room_id'))
-                ->whereNotIn('id', $live)
+            $locksWithoutPin = array_values($this->stayLocks->current($unit)
+                ->whereNotIn('id', $live->all())
                 ->pluck('name')
                 ->map(fn (string $name): LockWithoutPinData => new LockWithoutPinData($name, $reason))
                 ->all());
