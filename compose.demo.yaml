@@ -28,6 +28,15 @@ services:
             MAIL_MAILER: log
             CIPHERSWEET_KEY: ${CIPHERSWEET_KEY}
             DEMO_PASSWORD: ${DEMO_PASSWORD}
+            # Booking API test mode: Curlec test keys only. See docs/29-booking-engine/09-api-only-mode.md#test-mode.
+            DEMO_BOOKING_API_TOKEN: ${DEMO_BOOKING_API_TOKEN:-}
+            CURLEC_BASE_URL: ${CURLEC_BASE_URL:-https://api.razorpay.com/v1}
+            CURLEC_ACCOUNT: ${CURLEC_ACCOUNT:-primary}
+            CURLEC_KEY_ID: ${CURLEC_KEY_ID:-}
+            CURLEC_KEY_SECRET: ${CURLEC_KEY_SECRET:-}
+            CURLEC_WEBHOOK_SECRET: ${CURLEC_WEBHOOK_SECRET:-}
+            BOOKING_SITE_URL: ${BOOKING_SITE_URL:-https://booking.estatell.com}
+            BOOKING_API_DOCS_URL: ${BOOKING_API_DOCS_URL:-https://docs.estatell.com/en/docs/developers/booking-api}
             AUTORUN_ENABLED: 'true'
         volumes:
             # Uploads. The nightly reset clears this folder.

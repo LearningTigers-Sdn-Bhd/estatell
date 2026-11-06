@@ -177,6 +177,166 @@ note: string | null,
 summary: string,
 };
 }
+namespace BookingEngine {
+export type AdminNearbyPlaceData = {
+id: number,
+name: string,
+googleMapsUrl: string,
+status: App.Data.Shared.BadgeData,
+statusValue: App.Enums.NearbyPlaceStatus,
+propertiesCount: number,
+addedBy: string,
+createdAt: string,
+canApprove: boolean,
+canReject: boolean,
+};
+export type AmenityCategoryData = {
+id: number,
+name: string,
+type: App.Enums.AmenityType,
+amenitiesCount: number,
+};
+export type AmenityData = {
+id: number,
+name: string,
+type: App.Enums.AmenityType,
+typeLabel: string,
+categoryId: number,
+category: string,
+active: boolean,
+};
+export type AmenityPickerData = {
+amenities: App.Data.BookingEngine.AmenityData[],
+selectedIds: number[],
+};
+export type BookingReturnAddressData = {
+id: number,
+url: string,
+};
+export type BookingSiteChecklistItemData = {
+key: string,
+label: string,
+done: boolean,
+detail: string | null,
+};
+export type BookingWebsiteApiData = {
+apiAddress: string,
+hasToken: boolean,
+tokenCreatedAt: string | null,
+tokenLastUsedAt: string | null,
+returnAddresses: App.Data.BookingEngine.BookingReturnAddressData[],
+returnAddressLimit: number,
+docsUrl: string,
+};
+export type BookingWebsiteDesignData = {
+siteTemplateId: number | null,
+allowsMainColor: boolean,
+mainColor: string | null,
+templates: {
+value: string,
+label: string,
+}[],
+slots: App.Data.BookingEngine.SiteImageSlotData[],
+imageMaxKb: number,
+albumPhotos: App.Data.Property.PropertyPhotoData[],
+};
+export type BookingWebsiteGeneralData = {
+mode: string,
+published: boolean,
+publishedAt: string | null,
+slug: string,
+slugLocked: boolean,
+baseUrl: string,
+webAddress: string,
+googleMapsUrl: string | null,
+aboutText: string | null,
+checklist: App.Data.BookingEngine.BookingSiteChecklistItemData[],
+canPublish: boolean,
+};
+export type BookingWebsiteHeaderData = {
+status: App.Data.Shared.BadgeData,
+mode: App.Data.Shared.BadgeData,
+};
+export type BookingWebsiteRatePlanData = {
+id: number,
+name: string,
+bookableOnline: boolean,
+roomTypeNames: string[],
+};
+export type BookingWebsiteSeoData = {
+seoTitle: string | null,
+seoDescription: string | null,
+propertyName: string,
+webAddress: string,
+};
+export type NearbyPlaceSuggestionData = {
+id: number,
+name: string,
+googleMapsUrl: string,
+distance: string,
+distanceKm: number,
+};
+export type NewBookingHoldData = {
+arrival: string,
+departure: string,
+total: string,
+guestName: string,
+guestEmail: string,
+guestPhone: string,
+guestNationality: string,
+specialRequests: string | null,
+lines: App.Data.BookingEngine.NewBookingHoldLineData[],
+guestIp: string | null,
+};
+export type NewBookingHoldLineData = {
+roomTypeId: number,
+ratePlanId: number,
+adults: number,
+childAges: number[],
+};
+export type PropertyNearbyPlaceData = {
+id: number,
+name: string,
+sharedName: string,
+displayName: string | null,
+description: string | null,
+googleMapsUrl: string,
+active: boolean,
+distance: string | null,
+distanceKm: number | null,
+};
+export type SiteImageSlotData = {
+key: string,
+label: string,
+required: boolean,
+fileName: string | null,
+url: string | null,
+thumbUrl: string | null,
+};
+export type SiteTemplateData = {
+id: number,
+key: string,
+name: string,
+type: App.Enums.SiteTemplateType,
+typeLabel: string,
+propertyId: number | null,
+propertyLabel: string | null,
+status: App.Data.Shared.BadgeData,
+allowsMainColor: boolean,
+previewUrl: string | null,
+slots: App.Data.BookingEngine.SiteTemplateSlotData[],
+sitesCount: number,
+transitions: {
+value: string,
+label: string,
+}[],
+};
+export type SiteTemplateSlotData = {
+key: string,
+label: string,
+required: boolean,
+};
+}
 namespace Catalogues {
 export type ChargeItemChildPriceData = {
 ageGroupId: number,
@@ -950,6 +1110,7 @@ oldSystemTitle: string | null,
 oldSystemTotal: string | null,
 refundCredit: string | null,
 canRefundOtherMethod: boolean,
+onlineRefunds: App.Data.Folio.OnlineRefundData[],
 };
 export type FolioDiscountOptionData = {
 id: number,
@@ -1234,6 +1395,13 @@ label: string,
 legacyNumber: string | null,
 rows: App.Data.Folio.OldFolioRowData[],
 openingBalance: string | null,
+};
+export type OnlineRefundData = {
+id: number,
+amount: string,
+status: App.Data.Shared.BadgeData,
+failureReason: string | null,
+canRetry: boolean,
 };
 export type PostFolioOptionData = {
 id: number | null,
@@ -1926,6 +2094,7 @@ lineKey: string | null,
 allowOtaCollected: boolean,
 issueReceipt: boolean,
 guestPaysTaxes: boolean,
+allowOnline: boolean,
 };
 export type PaymentFormOptionsData = {
 methods: App.Data.Payments.PaymentMethodOptionData[],
@@ -2068,6 +2237,13 @@ createdAt: string,
 export type AdminWaitingPropertyData = {
 sentOn: string,
 warningsCount: number,
+};
+export type BookingEngineModeData = {
+mode: App.Enums.BookingEngineMode,
+options: {
+value: string,
+label: string,
+}[],
 };
 export type DemoAccessData = {
 url: string,
@@ -2420,6 +2596,12 @@ number: string,
 expiresOn: string | null,
 showOnDocuments: boolean,
 };
+export type PropertyPhotoData = {
+id: number,
+name: string,
+url: string,
+thumbUrl: string,
+};
 export type PropertyProfileData = {
 name: string,
 legalName: string | null,
@@ -2625,6 +2807,8 @@ archived: boolean,
 status: App.Data.Shared.BadgeData,
 isDerived: boolean,
 checkChildPrices: boolean,
+bookableOnline: boolean,
+offerableOnline: boolean,
 roomTypeIds: number[],
 roomTypeNames: string[],
 };
@@ -3413,6 +3597,8 @@ fee: string | null,
 feeTotal: string | null,
 withinFreeWindow: boolean,
 unpostedAddOns: number,
+onlineRefund: string,
+onlineRefundWaived: string,
 note: string | null,
 }[],
 freeUntilDays: number | null,
@@ -3779,6 +3965,7 @@ email: string | null,
 export type ReservationData = {
 id: number,
 reference: string,
+shortCode: string,
 title: string,
 groupName: string | null,
 isGroup: boolean,
@@ -4024,6 +4211,8 @@ freeUntilDays: number | null,
 daysBeforeArrival: number | null,
 unpostedAddOns: number,
 error: string | null,
+onlineRefund: string,
+onlineRefundWaived: string,
 };
 export type UnitLateCheckOutPreviewData = {
 fee: string | null,
@@ -4207,6 +4396,12 @@ smokingAllowed: boolean,
 petsAllowed: boolean,
 termsDocumentId: number | null,
 archived: boolean,
+};
+export type RoomTypePhotoData = {
+id: number,
+name: string,
+url: string,
+thumbUrl: string,
 };
 export type RoomTypeRoomChoiceData = {
 id: number,
@@ -4394,6 +4589,7 @@ export type AccountingProvider = 'qne' | 'bukku';
 export type AccountingSetupStatus = 'not-connected' | 'needs-attention' | 'ready' | 'live';
 export type AccountingSyncStatus = 'pending' | 'pushed' | 'failed' | 'skipped';
 export type AgeBandPricing = 'free' | 'percent' | 'fixed';
+export type AmenityType = 'property' | 'room';
 export type ArInvoiceStatus = 'open' | 'settled' | 'void';
 export type ArInvoiceType = 'invoice' | 'credit_note';
 export type AriChangeKind = 'availability' | 'rates' | 'restrictions';
@@ -4408,8 +4604,12 @@ export type AuditTrigger = 'scheduled' | 'manual';
 export type BillingMode = 'master_pays' | 'master_pays_all' | 'each_pays';
 export type BoatDirection = 'in' | 'out';
 export type BoatMode = 'scheduled' | 'charter' | 'own';
+export type BookableOnlineResult = 'saved' | 'not-available' | 'last-plan';
+export type BookingClientType = 'microsite' | 'api-only' | 'demo';
+export type BookingEngineMode = 'microsite' | 'api-only';
+export type BookingHoldStatus = 'held' | 'paid' | 'confirmed' | 'expired';
 export type BookingSourceIcon = 'phone' | 'message-circle' | 'mail' | 'globe' | 'users' | 'handshake' | 'briefcase-business' | 'building-2' | 'footprints' | 'ticket' | 'megaphone' | 'star';
-export type BookingSourceType = 'direct' | 'ota' | 'company' | 'walk_in';
+export type BookingSourceType = 'direct' | 'ota' | 'company' | 'walk_in' | 'booking_engine';
 export type BusinessDateStatus = 'open' | 'auditing' | 'closed';
 export type ChannelAlertEvent = 'non_acked_booking' | 'booking_unmapped_room' | 'booking_unmapped_rate' | 'sync_error' | 'rate_error' | 'structure_sync_failed' | 'removal_blocked' | 'ota_payment_not_posted';
 export type ChannelConnectionStatus = 'draft' | 'mapped' | 'active' | 'paused' | 'error';
@@ -4445,6 +4645,8 @@ export type FieldVisibility = 'hidden' | 'optional' | 'required';
 export type FolioRowTag = 'scheduled' | 'overridden' | 'reversed' | 'reversal' | 'refund' | 'manual';
 export type FolioStatus = 'open' | 'closed' | 'voided';
 export type FolioType = 'master' | 'unit' | 'third_party';
+export type GatewayPaymentStatus = 'created' | 'paid' | 'failed';
+export type GatewayRefundStatus = 'pending' | 'processed' | 'failed';
 export type Gender = 'male' | 'female';
 export type GoLiveDecision = 'approved' | 'rejected' | 'withdrawn';
 export type GuestBulkAction = 'mark-vip' | 'unmark-vip' | 'blacklist' | 'unblacklist' | 'anonymize';
@@ -4466,8 +4668,9 @@ export type ManualRowType = 'charge' | 'payment' | 'refund';
 export type MediaDisk = 'local' | 'r2';
 export type MissedArrivalPolicy = 'mark_no_show' | 'keep_as_late_arrival';
 export type NavigationContext = 'front-desk' | 'finance' | 'reports' | 'settings';
+export type NearbyPlaceStatus = 'pending' | 'approved' | 'rejected';
 export type NotificationChannel = 'mail' | 'database';
-export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions' | 'night_audit_failed' | 'registration_card_link' | 'onboarding_reminder' | 'dorm_strategy_changed' | 'support_access_used' | 'go_live_approved' | 'go_live_rejected' | 'portal_booking_created' | 'portal_booking_cancelled' | 'portal_cancellation_requested' | 'channel_booking_received' | 'channel_booking_cancelled' | 'channel_removal_blocked' | 'payment_slip_received';
+export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions' | 'night_audit_failed' | 'registration_card_link' | 'onboarding_reminder' | 'dorm_strategy_changed' | 'support_access_used' | 'go_live_approved' | 'go_live_rejected' | 'portal_booking_created' | 'portal_booking_cancelled' | 'portal_cancellation_requested' | 'channel_booking_received' | 'channel_booking_cancelled' | 'channel_removal_blocked' | 'payment_slip_received' | 'nearby_place_removed' | 'online_booking_received' | 'online_refund_needs_attention' | 'online_booking_cancelled';
 export type OldFolioMode = 'one_amount' | 'copy_line_by_line';
 export type OldFolioRowKind = 'room' | 'charge' | 'tax' | 'payment';
 export type OnboardingPhase = 'property' | 'rooms' | 'finance' | 'prices' | 'channels' | 'review';
@@ -4481,7 +4684,7 @@ export type PartnerStatus = 'invited' | 'active' | 'suspended';
 export type PasscodeKind = 'generated' | 'custom';
 export type PasscodeMode = 'generated' | 'custom';
 export type PasscodeStatus = 'pending' | 'active' | 'failed' | 'revoked' | 'expired';
-export type PaymentMethodType = 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill' | 'old_system';
+export type PaymentMethodType = 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill' | 'old_system' | 'online';
 export type PaymentProofStatus = 'submitted' | 'accepted' | 'rejected';
 export type PaymentPurpose = 'advance' | 'settlement' | 'security_deposit';
 export type PaymentReportStatus = 'pending' | 'completed' | 'failed' | 'voided';
@@ -4490,8 +4693,8 @@ export type PaymentStatus = 'pending' | 'completed' | 'failed';
 export type PdfFont = 'office' | 'modern' | 'fancy' | 'handwritten';
 export type PdfFontSize = 'small' | 'medium' | 'large';
 export type PerformancePreset = '7d' | '30d' | 'month' | 'last-month' | '12m';
-export type PermissionEnum = 'settings.manage' | 'settings.ota-lists' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'reservations.change-price' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'folio.manual' | 'folio.view-manual-entries' | 'payment.record' | 'payment.refund' | 'payment.refund-other-method' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void' | 'front-desk.view' | 'front-desk.check-in' | 'front-desk.check-out' | 'front-desk.check-in-without-card' | 'front-desk.waive-fees' | 'front-desk.undo-check-in' | 'front-desk.undo-check-out' | 'night-audit.run' | 'night-audit.force' | 'night-audit.receive-report' | 'reports.view' | 'housekeeping.view' | 'housekeeping.update' | 'housekeeping.inspect' | 'housekeeping.edit-times';
-export type PlatformFeature = 'channel-manager' | 'boats' | 'accounting-integration' | 'door-locks' | 'kiosks';
+export type PermissionEnum = 'settings.manage' | 'settings.ota-lists' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'reservations.change-price' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'folio.manual' | 'folio.view-manual-entries' | 'payment.record' | 'payment.refund' | 'payment.refund-other-method' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void' | 'front-desk.view' | 'front-desk.check-in' | 'front-desk.check-out' | 'front-desk.check-in-without-card' | 'front-desk.waive-fees' | 'front-desk.undo-check-in' | 'front-desk.undo-check-out' | 'night-audit.run' | 'night-audit.force' | 'night-audit.receive-report' | 'reports.view' | 'housekeeping.view' | 'housekeeping.update' | 'housekeeping.inspect' | 'housekeeping.edit-times' | 'booking-website.manage' | 'booking-website.publish' | 'booking-website.api';
+export type PlatformFeature = 'channel-manager' | 'boats' | 'accounting-integration' | 'door-locks' | 'kiosks' | 'booking-engine';
 export type PolicyChargeMode = 'free' | 'fixed_amount' | 'percentage';
 export type PolicyRateBasis = 'booked_rate' | 'current_rate';
 export type PolicyScope = 'first_night' | 'whole_stay' | 'unused_nights' | 'one_charge';
@@ -4520,6 +4723,8 @@ export type RoomBlockRefusal = 'unavailable' | 'ended' | 'blocked' | 'has_stay';
 export type RoomDayState = 'arriving' | 'in_house' | 'departing' | 'vacant' | 'blocked';
 export type RoutingRuleSource = 'billing_mode' | 'manual';
 export type SellUnit = 'room' | 'bed';
+export type SiteTemplateStatus = 'draft' | 'available' | 'retired';
+export type SiteTemplateType = 'standard' | 'custom';
 export type SpreadsheetFormat = 'csv' | 'xlsx';
 export type StayDiscountType = 'percent' | 'amount';
 export type StayType = 'overnight' | 'day_use';
@@ -4527,14 +4732,14 @@ export type StayViewGrouping = 'none' | 'room_group' | 'room_type';
 export type StepState = 'locked' | 'not_started' | 'in_progress' | 'done' | 'needs_attention';
 export type SurchargeType = 'none' | 'fixed' | 'percent';
 export type SwatchColor = 'gray' | 'red' | 'orange' | 'amber' | 'green' | 'teal' | 'blue' | 'indigo' | 'violet' | 'pink';
-export type SystemTransactionCode = 'room_revenue' | 'no_show_revenue' | 'cancellation_revenue' | 'late_checkout_revenue' | 'early_departure_revenue' | 'day_use_revenue' | 'food_and_beverage_revenue' | 'laundry_revenue' | 'minibar_revenue' | 'fee_revenue' | 'damage_revenue' | 'sst_tax' | 'tourism_tax' | 'cash_payment' | 'card_payment' | 'bank_transfer_payment' | 'ewallet_payment' | 'ota_collected_payment' | 'direct_bill_payment' | 'security_deposit' | 'refund' | 'adjustment' | 'discount' | 'opening_balance' | 'old_system_payment';
+export type SystemTransactionCode = 'room_revenue' | 'no_show_revenue' | 'cancellation_revenue' | 'late_checkout_revenue' | 'early_departure_revenue' | 'day_use_revenue' | 'food_and_beverage_revenue' | 'laundry_revenue' | 'minibar_revenue' | 'fee_revenue' | 'damage_revenue' | 'sst_tax' | 'tourism_tax' | 'cash_payment' | 'card_payment' | 'bank_transfer_payment' | 'ewallet_payment' | 'ota_collected_payment' | 'direct_bill_payment' | 'security_deposit' | 'refund' | 'adjustment' | 'discount' | 'opening_balance' | 'old_system_payment' | 'online_payment';
 export type TabbedReport = 'guest-list' | 'daily-report';
 export type TaxRateType = 'percent' | 'flat';
 export type TemporaryPasswordExportFormat = 'message' | 'csv' | 'xlsx' | 'pdf';
 export type TermsPlaceholder = 'property_name' | 'check_in_time' | 'check_out_time' | 'security_deposit' | 'tourism_tax_rate';
 export type TermsPreset = 'standard_hotel' | 'hostel' | 'resort' | 'serviced_apartment' | 'homestay';
 export type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
-export type TransactionCategory = 'room' | 'food_and_beverage' | 'laundry' | 'minibar' | 'transport' | 'fee' | 'tax' | 'discount' | 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill' | 'deposit' | 'refund' | 'adjustment' | 'opening_balance' | 'old_system' | 'other';
+export type TransactionCategory = 'room' | 'food_and_beverage' | 'laundry' | 'minibar' | 'transport' | 'fee' | 'tax' | 'discount' | 'cash' | 'card' | 'bank_transfer' | 'e_wallet' | 'ota_collected' | 'direct_bill' | 'deposit' | 'refund' | 'adjustment' | 'opening_balance' | 'old_system' | 'online' | 'other';
 export type TransactionKind = 'charge' | 'payment' | 'adjustment' | 'tax';
 export type UnitAction = 'check-in' | 'check-out' | 'check-out-as-day-use' | 'late-check-out' | 'change-dates' | 'cancel' | 'no-show' | 'reinstate' | 'move-room' | 'undo-check-in' | 'undo-check-out';
 export type UnitStatus = 'confirmed' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show';

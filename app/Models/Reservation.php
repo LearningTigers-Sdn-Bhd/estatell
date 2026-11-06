@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $id
  * @property int $property_id
  * @property string $reference
+ * @property string $short_code The code a guest types to find their booking. Unique per property, and it never changes.
  * @property ReservationStatus $status
  * @property int $booker_guest_id
  * @property int|null $company_id The billed company.

@@ -23,6 +23,7 @@ import type { EnumOption } from '@/components/pms/enum-select';
 import { FilterBar } from '@/components/pms/filter-bar';
 import { PageHeader } from '@/components/pms/page-header';
 import { NewDerivedRatePlanSheet } from '@/components/pms/rate-plans/new-derived-rate-plan-sheet';
+import { OnlineBookingSwitch } from '@/components/pms/rate-plans/online-booking-switch';
 import { NewRatePlanSheet } from '@/components/pms/rate-plans/new-rate-plan-sheet';
 import { RoomTypePills } from '@/components/pms/rate-plans/room-type-pills';
 import { StatusBadge } from '@/components/pms/status-badge';
@@ -274,6 +275,7 @@ export default function RatePlansIndex({
     derivations,
     currency,
     companies,
+    onlineBooking,
 }: {
     ratePlans: RatePlan[];
     statuses: EnumOption[];
@@ -283,6 +285,7 @@ export default function RatePlansIndex({
     derivations: EnumOption[];
     currency: App.Data.Property.CurrencyData;
     companies: App.Data.CityLedger.CompanyOptionData[];
+    onlineBooking: boolean;
 }) {
     const [status, setStatus] = useState(initialStatus);
     const [search, setSearch] = useState('');
@@ -365,6 +368,9 @@ export default function RatePlansIndex({
                                         <TableHead>Sells</TableHead>
                                         <TableHead>Pricing</TableHead>
                                         <TableHead>Room types</TableHead>
+                                        {onlineBooking && (
+                                            <TableHead>Book online</TableHead>
+                                        )}
                                         <TableHead>Status</TableHead>
                                         <TableHead>
                                             <span className="sr-only">
@@ -376,7 +382,9 @@ export default function RatePlansIndex({
                                 <TableBody>
                                     {visible.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={6}>
+                                            <TableCell
+                                                colSpan={onlineBooking ? 7 : 6}
+                                            >
                                                 <EmptyState
                                                     icon={Tag}
                                                     title="No rate plans match these filters"
@@ -453,6 +461,16 @@ export default function RatePlansIndex({
                                                         }
                                                     />
                                                 </TableCell>
+                                                {onlineBooking && (
+                                                    <TableCell>
+                                                        <OnlineBookingSwitch
+                                                            ratePlan={ratePlan}
+                                                            disabled={
+                                                                !ratePlan.offerableOnline
+                                                            }
+                                                        />
+                                                    </TableCell>
+                                                )}
                                                 <TableCell>
                                                     <StatusBadge
                                                         size="lg"

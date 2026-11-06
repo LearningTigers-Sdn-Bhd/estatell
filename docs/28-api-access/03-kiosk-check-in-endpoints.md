@@ -58,6 +58,15 @@ A **stay** is a reservation unit (`stay_id` is its id). A Confirmed stay **insid
 
 New kiosk write routes go in the `api.idempotent` group in `routes/api.php`.
 
+The same middleware also serves [booking clients](../29-booking-engine/02-api.md#rules).
+
+| Item     | Change                                                                                                                                                              |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Storage  | A nullable `booking_client_id`, with its own unique index on client, key and path. `kiosk_id` and `property_id` become nullable. A CHECK requires exactly one owner |
+| Property | Empty when the path has no property, such as `holds/{token}/payment`                                                                                                |
+| Lock     | The cache lock name includes the owner type, so kiosk 5 and client 5 never share one                                                                                |
+| Kiosks   | No change in behaviour. Existing rows and the kiosk unique index stay                                                                                               |
+
 ## Personal data
 
 The ID comes from the reader to the API and is stored as normal guest data (number encrypted, see [identity documents](../11-guests/02-identity-documents.md)). It is never in a URL, a log or an exception message. A rejected body is not echoed back. The activity log records `kiosk.identity_received` (document type and kiosk id) and `guest.updated` (names of the fields that changed, never values) on the guest.

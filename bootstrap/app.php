@@ -5,6 +5,8 @@ use App\Http\Middleware\BlockDuringImpersonation;
 use App\Http\Middleware\BlockOnDemo;
 use App\Http\Middleware\EnsureAccountingIsActive;
 use App\Http\Middleware\EnsureBoatsIsActive;
+use App\Http\Middleware\EnsureBookingClientReach;
+use App\Http\Middleware\EnsureBookingEngineIsActive;
 use App\Http\Middleware\EnsureChannelManagerIsActive;
 use App\Http\Middleware\EnsureDoorLocksAreActive;
 use App\Http\Middleware\EnsureEmailIsVerified;
@@ -56,6 +58,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'api.token' => AuthenticateApiToken::class,
+            'api.booking.reach' => EnsureBookingClientReach::class,
             'api.idempotent' => ReplayIdempotentRequest::class,
             'block.impersonation' => BlockDuringImpersonation::class,
             'support.2fa' => RequireSupportTwoFactor::class,
@@ -63,6 +66,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'accounting' => EnsureAccountingIsActive::class,
             'door-locks' => EnsureDoorLocksAreActive::class,
             'kiosks' => EnsureKiosksAreActive::class,
+            'booking-engine' => EnsureBookingEngineIsActive::class,
             'channels' => EnsureChannelManagerIsActive::class,
             'live' => EnsurePropertyIsLive::class,
             'onboarding.activity' => TrackOnboardingActivity::class,
@@ -82,6 +86,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureAccountingIsActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureDoorLocksAreActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureKiosksAreActive::class);
+        $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureBookingEngineIsActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureChannelManagerIsActive::class);
 
         $middleware->web(append: [
@@ -102,6 +107,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->render(fn (ThrottleRequestsException $exception, Request $request) => $request->is('api/*')
             ? ApiError::response('rate_limited', __('Too many requests. Wait a moment and try again.'), 429, $exception->getHeaders())
+            : null);
+
+        $exceptions->render(fn (ValidationException $exception, Request $request) => $request->is('api/booking/*')
+            ? ApiError::response('invalid_fields', $exception->getMessage(), $exception->status, details: ['fields' => $exception->errors()])
             : null);
 
         $exceptions->render(fn (Throwable $exception, Request $request) => $request->is('api/*') && ! $exception instanceof HttpExceptionInterface && ! $exception instanceof ValidationException

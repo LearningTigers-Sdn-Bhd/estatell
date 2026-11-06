@@ -215,6 +215,17 @@ test('the reference comes from the reservation document sequence', function () {
         ->and($second->reference)->toMatch('/^'.$prefix.'-\d{2}100002$/');
 });
 
+test('each reservation gets its own short code', function () {
+    $setup = createSetup();
+
+    $first = createReservation($setup, [roomLine($setup)])->reservation;
+    $second = createReservation($setup, [roomLine($setup)])->reservation;
+
+    expect($first->short_code)->toMatch('/^[A-HJKMNP-Z2-9]{6}$/')
+        ->and($second->short_code)->toMatch('/^[A-HJKMNP-Z2-9]{6}$/')
+        ->and($first->short_code)->not->toBe($second->short_code);
+});
+
 test('a group has a unit for each line with its own dates, room type and plan', function () {
     $setup = createSetup();
 

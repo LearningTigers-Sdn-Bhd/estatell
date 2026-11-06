@@ -18,6 +18,7 @@ use App\Models\ReservationUnit;
 use App\Services\Folio\FolioBalance;
 use App\Services\Folio\IncomingScheduledCharges;
 use App\Services\Folio\LineSourceUnits;
+use App\Services\Payments\OnlineRefundLedger;
 use Brick\Math\BigDecimal;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
@@ -34,6 +35,7 @@ class CheckOutSettlement
         private FolioBalance $folioBalance,
         private LineSourceUnits $lineSourceUnits,
         private IncomingScheduledCharges $incomingScheduledCharges,
+        private OnlineRefundLedger $onlineRefundLedger,
     ) {}
 
     /**
@@ -99,13 +101,22 @@ class CheckOutSettlement
     }
 
     /**
-     * The balance of the unit's folios: a held credit is negative.
+     * The balance of the unit's folios: a held credit is negative. An online refund waiting on Curlec counts as given back.
      *
      * @param  EloquentCollection<int, Folio>  $folios
      */
     public function balance(Collection $folios): BigDecimal
     {
-        return $folios->reduce(fn (BigDecimal $sum, Folio $folio): BigDecimal => $sum->plus($this->folioBalance->forFolio($folio)), BigDecimal::zero());
+        return $folios->reduce(fn (BigDecimal $sum, Folio $folio): BigDecimal => $sum->plus($this->settledBalance($folio)), BigDecimal::zero());
+    }
+
+    /**
+     * A folio's balance with its Pending online refunds counted as given back, so a check-out can go ahead while Curlec
+     * finishes. The ledger itself changes only when Curlec confirms.
+     */
+    public function settledBalance(Folio $folio): BigDecimal
+    {
+        return BigDecimal::of($this->folioBalance->forFolio($folio))->plus($this->onlineRefundLedger->pendingOnFolio($folio));
     }
 
     /**
@@ -300,6 +311,7 @@ class CheckOutSettlement
             ->whereNull('refund_of_id')
             ->where('status', PaymentStatus::Completed)
             ->withSum('refunds', 'amount')
+            ->withSum([OnlineRefundLedger::PENDING_SUM_RELATION => OnlineRefundLedger::pendingParts(...)], 'amount')
             ->with('paymentMethod')
             ->orderBy('id')
             ->get()
@@ -338,6 +350,7 @@ class CheckOutSettlement
             ->where('purpose', PaymentPurpose::SecurityDeposit)
             ->where('status', PaymentStatus::Completed)
             ->withSum('refunds', 'amount')
+            ->withSum([OnlineRefundLedger::PENDING_SUM_RELATION => OnlineRefundLedger::pendingParts(...)], 'amount')
             ->with('paymentMethod')
             ->orderBy('id')
             ->get()
@@ -360,6 +373,6 @@ class CheckOutSettlement
 
     public function refundable(Payment $payment): BigDecimal
     {
-        return BigDecimal::of($payment->amount)->minus((string) ($payment->refunds_sum_amount ?? '0'));
+        return BigDecimal::of($payment->amount)->minus((string) ($payment->refunds_sum_amount ?? '0'))->minus((string) ($payment->pending_refunds_sum_amount ?? '0'));
     }
 }

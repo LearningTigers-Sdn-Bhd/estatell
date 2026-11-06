@@ -92,12 +92,31 @@ class BookingSourceFactory extends Factory
     }
 
     /**
+     * The property's system Booking Engine row.
+     */
+    public function bookingEngine(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'name' => 'Booking Engine',
+            'type' => BookingSourceType::BookingEngine,
+            'is_system' => true,
+            'sort_order' => 1002,
+            'badge_icon' => BookingSourceIcon::Globe,
+            'badge_color' => SwatchColor::Violet,
+        ]);
+    }
+
+    /**
      * The property's source of a system type, made once: the partial unique index allows one system row per type.
      */
     public static function systemFor(int $propertyId, BookingSourceType $type): BookingSource
     {
         return BookingSource::query()->where('property_id', $propertyId)->where('type', $type)->where('is_system', true)->first()
-            ?? BookingSource::factory()->{$type === BookingSourceType::Company ? 'company' : 'walkIn'}()->create(['property_id' => $propertyId]);
+            ?? BookingSource::factory()->{match ($type) {
+                BookingSourceType::Company => 'company',
+                BookingSourceType::BookingEngine => 'bookingEngine',
+                default => 'walkIn',
+            }}()->create(['property_id' => $propertyId]);
     }
 
     /**

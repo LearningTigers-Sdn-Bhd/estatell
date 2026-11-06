@@ -522,7 +522,7 @@ Each form uses `FormOverlay` and the container from [Form containers](../design-
 
 - **Action.** `CancelUnits` runs `CancelUnit` for each ticked unit in unit id order inside one transaction. The first refusal rolls everything back and `CancelUnitsResult` names the unit and its room ("Room 106: ..."). `UnitStayResult::$fee` carries the fee each `CancelUnit` posted, for the total in the `reservation.cancelled` entry.
 - **Routes.** `reservations.cancel` and `reservations.cancel-preview` sit on the reservation (the unit routes are `reservations.units.cancel`). The request sends `unit_ids`, `expected_fees` keyed by unit id, `do_not_charge`, `reason` and `remove_add_ons`.
-- **Preview.** `UnitActionPreview::cancelAll()` returns one row per unit with the fee before and after tax, the net money held (folios that are not Voided, without the city ledger line) and the portal request. The Dialog works out the "owes" and "to refund" line from those figures.
+- **Preview.** `UnitActionPreview::cancelAll()` returns one row per unit with the fee before and after tax, the net money held (folios that are not Voided, without the city ledger line) and the portal request. The Dialog works out the "owes" and "to refund" line from those figures. A row also has what its cancel gives back through Curlec, with the fee and with Do not charge, for a user with `payment.refund`. See [Cancel and refund](../29-booking-engine/05-cancel-and-refund.md#cases).
 - **Page.** The `canCancelReservation` prop (`reservations.manage` and at least one Confirmed unit) shows **⋯ More › Cancel reservation**.
 - **Portal request.** `CancelUnits` clears `cancellation_requested_at` and `cancellation_requested_by` and says so in the log. The company portal's own request action is `RequestPortalCancellation` (module 23).
 
@@ -788,6 +788,8 @@ Since then, **Keep for damages** posts the charge in the Dialog ([Keep the depos
 - Transfer to the Master folio is not in the Dialog. Staff use the folio tab.
 
 ### Refund the credit
+
+An Online part is asked of Curlec, so the unit checks out and its folio closes when Curlec confirms. See [Check-out](../29-booking-engine/05-cancel-and-refund.md#check-out).
 
 Built. Before this change `CheckOutAndRefund` refunded only security deposits (`heldDeposits()`), so a credit from an Advance or a Settlement payment, for example a prepaid stay cut short by [early check-out](#early-check-out), stayed on the folio, and check-out was refused as `balance_not_settled`. Staff had to refund on the folio tab first.
 

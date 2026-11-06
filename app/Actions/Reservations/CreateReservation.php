@@ -19,6 +19,7 @@ use App\Models\RoomType;
 use App\Models\User;
 use App\Services\CityLedger\CreditCheck;
 use App\Services\NightAudit\NextDocumentNumber;
+use App\Services\Reservations\ReservationShortCode;
 use App\Services\Reservations\StayChargeTotal;
 use Illuminate\Support\Facades\DB;
 
@@ -27,6 +28,7 @@ class CreateReservation
     public function __construct(
         private AddUnit $addUnit,
         private NextDocumentNumber $nextDocumentNumber,
+        private ReservationShortCode $reservationShortCode,
         private SyncRoutingRules $syncRoutingRules,
         private CreditCheck $creditCheck,
         private RecordCreditOverride $recordCreditOverride,
@@ -90,6 +92,7 @@ class CreateReservation
                     'property_id' => $property->id,
                     'booking_source_id' => $data->bookingSource->id,
                     'reference' => ($this->nextDocumentNumber)($property, DocumentType::Reservation)->reference,
+                    'short_code' => $this->reservationShortCode->generate($property),
                     'status' => ReservationStatus::Confirmed,
                     'created_by' => $actor?->id,
                 ])->save();

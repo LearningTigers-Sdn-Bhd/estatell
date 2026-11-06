@@ -12,6 +12,7 @@ use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\User;
 use App\Services\NightAudit\NextDocumentNumber;
+use App\Services\Reservations\ReservationShortCode;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -32,6 +33,9 @@ class ReservationFactory extends Factory
                 Property::query()->findOrFail((int) $attributes['property_id']),
                 DocumentType::Reservation,
             )->reference,
+            'short_code' => fn (array $attributes): string => app(ReservationShortCode::class)->generate(
+                Property::query()->findOrFail((int) $attributes['property_id']),
+            ),
             'status' => ReservationStatus::Confirmed,
             'booker_guest_id' => fn (array $attributes): int => Guest::factory()->create(['property_id' => $attributes['property_id']])->id,
             'billing_mode' => BillingMode::MasterPays,

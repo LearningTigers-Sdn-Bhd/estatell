@@ -7,6 +7,7 @@ use App\Data\Navigation\NavItemData;
 use App\Enums\PermissionEnum;
 use App\Features\AccountingIntegration;
 use App\Features\Boats;
+use App\Features\BookingEngine;
 use App\Features\DoorLocks;
 use App\Features\Kiosks;
 use App\Models\Property;
@@ -30,7 +31,7 @@ class SettingsNavigation
                     title: __('Details'),
                     href: route('settings.profile', ['property' => $property->code], absolute: false),
                     icon: 'building',
-                    active: request()->routeIs('settings.profile', 'settings.business', 'settings.edit', 'settings.operations', 'settings.support', 'settings.age-groups', 'settings.meal-periods'),
+                    active: request()->routeIs('settings.profile', 'settings.business', 'settings.photos', 'settings.edit', 'settings.operations', 'settings.support', 'settings.age-groups', 'settings.meal-periods'),
                 ) : null,
                 $user->can(PermissionEnum::SettingsManage->value) ? new NavItemData(
                     title: __('Registration card'),
@@ -61,6 +62,12 @@ class SettingsNavigation
                     href: route('settings.kiosks.index', ['property' => $property->code], absolute: false),
                     icon: 'tablet',
                     active: request()->routeIs('settings.kiosks.*'),
+                ) : null,
+                $user->can(PermissionEnum::BookingWebsiteManage->value) && Feature::for($property)->active(BookingEngine::class) ? new NavItemData(
+                    title: __('Booking website'),
+                    href: route('settings.booking-website.general', ['property' => $property->code], absolute: false),
+                    icon: 'globe',
+                    active: request()->routeIs('settings.booking-website.*'),
                 ) : null,
                 $user->can(PermissionEnum::SettingsOtaLists->value) ? new NavItemData(
                     title: __('OTA lists'),

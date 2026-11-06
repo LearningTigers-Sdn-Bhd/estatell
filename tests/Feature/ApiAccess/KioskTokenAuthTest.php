@@ -115,6 +115,9 @@ it('rate limits a token', function () {
     }
 
     kioskGet()->assertStatus(429)->assertJsonPath('error.code', 'rate_limited');
+
+    Kiosk::factory()->withToken(INTEGRATION_TOKEN)->create();
+    kioskGet(token: INTEGRATION_TOKEN)->assertOk();
 });
 
 it('answers an unexpected error with server_error', function () {

@@ -5,7 +5,7 @@ namespace App\Actions\FrontDesk;
 use App\Actions\Folio\PostCharge;
 use App\Actions\Folio\PostingResult;
 use App\Actions\Payments\RecordPayment;
-use App\Actions\Payments\RefundPayment;
+use App\Actions\Payments\RefundHeldPayment;
 use App\Data\Folio\NewChargeData;
 use App\Data\Payments\NewPaymentData;
 use App\Data\Reservations\CheckOutCollectData;
@@ -25,7 +25,7 @@ class CheckOutAndRefund
     public function __construct(
         private CheckOutUnit $checkOutUnit,
         private RecordPayment $recordPayment,
-        private RefundPayment $refundPayment,
+        private RefundHeldPayment $refundHeldPayment,
         private CheckOutSettlement $checkOutSettlement,
         private PostPendingNight $postPendingNight,
         private PostCharge $postCharge,
@@ -36,7 +36,7 @@ class CheckOutAndRefund
      * The check-out form: collect the balance, refund the credit, then check the unit out with `CheckOutUnit`, in one
      * transaction. `$collect` records a Settlement payment on the unit folio with `RecordPayment`, for the amount the
      * form showed. `$refundAmount` is taken from the refund pool in order (the security deposits oldest first, then the
-     * other payments oldest first, see `CheckOutSettlement::refundPool()`), each part through `RefundPayment`. An
+     * other payments oldest first, see `CheckOutSettlement::refundPool()`), each part through `RefundHeldPayment`, so an Online part is asked of Curlec. An
      * amount above the larger of the deposit held and the credit, or above what the pool holds, is refused with
      * `refund_exceeds_payment` before anything is refunded.
      * A refusal of the payment, the refund or the check-out (for example `balance_not_settled` when the amount no
@@ -118,7 +118,7 @@ class CheckOutAndRefund
                 }
 
                 $part = $left->isLessThan($this->checkOutSettlement->refundable($payment)) ? $left : $this->checkOutSettlement->refundable($payment);
-                $result = ($this->refundPayment)($actor, $payment, (string) $part->toScale(2), null, ($idempotencyKey ?? '').':'.$payment->id);
+                $result = ($this->refundHeldPayment)($actor, $payment, (string) $part->toScale(2), null, ($idempotencyKey ?? '').':'.$payment->id);
 
                 if ($result->isRefused()) {
                     return UnitStayResult::refused((string) $result->refusal);

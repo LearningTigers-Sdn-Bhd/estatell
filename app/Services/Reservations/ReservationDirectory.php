@@ -272,7 +272,7 @@ class ReservationDirectory
     }
 
     /**
-     * Matches the reference, the external reference, and the name, email or phone of the booker or any unit guest.
+     * Matches the reference, the short code, the external reference, and the name, email or phone of the booker or any unit guest.
      * A local phone number also matches the stored E.164 number.
      *
      * @template TModel of Model
@@ -301,6 +301,7 @@ class ReservationDirectory
 
         $query->where(function (Builder $query) use ($search, $guests): void {
             $query->whereLike('reservations.reference', "%{$search}%")
+                ->orWhereLike('reservations.short_code', "%{$search}%")
                 ->orWhereLike('reservations.external_reference', "%{$search}%")
                 ->orWhereIn('reservations.booker_guest_id', $guests())
                 ->orWhereIn('reservations.id', ReservationUnit::query()

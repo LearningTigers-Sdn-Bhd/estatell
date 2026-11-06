@@ -20,6 +20,7 @@ use App\Services\Folio\FolioBalance;
 use App\Services\FrontDesk\CheckOutSettlement;
 use App\Services\FrontDesk\StayDay;
 use App\Services\NightAudit\CurrentBusinessDate;
+use App\Services\Payments\OnlineRefundLedger;
 use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
@@ -35,6 +36,7 @@ class CheckOutUnit
         private CheckOutSettlement $checkOutSettlement,
         private StayDay $stayDay,
         private PostPendingNight $postPendingNight,
+        private OnlineRefundLedger $onlineRefundLedger,
     ) {}
 
     /**
@@ -43,7 +45,7 @@ class CheckOutUnit
      * (`folio_receives_scheduled_charges`, checked first so the message is the right one). The unit's own folio must
      * have a balance of 0, whoever the charges belong to; `balance_not_settled` names the rooms whose charges it holds. A balance that belongs on the Master folio
      * is moved first with `TransferLines`, and a held security deposit is a credit that must be refunded or used
-     * against charges first. After the status change it closes each Open Unit folio of the unit through `CloseFolio`
+     * against charges first. An online refund waiting on Curlec counts as given back, and its folio stays Open until the webhook posts the refund and closes it. After the status change it closes each Open Unit folio of the unit through `CloseFolio`
      * (at 0 by the check above), which issues the folio's invoice number once. A close that is refused (a posting raced
      * in) rolls the check-out back as `balance_not_settled`. Master and ThirdParty folios stay Open. No `folio.close`
      * is needed: closing is part of check-out. A stay is checked out on or after its departure date, counted on the stay
@@ -102,7 +104,7 @@ class CheckOutUnit
                     return UnitStayResult::refused(UnitStayResult::REFUSAL_RECEIVES_SCHEDULED_CHARGES, $incoming);
                 }
 
-                $unsettled = ! $groupSettled && $folios->contains(fn (Folio $folio): bool => ! BigDecimal::of($this->folioBalance->forFolio($folio))->isZero());
+                $unsettled = ! $groupSettled && $folios->contains(fn (Folio $folio): bool => ! $this->checkOutSettlement->settledBalance($folio)->isZero());
 
                 if ($unsettled) {
                     return UnitStayResult::refused(UnitStayResult::REFUSAL_BALANCE_NOT_SETTLED, $this->checkOutSettlement->heldForOtherRooms($locked, $folios));
@@ -117,6 +119,10 @@ class CheckOutUnit
 
             foreach ($openFolios as $folio) {
                 if ($groupSettled && ! BigDecimal::of($this->folioBalance->forFolio($folio))->isZero()) {
+                    continue;
+                }
+
+                if ($this->onlineRefundLedger->pendingOnFolio($folio)->isPositive()) {
                     continue;
                 }
 

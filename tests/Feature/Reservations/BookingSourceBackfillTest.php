@@ -29,6 +29,7 @@ function oldReservation(Property $property, string $source, ?string $channelName
     return DB::table('reservations')->insertGetId([
         'property_id' => $property->id,
         'reference' => fake()->unique()->bothify('OLD-########'),
+        'short_code' => fake()->unique()->bothify('??????'),
         'status' => 'confirmed',
         'booker_guest_id' => Guest::factory()->create(['property_id' => $property->id])->id,
         'billing_mode' => 'master_pays',

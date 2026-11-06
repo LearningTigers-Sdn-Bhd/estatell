@@ -5,6 +5,7 @@ import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
 import { Button } from '@/components/ui/button';
 import {
     Field,
+    FieldContent,
     FieldDescription,
     FieldError,
     FieldGroup,
@@ -17,6 +18,7 @@ import {
     InputGroupInput,
 } from '@/components/ui/input-group';
 import { Spinner } from '@/components/ui/spinner';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { update } from '@/routes/settings/rate-plans';
@@ -72,6 +74,7 @@ export function DetailsForm({
     currency,
     nightsLockedReason = null,
     groupRateOptions = [],
+    onlineBooking = false,
 }: {
     ratePlan: RatePlan;
     currency: App.Data.Property.CurrencyData;
@@ -79,6 +82,8 @@ export function DetailsForm({
     groupRateOptions?: EnumOption[];
     /** Why the nights of a package cannot change, or null when they can. */
     nightsLockedReason?: string | null;
+    /** Show the Book online switch (the Booking engine is on and the user can manage the booking website). */
+    onlineBooking?: boolean;
 }) {
     const form = useForm({
         name: ratePlan.name,
@@ -97,6 +102,7 @@ export function DetailsForm({
             ratePlan.groupRatePlanId === null
                 ? ''
                 : String(ratePlan.groupRatePlanId),
+        bookable_online: ratePlan.bookableOnline,
     });
     const guard = useUnsavedChanges(form.isDirty);
     const basis = ratePlan.pricingBasis;
@@ -425,6 +431,28 @@ export function DetailsForm({
                             form.setData('single_supplement', value)
                         }
                     />
+                )}
+                {onlineBooking && (
+                    <Field orientation="horizontal">
+                        <Switch
+                            id="rate-plan-book-online"
+                            checked={form.data.bookable_online}
+                            onCheckedChange={(checked) =>
+                                form.setData('bookable_online', checked)
+                            }
+                            disabled={!ratePlan.offerableOnline}
+                        />
+                        <FieldContent>
+                            <FieldLabel htmlFor="rate-plan-book-online">
+                                Book online
+                            </FieldLabel>
+                            <FieldDescription>
+                                {ratePlan.offerableOnline
+                                    ? 'Guests can book this plan on your booking website.'
+                                    : 'Only active nightly plans open to everyone can be booked online.'}
+                            </FieldDescription>
+                        </FieldContent>
+                    </Field>
                 )}
             </FieldGroup>
             <footer className="flex justify-end">

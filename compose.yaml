@@ -30,6 +30,10 @@ x-app: &app
         R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-}
         R2_BUCKET: ${R2_BUCKET:-}
         R2_ENDPOINT: ${R2_ENDPOINT:-}
+        # Images that guests see. See docs/deployment/production_environment.md.
+        MEDIA_PUBLIC_DISK: ${MEDIA_PUBLIC_DISK:-public}
+        R2_PUBLIC_BUCKET: ${R2_PUBLIC_BUCKET:-}
+        R2_PUBLIC_URL: ${R2_PUBLIC_URL:-}
         # Partner Demo access card. See docs/deployment/production_environment.md.
         DEMO_URL: ${DEMO_URL:-}
         DEMO_PASSWORD: ${DEMO_PASSWORD:-}
@@ -40,6 +44,14 @@ x-app: &app
         MILLIONSEND_BASE_URL: ${MILLIONSEND_BASE_URL:-}
         MILLIONSEND_API_KEY: ${MILLIONSEND_API_KEY:-}
         MILLIONSEND_WEBHOOK_SECRET: ${MILLIONSEND_WEBHOOK_SECRET:-}
+        # Booking engine payments: Curlec live keys only. See docs/29-booking-engine/04-payment.md#environments.
+        CURLEC_BASE_URL: ${CURLEC_BASE_URL:-https://api.razorpay.com/v1}
+        CURLEC_ACCOUNT: ${CURLEC_ACCOUNT:-primary}
+        CURLEC_KEY_ID: ${CURLEC_KEY_ID:-}
+        CURLEC_KEY_SECRET: ${CURLEC_KEY_SECRET:-}
+        CURLEC_WEBHOOK_SECRET: ${CURLEC_WEBHOOK_SECRET:-}
+        BOOKING_SITE_URL: ${BOOKING_SITE_URL:-https://booking.estatell.com}
+        BOOKING_API_DOCS_URL: ${BOOKING_API_DOCS_URL:-https://docs.estatell.com/en/docs/developers/booking-api}
         AUTORUN_ENABLED: 'false'
     volumes:
         # Media stored on "This server" (ID scans, signatures, photos). Shared by all services.

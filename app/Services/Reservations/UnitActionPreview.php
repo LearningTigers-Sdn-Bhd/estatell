@@ -41,6 +41,8 @@ use App\Models\UnitNight;
 use App\Models\User;
 use App\Services\Availability\DayUseAvailability;
 use App\Services\Availability\FreeUnits;
+use App\Services\Catalogues\CancellationPolicy;
+use App\Services\Catalogues\PolicyCharge;
 use App\Services\Catalogues\PolicyChargeCalculator;
 use App\Services\Catalogues\TaxCalculator;
 use App\Services\CityLedger\CreditCheck;
@@ -55,6 +57,7 @@ use App\Services\FrontDesk\UndoCheckInRule;
 use App\Services\FrontDesk\UndoCheckOutRule;
 use App\Services\Guests\CountryOptions;
 use App\Services\NightAudit\CurrentBusinessDate;
+use App\Services\Payments\CancelledUnitRefund;
 use App\Services\Platform\Impersonation;
 use App\Services\Rates\RateQuoteRequest;
 use App\Services\Rates\RateQuoteService;
@@ -97,6 +100,8 @@ class UnitActionPreview
         private PendingNightQuote $pendingNightQuote,
         private AuditPendingNotice $auditPendingNotice,
         private DamageChargeItem $damageChargeItem,
+        private CancellationPolicy $cancellationPolicy,
+        private CancelledUnitRefund $cancelledUnitRefund,
     ) {}
 
     /**
@@ -566,7 +571,7 @@ class UnitActionPreview
      * business date, the money held on the reservation and the company portal request. Only a Confirmed unit can be
      * ticked. The fee is the figure `CancelUnit` computes, so the Dialog and a Cancel unit agree.
      */
-    public function cancelAll(Reservation $reservation): CancelAllPreviewData
+    public function cancelAll(Reservation $reservation, bool $canRefund = false): CancelAllPreviewData
     {
         $property = $reservation->property()->firstOrFail();
         $businessDate = $this->currentBusinessDate->date($property);
@@ -575,7 +580,7 @@ class UnitActionPreview
             return CancelAllPreviewData::refused($this->refusals->message(UnitStayResult::REFUSAL_NO_BUSINESS_DATE));
         }
 
-        $policy = RoomRevenuePolicy::query()->where('property_id', $property->id)->where('code', SystemTransactionCode::CancellationRevenue)->first();
+        $policy = $this->cancellationPolicy->forReservation($property->id, $reservation->id);
         $code = $property->transactionCodes()->where('system_key', SystemTransactionCode::CancellationRevenue->value)->where('active', true)->first();
 
         if ($policy === null || $code === null) {
@@ -599,6 +604,8 @@ class UnitActionPreview
                 'feeTotal' => null,
                 'withinFreeWindow' => false,
                 'unpostedAddOns' => 0,
+                'onlineRefund' => '0.00',
+                'onlineRefundWaived' => '0.00',
                 'note' => null,
             ];
 
@@ -626,6 +633,12 @@ class UnitActionPreview
             $row['feeTotal'] = $charge->isFree() ? '0.00' : (string) $tax->grossAmount->getAmount();
             $row['withinFreeWindow'] = $charge->withinFreeWindow;
             $row['unpostedAddOns'] = (int) $unit->unposted_add_ons_count;
+
+            if ($canRefund) {
+                $row['onlineRefund'] = (string) $this->cancelledUnitRefund->for($unit, BigDecimal::of($row['feeTotal']))->amount()->toScale(2);
+                $row['onlineRefundWaived'] = (string) $this->cancelledUnitRefund->for($unit)->amount()->toScale(2);
+            }
+
             $rows[] = $row;
         }
 
@@ -654,7 +667,7 @@ class UnitActionPreview
     /**
      * The fee of the cancellation or no-show policy on the business date, for the Cancel unit and Mark no-show forms.
      */
-    public function fee(ReservationUnit $unit, SystemTransactionCode $code): UnitFeePreviewData
+    public function fee(ReservationUnit $unit, SystemTransactionCode $code, bool $canRefund = false): UnitFeePreviewData
     {
         $businessDate = $this->currentBusinessDate->date($unit->property()->firstOrFail());
 
@@ -662,14 +675,15 @@ class UnitActionPreview
             return UnitFeePreviewData::refused($this->refusals->message(UnitStayResult::REFUSAL_NO_BUSINESS_DATE));
         }
 
-        $policy = $this->policy($unit, $code);
+        $isCancellation = $code === SystemTransactionCode::CancellationRevenue;
+        $policy = $isCancellation ? $this->cancellationPolicy->forReservation($unit->property_id, $unit->reservation_id) : $this->policy($unit, $code);
 
         if ($policy === null) {
             return UnitFeePreviewData::refused($this->refusals->message(UnitStayResult::REFUSAL_POLICY_NOT_FOUND));
         }
 
         $charge = $this->policyChargeCalculator->calculate($policy, $unit);
-        $isCancellation = $code === SystemTransactionCode::CancellationRevenue;
+        [$onlineRefund, $onlineRefundWaived] = $isCancellation && $canRefund ? $this->onlineRefunds($unit, $charge) : ['0.00', '0.00'];
 
         return new UnitFeePreviewData(
             fee: (string) $charge->amount->getAmount(),
@@ -678,7 +692,27 @@ class UnitActionPreview
             daysBeforeArrival: $isCancellation ? (int) $businessDate->diffInDays($unit->arrival_date->toImmutable()->startOfDay(), false) : null,
             unpostedAddOns: $unit->addOns()->whereNull('folio_line_id')->count(),
             error: null,
+            onlineRefund: $onlineRefund,
+            onlineRefundWaived: $onlineRefundWaived,
         );
+    }
+
+    /**
+     * What a cancelled unit gives back through Curlec, with the fee and with the fee waived.
+     *
+     * @return array{string, string}
+     */
+    private function onlineRefunds(ReservationUnit $unit, PolicyCharge $charge): array
+    {
+        $property = $unit->property()->firstOrFail();
+        $code = $property->transactionCodes()->where('system_key', SystemTransactionCode::CancellationRevenue->value)->where('active', true)->first();
+        $tax = $code === null || $charge->isFree() ? null : $this->taxCalculator->calculate($property, $code, $charge->amount, '1', $this->unitNationality->for($unit));
+        $fee = $tax !== null && $tax->isCalculated() ? BigDecimal::of((string) $tax->grossAmount->getAmount()) : BigDecimal::of((string) $charge->amount->getAmount());
+
+        return [
+            (string) $this->cancelledUnitRefund->for($unit, $fee)->amount()->toScale(2),
+            (string) $this->cancelledUnitRefund->for($unit)->amount()->toScale(2),
+        ];
     }
 
     /**

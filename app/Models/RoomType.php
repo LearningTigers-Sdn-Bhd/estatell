@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * What a property sells: a room or a bed. It has no price; prices live in daily rates.
@@ -44,6 +45,16 @@ class RoomType extends Model implements HasMedia
 {
     /** @use HasFactory<RoomTypeFactory> */
     use HasFactory, InteractsWithMedia;
+
+    public const string PHOTOS = 'photos';
+
+    public const int PHOTO_LIMIT = 10;
+
+    public const int PHOTO_MAX_KB = 5120;
+
+    public const array PHOTO_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp'];
+
+    public const array PHOTO_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
     /**
      * @return array<string, string>
@@ -91,6 +102,14 @@ class RoomType extends Model implements HasMedia
     }
 
     /**
+     * @return BelongsToMany<Amenity, $this>
+     */
+    public function amenities(): BelongsToMany
+    {
+        return $this->belongsToMany(Amenity::class, 'room_type_amenities');
+    }
+
+    /**
      * @param  Builder<RoomType>  $query
      */
     public function scopeActive(Builder $query): void
@@ -106,8 +125,19 @@ class RoomType extends Model implements HasMedia
         $query->orderBy('position')->orderBy('id');
     }
 
+    /**
+     * Photos are shown to guests, so they live on the public media disk.
+     */
     public function registerMediaCollections(): void
     {
-        $this->addMediaCollection('photos');
+        $this->addMediaCollection(self::PHOTOS)
+            ->acceptsMimeTypes(self::PHOTO_MIME_TYPES)
+            ->useDisk(config('filesystems.public_media'));
+    }
+
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        $this->addMediaConversion('thumb')->performOnCollections(self::PHOTOS)->nonQueued()->width(400);
+        $this->addMediaConversion('web')->performOnCollections(self::PHOTOS)->nonQueued()->width(1600);
     }
 }

@@ -42,6 +42,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CompanyAccess $company_access
  * @property bool $company_at_desk
  * @property bool $company_in_portal
+ * @property bool $bookable_online
  * @property CompanyRateMarket $company_market
  * @property int|null $min_rooms The fewest rooms a booking needs to use this plan (FIT/GROUP rates). Null: no limit.
  * @property int|null $max_rooms The most rooms a booking can have to use this plan. Null: no limit.
@@ -79,6 +80,7 @@ class RatePlan extends Model
             'company_access' => CompanyAccess::class,
             'company_at_desk' => 'boolean',
             'company_in_portal' => 'boolean',
+            'bookable_online' => 'boolean',
             'company_market' => CompanyRateMarket::class,
             'min_rooms' => 'integer',
             'max_rooms' => 'integer',
@@ -212,6 +214,26 @@ class RatePlan extends Model
     public function scopeNightly(Builder $query): void
     {
         $query->where('pricing_basis', '<>', PricingBasis::DayUse);
+    }
+
+    /**
+     * Plans that can be sold on the booking website: active, nightly and open to everyone.
+     *
+     * @param  Builder<RatePlan>  $query
+     */
+    public function scopeOfferableOnline(Builder $query): void
+    {
+        $query->active()->nightly()->where('company_access', CompanyAccess::Everyone);
+    }
+
+    /**
+     * Plans guests can book on the booking website now: offerable and switched on.
+     *
+     * @param  Builder<RatePlan>  $query
+     */
+    public function scopeBookableOnline(Builder $query): void
+    {
+        $query->offerableOnline()->where('bookable_online', true);
     }
 
     /**

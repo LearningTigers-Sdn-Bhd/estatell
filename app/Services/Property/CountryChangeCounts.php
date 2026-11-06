@@ -55,7 +55,7 @@ class CountryChangeCounts
 
         return new CountryChangeCountsData(
             taxes: $property->taxes()->count(),
-            paymentMethods: $property->paymentMethods()->where('type', '!=', PaymentMethodType::OldSystem->value)->count(),
+            paymentMethods: $property->paymentMethods()->whereNotIn('type', [PaymentMethodType::OldSystem->value, PaymentMethodType::Online->value])->count(),
             chargeItems: $property->chargeItems()->count(),
             discounts: $property->discounts()->count(),
             prices: $prices,

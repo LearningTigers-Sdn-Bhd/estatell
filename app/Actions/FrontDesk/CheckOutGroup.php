@@ -5,7 +5,7 @@ namespace App\Actions\FrontDesk;
 use App\Actions\CityLedger\SettleToCityLedger;
 use App\Actions\Folio\TransferLines;
 use App\Actions\Payments\RecordPayment;
-use App\Actions\Payments\RefundPayment;
+use App\Actions\Payments\RefundHeldPayment;
 use App\Data\Payments\NewPaymentData;
 use App\Data\Reservations\CheckOutCollectData;
 use App\Enums\FolioStatus;
@@ -32,7 +32,7 @@ class CheckOutGroup
         private CheckOutAndRefund $checkOutAndRefund,
         private TransferLines $transferLines,
         private RecordPayment $recordPayment,
-        private RefundPayment $refundPayment,
+        private RefundHeldPayment $refundHeldPayment,
         private SettleToCityLedger $settleToCityLedger,
         private CurrentBusinessDate $currentBusinessDate,
         private PostPendingNight $postPendingNight,
@@ -45,7 +45,7 @@ class CheckOutGroup
      * Check out the rooms of a group and settle their money in one save, all or nothing. It runs three steps in one
      * transaction. (1) The moves: each Add to Master row, and each Collect row when One payment for all is set, goes
      * through `TransferLines` (to the Master folio or to the paying room's folio), and in the same step the payments
-     * the moved folio holds are refunded oldest first through `RefundPayment`, because a payment never moves; then
+     * the moved folio holds are refunded oldest first through `RefundHeldPayment`, because a payment never moves; then
      * the one payment is recorded on the paying room's folio for the charges moved there. (2) Each row: a CheckedIn
      * room goes through `CheckOutAndRefund` with its collect and refund data, and a CheckedOut, Cancelled or NoShow
      * room only gets its payment, refund or move (`CheckOutUnit` never runs twice) and must end with its folios at 0.
@@ -242,7 +242,7 @@ class CheckOutGroup
         $lines = $this->checkOutSettlement->movableLines($folios);
 
         if ($lines->isEmpty()) {
-            $balanced = ! $folios->contains(fn (Folio $folio): bool => ! BigDecimal::of($this->folioBalance->forFolio($folio))->isZero());
+            $balanced = ! $folios->contains(fn (Folio $folio): bool => ! $this->checkOutSettlement->settledBalance($folio)->isZero());
 
             return ['refusal' => $balanced ? null : CheckOutGroupResult::REFUSAL_NOTHING_TO_MOVE, 'moved' => $none, 'refunded' => $none];
         }
@@ -266,7 +266,7 @@ class CheckOutGroup
 
         foreach ($this->checkOutSettlement->heldPayments($this->checkOutSettlement->folios($unit)) as $payment) {
             $part = $this->checkOutSettlement->refundable($payment);
-            $result = ($this->refundPayment)($actor, $payment, (string) $part->toScale(2), null, $row->idempotencyKey.':'.$payment->id);
+            $result = ($this->refundHeldPayment)($actor, $payment, (string) $part->toScale(2), null, $row->idempotencyKey.':'.$payment->id);
 
             if ($result->isRefused()) {
                 return ['refusal' => (string) $result->refusal, 'moved' => $none, 'refunded' => $none];
@@ -360,7 +360,7 @@ class CheckOutGroup
             $touched = true;
         }
 
-        if ($touched && $this->checkOutSettlement->folios($unit)->contains(fn (Folio $folio): bool => ! BigDecimal::of($this->folioBalance->forFolio($folio))->isZero())) {
+        if ($touched && $this->checkOutSettlement->folios($unit)->contains(fn (Folio $folio): bool => ! $this->checkOutSettlement->settledBalance($folio)->isZero())) {
             return UnitStayResult::REFUSAL_BALANCE_NOT_SETTLED;
         }
 
@@ -401,7 +401,7 @@ class CheckOutGroup
 
             $refundable = $this->checkOutSettlement->refundable($payment);
             $part = $left->isLessThan($refundable) ? $left : $refundable;
-            $result = ($this->refundPayment)($actor, $payment, (string) $part->toScale(2), null, $uuid.':'.$payment->id);
+            $result = ($this->refundHeldPayment)($actor, $payment, (string) $part->toScale(2), null, $uuid.':'.$payment->id);
 
             if ($result->isRefused()) {
                 return (string) $result->refusal;

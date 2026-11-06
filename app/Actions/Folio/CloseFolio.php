@@ -10,6 +10,7 @@ use App\Services\Folio\FolioBalance;
 use App\Services\Folio\IncomingScheduledCharges;
 use App\Services\Folio\InHouseUnits;
 use App\Services\NightAudit\NextDocumentNumber;
+use App\Services\Payments\OnlineRefundLedger;
 use Illuminate\Support\Facades\DB;
 
 class CloseFolio
@@ -19,13 +20,15 @@ class CloseFolio
         private InHouseUnits $inHouseUnits,
         private IncomingScheduledCharges $incomingScheduledCharges,
         private NextDocumentNumber $nextDocumentNumber,
+        private OnlineRefundLedger $onlineRefundLedger,
     ) {}
 
     /**
      * Close an Open folio with a balance of 0. A Master folio is refused while a unit is CheckedIn (`units_in_house`,
      * naming the rooms), before the balance check. Any folio is refused while a live unit still routes unposted
      * Scheduled rows to it (`folio_receives_scheduled_charges`, naming the rooms and dates), or the next night audit
-     * would fail those nights. The folio row is locked first, and every check runs before the first
+     * would fail those nights. A folio with an online refund waiting on Curlec is refused (`online_refund_pending`), because
+     * the webhook must still post on it. The folio row is locked first, and every check runs before the first
      * write, so a refusal writes and logs nothing. Closing changes the status and assigns `invoice_number` once: a
      * folio that was reopened keeps its number. `$issueInvoiceNumber` false (only `CreateOldStay` passes it) closes
      * an empty folio without using a number of the invoice sequence; a later close with lines issues one. Ledger lines are never touched. Permissions are checked by the route.
@@ -50,6 +53,10 @@ class CloseFolio
 
             if ($incoming !== []) {
                 return FolioStatusResult::refused(FolioStatusResult::REFUSAL_RECEIVES_SCHEDULED_CHARGES, $incoming);
+            }
+
+            if ($this->onlineRefundLedger->pendingOnFolio($current)->isPositive()) {
+                return FolioStatusResult::refused(FolioStatusResult::REFUSAL_ONLINE_REFUND_PENDING);
             }
 
             if ($this->folioBalance->forFolio($current) !== '0.00') {

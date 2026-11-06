@@ -12,7 +12,7 @@ payments    id, property_id, folio_id, payment_method_id, amount,
             refund_of_id (nullable), refund_reason (nullable), voided (bool),
             receipt_number (nullable),
             folio_line_id, surcharge_line_id (nullable),
-            received_by, received_at, timestamps
+            received_by (nullable: a booking engine payment has none), received_at, timestamps
             checks: amount > 0; a refund has no receipt number;
             only a refund has a reason or is voided;
             unique (property_id, receipt_number); unique folio_line_id
@@ -26,7 +26,7 @@ payments    id, property_id, folio_id, payment_method_id, amount,
 ## Enums
 
 - `PaymentPurpose`: Advance, Settlement, SecurityDeposit.
-- `PaymentStatus`: Pending, Completed, Failed. **Only Completed is created for now.** Pending, Failed and `gateway_payload` (jsonb) wait for an online gateway. The night audit's pending-payments blocker has nothing to block until then.
+- `PaymentStatus`: Pending, Completed, Failed. **Only Completed is created.** The [online gateway](../29-booking-engine/04-payment.md#data-model) tracks attempts in `gateway_payments` and writes a Completed row once the money is confirmed, because a payment row is never updated. The night audit's pending-payments blocker has nothing to block.
 
 ## Actions
 
@@ -85,6 +85,8 @@ payments    id, property_id, folio_id, payment_method_id, amount,
 - A refund gives money back from the collected total. **The surcharge is not refunded.** It is a charge on the folio, and staff reverse it by hand with `ReverseLine` when the fee must go too.
 - Key: `refund:{uuid}`, from the form's UUID. A repeated key returns the existing refund. A refund has no receipt number.
 - Logs `payment.refunded` on the reservation (`payment.voided` for a void). The log carries the method and the reason.
+
+An Online payment refunds only through Curlec: staff refunds go through `RefundHeldPayment`, and the line posts when Curlec confirms. See [Rules for Online payments](../29-booking-engine/05-cancel-and-refund.md#rules-for-online-payments).
 
 #### Refund to another method
 
@@ -226,7 +228,7 @@ A table-based Blade PDF on A4 portrait (dompdf has no flex or grid, see [design 
 | Received from | The folio's payer guest, or its payer company, or the booker when it has neither; the reservation reference and the folio number |
 | Payment       | Method, reference, purpose                                                                                                       |
 | Amounts       | Amount paid on the bill, Surcharge and Tax on surcharge (only with a fee), **Total collected**, read from the ledger             |
-| Footer        | Received by (the staff member's name)                                                                                            |
+| Footer        | Received by (the staff member's name, or Booking Engine)                                                                         |
 
 Money shows as `MYR 105.40` with the property currency.
 
@@ -272,7 +274,7 @@ Decisions made at build time (checklist item 21):
 
 ## Not in this item
 
-The Stay View Record payment button ([Stay View](../18-front-desk/03-stay-view.md)), the Cards and List money strip, online gateways with Pending payments.
+The Stay View Record payment button ([Stay View](../18-front-desk/03-stay-view.md)), the Cards and List money strip, and [online payments](../29-booking-engine/04-payment.md) from the booking engine.
 
 ## Lessons from wastays
 

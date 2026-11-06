@@ -10,7 +10,7 @@ use App\Enums\PaymentPurpose;
 use App\Enums\PaymentStatus;
 use App\Models\Payment;
 use App\Models\ReservationUnit;
-use App\Models\Tax;
+use App\Services\Catalogues\CheckInTaxRule;
 use App\Services\Folio\CollectedTaxPayer;
 use App\Services\Folio\FolioRouter;
 use App\Services\Folio\ScheduledFolioRows;
@@ -28,13 +28,14 @@ class CheckInCollection
         private ScheduledFolioRows $scheduledRows,
         private FolioRouter $folioRouter,
         private CollectedTaxPayer $collectedTaxPayer,
+        private CheckInTaxRule $checkInTaxRule,
     ) {}
 
     public function for(ReservationUnit $unit): CheckInCollectionData
     {
         $reservation = $unit->reservation()->with('booker')->firstOrFail();
         $property = $reservation->property()->with('settings')->firstOrFail();
-        $flagged = Tax::query()->where('property_id', $property->id)->where('enabled', true)->where('collect_at_check_in', true)->orderBy('id')->get();
+        $flagged = $this->checkInTaxRule->flaggedTaxes($property);
         $master = $this->folioRouter->roomChargesMasterFolio($unit);
         $hidden = $master !== null && ! $this->collectedTaxPayer->guestPaysOnMaster($unit, $master);
         $taxes = [];
@@ -75,11 +76,11 @@ class CheckInCollection
 
         foreach ($blocks as $block) {
             foreach ($block['rows'] as $row) {
-                if (preg_match('/^night:\d+:tax:(\d+)$/', $row->key, $matches) !== 1 || ! in_array((int) $matches[1], $taxIds, true)) {
-                    continue;
-                }
+                $taxId = $this->checkInTaxRule->deskTaxId($row->key, $taxIds);
 
-                $sums[(int) $matches[1]] = ($sums[(int) $matches[1]] ?? BigDecimal::zero())->plus($row->amount);
+                if ($taxId !== null) {
+                    $sums[$taxId] = ($sums[$taxId] ?? BigDecimal::zero())->plus($row->amount);
+                }
             }
         }
 

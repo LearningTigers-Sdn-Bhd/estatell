@@ -11,6 +11,7 @@ enum PaymentMethodType: string
     case OtaCollected = 'ota_collected';
     case DirectBill = 'direct_bill';
     case OldSystem = 'old_system';
+    case Online = 'online';
 
     public function label(): string
     {
@@ -22,6 +23,7 @@ enum PaymentMethodType: string
             self::OtaCollected => __('OTA collected'),
             self::DirectBill => __('City ledger'),
             self::OldSystem => __('Old system'),
+            self::Online => __('Online'),
         };
     }
 
@@ -45,6 +47,7 @@ enum PaymentMethodType: string
             self::OtaCollected => TransactionCategory::OtaCollected,
             self::DirectBill => TransactionCategory::DirectBill,
             self::OldSystem => TransactionCategory::OldSystem,
+            self::Online => TransactionCategory::Online,
         };
     }
 
@@ -53,12 +56,12 @@ enum PaymentMethodType: string
     {
         return match ($this) {
             self::Card, self::BankTransfer, self::EWallet => true,
-            self::Cash, self::OtaCollected, self::DirectBill, self::OldSystem => false,
+            self::Cash, self::OtaCollected, self::DirectBill, self::OldSystem, self::Online => false,
         };
     }
 
     /**
-     * The types staff may add. OTA collected, City ledger and Old system stay system-only.
+     * The types staff may add. OTA collected, City ledger, Old system and Online stay system-only.
      *
      * @return list<self>
      */

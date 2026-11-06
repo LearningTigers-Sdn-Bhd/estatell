@@ -13,8 +13,9 @@ class SeedBookingSources
 {
     /**
      * Phone, WhatsApp and Email are created only when the property has no booking sources yet, so a source the owner
-     * deleted does not come back. The two system rows (Company / Travel agent, Walk-in) are restored by type every time.
-     * Existing rows keep every property-owned value. The names match the backfill migration.
+     * deleted does not come back. The system rows (Company / Travel agent, Walk-in, Booking Engine) are restored by type
+     * every time. Existing rows keep every property-owned value. The names match the backfill migrations. A property whose
+     * own source already has the name Booking Engine keeps it, and the system row is named "Booking Engine (Online)".
      */
     public function __invoke(Property $property): void
     {
@@ -31,7 +32,15 @@ class SeedBookingSources
 
             $this->restoreSystem($property, 'Company / Travel agent', BookingSourceType::Company, 1000, BookingSourceIcon::BriefcaseBusiness, SwatchColor::Amber);
             $this->restoreSystem($property, 'Walk-in', BookingSourceType::WalkIn, 1001, BookingSourceIcon::Footprints, SwatchColor::Teal);
+            $this->restoreSystem($property, $this->bookingEngineName($property), BookingSourceType::BookingEngine, 1002, BookingSourceIcon::Globe, SwatchColor::Violet);
         });
+    }
+
+    private function bookingEngineName(Property $property): string
+    {
+        $taken = $property->bookingSources()->where('is_system', false)->whereRaw('lower(name) = ?', ['booking engine'])->exists();
+
+        return $taken ? 'Booking Engine (Online)' : 'Booking Engine';
     }
 
     private function restoreSystem(Property $property, string $name, BookingSourceType $type, int $sortOrder, BookingSourceIcon $icon, SwatchColor $color): void

@@ -60,7 +60,7 @@ class AddDayUseUnit
      *
      * @throws ReservationRefused when an add-on or the database refuses after the unit was written
      */
-    public function __invoke(User $actor, Reservation $reservation, NewUnitData $data, RoomType $roomType, RatePlan $ratePlan, int $lineIndex, bool $fromChannel, Closure $mayOverride, bool $allowPastArrival = false): ReservationResult
+    public function __invoke(?User $actor, Reservation $reservation, NewUnitData $data, RoomType $roomType, RatePlan $ratePlan, int $lineIndex, bool $fromChannel, Closure $mayOverride, bool $allowPastArrival = false): ReservationResult
     {
         $refuse = fn (string $code, $date = null): ReservationResult => ReservationResult::refused($code, $lineIndex, $date);
 
@@ -233,7 +233,7 @@ class AddDayUseUnit
     /**
      * @param  array{reason: string, violations: list<string>}|null  $restrictionOverride
      */
-    private function log(User $actor, Reservation $reservation, ReservationUnit $unit, Room $room, int $hours, string $startsAt, string $endsAt, ?array $restrictionOverride, ?Money $overrideTotal, ?string $overrideReason): void
+    private function log(?User $actor, Reservation $reservation, ReservationUnit $unit, Room $room, int $hours, string $startsAt, string $endsAt, ?array $restrictionOverride, ?Money $overrideTotal, ?string $overrideReason): void
     {
         $properties = [
             'property_id' => $reservation->property_id,

@@ -17,6 +17,7 @@ It covers the PMS core:
 - Guest requests during a stay: housekeeping, maintenance and complaints.
 - An optional channel manager (Channex) behind a feature flag.
 - Optional boat departures, fares, trips and manifest for island properties, behind a feature flag.
+- An optional booking engine, so guests book and pay online, behind a feature flag.
 
 ## Background
 
@@ -191,6 +192,9 @@ One word per idea, in docs, code and UI.
 | City ledger       | Money owed to the property by companies. UI name; tables keep `ar_*`                                     | receivables (in UI)                        |
 | Partner           | A reseller who brings properties and helps them onboard. Sees only their own properties, at `/partner`   | super agent, agent, reseller (in code)     |
 | Property code     | `ES1142`: a 2-letter prefix (`ES` direct, or the partner's) and a number per prefix                      | unique id, hotel prefix                    |
+| Booking engine    | The feature that lets guests book and pay online, through the API                                        |                                            |
+| Microsite         | The property's booking website at `booking.estatell.com/{slug}`, a separate app                          | booking site, mini site                    |
+| Hold              | A room kept for 20 minutes while a guest pays                                                            | quote, reservation (for this)              |
 
 "Travel agent" appears only as a company type. "Portal" appears in UI labels and in `portal_*` columns.
 
@@ -230,3 +234,4 @@ The build plan, as one commit per item, is in [checklist.md](checklist.md).
 | 26  | [Accounting](26-accounting/)         | Daily journal of each closed business date pushed to the accounting software (feature flag)               |
 | 27  | [Door locks](27-door-locks/)         | TTLock PINs per stay: generated or custom, issued at check-in, removed at check-out (feature flag)        |
 | 28  | [API access](28-api-access/)         | Sanctum API tokens, kiosk pairing, the first kiosk check-in calls, idempotency and the `/api` error shape |
+| 29  | [Booking engine](29-booking-engine/) | Guests book and pay online, on a microsite or through the API (feature flag, planned)                     |

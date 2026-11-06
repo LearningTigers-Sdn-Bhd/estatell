@@ -215,7 +215,7 @@ class GroupCheckOutPreview
             ->get()
             ->sortBy(fn (Folio $folio): int => $folio->type === FolioType::Master ? 0 : 1)
             ->map(function (Folio $folio) use ($reservation, $property, $canRecord, $canSettle): ?GroupCheckOutFolioData {
-                $balance = $this->folioBalance->forFolio($folio);
+                $balance = (string) $this->checkOutSettlement->settledBalance($folio)->toScale(2);
 
                 if (BigDecimal::of($balance)->isZero()) {
                     return null;
@@ -270,7 +270,7 @@ class GroupCheckOutPreview
         $folios = $this->checkOutSettlement->folios($unit);
         $pendingLines = $kind === self::KIND_READY ? $this->pendingNightQuote->lines($unit, $businessDate) : [];
         $pending = $this->pendingNightQuote->total($pendingLines);
-        $balance = $folios->reduce(fn (BigDecimal $sum, Folio $folio): BigDecimal => $sum->plus($this->folioBalance->forFolio($folio)), $pending);
+        $balance = $folios->reduce(fn (BigDecimal $sum, Folio $folio): BigDecimal => $sum->plus($this->checkOutSettlement->settledBalance($folio)), $pending);
         $hasMoney = ! $balance->isZero();
 
         if (! $hasMoney && ($kind === self::KIND_OUT || $kind === self::KIND_CANCELLED)) {
@@ -469,7 +469,7 @@ class GroupCheckOutPreview
     private function methods(Reservation $reservation): array
     {
         $data = array_values(PaymentMethod::query()->where('property_id', $reservation->property_id)->active()
-            ->whereNotIn('type', [PaymentMethodType::OtaCollected, PaymentMethodType::DirectBill])
+            ->whereNotIn('type', [PaymentMethodType::OtaCollected, PaymentMethodType::DirectBill, PaymentMethodType::Online])
             ->ordered()->get()
             ->map(PaymentMethodOptionData::fromModel(...))->all());
 

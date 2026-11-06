@@ -13,7 +13,7 @@ class RecordCreditOverride
      * The caller runs it inside the transaction of the action that went ahead, and only when the check refused and
      * the reason is not blank. See docs/15-city-ledger/04-credit-control-and-reports.md#credit-check.
      */
-    public function __invoke(User $actor, Company $company, CreditCheckResult $check, string $reason, string $action): void
+    public function __invoke(?User $actor, Company $company, CreditCheckResult $check, string $reason, string $action): void
     {
         activity()
             ->performedOn($company)

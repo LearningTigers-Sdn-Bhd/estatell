@@ -85,6 +85,12 @@ function UnitPolicyFeeForm({
 
     const isFree = preview?.fee === null || Number(preview?.fee) === 0;
     const showWaive = canWaiveFees && preview !== null && !isFree;
+    const onlineRefund =
+        kind === 'cancel' && preview !== null
+            ? showWaive && data.do_not_charge
+                ? preview.onlineRefundWaived
+                : preview.onlineRefund
+            : '0.00';
 
     const submit = () => {
         form.transform((values) => ({
@@ -268,6 +274,19 @@ function UnitPolicyFeeForm({
                                 </FieldContent>
                             </Field>
                         </FieldLabel>
+                    )}
+                    {Number(onlineRefund) > 0 && (
+                        <div className="flex justify-between gap-4 text-sm">
+                            <span className="text-muted-foreground">
+                                Goes back through Curlec automatically
+                            </span>
+                            <span className="font-medium">
+                                <MoneyText
+                                    amount={onlineRefund}
+                                    currency={currency}
+                                />
+                            </span>
+                        </div>
                     )}
                     <p className="text-sm text-muted-foreground">{text.done}</p>
                 </>
