@@ -67,11 +67,14 @@ export function SettingsSelect({
     disabled,
     description,
     allLabel,
+    onValueChange,
 }: {
     name: string;
     label: string;
     value: string;
     options: EnumOption[];
+    /** Called with the picked value, for a field that changes another field. The select stays uncontrolled. */
+    onValueChange?: (value: string) => void;
     /** Label for the empty value, for example "Not set". */
     allLabel?: string;
     error?: string;
@@ -86,6 +89,7 @@ export function SettingsSelect({
                 name={name}
                 options={options}
                 defaultValue={value}
+                onValueChange={onValueChange}
                 allLabel={allLabel}
                 disabled={disabled}
                 aria-invalid={!!error}

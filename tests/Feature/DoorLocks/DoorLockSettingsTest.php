@@ -254,3 +254,16 @@ it('keeps staff without settings.manage out', function () {
 
     $this->actingAs($staff)->get(route('settings.door-locks.edit', $property))->assertForbidden();
 });
+
+it('saves the chosen-by-estatell PIN mode with a blank password', function () {
+    ['owner' => $owner, 'property' => $property, 'connection' => $connection] = doorLockSetup();
+
+    $this->actingAs($owner)->put(route('settings.door-locks.update', $property), [
+        'ttlock_username' => $connection->ttlock_username,
+        'ttlock_password' => '',
+        'passcode_mode' => 'custom',
+        'enabled' => true,
+    ])->assertSessionHasNoErrors();
+
+    expect($connection->refresh()->passcode_mode->value)->toBe('custom');
+});

@@ -1,17 +1,23 @@
 <?php
 
+use App\Actions\DoorLocks\IssueDoorPasscode;
 use App\Actions\DoorLocks\SyncStayPasscodes;
+use App\Enums\PasscodeKind;
 use App\Enums\PasscodeStatus;
 use App\Enums\UnitStatus;
 use App\Events\StayCheckedIn;
 use App\Events\StayCheckedOut;
 use App\Events\StayDatesChanged;
+use App\Jobs\ExpireDoorCredentials;
 use App\Jobs\SyncStayPasscodesJob;
+use App\Models\DoorCard;
 use App\Models\DoorLock;
 use App\Models\DoorPasscode;
 use App\Models\Room;
 use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
+use Illuminate\Http\Client\Factory;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 
 require_once __DIR__.'/../Support/DoorLockSetup.php';
@@ -203,4 +209,135 @@ it('clears the revoke note when the same stay gets its PIN again', function () {
     expect($passcode->status)->toBe(PasscodeStatus::Active)
         ->and($passcode->revoke_note)->toBeNull()
         ->and($passcode->revoked_at)->toBeNull();
+});
+
+it('marks active PINs and cards past their end as expired and leaves the rest', function () {
+    ['lock' => $lock] = doorLockSetup();
+    $past = DoorPasscode::factory()->create(['door_lock_id' => $lock->id, 'starts_at' => now()->subHour(), 'ends_at' => now()->subMinute()]);
+    $live = DoorPasscode::factory()->create(['door_lock_id' => $lock->id, 'ends_at' => now()->addHour()]);
+    $revoked = DoorPasscode::factory()->create(['door_lock_id' => $lock->id, 'starts_at' => now()->subHour(), 'ends_at' => now()->subMinute(), 'status' => PasscodeStatus::Revoked]);
+    $card = DoorCard::factory()->create(['door_lock_id' => $lock->id, 'starts_at' => now()->subHour(), 'ends_at' => now()->subMinute()]);
+
+    app()->call([new ExpireDoorCredentials, 'handle']);
+
+    expect($past->refresh()->status)->toBe(PasscodeStatus::Expired)
+        ->and($live->refresh()->status)->toBe(PasscodeStatus::Active)
+        ->and($revoked->refresh()->status)->toBe(PasscodeStatus::Revoked)
+        ->and($card->refresh()->status)->toBe(PasscodeStatus::Expired);
+});
+
+it('makes a random PIN of the configured length', function () {
+    ['property' => $property, 'room' => $room, 'connection' => $connection] = doorLockSetup(gateway: true);
+    $connection->update(['passcode_mode' => 'custom', 'passcode_length' => 8]);
+    fakeTtlock();
+
+    app(SyncStayPasscodes::class)(doorLockStay($property, $room));
+
+    expect(DoorPasscode::query()->sole()->code)->toMatch('/^[1-9]\d{7}$/');
+});
+
+it('makes a random PIN again once when TTLock says it already exists', function () {
+    ['lock' => $lock] = doorLockSetup(gateway: true);
+    Http::fake([
+        '*/v3/keyboardPwd/add' => Http::sequence()
+            ->push(['errcode' => -3007, 'errmsg' => 'exists'])
+            ->push(['keyboardPwdId' => 9002]),
+    ]);
+
+    $result = app(IssueDoorPasscode::class)($lock, PasscodeKind::Custom, 'Stay', now(), now()->addDay(), 'k1');
+
+    expect($result->passcode->status)->toBe(PasscodeStatus::Active)
+        ->and(ttlockCalls('/v3/keyboardPwd/add'))->toBe(2);
+});
+
+it('keeps a PIN staff typed and says it is already used', function () {
+    ['lock' => $lock] = doorLockSetup(gateway: true);
+    Http::fake(['*/v3/keyboardPwd/add' => Http::response(['errcode' => -3007, 'errmsg' => 'exists'])]);
+
+    $result = app(IssueDoorPasscode::class)($lock, PasscodeKind::Custom, 'Stay', now(), now()->addDay(), 'k2', '123456');
+
+    expect($result->passcode->status)->toBe(PasscodeStatus::Failed)
+        ->and($result->passcode->error)->toContain('already used')
+        ->and(ttlockCalls('/v3/keyboardPwd/add'))->toBe(1);
+});
+
+function replaceUrl($unit, $passcode): string
+{
+    return route('reservations.units.door-pins.replace', [
+        'property' => $unit->property,
+        'reservation' => $unit->reservation_id,
+        'unit' => $unit->id,
+        'doorPasscode' => $passcode->id,
+    ]);
+}
+
+it('lets staff replace the stay PIN with one they typed', function () {
+    ['owner' => $owner, 'property' => $property, 'room' => $room] = doorLockSetup(gateway: true);
+    $unit = doorLockStay($property, $room);
+    fakeTtlock();
+    app(SyncStayPasscodes::class)($unit);
+    $old = DoorPasscode::query()->sole();
+
+    $this->actingAs($owner)->post(replaceUrl($unit, $old), ['code' => '246810'])->assertRedirect();
+
+    expect($old->refresh()->status)->toBe(PasscodeStatus::Revoked)
+        ->and(DoorPasscode::query()->where('status', PasscodeStatus::Active)->sole()->code)->toBe('246810');
+    Http::assertSent(fn ($request) => str_contains($request->url(), '/v3/keyboardPwd/add') && $request['keyboardPwd'] === '246810');
+});
+
+it('keeps the current PIN when the typed one is refused', function () {
+    ['owner' => $owner, 'property' => $property, 'room' => $room] = doorLockSetup(gateway: true);
+    $unit = doorLockStay($property, $room);
+    fakeTtlock();
+    app(SyncStayPasscodes::class)($unit);
+    $old = DoorPasscode::query()->sole();
+    Http::swap(new Factory);
+    Http::fake(['*/v3/keyboardPwd/add' => Http::response(['errcode' => -3007, 'errmsg' => 'exists'])]);
+
+    $this->actingAs($owner)->post(replaceUrl($unit, $old), ['code' => '246810'])->assertRedirect();
+
+    expect($old->refresh()->status)->toBe(PasscodeStatus::Active)
+        ->and(ttlockCalls('/v3/keyboardPwd/delete'))->toBe(0);
+});
+
+it('refuses a typed PIN that is not 4 to 9 digits', function () {
+    ['owner' => $owner, 'property' => $property, 'room' => $room] = doorLockSetup(gateway: true);
+    $unit = doorLockStay($property, $room);
+    fakeTtlock();
+    app(SyncStayPasscodes::class)($unit);
+
+    $this->actingAs($owner)->post(replaceUrl($unit, DoorPasscode::query()->sole()), ['code' => '12'])->assertSessionHasErrors('code');
+});
+
+it('deletes an expired PIN and card from a lock with a gateway, and expires them even when TTLock refuses', function () {
+    ['lock' => $lock] = doorLockSetup(gateway: true);
+    $lock->update(['ttlock_lock_id' => 555]);
+    $passcode = DoorPasscode::factory()->create(['door_lock_id' => $lock->id, 'starts_at' => now()->subHour(), 'ends_at' => now()->subMinute()]);
+    $card = DoorCard::factory()->create(['door_lock_id' => $lock->id, 'starts_at' => now()->subHour(), 'ends_at' => now()->subMinute()]);
+    Http::fake(['*/v3/keyboardPwd/delete' => Http::response(['errcode' => 0]), '*/v3/identityCard/delete' => Http::response(['errcode' => -1, 'errmsg' => 'no'])]);
+
+    app()->call([new ExpireDoorCredentials, 'handle']);
+
+    expect(ttlockCalls('/v3/keyboardPwd/delete'))->toBe(1)
+        ->and(ttlockCalls('/v3/identityCard/delete'))->toBe(1)
+        ->and($passcode->refresh()->status)->toBe(PasscodeStatus::Expired)
+        ->and($card->refresh()->status)->toBe(PasscodeStatus::Expired);
+});
+
+it('does not call TTLock for an expired PIN on a lock without a gateway', function () {
+    ['lock' => $lock] = doorLockSetup(gateway: false);
+    DoorPasscode::factory()->create(['door_lock_id' => $lock->id, 'starts_at' => now()->subHour(), 'ends_at' => now()->subMinute()]);
+    Http::fake();
+
+    app()->call([new ExpireDoorCredentials, 'handle']);
+
+    expect(ttlockCalls('/v3/keyboardPwd/delete'))->toBe(0);
+});
+
+it('answers 404 to the staff PIN route while Door locks is off', function () {
+    ['owner' => $owner, 'property' => $property, 'room' => $room] = doorLockSetup(gateway: true, feature: false);
+    $unit = doorLockStay($property, $room);
+    $passcode = DoorPasscode::factory()->create(['door_lock_id' => DoorLock::query()->where('property_id', $property->id)->value('id'), 'reservation_unit_id' => $unit->id]);
+
+    $this->actingAs($owner)->post(replaceUrl($unit, $passcode), ['code' => '246810'])->assertNotFound();
 });

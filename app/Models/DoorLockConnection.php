@@ -22,12 +22,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property CarbonImmutable|null $token_expires_at
  * @property bool $enabled
  * @property PasscodeMode $passcode_mode
+ * @property int $passcode_length
  * @property CarbonImmutable|null $last_tested_at
  * @property string|null $last_error
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['ttlock_username', 'access_token', 'refresh_token', 'token_expires_at', 'enabled', 'passcode_mode', 'last_tested_at', 'last_error'])]
+#[Fillable(['ttlock_username', 'access_token', 'refresh_token', 'token_expires_at', 'enabled', 'passcode_mode', 'passcode_length', 'last_tested_at', 'last_error'])]
 class DoorLockConnection extends Model
 {
     /** @use HasFactory<DoorLockConnectionFactory> */
@@ -44,6 +45,7 @@ class DoorLockConnection extends Model
             'token_expires_at' => 'immutable_datetime',
             'enabled' => 'boolean',
             'passcode_mode' => PasscodeMode::class,
+            'passcode_length' => 'integer',
             'last_tested_at' => 'immutable_datetime',
         ];
     }

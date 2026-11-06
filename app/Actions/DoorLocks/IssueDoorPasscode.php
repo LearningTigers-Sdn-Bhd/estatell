@@ -38,6 +38,7 @@ class IssueDoorPasscode
         ?string $code = null,
         ?ReservationUnit $unit = null,
         ?User $actor = null,
+        int $length = 6,
     ): DoorLockResult {
         $connection = $lock->property->doorLockConnection;
 
@@ -49,8 +50,10 @@ class IssueDoorPasscode
             return DoorLockResult::refused(DoorLockResult::REFUSAL_GATEWAY_REQUIRED);
         }
 
+        $chosen = $code !== null;
+
         if ($kind === PasscodeKind::Custom) {
-            $code ??= (string) random_int(100000, 999999);
+            $code ??= $this->randomCode($length);
 
             if (preg_match('/^\d{4,9}$/', $code) !== 1) {
                 return DoorLockResult::refused(DoorLockResult::REFUSAL_INVALID_CODE);
@@ -95,7 +98,7 @@ class IssueDoorPasscode
                 $made = $this->api->generatedPasscode($token, $lock->ttlock_lock_id, $label, $startsAt, $endsAt);
                 $passcode->forceFill(['code' => $made['code'], 'ttlock_passcode_id' => $made['id']]);
             } else {
-                $passcode->ttlock_passcode_id = $this->api->customPasscode($token, $lock->ttlock_lock_id, (string) $code, $label, $startsAt, $endsAt);
+                $passcode->ttlock_passcode_id = $this->sendCustom($passcode, $token, $lock, $chosen, $length, $label, $startsAt, $endsAt);
             }
 
             $passcode->forceFill(['status' => PasscodeStatus::Active, 'error' => null])->save();
@@ -113,5 +116,28 @@ class IssueDoorPasscode
             ->log('Door PIN issued');
 
         return DoorLockResult::done($passcode);
+    }
+
+    /**
+     * A random PIN can clash with one already on the lock: it is made again once. A PIN staff typed is never swapped.
+     */
+    private function sendCustom(DoorPasscode $passcode, string $token, DoorLock $lock, bool $chosen, int $length, string $label, CarbonImmutable $startsAt, CarbonImmutable $endsAt): int
+    {
+        try {
+            return $this->api->customPasscode($token, $lock->ttlock_lock_id, (string) $passcode->code, $label, $startsAt, $endsAt);
+        } catch (TtlockException $exception) {
+            if ($chosen || ! $exception->duplicate) {
+                throw $exception;
+            }
+
+            $passcode->forceFill(['code' => $this->randomCode($length)])->save();
+
+            return $this->api->customPasscode($token, $lock->ttlock_lock_id, (string) $passcode->code, $label, $startsAt, $endsAt);
+        }
+    }
+
+    private function randomCode(int $length): string
+    {
+        return (string) random_int(10 ** ($length - 1), 10 ** $length - 1);
     }
 }

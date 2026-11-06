@@ -20,6 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { MoneyText } from '@/components/pms/money-text';
 import { ChangeBoatTripDialog } from '@/components/pms/reservations/change-boat-trip-dialog';
 import { ChangeNightPriceDialog } from '@/components/pms/reservations/change-night-price-dialog';
+import { SetDoorPinDialog } from '@/components/pms/reservations/set-door-pin-dialog';
 import { UnitActionsMenu } from '@/components/pms/reservations/unit-actions-menu';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Button } from '@/components/ui/button';
@@ -104,8 +105,18 @@ const PIN_TIME: Intl.DateTimeFormatOptions = {
 /**
  * The door PINs of the stay, so staff can read one out at check-in. Shown only when a lock is linked to the unit's room.
  */
-function DoorPins({ pins }: { pins: App.Data.DoorLocks.UnitDoorPinsData }) {
+function DoorPins({
+    pins,
+    reservationId,
+    unitId,
+}: {
+    pins: App.Data.DoorLocks.UnitDoorPinsData;
+    reservationId: number;
+    unitId: number;
+}) {
     const [copiedText, copy] = useClipboard();
+    const [setting, setSetting] =
+        useState<App.Data.DoorLocks.DoorPasscodeData | null>(null);
 
     return (
         <Detail icon={KeyRound} label="Door PIN">
@@ -138,6 +149,15 @@ function DoorPins({ pins }: { pins: App.Data.DoorLocks.UnitDoorPinsData }) {
                             </Button>
                         )}
                         <StatusBadge status={passcode.status} />
+                        {passcode.canReplace && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setSetting(passcode)}
+                            >
+                                Set PIN
+                            </Button>
+                        )}
                         <span className="text-muted-foreground">
                             {passcode.lockName} ·{' '}
                             {new Date(passcode.startsAt).toLocaleString(
@@ -169,6 +189,15 @@ function DoorPins({ pins }: { pins: App.Data.DoorLocks.UnitDoorPinsData }) {
                     </span>
                 ))}
             </div>
+            {setting !== null && (
+                <SetDoorPinDialog
+                    open
+                    onOpenChange={(open) => !open && setSetting(null)}
+                    reservationId={reservationId}
+                    unitId={unitId}
+                    passcode={setting}
+                />
+            )}
         </Detail>
     );
 }
@@ -388,7 +417,13 @@ export function UnitsTab({
                         {guestsText(unit)}
                     </Detail>
                 </div>
-                {doorPins !== null && <DoorPins pins={doorPins} />}
+                {doorPins !== null && (
+                    <DoorPins
+                        pins={doorPins}
+                        reservationId={reservationId}
+                        unitId={unit.id}
+                    />
+                )}
                 <Detail icon={User} label="Primary">
                     {unit.primaryGuest === null ? (
                         <span className="text-muted-foreground">

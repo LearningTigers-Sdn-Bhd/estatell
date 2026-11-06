@@ -788,6 +788,7 @@ ttlockUsername: string,
 signedIn: boolean,
 enabled: boolean,
 passcodeMode: string,
+passcodeLength: number,
 lastTestedAt: string | null,
 lastError: string | null,
 };
@@ -813,6 +814,7 @@ error: string | null,
 revokeNote: string | null,
 canRevoke: boolean,
 canRetry: boolean,
+canReplace: boolean,
 };
 export type LockWithoutPinData = {
 name: string,

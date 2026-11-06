@@ -56,7 +56,7 @@ class SyncStayPasscodes
                 $key .= ':'.$endsAt->getTimestamp();
             }
 
-            ($this->issueDoorPasscode)($lock, $kind, $label, $startsAt, $endsAt, $key, unit: $unit);
+            ($this->issueDoorPasscode)($lock, $kind, $label, $startsAt, $endsAt, $key, unit: $unit, length: $connection->passcode_length);
         }
 
         DoorPasscode::query()

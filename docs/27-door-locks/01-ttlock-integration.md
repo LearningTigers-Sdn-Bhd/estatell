@@ -60,7 +60,7 @@ A gateway is a small TTLock device that connects a Bluetooth lock to the interne
 
 ```
 door_lock_connections   id, property_id (unique), ttlock_username, access_token (encrypted), refresh_token (encrypted),
-                        token_expires_at, enabled (bool), passcode_mode (PasscodeMode), last_tested_at, last_error, timestamps
+                        token_expires_at, enabled (bool), passcode_mode (PasscodeMode), passcode_length (4 to 9, default 6), last_tested_at, last_error, timestamps
 
 door_locks              id, property_id, room_id (nullable), ttlock_lock_id, name, battery_percent (nullable),
                         has_gateway (bool), synced_at, timestamps
@@ -79,9 +79,17 @@ door_passcodes          id, property_id, door_lock_id, reservation_unit_id (null
 
 ## Enums
 
-- `PasscodeMode`: Generated, Custom. The default for automatic PINs. Custom falls back to Generated on a lock without a gateway.
+- `PasscodeMode`: Generated (shown as "Lock-generated"), Custom (shown as "Random PIN via gateway"). The default for automatic PINs. Custom falls back to Generated on a lock without a gateway.
 - `PasscodeKind`: Generated, Custom.
 - `PasscodeStatus`: Pending, Active, Failed, Revoked, Expired. `canTransitionTo()` allows Pending to Active or Failed, Failed to Pending, Active to Revoked or Expired.
+
+## PIN length and staff PIN
+
+- `passcode_length` (4 to 9, recommended 6) is the length of the random PIN estatell sets in Custom mode. A Generated PIN is made by TTLock (`keyboardPwd/get`, which has no length parameter), so the settings form disables the length in that mode and the stored value is kept.
+- `IssueDoorPasscode` makes the random PIN with the length. If TTLock says the PIN already exists on the lock (`errcode` -3007, from the TTLock docs, not yet seen on a real lock) it makes a new random PIN once. A PIN staff typed is never swapped: it fails with "That PIN is already used on this lock. Pick another."
+- `ReplaceStayPasscode`: on a checked-in unit, staff set a PIN of their own (4 to 9 digits, gateway only). The new PIN is issued first, so a refusal leaves the current PIN as it was. Then every other live PIN of the unit on that lock is revoked, so the guest never has two. The same code as the current PIN changes nothing. The Door PIN line of the reservation page shows a **Set PIN** button on an Active PIN with `canReplace`.
+- `ExpireDoorCredentials` (scheduled every five minutes) sets Active PINs and cards past `ends_at` to Expired. The lock already refuses them. On a lock with a gateway it also deletes them from the lock once, so the lock memory does not fill up. A failed delete is not retried: the row is Expired anyway and the dead PIN stays on the lock until it is deleted by hand. Add a `removed_from_lock_at` column and a retry if that fills a lock.
+- The staff PIN route also sits behind the `door-locks` feature middleware, like the settings routes.
 
 ## Validity window
 
@@ -146,7 +154,8 @@ door_cards   id, property_id, door_lock_id, reservation_unit_id (nullable), card
 - `TestDoorLockConnection`: reads the lock list and saves `last_tested_at` or `last_error`.
 - `SyncDoorLocks`: upserts the lock list. Keeps room links. A lock that vanishes from TTLock is kept, with an old `synced_at`.
 - `LinkDoorLock`: links or unlinks a room. Refuses a room of another property.
-- `IssueDoorPasscode`: one verb for both kinds. A custom PIN on a lock without a gateway returns a refusal.
+- `IssueDoorPasscode`: one verb for both kinds. A custom PIN on a lock without a gateway returns a refusal. Takes the PIN length for a random custom PIN.
+- `ReplaceStayPasscode`: staff set a PIN for a checked-in stay (see PIN length and staff PIN).
 - `RevokeDoorPasscode`: deletes through the gateway. Without one it marks the PIN revoked and returns a warning with a Delete PIN to type on the keypad.
 - `UnlockDoor`, `AdjustLockClock`: remote unlock and clock fix, gateway only.
 - `IssueStayPasscodeJob`, `RevokeStayPasscodeJob`: unique by unit, three tries. An expected failure is saved on the row as Failed.
@@ -172,8 +181,8 @@ The Units tab of a reservation shows a **Door PIN** line on the unit panel (`Uni
 
 ## Permissions and routes
 
-`settings.manage` behind the feature gate. Routes are under `/p/{code}/settings/door-locks`: `edit`, `locks`, `passcodes`, `update`, `sync`, `test`, `locks/{doorLock}/link`, `passcodes` (store), `passcodes/{doorPasscode}/revoke`, `passcodes/{doorPasscode}/retry`, `locks/{doorLock}/unlock`, `locks/{doorLock}/clock`.
+`settings.manage` behind the feature gate. Routes are under `/p/{code}/settings/door-locks`: `edit`, `locks`, `passcodes`, `update`, `sync`, `test`, `locks/{doorLock}/link`, `passcodes` (store), `passcodes/{doorPasscode}/revoke`, `passcodes/{doorPasscode}/retry`, `locks/{doorLock}/unlock`, `locks/{doorLock}/clock`. The staff PIN is `POST /p/{code}/reservations/{reservation}/units/{unit}/door-pins/{doorPasscode}/replace` (`reservations.units.door-pins.replace`), behind `front-desk.check-in`.
 
 ## Tests
 
-`tests/Feature/DoorLocks/`: the password is not saved and tokens stay out of the page, a sync keeps links, a generated PIN is issued once for a stay (run twice, same row), a custom PIN is refused without a gateway, a card is registered once, refused without a gateway and found by UID (`DoorCardsTest`), remote unlock is refused without a gateway, check-out revokes, a revoke without a gateway warns, the feature off returns 404, another property's lock returns 404. `TtlockClientTest` fakes HTTP and covers the token refresh, the form fields, and an `errcode` response.
+`tests/Feature/DoorLocks/`: the password is not saved and tokens stay out of the page, a sync keeps links, a generated PIN is issued once for a stay (run twice, same row), a custom PIN is refused without a gateway, a card is registered once, refused without a gateway and found by UID (`DoorCardsTest`), remote unlock is refused without a gateway, check-out revokes, a revoke without a gateway warns, the feature off returns 404, another property's lock returns 404. `StayPasscodesTest` also covers the PIN length, the one retry on a clash, a typed PIN that clashes, the staff PIN replacing the current one, keeping it on a refusal, and the expiry job. `TtlockClientTest` fakes HTTP and covers the token refresh, the form fields, and an `errcode` response.

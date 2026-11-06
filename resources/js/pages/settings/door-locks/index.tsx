@@ -68,6 +68,11 @@ function when(iso: string): string {
     });
 }
 
+const PIN_LENGTHS = [4, 5, 6, 7, 8, 9].map((length) => ({
+    value: String(length),
+    label: length === 6 ? '6 digits (recommended)' : `${length} digits`,
+}));
+
 export default function DoorLocksIndex({
     connection,
     passcodeModes,
@@ -77,13 +82,15 @@ export default function DoorLocksIndex({
     passcodes,
 }: {
     connection: App.Data.DoorLocks.DoorLockConnectionData | null;
-    passcodeModes: { value: string; label: string }[];
+    passcodeModes: { value: string; label: string; description: string }[];
     passcodeKinds: { value: string; label: string }[];
     locks: App.Data.DoorLocks.DoorLockData[];
     rooms: { value: string; label: string }[];
     passcodes: App.Data.DoorLocks.DoorPasscodeData[];
 }) {
     const [sheetOpen, setSheetOpen] = useState(false);
+    const [mode, setMode] = useState(connection?.passcodeMode ?? 'generated');
+    const lockGenerated = mode === 'generated';
     const action = useForm({});
     const pin = useForm({
         door_lock_id: locks[0] ? String(locks[0].id) : '',
@@ -204,8 +211,29 @@ export default function DoorLocksIndex({
                                             'generated'
                                         }
                                         options={passcodeModes}
-                                        description="Custom PINs fall back to generated ones on a lock without a gateway."
+                                        onValueChange={setMode}
+                                        description={
+                                            passcodeModes.find(
+                                                (option) =>
+                                                    option.value === mode,
+                                            )?.description
+                                        }
                                         error={errors.passcode_mode}
+                                    />
+                                    <SettingsSelect
+                                        name="passcode_length"
+                                        label="PIN length"
+                                        value={String(
+                                            connection?.passcodeLength ?? 6,
+                                        )}
+                                        options={PIN_LENGTHS}
+                                        disabled={lockGenerated}
+                                        description={
+                                            lockGenerated
+                                                ? 'Not used in Lock-generated mode. The lock decides the length.'
+                                                : 'Under 6 digits is easier to guess.'
+                                        }
+                                        error={errors.passcode_length}
                                     />
                                     <SettingsSwitch
                                         bordered

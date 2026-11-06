@@ -15,6 +15,7 @@ class DoorLockConnectionData extends Data
         public bool $signedIn,
         public bool $enabled,
         public string $passcodeMode,
+        public int $passcodeLength,
         public ?string $lastTestedAt,
         public ?string $lastError,
     ) {}
@@ -26,6 +27,7 @@ class DoorLockConnectionData extends Data
             signedIn: filled($connection->refresh_token),
             enabled: $connection->enabled,
             passcodeMode: $connection->passcode_mode->value,
+            passcodeLength: $connection->passcode_length,
             lastTestedAt: $connection->last_tested_at?->toIso8601String(),
             lastError: $connection->last_error,
         );
