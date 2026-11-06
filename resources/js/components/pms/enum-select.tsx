@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import type { ReactNode } from 'react';
 import {
     Select,
@@ -89,6 +90,7 @@ export function EnumSelect({
         ? [{ value: '', label: allLabel }, ...options]
         : options;
     const groups = groupOptions(items);
+    const triggerRef = useRef<HTMLButtonElement>(null);
 
     return (
         <Select
@@ -98,11 +100,19 @@ export function EnumSelect({
             defaultValue={defaultValue}
             disabled={disabled}
             onOpenChange={onOpenChange}
-            onValueChange={(next) =>
-                onValueChange?.((next as string | null) ?? '')
-            }
+            onValueChange={(next) => {
+                onValueChange?.((next as string | null) ?? '');
+
+                // The Select sets its hidden input without a DOM event, so a surrounding Inertia <Form> would never see the change
+                // (Save stays disabled on a form that guards unsaved changes). Tell the form once the input has the new value.
+                const form = triggerRef.current?.closest('form');
+                requestAnimationFrame(() =>
+                    form?.dispatchEvent(new Event('change', { bubbles: true })),
+                );
+            }}
         >
             <SelectTrigger
+                ref={triggerRef}
                 id={id}
                 className={className}
                 aria-label={props['aria-label']}

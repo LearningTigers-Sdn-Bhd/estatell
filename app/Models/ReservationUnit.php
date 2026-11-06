@@ -104,6 +104,14 @@ class ReservationUnit extends Model
     }
 
     /**
+     * @return HasMany<DoorPasscode, $this>
+     */
+    public function doorPasscodes(): HasMany
+    {
+        return $this->hasMany(DoorPasscode::class);
+    }
+
+    /**
      * @return HasMany<UnitNight, $this>
      */
     public function nights(): HasMany

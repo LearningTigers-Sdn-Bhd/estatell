@@ -1,5 +1,6 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import {
+    Activity,
     BatteryMedium,
     CircleCheck,
     Clock,
@@ -8,7 +9,9 @@ import {
     Plug,
     RefreshCw,
     Unlock,
+    Wifi,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import DoorLockSettingsController from '@/actions/App/Http/Controllers/DoorLocks/DoorLockSettingsController';
 import { EnumSelect } from '@/components/pms/enum-select';
@@ -54,6 +57,7 @@ import {
     sync,
     test as testConnection,
 } from '@/routes/settings/door-locks';
+import { cn } from '@/lib/utils';
 
 const GATEWAY_NOTE =
     'This needs a gateway installed at the lock. Without one, only generated PINs work.';
@@ -68,6 +72,99 @@ function when(iso: string): string {
     });
 }
 
+function clockText(seconds: number): { text: string; warn: boolean } {
+    const minutes = Math.round(Math.abs(seconds) / 60);
+
+    if (Math.abs(seconds) <= 60) {
+        return { text: 'Correct', warn: false };
+    }
+
+    return {
+        text: `${minutes} min ${seconds > 0 ? 'fast' : 'slow'}`,
+        warn: Math.abs(seconds) > 300,
+    };
+}
+
+function HealthRow({
+    icon: Icon,
+    label,
+    value,
+    warn = false,
+}: {
+    icon: LucideIcon;
+    label: string;
+    value: string;
+    warn?: boolean;
+}) {
+    return (
+        <div className="flex items-center gap-2 text-sm">
+            <Icon aria-hidden className="size-4 text-muted-foreground" />
+            <span className="w-16 text-muted-foreground">{label}</span>
+            <span
+                className={cn(
+                    'tabular-nums',
+                    warn && 'font-medium text-warning',
+                )}
+            >
+                {value}
+            </span>
+        </div>
+    );
+}
+
+/** Battery, gateway and clock of a lock, as last read from TTLock. A lock with a gateway can be checked now with the button below. */
+function LockHealth({ lock }: { lock: App.Data.DoorLocks.DoorLockData }) {
+    const clock =
+        lock.clockDriftSeconds === null
+            ? null
+            : clockText(lock.clockDriftSeconds);
+    const gateway =
+        lock.gatewayOnline === null
+            ? 'Not checked'
+            : `${lock.gatewayName ?? 'Gateway'} · ${lock.gatewayOnline ? 'online' : 'offline'}`;
+
+    return (
+        <div className="flex flex-col gap-1.5">
+            <HealthRow
+                icon={BatteryMedium}
+                label="Battery"
+                value={
+                    lock.batteryPercent === null
+                        ? 'Unknown'
+                        : `${lock.batteryPercent}%`
+                }
+                warn={lock.batteryPercent !== null && lock.batteryPercent < 20}
+            />
+            {lock.hasGateway && (
+                <>
+                    <HealthRow
+                        icon={Wifi}
+                        label="Gateway"
+                        value={gateway}
+                        warn={lock.gatewayOnline === false}
+                    />
+                    <HealthRow
+                        icon={Clock}
+                        label="Clock"
+                        value={clock?.text ?? 'Not checked'}
+                        warn={clock?.warn}
+                    />
+                </>
+            )}
+            <p className="text-xs text-muted-foreground">
+                {lock.healthCheckedAt === null
+                    ? 'Health not checked yet.'
+                    : `Checked ${when(lock.healthCheckedAt)}.`}
+            </p>
+        </div>
+    );
+}
+
+const PIN_LENGTHS = [4, 5, 6, 7, 8, 9].map((length) => ({
+    value: String(length),
+    label: length === 6 ? '6 digits (recommended)' : `${length} digits`,
+}));
+
 export default function DoorLocksIndex({
     connection,
     passcodeModes,
@@ -77,13 +174,15 @@ export default function DoorLocksIndex({
     passcodes,
 }: {
     connection: App.Data.DoorLocks.DoorLockConnectionData | null;
-    passcodeModes: { value: string; label: string }[];
+    passcodeModes: { value: string; label: string; description: string }[];
     passcodeKinds: { value: string; label: string }[];
     locks: App.Data.DoorLocks.DoorLockData[];
     rooms: { value: string; label: string }[];
     passcodes: App.Data.DoorLocks.DoorPasscodeData[];
 }) {
     const [sheetOpen, setSheetOpen] = useState(false);
+    const [mode, setMode] = useState(connection?.passcodeMode ?? 'generated');
+    const lockGenerated = mode === 'generated';
     const action = useForm({});
     const pin = useForm({
         door_lock_id: locks[0] ? String(locks[0].id) : '',
@@ -204,8 +303,29 @@ export default function DoorLocksIndex({
                                             'generated'
                                         }
                                         options={passcodeModes}
-                                        description="Custom PINs fall back to generated ones on a lock without a gateway."
+                                        onValueChange={setMode}
+                                        description={
+                                            passcodeModes.find(
+                                                (option) =>
+                                                    option.value === mode,
+                                            )?.description
+                                        }
                                         error={errors.passcode_mode}
+                                    />
+                                    <SettingsSelect
+                                        name="passcode_length"
+                                        label="PIN length"
+                                        value={String(
+                                            connection?.passcodeLength ?? 6,
+                                        )}
+                                        options={PIN_LENGTHS}
+                                        disabled={lockGenerated}
+                                        description={
+                                            lockGenerated
+                                                ? 'Not used in Lock-generated mode. The lock decides the length.'
+                                                : 'Under 6 digits is easier to guess.'
+                                        }
+                                        error={errors.passcode_length}
                                     />
                                     <SettingsSwitch
                                         bordered
@@ -297,17 +417,9 @@ export default function DoorLocksIndex({
                                                 </Badge>
                                             )}
                                         </CardAction>
-                                        <CardDescription className="flex items-center gap-1 tabular-nums">
-                                            <BatteryMedium
-                                                aria-hidden
-                                                className="size-4"
-                                            />
-                                            {lock.batteryPercent === null
-                                                ? 'Battery unknown'
-                                                : `${lock.batteryPercent}% battery`}
-                                        </CardDescription>
                                     </CardHeader>
                                     <CardContent className="flex flex-col gap-4">
+                                        <LockHealth lock={lock} />
                                         <Field>
                                             <FieldLabel>Room</FieldLabel>
                                             <EnumSelect
@@ -392,6 +504,26 @@ export default function DoorLocksIndex({
                                             >
                                                 <Clock />
                                                 Set clock
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                disabled={action.processing}
+                                                focusableWhenDisabled
+                                                onClick={() =>
+                                                    post(
+                                                        DoorLockSettingsController.health.url(
+                                                            {
+                                                                doorLock:
+                                                                    lock.id,
+                                                            },
+                                                        ),
+                                                    )
+                                                }
+                                            >
+                                                <Activity />
+                                                Check health
                                             </Button>
                                         </div>
                                     </CardContent>
@@ -639,6 +771,11 @@ export default function DoorLocksIndex({
                             <FieldError>{pinErrors.ends_at}</FieldError>
                         </Field>
                     </div>
+                    <p className="text-xs text-muted-foreground">
+                        {pin.data.kind === 'generated'
+                            ? 'A Generated PIN is valid by the whole hour: From is rounded down and Until is rounded up, so 09:53 to 09:55 becomes 09:00 to 10:00. Choose a Custom PIN for exact minutes.'
+                            : 'A Custom PIN keeps the exact minutes.'}
+                    </p>
                 </FieldGroup>
             </FormOverlay>
         </>

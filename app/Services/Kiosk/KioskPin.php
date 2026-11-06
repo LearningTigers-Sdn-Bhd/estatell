@@ -26,7 +26,7 @@ class KioskPin
 
     public function for(ReservationUnit $stay): KioskPinStatus
     {
-        $locks = $this->stayLocks->for($stay);
+        $locks = $this->stayLocks->current($stay);
 
         if (! Feature::for($stay->property)->active(DoorLocks::class) || $locks->isEmpty() || $stay->property->doorLockConnection?->enabled !== true) {
             return KioskPinStatus::failed();

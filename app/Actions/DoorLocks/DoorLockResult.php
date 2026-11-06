@@ -17,6 +17,8 @@ final class DoorLockResult
 
     public const REFUSAL_INVALID_CODE = 'invalid_code';
 
+    public const REFUSAL_SIMPLE_CODE = 'simple_code';
+
     public const REFUSAL_WINDOW_PASSED = 'window_passed';
 
     public const REFUSAL_TTLOCK = 'ttlock_error';
@@ -56,6 +58,7 @@ final class DoorLockResult
             self::REFUSAL_GATEWAY_REQUIRED => __('This needs a gateway installed at the lock.'),
             self::REFUSAL_NOT_CONNECTED => __('Connect the TTLock account first.'),
             self::REFUSAL_INVALID_CODE => __('A PIN is 4 to 9 digits.'),
+            self::REFUSAL_SIMPLE_CODE => __('TTLock refuses PINs that are too simple, like 1111 or 1234. Pick another.'),
             self::REFUSAL_WINDOW_PASSED => __('The PIN time window has already ended.'),
             self::REFUSAL_UNCHANGEABLE => __('This PIN can no longer be changed.'),
             self::REFUSAL_INVALID_CARD => __('This card number is not valid.'),

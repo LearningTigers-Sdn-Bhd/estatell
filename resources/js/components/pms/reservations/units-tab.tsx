@@ -2,10 +2,7 @@ import { Link, router } from '@inertiajs/react';
 import {
     BedDouble,
     CalendarDays,
-    Check,
-    Copy,
     Info,
-    KeyRound,
     Ship,
     Tag,
     User,
@@ -20,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { MoneyText } from '@/components/pms/money-text';
 import { ChangeBoatTripDialog } from '@/components/pms/reservations/change-boat-trip-dialog';
 import { ChangeNightPriceDialog } from '@/components/pms/reservations/change-night-price-dialog';
+import { DoorPins } from '@/components/pms/reservations/door-pins';
 import { UnitActionsMenu } from '@/components/pms/reservations/unit-actions-menu';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Button } from '@/components/ui/button';
@@ -33,7 +31,6 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { useClipboard } from '@/hooks/use-clipboard';
 import { cn } from '@/lib/utils';
 import { show as showGuest } from '@/routes/guests';
 import { show } from '@/routes/reservations';
@@ -91,85 +88,6 @@ function Detail({
                 {children}
             </span>
         </div>
-    );
-}
-
-const PIN_TIME: Intl.DateTimeFormatOptions = {
-    day: '2-digit',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-};
-
-/**
- * The door PINs of the stay, so staff can read one out at check-in. Shown only when a lock is linked to the unit's room.
- */
-function DoorPins({ pins }: { pins: App.Data.DoorLocks.UnitDoorPinsData }) {
-    const [copiedText, copy] = useClipboard();
-
-    return (
-        <Detail icon={KeyRound} label="Door PIN">
-            <div className="flex flex-col gap-1">
-                {pins.sendNewPin && (
-                    <span className="text-warning">
-                        The stay was extended. Give the guest the newest PIN.
-                    </span>
-                )}
-                {pins.passcodes.map((passcode) => (
-                    <div
-                        key={passcode.id}
-                        className="flex flex-wrap items-center gap-x-3 gap-y-1"
-                    >
-                        <span className="font-mono text-base font-medium tracking-wider tabular-nums">
-                            {passcode.code ?? '—'}
-                        </span>
-                        {passcode.code !== null && (
-                            <Button
-                                variant="outline"
-                                size="icon-sm"
-                                aria-label="Copy PIN"
-                                onClick={() => copy(passcode.code!)}
-                            >
-                                {copiedText === passcode.code ? (
-                                    <Check />
-                                ) : (
-                                    <Copy />
-                                )}
-                            </Button>
-                        )}
-                        <StatusBadge status={passcode.status} />
-                        <span className="text-muted-foreground">
-                            {passcode.lockName} ·{' '}
-                            {new Date(passcode.startsAt).toLocaleString(
-                                'en-GB',
-                                PIN_TIME,
-                            )}{' '}
-                            →{' '}
-                            {new Date(passcode.endsAt).toLocaleString(
-                                'en-GB',
-                                PIN_TIME,
-                            )}
-                        </span>
-                        {passcode.error && (
-                            <span className="text-destructive">
-                                {passcode.error}
-                            </span>
-                        )}
-                        {passcode.revokeNote && (
-                            <span className="text-warning">
-                                {passcode.revokeNote}
-                            </span>
-                        )}
-                    </div>
-                ))}
-                {pins.locksWithoutPin.map((lock) => (
-                    <span key={lock.name} className="text-muted-foreground">
-                        No PIN yet for {lock.name}
-                        {lock.reason && ` · ${lock.reason}`}
-                    </span>
-                ))}
-            </div>
-        </Detail>
     );
 }
 
@@ -388,7 +306,13 @@ export function UnitsTab({
                         {guestsText(unit)}
                     </Detail>
                 </div>
-                {doorPins !== null && <DoorPins pins={doorPins} />}
+                {doorPins !== null && (
+                    <DoorPins
+                        pins={doorPins}
+                        reservationId={reservationId}
+                        unitId={unit.id}
+                    />
+                )}
                 <Detail icon={User} label="Primary">
                     {unit.primaryGuest === null ? (
                         <span className="text-muted-foreground">

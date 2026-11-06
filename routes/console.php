@@ -3,6 +3,7 @@
 use App\Actions\ApiAccess\PruneIdempotencyKeys;
 use App\Actions\Guests\PurgeExpiredIdentityScans;
 use App\Actions\Notifications\PruneMailEvents;
+use App\Jobs\ExpireDoorCredentials;
 use App\Jobs\ReleaseExpiredKioskHolds;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -65,3 +66,5 @@ Schedule::command('channels:full-sync')->dailyAt('03:00')->timezone('Asia/Kuala_
 Schedule::command('channels:pull-revisions')->everyFiveMinutes()->onOneServer();
 
 Schedule::job(new ReleaseExpiredKioskHolds)->everyMinute()->onOneServer();
+
+Schedule::job(new ExpireDoorCredentials)->everyFiveMinutes()->onOneServer();

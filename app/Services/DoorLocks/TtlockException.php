@@ -19,13 +19,23 @@ class TtlockException extends RuntimeException
         return new self(__('TTLock could not be reached. Try again in a moment.'));
     }
 
+    public bool $duplicate = false;
+
+    /** TTLock `errcode` of a refusal, or 0 for any other failure. */
+    public int $ttlockCode = 0;
+
     public static function refused(int $code, string $message): self
     {
-        return new self(match ($code) {
+        $exception = new self(match ($code) {
+            -3007 => __('That PIN is already used on this lock. Pick another.'),
             -4043 => __('This lock does not allow remote unlock. Turn on "Remote unlock" in the lock settings of the TTLock app.'),
             -3009 => __('The lock memory is full. Delete an old PIN from the lock first.'),
             10004 => __('The TTLock sign-in has expired. Save the connection with the password again.'),
             default => __('TTLock refused the request (:code): :message', ['code' => $code, 'message' => $message]),
         });
+        $exception->duplicate = $code === -3007;
+        $exception->ttlockCode = $code;
+
+        return $exception;
     }
 }

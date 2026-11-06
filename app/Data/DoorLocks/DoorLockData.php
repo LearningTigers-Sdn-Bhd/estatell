@@ -15,6 +15,10 @@ class DoorLockData extends Data
         public ?int $roomId,
         public ?string $roomNumber,
         public ?string $syncedAt,
+        public ?string $gatewayName,
+        public ?bool $gatewayOnline,
+        public ?int $clockDriftSeconds,
+        public ?string $healthCheckedAt,
     ) {}
 
     /**
@@ -30,6 +34,10 @@ class DoorLockData extends Data
             roomId: $lock->room_id,
             roomNumber: $lock->room?->number,
             syncedAt: $lock->synced_at?->toIso8601String(),
+            gatewayName: $lock->gateway_name,
+            gatewayOnline: $lock->gateway_online,
+            clockDriftSeconds: $lock->clock_drift_seconds,
+            healthCheckedAt: $lock->health_checked_at?->toIso8601String(),
         );
     }
 }

@@ -788,6 +788,7 @@ ttlockUsername: string,
 signedIn: boolean,
 enabled: boolean,
 passcodeMode: string,
+passcodeLength: number,
 lastTestedAt: string | null,
 lastError: string | null,
 };
@@ -799,6 +800,10 @@ hasGateway: boolean,
 roomId: number | null,
 roomNumber: string | null,
 syncedAt: string | null,
+gatewayName: string | null,
+gatewayOnline: boolean | null,
+clockDriftSeconds: number | null,
+healthCheckedAt: string | null,
 };
 export type DoorPasscodeData = {
 id: number,
@@ -813,6 +818,7 @@ error: string | null,
 revokeNote: string | null,
 canRevoke: boolean,
 canRetry: boolean,
+canReplace: boolean,
 };
 export type LockWithoutPinData = {
 name: string,
@@ -822,6 +828,10 @@ export type UnitDoorPinsData = {
 passcodes: App.Data.DoorLocks.DoorPasscodeData[],
 locksWithoutPin: App.Data.DoorLocks.LockWithoutPinData[],
 sendNewPin: boolean,
+updating: boolean,
+making: boolean,
+leavingIds: number[],
+syncing: boolean,
 };
 }
 namespace Folio {

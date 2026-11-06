@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\DoorLocks;
 
 use App\Actions\DoorLocks\AdjustLockClock;
+use App\Actions\DoorLocks\CheckDoorLockHealth;
 use App\Actions\DoorLocks\DoorLockResult;
 use App\Actions\DoorLocks\IssueDoorPasscode;
 use App\Actions\DoorLocks\LinkDoorLock;
@@ -125,6 +126,11 @@ class DoorLockSettingsController extends Controller
     public function clock(Request $request, Property $property, DoorLock $doorLock, AdjustLockClock $adjustLockClock): RedirectResponse
     {
         return $this->flash($property, $adjustLockClock($doorLock, $request->user()), __('Lock clock set.'));
+    }
+
+    public function health(Property $property, DoorLock $doorLock, CheckDoorLockHealth $checkDoorLockHealth): RedirectResponse
+    {
+        return $this->flash($property, $checkDoorLockHealth($doorLock->load('property.doorLockConnection')), __('Lock checked.'));
     }
 
     public function storePasscode(IssuePasscodeRequest $request, Property $property, IssueDoorPasscode $issueDoorPasscode): RedirectResponse

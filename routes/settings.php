@@ -193,6 +193,7 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::put('locks/{doorLock}/link', [DoorLockSettingsController::class, 'link'])->name('link');
         Route::post('locks/{doorLock}/unlock', [DoorLockSettingsController::class, 'unlock'])->name('unlock');
         Route::post('locks/{doorLock}/clock', [DoorLockSettingsController::class, 'clock'])->name('clock');
+        Route::post('locks/{doorLock}/health', [DoorLockSettingsController::class, 'health'])->name('health');
         Route::post('passcodes', [DoorLockSettingsController::class, 'storePasscode'])->name('passcodes.store');
         Route::post('passcodes/{doorPasscode}/revoke', [DoorLockSettingsController::class, 'revoke'])->name('passcodes.revoke');
         Route::post('passcodes/{doorPasscode}/retry', [DoorLockSettingsController::class, 'retry'])->name('passcodes.retry');
