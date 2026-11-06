@@ -995,6 +995,8 @@ lastError: string | null,
 export type DoorLockData = {
 id: number,
 name: string,
+provider: string,
+lockNo: string | null,
 batteryPercent: number | null,
 hasGateway: boolean,
 roomId: number | null,
@@ -1019,6 +1021,20 @@ revokeNote: string | null,
 canRevoke: boolean,
 canRetry: boolean,
 canReplace: boolean,
+};
+export type KeyportJobData = {
+id: string,
+type: string,
+created_at: string,
+expires_at: string,
+payload: Record<string, any>,
+};
+export type KeyportPairingData = {
+device_id: string,
+device_token: string,
+property_code: string,
+property_name: string,
+poll_seconds: number,
 };
 export type LockWithoutPinData = {
 name: string,
@@ -1604,6 +1620,40 @@ cleaning: App.Data.Housekeeping.RoomCleaningData | null,
 canStart: boolean,
 canFinish: boolean,
 canEdit: boolean,
+};
+}
+namespace Keyport {
+export type KeyportDeviceData = {
+id: number,
+name: string,
+platform: string | null,
+status: App.Data.Shared.BadgeData,
+lastSeenAt: string | null,
+readerNote: string | null,
+canRevoke: boolean,
+};
+export type KeyportJobRowData = {
+id: number,
+typeLabel: string,
+status: App.Data.Shared.BadgeData,
+lockName: string | null,
+guest: string | null,
+message: string | null,
+createdAt: string,
+canCancel: boolean,
+open: boolean,
+};
+export type UnitKeyCardsData = {
+locks: {
+id: number,
+name: string,
+hasCard: boolean,
+}[],
+deskOnline: boolean,
+hasDesk: boolean,
+canMake: boolean,
+jobs: App.Data.Keyport.KeyportJobRowData[],
+syncing: boolean,
 };
 }
 namespace Kiosk {
@@ -4659,9 +4709,14 @@ export type IdentityDocumentType = 'mykad' | 'passport' | 'other';
 export type ImpersonationReason = 'onboarding_help' | 'support' | 'setup_check';
 export type InclusionEnd = 'departure_day' | 'night_before_departure';
 export type InclusionStart = 'arrival_day' | 'day_after_arrival';
+export type KeyportApiError = 'invalid_pairing_code' | 'pairing_code_expired' | 'pairing_code_used' | 'unauthorized' | 'door_locks_disabled' | 'upgrade_required' | 'job_not_found' | 'job_already_finished' | 'invalid_request';
+export type KeyportDeviceStatus = 'online' | 'offline' | 'revoked';
+export type KeyportJobStatus = 'pending' | 'claimed' | 'succeeded' | 'failed' | 'uncertain' | 'cancelled' | 'expired';
+export type KeyportJobType = 'guest_card.issue' | 'guest_card.rewrite' | 'guest_card.erase' | 'guest_card.read';
 export type KioskKeyMode = 'pin' | 'card' | 'both';
 export type KioskStatus = 'awaiting_pairing' | 'paired' | 'code_expired' | 'revoked';
 export type Locale = 'en' | 'ms';
+export type LockProvider = 'ttlock' | 'elock';
 export type MailStatus = 'sent' | 'delivered' | 'bounced' | 'complained' | 'failed' | 'suppressed';
 export type ManualFolioReason = 'paper_folio' | 'missed_charge' | 'missed_payment' | 'old_system' | 'fix_mistake' | 'other';
 export type ManualRowType = 'charge' | 'payment' | 'refund';

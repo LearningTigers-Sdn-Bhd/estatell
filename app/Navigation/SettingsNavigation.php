@@ -57,6 +57,12 @@ class SettingsNavigation
                     icon: 'lock',
                     active: request()->routeIs('settings.door-locks.*'),
                 ) : null,
+                $user->can(PermissionEnum::SettingsManage->value) && Feature::for($property)->active(DoorLocks::class) ? new NavItemData(
+                    title: __('Key cards'),
+                    href: route('settings.keyport.index', ['property' => $property->code], absolute: false),
+                    icon: 'credit-card',
+                    active: request()->routeIs('settings.keyport.*'),
+                ) : null,
                 $user->can(PermissionEnum::SettingsManage->value) && Feature::for($property)->active(Kiosks::class) ? new NavItemData(
                     title: __('Kiosks'),
                     href: route('settings.kiosks.index', ['property' => $property->code], absolute: false),

@@ -10,6 +10,8 @@ class DoorLockData extends Data
     public function __construct(
         public int $id,
         public string $name,
+        public string $provider,
+        public ?string $lockNo,
         public ?int $batteryPercent,
         public bool $hasGateway,
         public ?int $roomId,
@@ -29,6 +31,8 @@ class DoorLockData extends Data
         return new self(
             id: $lock->id,
             name: $lock->name,
+            provider: $lock->provider->value,
+            lockNo: $lock->lock_no,
             batteryPercent: $lock->battery_percent,
             hasGateway: $lock->has_gateway,
             roomId: $lock->room_id,

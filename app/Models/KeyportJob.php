@@ -18,6 +18,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $public_id
  * @property int $property_id
  * @property int|null $device_id
+ * @property int|null $door_lock_id
+ * @property int|null $reservation_unit_id
  * @property KeyportJobType $type
  * @property KeyportJobStatus $status
  * @property array<string, mixed> $payload
@@ -70,5 +72,21 @@ class KeyportJob extends Model
     public function device(): BelongsTo
     {
         return $this->belongsTo(KeyportDevice::class);
+    }
+
+    /**
+     * @return BelongsTo<DoorLock, $this>
+     */
+    public function doorLock(): BelongsTo
+    {
+        return $this->belongsTo(DoorLock::class);
+    }
+
+    /**
+     * @return BelongsTo<ReservationUnit, $this>
+     */
+    public function reservationUnit(): BelongsTo
+    {
+        return $this->belongsTo(ReservationUnit::class);
     }
 }

@@ -18,6 +18,7 @@ use App\Http\Controllers\Catalogues\RoomRevenuePolicyController;
 use App\Http\Controllers\Catalogues\TaxController;
 use App\Http\Controllers\CityLedger\AgentPaymentTermsController;
 use App\Http\Controllers\DoorLocks\DoorLockSettingsController;
+use App\Http\Controllers\DoorLocks\KeyportSettingsController;
 use App\Http\Controllers\Meals\MealPeriodController;
 use App\Http\Controllers\Onboarding\RecommendedItemDismissalController;
 use App\Http\Controllers\Property\AgeGroupController;
@@ -264,6 +265,14 @@ Route::prefix('settings')->name('settings.')->group(function () {
             Route::post('api/return-addresses', [BookingApiController::class, 'storeReturnAddress'])->name('api.return-addresses.store');
             Route::delete('api/return-addresses/{bookingReturnAddress}', [BookingApiController::class, 'destroyReturnAddress'])->whereNumber('bookingReturnAddress')->name('api.return-addresses.destroy');
         });
+    });
+
+    Route::prefix('keyport')->name('keyport.')->middleware(['door-locks', 'can:'.PermissionEnum::SettingsManage->value])->scopeBindings()->group(function () {
+        Route::get('/', [KeyportSettingsController::class, 'index'])->name('index');
+        Route::post('codes', [KeyportSettingsController::class, 'storeCode'])->name('codes.store');
+        Route::post('devices/{keyportDevice}/revoke', [KeyportSettingsController::class, 'revokeDevice'])->name('devices.revoke');
+        Route::post('locks', [KeyportSettingsController::class, 'storeLock'])->name('locks.store');
+        Route::post('jobs/{keyportJob}/cancel', [KeyportSettingsController::class, 'cancelJob'])->name('jobs.cancel');
     });
 
     Route::prefix('accounting')->name('accounting.')->middleware(['accounting', 'can:'.PermissionEnum::SettingsManage->value])->scopeBindings()->group(function () {
