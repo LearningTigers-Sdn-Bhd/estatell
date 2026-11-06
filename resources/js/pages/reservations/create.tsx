@@ -944,7 +944,7 @@ export default function ReservationCreate({
                                             </Field>
                                         </div>
                                     ) : (
-                                        <div className="grid items-start gap-4 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_12rem]">
+                                        <div className="grid items-start gap-4 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] 2xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_12rem]">
                                             <Field
                                                 data-invalid={
                                                     !!errors.arrival_date ||
