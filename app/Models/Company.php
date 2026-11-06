@@ -144,4 +144,14 @@ class Company extends Model
     {
         $query->orderByRaw('lower(name)')->orderBy('id');
     }
+
+    /**
+     * The payment slips the company sent for its account.
+     *
+     * @return HasMany<PaymentProof, $this>
+     */
+    public function paymentProofs(): HasMany
+    {
+        return $this->hasMany(PaymentProof::class);
+    }
 }

@@ -9,6 +9,7 @@ use App\Data\CityLedger\AgentPaymentTermsData;
 use App\Data\CityLedger\CompanyData;
 use App\Data\CityLedger\CompanyRowData;
 use App\Data\CityLedger\CreditExposureData;
+use App\Data\Payments\PaymentProofData;
 use App\Data\Property\CurrencyData;
 use App\Enums\CompanyMarket;
 use App\Enums\CompanyStatus;
@@ -17,6 +18,7 @@ use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CityLedger\CompanyRequest;
 use App\Models\Company;
+use App\Models\PaymentProof;
 use App\Models\Property;
 use App\Services\CityLedger\ArInvoiceDirectory;
 use App\Services\CityLedger\ArPaymentLedger;
@@ -113,6 +115,14 @@ class CompanyController extends Controller
     {
         return $this->renderTab($request, $property, $company, 'payments', [
             'payments' => $ledger->payments($company, $request->user()),
+            'paymentSlips' => array_values(PaymentProof::query()
+                ->where('company_id', $company->id)
+                ->with('uploader')
+                ->latest('id')
+                ->limit(50)
+                ->get()
+                ->map(fn (PaymentProof $slip): PaymentProofData => PaymentProofData::fromModel($slip, route('finance.city-ledger.companies.payment-slips.file', ['property' => $property->code, 'company' => $company->id, 'paymentProof' => $slip->id])))
+                ->all()),
             'openInvoices' => $ledger->openInvoices($company),
             'methods' => $ledger->methods($company),
             'canRecordPayment' => $request->user()->can(PermissionEnum::CityLedgerPayment->value),

@@ -1,6 +1,7 @@
 import { Head } from '@inertiajs/react';
 import { PageHeader } from '@/components/pms/page-header';
 import { PortalInvoicesTable } from '@/components/pms/portal/portal-invoices-table';
+import { PortalPaymentSlipSection } from '@/components/pms/portal/portal-payment-slip-section';
 import { PortalPaymentsTable } from '@/components/pms/portal/portal-payments-table';
 import { PortalStatementSection } from '@/components/pms/portal/portal-statement';
 import { statements } from '@/routes/portal';
@@ -11,6 +12,8 @@ export default function PortalStatements({
     statement,
     invoices,
     payments,
+    paymentSlips,
+    canSendSlip,
 }: {
     propertyCode: string;
     currency: App.Data.Property.CurrencyData | null;
@@ -23,6 +26,8 @@ export default function PortalStatements({
         number,
         App.Data.Portal.PortalPaymentRowData
     >;
+    paymentSlips: App.Data.Payments.PaymentProofData[];
+    canSendSlip: boolean;
 }) {
     return (
         <>
@@ -32,6 +37,13 @@ export default function PortalStatements({
                 <PageHeader
                     title="Statements"
                     description="Your statement of account, invoices and payments at this property."
+                />
+
+                <PortalPaymentSlipSection
+                    propertyCode={propertyCode}
+                    slips={paymentSlips}
+                    canSend={canSendSlip}
+                    currency={currency}
                 />
 
                 <PortalStatementSection

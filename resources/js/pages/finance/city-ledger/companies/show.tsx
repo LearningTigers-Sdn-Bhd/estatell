@@ -16,6 +16,7 @@ import { ChoiceCards } from '@/components/pms/choice-cards';
 import { AddOldSystemBalanceDialog } from '@/components/pms/city-ledger/add-old-system-balance-dialog';
 import { billingChoices } from '@/components/pms/city-ledger/billing-choices';
 import { CompanyStatement } from '@/components/pms/city-ledger/company-statement';
+import { PaymentProofReview } from '@/components/pms/payments/payment-proof-review';
 import { ArPaymentsTab } from '@/components/pms/city-ledger/ar-payments-tab';
 import { CompanyPortalSection } from '@/components/pms/city-ledger/company-portal-section';
 import { CompanyRatesTable } from '@/components/pms/city-ledger/company-rates-table';
@@ -576,6 +577,7 @@ export default function CompanyShow({
     payments = [],
     openInvoices = [],
     methods = [],
+    paymentSlips = [],
     canRecordPayment = false,
     statement = null,
 }: {
@@ -593,6 +595,7 @@ export default function CompanyShow({
     payments?: App.Data.CityLedger.ArPaymentRowData[];
     openInvoices?: App.Data.CityLedger.OpenArInvoiceData[];
     methods?: App.Data.CityLedger.ArPaymentMethodOptionData[];
+    paymentSlips?: App.Data.Payments.PaymentProofData[];
     canRecordPayment?: boolean;
     statement?: App.Data.CityLedger.StatementData | null;
 }) {
@@ -825,6 +828,33 @@ export default function CompanyShow({
                             statement={statement}
                             currency={currency}
                         />
+                    )}
+                    {tab === 'payments' && paymentSlips.length > 0 && (
+                        <section className="flex max-w-3xl flex-col gap-3 rounded-lg border p-4">
+                            <div className="flex flex-col gap-1">
+                                <h2 className="text-base font-medium">
+                                    Payment slips
+                                </h2>
+                                <p className="text-sm text-muted-foreground">
+                                    Slips the company sent in the portal. Accept
+                                    records the payment and matches it to the
+                                    oldest open invoices.
+                                </p>
+                            </div>
+                            <PaymentProofReview
+                                companyId={company.id}
+                                proofs={paymentSlips}
+                                methods={
+                                    canRecordPayment
+                                        ? methods.map((method) => ({
+                                              value: String(method.id),
+                                              label: method.name,
+                                          }))
+                                        : []
+                                }
+                                currency={currency}
+                            />
+                        </section>
                     )}
                     {tab === 'payments' && (
                         <ArPaymentsTab

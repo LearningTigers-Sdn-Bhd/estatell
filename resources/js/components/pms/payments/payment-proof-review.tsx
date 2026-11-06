@@ -9,21 +9,42 @@ import { Button } from '@/components/ui/button';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import * as companySlips from '@/routes/finance/city-ledger/companies/payment-slips';
 import { accept, reject } from '@/routes/reservations/payment-proofs';
 
 type Proof = App.Data.Payments.PaymentProofData;
 type Option = { value: string; label: string };
+/** A booking's proof or a company's slip: where Accept and Reject post, and what the Dialog says. */
+type Target = { reservationId: number } | { companyId: number };
+
+function actionUrl(
+    target: Target,
+    proofId: number,
+    action: 'accept' | 'reject',
+): string {
+    if ('companyId' in target) {
+        const args = { company: target.companyId, paymentProof: proofId };
+
+        return action === 'accept'
+            ? companySlips.accept.url(args)
+            : companySlips.reject.url(args);
+    }
+
+    const args = { reservation: target.reservationId, paymentProof: proofId };
+
+    return action === 'accept' ? accept.url(args) : reject.url(args);
+}
 
 function AcceptDialog({
     open,
     onOpenChange,
-    reservationId,
+    target,
     proof,
     methods,
 }: {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    reservationId: number;
+    target: Target;
     proof: Proof;
     methods: Option[];
 }) {
@@ -39,19 +60,17 @@ function AcceptDialog({
             open={open}
             onOpenChange={onOpenChange}
             title="Accept payment proof"
-            description="Records the payment on the booking, as an advance with the agent's reference."
+            description={
+                'companyId' in target
+                    ? "Records a city ledger payment with the company's reference and matches it to the oldest open invoices."
+                    : "Records the payment on the booking, as an advance with the agent's reference."
+            }
             errors={form.errors}
             onSubmit={() =>
-                form.post(
-                    accept.url({
-                        reservation: reservationId,
-                        paymentProof: proof.id,
-                    }),
-                    {
-                        preserveScroll: true,
-                        onSuccess: () => onOpenChange(false),
-                    },
-                )
+                form.post(actionUrl(target, proof.id, 'accept'), {
+                    preserveScroll: true,
+                    onSuccess: () => onOpenChange(false),
+                })
             }
             submitLabel="Record payment"
             processing={form.processing}
@@ -90,12 +109,12 @@ function AcceptDialog({
 function RejectDialog({
     open,
     onOpenChange,
-    reservationId,
+    target,
     proof,
 }: {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    reservationId: number;
+    target: Target;
     proof: Proof;
 }) {
     const form = useForm({ reason: '' });
@@ -110,16 +129,10 @@ function RejectDialog({
             description="The agent sees your reason in the portal."
             errors={form.errors}
             onSubmit={() =>
-                form.post(
-                    reject.url({
-                        reservation: reservationId,
-                        paymentProof: proof.id,
-                    }),
-                    {
-                        preserveScroll: true,
-                        onSuccess: () => onOpenChange(false),
-                    },
-                )
+                form.post(actionUrl(target, proof.id, 'reject'), {
+                    preserveScroll: true,
+                    onSuccess: () => onOpenChange(false),
+                })
             }
             submitLabel="Reject"
             submitVariant="destructive"
@@ -150,15 +163,21 @@ function RejectDialog({
  */
 export function PaymentProofReview({
     reservationId,
+    companyId,
     proofs,
     methods,
     currency,
 }: {
-    reservationId: number;
+    reservationId?: number;
+    companyId?: number;
     proofs: Proof[];
     methods: Option[];
     currency: App.Data.Property.CurrencyData | null;
 }) {
+    const target: Target =
+        companyId !== undefined
+            ? { companyId }
+            : { reservationId: reservationId as number };
     const [open, setOpen] = useState<{
         id: number;
         action: 'accept' | 'reject';
@@ -214,7 +233,7 @@ export function PaymentProofReview({
                         <AcceptDialog
                             open
                             onOpenChange={(next) => !next && setOpen(null)}
-                            reservationId={reservationId}
+                            target={target}
                             proof={proof}
                             methods={methods}
                         />
@@ -223,7 +242,7 @@ export function PaymentProofReview({
                         <RejectDialog
                             open
                             onOpenChange={(next) => !next && setOpen(null)}
-                            reservationId={reservationId}
+                            target={target}
                             proof={proof}
                         />
                     )}

@@ -30,7 +30,7 @@ class RejectPaymentProof
             ])->save();
 
             activity()
-                ->performedOn($locked->reservation)
+                ->performedOn($locked->reservation ?? $locked->company)
                 ->causedBy($actor)
                 ->event('payment_proof.rejected')
                 ->withProperties(['property_id' => $locked->property_id, 'payment_proof_id' => $locked->id, 'reason' => $locked->reject_reason])

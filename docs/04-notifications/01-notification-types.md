@@ -27,6 +27,7 @@ Define every notification once, with its channels, defaults and recipients.
 | PortalBookingCreated        | On   | On            | Both       | Reservation staff (module 12 permission) |
 | PortalBookingCancelled      | On   | On            | Both       | Reservation staff (module 12 permission) |
 | PortalCancellationRequested | On   | On, mandatory | Mail only  | Reservation staff (module 12 permission) |
+| PaymentSlipReceived         | On   | On            | Both       | Staff with `city-ledger.payment`         |
 | CompanyLinkInvitation       | On   | On, mandatory | Mail only  | The invited company user                 |
 | GoLiveRequested             | On   | On            | Both       | Platform admins, and the partner         |
 | GoLiveApproved              | On   | On, mandatory | Mail only  | Owner                                    |

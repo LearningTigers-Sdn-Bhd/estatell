@@ -12,12 +12,13 @@ use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
 /**
- * A payment proof an agent uploads in the portal for a booking. Staff accept it, which records the payment, or reject
- * it. The file is the `file` media item on the private media disk.
+ * A payment proof an agent uploads in the portal, for a booking (`reservation_id`) or for its city ledger account
+ * (`company_id`). Staff accept it, which records the payment, or reject it. The file is the `file` media item on the private media disk.
  *
  * @property int $id
  * @property int $property_id
- * @property int $reservation_id
+ * @property int|null $reservation_id
+ * @property int|null $company_id
  * @property int $uploaded_by
  * @property string $amount
  * @property string|null $reference
@@ -26,6 +27,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property int|null $reviewed_by
  * @property CarbonImmutable|null $reviewed_at
  * @property int|null $payment_id
+ * @property int|null $ar_payment_id
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
@@ -61,6 +63,18 @@ class PaymentProof extends Model implements HasMedia
     public function reservation(): BelongsTo
     {
         return $this->belongsTo(Reservation::class);
+    }
+
+    /** @return BelongsTo<Company, $this> */
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
+
+    /** @return BelongsTo<ArPayment, $this> */
+    public function arPayment(): BelongsTo
+    {
+        return $this->belongsTo(ArPayment::class);
     }
 
     /** @return BelongsTo<User, $this> */
