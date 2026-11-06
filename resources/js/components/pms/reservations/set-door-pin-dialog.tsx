@@ -64,7 +64,10 @@ function isSimple(code: string): boolean {
     }
 
     const steps = new Set(
-        [...code].slice(1).map((digit, i) => Number(digit) - Number(code[i])),
+        code
+            .split('')
+            .slice(1)
+            .map((digit, i) => Number(digit) - Number(code[i])),
     );
 
     return steps.size === 1 && [0, 1, -1].includes([...steps][0]);
