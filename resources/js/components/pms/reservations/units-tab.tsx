@@ -311,7 +311,6 @@ export function UnitsTab({
                         pins={doorPins}
                         reservationId={reservationId}
                         unitId={unit.id}
-                        unitStatus={unit.status.value}
                     />
                 )}
                 <Detail icon={User} label="Primary">

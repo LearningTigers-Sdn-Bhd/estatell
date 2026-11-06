@@ -829,6 +829,9 @@ passcodes: App.Data.DoorLocks.DoorPasscodeData[],
 locksWithoutPin: App.Data.DoorLocks.LockWithoutPinData[],
 sendNewPin: boolean,
 updating: boolean,
+making: boolean,
+leavingIds: number[],
+syncing: boolean,
 };
 }
 namespace Folio {

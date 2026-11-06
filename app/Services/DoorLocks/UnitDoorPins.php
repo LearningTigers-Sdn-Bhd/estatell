@@ -29,6 +29,7 @@ class UnitDoorPins
             ->get();
 
         $locksWithoutPin = [];
+        $current = $unit->status === UnitStatus::CheckedIn ? $this->stayLocks->current($unit) : null;
 
         if ($unit->status === UnitStatus::CheckedIn) {
             $live = $passcodes
@@ -37,7 +38,7 @@ class UnitDoorPins
 
             $reason = $this->reasonWithoutPin($unit);
 
-            $locksWithoutPin = array_values($this->stayLocks->current($unit)
+            $locksWithoutPin = array_values($current
                 ->whereNotIn('id', $live->all())
                 ->pluck('name')
                 ->map(fn (string $name): LockWithoutPinData => new LockWithoutPinData($name, $reason))
@@ -54,11 +55,19 @@ class UnitDoorPins
             ->countBy('door_lock_id')
             ->contains(fn (int $count): bool => $count > 1);
 
+        $live = $passcodes->whereIn('status', [PasscodeStatus::Pending, PasscodeStatus::Active]);
+        $leavingIds = array_values($live->whereNotIn('door_lock_id', $current?->modelKeys() ?? [])->map(fn (DoorPasscode $passcode): int => $passcode->id)->all());
+        $making = collect($locksWithoutPin)->contains(fn (LockWithoutPinData $lock): bool => $lock->reason === null);
+        $updating = $unit->status === UnitStatus::CheckedIn && $this->endsBeforeStay($unit, $passcodes);
+
         return new UnitDoorPinsData(
             passcodes: array_values($passcodes->map(DoorPasscodeData::fromModel(...))->all()),
             locksWithoutPin: $locksWithoutPin,
             sendNewPin: $sendNewPin,
-            updating: $unit->status === UnitStatus::CheckedIn && $this->endsBeforeStay($unit, $passcodes),
+            updating: $updating,
+            making: $making,
+            leavingIds: $leavingIds,
+            syncing: $making || $updating || $leavingIds !== [] || $live->contains('status', PasscodeStatus::Pending),
         );
     }
 

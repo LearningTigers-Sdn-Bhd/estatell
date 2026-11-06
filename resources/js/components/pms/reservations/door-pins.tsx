@@ -1,11 +1,11 @@
-import { usePoll } from '@inertiajs/react';
 import { Check, Copy, KeyRound } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { SetDoorPinDialog } from '@/components/pms/reservations/set-door-pin-dialog';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { useClipboard } from '@/hooks/use-clipboard';
+import { usePollWhile } from '@/hooks/use-poll-while';
 
 type Pins = App.Data.DoorLocks.UnitDoorPinsData;
 type Passcode = App.Data.DoorLocks.DoorPasscodeData;
@@ -17,17 +17,7 @@ const TIME: Intl.DateTimeFormatOptions = {
     minute: '2-digit',
 };
 
-const POLL_SECONDS = 2;
-const GIVE_UP_SECONDS = 60;
-
 const when = (iso: string) => new Date(iso).toLocaleString('en-GB', TIME);
-
-/** Reloads only the door PINs. Mounted while a PIN is being made or removed, so the page shows the result without a refresh. */
-function PinPoller() {
-    usePoll(POLL_SECONDS * 1000, { only: ['doorPins'] }, { mode: 'rest' });
-
-    return null;
-}
 
 /**
  * The PINs staff should look at now: every Active or Pending PIN, and the newest Failed one of a lock that has no working PIN.
@@ -137,41 +127,16 @@ export function DoorPins({
     pins,
     reservationId,
     unitId,
-    unitStatus,
 }: {
     pins: Pins;
     reservationId: number;
     unitId: number;
-    unitStatus: string;
 }) {
     const [setting, setSetting] = useState<Passcode | null>(null);
-    const [gaveUp, setGaveUp] = useState(false);
     const { now, earlier } = split(pins.passcodes);
-    const making =
-        unitStatus === 'checked_in' &&
-        pins.locksWithoutPin.some((lock) => lock.reason === null);
-    const removing =
-        unitStatus !== 'checked_in' &&
-        pins.passcodes.some((p) => p.status.value === 'active');
-    const busy =
-        making ||
-        pins.updating ||
-        removing ||
-        pins.passcodes.some((p) => p.status.value === 'pending');
-
-    useEffect(() => {
-        if (!busy) {
-            setGaveUp(false);
-
-            return;
-        }
-
-        const timer = setTimeout(() => setGaveUp(true), GIVE_UP_SECONDS * 1000);
-
-        return () => clearTimeout(timer);
-    }, [busy]);
-
-    const waiting = busy && !gaveUp;
+    const { polling, gaveUp } = usePollWhile(pins.syncing, {
+        only: ['doorPins'],
+    });
 
     return (
         <section className="flex items-start gap-x-2">
@@ -180,12 +145,10 @@ export function DoorPins({
                 Door PIN
             </h4>
             <div className="flex min-w-0 flex-1 flex-col gap-2">
-                {waiting && <PinPoller />}
-                {pins.updating && gaveUp && (
+                {gaveUp && (
                     <p className="text-sm text-warning">
-                        The PIN end time did not update to match the stay. The
-                        lock may be unreachable, or a Generated PIN cannot be
-                        shortened. It is removed at check-out.
+                        The door PINs did not finish updating. The lock may be
+                        unreachable. Refresh the page later, or use Set PIN.
                     </p>
                 )}
                 {pins.sendNewPin && (
@@ -198,8 +161,10 @@ export function DoorPins({
                         <PinRow
                             key={passcode.id}
                             passcode={passcode}
-                            removing={waiting && removing}
-                            updating={waiting && pins.updating}
+                            removing={
+                                polling && pins.leavingIds.includes(passcode.id)
+                            }
+                            updating={polling && pins.updating}
                             onSet={() => setSetting(passcode)}
                         />
                     ))}
@@ -208,7 +173,7 @@ export function DoorPins({
                             key={lock.name}
                             className="flex items-center gap-2 rounded-lg border border-dashed px-3 py-2.5 text-sm text-muted-foreground"
                         >
-                            {making && waiting && lock.reason === null ? (
+                            {polling && pins.making && lock.reason === null ? (
                                 <>
                                     <Spinner /> Making the PIN for {lock.name}…
                                 </>
