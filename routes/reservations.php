@@ -9,6 +9,7 @@ use App\Http\Controllers\Reservations\ReservationBookingController;
 use App\Http\Controllers\Reservations\ReservationCityLedgerController;
 use App\Http\Controllers\Reservations\ReservationCompanyController;
 use App\Http\Controllers\Reservations\ReservationController;
+use App\Http\Controllers\Reservations\ReservationDoorPinController;
 use App\Http\Controllers\Reservations\ReservationFolioController;
 use App\Http\Controllers\Reservations\ReservationFolioLineController;
 use App\Http\Controllers\Reservations\ReservationFolioManualController;
@@ -147,6 +148,7 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                 Route::middleware('can:'.PermissionEnum::FrontDeskCheckIn->value)->group(function () {
                     Route::post('check-in/preview', [ReservationUnitStayController::class, 'checkInPreview'])->name('check-in-preview');
                     Route::post('check-in', [ReservationUnitStayController::class, 'checkIn'])->name('check-in');
+                    Route::post('door-pins/{doorPasscode}/replace', [ReservationDoorPinController::class, 'replace'])->middleware('door-locks')->name('door-pins.replace');
                 });
 
                 Route::middleware('can:'.PermissionEnum::FrontDeskCheckOut->value)->group(function () {

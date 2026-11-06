@@ -28,6 +28,7 @@ class SaveDoorLockConnectionRequest extends FormRequest
             'ttlock_username' => ['required', 'string', 'max:255'],
             'ttlock_password' => ['nullable', 'string', 'max:255'],
             'passcode_mode' => ['required', Rule::enum(PasscodeMode::class)],
+            'passcode_length' => ['sometimes', 'integer', 'between:4,9'],
             'enabled' => ['sometimes', 'boolean'],
         ];
     }
@@ -46,7 +47,7 @@ class SaveDoorLockConnectionRequest extends FormRequest
     }
 
     /**
-     * @return array{ttlock_username: string, ttlock_password: string|null, enabled: bool, passcode_mode: string}
+     * @return array{ttlock_username: string, ttlock_password: string|null, enabled: bool, passcode_mode: string, passcode_length?: int}
      */
     public function connection(): array
     {
@@ -55,6 +56,7 @@ class SaveDoorLockConnectionRequest extends FormRequest
             'ttlock_password' => $this->filled('ttlock_password') ? (string) $this->input('ttlock_password') : null,
             'enabled' => $this->boolean('enabled'),
             'passcode_mode' => (string) $this->input('passcode_mode'),
+            ...($this->filled('passcode_length') ? ['passcode_length' => $this->integer('passcode_length')] : []),
         ];
     }
 }

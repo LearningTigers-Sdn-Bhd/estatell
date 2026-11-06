@@ -18,7 +18,7 @@ class UpdateGuest
      * @param  array<string, mixed>  $attributes  Validated profile fields.
      * @param  list<string>  $tagNames
      */
-    public function __invoke(User $actor, Guest $guest, array $attributes, array $tagNames = []): bool
+    public function __invoke(?User $actor, Guest $guest, array $attributes, array $tagNames = []): bool
     {
         return DB::transaction(function () use ($actor, $guest, $attributes, $tagNames): bool {
             $guest = Guest::query()->lockForUpdate()->findOrFail($guest->id);

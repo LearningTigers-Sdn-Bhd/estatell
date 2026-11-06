@@ -1,3 +1,4 @@
+import { cn } from '@/lib/utils';
 import type { ReactNode } from 'react';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
@@ -69,11 +70,14 @@ export function SettingsSelect({
     disabled,
     description,
     allLabel,
+    onValueChange,
 }: {
     name: string;
     label: string;
     value: string;
     options: EnumOption[];
+    /** Called with the picked value, for a field that changes another field. The select stays uncontrolled. */
+    onValueChange?: (value: string) => void;
     /** Label for the empty value, for example "Not set". */
     allLabel?: string;
     error?: string;
@@ -88,6 +92,7 @@ export function SettingsSelect({
                 name={name}
                 options={options}
                 defaultValue={value}
+                onValueChange={onValueChange}
                 allLabel={allLabel}
                 disabled={disabled}
                 aria-invalid={!!error}
@@ -109,6 +114,7 @@ export function SettingsSwitch({
     description,
     disabled,
     bordered = false,
+    centered = false,
 }: {
     name: string;
     label: string;
@@ -118,13 +124,18 @@ export function SettingsSwitch({
     disabled?: boolean;
     /** Draws the switch as its own bordered card that fills one grid cell, so two switches can sit in a row. */
     bordered?: boolean;
+    /** Centers the switch and its text vertically, for a bordered switch that sits beside a taller box. */
+    centered?: boolean;
 }) {
     return (
         <Field
             orientation="horizontal"
             className={
                 bordered
-                    ? 'items-start justify-start rounded-lg border p-4'
+                    ? cn(
+                          'justify-start rounded-lg border p-4',
+                          centered ? 'items-center' : 'items-start',
+                      )
                     : 'items-start justify-start md:col-span-2'
             }
         >
@@ -135,7 +146,7 @@ export function SettingsSwitch({
                 defaultChecked={checked}
                 disabled={disabled}
                 aria-invalid={!!error}
-                className="mt-0.5"
+                className={centered ? undefined : 'mt-0.5'}
             />
             <FieldContent className={bordered ? 'min-w-0' : 'flex-none'}>
                 <FieldLabel htmlFor={name}>{label}</FieldLabel>

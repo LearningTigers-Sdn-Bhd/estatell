@@ -21,7 +21,7 @@ class CreateFolio
      * Create an Open folio. A unit gets a Unit folio paid by the booker. No unit gives the Master folio, paid by the
      * reservation's company (no payer without one). The number comes from the property's folio sequence. `PostCharge`
      * calls this the first time a unit receives a posting, and `SyncRoutingRules` calls it for the Master folio:
-     * nothing creates folios at booking time. The caller makes sure a reservation gets one active Master folio (the
+     * kiosk walk-in booking creates its Unit folio up front so the desk can record its deposit. The caller makes sure a reservation gets one active Master folio (the
      * partial unique index rejects a second one). See docs/13-folio/02-posting-charges.md and docs/13-folio/03-routing.md.
      */
     public function __invoke(Reservation $reservation, ?ReservationUnit $unit): Folio

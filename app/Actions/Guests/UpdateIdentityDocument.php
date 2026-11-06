@@ -15,10 +15,11 @@ class UpdateIdentityDocument
      * Save the document's fields and scans. A new file replaces the old scan and the old file is deleted.
      * Returns false when the guest was merged into another guest or anonymized.
      *
+     * @param  User|null  $actor  Null when a device (the kiosk) saves the document.
      * @param  IdentityDocumentInputData  $data  The validated document fields, with the number normalized.
      * @param  list<string>  $removeScans  Scan collections to empty, for example `id_back`.
      */
-    public function __invoke(User $actor, GuestIdentityDocument $document, IdentityDocumentInputData $data, ?UploadedFile $frontScan = null, ?UploadedFile $backScan = null, array $removeScans = []): bool
+    public function __invoke(?User $actor, GuestIdentityDocument $document, IdentityDocumentInputData $data, ?UploadedFile $frontScan = null, ?UploadedFile $backScan = null, array $removeScans = []): bool
     {
         return DB::transaction(function () use ($actor, $document, $data, $frontScan, $backScan, $removeScans): bool {
             $guest = Guest::query()->lockForUpdate()->findOrFail($document->guest_id);

@@ -172,7 +172,7 @@ export default function PartnerPropertiesIndex({
                     activeTab={onboardingTab ? 'onboarding' : 'all'}
                     panelWidth="full"
                     className="gap-4"
-                    triggerClassName="min-w-0 px-0 mr-6"
+                    triggerClassName="md:min-w-0 px-0 mr-6"
                     tabs={[
                         {
                             value: 'all',

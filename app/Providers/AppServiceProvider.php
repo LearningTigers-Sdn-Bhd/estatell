@@ -18,6 +18,7 @@ use App\Events\StayCheckedIn;
 use App\Events\StayCheckedOut;
 use App\Events\StayDatesChanged;
 use App\Events\StayRoomChanged;
+use App\Models\Kiosk;
 use App\Models\Property;
 use App\Models\RatePlan;
 use App\Models\RoomType;
@@ -29,9 +30,11 @@ use Illuminate\Auth\Access\Response;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Middleware\TrustProxies;
+use Illuminate\Http\Request;
 use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -42,6 +45,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -78,6 +82,26 @@ class AppServiceProvider extends ServiceProvider
         $this->configureMailBranding();
         $this->configureMailLog();
         $this->configureChannelEvents();
+        $this->configureApiRateLimiting();
+    }
+
+    /**
+     * Pairing is limited per IP address (a pairing code can be guessed). Everything else is limited per token. See docs/28-api-access/01-api-tokens.md.
+     */
+    protected function configureApiRateLimiting(): void
+    {
+        RateLimiter::for('api-pair', fn (Request $request): Limit => Limit::perMinute(10)->by((string) $request->ip()));
+        RateLimiter::for('api-walk-in', function (Request $request): array {
+            $kiosk = $request->attributes->get('kiosk');
+
+            return [Limit::perMinute(20)->by('kiosk-walk-in-token:'.($kiosk instanceof Kiosk ? $kiosk->id : 'none')),
+                Limit::perMinute(40)->by('kiosk-walk-in-ip:'.(string) $request->ip())];
+        });
+        RateLimiter::for('api-token', function (Request $request): Limit {
+            $kiosk = $request->attributes->get('kiosk');
+
+            return Limit::perMinute(120)->by($kiosk instanceof Kiosk ? 'kiosk:'.$kiosk->id : (string) $request->ip());
+        });
     }
 
     /**

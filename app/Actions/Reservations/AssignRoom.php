@@ -22,7 +22,7 @@ class AssignRoom
      * logs nothing. A unit that already has a room is moved. Mid-stay moves belong to module 18.
      * See docs/12-reservations/05-booking-form.md.
      */
-    public function __invoke(User $actor, ReservationUnit $unit, Room $room): AssignmentResult
+    public function __invoke(?User $actor, ReservationUnit $unit, Room $room): AssignmentResult
     {
         return DB::transaction(function () use ($actor, $unit, $room): AssignmentResult {
             $locked = ReservationUnit::query()->lockForUpdate()->findOrFail($unit->id);

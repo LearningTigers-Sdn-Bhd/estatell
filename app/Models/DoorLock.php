@@ -20,11 +20,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $name
  * @property int|null $battery_percent
  * @property bool $has_gateway
+ * @property string|null $gateway_name
+ * @property bool|null $gateway_online
+ * @property int|null $clock_drift_seconds Lock clock minus server clock, in seconds, from the last health check.
+ * @property CarbonImmutable|null $health_checked_at
  * @property CarbonImmutable|null $synced_at
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['room_id', 'ttlock_lock_id', 'name', 'battery_percent', 'has_gateway', 'synced_at'])]
+#[Fillable(['room_id', 'ttlock_lock_id', 'name', 'battery_percent', 'has_gateway', 'gateway_name', 'gateway_online', 'clock_drift_seconds', 'health_checked_at', 'synced_at'])]
 class DoorLock extends Model
 {
     /** @use HasFactory<DoorLockFactory> */
@@ -37,6 +41,8 @@ class DoorLock extends Model
     {
         return [
             'has_gateway' => 'boolean',
+            'gateway_online' => 'boolean',
+            'health_checked_at' => 'immutable_datetime',
             'synced_at' => 'immutable_datetime',
         ];
     }

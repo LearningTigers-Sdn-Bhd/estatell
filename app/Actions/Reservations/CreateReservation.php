@@ -40,7 +40,7 @@ class CreateReservation
      * A Bed room type line adds one unit for each bed. A reservation is all overnight or all day use (`stay_types_mixed`), and day use never comes from a channel. When any line is refused, nothing is saved, the reference
      * number is not used up, nothing is logged, and the result names the line. `$fromChannel` and `$allowPastArrival` are passed to `AddUnit`. A company that pays per booking gives the reservation its payment deadlines (`SetReservationPaymentSchedule`, not for channel bookings). `SyncRoutingRules` runs when the units are in, so a company or a group reservation gets its Master folio and rules. See docs/12-reservations/02-group-bookings.md.
      */
-    public function __invoke(User $actor, Property $property, NewReservationData $data, bool $fromChannel = false, bool $allowPastArrival = false): ReservationResult
+    public function __invoke(?User $actor, Property $property, NewReservationData $data, bool $fromChannel = false, bool $allowPastArrival = false): ReservationResult
     {
         if ($data->units === []) {
             return ReservationResult::refused(ReservationResult::REFUSAL_UNITS_REQUIRED);
@@ -91,7 +91,7 @@ class CreateReservation
                     'booking_source_id' => $data->bookingSource->id,
                     'reference' => ($this->nextDocumentNumber)($property, DocumentType::Reservation)->reference,
                     'status' => ReservationStatus::Confirmed,
-                    'created_by' => $actor->id,
+                    'created_by' => $actor?->id,
                 ])->save();
 
                 $roomCount = count(array_filter($data->units, fn (NewUnitData $line): bool => $line->stayType === StayType::Overnight && $roomTypes->get($line->roomTypeId)?->sell_unit === SellUnit::Room));
@@ -142,7 +142,7 @@ class CreateReservation
      *
      * @throws ReservationRefused when the company would go over its limit and there is no override reason
      */
-    private function checkCredit(User $actor, Reservation $reservation, NewReservationData $data): void
+    private function checkCredit(?User $actor, Reservation $reservation, NewReservationData $data): void
     {
         $company = $data->companyId === null ? null : Company::query()->find($data->companyId);
 
@@ -156,7 +156,7 @@ class CreateReservation
             return;
         }
 
-        if (trim((string) $data->creditOverrideReason) === '') {
+        if ($actor === null || trim((string) $data->creditOverrideReason) === '') {
             throw new ReservationRefused(ReservationResult::refused(ReservationResult::REFUSAL_CREDIT_LIMIT_EXCEEDED));
         }
 

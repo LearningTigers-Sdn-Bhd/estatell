@@ -35,7 +35,7 @@ class PostDayUseBlock
      * inside its transaction (`CheckInUnit`, which locks the unit). Every check runs before the first write, so a
      * refusal writes nothing. `$serviceDate` is the day the block was used, for a day use entered after the business date moved on (a past stay); it defaults to the posting date. A block already posted returns its lines as replayed. See docs/12-reservations/10-day-use.md.
      */
-    public function __invoke(User $actor, ReservationUnit $unit, string $postingDate, ?string $serviceDate = null): PostingResult
+    public function __invoke(?User $actor, ReservationUnit $unit, string $postingDate, ?string $serviceDate = null): PostingResult
     {
         $existing = FolioLine::query()->where('idempotency_key', 'dayuse:'.$unit->id)->first();
 

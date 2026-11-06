@@ -27,7 +27,7 @@ class AttachGuest
      * the booker's, while the property has an enabled foreign-only tax, returns a tax warning.
      * See docs/12-reservations/06-reservation-page.md.
      */
-    public function __invoke(User $actor, ReservationUnit $unit, Guest $guest): AttachGuestResult
+    public function __invoke(?User $actor, ReservationUnit $unit, Guest $guest): AttachGuestResult
     {
         return DB::transaction(function () use ($actor, $unit, $guest): AttachGuestResult {
             $locked = ReservationUnit::query()->lockForUpdate()->findOrFail($unit->id);

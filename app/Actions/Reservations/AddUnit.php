@@ -63,7 +63,7 @@ class AddUnit
      * the line in the request, and comes back on a refusal. A Cancelled or Completed reservation is refused first. A day use line (`$data->stayType`) goes to `AddDayUseUnit`; a reservation is all overnight or all day use. Only
      * `$fromChannel` (booking ingestion) skips the arrival date, restriction and availability checks, and accepts a stay the rate quote refuses when `overrideTotal` is set: its nights then carry no calculated price and the override total is spread over them. `$allowPastArrival` (only `CreatePastStay` passes it) skips the arrival date check and the restriction check for a stay that began before the business date; availability is still checked. An add-on refusal rolls back the unit and comes back with the line index. Last, `SyncRoutingRules` makes the billing mode rules match the new unit count, and the result names units whose posted room lines stay on their folio. See docs/12-reservations/02-group-bookings.md.
      */
-    public function __invoke(User $actor, Reservation $reservation, NewUnitData $data, int $lineIndex = 0, bool $fromChannel = false, bool $allowPastArrival = false, ?int $roomCount = null): ReservationResult
+    public function __invoke(?User $actor, Reservation $reservation, NewUnitData $data, int $lineIndex = 0, bool $fromChannel = false, bool $allowPastArrival = false, ?int $roomCount = null): ReservationResult
     {
         try {
             return DB::transaction(fn (): ReservationResult => $this->add($actor, $reservation, $data, $lineIndex, $fromChannel, $allowPastArrival, $roomCount));
@@ -75,7 +75,7 @@ class AddUnit
     /**
      * @throws ReservationRefused when an add-on is refused after the unit was written, so the transaction rolls back
      */
-    private function add(User $actor, Reservation $reservation, NewUnitData $data, int $lineIndex, bool $fromChannel, bool $allowPastArrival, ?int $roomCount): ReservationResult
+    private function add(?User $actor, Reservation $reservation, NewUnitData $data, int $lineIndex, bool $fromChannel, bool $allowPastArrival, ?int $roomCount): ReservationResult
     {
         $refuse = fn (string $code, $date = null): ReservationResult => ReservationResult::refused($code, $lineIndex, $date);
 
@@ -105,6 +105,10 @@ class AddUnit
         }
 
         if ($data->stayType === StayType::DayUse) {
+            if ($actor === null) {
+                return $refuse(ReservationResult::REFUSAL_INVALID_STAY);
+            }
+
             return ($this->addDayUseUnit)($actor, $reservation, $data, $roomType, $ratePlan, $lineIndex, $fromChannel, fn (): bool => $this->canOverrideRestrictions($actor, $reservation), $allowPastArrival);
         }
 
@@ -284,6 +288,10 @@ class AddUnit
         }
 
         foreach ($data->boatTrips as $boatTrip) {
+            if ($actor === null) {
+                throw new ReservationRefused($refuse(ReservationResult::REFUSAL_INVALID_STAY));
+            }
+
             $tripResult = ($this->setBoatTrip)($actor, $unit, $boatTrip);
 
             if ($tripResult->isRefused()) {
@@ -316,8 +324,12 @@ class AddUnit
      * Whether the actor may book past restrictions in the reservation's property. The permission team is switched to
      * that property and put back afterwards.
      */
-    private function canOverrideRestrictions(User $actor, Reservation $reservation): bool
+    private function canOverrideRestrictions(?User $actor, Reservation $reservation): bool
     {
+        if ($actor === null) {
+            return false;
+        }
+
         $previousTeamId = getPermissionsTeamId();
         setPermissionsTeamId($reservation->property_id);
 
@@ -364,7 +376,7 @@ class AddUnit
     /**
      * @param  array{reason: string, violations: list<string>}|null  $restrictionOverride
      */
-    private function log(User $actor, Reservation $reservation, ReservationUnit $unit, ?array $restrictionOverride, ?Money $overrideTotal, ?string $overrideReason): void
+    private function log(?User $actor, Reservation $reservation, ReservationUnit $unit, ?array $restrictionOverride, ?Money $overrideTotal, ?string $overrideReason): void
     {
         $properties = [
             'property_id' => $reservation->property_id,

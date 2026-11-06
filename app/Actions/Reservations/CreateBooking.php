@@ -41,7 +41,7 @@ class CreateBooking
      * rooms). Permissions for creating guests are checked by the caller.
      * See docs/12-reservations/05-booking-form.md.
      */
-    public function __invoke(User $actor, Property $property, NewBookingData $data, bool $fromChannel = false, bool $allowPastArrival = false, bool $autoAssignRooms = true): BookingResult
+    public function __invoke(?User $actor, Property $property, NewBookingData $data, bool $fromChannel = false, bool $allowPastArrival = false, bool $autoAssignRooms = true): BookingResult
     {
         if ($data->guests === []) {
             return BookingResult::refused(BookingResult::REFUSAL_BOOKER_REQUIRED);
@@ -93,7 +93,7 @@ class CreateBooking
     /**
      * @throws BookingRefused
      */
-    private function resolveGuest(User $actor, Property $property, NewBookingGuestData $tab, int $index): int
+    private function resolveGuest(?User $actor, Property $property, NewBookingGuestData $tab, int $index): int
     {
         if ($tab->guestId === null) {
             if (trim((string) ($tab->profile['full_name'] ?? '')) === '') {
@@ -120,7 +120,7 @@ class CreateBooking
      *
      * @throws BookingRefused
      */
-    private function attachGuests(User $actor, NewBookingData $data, array $guestIds, Collection $units): void
+    private function attachGuests(?User $actor, NewBookingData $data, array $guestIds, Collection $units): void
     {
         foreach ($data->guests as $index => $tab) {
             if ($tab->unitIndex === null) {
@@ -146,7 +146,7 @@ class CreateBooking
      *
      * @throws BookingRefused
      */
-    private function assignPicks(User $actor, Property $property, NewBookingData $data, Collection $units): void
+    private function assignPicks(?User $actor, Property $property, NewBookingData $data, Collection $units): void
     {
         foreach ($data->picks as $pick) {
             if ($pick->roomId === null && $pick->bedId === null) {
@@ -167,7 +167,7 @@ class CreateBooking
         }
     }
 
-    private function assign(User $actor, Property $property, ReservationUnit $unit, UnitPickData $pick): AssignmentResult
+    private function assign(?User $actor, Property $property, ReservationUnit $unit, UnitPickData $pick): AssignmentResult
     {
         if ($pick->roomId !== null) {
             $room = Room::query()->where('property_id', $property->id)->find($pick->roomId);

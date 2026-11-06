@@ -24,7 +24,7 @@ class CloseSettledUnitFolio
      * any other folio are left alone. A refusal of `CloseFolio` is ignored: the folio just stays Open. See
      * docs/13-folio/01-folios-and-lines.md#close-and-reopen.
      */
-    public function __invoke(User $actor, Folio $folio): void
+    public function __invoke(?User $actor, Folio $folio): void
     {
         $current = Folio::query()->find($folio->id);
 

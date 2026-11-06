@@ -8,6 +8,7 @@ use App\Enums\PermissionEnum;
 use App\Features\AccountingIntegration;
 use App\Features\Boats;
 use App\Features\DoorLocks;
+use App\Features\Kiosks;
 use App\Models\Property;
 use App\Models\User;
 use Laravel\Pennant\Feature;
@@ -54,6 +55,12 @@ class SettingsNavigation
                     href: route('settings.door-locks.edit', ['property' => $property->code], absolute: false),
                     icon: 'lock',
                     active: request()->routeIs('settings.door-locks.*'),
+                ) : null,
+                $user->can(PermissionEnum::SettingsManage->value) && Feature::for($property)->active(Kiosks::class) ? new NavItemData(
+                    title: __('Kiosks'),
+                    href: route('settings.kiosks.index', ['property' => $property->code], absolute: false),
+                    icon: 'tablet',
+                    active: request()->routeIs('settings.kiosks.*'),
                 ) : null,
                 $user->can(PermissionEnum::SettingsOtaLists->value) ? new NavItemData(
                     title: __('OTA lists'),

@@ -29,7 +29,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $booking_source_id
  * @property string|null $external_reference
  * @property string|null $notes
- * @property int $created_by
+ * @property int|null $created_by
  * @property CarbonImmutable|null $cancellation_requested_at
  * @property int|null $deposit_percent The agent payment schedule, set at booking (`SetReservationPaymentSchedule`): the deposit share.
  * @property CarbonImmutable|null $deposit_due_at When the deposit (or the whole booking, with no full payment date) is due.

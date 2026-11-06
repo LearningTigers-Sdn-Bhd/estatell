@@ -16,7 +16,7 @@ class LogDeclinedAutoAddOns
      *
      * @param  list<int>  $chargeItemIds
      */
-    public function __invoke(User $actor, Reservation $reservation, ReservationUnit $unit, array $chargeItemIds): void
+    public function __invoke(?User $actor, Reservation $reservation, ReservationUnit $unit, array $chargeItemIds): void
     {
         if ($chargeItemIds === []) {
             return;

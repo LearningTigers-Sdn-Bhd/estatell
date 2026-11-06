@@ -64,6 +64,22 @@ pushedAt: string | null,
 canRetry: boolean,
 };
 }
+namespace ApiAccess {
+export type KioskData = {
+id: number,
+name: string,
+deviceName: string | null,
+status: App.Data.Shared.BadgeData,
+pairedAt: string | null,
+lastUsedAt: string | null,
+canRevoke: boolean,
+};
+export type KioskSettingsData = {
+keyMode: string,
+walkInEnabled: boolean,
+idleTimeoutSeconds: number,
+};
+}
 namespace Boats {
 export type BoatData = {
 id: number,
@@ -812,6 +828,7 @@ ttlockUsername: string,
 signedIn: boolean,
 enabled: boolean,
 passcodeMode: string,
+passcodeLength: number,
 lastTestedAt: string | null,
 lastError: string | null,
 };
@@ -823,6 +840,10 @@ hasGateway: boolean,
 roomId: number | null,
 roomNumber: string | null,
 syncedAt: string | null,
+gatewayName: string | null,
+gatewayOnline: boolean | null,
+clockDriftSeconds: number | null,
+healthCheckedAt: string | null,
 };
 export type DoorPasscodeData = {
 id: number,
@@ -837,6 +858,7 @@ error: string | null,
 revokeNote: string | null,
 canRevoke: boolean,
 canRetry: boolean,
+canReplace: boolean,
 };
 export type LockWithoutPinData = {
 name: string,
@@ -846,6 +868,10 @@ export type UnitDoorPinsData = {
 passcodes: App.Data.DoorLocks.DoorPasscodeData[],
 locksWithoutPin: App.Data.DoorLocks.LockWithoutPinData[],
 sendNewPin: boolean,
+updating: boolean,
+making: boolean,
+leavingIds: number[],
+syncing: boolean,
 };
 }
 namespace Folio {
@@ -1410,6 +1436,21 @@ cleaning: App.Data.Housekeeping.RoomCleaningData | null,
 canStart: boolean,
 canFinish: boolean,
 canEdit: boolean,
+};
+}
+namespace Kiosk {
+export type KioskIdentityData = {
+document: App.Data.Guests.IdentityDocumentInputData,
+fullName: string,
+nationalityCode: string | null,
+dateOfBirth: string | null,
+gender: App.Enums.Gender | null,
+};
+export type KioskWalkInData = {
+arrival: string,
+nights: number,
+adults: number,
+childAges: number[],
 };
 }
 namespace Meals {
@@ -4416,6 +4457,8 @@ export type IdentityDocumentType = 'mykad' | 'passport' | 'other';
 export type ImpersonationReason = 'onboarding_help' | 'support' | 'setup_check';
 export type InclusionEnd = 'departure_day' | 'night_before_departure';
 export type InclusionStart = 'arrival_day' | 'day_after_arrival';
+export type KioskKeyMode = 'pin' | 'card' | 'both';
+export type KioskStatus = 'awaiting_pairing' | 'paired' | 'code_expired' | 'revoked';
 export type Locale = 'en' | 'ms';
 export type MailStatus = 'sent' | 'delivered' | 'bounced' | 'complained' | 'failed' | 'suppressed';
 export type ManualFolioReason = 'paper_folio' | 'missed_charge' | 'missed_payment' | 'old_system' | 'fix_mistake' | 'other';
@@ -4448,7 +4491,7 @@ export type PdfFont = 'office' | 'modern' | 'fancy' | 'handwritten';
 export type PdfFontSize = 'small' | 'medium' | 'large';
 export type PerformancePreset = '7d' | '30d' | 'month' | 'last-month' | '12m';
 export type PermissionEnum = 'settings.manage' | 'settings.ota-lists' | 'staff.view' | 'staff.manage' | 'roles.manage' | 'rooms.view' | 'rooms.manage' | 'rooms.block' | 'notification.manage' | 'rates.view' | 'rates.manage' | 'rates.override-restrictions' | 'guests.view' | 'guests.manage' | 'guests.blacklist' | 'guests.view-documents' | 'guests.merge' | 'guests.anonymize' | 'reservations.view' | 'reservations.manage' | 'reservations.change-price' | 'folio.post-charge' | 'folio.reverse' | 'folio.transfer' | 'folio.discount' | 'folio.discount-open' | 'folio.close' | 'folio.reopen' | 'folio.print-voucher' | 'folio.manual' | 'folio.view-manual-entries' | 'payment.record' | 'payment.refund' | 'payment.refund-other-method' | 'company.view' | 'company.manage' | 'company.credit-override' | 'city-ledger.invoice' | 'city-ledger.credit-note' | 'city-ledger.payment' | 'city-ledger.allocate' | 'registration-card.manage-terms' | 'registration-card.sign' | 'registration-card.send-link' | 'registration-card.void' | 'front-desk.view' | 'front-desk.check-in' | 'front-desk.check-out' | 'front-desk.check-in-without-card' | 'front-desk.waive-fees' | 'front-desk.undo-check-in' | 'front-desk.undo-check-out' | 'night-audit.run' | 'night-audit.force' | 'night-audit.receive-report' | 'reports.view' | 'housekeeping.view' | 'housekeeping.update' | 'housekeeping.inspect' | 'housekeeping.edit-times';
-export type PlatformFeature = 'channel-manager' | 'boats' | 'accounting-integration' | 'door-locks';
+export type PlatformFeature = 'channel-manager' | 'boats' | 'accounting-integration' | 'door-locks' | 'kiosks';
 export type PolicyChargeMode = 'free' | 'fixed_amount' | 'percentage';
 export type PolicyRateBasis = 'booked_rate' | 'current_rate';
 export type PolicyScope = 'first_night' | 'whole_stay' | 'unused_nights' | 'one_charge';

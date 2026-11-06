@@ -206,19 +206,19 @@ The Units list is hidden for one unit, and the Folio rail for one folio, so thos
 │ ┌ Choose unit ───────┐┌──────────────────────────────────┐ │ +60 12-345 6789             │
 │ │ ▸ Deluxe King      ││ Deluxe King · BAR Room Only      │ │                             │
 │ │   101 · Confirmed  ││ ●Confirmed                  [⋯]  │ │ ─────────────────────────── │
-│ │   Dorm 6-Bed       ││ Stay   12 Oct → 15 Oct · 3 nights│ │ Earliest arrival  12 Oct    │
-│ │   D1-2 · Confirmed ││ Guests 2 adults, 2 children (4,9)│ │ Latest departure  15 Oct    │
-│ │   Dorm 6-Bed       ││ Room   101 (all nights)          │ │ Units             5         │
-│ │   — · Confirmed    ││ Primary Tan Wei Ming             │ │ Room nights       15        │
-│ │   Dorm 6-Bed       ││                                  │ │ Stay total   RM 2,390.00    │
-│ │   — · Cancelled    ││ Night      Room  Rate     Amount │ │ Balance      from folio     │
-│ │   Family Suite     ││ Mon 12 Oct 101   BAR RO   280.00 │ │ ─────────────────────────── │
-│ │   auto · Confirmed ││ Tue 13 Oct 101   BAR RO   280.00 │ │ Billing   Master pays rooms │
-│ │                    ││ Wed 14 Oct 101   BAR RO   280.00 │ │ Ref       WA1-0142          │
-│ │                    ││                  Total    840.00 │ │ Source    [☎] Phone         │
-│ │                    ││                                  │ │ Ext. ref  None              │
-│ │                    ││                                  │ │ Company   —                 │
-│ │                    ││ ⓘ Price override by Aina:        │ │ Created   02 Oct · Aina     │
+│ │   Dorm 6-Bed       ││ Stay   12 Oct → 15 Oct · 3 nights│ │ Total        RM 2,390.00    │
+│ │   D1-2 · Confirmed ││ Guests 2 adults, 2 children (4,9)│ │ Paid         RM 1,000.00    │
+│ │   Dorm 6-Bed       ││ Room   101 (all nights)          │ │ Still to pay RM 1,390.00    │
+│ │   — · Confirmed    ││ Primary Tan Wei Ming             │ │ ─────────────────────────── │
+│ │   Dorm 6-Bed       ││                                  │ │ Units     5                 │
+│ │   — · Cancelled    ││ Night      Room  Rate     Amount │ │ Room nights 15              │
+│ │   Family Suite     ││ Mon 12 Oct 101   BAR RO   280.00 │ │ Billing   Master pays rooms │
+│ │   auto · Confirmed ││ Tue 13 Oct 101   BAR RO   280.00 │ │ Company   None              │
+│ │                    ││ Wed 14 Oct 101   BAR RO   280.00 │ │ Created at 02 Oct 2026      │
+│ │                    ││                  Total    840.00 │ │ Created by Aina             │
+│ │                    ││                                  │ │                             │
+│ │                    ││                                  │ │                             │
+│ │                    ││ ⓘ Price override by Aina:        │ │                             │
 │ │                    ││   "Corporate rate"               │ │                             │
 │ └────────────────────┘└──────────────────────────────────┘ │                             │
 └────────────────────────────────────────────────────────────┴─────────────────────────────┘
@@ -418,7 +418,7 @@ A title row (Requests, with **+ New request** on the right for `guest-requests.m
 
 ### Summary card
 
-Booker (name, VIP, phone, email; the name is an underlined link to the guest that opens in a new tab), earliest arrival, latest departure, units, room nights, the money figures (below), billing mode (2 or more units, with the `BillingMode` label), Ref (the reference, bold), source (the [source badge](11-booking-sources.md#badge) and the booking source name), Ext. ref (`external_reference` in bold, or "None"), company (the name, a link to the [company page](../15-city-ledger/01-companies.md#pages) for staff with `company.view`, or "None"), Created at (the date) and Created by (the user, or "System" when there is none) as two rows. Every row has an icon before its label, and only the top row (the Booker block) has `ps-3 pt-2`, like the title rows of the tab panels. Notes, when the booking has them, show in a rounded, bordered box of fixed height (`h-32`, the text scrolls inside) under the summary figures (added with the booking form).
+Booker (name, VIP, phone, email; the name is an underlined link to the guest that opens in a new tab), the money figures (below, with Still to pay in bold), units, room nights, billing mode (2 or more units, with the `BillingMode` label), company (the name, a link to the [company page](../15-city-ledger/01-companies.md#pages) for staff with `company.view`, or "None"), Created at (the date) and Created by (the user, or "System" when there is none) as two rows. The stay dates, Ref, source and Ext. ref are in the [header](#header) only, so the card does not repeat them. The card fills its panel and shrinks when a scrollbar takes width, so it never scrolls sideways; long values wrap. Every row has an icon before its label, and only the top row (the Booker block) has `ps-3 pt-2`, like the title rows of the tab panels. Notes, when the booking has them, show in a rounded, bordered box of fixed height (`h-32`, the text scrolls inside) under the summary figures (added with the booking form).
 
 **Money figures.** The summary card shows the full figures of the reservation, from `BookingSummary` (the same service and numbers as the [booking summary](08-booking-summary.md) PDF):
 
