@@ -7,6 +7,7 @@ use App\Actions\Payments\RefundPayment;
 use App\Data\Folio\ManualRowData;
 use App\Data\Folio\NewChargeData;
 use App\Data\Payments\NewPaymentData;
+use App\Enums\FolioStatus;
 use App\Enums\FolioType;
 use App\Enums\ManualRowType;
 use App\Enums\PaymentPurpose;
@@ -83,7 +84,10 @@ class PostManualBatch
 
                 $closed = false;
 
-                if ($close) {
+                // A payment that clears a checked-out room's folio has already closed it.
+                if ($close && $folio->fresh()?->status === FolioStatus::Closed) {
+                    $closed = true;
+                } elseif ($close) {
                     $result = ($this->closeFolio)($actor, $folio);
 
                     if ($result->isRefused()) {
