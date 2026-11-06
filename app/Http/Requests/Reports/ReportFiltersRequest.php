@@ -182,7 +182,7 @@ class ReportFiltersRequest extends FormRequest
     }
 
     /**
-     * The direction of the Boat manifest: the `direction` in the URL, or Boat in when none is given. Null with `both`.
+     * The direction of the Boat manifest: the `direction` in the URL. Null with `both`.
      * Other reports ignore it.
      */
     private function direction(): ?BoatDirection
@@ -195,11 +195,11 @@ class ReportFiltersRequest extends FormRequest
     }
 
     /**
-     * Whether the Boat manifest shows Boat in and Boat out together (`direction=both`).
+     * Whether the Boat manifest shows Boat in and Boat out together: `direction=both`, or no direction (its default).
      */
     private function bothDirections(): bool
     {
-        return $this->reportKey()->hasDirectionFilter() && $this->string('direction')->toString() === 'both';
+        return $this->reportKey()->hasDirectionFilter() && BoatDirection::tryFrom($this->string('direction')->toString()) === null;
     }
 
     /**

@@ -2,19 +2,26 @@
 
 require_once __DIR__.'/../Support/ReportSetup.php';
 
+use App\Actions\Boats\SetBoatTrip;
+use App\Data\Boats\BoatTripData;
 use App\Data\Reports\BoatManifestRow;
 use App\Data\Reports\ReportFilters;
 use App\Enums\BoatDirection;
 use App\Enums\BoatMode;
 use App\Enums\DefaultRoleEnum;
+use App\Enums\PageOrientation;
+use App\Enums\PermissionEnum;
 use App\Enums\ReportKey;
 use App\Enums\Tone;
 use App\Enums\UnitStatus;
 use App\Features\Boats;
+use App\Models\Boat;
 use App\Models\BoatDeparture;
+use App\Models\BoatDepartureRun;
 use App\Models\Company;
 use App\Models\Guest;
 use App\Models\Property;
+use App\Models\ReportLayout;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\Room;
@@ -25,12 +32,15 @@ use App\Models\User;
 use App\Navigation\FrontDeskNavigation;
 use App\Services\Boats\BoatSeats;
 use App\Services\Reports\BoatManifestReport;
+use App\Services\Reports\ReportLayoutResolver;
+use App\Services\Reports\ReportPdf;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\View;
 use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Pennant\Feature;
+use Spatie\Activitylog\Models\Activity;
 
 beforeEach(function () {
     $this->travelTo(now()->setDate(2026, 10, 10)->setTime(12, 0));
@@ -138,7 +148,7 @@ function manifestPdfView(): object
 {
     $captured = new stdClass;
     $captured->data = [];
-    View::composer('pdf.report', function ($view) use ($captured): void {
+    View::composer('pdf.boat-manifest', function ($view) use ($captured): void {
         $captured->data = $view->getData();
     });
 
@@ -352,35 +362,67 @@ test('the report is hidden and 404 while the Boats feature is off', function () 
     $this->actingAs($owner)->get(manifestUrl($property, '?date=2026-10-20'))->assertOk();
 });
 
-test('the direction defaults to Boat in and Boat out is read from the URL', function () {
+test('the direction defaults to Boat in and out and a direction is read from the URL', function () {
     [$manager, $property] = manifestSetup();
 
     $this->actingAs($manager)->get(manifestUrl($property, '?date=2026-10-20'))
-        ->assertInertia(fn (Assert $page) => $page->where('direction', 'in'));
+        ->assertInertia(fn (Assert $page) => $page->where('direction', 'both'));
     $this->actingAs($manager)->get(manifestUrl($property, '?date=2026-10-20&direction=out'))
         ->assertInertia(fn (Assert $page) => $page->where('direction', 'out'));
 });
 
-test('the PDF has one section per departure and leaves the charter and own boat trips out by default', function () {
+test('the PDF is landscape, whatever the saved layout says, and bands every departure in time order', function () {
     [$manager, $property] = manifestSetup();
-    $first = manifestDeparture($property, BoatDirection::In, '09:00:00', '09:45:00');
-    $second = manifestDeparture($property, BoatDirection::In, '10:00:00', '10:45:00');
-    manifestTrip($property, manifestUnit($property), BoatDirection::In, $first);
-    manifestTrip($property, manifestUnit($property), BoatDirection::In, $second);
-    manifestTrip($property, manifestUnit($property), BoatDirection::In, null, BoatMode::Charter);
+    $first = manifestDeparture($property, BoatDirection::Out, '08:00:00', '08:45:00');
+    $empty = manifestDeparture($property, BoatDirection::In, '09:00:00', '09:45:00');
+    $last = manifestDeparture($property, BoatDirection::Out, '14:30:00', '15:15:00');
+    manifestTrip($property, manifestUnit($property, ['arrival_date' => '2026-10-17', 'departure_date' => '2026-10-20']), BoatDirection::Out, $first);
+    manifestTrip($property, manifestUnit($property, ['arrival_date' => '2026-10-17', 'departure_date' => '2026-10-20']), BoatDirection::Out, $last);
+    $ownBoat = manifestTrip($property, manifestUnit($property), BoatDirection::In, null, BoatMode::Own);
     $captured = manifestPdfView();
+    ReportLayout::factory()->create(['property_id' => $property->id, 'report_key' => ReportKey::BoatManifest->value, 'orientation' => PageOrientation::Portrait]);
 
-    $response = $this->actingAs($manager)->post(manifestUrl($property).'/pdf', ['date' => '2026-10-20', 'direction' => 'in']);
+    $pdf = app(ReportPdf::class)->make($property, ReportKey::BoatManifest, new ReportFilters(from: '2026-10-20', to: '2026-10-20', bothDirections: true), app(ReportLayoutResolver::class)->resolve($property, ReportKey::BoatManifest));
 
-    $response->assertOk();
-    expect(collect($captured->data['sections'])->pluck('title')->all())
-        ->toBe(['09:00 Kuala Besut jetty → 09:45', '10:00 Kuala Besut jetty → 10:45']);
+    expect($pdf->output())->toStartWith('%PDF')
+        ->and($pdf->getDomPDF()->getPaperOrientation())->toBe('landscape')
+        ->and($captured->data['sheetTitle'])->toBe(mb_strtoupper($property->name).' MANIFEST')
+        ->and($captured->data['sheetDate'])->toBe('20 Oct 2026')
+        ->and(collect($captured->data['sections'])->map(fn (array $section): array => [$section['kind'], $section['heading'], count($section['rows'])])->all())
+        ->toBe([
+            ['out', '0800', 1],
+            ['in', '0900', 0],
+            ['out', '1430', 1],
+            ['in', 'OWN BOAT', 1],
+        ])
+        ->and($captured->data['sections'][3]['rows'][0]->key)->toBe($ownBoat->id)
+        ->and($captured->data['sections'][3]['jetty'])->toBe($empty->pickup_point);
 });
 
-test('selected charter and own boat rows print in a last section when selected', function () {
+test('a printed row names its guest, agent, pax, boat, crew and tick', function () {
     [$manager, $property] = manifestSetup();
+    $boat = Boat::factory()->create(['property_id' => $property->id, 'name' => 'SA10716']);
     $departure = manifestDeparture($property, BoatDirection::In, '09:00:00', '09:45:00');
-    manifestTrip($property, manifestUnit($property), BoatDirection::In, $departure);
+    BoatDepartureRun::query()->forceCreate(['property_id' => $property->id, 'boat_departure_id' => $departure->id, 'date' => '2026-10-20', 'boat_id' => $boat->id, 'crew' => 'Awang / Daus']);
+    $trip = manifestTrip($property, manifestUnit($property), BoatDirection::In, $departure);
+    $trip->forceFill(['ticked_at' => now(), 'ticked_by' => $manager->id])->save();
+    $captured = manifestPdfView();
+
+    $this->actingAs($manager)->post(manifestUrl($property).'/pdf', ['date' => '2026-10-20', 'direction' => 'in'])->assertOk();
+
+    $row = $captured->data['sections'][0]['rows'][0];
+
+    expect($row->lead_guest)->toBe('Lead Guest')
+        ->and($row->total)->toBe(3)
+        ->and($row->boat)->toBe('SA10716')
+        ->and($row->crew)->toBe('Awang / Daus')
+        ->and($row->ticked)->toBeTrue()
+        ->and($captured->data['sections'][0]['pax'])->toBe(3);
+});
+
+test('selected rows print only their own sections, so an empty departure is left out', function () {
+    [$manager, $property] = manifestSetup();
+    manifestDeparture($property, BoatDirection::In, '09:00:00', '09:45:00');
     $charter = manifestTrip($property, manifestUnit($property), BoatDirection::In, null, BoatMode::Charter);
     $captured = manifestPdfView();
 
@@ -390,9 +432,55 @@ test('selected charter and own boat rows print in a last section when selected',
         'rowKeys' => [$charter->id],
     ])->assertOk();
 
-    expect($captured->data['sections'])->toHaveCount(1)
-        ->and($captured->data['sections'][0]['title'])->toBe(__('Charter and own boat (front desk only)'))
-        ->and($captured->data['sections'][0]['rows'])->toHaveCount(1);
+    expect($captured->data['selectedOnly'])->toBeTrue()
+        ->and(collect($captured->data['sections'])->filter(fn (array $section): bool => $section['rows'] !== [])->pluck('heading')->values()->all())->toBe(['CHARTER']);
+});
+
+test('ticking a row records who and when, unticking clears it, and repeats log nothing', function () {
+    [$manager, $property] = manifestSetup();
+    $trip = manifestTrip($property, manifestUnit($property), BoatDirection::In, manifestDeparture($property, BoatDirection::In, '09:00:00', '09:45:00'));
+    $url = manifestUrl($property).'/trips/'.$trip->id.'/tick';
+
+    $this->actingAs($manager)->put($url, ['ticked' => true])->assertRedirect();
+    $this->actingAs($manager)->put($url, ['ticked' => true])->assertRedirect();
+
+    expect($trip->fresh()->ticked_at)->not->toBeNull()
+        ->and($trip->fresh()->ticked_by)->toBe($manager->id)
+        ->and(Activity::query()->where('event', 'reservation.boat_trip_ticked')->count())->toBe(1);
+
+    $this->actingAs($manager)->get(manifestUrl($property, '?date=2026-10-20&direction=in'))
+        ->assertInertia(fn (Assert $page) => $page->where('rows.data.0.ticked', true));
+
+    $this->actingAs($manager)->put($url, ['ticked' => false])->assertRedirect();
+
+    expect($trip->fresh()->ticked_at)->toBeNull()->and($trip->fresh()->ticked_by)->toBeNull();
+});
+
+test('ticking needs reservations.manage and keeps to the property', function () {
+    [$manager, $property] = manifestSetup();
+    $trip = manifestTrip($property, manifestUnit($property), BoatDirection::In, manifestDeparture($property, BoatDirection::In, '09:00:00', '09:45:00'));
+    $viewer = User::factory()->for($property)->withPermissions([PermissionEnum::ReportsView])->create();
+    [$otherManager, $otherProperty] = manifestSetup();
+
+    $this->actingAs($viewer)->put(manifestUrl($property).'/trips/'.$trip->id.'/tick', ['ticked' => true])->assertForbidden();
+    $this->actingAs($otherManager)->put(manifestUrl($otherProperty).'/trips/'.$trip->id.'/tick', ['ticked' => true])->assertNotFound();
+
+    expect($trip->fresh()->ticked_at)->toBeNull();
+});
+
+test('moving the trip to another boat clears its tick, and a note change keeps it', function () {
+    [$manager, $property] = manifestSetup();
+    $first = manifestDeparture($property, BoatDirection::In, '09:00:00', '09:45:00');
+    $second = manifestDeparture($property, BoatDirection::In, '12:00:00', '12:45:00');
+    $unit = manifestUnit($property);
+    $trip = manifestTrip($property, $unit, BoatDirection::In, $first);
+    $trip->forceFill(['ticked_at' => now(), 'ticked_by' => $manager->id])->save();
+
+    app(SetBoatTrip::class)($manager, $unit, new BoatTripData(BoatDirection::In, BoatMode::Scheduled, $first->id, null, 'Window seat'));
+    expect($trip->fresh()->ticked_at)->not->toBeNull();
+
+    app(SetBoatTrip::class)($manager, $unit, new BoatTripData(BoatDirection::In, BoatMode::Scheduled, $second->id, null, 'Window seat'));
+    expect($trip->fresh()->ticked_at)->toBeNull();
 });
 
 test('the spreadsheet is flat and keeps the charter and own boat trips', function () {
@@ -437,7 +525,7 @@ test('an empty date says there is no boat trip, and no departures says so with a
 
     manifestDeparture($property, BoatDirection::In, '09:00:00', '09:45:00');
 
-    $this->actingAs($owner)->get(manifestUrl($property, '?date=2026-10-20'))
+    $this->actingAs($owner)->get(manifestUrl($property, '?date=2026-10-20&direction=in'))
         ->assertInertia(fn (Assert $page) => $page
             ->where('emptyTitle', 'No boat in trips on 20 Oct.')
             ->where('settingsUrl', null));

@@ -18,6 +18,7 @@ use App\Models\Property;
 use App\Models\ReservationUnit;
 use App\Models\UnitBoatTrip;
 use App\Services\Reservations\ReservationRoomBox;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
 /**
@@ -26,7 +27,7 @@ use Illuminate\Support\Collection;
  * out. Rows follow the departures in time order, then the charter and own boat trips, then the units that arrive or
  * leave with no trip set (Boat not set), so the desk can follow up. Subtotals use the same seats as `BoatSeats`.
  */
-class BoatManifestReport implements HasSections, HasTotals, Report
+class BoatManifestReport implements HasPrintView, HasSections, HasTotals, Report
 {
     public function __construct(
         private UnitReportRows $unitRows,
@@ -46,6 +47,7 @@ class BoatManifestReport implements HasSections, HasTotals, Report
         $keys = $rowKeys === null ? null : array_map(intval(...), $rowKeys);
         $rows = [];
         $positions = [];
+        $runs = $this->runDetails(array_values(array_map(intval(...), BoatDeparture::query()->where('property_id', $property->id)->pluck('id')->all())), $filters->from);
 
         foreach ($directions as $direction) {
             $trips = $this->trips($property, $filters->from, $direction);
@@ -66,12 +68,12 @@ class BoatManifestReport implements HasSections, HasTotals, Report
                     ->orderBy('id'),
                 null,
                 $rooms,
-                function (ReservationUnit $unit, ?string $room) use ($tripByUnit, $direction, &$positions): BoatManifestRow {
+                function (ReservationUnit $unit, ?string $room) use ($tripByUnit, $direction, $runs, &$positions): BoatManifestRow {
                     $trip = $tripByUnit[$unit->id];
                     $time = $direction === BoatDirection::In ? $unit->arrival_time : $unit->departure_time;
                     $positions[$trip->id] = $this->position($trip, $time);
 
-                    return BoatManifestRow::fromModel($trip, $unit, $room);
+                    return BoatManifestRow::fromModel($trip, $unit, $room, $runs[$trip->boat_departure_id] ?? ['boat' => null, 'crew' => null]);
                 },
             );
 
@@ -144,9 +146,9 @@ class BoatManifestReport implements HasSections, HasTotals, Report
 
             if ($first->boat_departure_id === null) {
                 return new ReportSection(
-                    title: __('Charter and own boat (front desk only)'),
+                    title: __('Charter and own boat'),
                     rowKeys: $keys,
-                    printedByDefault: false,
+                    subtotal: trans_choice(':count guest|:count guests', $guests),
                 );
             }
 
@@ -171,6 +173,20 @@ class BoatManifestReport implements HasSections, HasTotals, Report
      */
     public function runLabels(array $departureIds, string $date): array
     {
+        return array_filter(array_map(
+            fn (array $run): string => implode(' · ', array_filter([$run['boat'], $run['crew']])),
+            $this->runDetails($departureIds, $date),
+        ), fn (string $label): bool => $label !== '');
+    }
+
+    /**
+     * The boat name and crew of each departure on the date, by departure id: the day's run, else the timetable default.
+     *
+     * @param  list<int>  $departureIds
+     * @return array<int, array{boat: ?string, crew: ?string}>
+     */
+    private function runDetails(array $departureIds, string $date): array
+    {
         if ($departureIds === []) {
             return [];
         }
@@ -190,21 +206,19 @@ class BoatManifestReport implements HasSections, HasTotals, Report
             ->get()
             ->keyBy('id');
 
-        $labels = [];
+        $details = [];
+
         foreach ($uniqueIds as $departureId) {
             $run = $runs->get($departureId);
             $departure = $departures->get($departureId);
 
-            $boatName = $run ? $run->boat?->name : $departure?->defaultBoat?->name;
-            $crew = $run ? $run->crew : $departure?->default_crew;
-
-            $label = implode(' · ', array_filter([$boatName, $crew]));
-            if ($label !== '') {
-                $labels[$departureId] = $label;
-            }
+            $details[$departureId] = [
+                'boat' => $run ? $run->boat?->name : $departure?->defaultBoat?->name,
+                'crew' => $run ? $run->crew : $departure?->default_crew,
+            ];
         }
 
-        return $labels;
+        return $details;
     }
 
     /**
@@ -260,9 +274,100 @@ class BoatManifestReport implements HasSections, HasTotals, Report
             'adults' => array_sum(array_map(fn (BoatManifestRow $row): int => $row->adults, $rows)),
             'children' => array_sum(array_map(fn (BoatManifestRow $row): int => $row->children, $rows)),
             'total' => array_sum(array_map(fn (BoatManifestRow $row): int => $row->total, $rows)),
+            'boat' => null,
+            'crew' => null,
+            'tick' => null,
             'reservation' => null,
             'note' => null,
         ]);
+    }
+
+    public function printView(): string
+    {
+        return 'pdf.boat-manifest';
+    }
+
+    public function printOrientation(): string
+    {
+        return 'landscape';
+    }
+
+    /**
+     * The sheet the boat crew work from: one band per departure in time order, with an empty band for a departure that
+     * carries nobody, then own boat and charter, then the rooms with no boat set.
+     *
+     * @param  list<BoatManifestRow>  $rows
+     * @return array<string, mixed>
+     */
+    public function printData(Property $property, ReportFilters $filters, array $rows): array
+    {
+        $directions = $filters->bothDirections ? [BoatDirection::Out, BoatDirection::In] : [$filters->direction ?? BoatDirection::In];
+        $departures = BoatDeparture::query()
+            ->where('property_id', $property->id)
+            ->whereIn('direction', array_map(fn (BoatDirection $direction): string => $direction->value, $directions))
+            ->orderBy('leaves_at')
+            ->orderBy('id')
+            ->get();
+        $runs = $this->runDetails(array_values(array_map(intval(...), $departures->modelKeys())), $filters->from);
+        $rowsByGroup = [];
+
+        foreach ($rows as $row) {
+            $rowsByGroup[match (true) {
+                $row->not_set => 'not-set',
+                $row->boat_departure_id !== null => 'departure-'.$row->boat_departure_id,
+                default => $row->direction.'-'.$row->mode,
+            }][] = $row;
+        }
+
+        $sections = [];
+
+        foreach ($departures as $departure) {
+            $group = $rowsByGroup['departure-'.$departure->id] ?? [];
+
+            if ($group !== [] || $departure->active) {
+                $run = $runs[$departure->id] ?? ['boat' => null, 'crew' => null];
+                $sections[] = $this->printSection($departure->direction->value, str_replace(':', '', substr($departure->leaves_at, 0, 5)), $departure->pickup_point, $group, $run['boat'], $run['crew']);
+            }
+        }
+
+        foreach ($directions as $direction) {
+            foreach ([BoatMode::Own, BoatMode::Charter] as $mode) {
+                $group = $rowsByGroup[$direction->value.'-'.$mode->value] ?? [];
+
+                if ($group !== []) {
+                    $jetty = $departures->firstWhere('direction', $direction)?->pickup_point;
+                    $sections[] = $this->printSection($direction->value, mb_strtoupper($mode->label()), $jetty, $group, $mode->label(), null);
+                }
+            }
+        }
+
+        if (isset($rowsByGroup['not-set'])) {
+            $sections[] = $this->printSection('not_set', __('Follow up'), null, $rowsByGroup['not-set'], null, null);
+        }
+
+        return [
+            'sheetTitle' => mb_strtoupper(__(':property manifest', ['property' => $property->name])),
+            'sheetDate' => CarbonImmutable::parse($filters->from)->format('j M Y'),
+            'sections' => $sections,
+        ];
+    }
+
+    /**
+     * @param  list<BoatManifestRow>  $rows
+     * @return array{band: string, kind: string, heading: string, jetty: ?string, boat: ?string, crew: ?string, rows: list<BoatManifestRow>, pax: int}
+     */
+    private function printSection(string $kind, string $heading, ?string $jetty, array $rows, ?string $boat, ?string $crew): array
+    {
+        return [
+            'band' => BoatDirection::tryFrom($kind)?->label() ?? __('Boat not set'),
+            'kind' => $kind,
+            'heading' => $heading,
+            'jetty' => $jetty,
+            'boat' => $boat,
+            'crew' => $crew,
+            'rows' => $rows,
+            'pax' => array_sum(array_map(fn (BoatManifestRow $row): int => $row->total, $rows)),
+        ];
     }
 
     /**

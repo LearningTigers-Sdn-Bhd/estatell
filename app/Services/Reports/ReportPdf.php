@@ -36,7 +36,7 @@ class ReportPdf
                 'dates' => $this->dates($filters),
                 'selectedOnly' => $rowKeys !== null,
                 ...$service->printData($property, $filters, $rows),
-            ], $layout->orientation->value);
+            ], $service->printOrientation());
         }
 
         $sections = $report->sections($rows, $filters);

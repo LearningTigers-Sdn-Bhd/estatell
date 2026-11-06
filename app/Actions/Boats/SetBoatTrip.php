@@ -103,9 +103,17 @@ class SetBoatTrip
             return BoatTripResult::done();
         }
 
+        $otherBoat = $existing !== null && ($existing->mode !== $data->mode || $existing->boat_departure_id !== $boatDepartureId);
+
         $trip = UnitBoatTrip::query()->updateOrCreate(
             ['reservation_unit_id' => $locked->id, 'direction' => $data->direction->value],
-            ['property_id' => $locked->property_id, 'mode' => $data->mode->value, 'boat_departure_id' => $boatDepartureId, 'note' => $note],
+            [
+                'property_id' => $locked->property_id,
+                'mode' => $data->mode->value,
+                'boat_departure_id' => $boatDepartureId,
+                'note' => $note,
+                ...($otherBoat ? ['ticked_at' => null, 'ticked_by' => null] : []),
+            ],
         );
 
         $locked->update([$timeColumn => $time]);

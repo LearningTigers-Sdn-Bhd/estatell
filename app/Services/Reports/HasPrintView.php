@@ -18,6 +18,13 @@ interface HasPrintView
     public function printView(): string;
 
     /**
+     * The print view is a fixed design, so it sets its own page, whatever the saved report layout says.
+     *
+     * @return 'portrait'|'landscape'
+     */
+    public function printOrientation(): string;
+
+    /**
      * The data of the print view, added to the shared title, dates and print profile.
      *
      * @param  list<ReportRow>  $rows

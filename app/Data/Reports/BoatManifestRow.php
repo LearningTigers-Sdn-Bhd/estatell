@@ -13,7 +13,9 @@ use Spatie\LaravelData\Data;
  * One trip of the Boat manifest: a unit's Boat in or Boat out on the date. The property names are the column keys of
  * `ReportKey::BoatManifest`. `key` is the trip id, or for a unit with no trip in that direction ("Boat not set") a
  * negative key from `notSetKey()`. `boat_departure_id`, `seats`, `direction` and `not_set` group the row into its
- * section. They are not columns. `agent` is the company, else "Direct booking", else the booking source.
+ * section. They are not columns. `agent` is the company, else "Direct booking", else the booking source. `boat` and
+ * `crew` come from the day's run or the timetable (Own boat and Charter name the mode). `ticked` says the guests have
+ * arrived or left; a row with no trip (`not_set`) cannot be ticked. `mode` is null there.
  */
 class BoatManifestRow extends Data implements ReportRow
 {
@@ -33,6 +35,10 @@ class BoatManifestRow extends Data implements ReportRow
         public ?int $seats,
         public string $direction = 'in',
         public bool $not_set = false,
+        public ?string $boat = null,
+        public ?string $crew = null,
+        public bool $ticked = false,
+        public ?string $mode = null,
     ) {}
 
     /**
@@ -95,6 +101,9 @@ class BoatManifestRow extends Data implements ReportRow
             'adults' => (string) $this->adults,
             'children' => (string) $this->children,
             'total' => (string) $this->total,
+            'boat' => $this->boat ?? '',
+            'crew' => $this->crew ?? '',
+            'tick' => $this->ticked ? __('Yes') : '',
             'reservation' => $this->reservation,
             'note' => $this->note ?? '',
         ];
@@ -114,6 +123,9 @@ class BoatManifestRow extends Data implements ReportRow
             'adults' => $this->adults,
             'children' => $this->children,
             'total' => $this->total,
+            'boat' => $this->boat ?? '',
+            'crew' => $this->crew ?? '',
+            'tick' => $this->ticked ? __('Yes') : '',
             'reservation' => $this->reservation,
             'note' => $this->note ?? '',
         ];
@@ -124,8 +136,9 @@ class BoatManifestRow extends Data implements ReportRow
      * and own boat trips take their time from the unit: its arrival time for Boat in, its departure time for Boat out.
      *
      * @param  string|null  $room  The room number or bed label of the night the direction needs, when one is assigned.
+     * @param  array{boat: ?string, crew: ?string}  $run  The boat and crew of a scheduled departure on the date.
      */
-    public static function fromModel(UnitBoatTrip $trip, ReservationUnit $unit, ?string $room): self
+    public static function fromModel(UnitBoatTrip $trip, ReservationUnit $unit, ?string $room, array $run = ['boat' => null, 'crew' => null]): self
     {
         $reservation = $unit->reservation;
         $occupant = ($unit->guests->firstWhere('is_primary', true) ?? $unit->guests->first())->guest ?? $reservation->booker;
@@ -151,6 +164,10 @@ class BoatManifestRow extends Data implements ReportRow
             boat_departure_id: $isScheduled ? $departure->id : null,
             seats: $isScheduled ? $departure->seats : null,
             direction: $trip->direction->value,
+            boat: $isScheduled ? $run['boat'] : $trip->mode->label(),
+            crew: $isScheduled ? $run['crew'] : null,
+            ticked: $trip->ticked_at !== null,
+            mode: $trip->mode->value,
         );
     }
 }
