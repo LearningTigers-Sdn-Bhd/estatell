@@ -15,6 +15,11 @@ return [
     'pairing_minutes' => 10,
 
     /*
+     | A job from the check-in listener or a staff click is offered to the front desk PC for this many minutes.
+     */
+    'job_minutes' => 10,
+
+    /*
      | A device counts as online when it claimed within this many seconds.
      */
     'online_seconds' => 60,

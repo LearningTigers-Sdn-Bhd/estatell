@@ -15,6 +15,7 @@ use App\Actions\DoorLocks\UnlockDoor;
 use App\Data\DoorLocks\DoorLockConnectionData;
 use App\Data\DoorLocks\DoorLockData;
 use App\Data\DoorLocks\DoorPasscodeData;
+use App\Enums\LockProvider;
 use App\Enums\PasscodeKind;
 use App\Enums\PasscodeMode;
 use App\Enums\PasscodeStatus;
@@ -45,7 +46,7 @@ class DoorLockSettingsController extends Controller
             'connection' => $connection === null ? null : DoorLockConnectionData::fromModel($connection),
             'passcodeModes' => PasscodeMode::options(),
             'passcodeKinds' => array_map(fn (PasscodeKind $kind): array => ['value' => $kind->value, 'label' => $kind->label()], PasscodeKind::cases()),
-            'locks' => $property->doorLocks()->with('room')->orderBy('name')->get()->map(DoorLockData::fromModel(...)),
+            'locks' => $property->doorLocks()->ofProvider(LockProvider::TTLock)->with('room')->orderBy('name')->get()->map(DoorLockData::fromModel(...)),
             'rooms' => Room::query()->where('property_id', $property->id)->whereNull('archived_at')->orderBy('position')->orderBy('number')->get(['id', 'number'])
                 ->map(fn (Room $room): array => ['value' => (string) $room->id, 'label' => $room->number])->values(),
             'passcodes' => DoorPasscode::query()->where('property_id', $property->id)->with('doorLock')->latest('id')->limit(50)->get()->map(DoorPasscodeData::fromModel(...)),
@@ -120,22 +121,22 @@ class DoorLockSettingsController extends Controller
 
     public function unlock(Request $request, Property $property, DoorLock $doorLock, UnlockDoor $unlockDoor): RedirectResponse
     {
-        return $this->flash($property, $unlockDoor($doorLock, $request->user()), __('Door unlocked.'));
+        return $this->cloudOnly($property, $doorLock) ?? $this->flash($property, $unlockDoor($doorLock, $request->user()), __('Door unlocked.'));
     }
 
     public function clock(Request $request, Property $property, DoorLock $doorLock, AdjustLockClock $adjustLockClock): RedirectResponse
     {
-        return $this->flash($property, $adjustLockClock($doorLock, $request->user()), __('Lock clock set.'));
+        return $this->cloudOnly($property, $doorLock) ?? $this->flash($property, $adjustLockClock($doorLock, $request->user()), __('Lock clock set.'));
     }
 
     public function health(Property $property, DoorLock $doorLock, CheckDoorLockHealth $checkDoorLockHealth): RedirectResponse
     {
-        return $this->flash($property, $checkDoorLockHealth($doorLock->load('property.doorLockConnection')), __('Lock checked.'));
+        return $this->cloudOnly($property, $doorLock) ?? $this->flash($property, $checkDoorLockHealth($doorLock->load('property.doorLockConnection')), __('Lock checked.'));
     }
 
     public function storePasscode(IssuePasscodeRequest $request, Property $property, IssueDoorPasscode $issueDoorPasscode): RedirectResponse
     {
-        $lock = $property->doorLocks()->with('property.doorLockConnection')->findOrFail($request->integer('door_lock_id'));
+        $lock = $property->doorLocks()->ofProvider(LockProvider::TTLock)->with('property.doorLockConnection')->findOrFail($request->integer('door_lock_id'));
         [$startsAt, $endsAt] = $request->window($property->settings->time_zone ?? 'Asia/Kuala_Lumpur');
 
         $result = $issueDoorPasscode(
@@ -179,6 +180,20 @@ class DoorLockSettingsController extends Controller
         );
 
         return $this->flash($property, $result, __('PIN issued.'));
+    }
+
+    /**
+     * Remote unlock, clock and health talk to the TTLock cloud. An eLock lock has none of that: it opens with a key card from Keyport.
+     */
+    private function cloudOnly(Property $property, DoorLock $doorLock): ?RedirectResponse
+    {
+        if ($doorLock->provider === LockProvider::TTLock) {
+            return null;
+        }
+
+        Inertia::flash('toast', ['type' => 'error', 'message' => __('An eLock lock opens with a key card. It has no remote control.')]);
+
+        return to_route('settings.door-locks.edit', $property);
     }
 
     /**

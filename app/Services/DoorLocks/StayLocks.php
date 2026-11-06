@@ -2,12 +2,14 @@
 
 namespace App\Services\DoorLocks;
 
+use App\Enums\LockProvider;
 use App\Models\DoorLock;
 use App\Models\ReservationUnit;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
- * The door locks of the rooms a stay unit sleeps in, from its nights. It reads only.
+ * The door locks of the rooms a stay unit sleeps in, from its nights. It reads only. `current()` and `for()` return TTLock locks, which
+ * the PIN and card code drives; `currentElock()` returns the eLock locks, which only Keyport key cards open.
  */
 class StayLocks
 {
@@ -22,6 +24,24 @@ class StayLocks
      */
     public function current(ReservationUnit $unit): Collection
     {
+        return $this->inCurrentRoom($unit, LockProvider::TTLock);
+    }
+
+    /**
+     * The eLock locks of the room the unit sleeps in now, chosen the same way as `current()`.
+     *
+     * @return Collection<int, DoorLock>
+     */
+    public function currentElock(ReservationUnit $unit): Collection
+    {
+        return $this->inCurrentRoom($unit, LockProvider::ELock);
+    }
+
+    /**
+     * @return Collection<int, DoorLock>
+     */
+    private function inCurrentRoom(ReservationUnit $unit, LockProvider $provider): Collection
+    {
         $timeZone = $unit->property->settings->time_zone ?? 'Asia/Kuala_Lumpur';
         $nights = $unit->nights()->whereNotNull('room_id');
         $night = (clone $nights)->whereDate('date', '<=', now($timeZone)->toDateString())->orderByDesc('date')->first()
@@ -32,7 +52,7 @@ class StayLocks
             return new Collection;
         }
 
-        return DoorLock::query()->where('property_id', $unit->property_id)->where('room_id', $night->room_id)->with('property.doorLockConnection')->orderBy('id')->get();
+        return DoorLock::query()->ofProvider($provider)->where('property_id', $unit->property_id)->where('room_id', $night->room_id)->with('property.doorLockConnection')->orderBy('id')->get();
     }
 
     /**
@@ -44,6 +64,6 @@ class StayLocks
     {
         $roomIds = $unit->nights()->whereNotNull('room_id')->pluck('room_id')->unique();
 
-        return DoorLock::query()->where('property_id', $unit->property_id)->whereIn('room_id', $roomIds)->with('property.doorLockConnection')->orderBy('id')->get();
+        return DoorLock::query()->ofProvider(LockProvider::TTLock)->where('property_id', $unit->property_id)->whereIn('room_id', $roomIds)->with('property.doorLockConnection')->orderBy('id')->get();
     }
 }

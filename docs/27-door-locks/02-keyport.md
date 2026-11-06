@@ -4,21 +4,47 @@ Keyport is a small agent on the front desk PC. It writes guest key cards with a 
 
 ## What is built
 
-The device API under `/api/keyport/v1`. Staff screens and job creation are not built yet.
+The device API under `/api/keyport/v1`, the eLock lock provider, the staff screens and the check-in listener.
 
-| Part                                                              | Where                                                             |
-| ----------------------------------------------------------------- | ----------------------------------------------------------------- |
-| Tables `keyport_devices`, `keyport_pairing_codes`, `keyport_jobs` | `database/migrations/2026_10_29_010000_create_keyport_tables.php` |
-| Routes: `pair`, `unpair`, `jobs/claim`, `jobs/{job}/result`       | `routes/keyport.php`, loaded in `bootstrap/app.php`               |
-| Pairing code (single use, 10 minutes, only a hash saved)          | `CreateKeyportPairingCode`, `PairKeyportDevice`                   |
-| Device token (`kp_live_...`, only a SHA-256 hash saved)           | `AuthenticateKeyportDevice`                                       |
-| Claim, heartbeat and lease                                        | `RecordKeyportHeartbeat`, `SweepKeyportJobs`, `ClaimKeyportJob`   |
-| Result, idempotent                                                | `ReportKeyportJobResult`                                          |
-| Revoke                                                            | `RevokeKeyportDevice`                                             |
-| Error codes and statuses                                          | `KeyportApiError`, `KeyportJobStatus`, `KeyportJobType`           |
-| Settings (poll, lease, pairing time)                              | `config/keyport.php`                                              |
+| Part                                                                     | Where                                                                                                |
+| ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| Tables `keyport_devices`, `keyport_pairing_codes`, `keyport_jobs`        | `2026_10_29_010000_create_keyport_tables.php`; job links to lock and stay in `2026_11_06_120100_...` |
+| Routes: `pair`, `unpair`, `jobs/claim`, `jobs/{job}/result`              | `routes/keyport.php`, loaded in `bootstrap/app.php`                                                  |
+| Pairing code (single use, 10 minutes, only a hash saved)                 | `CreateKeyportPairingCode`, `PairKeyportDevice`                                                      |
+| Device token (`kp_live_...`, only a SHA-256 hash saved)                  | `AuthenticateKeyportDevice`                                                                          |
+| Claim, heartbeat and lease                                               | `RecordKeyportHeartbeat`, `SweepKeyportJobs`, `ClaimKeyportJob`                                      |
+| Result, idempotent                                                       | `ReportKeyportJobResult`                                                                             |
+| Revoke                                                                   | `RevokeKeyportDevice`                                                                                |
+| Lock provider `ttlock` or `elock` on each lock                           | `LockProvider`, `door_locks.provider`, `door_locks.lock_no`                                          |
+| Add an eLock lock by number                                              | `AddElockLock`                                                                                       |
+| Make, rewrite, erase a card for a stay                                   | `CreateKeyportJob` (the only place that creates jobs), `CancelKeyportJob`                            |
+| Queue a card at check-in                                                 | `QueueStayKeyCards`, registered in `AppServiceProvider`                                              |
+| Settings > Key cards (computers, eLock locks, recent jobs, pairing code) | `KeyportSettingsController`, `resources/js/pages/settings/keyport/index.tsx`                         |
+| Key card panel on the stay                                               | `ReservationKeyCardController`, `UnitKeyCards`, `components/pms/reservations/key-cards.tsx`          |
 
-Tests: `tests/Feature/DoorLocks/KeyportPairingTest.php` and `KeyportJobsTest.php`.
+Tests: `KeyportPairingTest`, `KeyportJobsTest`, `KeyportCardsTest` and `KeyportSettingsTest` in `tests/Feature/DoorLocks/`.
+
+## One provider for each lock
+
+`door_locks.provider` is the only thing that decides how a lock works. Nothing is chosen per property or at run time, so a hotel can mix both.
+
+| Provider | Lock has         | How a guest gets in                              |
+| -------- | ---------------- | ------------------------------------------------ |
+| `ttlock` | `ttlock_lock_id` | PIN, TTLock card or remote unlock from the cloud |
+| `elock`  | `lock_no`        | A key card that Keyport writes at the front desk |
+
+A database check keeps each row to one shape. `StayLocks::current()` and `for()` return TTLock locks only, so PIN and card code never touches an eLock lock. `currentElock()` returns the eLock locks of the room. Remote unlock, clock and health refuse an eLock lock. eLock locks are added by hand on Settings > Key cards, because eLock has no cloud list to sync.
+
+A room has one lock (unique per property and room), so one room is either TTLock or eLock.
+
+## Key card flow
+
+1. Staff add a computer on Settings > Key cards, then type the pairing code into Keyport.
+2. At check-in to an eLock room, `QueueStayKeyCards` makes one issue job, but only when the property has a computer that is not revoked. The job key is `checkin:{unit}:{lock}`, so a repeated event adds nothing.
+3. On the stay, staff can also press Make key card, Update dates (rewrite) or Erase. Rewrite and erase name the serial of the last card this stay made. With no such card they are refused.
+4. A job is offered for `keyport.job_minutes` (10). Nobody on the reader in time means `expired`.
+5. Nothing is written until a person puts a card on the reader.
+6. Check-out never erases a card by itself. Erase is a button.
 
 ## Rules the API keeps
 
@@ -34,10 +60,9 @@ Tests: `tests/Feature/DoorLocks/KeyportPairingTest.php` and `KeyportJobsTest.php
 
 ## Not built yet
 
-1. Staff UI: Settings > Door locks > Keyport (add computer and show a pairing code, device list with online state, revoke), a "Make key card" action on a stay, and a job status panel.
-2. An action that creates jobs (`keyport_jobs` rows), with `issued_by` and an idempotency key.
-3. The `ELock` lock provider on `door_locks` (`lock_no` per room).
-4. The check-in listener. It would only queue a job. A person still puts the card on the reader.
+1. Rewrite or erase on room move and check-out. Staff press the button for now.
+2. A start-time issuer for the check-in flag (128). See Lock numbers.
+3. Special cards. A cloud job can never make one.
 
 ## Lock numbers
 
