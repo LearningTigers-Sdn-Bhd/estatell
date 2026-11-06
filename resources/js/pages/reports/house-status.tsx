@@ -1,5 +1,6 @@
 import { LayoutGrid } from 'lucide-react';
 import type { EnumOption } from '@/components/pms/enum-select';
+import { CleaningCell } from '@/components/pms/housekeeping/cleaning-cell';
 import { ReportScreen } from '@/components/pms/reports/report-screen';
 import { houseStatus } from '@/routes/reports';
 
@@ -19,6 +20,7 @@ type Props = {
     maxRangeDays: number | null;
     presets: App.Enums.ReportDatePreset[];
     currency: App.Data.Property.CurrencyData | null;
+    housekeepers: App.Data.Housekeeping.HousekeepingStaffData[];
 };
 
 export default function HouseStatusReport(props: Props) {
@@ -27,7 +29,21 @@ export default function HouseStatusReport(props: Props) {
             {...props}
             report="house-status"
             title="House status"
-            description="Every room housekeeping needs on the date, by boat time: rooms leaving, arriving, moving and staying over, and rooms kept for management. The PDF prints it as a grid."
+            description="Every room housekeeping needs on the date, by boat time: rooms leaving, arriving, moving and staying over, and rooms kept for management. Record the housekeeper's IN and OUT here. The PDF prints it as a grid."
+            cells={{
+                cleaning: (row) =>
+                    row.cleaning ? (
+                        <CleaningCell
+                            state={row.cleaning}
+                            staffOptions={props.housekeepers.map((person) => ({
+                                value: String(person.id),
+                                label: person.name,
+                            }))}
+                        />
+                    ) : (
+                        <span className="text-muted-foreground">—</span>
+                    ),
+            }}
             emptyIcon={LayoutGrid}
             emptyTitle="No rooms on this date"
             emptyDescription="No room arrives, leaves or stays over on this date."

@@ -37,6 +37,7 @@ Every room housekeeping needs on the date, one tile per room, in groups. The row
 
 - Without the Boats feature, leaving and arriving rooms group by their expected time instead ("Out · 11:00", "In · 15:00").
 - A unit already checked out prints its room struck through, as on Sand Bay's sheet.
+- **Housekeeper IN / OUT:** a column with the [cleaning times](../19-housekeeping/03-cleaning-times.md) of the room on the date, recorded and corrected in place. The PDF prints them on the tile.
 - **Tile:** pax ("X2", adults + children), the room label, the room number, then flags: the housekeeping items in the room (upper case, from [Housekeeping items](#housekeeping-items), not those to remove), **TL** when a guest of the unit has the tag "TL" or "Tour leader", and the room's housekeeping remark (`room_statuses.remark`; a Management block shows its notes).
 - **Room label:** `rooms.print_label`, else `room_types.print_label`, else the initials of the room type name ("Standard Twin" gives ST). Both are optional, at most 12 characters, saved in capitals: the room type's on its details form, the room's on the room form ("Print label (optional)") for the rooms set up differently, such as D01 "1KING+TWIN" among QUADRUPLE rooms.
 - **Subtotal per group:** "12 pax · 4 rooms". A room move counts its new room only.

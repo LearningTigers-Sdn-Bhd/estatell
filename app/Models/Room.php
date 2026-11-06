@@ -84,6 +84,14 @@ class Room extends Model
     }
 
     /**
+     * @return HasMany<RoomCleaning, $this>
+     */
+    public function cleanings(): HasMany
+    {
+        return $this->hasMany(RoomCleaning::class);
+    }
+
+    /**
      * @return HasMany<RoomBlock, $this>
      */
     public function blocks(): HasMany

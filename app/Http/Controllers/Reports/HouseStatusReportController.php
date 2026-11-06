@@ -10,6 +10,7 @@ use App\Enums\ReportKey;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Reports\ReportFiltersRequest;
 use App\Models\Property;
+use App\Services\Housekeeping\HousekeepingStaff;
 use App\Services\Reports\ReportLayoutResolver;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Inertia\Inertia;
@@ -22,7 +23,7 @@ class HouseStatusReportController extends Controller
      * The House status page: every room housekeeping needs on `?date`, in its group, unpaged and in group order. The
      * PDF prints the Sand Bay grid. See docs/22-reports/03-house-status-and-items.md#house-status.
      */
-    public function __invoke(ReportFiltersRequest $request, Property $property, ReportLayoutResolver $layoutResolver): Response
+    public function __invoke(ReportFiltersRequest $request, Property $property, ReportLayoutResolver $layoutResolver, HousekeepingStaff $housekeepingStaff): Response
     {
         $key = ReportKey::HouseStatus;
         $filters = $request->filters();
@@ -42,6 +43,7 @@ class HouseStatusReportController extends Controller
             'maxRangeDays' => $key->maxRangeDays(),
             'presets' => $key->datePresets(),
             'currency' => CurrencyData::forProperty($property),
+            'housekeepers' => $request->user()->can(PermissionEnum::HousekeepingEditTimes->value) ? $housekeepingStaff->for($property) : [],
         ]);
     }
 }

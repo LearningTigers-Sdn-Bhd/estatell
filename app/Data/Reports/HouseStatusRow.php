@@ -2,13 +2,15 @@
 
 namespace App\Data\Reports;
 
+use App\Data\Housekeeping\RoomCleaningStateData;
 use Spatie\LaravelData\Data;
 
 /**
  * One tile of the House status report: a room on the date, in the group (boat time, room move, stay-over,
  * management) it belongs to. The property names are the column keys of `ReportKey::HouseStatus`. `kind` (out, in,
  * move_out, move_in, occ, management) sets its colour, `group_key` and `group_order` its group. `checked_out` strikes
- * a room that already left. `key` is `{kind}:{unit or block id}`.
+ * a room that already left. `key` is `{kind}:{unit or block id}`. `cleaning` holds the housekeeper and the IN and OUT
+ * times of the room on the date, and is null for a tile with no room assigned.
  */
 class HouseStatusRow extends Data implements ReportRow
 {
@@ -29,7 +31,18 @@ class HouseStatusRow extends Data implements ReportRow
         public array $group_order,
         public bool $checked_out = false,
         public bool $warning = false,
+        public ?RoomCleaningStateData $cleaning = null,
     ) {}
+
+    /**
+     * "Ana 10:05-10:40", "Ana 10:05-" while the room is being cleaned, or an empty string.
+     */
+    public function cleaningText(): string
+    {
+        $cleaning = $this->cleaning?->cleaning;
+
+        return $cleaning === null ? '' : $cleaning->housekeeperName.' '.$cleaning->inTime.'-'.($cleaning->outTime ?? '');
+    }
 
     /**
      * @return array<string, string>
@@ -43,6 +56,7 @@ class HouseStatusRow extends Data implements ReportRow
             'pax' => $this->pax === 0 ? '' : 'x'.$this->pax,
             'flags' => implode(', ', $this->flags),
             'remark' => $this->remark ?? '',
+            'cleaning' => $this->cleaningText(),
         ];
     }
 
@@ -58,6 +72,7 @@ class HouseStatusRow extends Data implements ReportRow
             'pax' => $this->pax,
             'flags' => implode(', ', $this->flags),
             'remark' => $this->remark ?? '',
+            'cleaning' => $this->cleaningText(),
         ];
     }
 }

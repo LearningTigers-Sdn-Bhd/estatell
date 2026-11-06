@@ -70,6 +70,9 @@
                                             @foreach ($tile->flags as $flag)
                                                 <div class="tile-flag">{{ $flag }}</div>
                                             @endforeach
+                                            @if ($tile->cleaningText() !== '')
+                                                <div class="tile-flag">{{ $tile->cleaningText() }}</div>
+                                            @endif
                                             @if ($tile->remark !== null)
                                                 <div class="tile-flag">{{ \Illuminate\Support\Str::limit($tile->remark, 24) }}</div>
                                             @endif

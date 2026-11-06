@@ -2,6 +2,7 @@
 
 namespace App\Services\Reports;
 
+use App\Data\Housekeeping\RoomCleaningStateData;
 use App\Data\Reports\HousekeepingItemRow;
 use App\Data\Reports\HouseStatusRow;
 use App\Data\Reports\ReportFilters;
@@ -9,6 +10,7 @@ use App\Data\Reports\ReportSection;
 use App\Data\Reports\ReportTotals;
 use App\Enums\BoatDirection;
 use App\Enums\BoatMode;
+use App\Enums\PermissionEnum;
 use App\Enums\RoomBlockReason;
 use App\Enums\StayType;
 use App\Enums\Tone;
@@ -21,9 +23,11 @@ use App\Models\RoomBlock;
 use App\Models\RoomStatus;
 use App\Models\RoomType;
 use App\Models\UnitBoatTrip;
+use App\Services\Housekeeping\RoomCleanings;
 use App\Services\Reservations\ReservationRoomBox;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 use Laravel\Pennant\Feature;
 
 /**
@@ -40,6 +44,7 @@ class HouseStatusReport implements HasPrintView, HasSections, HasTotals, Report
     public function __construct(
         private ReservationRoomBox $roomBox,
         private HousekeepingItemsReport $housekeepingItems,
+        private RoomCleanings $roomCleanings,
     ) {}
 
     /**
@@ -72,11 +77,18 @@ class HouseStatusReport implements HasPrintView, HasSections, HasTotals, Report
         $trips = $boatsOn ? UnitBoatTrip::query()->whereIn('reservation_unit_id', $unitIds)->with('boatDeparture')->get()->groupBy('reservation_unit_id') : collect();
         $items = $this->itemsByUnit($property, $filters);
         $rows = [];
+        $cleanings = $this->roomCleanings->latestByRoom($property, $today);
+        $timeZone = $property->loadMissing('settings')->settings->time_zone ?? config('app.timezone');
+        $canUpdate = Auth::user()?->can(PermissionEnum::HousekeepingUpdate->value) ?? false;
+        $canEditTimes = Auth::user()?->can(PermissionEnum::HousekeepingEditTimes->value) ?? false;
+        $cleaningOf = fn (?Room $room, bool $blocked = false): ?RoomCleaningStateData => $room === null
+            ? null
+            : $this->roomCleanings->state($room, $cleanings->get($room->id), $timeZone, $canUpdate, $canEditTimes, $blocked);
 
         foreach ($units as $unit) {
             $flags = [...($items[$unit->id] ?? []), ...($this->isTourLeader($unit) ? ['TL'] : [])];
             $pax = $unit->adults + $unit->children;
-            $tile = function (string $kind, ?string $number, array $group) use ($unit, $pax, $flags, $roomByNumber, $remarks): HouseStatusRow {
+            $tile = function (string $kind, ?string $number, array $group) use ($unit, $pax, $flags, $roomByNumber, $remarks, $cleaningOf): HouseStatusRow {
                 $room = $number === null ? null : $roomByNumber->get($number);
 
                 return new HouseStatusRow(
@@ -92,6 +104,7 @@ class HouseStatusReport implements HasPrintView, HasSections, HasTotals, Report
                     group_order: $group['order'],
                     checked_out: $kind === 'out' && $unit->status === UnitStatus::CheckedOut,
                     warning: $group['warning'] ?? false,
+                    cleaning: $cleaningOf($room),
                 );
             };
 
@@ -133,6 +146,7 @@ class HouseStatusReport implements HasPrintView, HasSections, HasTotals, Report
                 kind: 'management',
                 group_key: 'management',
                 group_order: [5, '', ''],
+                cleaning: $cleaningOf($block->room, true),
             );
         }
 
@@ -181,12 +195,18 @@ class HouseStatusReport implements HasPrintView, HasSections, HasTotals, Report
             'pax' => array_sum(array_map(fn (HouseStatusRow $row): int => $row->pax, array_filter($rows, fn (HouseStatusRow $row): bool => $row->kind !== 'move_out'))),
             'flags' => null,
             'remark' => null,
+            'cleaning' => null,
         ]);
     }
 
     public function printView(): string
     {
         return 'pdf.house-status';
+    }
+
+    public function printOrientation(): string
+    {
+        return 'landscape';
     }
 
     /**

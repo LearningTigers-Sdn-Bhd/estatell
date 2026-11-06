@@ -88,7 +88,7 @@ type Props<TRow extends { key: number | string }> = {
     /** A small summary table under the main table (Payments: the total for each method). */
     breakdown?: App.Data.Reports.ReportBreakdown | null;
     /** The quick dates of a range report, from `ReportKey::datePresets()`. Without it the standard list shows. */
-    presets?: App.Enums.ReportDatePreset[];
+    presets?: App.Enums.ReportDatePreset[] | null;
     /** The Bucket filter of Daily report › Charges (`''` or null for every bucket), with its options. */
     bucket?: string | null;
     bucketOptions?: EnumOption[];
