@@ -800,6 +800,10 @@ hasGateway: boolean,
 roomId: number | null,
 roomNumber: string | null,
 syncedAt: string | null,
+gatewayName: string | null,
+gatewayOnline: boolean | null,
+clockDriftSeconds: number | null,
+healthCheckedAt: string | null,
 };
 export type DoorPasscodeData = {
 id: number,

@@ -150,6 +150,10 @@ door_cards   id, property_id, door_lock_id, reservation_unit_id (nullable), card
 - `StayByCard` (`app/Services/DoorLocks/`): `find($property, $uid)` returns the unit of the newest Active card with a stay, or null. This is how check-out by card finds the stay. A Revoked, Failed or Pending card finds nothing.
 - Not built yet: choosing the lock and the window for a stay (the kiosk check-in Action will do it, as `SyncStayPasscodes` does for PINs), removing cards at check-out, and any staff screen.
 
+## Lock health
+
+`CheckDoorLockHealth` (the **Check health** button on a lock card, `POST locks/{doorLock}/health`) reads and saves, on the lock: battery and gateway flag (`/v3/lock/list`), the gateway it talks through and whether it is online (`/v3/gateway/list`, then `/v3/gateway/listLock` to find the lock's gateway), and the lock clock against ours (`/v3/lock/queryDate`, through the gateway, saved as `clock_drift_seconds`). A lock without a gateway only gets its battery. A gateway that cannot reach the lock keeps its online state and leaves the clock empty, with the message in the toast. TTLock counts a gateway online while its TCP link is up, so an unplugged one can show online for about eight minutes. The card shows battery (warns under 20%), gateway (warns when offline), clock (warns over 5 minutes off) and when it was last checked. Nothing checks health on its own: it is read when staff press the button.
+
 ## Actions and Jobs
 
 - `SaveDoorLockConnection`: signs in with the username and password, saves the tokens, never the password.

@@ -400,3 +400,53 @@ it('gives up after three earlier starts', function () {
         ->and($result->passcode->status)->toBe(PasscodeStatus::Failed)
         ->and(ttlockCalls('/v3/keyboardPwd/get'))->toBe(4);
 });
+
+function healthUrl($property, $lock): string
+{
+    return route('settings.door-locks.health', ['property' => $property, 'doorLock' => $lock]);
+}
+
+it('saves battery, gateway and clock drift of a lock', function () {
+    ['owner' => $owner, 'property' => $property, 'lock' => $lock] = doorLockSetup(gateway: true);
+    $lock->update(['ttlock_lock_id' => 555, 'battery_percent' => 10]);
+    fakeTtlock();
+
+    $this->actingAs($owner)->post(healthUrl($property, $lock))->assertRedirect();
+
+    $lock->refresh();
+    expect($lock->battery_percent)->toBe(80)
+        ->and($lock->gateway_name)->toBe('G2 Hall')
+        ->and($lock->gateway_online)->toBeTrue()
+        ->and($lock->clock_drift_seconds)->toBe(90)
+        ->and($lock->health_checked_at)->not->toBeNull();
+});
+
+it('keeps the gateway state when the gateway cannot reach the lock clock', function () {
+    ['owner' => $owner, 'property' => $property, 'lock' => $lock] = doorLockSetup(gateway: true);
+    $lock->update(['ttlock_lock_id' => 555]);
+    Http::fake([
+        '*/v3/gateway/list' => Http::response(['list' => [['gatewayId' => 77, 'gatewayName' => 'G2 Hall', 'isOnline' => 0]], 'pages' => 1]),
+        '*/v3/lock/queryDate' => Http::response(['errcode' => -3003, 'errmsg' => 'unreachable']),
+    ]);
+    fakeTtlock();
+
+    $this->actingAs($owner)->post(healthUrl($property, $lock))->assertRedirect();
+
+    $lock->refresh();
+    expect($lock->gateway_online)->toBeFalse()
+        ->and($lock->clock_drift_seconds)->toBeNull()
+        ->and($lock->health_checked_at)->not->toBeNull();
+});
+
+it('only reads the battery of a lock without a gateway', function () {
+    ['owner' => $owner, 'property' => $property, 'lock' => $lock] = doorLockSetup(gateway: false);
+    $lock->update(['ttlock_lock_id' => 555]);
+    Http::fake(['*/v3/lock/list' => Http::response(['list' => [['lockId' => 555, 'lockAlias' => 'L', 'electricQuantity' => 55, 'hasGateway' => 0]], 'pages' => 1])]);
+    fakeTtlock();
+
+    $this->actingAs($owner)->post(healthUrl($property, $lock))->assertRedirect();
+
+    expect($lock->refresh()->battery_percent)->toBe(55)
+        ->and($lock->gateway_name)->toBeNull()
+        ->and(ttlockCalls('/v3/gateway/list'))->toBe(0);
+});

@@ -1,5 +1,6 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import {
+    Activity,
     BatteryMedium,
     CircleCheck,
     Clock,
@@ -8,7 +9,9 @@ import {
     Plug,
     RefreshCw,
     Unlock,
+    Wifi,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import DoorLockSettingsController from '@/actions/App/Http/Controllers/DoorLocks/DoorLockSettingsController';
 import { EnumSelect } from '@/components/pms/enum-select';
@@ -54,6 +57,7 @@ import {
     sync,
     test as testConnection,
 } from '@/routes/settings/door-locks';
+import { cn } from '@/lib/utils';
 
 const GATEWAY_NOTE =
     'This needs a gateway installed at the lock. Without one, only generated PINs work.';
@@ -66,6 +70,94 @@ function when(iso: string): string {
         hour: '2-digit',
         minute: '2-digit',
     });
+}
+
+function clockText(seconds: number): { text: string; warn: boolean } {
+    const minutes = Math.round(Math.abs(seconds) / 60);
+
+    if (Math.abs(seconds) <= 60) {
+        return { text: 'Correct', warn: false };
+    }
+
+    return {
+        text: `${minutes} min ${seconds > 0 ? 'fast' : 'slow'}`,
+        warn: Math.abs(seconds) > 300,
+    };
+}
+
+function HealthRow({
+    icon: Icon,
+    label,
+    value,
+    warn = false,
+}: {
+    icon: LucideIcon;
+    label: string;
+    value: string;
+    warn?: boolean;
+}) {
+    return (
+        <div className="flex items-center gap-2 text-sm">
+            <Icon aria-hidden className="size-4 text-muted-foreground" />
+            <span className="w-16 text-muted-foreground">{label}</span>
+            <span
+                className={cn(
+                    'tabular-nums',
+                    warn && 'font-medium text-warning',
+                )}
+            >
+                {value}
+            </span>
+        </div>
+    );
+}
+
+/** Battery, gateway and clock of a lock, as last read from TTLock. A lock with a gateway can be checked now with the button below. */
+function LockHealth({ lock }: { lock: App.Data.DoorLocks.DoorLockData }) {
+    const clock =
+        lock.clockDriftSeconds === null
+            ? null
+            : clockText(lock.clockDriftSeconds);
+    const gateway =
+        lock.gatewayOnline === null
+            ? 'Not checked'
+            : `${lock.gatewayName ?? 'Gateway'} · ${lock.gatewayOnline ? 'online' : 'offline'}`;
+
+    return (
+        <div className="flex flex-col gap-1.5">
+            <HealthRow
+                icon={BatteryMedium}
+                label="Battery"
+                value={
+                    lock.batteryPercent === null
+                        ? 'Unknown'
+                        : `${lock.batteryPercent}%`
+                }
+                warn={lock.batteryPercent !== null && lock.batteryPercent < 20}
+            />
+            {lock.hasGateway && (
+                <>
+                    <HealthRow
+                        icon={Wifi}
+                        label="Gateway"
+                        value={gateway}
+                        warn={lock.gatewayOnline === false}
+                    />
+                    <HealthRow
+                        icon={Clock}
+                        label="Clock"
+                        value={clock?.text ?? 'Not checked'}
+                        warn={clock?.warn}
+                    />
+                </>
+            )}
+            <p className="text-xs text-muted-foreground">
+                {lock.healthCheckedAt === null
+                    ? 'Health not checked yet.'
+                    : `Checked ${when(lock.healthCheckedAt)}.`}
+            </p>
+        </div>
+    );
 }
 
 const PIN_LENGTHS = [4, 5, 6, 7, 8, 9].map((length) => ({
@@ -325,17 +417,9 @@ export default function DoorLocksIndex({
                                                 </Badge>
                                             )}
                                         </CardAction>
-                                        <CardDescription className="flex items-center gap-1 tabular-nums">
-                                            <BatteryMedium
-                                                aria-hidden
-                                                className="size-4"
-                                            />
-                                            {lock.batteryPercent === null
-                                                ? 'Battery unknown'
-                                                : `${lock.batteryPercent}% battery`}
-                                        </CardDescription>
                                     </CardHeader>
                                     <CardContent className="flex flex-col gap-4">
+                                        <LockHealth lock={lock} />
                                         <Field>
                                             <FieldLabel>Room</FieldLabel>
                                             <EnumSelect
@@ -420,6 +504,26 @@ export default function DoorLocksIndex({
                                             >
                                                 <Clock />
                                                 Set clock
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                disabled={action.processing}
+                                                focusableWhenDisabled
+                                                onClick={() =>
+                                                    post(
+                                                        DoorLockSettingsController.health.url(
+                                                            {
+                                                                doorLock:
+                                                                    lock.id,
+                                                            },
+                                                        ),
+                                                    )
+                                                }
+                                            >
+                                                <Activity />
+                                                Check health
                                             </Button>
                                         </div>
                                     </CardContent>
