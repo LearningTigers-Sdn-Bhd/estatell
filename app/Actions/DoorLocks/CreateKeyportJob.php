@@ -5,10 +5,12 @@ namespace App\Actions\DoorLocks;
 use App\Enums\KeyportJobStatus;
 use App\Enums\KeyportJobType;
 use App\Enums\LockProvider;
+use App\Enums\UnitStatus;
 use App\Models\DoorLock;
 use App\Models\KeyportJob;
 use App\Models\ReservationUnit;
 use App\Models\User;
+use App\Services\DoorLocks\StayLocks;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Str;
 
@@ -20,14 +22,28 @@ use Illuminate\Support\Str;
  */
 class CreateKeyportJob
 {
+    public function __construct(private StayLocks $stayLocks) {}
+
     public function __invoke(?User $actor, ReservationUnit $unit, DoorLock $lock, KeyportJobType $type, ?string $key = null): KeyportJob|string
     {
         if ($lock->provider !== LockProvider::ELock || $lock->property_id !== $unit->property_id || $lock->lock_no === null) {
             return __('That lock does not use key cards.');
         }
 
+        // Only the lock of the room the stay sleeps in. A lock id from the request must never reach another room's door.
+        if (! $this->stayLocks->currentElock($unit)->contains('id', $lock->id)) {
+            return __('That lock is not in this stay\'s room.');
+        }
+
+        if (($type === KeyportJobType::Issue || $type === KeyportJobType::Rewrite) && $unit->status !== UnitStatus::CheckedIn) {
+            return __('The guest must be checked in before a card can be made.');
+        }
+
+        // A repeated key answers with the first job, but only when it is the same request. Another stay's key is a refusal.
         if ($key !== null && ($existing = KeyportJob::query()->where('idempotency_key', $key)->first()) !== null) {
-            return $existing;
+            return $existing->property_id === $unit->property_id && $existing->reservation_unit_id === $unit->id && $existing->door_lock_id === $lock->id && $existing->type === $type
+                ? $existing
+                : __('That request was already used. Reload the page and try again.');
         }
 
         if (KeyportJob::query()->where('reservation_unit_id', $unit->id)->where('door_lock_id', $lock->id)->whereIn('status', [KeyportJobStatus::Pending->value, KeyportJobStatus::Claimed->value])->exists()) {

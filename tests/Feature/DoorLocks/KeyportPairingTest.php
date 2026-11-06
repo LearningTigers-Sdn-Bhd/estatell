@@ -43,6 +43,17 @@ it('accepts a code typed in lower case', function () {
     keyportPair(strtolower($code))->assertOk();
 });
 
+it('accepts a code copied without its dash or with spaces', function (string $form) {
+    ['owner' => $owner, 'property' => $property] = keyportSetup();
+    $code = app(CreateKeyportPairingCode::class)($owner, $property);
+
+    keyportPair(match ($form) {
+        'no dash' => str_replace('-', '', $code),
+        'spaced' => substr($code, 0, 4).' '.substr($code, 5),
+        'lower, no dash' => strtolower(str_replace('-', '', $code)),
+    })->assertOk();
+})->with(['no dash', 'spaced', 'lower, no dash']);
+
 it('saves only a hash of the pairing code', function () {
     ['owner' => $owner, 'property' => $property] = keyportSetup();
     $code = app(CreateKeyportPairingCode::class)($owner, $property);
