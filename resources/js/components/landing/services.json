@@ -1,0 +1,472 @@
+[
+    {
+        "visual": {
+            "type": "photo",
+            "src": "/images/landing/booking-dashboard.webp",
+            "alt": "Two hotel team members review the booking calendar on a desktop monitor at a timber desk.",
+            "width": 1374,
+            "height": 1145
+        },
+        "slug": "hotel-pms",
+        "name": "Hotel PMS",
+        "metaTitle": "Hotel PMS for Independent and Boutique Hotels",
+        "description": "Estatell PMS runs reservations, front desk, housekeeping, reports and invoicing in one system. Priced by room count, built for independent and boutique hotels.",
+        "headline": ["Hotel PMS.", "Every booking in one list."],
+        "answer": "Estatell PMS is a property management system for independent and boutique hotels. It keeps reservations, front desk, housekeeping, reports and invoices in one place, so your team stops switching between tools. Direct and OTA bookings sit in the same list, with the guest name and stay details for each room.",
+        "featuresTitle": "What your team gets",
+        "features": [
+            {
+                "title": "Reservations",
+                "body": "Room types, rates and availability, with real-time booking status. Direct and OTA bookings show in one list."
+            },
+            {
+                "title": "Front desk and check-in",
+                "body": "See pre-check-in status for every guest before they arrive. Documents and deposit are captured in advance, and guests can check in from their own phone."
+            },
+            {
+                "title": "Housekeeping",
+                "body": "Staff get a priority task list. Guest requests arrive by room, delivery time is tracked, and complaints are logged and routed."
+            },
+            {
+                "title": "Dashboard and reports",
+                "body": "Arrivals, departures and occupancy at a glance, plus bookings, guest conversations, F&B orders and pre-check-in completions."
+            },
+            {
+                "title": "Guest database",
+                "body": "Every direct booking adds to a database you own. Remarket to past guests without paying OTA commission again."
+            },
+            {
+                "title": "Invoices and receipts",
+                "body": "Issued from the PMS on every booking, so there is no separate billing system to run."
+            }
+        ],
+        "faqs": [
+            {
+                "q": "What is a hotel PMS?",
+                "a": "A property management system is the software a hotel uses to manage reservations, check-in and check-out, room status, housekeeping and billing. Estatell PMS covers all of these and connects to the Channel Manager and Booking Engine."
+            },
+            {
+                "q": "How is Estatell PMS priced?",
+                "a": "By room-count tier. You pay for the size of your property, not a one-size-fits-all package."
+            },
+            {
+                "q": "How long does setup take?",
+                "a": "It starts with a 20-minute walkthrough call to map your rooms, rates and channels onto Estatell. Onboarding then takes hours, and includes training and a setup guide for your property."
+            },
+            {
+                "q": "Can guests check in without queuing at the desk?",
+                "a": "Yes. Guests receive a pre-check-in link by email and WhatsApp, upload documents and pay the deposit before arrival, and can check in from their phone."
+            },
+            {
+                "q": "Does the PMS work with the Channel Manager?",
+                "a": "Yes. Channel Manager runs on its own or paired with PMS. Paired, OTA bookings land in the same reservation list as your direct bookings."
+            }
+        ],
+        "blurb": "Reservations, front desk, housekeeping and reports."
+    },
+    {
+        "visual": {
+            "type": "sync"
+        },
+        "slug": "channel-manager",
+        "name": "Channel Manager",
+        "metaTitle": "Hotel Channel Manager for 9+ OTAs",
+        "description": "Estatell Channel Manager syncs rates, rooms and availability across 9+ OTAs with two-way sync, so a room sold on one channel closes on the others.",
+        "headline": [
+            "Channel Manager.",
+            "Sell a room once, close it everywhere."
+        ],
+        "answer": "Estatell Channel Manager syncs rates, rooms and availability across your OTAs from one dashboard. Sync runs both ways, so a room sold on one channel closes on the others. It connects 9+ OTAs, including Airbnb, Agoda, Booking.com, Expedia, Klook, Tiket.com, Traveloka and Trip.com.",
+        "featuresTitle": "What changes for your team",
+        "features": [
+            {
+                "title": "No overbooking",
+                "body": "A room sold on one channel closes on the others through two-way availability sync."
+            },
+            {
+                "title": "No manual errors",
+                "body": "Stop copying rates between extranets and spreadsheets. You change a rate once."
+            },
+            {
+                "title": "One login",
+                "body": "Manage every channel from a single dashboard: rates, rooms and availability."
+            },
+            {
+                "title": "Occupancy-based rate tiers",
+                "body": "Define the rate for each occupancy band once. The engine adjusts pricing as occupancy changes, then pushes the new rate to every connected channel."
+            },
+            {
+                "title": "Price by guest market",
+                "body": "Set rates by where guests come from, such as Europe or Asia, and hold your rate for the markets you want to attract."
+            },
+            {
+                "title": "Your own channels too",
+                "body": "Your direct channel sits beside the OTAs and receives the same rate updates."
+            }
+        ],
+        "faqs": [
+            {
+                "q": "What does a hotel channel manager do?",
+                "a": "A channel manager keeps your rates, room inventory and availability the same on every site where you sell rooms. When a booking arrives on one OTA, it updates the others."
+            },
+            {
+                "q": "Which OTAs does Estatell Channel Manager connect to?",
+                "a": "Airbnb, Agoda, Booking.com, Expedia, Klook, Tiket.com, Traveloka and Trip.com, plus others, for 9+ OTAs in total."
+            },
+            {
+                "q": "Do I need Estatell PMS to use it?",
+                "a": "No. Start with Channel Manager on its own and connect Estatell PMS later, when you want your front desk in sync too."
+            },
+            {
+                "q": "How does it prevent overbooking?",
+                "a": "Availability syncs both ways. When a room sells on one channel, it closes on the others."
+            },
+            {
+                "q": "How is Channel Manager priced?",
+                "a": "By room-count tier, the same way as the PMS."
+            }
+        ],
+        "blurb": "Rates, rooms and availability across 9+ OTAs."
+    },
+    {
+        "visual": {
+            "type": "photo",
+            "src": "/images/landing/booking-payment.webp",
+            "alt": "A guest holds a card while booking a hotel room on a laptop.",
+            "width": 1374,
+            "height": 1145
+        },
+        "slug": "booking-engine",
+        "name": "Booking Engine",
+        "metaTitle": "Hotel Booking Engine with No Commission",
+        "description": "Take direct bookings on your own hotel website with FPX and card payments. No commission on bookings made there, only the Booking Engine fee.",
+        "headline": ["Booking Engine.", "Direct bookings, no commission."],
+        "answer": "Estatell Booking Engine lets guests book on your own hotel website and pay by FPX or card. A booking made there carries no commission, only the Booking Engine fee. Each direct booking also adds a guest to a database you own.",
+        "featuresTitle": "How direct booking works",
+        "features": [
+            {
+                "title": "Your own website",
+                "body": "Guests book on your site, not on an OTA listing."
+            },
+            {
+                "title": "FPX and card payments",
+                "body": "Guests pay at booking with FPX or card."
+            },
+            {
+                "title": "Rates that keep up",
+                "body": "Occupancy-based rate tiers set in the Channel Manager are pushed to your direct channel along with the OTAs."
+            },
+            {
+                "title": "A guest database you own",
+                "body": "Every direct booking builds a record you can remarket to without paying OTA commission again."
+            },
+            {
+                "title": "Booking on WhatsApp",
+                "body": "WAStays helps guests discover and book your hotel. On WhatsApp, AI answers enquiries and guides guests through booking at any hour."
+            },
+            {
+                "title": "Bookings land in your PMS",
+                "body": "Direct bookings appear in the same reservation list as OTA bookings."
+            }
+        ],
+        "faqs": [
+            {
+                "q": "What is a hotel booking engine?",
+                "a": "A booking engine is the part of your website where guests check availability, pick a room and pay. Estatell Booking Engine does this on your own site."
+            },
+            {
+                "q": "Is there commission on direct bookings?",
+                "a": "No commission applies to bookings made on your own website. You pay only the Booking Engine fee."
+            },
+            {
+                "q": "Which payment methods are supported?",
+                "a": "FPX and card payments."
+            },
+            {
+                "q": "Can guests book through WhatsApp?",
+                "a": "Yes. With WAStays and WhatsApp connected to Estatell, AI answers enquiries and guides guests through booking."
+            },
+            {
+                "q": "How much could I save against OTA commission?",
+                "a": "It depends on your OTA mix. The savings calculator on our home page lets you test your own numbers."
+            }
+        ],
+        "blurb": "Book on your own site, pay by FPX or card."
+    },
+    {
+        "visual": {
+            "type": "chat"
+        },
+        "slug": "ai-concierge",
+        "name": "AI Concierge",
+        "metaTitle": "AI Concierge for Hotels on WhatsApp",
+        "description": "Estatell AI Concierge answers guest questions on WhatsApp at any hour, handles housekeeping requests and complaints, and runs guest messages around each stay.",
+        "headline": ["AI Concierge.", "Guests ask on WhatsApp. It answers."],
+        "answer": "Estatell AI Concierge answers guest questions on WhatsApp at any hour: Wi-Fi, room facilities, parking, hotel policies, check-in times and safety. It also sends the messages around a stay and routes guest requests and complaints to your team.",
+        "featuresTitle": "What guests can do in chat",
+        "features": [
+            {
+                "title": "Guest engagement",
+                "body": "Pre-stay reminder, pre-check-in message, welcome on check-in day, mid-stay check-in, checkout reminder, post-stay review request and a loyalty offer to bring guests back."
+            },
+            {
+                "title": "Answers, instantly",
+                "body": "Wi-Fi, room facilities, parking availability, hotel policies, check-in times and safety, at any hour."
+            },
+            {
+                "title": "Housekeeping requests",
+                "body": "Guests ask for items in chat, such as extra towels. Your team tracks delivery and fulfillment in real time."
+            },
+            {
+                "title": "Complaint resolution",
+                "body": "Issues are logged and routed to the right team, and guests see the resolution status. The owner sees a report of all complaints."
+            },
+            {
+                "title": "Activities and offers",
+                "body": "Push restaurant dining specials, special occasion packages, spa slots and other offers through the chat."
+            },
+            {
+                "title": "Food and drink orders",
+                "body": "Guests can order through the concierge. Orders and room charges stay together in your PMS."
+            },
+            {
+                "title": "AI voice calls on WhatsApp (coming soon)",
+                "body": "Guests will call on WhatsApp and speak to the AI Concierge, which answers questions and guides them to book a room."
+            }
+        ],
+        "faqs": [
+            {
+                "q": "What is an AI concierge for hotels?",
+                "a": "It is a chat assistant that answers guest questions and takes requests for the hotel. Estatell AI Concierge works on WhatsApp, the app guests already use."
+            },
+            {
+                "q": "What can it answer?",
+                "a": "Wi-Fi, room facilities, parking availability, hotel policies, check-in times and safety questions, at any hour."
+            },
+            {
+                "q": "Does it replace my staff?",
+                "a": "No. It handles common questions and logs requests and complaints, then routes them to the right team to act on."
+            },
+            {
+                "q": "Can guests book a room through it?",
+                "a": "Yes. On WhatsApp, AI answers enquiries and guides guests through booking. Voice calls on WhatsApp are coming soon."
+            },
+            {
+                "q": "How do we go live on WhatsApp?",
+                "a": "It is an optional fourth step after your PMS, Channel Manager and Booking Engine are live."
+            }
+        ],
+        "blurb": "WhatsApp answers, requests and complaints, any hour."
+    },
+    {
+        "visual": {
+            "type": "pin"
+        },
+        "slug": "smart-locks",
+        "name": "Smart Locks",
+        "metaTitle": "Hotel Smart Lock Integration with PIN Codes",
+        "description": "Estatell issues a smart lock PIN for each stay at check-in and removes it at check-out. See Bastn hotel and apartment door lock models and ask which come with TTLock Bluetooth.",
+        "headline": ["Smart Locks.", "A PIN for each stay, gone at check-out."],
+        "answer": "Estatell connects to TTLock smart locks and issues a PIN for each stay. The PIN is created at check-in and removed at check-out, and it follows the guest if they change rooms. On remote check-in, the PIN goes straight to the guest’s phone.",
+        "featuresTitle": "What Estatell does with your locks",
+        "features": [
+            {
+                "title": "One PIN per stay",
+                "body": "Issued when the guest checks in and taken away when they check out. No keys to hand back."
+            },
+            {
+                "title": "Remote check-in",
+                "body": "After pre-check-in, the PIN is sent to the guest’s phone, so arrival does not need a staff member at the desk."
+            },
+            {
+                "title": "Room moves and undo",
+                "body": "Move a guest to another room or undo a check-in, and the PIN follows the change."
+            },
+            {
+                "title": "Remote unlock from the screen",
+                "body": "Open a door for a guest from the PMS. Needs a TTLock gateway on that lock."
+            },
+            {
+                "title": "Custom PINs",
+                "body": "Staff can choose a PIN instead of using a generated one. Needs a TTLock gateway on that lock."
+            },
+            {
+                "title": "One TTLock account per property",
+                "body": "Your locks stay in your own TTLock account, and Estatell connects to it."
+            }
+        ],
+        "catalogue": {
+            "title": "Door lock models",
+            "intro": "Bastn hotel and apartment door locks, with photos of each model. Ask us which ones come with TTLock Bluetooth, the version Estatell connects to your PMS.",
+            "groups": [
+                {
+                    "title": "Hotel locks",
+                    "models": [
+                        {
+                            "name": "Bastn C6",
+                            "image": "c6.jpg"
+                        },
+                        {
+                            "name": "Bastn C9",
+                            "image": "c9.jpg"
+                        },
+                        {
+                            "name": "Bastn CTA4",
+                            "image": "cta4.jpg"
+                        },
+                        {
+                            "name": "Bastn C13",
+                            "image": "c13.jpg"
+                        },
+                        {
+                            "name": "Bastn CT4",
+                            "image": "ct4.jpg"
+                        },
+                        {
+                            "name": "Bastn C11",
+                            "image": "c11.jpg"
+                        },
+                        {
+                            "name": "Bastn CT41",
+                            "image": "ct41.jpg"
+                        },
+                        {
+                            "name": "Bastn CT80A",
+                            "image": "ct80a.jpg"
+                        },
+                        {
+                            "name": "Bastn CT80",
+                            "image": "ct80.jpg"
+                        },
+                        {
+                            "name": "Bastn CT83",
+                            "image": "ct83.jpg"
+                        },
+                        {
+                            "name": "Bastn C12",
+                            "image": "c12.jpg"
+                        },
+                        {
+                            "name": "Bastn CT6",
+                            "image": "ct6.png"
+                        }
+                    ]
+                },
+                {
+                    "title": "Apartment locks",
+                    "models": [
+                        {
+                            "name": "Bastn C6-M",
+                            "image": "c6-m.png"
+                        },
+                        {
+                            "name": "Bastn CT41-M",
+                            "image": "ct41-m.png"
+                        },
+                        {
+                            "name": "Bastn C12-M",
+                            "image": "c12-m.png"
+                        }
+                    ]
+                }
+            ]
+        },
+        "faqs": [
+            {
+                "q": "Which locks work with Estatell?",
+                "a": "Locks on the TTLock platform that have a keypad. Ask us to confirm your lock model before you buy, because not every Bastn model comes with TTLock Bluetooth."
+            },
+            {
+                "q": "Do I need a gateway?",
+                "a": "Generated PINs work without one. Custom PINs and remote unlock from the screen need a TTLock gateway on that lock."
+            },
+            {
+                "q": "What happens to the PIN at check-out?",
+                "a": "It is removed. Estatell also removes it if you undo a check-in, and replaces it if you move the guest to another room."
+            },
+            {
+                "q": "Does the guest need an app to enter?",
+                "a": "No. The guest receives the PIN on their phone and types it on the lock keypad."
+            },
+            {
+                "q": "Does it work with the check-in kiosk?",
+                "a": "Yes. The kiosk can hand over a room key or a smart-lock PIN with a printed receipt."
+            }
+        ],
+        "blurb": "A PIN created at check-in and removed at check-out."
+    },
+    {
+        "visual": {
+            "type": "photo",
+            "src": "/images/landing/self-checkin-kiosk-v2.webp",
+            "alt": "The Estatell self check-in kiosk showing a welcome screen with Scan booking QR, Verify your ID and Collect your key.",
+            "width": 1200,
+            "height": 1200
+        },
+        "slug": "check-in-kiosk",
+        "name": "Check-in Kiosk",
+        "metaTitle": "Hotel Self Check-in Kiosk",
+        "description": "Guests scan their booking QR, verify their ID and collect a room key or smart-lock PIN at the Estatell self check-in kiosk, connected to your PMS.",
+        "headline": ["Check-in Kiosk.", "Arrive. Scan. Settle in."],
+        "answer": "The Estatell check-in kiosk lets guests who pre-checked in scan the QR code from their email or WhatsApp, verify their ID and collect a room key or smart-lock PIN with a printed receipt. It is connected to your PMS, so guest records and room status stay in sync.",
+        "featuresTitle": "Why hotels add a kiosk",
+        "features": [
+            {
+                "title": "A welcome when the desk is busy",
+                "body": "Guests check in, verify their details and collect a key at their own pace."
+            },
+            {
+                "title": "Connected to your PMS",
+                "body": "Guest records and room status stay in sync, so your team sees every arrival."
+            },
+            {
+                "title": "Works with smart locks",
+                "body": "The kiosk can hand over a smart-lock PIN instead of a physical key."
+            },
+            {
+                "title": "Paperwork done before arrival",
+                "body": "Documents and deposit are captured through the pre-check-in link, so the kiosk only has to confirm identity."
+            }
+        ],
+        "flow": {
+            "title": "Three steps at the kiosk",
+            "steps": [
+                {
+                    "title": "Scan your booking",
+                    "body": "Guests who pre-checked in scan the QR from their email or WhatsApp."
+                },
+                {
+                    "title": "Verify your ID",
+                    "body": "Scan a passport or ID and capture the guest’s signature."
+                },
+                {
+                    "title": "Collect the key",
+                    "body": "A room key or smart-lock PIN, with a printed receipt."
+                }
+            ]
+        },
+        "faqs": [
+            {
+                "q": "What is a self check-in kiosk?",
+                "a": "A screen in your lobby where guests check themselves in without waiting for a staff member. Estatell’s kiosk verifies ID and hands over a key or PIN."
+            },
+            {
+                "q": "What does the guest receive?",
+                "a": "A room key or a smart-lock PIN, with a printed receipt."
+            },
+            {
+                "q": "Does the guest need to pre-check-in first?",
+                "a": "The kiosk flow starts from the booking QR sent by email or WhatsApp after pre-check-in."
+            },
+            {
+                "q": "Does it replace the front desk?",
+                "a": "It takes routine arrivals off the desk when it is busy. Your team still sees every arrival in the PMS."
+            },
+            {
+                "q": "Which kiosk hardware is available?",
+                "a": "Hardware and screen options vary by property. We confirm them during your walkthrough."
+            }
+        ],
+        "blurb": "Scan the booking, verify ID, collect a key."
+    }
+]

@@ -10,6 +10,7 @@ declare module '@inertiajs/core' {
     export interface InertiaConfig {
         sharedPageProps: {
             name: string;
+            siteUrl: string;
             auth: Auth;
             impersonation: App.Data.Platform.ImpersonationData | null;
             supportTwoFactor: { required: boolean } | null;
