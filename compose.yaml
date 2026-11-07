@@ -85,6 +85,8 @@ services:
     # It needs no secrets, database or volume. If it is down, pages still work: Laravel falls back to browser rendering.
     ssr:
         image: estatell-app:latest
+        # No `build:` here, so Coolify's `compose pull` would try Docker Hub. The web service builds this image locally.
+        pull_policy: never
         restart: unless-stopped
         depends_on:
             - web
