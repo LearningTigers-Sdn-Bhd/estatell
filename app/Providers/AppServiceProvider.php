@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Actions\Channels\RecordChannelAriChange;
 use App\Actions\Channels\ScheduleChannelStructureSync;
+use App\Actions\DoorLocks\QueueStayKeyCards;
 use App\Actions\DoorLocks\QueueStayPasscodeSync;
 use App\Actions\Notifications\RecordMailEvent;
 use App\Actions\Platform\NotifySupportMoneyCorrection;
@@ -85,6 +86,7 @@ class AppServiceProvider extends ServiceProvider
         $this->configureChannelEvents();
         $this->configureApiRateLimiting();
         $this->configureInertiaSsr();
+        $this->configureKeyportRateLimits();
     }
 
     /**
@@ -95,6 +97,14 @@ class AppServiceProvider extends ServiceProvider
     private function configureInertiaSsr(): void
     {
         Inertia::disableSsr(fn (): bool => ! config('inertia.ssr.enabled') || ! request()->routeIs('home', 'services.show', 'terms', 'privacy'));
+    }
+
+    /**
+     * Pairing is the only Keyport call without a token, so it is limited per IP to blunt guessing of pairing codes.
+     */
+    private function configureKeyportRateLimits(): void
+    {
+        RateLimiter::for('keyport-pair', fn (Request $request): Limit => Limit::perMinute(10)->by((string) $request->ip()));
     }
 
     /**
@@ -138,6 +148,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Event::listen([RatesChanged::class, InventoryChanged::class, ReservationChanged::class], fn (RatesChanged|InventoryChanged|ReservationChanged $event) => app(RecordChannelAriChange::class)($event));
         Event::listen(ChannelStructureChanged::class, fn (ChannelStructureChanged $event) => app(ScheduleChannelStructureSync::class)($event));
+        Event::listen(StayCheckedIn::class, fn (StayCheckedIn $event) => app(QueueStayKeyCards::class)($event));
         Event::listen([StayCheckedIn::class, StayCheckedOut::class, StayRoomChanged::class, StayDatesChanged::class], fn (StayCheckedIn|StayCheckedOut|StayRoomChanged|StayDatesChanged $event) => app(QueueStayPasscodeSync::class)($event));
 
         RatePlan::saved(function (RatePlan $ratePlan): void {

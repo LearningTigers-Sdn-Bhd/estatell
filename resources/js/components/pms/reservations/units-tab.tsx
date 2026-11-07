@@ -19,6 +19,7 @@ import { ChangeBoatTripDialog } from '@/components/pms/reservations/change-boat-
 import { ChangeGuestsDialog } from '@/components/pms/reservations/change-guests-dialog';
 import { ChangeNightPriceDialog } from '@/components/pms/reservations/change-night-price-dialog';
 import { DoorPins } from '@/components/pms/reservations/door-pins';
+import { KeyCards } from '@/components/pms/reservations/key-cards';
 import { UnitActionsMenu } from '@/components/pms/reservations/unit-actions-menu';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Button } from '@/components/ui/button';
@@ -179,6 +180,7 @@ export function UnitsTab({
     reservationId,
     unit,
     doorPins,
+    keyCards,
     autoAssignRooms,
     canWaiveFees,
     canOverrideRestrictions,
@@ -190,6 +192,7 @@ export function UnitsTab({
     reservationId: number;
     unit: Unit | null;
     doorPins: App.Data.DoorLocks.UnitDoorPinsData | null;
+    keyCards: App.Data.Keyport.UnitKeyCardsData | null;
     autoAssignRooms: boolean;
     canWaiveFees: boolean;
     canOverrideRestrictions: boolean;
@@ -331,6 +334,13 @@ export function UnitsTab({
                 {doorPins !== null && (
                     <DoorPins
                         pins={doorPins}
+                        reservationId={reservationId}
+                        unitId={unit.id}
+                    />
+                )}
+                {keyCards !== null && (
+                    <KeyCards
+                        cards={keyCards}
                         reservationId={reservationId}
                         unitId={unit.id}
                     />

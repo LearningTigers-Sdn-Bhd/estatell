@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Reservations;
 use App\Data\CityLedger\ArInvoiceData;
 use App\Data\DoorLocks\UnitDoorPinsData;
 use App\Data\Folio\RoutingRulesData;
+use App\Data\Keyport\UnitKeyCardsData;
 use App\Data\Payments\PaymentProofData;
 use App\Data\Property\CurrencyData;
 use App\Data\Reservations\PaymentScheduleData;
@@ -54,6 +55,7 @@ use App\Services\Folio\OldFolioPage;
 use App\Services\Folio\RoutingRuleList;
 use App\Services\FrontDesk\GroupCheckOutPreview;
 use App\Services\Guests\CountryOptions;
+use App\Services\Keyport\UnitKeyCards;
 use App\Services\Payments\PaymentReceipt;
 use App\Services\Platform\Impersonation;
 use App\Services\Property\MigrationWindow;
@@ -138,9 +140,23 @@ class ReservationController extends Controller
             return [
                 'unit' => $data,
                 'doorPins' => $this->doorPins($request->user(), $property, $selected),
+                'keyCards' => $this->keyCards($request->user(), $property, $selected),
                 'singleUnit' => $single === null ? null : ($single->id === $selected->id ? $data : $this->unitData($request->user(), $property, $reservation, $single, $activityLog, $actionMenu)),
             ];
         });
+    }
+
+    /**
+     * The eLock key cards of the unit, for the same staff and feature as the PINs. Null when the unit has no eLock lock and no card job.
+     */
+    private function keyCards(User $user, Property $property, ReservationUnit $unit): ?UnitKeyCardsData
+    {
+        if (! Feature::for($property)->active(DoorLocks::class)
+            || ! ($user->can(PermissionEnum::FrontDeskCheckIn->value) || $user->can(PermissionEnum::SettingsManage->value))) {
+            return null;
+        }
+
+        return app(UnitKeyCards::class)->forUnit($unit);
     }
 
     /**
