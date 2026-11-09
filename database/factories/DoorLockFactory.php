@@ -22,7 +22,7 @@ class DoorLockFactory extends Factory
             'property_id' => Property::factory(),
             'room_id' => null,
             'ttlock_lock_id' => fake()->unique()->numberBetween(100000, 999999),
-            'name' => 'C13_'.fake()->unique()->numerify('######'),
+            'name' => 'E13_'.fake()->unique()->numerify('######'),
             'battery_percent' => 90,
             'has_gateway' => false,
             'synced_at' => now(),

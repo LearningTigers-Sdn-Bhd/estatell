@@ -95,7 +95,7 @@ const sections = [
         paragraphs: [
             'Our marketing website and hotel-management accounts are intended for business users, not for children to create accounts independently. Hotels may need information about children travelling with an adult; the hotel is responsible for ensuring a lawful basis and any required parent or guardian authorisation. Contact the hotel or us if you believe a child’s information has been provided inappropriately.',
             'We may update this policy when services, data practices, or legal requirements change. The date above identifies the latest revision. Where law requires additional notice or consent for a material change, a website update alone will not replace that requirement.',
-            'For privacy questions or requests concerning Estatell, contact Jesselton Pixel Sdn. Bhd. at hello@estatell.com or +6011-6202 3998. Please state whether your question concerns this website, a customer account, or a particular hotel so it can reach the appropriate team.',
+            'For privacy questions or requests concerning Estatell, contact Jesselton Pixel Sdn. Bhd. at hello@estatell.com or +6011-6202 3988. Please state whether your question concerns this website, a customer account, or a particular hotel so it can reach the appropriate team.',
         ],
     },
 ];
