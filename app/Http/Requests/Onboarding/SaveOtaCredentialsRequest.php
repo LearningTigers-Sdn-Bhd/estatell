@@ -7,7 +7,7 @@ use App\Http\Requests\Concerns\ValidatesOtaListRows;
 use Illuminate\Validation\Validator;
 
 /**
- * The rows of the onboarding OTA lists table. The rules are shared with Settings → OTA lists (see ValidatesOtaListRows).
+ * The rows of the onboarding OTA lists table (see ValidatesOtaListRows).
  */
 class SaveOtaCredentialsRequest extends OnboardingStepRequest
 {

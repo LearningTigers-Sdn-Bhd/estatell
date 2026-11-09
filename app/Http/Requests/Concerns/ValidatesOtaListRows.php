@@ -13,10 +13,9 @@ use Illuminate\Validation\Validator;
 use LogicException;
 
 /**
- * The rows of the OTA lists table, shared by onboarding and Settings → OTA lists. A channel must be active, or the
- * channel the saved row already uses. Other needs a channel name. One row per channel, and one Other row per name
- * ignoring case. A new row needs a password, a saved row may leave it blank to keep the saved one. A row with nothing
- * filled in is dropped.
+ * The onboarding OTA lists table: `saved_ids` are the saved rows to keep, and `rows` are the new ones. A channel must be
+ * active. Other needs a channel name. One row per channel, and one Other row per name ignoring case, counting the saved
+ * rows that stay. A row with nothing filled in is dropped.
  */
 trait ValidatesOtaListRows
 {
@@ -36,7 +35,6 @@ trait ValidatesOtaListRows
             fn (mixed $row): mixed => is_array($row)
                 ? [
                     ...$row,
-                    'id' => filled($row['id'] ?? null) ? $row['id'] : null,
                     'channel_name' => trim((string) ($row['channel_name'] ?? '')),
                     'property_code' => trim((string) ($row['property_code'] ?? '')),
                     'username' => trim((string) ($row['username'] ?? '')),
@@ -50,7 +48,7 @@ trait ValidatesOtaListRows
 
         $this->merge(['rows' => array_values(array_filter(
             $rows,
-            fn (mixed $row): bool => ! is_array($row) || $row['id'] !== null || collect($row)->except('id')->contains(fn (mixed $value): bool => filled($value)),
+            fn (mixed $row): bool => ! is_array($row) || collect($row)->contains(fn (mixed $value): bool => filled($value)),
         ))]);
     }
 
@@ -61,22 +59,13 @@ trait ValidatesOtaListRows
     {
         $validator->after(function (Validator $afterValidator): void {
             $seenChannels = [];
-            $seenIds = [];
+
+            foreach ($this->otaListProperty()->otaCredentials()->whereKey($this->savedIds())->get(['ota_channel_id', 'channel_name']) as $saved) {
+                $seenChannels[$saved->channel_name === null ? 'channel:'.$saved->ota_channel_id : 'other:'.Str::lower($saved->channel_name)] = true;
+            }
 
             foreach ($this->rowsInput() as $index => $row) {
-                if ($row['id'] !== null) {
-                    if (isset($seenIds[$row['id']])) {
-                        $afterValidator->errors()->add("rows.$index.id", __('This channel is in the list twice.'));
-                    }
-
-                    $seenIds[$row['id']] = true;
-                }
-
                 $isOther = $this->isOther($row);
-
-                if ($this->locksSavedChannels() && $row['id'] !== null) {
-                    $this->checkSavedChannelUnchanged($afterValidator, $index, $row, $isOther);
-                }
                 $key = $isOther ? 'other:'.Str::lower($row['channel_name']) : 'channel:'.($row['ota_channel_id'] ?? '');
 
                 if (isset($seenChannels[$key])) {
@@ -92,82 +81,31 @@ trait ValidatesOtaListRows
     }
 
     /**
-     * Whether a saved row may keep its channel only. Settings sets this, so a channel changes by removing the row and
-     * adding a new one, which asks for the disconnect warning. Onboarding keeps the channel editable.
-     */
-    protected function locksSavedChannels(): bool
-    {
-        return false;
-    }
-
-    /**
-     * A saved row's channel and channel name must match the saved row. A changed value gets an error on the row.
-     *
-     * @param  array<string, mixed>  $row
-     */
-    private function checkSavedChannelUnchanged(Validator $afterValidator, int|string $index, array $row, bool $isOther): void
-    {
-        $property = $this->route('property');
-
-        if (! $property instanceof Property) {
-            return;
-        }
-
-        $saved = $property->otaCredentials()->whereKey($row['id'])->first();
-
-        if ($saved === null) {
-            return;
-        }
-
-        if ((string) $saved->ota_channel_id !== (string) ($row['ota_channel_id'] ?? '')) {
-            $afterValidator->errors()->add("rows.$index.ota_channel_id", __('The channel of a saved row can\'t change. Remove the row and add a new one.'));
-
-            return;
-        }
-
-        $submittedName = $isOther ? (string) $row['channel_name'] : '';
-
-        if (Str::lower((string) $saved->channel_name) !== Str::lower($submittedName)) {
-            $afterValidator->errors()->add("rows.$index.channel_name", __('The channel name of a saved row can\'t change. Remove the row and add a new one.'));
-        }
-    }
-
-    /**
      * @return array<string, ValidationRule|array<mixed>|string>
      */
     protected function otaListRules(): array
     {
-        $property = $this->route('property');
-
-        if (! $property instanceof Property) {
-            throw new LogicException('The property route binding is missing.');
-        }
-
         $rules = [
-            'rows' => ['present', 'array', 'max:'.self::MAX_ROWS],
+            'saved_ids' => ['present', 'array'],
+            'saved_ids.*' => [
+                'integer', 'distinct',
+                Rule::exists('property_ota_credentials', 'id')->where('property_id', $this->otaListProperty()->id),
+            ],
+            'rows' => ['present', 'array', 'max:'.max(0, self::MAX_ROWS - count($this->savedIds()))],
             'rows.*' => ['array'],
         ];
 
         foreach ($this->rowsInput() as $index => $row) {
-            $isNew = $row['id'] === null;
-            $usedChannelId = $isNew ? null : $property->otaCredentials()->whereKey($row['id'])->value('ota_channel_id');
-
-            $rules["rows.$index.id"] = [
-                'nullable', 'integer',
-                Rule::exists('property_ota_credentials', 'id')->where('property_id', $property->id),
-            ];
             $rules["rows.$index.ota_channel_id"] = [
                 'required', 'integer',
-                Rule::exists('ota_channels', 'id')->where(fn (Builder $query) => $query
-                    ->where('is_active', true)
-                    ->when($usedChannelId !== null, fn (Builder $query) => $query->orWhere('id', $usedChannelId))),
+                Rule::exists('ota_channels', 'id')->where(fn (Builder $query) => $query->where('is_active', true)),
             ];
             $rules["rows.$index.channel_name"] = $this->isOther($row)
                 ? ['required', 'string', 'max:80']
                 : ['nullable', 'string', 'max:80'];
             $rules["rows.$index.property_code"] = ['required', 'string', 'max:80'];
             $rules["rows.$index.username"] = ['required', 'string', 'max:255'];
-            $rules["rows.$index.password"] = [$isNew ? 'required' : 'nullable', 'string', 'max:255'];
+            $rules["rows.$index.password"] = ['required', 'string', 'max:255'];
             $rules["rows.$index.market_manager_name"] = ['nullable', 'string', 'max:255'];
             $rules["rows.$index.market_manager_phone"] = ['nullable', 'string', 'max:40'];
             $rules["rows.$index.market_manager_email"] = ['nullable', 'email', 'max:255'];
@@ -182,7 +120,7 @@ trait ValidatesOtaListRows
     public function messages(): array
     {
         return [
-            'rows.*.id.exists' => __('This channel row is no longer saved. Reload the page.'),
+            'saved_ids.*.exists' => __('A saved channel is no longer there. Reload the page.'),
             'rows.*.ota_channel_id.required' => __('Choose a channel.'),
             'rows.*.ota_channel_id.exists' => __('Choose one of the listed channels.'),
             'rows.*.channel_name.required' => __('Enter the channel name.'),
@@ -194,7 +132,7 @@ trait ValidatesOtaListRows
     }
 
     /**
-     * The rows as the Action takes them. Only valid after validation has passed.
+     * The new rows as the Action takes them. Only valid after validation has passed.
      *
      * @return list<OnboardingOtaCredentialData>
      */
@@ -202,18 +140,40 @@ trait ValidatesOtaListRows
     {
         return array_map(
             fn (array $row): OnboardingOtaCredentialData => new OnboardingOtaCredentialData(
-                id: $row['id'] === null ? null : (int) $row['id'],
                 otaChannelId: (int) $row['ota_channel_id'],
                 channelName: $this->isOther($row) ? $row['channel_name'] : null,
                 propertyCode: $row['property_code'],
                 username: $row['username'],
-                password: blank($row['password'] ?? null) ? null : $row['password'],
+                password: $row['password'],
                 marketManagerName: blank($row['market_manager_name'] ?? null) ? null : $row['market_manager_name'],
                 marketManagerPhone: blank($row['market_manager_phone'] ?? null) ? null : $row['market_manager_phone'],
                 marketManagerEmail: blank($row['market_manager_email'] ?? null) ? null : $row['market_manager_email'],
             ),
             $this->rowsInput(),
         );
+    }
+
+    /**
+     * The ids of the saved rows to keep. Anything that is not a whole number is left for the rules to refuse.
+     *
+     * @return list<int>
+     */
+    public function savedIds(): array
+    {
+        $ids = $this->input('saved_ids');
+
+        return is_array($ids) ? array_values(array_map(intval(...), array_filter($ids, is_numeric(...)))) : [];
+    }
+
+    private function otaListProperty(): Property
+    {
+        $property = $this->route('property');
+
+        if (! $property instanceof Property) {
+            throw new LogicException('The property route binding is missing.');
+        }
+
+        return $property;
     }
 
     /**

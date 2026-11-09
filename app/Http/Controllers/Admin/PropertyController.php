@@ -122,6 +122,7 @@ class PropertyController extends Controller
     {
         return $this->renderTab($property, 'ota-lists', [
             'otaLists' => $propertyOtaLists->forProperty($property),
+            'otaChannels' => $propertyOtaLists->channels(),
         ]);
     }
 

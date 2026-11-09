@@ -26,7 +26,7 @@ Show owners and managers what is on their channels, without letting them change 
 │ Channel      Status                    Since      Bookings (30 d)               │
 │ Agoda        ● Live                    12 Oct     14                            │
 │ Booking.com  ◐ Being connected         —          —                             │
-│ Hostelworld  ○ Waiting for the team    —          —        (in your OTA lists)  │
+│ Hostelworld  ○ Waiting for the team    —          —        (from onboarding)     │
 │                                                                                 │
 │ ┌─ What is on channels ───────────────────────────────────────────────────────┐ │
 │ │ ✓ Deluxe King · Standard, Breakfast included                                │ │
@@ -64,7 +64,6 @@ Show owners and managers what is on their channels, without letting them change 
 
 | Where                       | What                                                                                      |
 | --------------------------- | ----------------------------------------------------------------------------------------- |
-| Settings → OTA lists        | New intro, plus a read-only **Channel** column with the same status (flag on only)        |
 | Rate calendar and bulk edit | One line: "Changes go to Agoda and Booking.com within a minute." Lists the Live channels. |
 | Reservations                | OTA booking source badge and `external_reference`                                         |
 | Archive room type or plan   | The [archive guard](02-mappings-and-capability.md#archive-guard) message                  |

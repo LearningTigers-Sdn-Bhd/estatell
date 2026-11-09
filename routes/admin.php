@@ -34,6 +34,9 @@ Route::middleware(['auth', 'can:admin'])->prefix('admin')->name('admin.')->group
     Route::get('properties/{property:code}/staff', [PropertyController::class, 'staff'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}'])->name('properties.staff');
     Route::get('properties/{property:code}/features', [PropertyController::class, 'features'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}'])->name('properties.features');
     Route::get('properties/{property:code}/ota-lists', [PropertyController::class, 'otaLists'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}'])->name('properties.ota-lists');
+    Route::post('properties/{property:code}/ota-lists', [PropertyOtaListController::class, 'store'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}'])->middleware('support.2fa')->name('properties.ota-lists.store');
+    Route::put('properties/{property:code}/ota-lists/{credential}', [PropertyOtaListController::class, 'update'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}', 'credential' => '[0-9]+'])->middleware('support.2fa')->name('properties.ota-lists.update');
+    Route::delete('properties/{property:code}/ota-lists/{credential}', [PropertyOtaListController::class, 'destroy'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}', 'credential' => '[0-9]+'])->middleware('support.2fa')->name('properties.ota-lists.destroy');
     Route::post('properties/{property:code}/ota-lists/{credential}/reveal', [PropertyOtaListController::class, 'reveal'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}', 'credential' => '[0-9]+'])->middleware('support.2fa')->name('properties.ota-lists.reveal');
     Route::put('properties/{property:code}/ota-lists/{credential}/processed', [PropertyOtaListController::class, 'markProcessed'])->where(['property' => '[A-Za-z]{2}[0-9]{4,}', 'credential' => '[0-9]+'])->middleware('support.2fa')->name('properties.ota-lists.processed');
     Route::middleware('channels')->group(function () {
