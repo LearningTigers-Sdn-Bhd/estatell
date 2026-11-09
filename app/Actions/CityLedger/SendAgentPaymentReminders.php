@@ -8,9 +8,11 @@ use App\Models\AgentPaymentReminder as SentReminder;
 use App\Models\CompanyUser;
 use App\Models\Reservation;
 use App\Notifications\AgentPaymentReminder;
+use App\Services\Notifications\MailActorResolver;
 use App\Services\Reservations\AgentBill;
 use App\Services\Reservations\AgentPaymentSchedule;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Notification;
 
 class SendAgentPaymentReminders
@@ -75,7 +77,7 @@ class SendAgentPaymentReminders
         }
 
         foreach ($toSend as [$stage, $kind]) {
-            Notification::route('mail', $emails)->notify(new AgentPaymentReminder(
+            Context::scope(fn () => Notification::route('mail', $emails)->notify(new AgentPaymentReminder(
                 kind: $kind,
                 propertyName: $reservation->property->name,
                 propertyCode: $reservation->property->code,
@@ -95,7 +97,7 @@ class SendAgentPaymentReminders
                 dueText: $next === null ? '' : $due($next['due_at']),
                 agentLines: $billText($bill->agentLines),
                 guestLines: $billText($bill->guestLines),
-            ));
+            )), hidden: [MailActorResolver::PROPERTY_CONTEXT_KEY => $reservation->property_id]);
 
             $row = new SentReminder;
             $row->forceFill(['reservation_id' => $reservation->id, 'stage' => $stage, 'kind' => $kind, 'sent_at' => $now])->save();
