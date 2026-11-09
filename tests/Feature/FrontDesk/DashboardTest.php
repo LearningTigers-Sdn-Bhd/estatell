@@ -32,7 +32,7 @@ test('staff open their own property dashboard with the property prop', function 
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('dashboard')
-            ->where('property', ['code' => $property->code, 'name' => $property->name, 'status' => 'live', 'logoUrl' => null])
+            ->where('property', ['code' => $property->code, 'name' => $property->name, 'status' => 'live', 'logoUrl' => null, 'countryCode' => $property->country_code])
         );
 
     expect(app(PermissionRegistrar::class)->getPermissionsTeamId())->toBe($property->id);

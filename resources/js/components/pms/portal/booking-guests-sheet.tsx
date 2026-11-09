@@ -129,7 +129,7 @@ export function BookingGuestsSheet({
                             <PhoneInput
                                 id={`guest-${index}-phone`}
                                 name={`guests.${index}.phone`}
-                                placeholder="e.g. +60 12-345 6789"
+                                placeholder="e.g. 012-345 6789"
                                 value={guest.phone}
                                 onChange={(value) =>
                                     setGuest(index, { phone: value })
