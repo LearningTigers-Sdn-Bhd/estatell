@@ -24,6 +24,7 @@ use App\Models\Property;
 use App\Models\RatePlan;
 use App\Models\RoomType;
 use App\Models\User;
+use App\Services\Notifications\MailActorResolver;
 use App\Services\Notifications\MillionSendTransport;
 use App\Services\Platform\Impersonation;
 use Carbon\CarbonImmutable;
@@ -36,11 +37,13 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
+use Illuminate\Log\Context\Repository as ContextRepository;
 use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Routing\Route as RoutingRoute;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -163,6 +166,12 @@ class AppServiceProvider extends ServiceProvider
      */
     protected function configureMailLog(): void
     {
+        Context::dehydrating(function (ContextRepository $context): void {
+            if (! $context->hasHidden(MailActorResolver::CONTEXT_KEY)) {
+                $context->addHidden(MailActorResolver::CONTEXT_KEY, app(MailActorResolver::class)->fromRequest());
+            }
+        });
+
         Event::listen(MessageSending::class, function (MessageSending $event): void {
             if (is_string($notification = $event->data['__laravel_notification'] ?? null)) {
                 $event->message->getHeaders()->addTextHeader(MillionSendTransport::NOTIFICATION_HEADER, $notification);

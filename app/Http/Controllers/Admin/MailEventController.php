@@ -25,11 +25,13 @@ class MailEventController extends Controller
             'filters' => [
                 'search' => $request->string('filter.search')->toString(),
                 'status' => $request->string('filter.status')->toString(),
+                'property' => $request->string('filter.property')->toString(),
                 'from' => $request->string('filter.from')->toString(),
                 'to' => $request->string('filter.to')->toString(),
             ],
             'sort' => $request->string('sort', '-sent_at')->toString(),
             'statuses' => MailStatus::options(),
+            'properties' => $mailLog->propertyOptions(),
         ]);
     }
 
@@ -39,7 +41,7 @@ class MailEventController extends Controller
     public function show(MailEvent $mailEvent): Response
     {
         return Inertia::render('admin/mail-events/show', [
-            'event' => AdminMailEventRowData::from($mailEvent->load('property:id,name')),
+            'event' => AdminMailEventRowData::from($mailEvent->load(AdminMailEventRowData::RELATIONS)),
         ]);
     }
 }

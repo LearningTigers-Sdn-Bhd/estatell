@@ -2144,6 +2144,8 @@ review: App.Data.Onboarding.GoLiveReviewData,
 export type AdminMailEventRowData = {
 id: number,
 sentAt: string,
+triggeredByTitle: string | null,
+triggeredByDetail: string | null,
 recipient: string,
 recipientCount: number,
 subject: string,
@@ -4685,6 +4687,7 @@ export type InclusionStart = 'arrival_day' | 'day_after_arrival';
 export type KioskKeyMode = 'pin' | 'card' | 'both';
 export type KioskStatus = 'awaiting_pairing' | 'paired' | 'code_expired' | 'revoked';
 export type Locale = 'en' | 'ms';
+export type MailActorType = 'system' | 'property' | 'partner' | 'admin' | 'guest' | 'company';
 export type MailStatus = 'sent' | 'delivered' | 'bounced' | 'complained' | 'failed' | 'suppressed';
 export type ManualFolioReason = 'paper_folio' | 'missed_charge' | 'missed_payment' | 'old_system' | 'fix_mistake' | 'other';
 export type ManualRowType = 'charge' | 'payment' | 'refund';

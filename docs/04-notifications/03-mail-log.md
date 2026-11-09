@@ -8,17 +8,19 @@ Answer "did that email go out?" from inside the app. Every message that the mail
 
 Table `mail_events`. One row per send attempt. A queued job that retries leaves one row for each try.
 
-| Column                | Meaning                                                                                          |
-| --------------------- | ------------------------------------------------------------------------------------------------ |
-| `property_id`         | The recipient's property when the recipient is a staff user. Empty for platform mail.            |
-| `notification_type`   | The notification class, for example `GoLiveApproved`. Empty for mail that is not a notification. |
-| `recipient`           | The first `to` address. Encrypted (CipherSweet) with an exact-match blind index.                 |
-| `recipient_count`     | How many `to` addresses the message had.                                                         |
-| `subject`             | Plain text. The body is never stored.                                                            |
-| `status`              | `MailStatus`: `sent`, `delivered`, `bounced`, `complained`, `failed`, `suppressed`.              |
-| `provider_message_id` | The id the mail provider returned. Empty when the send failed. Webhooks use it later.            |
-| `error`               | The provider message when the send failed.                                                       |
-| `sent_at`             | When the attempt happened.                                                                       |
+| Column                | Meaning                                                                                           |
+| --------------------- | ------------------------------------------------------------------------------------------------- |
+| `property_id`         | The property the mail was triggered from, otherwise the recipient's property if they are staff.   |
+| `actor_type`          | `MailActorType`: `system`, `property`, `partner`, `admin`, `guest`, `company`. Empty on old rows. |
+| `actor_user_id`       | The user who triggered the mail. Empty for system and guest mail.                                 |
+| `notification_type`   | The notification class, for example `GoLiveApproved`. Empty for mail that is not a notification.  |
+| `recipient`           | The first `to` address. Encrypted (CipherSweet) with an exact-match blind index.                  |
+| `recipient_count`     | How many `to` addresses the message had.                                                          |
+| `subject`             | Plain text. The body is never stored.                                                             |
+| `status`              | `MailStatus`: `sent`, `delivered`, `bounced`, `complained`, `failed`, `suppressed`.               |
+| `provider_message_id` | The id the mail provider returned. Empty when the send failed. Webhooks use it later.             |
+| `error`               | The provider message when the send failed.                                                        |
+| `sent_at`             | When the attempt happened.                                                                        |
 
 `sent` means the provider accepted the message. It does not mean the guest received it. The delivery webhooks move it on (see below).
 
@@ -28,11 +30,31 @@ Table `mail_events`. One row per send attempt. A queued job that retries leaves 
 - `MillionSendTransport` adds two headers to the original message after the call: `X-Estatell-Mail-Status` (`suppressed` when every recipient was suppressed) and `X-Estatell-Provider-Message-Id`. The listener reads them. The headers are not sent to the provider.
 - A failed send throws before `MessageSent` fires, so the transport calls `RecordMailEvent` with `failed` and then throws as before. The queued job still retries.
 
+## Who triggered the mail
+
+`MailActorResolver` decides the actor. A queued mail has no signed-in user, so a `Context::dehydrating` callback stores the actor as hidden Context on the job, and `RecordMailEvent` reads it back.
+
+| Actor      | When                                                                                          |
+| ---------- | --------------------------------------------------------------------------------------------- |
+| `admin`    | The signed-in user is a platform admin, also while viewing a property through support access. |
+| `partner`  | The signed-in user belongs to a partner.                                                      |
+| `company`  | The signed-in user is a company portal user.                                                  |
+| `property` | Any other signed-in user.                                                                     |
+| `guest`    | Nobody is signed in and the request is on the booking engine API.                             |
+| `system`   | Everything else: scheduled jobs, webhooks and other requests with nobody signed in.           |
+
+A payment webhook counts as `system`, even when the guest's payment caused it.
+
+Rows from before these columns were filled once, only where the type shows the actor: online booking mail is `system`, and night audit mail takes the `trigger` and `run_by` of the audit completed at that property in the hour before the mail. Other old rows stay empty.
+
+Mail to a guest or an agent has no staff recipient to find the property from, so its sender wraps the send in `Context::scope` with `MailActorResolver::PROPERTY_CONTEXT_KEY`. Old rows of those types took the property from the subject, when exactly one property has that name.
+
 ## Admin page
 
 `/admin/mail-log`, platform admins only (`can:admin`). It is read-only, so it has no `support.2fa` middleware.
 
-- Status counts, a status filter, a date range, search and pagination in the URL.
+- Status counts, status and property filters, a date range, search and pagination in the URL.
+- A "Triggered by" column after "Sent". The first line is the property when it is known, otherwise the actor type. The next line is the actor type and the person, partner or company. A row with neither a property nor an actor shows "—".
 - Search by an exact email address (blind index) or by part of the subject.
 - A detail page shows the full row.
 - The sidebar item is "Mail log".

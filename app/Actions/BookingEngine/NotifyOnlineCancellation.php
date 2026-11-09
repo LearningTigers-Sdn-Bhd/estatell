@@ -7,7 +7,9 @@ use App\Models\User;
 use App\Notifications\OnlineBookingCancelled;
 use App\Notifications\OnlineBookingCancelledByGuest;
 use App\Services\BookingEngine\OnlineCancellationQuote;
+use App\Services\Notifications\MailActorResolver;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Notification;
 
 class NotifyOnlineCancellation
@@ -28,7 +30,7 @@ class NotifyOnlineCancellation
         $arrival = (string) $reservation->units()->min('arrival_date');
 
         if ($email !== null && $email !== '') {
-            Notification::route('mail', $email)->notify(new OnlineBookingCancelled(
+            Context::scope(fn () => Notification::route('mail', $email)->notify(new OnlineBookingCancelled(
                 $reservation->reference,
                 $property->name,
                 $guestName,
@@ -36,7 +38,7 @@ class NotifyOnlineCancellation
                 $currency.' '.number_format((float) $quote->fee + (float) $quote->tax, 2),
                 $currency.' '.number_format((float) $quote->refund, 2),
                 (float) $quote->refund > 0,
-            ));
+            )), hidden: [MailActorResolver::PROPERTY_CONTEXT_KEY => $property->id]);
         }
 
         $message = new OnlineBookingCancelledByGuest($reservation->id, $reservation->reference, $property->code, $property->name, $guestName, $arrival);
