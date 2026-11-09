@@ -1,12 +1,32 @@
 import { CalendarClock, Moon } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { ChoiceCards } from '@/components/pms/choice-cards';
-import {
-    Field,
-    FieldDescription,
-    FieldError,
-    FieldLabel,
-} from '@/components/ui/field';
+import { Button } from '@/components/ui/button';
+import { FieldDescription, FieldError } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+
+/**
+ * Puts the ended stay question on the left and the rest of the form on the right, from 1024 px. Without a question the
+ * form stays as one column.
+ */
+export function EndedStayColumns({
+    question,
+    children,
+}: {
+    question: ReactNode;
+    children: ReactNode;
+}) {
+    if (question === null) {
+        return children;
+    }
+
+    return (
+        <div className="grid gap-5 lg:grid-cols-2 lg:gap-6">
+            <div className="flex min-w-0 flex-col gap-5">{question}</div>
+            <div className="flex min-w-0 flex-col gap-5">{children}</div>
+        </div>
+    );
+}
 
 /**
  * The question both Check in Dialogs ask for a stay that was not logged in time. The server decides when it shows and
@@ -16,6 +36,9 @@ export function EndedStayQuestion({
     id,
     plural = false,
     intro,
+    legend,
+    keepLabel,
+    moveLabel,
     stayedDescription,
     arrivingDescription,
     arrivingDisabled,
@@ -24,10 +47,14 @@ export function EndedStayQuestion({
     arrivedAt,
     onArrivedAtChange,
     errors,
+    onNoShow,
 }: {
     id: string;
     plural?: boolean;
     intro: string;
+    legend: string;
+    keepLabel: string;
+    moveLabel: string;
     stayedDescription: string;
     arrivingDescription: string;
     arrivingDisabled: boolean;
@@ -36,23 +63,51 @@ export function EndedStayQuestion({
     arrivedAt: string;
     onArrivedAtChange: (value: string) => void;
     errors: { ended_stay_choice?: string; arrived_at?: string };
+    /** Opens the No-show form. Without it, the text tells staff where to go. */
+    onNoShow?: () => void;
 }) {
     return (
         <>
             <p className="text-sm text-muted-foreground">{intro}</p>
             <ChoiceCards
                 id={`${id}-ended-stay`}
-                legend={`Did the ${plural ? 'guests' : 'guest'} sleep here last night?`}
+                legend={legend}
+                columns={1}
                 choices={[
                     {
                         value: 'arrived_last_night',
-                        label: 'Yes, they stayed last night',
+                        label: keepLabel,
                         description: stayedDescription,
                         icon: Moon,
+                        content: choice === 'arrived_last_night' && (
+                            <div className="mt-2 flex flex-col gap-1.5">
+                                <span
+                                    id={`${id}-arrived_at-label`}
+                                    className="text-sm font-medium"
+                                >
+                                    What time did they arrive?
+                                </span>
+                                <Input
+                                    id={`${id}-arrived_at`}
+                                    type="time"
+                                    value={arrivedAt}
+                                    onChange={(event) =>
+                                        onArrivedAtChange(event.target.value)
+                                    }
+                                    aria-labelledby={`${id}-arrived_at-label`}
+                                    aria-invalid={!!errors.arrived_at}
+                                />
+                                <FieldDescription>
+                                    Arrivals after midnight are fine, for
+                                    example 2:00 a.m.
+                                </FieldDescription>
+                                <FieldError>{errors.arrived_at}</FieldError>
+                            </div>
+                        ),
                     },
                     {
                         value: 'arriving_today',
-                        label: 'No, they arrive today',
+                        label: moveLabel,
                         description: arrivingDescription,
                         icon: CalendarClock,
                         disabled: arrivingDisabled,
@@ -62,30 +117,24 @@ export function EndedStayQuestion({
                 onValueChange={onChoiceChange}
                 error={errors.ended_stay_choice}
             />
-            {choice === 'arrived_last_night' && (
-                <Field data-invalid={!!errors.arrived_at}>
-                    <FieldLabel htmlFor={`${id}-arrived_at`}>
-                        What time did they arrive?
-                    </FieldLabel>
-                    <Input
-                        id={`${id}-arrived_at`}
-                        type="time"
-                        value={arrivedAt}
-                        onChange={(event) =>
-                            onArrivedAtChange(event.target.value)
-                        }
-                        aria-invalid={!!errors.arrived_at}
-                    />
-                    <FieldDescription>
-                        A time before noon counts as this morning.
-                    </FieldDescription>
-                    <FieldError>{errors.arrived_at}</FieldError>
-                </Field>
+            {onNoShow !== undefined ? (
+                <div className="flex items-center justify-between gap-4 text-sm text-muted-foreground">
+                    Guest never came?
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={onNoShow}
+                    >
+                        Mark as no-show
+                    </Button>
+                </div>
+            ) : (
+                <p className="text-sm text-muted-foreground">
+                    {plural ? 'Guests' : 'Guest'} never came? Cancel this box
+                    and select No-show to conclude this booking.
+                </p>
             )}
-            <p className="text-sm text-muted-foreground">
-                {plural ? 'Guests' : 'Guest'} never came? Close this and use
-                No-show.
-            </p>
         </>
     );
 }
