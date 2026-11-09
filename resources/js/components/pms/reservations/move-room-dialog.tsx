@@ -219,6 +219,11 @@ function MoveRoomForm({ open, onOpenChange, reservationId, unit }: Props) {
                     }
                     aria-invalid={!!errors.reason}
                 />
+                {preview?.reasonRequired && (
+                    <FieldDescription>
+                        Enter a reason to move the {noun.toLowerCase()}.
+                    </FieldDescription>
+                )}
                 <FieldError>{errors.reason}</FieldError>
             </Field>
         </FormOverlay>
