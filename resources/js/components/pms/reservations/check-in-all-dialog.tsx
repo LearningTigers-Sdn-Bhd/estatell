@@ -2,7 +2,10 @@ import { useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { formatMoney } from '@/components/pms/money-text';
-import { EndedStayQuestion } from '@/components/pms/reservations/ended-stay-question';
+import {
+    EndedStayColumns,
+    EndedStayQuestion,
+} from '@/components/pms/reservations/ended-stay-question';
 import { useUnitPreview } from '@/components/pms/reservations/use-unit-preview';
 import { KEEP_OPTIONS } from '@/components/pms/use-form-options';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
@@ -95,6 +98,7 @@ function CheckInAllForm({ open, onOpenChange, reservation, currency }: Props) {
     return (
         <FormOverlay
             variant="dialog"
+            size={endedStay !== null ? 'lg' : undefined}
             open={open}
             onOpenChange={onOpenChange}
             title="Check in all"
@@ -146,113 +150,131 @@ function CheckInAllForm({ open, onOpenChange, reservation, currency }: Props) {
                             reason is under each name.
                         </p>
                     )}
-                    {endedStay !== null && (
-                        <EndedStayQuestion
-                            id="check-in-all"
-                            plural
-                            intro={
-                                endedStay.oneNight
-                                    ? `This booking was for last night (${endedStay.lastNight}) and was not checked in.`
-                                    : `This booking's last night was ${endedStay.lastNight} and it was not checked in.`
-                            }
-                            stayedDescription={`Keeps ${endedStay.stayDates} and charges ${endedStay.oneNight ? 'that night' : 'those nights'} for each room.`}
-                            arrivingDescription={
-                                endedStay.arrivingTodayBlocked ??
-                                `Changes the ticked rooms to ${endedStay.today} → ${endedStay.tomorrow}. They leave tomorrow. New total ${formatMoney(String(moveTotal), currency)}.`
-                            }
-                            arrivingDisabled={
-                                endedStay.arrivingTodayBlocked !== null
-                            }
-                            choice={data.ended_stay_choice}
-                            onChoiceChange={(value) =>
-                                form.setData('ended_stay_choice', value)
-                            }
-                            arrivedAt={data.arrived_at}
-                            onArrivedAtChange={(value) =>
-                                form.setData('arrived_at', value)
-                            }
-                            errors={errors}
-                        />
-                    )}
-                    <div className="flex flex-col gap-2">
-                        {preview.rows.map((row) => {
-                            const error = rowErrors[`units.${row.unitId}`];
+                    <EndedStayColumns
+                        question={
+                            endedStay !== null ? (
+                                <EndedStayQuestion
+                                    id="check-in-all"
+                                    plural
+                                    intro={
+                                        endedStay.oneNight
+                                            ? `This booking was for last night (${endedStay.lastNight}) and was not checked in.`
+                                            : `This booking's last night was ${endedStay.lastNight} and it was not checked in.`
+                                    }
+                                    legend="Do you want to check the guests in for the previous business day?"
+                                    keepLabel="Yes, they arrived after night audit was done"
+                                    moveLabel="No, they arrive today"
+                                    stayedDescription={`Keeps ${endedStay.stayDates}. The guests came for the booked ${endedStay.oneNight ? 'night' : 'nights'}. This includes arriving after midnight, such as 2:00 a.m. today. ${endedStay.oneNight ? 'That night is' : 'Those nights are'} charged for each room.`}
+                                    arrivingDescription={
+                                        endedStay.arrivingTodayBlocked ??
+                                        `Changes the ticked rooms to ${endedStay.today} → ${endedStay.tomorrow}. Only if the guests have not used the rooms yet and will sleep here tonight. They leave tomorrow. New total ${formatMoney(String(moveTotal), currency)}.`
+                                    }
+                                    arrivingDisabled={
+                                        endedStay.arrivingTodayBlocked !== null
+                                    }
+                                    choice={data.ended_stay_choice}
+                                    onChoiceChange={(value) =>
+                                        form.setData('ended_stay_choice', value)
+                                    }
+                                    arrivedAt={data.arrived_at}
+                                    onArrivedAtChange={(value) =>
+                                        form.setData('arrived_at', value)
+                                    }
+                                    errors={errors}
+                                />
+                            ) : null
+                        }
+                    >
+                        <div className="flex flex-col gap-2">
+                            {preview.rows.map((row) => {
+                                const error = rowErrors[`units.${row.unitId}`];
 
-                            return (
-                                <Field
-                                    key={row.unitId}
-                                    orientation="horizontal"
-                                    data-invalid={!!error}
-                                    data-disabled={!row.ready}
-                                >
+                                return (
+                                    <Field
+                                        key={row.unitId}
+                                        orientation="horizontal"
+                                        data-invalid={!!error}
+                                        data-disabled={!row.ready}
+                                    >
+                                        <Checkbox
+                                            id={`check-in-all-${row.unitId}`}
+                                            checked={selected.includes(
+                                                row.unitId,
+                                            )}
+                                            disabled={!row.ready}
+                                            onCheckedChange={(checked) =>
+                                                toggle(row.unitId, checked)
+                                            }
+                                        />
+                                        <FieldContent>
+                                            <FieldLabel
+                                                htmlFor={`check-in-all-${row.unitId}`}
+                                            >
+                                                {row.label}
+                                                {row.room
+                                                    ? ` · ${row.room}`
+                                                    : ''}
+                                                {row.guest
+                                                    ? ` · ${row.guest}`
+                                                    : ''}
+                                            </FieldLabel>
+                                            {isMixed && row.endedStay && (
+                                                <FieldDescription>
+                                                    Late room: uses the answer
+                                                    above.
+                                                </FieldDescription>
+                                            )}
+                                            {row.note !== null && (
+                                                <FieldDescription>
+                                                    {row.note}
+                                                </FieldDescription>
+                                            )}
+                                            {row.cardsMissing > 0 &&
+                                                row.ready && (
+                                                    <FieldDescription>
+                                                        {row.cardsMissing === 1
+                                                            ? '1 registration card not signed'
+                                                            : `${row.cardsMissing} registration cards not signed`}
+                                                    </FieldDescription>
+                                                )}
+                                            <FieldError>{error}</FieldError>
+                                        </FieldContent>
+                                    </Field>
+                                );
+                            })}
+                        </div>
+                        {needsCard && preview.canCheckInWithoutCard && (
+                            <FieldLabel htmlFor="check-in-all-without_card">
+                                <Field orientation="horizontal">
                                     <Checkbox
-                                        id={`check-in-all-${row.unitId}`}
-                                        checked={selected.includes(row.unitId)}
-                                        disabled={!row.ready}
+                                        id="check-in-all-without_card"
+                                        checked={data.without_card}
                                         onCheckedChange={(checked) =>
-                                            toggle(row.unitId, checked)
+                                            form.setData(
+                                                'without_card',
+                                                checked,
+                                            )
                                         }
                                     />
                                     <FieldContent>
-                                        <FieldLabel
-                                            htmlFor={`check-in-all-${row.unitId}`}
-                                        >
-                                            {row.label}
-                                            {row.room ? ` · ${row.room}` : ''}
-                                            {row.guest ? ` · ${row.guest}` : ''}
-                                        </FieldLabel>
-                                        {isMixed && row.endedStay && (
-                                            <FieldDescription>
-                                                Late room: uses the answer
-                                                above.
-                                            </FieldDescription>
-                                        )}
-                                        {row.note !== null && (
-                                            <FieldDescription>
-                                                {row.note}
-                                            </FieldDescription>
-                                        )}
-                                        {row.cardsMissing > 0 && row.ready && (
-                                            <FieldDescription>
-                                                {row.cardsMissing === 1
-                                                    ? '1 registration card not signed'
-                                                    : `${row.cardsMissing} registration cards not signed`}
-                                            </FieldDescription>
-                                        )}
-                                        <FieldError>{error}</FieldError>
+                                        <span className="text-sm font-medium">
+                                            Check in without a card
+                                        </span>
+                                        <FieldDescription>
+                                            Cards stay unsigned. This is logged
+                                            with your name.
+                                        </FieldDescription>
                                     </FieldContent>
                                 </Field>
-                            );
-                        })}
-                    </div>
-                    {needsCard && preview.canCheckInWithoutCard && (
-                        <FieldLabel htmlFor="check-in-all-without_card">
-                            <Field orientation="horizontal">
-                                <Checkbox
-                                    id="check-in-all-without_card"
-                                    checked={data.without_card}
-                                    onCheckedChange={(checked) =>
-                                        form.setData('without_card', checked)
-                                    }
-                                />
-                                <FieldContent>
-                                    <span className="text-sm font-medium">
-                                        Check in without a card
-                                    </span>
-                                    <FieldDescription>
-                                        Cards stay unsigned. This is logged with
-                                        your name.
-                                    </FieldDescription>
-                                </FieldContent>
-                            </Field>
-                        </FieldLabel>
-                    )}
-                    {!noneReady && !nothingToCheckIn && (
-                        <p className="text-sm text-muted-foreground">
-                            Check in all takes no payment. Collect the taxes and
-                            the deposit for each unit afterwards.
-                        </p>
-                    )}
+                            </FieldLabel>
+                        )}
+                        {!noneReady && !nothingToCheckIn && (
+                            <p className="text-sm text-muted-foreground">
+                                Check in all takes no payment. Collect the taxes
+                                and the deposit for each unit afterwards.
+                            </p>
+                        )}
+                    </EndedStayColumns>
                 </>
             )}
         </FormOverlay>
