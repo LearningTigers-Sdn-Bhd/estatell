@@ -5,8 +5,10 @@ namespace App\Services\Reservations;
 use App\Actions\FrontDesk\UnitStayResult;
 use App\Actions\Reservations\AssignmentResult;
 use App\Data\Reservations\CancelAllPreviewData;
+use App\Data\Reservations\CheckInAllEndedStayData;
 use App\Data\Reservations\CheckInAllPreviewData;
 use App\Data\Reservations\CheckOutDamageItemData;
+use App\Data\Reservations\EndedStayCheckInData;
 use App\Data\Reservations\FreeUnitData;
 use App\Data\Reservations\MoveTargetData;
 use App\Data\Reservations\UnitCheckInPreviewData;
@@ -51,6 +53,7 @@ use App\Services\FrontDesk\CheckInCollection;
 use App\Services\FrontDesk\CheckOutSettlement;
 use App\Services\FrontDesk\DamageChargeItem;
 use App\Services\FrontDesk\EarlyCheckOutRule;
+use App\Services\FrontDesk\EndedStayCheckIn;
 use App\Services\FrontDesk\PendingNightQuote;
 use App\Services\FrontDesk\StayDay;
 use App\Services\FrontDesk\UndoCheckInRule;
@@ -87,6 +90,7 @@ class UnitActionPreview
         private UnitNationality $unitNationality,
         private CreditCheck $creditCheck,
         private CheckInCollection $checkInCollection,
+        private EndedStayCheckIn $endedStayCheckIn,
         private Impersonation $impersonation,
         private CheckOutSettlement $checkOutSettlement,
         private CountryOptions $countryOptions,
@@ -116,7 +120,9 @@ class UnitActionPreview
             return UnitCheckInPreviewData::refused($this->refusals->message(UnitStayResult::REFUSAL_NO_BUSINESS_DATE));
         }
 
-        $tonight = $unit->nights()->with(['room', 'bed'])->whereDate('date', $this->stayDay->forCheckIn($unit, $businessDate)->toDateString())->first();
+        $isEndedStay = $this->endedStayCheckIn->isOffered($unit, $businessDate);
+        $night = $isEndedStay ? $this->endedStayCheckIn->lastNight($unit) : $this->stayDay->forCheckIn($unit, $businessDate);
+        $tonight = $unit->nights()->with(['room', 'bed'])->whereDate('date', $night->toDateString())->first();
         $room = $tonight->room->number ?? $tonight?->bed?->label;
         $cardRequired = (bool) $property->settings?->card_required_for_check_in;
         $needsNationality = $this->unitNationality->for($unit) === null
@@ -144,6 +150,53 @@ class UnitActionPreview
             auditPending: $this->auditPendingNotice->block($property, $this->stayDay->forCheckIn($unit, $businessDate)->gt($businessDate)
                 ? __('That\'s fine. Tonight\'s night audit charges :date.', ['date' => $businessDate->addDay()->format('j M')])
                 : null),
+            endedStay: $isEndedStay ? $this->endedStay($unit, $user, $businessDate) : null,
+        );
+    }
+
+    /**
+     * The cards of a stay that was not logged in time. The move to today is priced as `ChangeUnitDates` will price it.
+     */
+    private function endedStay(ReservationUnit $unit, User $user, CarbonImmutable $businessDate): EndedStayCheckInData
+    {
+        $move = $this->dates($unit, $businessDate, $businessDate->addDay());
+
+        return new EndedStayCheckInData(
+            arrival: $unit->arrival_date->format('j M'),
+            departure: $unit->departure_date->format('j M'),
+            lastNight: $this->endedStayCheckIn->lastNight($unit)->format('j M'),
+            today: $businessDate->format('j M'),
+            tomorrow: $businessDate->addDay()->format('j M'),
+            newTotal: $move->error === null ? $move->newTotal : null,
+            arrivingTodayBlocked: match (true) {
+                ! $user->can(PermissionEnum::ReservationsManage->value) => __('Ask someone who can change dates.'),
+                $move->error !== null => $move->error,
+                $move->restricted => __('A restriction applies to today. Use Change dates to override it.'),
+                default => null,
+            },
+        );
+    }
+
+    /**
+     * One question for every unit that was not logged in time. A reason that blocks the move for one unit disables it.
+     *
+     * @param  list<EndedStayCheckInData>  $units
+     */
+    private function checkInAllEndedStay(array $units): ?CheckInAllEndedStayData
+    {
+        if ($units === []) {
+            return null;
+        }
+
+        $oneNight = array_all($units, fn (EndedStayCheckInData $unit): bool => $unit->arrival === $unit->lastNight);
+
+        return new CheckInAllEndedStayData(
+            stayDates: $oneNight ? $units[0]->arrival.' → '.$units[0]->departure : __('the booked dates'),
+            oneNight: $oneNight,
+            lastNight: $units[0]->lastNight,
+            today: $units[0]->today,
+            tomorrow: $units[0]->tomorrow,
+            arrivingTodayBlocked: array_find($units, fn (EndedStayCheckInData $unit): bool => $unit->arrivingTodayBlocked !== null)?->arrivingTodayBlocked,
         );
     }
 
@@ -164,18 +217,21 @@ class UnitActionPreview
         $cardRequired = (bool) $property->settings?->card_required_for_check_in;
         $autoAssign = (bool) $property->settings?->auto_assign_rooms;
         $rows = [];
+        $endedStays = [];
 
         $units = $reservation->units()
             ->where('status', UnitStatus::Confirmed)
-            ->with(['roomType', 'guests.guest', 'nights' => fn ($nights) => $nights->whereBetween('date', [$today, $businessDate->addDay()->toDateString()]), 'nights.room', 'nights.bed'])
+            ->with(['roomType', 'guests.guest', 'nights' => fn ($nights) => $nights->whereBetween('date', [$businessDate->subDay()->toDateString(), $businessDate->addDay()->toDateString()]), 'nights.room', 'nights.bed'])
             ->orderBy('id')
             ->get();
 
         foreach ($units as $unit) {
-            $day = $this->stayDay->forCheckIn($unit, $businessDate)->toDateString();
+            $isEndedStay = $this->endedStayCheckIn->isOffered($unit, $businessDate);
+            $endedStay = $isEndedStay ? $this->endedStay($unit, $user, $businessDate) : null;
+            $endedStays[] = $endedStay;
+            $day = $isEndedStay ? $this->endedStayCheckIn->lastNight($unit)->toDateString() : $this->stayDay->forCheckIn($unit, $businessDate)->toDateString();
             $tonight = $unit->nights->first(fn ($night): bool => $night->date->toDateString() === $day);
-            $arrival = $unit->arrival_date->toDateString();
-            $ready = $day >= $arrival && $day < $unit->departure_date->toDateString();
+            $ready = $isEndedStay || ($day >= $unit->arrival_date->toDateString() && $day < $unit->departure_date->toDateString());
             $room = $tonight->room->number ?? $tonight?->bed?->label;
 
             $rows[] = [
@@ -185,23 +241,30 @@ class UnitActionPreview
                 'room' => $room,
                 'cardsMissing' => $cardRequired ? $this->registrationCardRequirement->missingFor($unit, $property)->count() : 0,
                 'ready' => $ready,
-                'note' => match (true) {
-                    ! $ready && $day < $arrival => $this->notArrivedNote($unit, $businessDate),
-                    ! $ready => __('Cannot check in: the stay ended on :date.', ['date' => $unit->departure_date->format('d M Y')]),
-                    $room === null && $autoAssign => __('No room yet. One is given at check-in.'),
-                    $room === null => __('No room for tonight. Assign a room before check-in.'),
-                    default => null,
-                },
+                'endedStay' => $isEndedStay,
+                'moveTotal' => $endedStay?->newTotal,
+                'note' => $this->checkInAllNote($unit, $businessDate, $ready, $day, $room, $autoAssign),
             ];
         }
 
-        return new CheckInAllPreviewData($rows, $user->can(PermissionEnum::FrontDeskCheckInWithoutCard->value), null);
+        return new CheckInAllPreviewData($rows, $user->can(PermissionEnum::FrontDeskCheckInWithoutCard->value), null, $this->checkInAllEndedStay(array_values(array_filter($endedStays))));
     }
 
     /**
      * Why a unit that arrives after the business date cannot check in, and what the front desk can do: change the
      * dates first to check the guest in early.
      */
+    private function checkInAllNote(ReservationUnit $unit, CarbonInterface $businessDate, bool $ready, string $day, ?string $room, bool $autoAssign): ?string
+    {
+        return match (true) {
+            ! $ready && $day < $unit->arrival_date->toDateString() => $this->notArrivedNote($unit, $businessDate),
+            ! $ready => __('Cannot check in: the stay ended on :date.', ['date' => $unit->departure_date->format('d M Y')]),
+            $room === null && $autoAssign => __('No room yet. One is given at check-in.'),
+            $room === null => __('No room for tonight. Assign a room before check-in.'),
+            default => null,
+        };
+    }
+
     private function notArrivedNote(ReservationUnit $unit, CarbonInterface $businessDate): string
     {
         $days = (int) CarbonImmutable::instance($businessDate)->startOfDay()->diffInDays($unit->arrival_date->startOfDay());

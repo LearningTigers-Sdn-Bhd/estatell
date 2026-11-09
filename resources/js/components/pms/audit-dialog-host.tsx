@@ -96,6 +96,7 @@ function ReservationAuditDialogHost({
                     open={open}
                     onOpenChange={change}
                     reservation={data.reservation}
+                    currency={data.currency}
                 />
             )}
             {action.dialog === 'check-in' && unit && (
