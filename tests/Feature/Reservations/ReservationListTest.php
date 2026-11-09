@@ -4,6 +4,7 @@ use App\Enums\DefaultRoleEnum;
 use App\Enums\ReservationStatus;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TransactionKind;
+use App\Enums\UnitStatus;
 use App\Models\Bed;
 use App\Models\BookingSource;
 use App\Models\BusinessDate;
@@ -288,9 +289,9 @@ test('the status counts follow every filter except the status', function () {
         ->mapWithKeys(fn (array $row): array => [$row['value'] => $row['count']])
         ->all();
 
-    expect($counts([]))->toBe(['' => 4, 'confirmed' => 1, 'in_house' => 2, 'completed' => 0, 'cancelled' => 1])
-        ->and($counts(['filter' => ['source' => (string) $phone, 'status' => 'cancelled']]))->toBe(['' => 3, 'confirmed' => 1, 'in_house' => 1, 'completed' => 0, 'cancelled' => 1])
-        ->and($counts(['filter' => ['stay' => 'all']]))->toBe(['' => 5, 'confirmed' => 1, 'in_house' => 2, 'completed' => 1, 'cancelled' => 1]);
+    expect($counts([]))->toBe(['' => 4, 'arrivals' => 0, 'departures' => 0, 'confirmed' => 1, 'in_house' => 2, 'completed' => 0, 'cancelled' => 1])
+        ->and($counts(['filter' => ['source' => (string) $phone, 'status' => 'cancelled']]))->toBe(['' => 3, 'arrivals' => 0, 'departures' => 0, 'confirmed' => 1, 'in_house' => 1, 'completed' => 0, 'cancelled' => 1])
+        ->and($counts(['filter' => ['stay' => 'all']]))->toBe(['' => 5, 'arrivals' => 0, 'departures' => 0, 'confirmed' => 1, 'in_house' => 2, 'completed' => 1, 'cancelled' => 1]);
 });
 
 test('the status tabs are sent with their labels in order', function () {
@@ -298,9 +299,57 @@ test('the status tabs are sent with their labels in order', function () {
 
     $this->actingAs($user)->get(listUrl($property))->assertInertia(fn (Assert $page) => $page
         ->where('statusCounts.0.label', 'All')
-        ->where('statusCounts.1.value', 'confirmed')
-        ->where('statusCounts.2.label', 'In house')
-        ->where('statusCounts.4.value', 'cancelled'));
+        ->where('statusCounts.1.label', 'Arrivals')
+        ->where('statusCounts.2.value', 'departures')
+        ->where('statusCounts.3.value', 'confirmed')
+        ->where('statusCounts.4.label', 'In house')
+        ->where('statusCounts.6.value', 'cancelled')
+        ->where('movementDate', null));
+});
+
+test('the arrivals tab lists reservations with a unit still to check in on the business date', function () {
+    [$user, $property] = listOwner();
+    BusinessDate::factory()->for($property)->create(['date' => '2026-10-12']);
+    $arriving = listReservation($property);
+    $group = listReservation($property, [], [[], []]);
+    listReservation($property, ['status' => ReservationStatus::InHouse], [['status' => UnitStatus::CheckedIn, 'checked_in_at' => now()]]);
+    listReservation($property, [], [['arrival_date' => '2026-10-13']]);
+    listReservation($property, ['status' => ReservationStatus::Cancelled], [['status' => UnitStatus::Cancelled]]);
+    listReservation($property, [], [['status' => UnitStatus::NoShow]]);
+    listReservation(Property::factory()->create());
+
+    expect(listedReferences($user, $property, ['filter' => ['status' => 'arrivals']]))->toEqualCanonicalizing([$arriving->reference, $group->reference]);
+
+    $this->actingAs($user)->get(listUrl($property, ['filter' => ['status' => 'arrivals']]))->assertInertia(fn (Assert $page) => $page
+        ->where('movementDate', '2026-10-12')
+        ->where('statusCounts.1.count', 2));
+});
+
+test('the departures tab lists units still to check out on the business date and skips the stay filter', function () {
+    [$user, $property] = listOwner();
+    BusinessDate::factory()->for($property)->create(['date' => '2026-10-15']);
+    $leaving = listReservation($property, ['status' => ReservationStatus::InHouse], [['status' => UnitStatus::CheckedIn, 'checked_in_at' => now()]]);
+    listReservation($property, ['status' => ReservationStatus::Completed], [['status' => UnitStatus::CheckedOut, 'checked_in_at' => now()->subDay(), 'checked_out_at' => now()]]);
+    listReservation($property, ['status' => ReservationStatus::InHouse], [['status' => UnitStatus::CheckedIn, 'departure_date' => '2026-10-16', 'checked_in_at' => now()]]);
+    listReservation($property);
+
+    expect(listedReferences($user, $property, ['filter' => ['status' => 'departures']]))->toBe([$leaving->reference])
+        ->and(listedReferences($user, $property, ['filter' => ['status' => 'departures', 'stay' => '2026-11-01_']]))->toBe([$leaving->reference])
+        ->and(listedReferences($user, $property))->not->toContain($leaving->reference);
+});
+
+test('the movement counts follow the search and ignore the stay filter', function () {
+    [$user, $property] = listOwner();
+    listReservation($property, ['external_reference' => 'OTA-1'], [['arrival_date' => '2026-10-10']]);
+    listReservation($property, [], [['arrival_date' => '2026-10-10']]);
+    listReservation($property, ['status' => ReservationStatus::InHouse], [['arrival_date' => '2026-10-08', 'departure_date' => '2026-10-10', 'status' => UnitStatus::CheckedIn, 'checked_in_at' => now()]]);
+
+    $this->actingAs($user)->get(listUrl($property, ['filter' => ['stay' => '2026-12-01_']]))->assertInertia(fn (Assert $page) => $page
+        ->where('statusCounts.1.count', 2)
+        ->where('statusCounts.2.count', 1));
+    $this->actingAs($user)->get(listUrl($property, ['filter' => ['search' => 'ota-1']]))->assertInertia(fn (Assert $page) => $page
+        ->where('statusCounts.1.count', 1)
+        ->where('statusCounts.2.count', 0));
 });
 
 test('search finds the reference, the short code, the external reference and the booker', function () {
@@ -342,7 +391,7 @@ test('search never finds a guest of another property and counts follow it', func
     expect(listedReferences($user, $property, ['filter' => ['search' => 'wira']]))->toBe([]);
 
     $this->actingAs($user)->get(listUrl($property, ['filter' => ['search' => 'local guest']]))
-        ->assertInertia(fn (Assert $page) => $page->where('statusCounts.0.count', 1)->where('statusCounts.1.count', 1));
+        ->assertInertia(fn (Assert $page) => $page->where('statusCounts.0.count', 1)->where('statusCounts.3.count', 1));
 });
 
 test('the list sorts by arrival, departure, reference, total and booked date, either way', function () {

@@ -11,7 +11,7 @@ import { canResetFilters } from './reservation-query';
 import type { ReservationFilters, ReservationView } from './reservation-query';
 
 /**
- * Search, source, stay dates, sort and the Cards or List switch. Reset shows only while a filter differs from the default. Search, source and stay run on the server through
+ * Search, source, stay dates, sort and the Cards or List switch. `showStay` false hides the stay dates (the Arrivals and Departures tabs use the business date). Reset shows only while a filter differs from the default. Search, source and stay run on the server through
  * `onChange`. The view switch makes no request.
  */
 export function ReservationFiltersBar({
@@ -20,6 +20,7 @@ export function ReservationFiltersBar({
     sorts,
     sources,
     view,
+    showStay = true,
     onChange,
     onSortChange,
     onViewChange,
@@ -30,6 +31,7 @@ export function ReservationFiltersBar({
     sorts: EnumOption[];
     sources: App.Data.Reservations.BookingSourceOptionData[];
     view: ReservationView;
+    showStay?: boolean;
     onChange: (changes: Partial<ReservationFilters>) => void;
     onSortChange: (sort: string) => void;
     onViewChange: (view: ReservationView) => void;
@@ -49,24 +51,28 @@ export function ReservationFiltersBar({
                 aria-label="Source"
                 className="w-40"
             />
-            <DateRangePicker
-                openEnded
-                from={filters.stay.from ?? ''}
-                to={filters.stay.to ?? ''}
-                onChange={(from, to) =>
-                    onChange({
-                        stay: { mode: 'custom', from, to: to || null },
-                    })
-                }
-                onClear={() =>
-                    onChange({ stay: { mode: 'all', from: null, to: null } })
-                }
-                clearLabel="All dates"
-                placeholder="All dates"
-                unit="night"
-                months={2}
-                className="w-auto min-w-52"
-            />
+            {showStay && (
+                <DateRangePicker
+                    openEnded
+                    from={filters.stay.from ?? ''}
+                    to={filters.stay.to ?? ''}
+                    onChange={(from, to) =>
+                        onChange({
+                            stay: { mode: 'custom', from, to: to || null },
+                        })
+                    }
+                    onClear={() =>
+                        onChange({
+                            stay: { mode: 'all', from: null, to: null },
+                        })
+                    }
+                    clearLabel="All dates"
+                    placeholder="All dates"
+                    unit="night"
+                    months={2}
+                    className="w-auto min-w-52"
+                />
+            )}
             {canResetFilters(filters) && (
                 <Button type="button" variant="ghost" onClick={onReset}>
                     Reset

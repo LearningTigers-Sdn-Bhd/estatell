@@ -5,6 +5,8 @@ import {
     CircleCheck,
     ConciergeBell,
     Hourglass,
+    LogIn,
+    LogOut,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useCallback } from 'react';
@@ -39,6 +41,8 @@ type Item = App.Data.Reservations.ReservationListItemData;
 type Props = {
     reservations: Illuminate.LengthAwarePaginator<number, Item>;
     statusCounts: App.Data.Reservations.ReservationStatusCountData[];
+    /** The business date of an open Arrivals or Departures tab, otherwise null. These tabs skip the stay filter. */
+    movementDate: string | null;
     filters: ReservationFilters;
     sort: string;
     sorts: EnumOption[];
@@ -51,6 +55,8 @@ type Props = {
 
 const statusIcons: Record<string, LucideIcon> = {
     '': CalendarDays,
+    arrivals: LogIn,
+    departures: LogOut,
     confirmed: CircleCheck,
     in_house: ConciergeBell,
     completed: Hourglass,
@@ -60,6 +66,7 @@ const statusIcons: Record<string, LucideIcon> = {
 export default function ReservationsIndex({
     reservations,
     statusCounts,
+    movementDate,
     filters,
     sort,
     sorts,
@@ -131,34 +138,45 @@ export default function ReservationsIndex({
         visit({
             filters: { stay: { mode: 'all', from: null, to: null } },
         });
-    const empty = hasActiveFilters(filters) ? (
-        <EmptyState
-            icon={CalendarDays}
-            title="No reservations match these filters"
-            action={
-                <Button variant="outline" onClick={clearFilters}>
-                    Clear filters
-                </Button>
-            }
-        />
-    ) : hasReservations ? (
-        <EmptyState
-            icon={CalendarDays}
-            title="No upcoming reservations"
-            description="Reservations that ended before the business date are hidden."
-            action={
-                <Button variant="outline" onClick={showAllDates}>
-                    Show all dates
-                </Button>
-            }
-        />
-    ) : (
-        <EmptyState
-            icon={CalendarDays}
-            title="No reservations yet"
-            description="Bookings you take appear here."
-        />
-    );
+    const empty =
+        movementDate !== null ? (
+            <EmptyState
+                icon={filters.status === 'departures' ? LogOut : LogIn}
+                title={
+                    filters.status === 'departures'
+                        ? 'No departures left today'
+                        : 'No arrivals left today'
+                }
+                description="Guests leave this tab once they are checked in or out."
+            />
+        ) : hasActiveFilters(filters) ? (
+            <EmptyState
+                icon={CalendarDays}
+                title="No reservations match these filters"
+                action={
+                    <Button variant="outline" onClick={clearFilters}>
+                        Clear filters
+                    </Button>
+                }
+            />
+        ) : hasReservations ? (
+            <EmptyState
+                icon={CalendarDays}
+                title="No upcoming reservations"
+                description="Reservations that ended before the business date are hidden."
+                action={
+                    <Button variant="outline" onClick={showAllDates}>
+                        Show all dates
+                    </Button>
+                }
+            />
+        ) : (
+            <EmptyState
+                icon={CalendarDays}
+                title="No reservations yet"
+                description="Bookings you take appear here."
+            />
+        );
     const showsDefaultHint =
         (filters.status === 'completed' || filters.status === 'cancelled') &&
         filters.stay.mode === 'default';
@@ -200,11 +218,21 @@ export default function ReservationsIndex({
                         sorts={sorts}
                         sources={sources}
                         view={view}
+                        showStay={movementDate === null}
                         onChange={(changes) => visit({ filters: changes })}
                         onSortChange={(next) => visit({ sort: next })}
                         onViewChange={(next: ReservationView) => setView(next)}
                         onReset={() => visit({ reset: true })}
                     />
+
+                    {movementDate !== null && (
+                        <p className="text-sm text-muted-foreground">
+                            {filters.status === 'departures'
+                                ? 'Still to check out on '
+                                : 'Still to check in on '}
+                            <DateText date={movementDate} />.
+                        </p>
+                    )}
 
                     {showsDefaultHint && (
                         <p className="text-sm text-muted-foreground">

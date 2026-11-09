@@ -6,6 +6,7 @@ use App\Enums\FolioStatus;
 use App\Enums\ReservationStatus;
 use App\Enums\SystemTransactionCode;
 use App\Enums\TransactionKind;
+use App\Enums\UnitMovement;
 use App\Enums\UnitStatus;
 use App\Features\Boats;
 use App\Models\Guest;
@@ -111,11 +112,17 @@ class ReservationDirectory
             DB::raw('coalesce(ledger.billed, 0)::numeric(14, 2) as billed'),
             DB::raw('coalesce(ledger.balance, 0)::numeric(14, 2) as balance'),
         ]);
-        $this->applyStay($base, $this->stay($property, $request));
+        $movement = $this->movement($request);
+
+        if ($movement === null) {
+            $this->applyStay($base, $this->stay($property, $request));
+        }
 
         return QueryBuilder::for($base, $request)
             ->allowedFilters(
-                AllowedFilter::callback('status', fn (Builder $query, mixed $value) => $this->applyStatus($query, $value)),
+                AllowedFilter::callback('status', fn (Builder $query, mixed $value) => $movement === null
+                    ? $this->applyStatus($query, $value)
+                    : $this->applyMovement($query, $movement, $this->defaultStayFrom($property))),
                 AllowedFilter::callback('source', fn (Builder $query, mixed $value) => $this->applySource($query, $value)),
                 AllowedFilter::callback('search', fn (Builder $query, mixed $value) => $this->applySearch($query, $property, $value)),
                 AllowedFilter::callback('stay', fn () => null),
@@ -152,6 +159,40 @@ class ReservationDirectory
             ->pluck('total', 'status')
             ->map(fn (mixed $count): int => (int) $count)
             ->all();
+    }
+
+    /**
+     * One count per movement tab for the business date. They follow the search and source filters, not the stay
+     * filter, because a movement tab always shows the business date.
+     *
+     * @return array<string, int> By movement value
+     */
+    public function movementCounts(Property $property, Request $request): array
+    {
+        $date = $this->defaultStayFrom($property);
+        $counts = [];
+
+        foreach (UnitMovement::cases() as $movement) {
+            $query = $this->base($property);
+
+            $this->applySource($query, $request->input('filter.source'));
+            $this->applySearch($query, $property, $request->input('filter.search'));
+            $this->applyMovement($query, $movement, $date);
+
+            $counts[$movement->value] = $query->count();
+        }
+
+        return $counts;
+    }
+
+    /**
+     * The movement tab of the request, or null for All and the status tabs.
+     */
+    public function movement(Request $request): ?UnitMovement
+    {
+        $value = $request->input('filter.status');
+
+        return is_string($value) ? UnitMovement::tryFrom($value) : null;
     }
 
     /**
@@ -243,6 +284,22 @@ class ReservationDirectory
         $column = self::SORTS[$name];
 
         return AllowedSort::callback($name, fn (Builder $query, bool $descending) => $query->orderByRaw($column.($descending ? ' desc' : ' asc')));
+    }
+
+    /**
+     * Keep the reservations with a unit that still has to make the move on the date. A group counts once.
+     *
+     * @template TModel of Model
+     *
+     * @param  Builder<TModel>  $query
+     */
+    private function applyMovement(Builder $query, UnitMovement $movement, CarbonImmutable $date): void
+    {
+        $query->whereExists(fn ($units) => $units->selectRaw('1')
+            ->from('reservation_units')
+            ->whereColumn('reservation_units.reservation_id', 'reservations.id')
+            ->whereDate('reservation_units.'.$movement->dateColumn(), $date->toDateString())
+            ->where('reservation_units.status', $movement->pendingStatus()->value));
     }
 
     /**
