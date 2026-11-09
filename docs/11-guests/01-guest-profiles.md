@@ -62,6 +62,7 @@ Routes under `/p/{code}/guests` (`guests.*`, route file `guests.php`). They are 
 
 - Guests are never shared across properties. A guest of another property returns 404.
 - Phone numbers are validated and normalized to E.164 with `propaganistas/laravel-phone`. A number typed without a country code is read as a number of the property's country (Malaysia if unset). A number with a country code is accepted from any country.
+- `PhoneInput` has a country picker with flags. It starts on the property's country, formats the number as it is typed, and shows an error after the first blur once the number is edited. It uses `libphonenumber-js` and sends E.164 when the number is valid. These checks are for the user: the server still decides. A saved number that is not edited is posted unchanged.
 - Email and phone stay plaintext for search and notifications. Rely on database encryption at rest.
 - ID documents have their own Documents tab. See [Identity documents](02-identity-documents.md).
 - A guest merged into another guest is hidden from the list and redirects to the survivor. See [Matching and merging](03-matching-and-merging.md).

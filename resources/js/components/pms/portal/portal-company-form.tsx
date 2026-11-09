@@ -4,6 +4,7 @@ import type { EnumOption } from '@/components/pms/enum-select';
 import { SettingsSection } from '@/components/pms/settings-section';
 import {
     SettingsInput,
+    SettingsPhoneInput,
     SettingsSwitch,
 } from '@/components/pms/settings/form-fields';
 import { StatusBadge } from '@/components/pms/status-badge';
@@ -102,10 +103,10 @@ export function PortalCompanyForm({
                             value={company.contactEmail}
                             error={errors.contact_email}
                         />
-                        <SettingsInput
+                        <SettingsPhoneInput
                             name="contact_phone"
                             label="Contact phone"
-                            placeholder="e.g. +60 12 345 6789"
+                            placeholder="e.g. 012-345 6789"
                             value={company.contactPhone}
                             error={errors.contact_phone}
                         />

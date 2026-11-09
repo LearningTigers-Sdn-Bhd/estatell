@@ -118,6 +118,8 @@ export function IdentityDocumentFields({
                                 })
                             }
                             options={countries}
+                            placeholder={word('Search countries')}
+                            emptyText={word('No matching countries.')}
                         />
                     </Field>
                 </>

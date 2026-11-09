@@ -41,16 +41,17 @@ Rules:
 
 ## Pickers
 
-| Need                            | Component                                                 |
-| ------------------------------- | --------------------------------------------------------- |
-| One value, 2–7 options          | `ToggleGroup`                                             |
-| One value, fixed list           | `EnumSelect` / `Select`                                   |
-| One value, searchable           | Combobox pickers (`GuestPicker`, `RatePlanPicker`, …)     |
-| Many values, 2–7 options        | `ToggleGroup multiple` (for example `WeekdayToggle`)      |
-| Many values, short list         | `EnumSelect multiple`                                     |
-| Many values, long or searchable | `MultiCombobox`                                           |
-| Very many options (permissions) | Checkbox list grouped by module (`FieldSet` + `Checkbox`) |
-| Money / phone                   | `MoneyInput` / `PhoneInput` (`InputGroup`)                |
+| Need                            | Component                                                                            |
+| ------------------------------- | ------------------------------------------------------------------------------------ |
+| One value, 2–7 options          | `ToggleGroup`                                                                        |
+| One value, fixed list           | `EnumSelect` / `Select`                                                              |
+| One value, searchable           | Combobox pickers (`GuestPicker`, `RatePlanPicker`, …)                                |
+| Many values, 2–7 options        | `ToggleGroup multiple` (for example `WeekdayToggle`)                                 |
+| Many values, short list         | `EnumSelect multiple`                                                                |
+| Many values, long or searchable | `MultiCombobox`                                                                      |
+| Very many options (permissions) | Checkbox list grouped by module (`FieldSet` + `Checkbox`)                            |
+| Money / phone                   | `MoneyInput` / `PhoneInput` (`InputGroup`)                                           |
+| Country or nationality          | `CountrySelect` (flags from `CountryFlag`; `showFlags={false}` for other code lists) |
 
 - No native `<select>`.
 - `EnumSelect multiple` trigger summary: 0 selected shows the placeholder, 1–2 show the labels, 3 or more show "first label +N".

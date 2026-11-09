@@ -13,6 +13,7 @@ class PropertySummaryData extends Data
         public string $name,
         public PropertyStatus $status,
         public ?string $logoUrl,
+        public ?string $countryCode,
     ) {}
 
     public static function fromModel(Property $property): self
@@ -24,6 +25,7 @@ class PropertySummaryData extends Data
             name: $property->name,
             status: $property->status,
             logoUrl: $logo === null ? null : route('property.logo', ['property' => $property->code, 'v' => $logo->id], absolute: false),
+            countryCode: $property->country_code,
         );
     }
 }

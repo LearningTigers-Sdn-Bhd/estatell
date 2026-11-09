@@ -28,6 +28,7 @@ import { PageHeader } from '@/components/pms/page-header';
 import { SettingsSection } from '@/components/pms/settings-section';
 import {
     SettingsInput,
+    SettingsPhoneInput,
     SettingsSelect,
     SettingsSwitch,
 } from '@/components/pms/settings/form-fields';
@@ -728,15 +729,13 @@ export default function CompanyShow({
                                         disabled={readOnly}
                                         error={errors.contact_email}
                                     />
-                                    <SettingsInput
+                                    <SettingsPhoneInput
                                         name="contact_phone"
                                         placeholder="012-345 6789"
                                         label="Contact phone"
-                                        type="tel"
                                         value={company.contactPhone}
                                         disabled={readOnly}
                                         error={errors.contact_phone}
-                                        description="Without a country code, the number is read as a local number."
                                     />
                                 </>
                             )}

@@ -122,7 +122,7 @@ class GuestCardController extends Controller
             'card' => $page,
             'genders' => Gender::options(),
             'identityTypes' => IdentityDocumentType::options(),
-            'countries' => $countries->options(),
+            'countries' => $countries->options($page->locale),
         ]);
     }
 

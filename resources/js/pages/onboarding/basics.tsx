@@ -333,6 +333,7 @@ export default function Basics({
                                             options={currencies}
                                             placeholder="Search currencies"
                                             emptyText="No matching currencies."
+                                            showFlags={false}
                                             invalid={!!errors.currency}
                                         />
                                         <FieldError>
