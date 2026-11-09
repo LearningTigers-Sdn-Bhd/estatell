@@ -95,7 +95,7 @@ class RecommendedChecklist
             ->sortBy(fn (OnboardingSkip $skip): int => $skip->step->number());
 
         foreach ($skips as $skip) {
-            if ($skip->step !== OnboardingStep::Taxes) {
+            if (! in_array($skip->step, [OnboardingStep::Taxes, OnboardingStep::ChannelManager], true)) {
                 $items[] = $this->skippedSection($property, $skip->step);
             }
         }
@@ -223,9 +223,8 @@ class RecommendedChecklist
             OnboardingStep::BasicRate => 'settings.rate-plans.index',
             OnboardingStep::ChargeItems => 'settings.charge-items.index',
             OnboardingStep::Discounts => 'settings.discounts.index',
-            OnboardingStep::ChannelManager => 'settings.ota-lists.edit',
             OnboardingStep::Taxes => 'settings.taxes.index',
-            OnboardingStep::Review => 'settings.edit',
+            OnboardingStep::ChannelManager, OnboardingStep::Review => 'settings.edit',
         };
     }
 }

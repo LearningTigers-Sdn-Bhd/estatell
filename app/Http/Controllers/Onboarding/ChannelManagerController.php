@@ -20,7 +20,8 @@ use Inertia\Response;
 class ChannelManagerController extends Controller
 {
     /**
-     * The saved OTA lists, without passwords, and the channels an owner can pick. A locked step opens as a preview.
+     * The channels already saved, without their logins, and the channels an owner can pick. A locked step opens as a
+     * preview.
      */
     public function edit(Request $request, Property $property, OnboardingProgress $progress): Response
     {
@@ -48,11 +49,12 @@ class ChannelManagerController extends Controller
 
     public function update(SaveOtaCredentialsRequest $request, Property $property, SaveOtaCredentials $saveOtaCredentials): RedirectResponse
     {
+        $savedIds = $request->savedIds();
         $rows = $request->rows();
 
-        $saveOtaCredentials($property, $request->user(), $rows);
+        $saveOtaCredentials($property, $request->user(), $savedIds, $rows);
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => $rows === []
+        Inertia::flash('toast', ['type' => 'success', 'message' => $savedIds === [] && $rows === []
             ? __('OTA lists skipped.')
             : __('OTA lists saved.')]);
 

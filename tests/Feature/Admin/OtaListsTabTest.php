@@ -1,6 +1,9 @@
 <?php
 
+use App\Enums\OnboardingStep;
 use App\Enums\OtaCredentialStatus;
+use App\Models\BookingSource;
+use App\Models\OnboardingSkip;
 use App\Models\OtaChannel;
 use App\Models\Property;
 use App\Models\PropertyOtaCredential;
@@ -185,4 +188,149 @@ test('mark processed is refused to non-admins and for another property', functio
 
     expect($otherCredential->refresh()->status)->toBe(OtaCredentialStatus::Pending)
         ->and(Activity::query()->count())->toBe(0);
+});
+
+function otaCredentialFields(array $overrides = []): array
+{
+    return [
+        'ota_channel_id' => '',
+        'channel_name' => '',
+        'property_code' => 'AG-4421',
+        'username' => 'agoda-user',
+        'password' => 'PlainPass-Admin-Add',
+        'market_manager_name' => '',
+        'market_manager_phone' => '',
+        'market_manager_email' => '',
+        ...$overrides,
+    ];
+}
+
+test('an admin adds a login as Pending with its booking source and removes an onboarding skip', function () {
+    $admin = User::factory()->admin()->withTwoFactor()->create();
+    $property = Property::factory()->onboarding()->create();
+    $channel = OtaChannel::factory()->create(['name' => 'Agoda']);
+    OnboardingSkip::factory()->for($property)->create(['step' => OnboardingStep::ChannelManager]);
+
+    $this->actingAs($admin)
+        ->post(route('admin.properties.ota-lists.store', $property->code), otaCredentialFields(['ota_channel_id' => (string) $channel->id]))
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    $credential = $property->otaCredentials()->sole();
+    $activity = Activity::query()->where('event', 'ota_credential.added')->sole();
+
+    expect($credential->password)->toBe('PlainPass-Admin-Add')
+        ->and($credential->status)->toBe(OtaCredentialStatus::Pending)
+        ->and(BookingSource::query()->where('property_id', $property->id)->where('name', 'Agoda')->exists())->toBeTrue()
+        ->and(OnboardingSkip::query()->where('property_id', $property->id)->exists())->toBeFalse()
+        ->and(json_encode($activity->toArray()))->not->toContain('PlainPass-Admin-Add')->not->toContain('agoda-user');
+});
+
+test('adding a channel the property already has is refused', function () {
+    $admin = User::factory()->admin()->withTwoFactor()->create();
+    $property = Property::factory()->create();
+    $credential = PropertyOtaCredential::factory()->for($property)->create();
+
+    $this->actingAs($admin)
+        ->post(route('admin.properties.ota-lists.store', $property->code), otaCredentialFields(['ota_channel_id' => (string) $credential->ota_channel_id]))
+        ->assertSessionHasErrors(['ota_channel_id' => 'This channel is already in the list.']);
+
+    expect($property->otaCredentials()->count())->toBe(1);
+});
+
+test('Other needs a channel name when adding', function () {
+    $admin = User::factory()->admin()->withTwoFactor()->create();
+    $property = Property::factory()->create();
+    $other = OtaChannel::factory()->other()->create();
+
+    $this->actingAs($admin)
+        ->post(route('admin.properties.ota-lists.store', $property->code), otaCredentialFields(['ota_channel_id' => (string) $other->id]))
+        ->assertSessionHasErrors(['channel_name']);
+});
+
+test('a blank password keeps the saved one and the row keeps its status', function () {
+    $admin = User::factory()->admin()->withTwoFactor()->create();
+    $property = Property::factory()->create();
+    $credential = PropertyOtaCredential::factory()->for($property)->processed()->create(['password' => 'PlainPass-Keep']);
+
+    $this->actingAs($admin)
+        ->put(route('admin.properties.ota-lists.update', [$property->code, $credential->id]), otaCredentialFields(['username' => 'new-user', 'password' => '']))
+        ->assertSessionHasNoErrors();
+
+    expect($credential->refresh()->username)->toBe('new-user')
+        ->and($credential->password)->toBe('PlainPass-Keep')
+        ->and($credential->status)->toBe(OtaCredentialStatus::Processed)
+        ->and(Activity::query()->sole()->event)->toBe('ota_credential.updated');
+});
+
+test('a new password sets the row back to Pending and logs without the password', function () {
+    $admin = User::factory()->admin()->withTwoFactor()->create();
+    $property = Property::factory()->create();
+    $credential = PropertyOtaCredential::factory()->for($property)->processed()->create();
+
+    $this->actingAs($admin)
+        ->put(route('admin.properties.ota-lists.update', [$property->code, $credential->id]), otaCredentialFields(['password' => 'PlainPass-New']))
+        ->assertSessionHasNoErrors();
+
+    $activity = Activity::query()->sole();
+
+    expect($credential->refresh()->password)->toBe('PlainPass-New')
+        ->and($credential->status)->toBe(OtaCredentialStatus::Pending)
+        ->and($activity->event)->toBe('ota_credential.password-changed')
+        ->and(json_encode($activity->toArray()))->not->toContain('PlainPass-New');
+});
+
+test('an admin removes a login and is logged, and its booking source stays', function () {
+    $admin = User::factory()->admin()->withTwoFactor()->create();
+    $property = Property::factory()->create();
+    $credential = PropertyOtaCredential::factory()->for($property)->create();
+    $source = BookingSource::factory()->for($property)->create();
+
+    $this->actingAs($admin)
+        ->delete(route('admin.properties.ota-lists.destroy', [$property->code, $credential->id]))
+        ->assertRedirect();
+
+    expect($credential->fresh())->toBeNull()
+        ->and($source->fresh())->not->toBeNull()
+        ->and(Activity::query()->sole()->event)->toBe('ota_credential.removed');
+});
+
+test('a login of another property cannot be changed or removed', function () {
+    $admin = User::factory()->admin()->withTwoFactor()->create();
+    $property = Property::factory()->create();
+    $foreign = PropertyOtaCredential::factory()->create(['username' => 'someone-else']);
+
+    $this->actingAs($admin)
+        ->put(route('admin.properties.ota-lists.update', [$property->code, $foreign->id]), otaCredentialFields())
+        ->assertNotFound();
+    $this->actingAs($admin)
+        ->delete(route('admin.properties.ota-lists.destroy', [$property->code, $foreign->id]))
+        ->assertNotFound();
+
+    expect($foreign->refresh()->username)->toBe('someone-else');
+});
+
+test('non-admins cannot add, change or remove a login, and admin writes need two-factor', function () {
+    $property = Property::factory()->create();
+    $credential = PropertyOtaCredential::factory()->for($property)->create(['username' => 'unchanged']);
+    $owner = User::factory()->owner()->for($property)->create();
+
+    $this->actingAs($owner)->post(route('admin.properties.ota-lists.store', $property->code), otaCredentialFields())->assertNotFound();
+    $this->actingAs($owner)->put(route('admin.properties.ota-lists.update', [$property->code, $credential->id]), otaCredentialFields())->assertNotFound();
+    $this->actingAs($owner)->delete(route('admin.properties.ota-lists.destroy', [$property->code, $credential->id]))->assertNotFound();
+
+    config(['estatell.support_require_two_factor' => true]);
+
+    $this->actingAs(User::factory()->admin()->create())
+        ->delete(route('admin.properties.ota-lists.destroy', [$property->code, $credential->id]));
+
+    expect($credential->fresh())->not->toBeNull()
+        ->and($credential->refresh()->username)->toBe('unchanged');
+});
+
+test('the Settings OTA lists page is gone for owners', function () {
+    $property = Property::factory()->create();
+    $owner = User::factory()->owner()->for($property)->create();
+
+    $this->actingAs($owner)->get("/p/{$property->code}/settings/ota-lists")->assertNotFound();
 });

@@ -2,7 +2,9 @@
 
 namespace App\Services\Platform;
 
+use App\Data\Onboarding\OnboardingOtaChannelData;
 use App\Data\Platform\AdminOtaListRowData;
+use App\Models\OtaChannel;
 use App\Models\Property;
 use App\Models\PropertyOtaCredential;
 
@@ -19,6 +21,18 @@ class PropertyOtaLists
         return array_values($property->otaCredentials()->with('channel')->orderBy('id')->get()
             ->map(fn (PropertyOtaCredential $credential): AdminOtaListRowData => AdminOtaListRowData::fromModel($credential))
             ->values()
+            ->all());
+    }
+
+    /**
+     * The channels an admin can pick for a new row.
+     *
+     * @return list<OnboardingOtaChannelData>
+     */
+    public function channels(): array
+    {
+        return array_values(OtaChannel::query()->active()->ordered()->get()
+            ->map(fn (OtaChannel $channel): OnboardingOtaChannelData => OnboardingOtaChannelData::fromModel($channel))
             ->all());
     }
 
