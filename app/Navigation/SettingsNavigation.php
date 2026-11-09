@@ -69,12 +69,6 @@ class SettingsNavigation
                     icon: 'globe',
                     active: request()->routeIs('settings.booking-website.*'),
                 ) : null,
-                $user->can(PermissionEnum::SettingsOtaLists->value) ? new NavItemData(
-                    title: __('OTA lists'),
-                    href: route('settings.ota-lists.edit', ['property' => $property->code], absolute: false),
-                    icon: 'waypoints',
-                    active: request()->routeIs('settings.ota-lists.*'),
-                ) : null,
                 $user->can(PermissionEnum::SettingsManage->value) ? new NavItemData(
                     title: __('Booking sources'),
                     href: route('settings.booking-sources.index', ['property' => $property->code], absolute: false),

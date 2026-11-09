@@ -24,7 +24,6 @@ beforeEach(function () {
     $this->booking = OtaChannel::factory()->create(['code' => 'booking_com', 'name' => 'Booking.com']);
     $this->other = OtaChannel::factory()->other()->create();
     $this->row = fn (array $overrides = []): array => [
-        'id' => null,
         'ota_channel_id' => (string) $this->agoda->id,
         'channel_name' => '',
         'property_code' => '123456',
@@ -35,8 +34,8 @@ beforeEach(function () {
         'market_manager_email' => '',
         ...$overrides,
     ];
-    $this->save = fn (array $rows, ?User $user = null) => $this->actingAs($user ?? $this->owner)
-        ->put(route('onboarding.channel-manager.update', $this->property->code), ['rows' => $rows]);
+    $this->save = fn (array $rows, array $savedIds = [], ?User $user = null) => $this->actingAs($user ?? $this->owner)
+        ->put(route('onboarding.channel-manager.update', $this->property->code), ['saved_ids' => $savedIds, 'rows' => $rows]);
     $this->progress = fn (): OnboardingProgress => app(OnboardingProgress::class);
 });
 
@@ -54,19 +53,14 @@ test('the username and password are encrypted at rest and read back in plain tex
         ->and($credential->toArray())->not->toHaveKey('password');
 });
 
-test('a blank password keeps the saved one and a new password replaces it', function () {
+test('a saved row stays exactly as it was when it is kept', function () {
     ($this->save)([($this->row)()]);
-    $saved = PropertyOtaCredential::query()->where('property_id', $this->property->id)->firstOrFail();
+    $saved = PropertyOtaCredential::query()->where('property_id', $this->property->id)->sole();
 
-    ($this->save)([($this->row)(['id' => $saved->id, 'username' => 'owner@seaview.my', 'password' => ''])])
-        ->assertSessionHasNoErrors();
+    ($this->save)([], [$saved->id])->assertSessionHasNoErrors();
 
-    expect($saved->refresh()->username)->toBe('owner@seaview.my')
+    expect($saved->refresh()->username)->toBe('frontdesk@seaview.my')
         ->and($saved->password)->toBe('agoda-secret');
-
-    ($this->save)([($this->row)(['id' => $saved->id, 'password' => 'new-secret'])])->assertSessionHasNoErrors();
-
-    expect($saved->refresh()->password)->toBe('new-secret');
 });
 
 test('a new row without a password is rejected and nothing is saved', function () {
@@ -100,25 +94,35 @@ test('Other needs a channel name, and one Other row per name ignoring case', fun
     expect(PropertyOtaCredential::query()->where('channel_name', 'Trip.com')->exists())->toBeTrue();
 });
 
-test('an inactive channel is refused for a new row but stays on a saved row', function () {
+test('an inactive channel is refused for a new row but a saved row can stay', function () {
     $this->agoda->update(['is_active' => false]);
 
     ($this->save)([($this->row)()])->assertSessionHasErrors(['rows.0.ota_channel_id']);
 
     $saved = PropertyOtaCredential::factory()->for($this->property)->create(['ota_channel_id' => $this->agoda->id]);
 
-    ($this->save)([($this->row)(['id' => $saved->id, 'password' => ''])])->assertSessionHasNoErrors();
+    ($this->save)([], [$saved->id])->assertSessionHasNoErrors();
 
     expect($saved->refresh()->ota_channel_id)->toBe($this->agoda->id);
 });
 
-test('a row of another property cannot be edited or listed', function () {
-    $foreign = PropertyOtaCredential::factory()->create(['ota_channel_id' => $this->agoda->id, 'username' => 'someone@else.my']);
+test('a new row cannot repeat a saved channel that stays, but can replace a removed one', function () {
+    $saved = PropertyOtaCredential::factory()->for($this->property)->create(['ota_channel_id' => $this->agoda->id, 'password' => 'old-secret']);
 
-    ($this->save)([($this->row)(['id' => $foreign->id, 'username' => 'hijack@seaview.my'])])
-        ->assertSessionHasErrors(['rows.0.id']);
+    ($this->save)([($this->row)()], [$saved->id])
+        ->assertSessionHasErrors(['rows.0.ota_channel_id' => 'This channel is already in the list.']);
 
-    expect($foreign->refresh()->username)->toBe('someone@else.my');
+    ($this->save)([($this->row)()])->assertSessionHasNoErrors();
+
+    expect(PropertyOtaCredential::query()->where('property_id', $this->property->id)->sole()->password)->toBe('agoda-secret');
+});
+
+test('a row of another property cannot be kept or listed', function () {
+    $foreign = PropertyOtaCredential::factory()->create(['ota_channel_id' => $this->agoda->id]);
+
+    ($this->save)([], [$foreign->id])->assertSessionHasErrors(['saved_ids.0']);
+
+    expect($foreign->fresh())->not->toBeNull();
 
     $this->actingAs($this->owner)
         ->get(route('onboarding.channel-manager.edit', $this->property->code))
@@ -129,31 +133,18 @@ test('saved rows are removed when they are missing from the submit', function ()
     $kept = PropertyOtaCredential::factory()->for($this->property)->create(['ota_channel_id' => $this->agoda->id]);
     PropertyOtaCredential::factory()->for($this->property)->create(['ota_channel_id' => $this->booking->id]);
 
-    ($this->save)([($this->row)(['id' => $kept->id, 'password' => ''])])->assertSessionHasNoErrors();
+    ($this->save)([], [$kept->id])->assertSessionHasNoErrors();
 
     expect(PropertyOtaCredential::query()->pluck('id')->all())->toBe([$kept->id]);
 });
 
-test('two saved rows can swap channels in one save', function () {
-    $first = PropertyOtaCredential::factory()->for($this->property)->create(['ota_channel_id' => $this->agoda->id]);
-    $second = PropertyOtaCredential::factory()->for($this->property)->create(['ota_channel_id' => $this->booking->id]);
-
-    ($this->save)([
-        ($this->row)(['id' => $first->id, 'ota_channel_id' => (string) $this->booking->id, 'password' => '']),
-        ($this->row)(['id' => $second->id, 'ota_channel_id' => (string) $this->agoda->id, 'password' => '']),
-    ])->assertSessionHasNoErrors();
-
-    expect(PropertyOtaCredential::query()->where('property_id', $this->property->id)->pluck('ota_channel_id')->sort()->values()->all())
-        ->toBe(collect([$this->agoda->id, $this->booking->id])->sort()->values()->all());
-});
-
-test('the edit page sends saved rows without any password and only active channels', function () {
-    $plain = 'agoda-secret';
+test('the edit page sends only the channel of a saved row, never its login', function () {
     PropertyOtaCredential::factory()->for($this->property)->create([
         'ota_channel_id' => $this->agoda->id,
+        'property_code' => 'AG-99887',
         'username' => 'frontdesk@seaview.my',
-        'password' => $plain,
-        'market_manager_name' => 'Aisha',
+        'password' => 'agoda-secret',
+        'market_manager_name' => 'Aisha Manager',
     ]);
     $this->booking->update(['is_active' => false]);
 
@@ -162,17 +153,18 @@ test('the edit page sends saved rows without any password and only active channe
         ->assertInertia(fn (Assert $page) => $page
             ->component('onboarding/channel-manager')
             ->has('savedRows', 1)
-            ->where('savedRows.0.hasPassword', true)
-            ->where('savedRows.0.username', 'frontdesk@seaview.my')
+            ->has('savedRows.0', 2)
+            ->has('savedRows.0.id')
             ->where('savedRows.0.channelLabel', 'Agoda')
-            ->where('savedRows.0.marketManagerName', 'Aisha')
-            ->missing('savedRows.0.password')
             ->has('channels', 2)
             ->where('channels.0.name', 'Agoda')
             ->where('channels.1.name', 'Other')
             ->where('channels.1.isOther', true)
             ->where('locked', false))
-        ->assertDontSee($plain);
+        ->assertDontSee('agoda-secret')
+        ->assertDontSee('frontdesk@seaview.my')
+        ->assertDontSee('AG-99887')
+        ->assertDontSee('Aisha Manager');
 });
 
 test('the step is a locked preview before basics is done', function () {
@@ -187,7 +179,7 @@ test('the step is a locked preview before basics is done', function () {
             ->where('blockedBy.label', 'Basics'));
 
     $this->actingAs($owner)
-        ->put(route('onboarding.channel-manager.update', $property->code), ['rows' => [($this->row)()]])
+        ->put(route('onboarding.channel-manager.update', $property->code), ['saved_ids' => [], 'rows' => [($this->row)()]])
         ->assertSessionHasErrors(['onboarding']);
 
     expect(PropertyOtaCredential::query()->count())->toBe(0);
@@ -203,6 +195,14 @@ test('an empty save counts as skipped and saving a row removes the skip', functi
 
     expect(OnboardingSkip::query()->where('property_id', $this->property->id)->where('step', OnboardingStep::ChannelManager)->exists())->toBeFalse()
         ->and(($this->progress)()->state($this->property, OnboardingStep::ChannelManager))->toBe(StepState::Done);
+});
+
+test('keeping a saved row is not a skip', function () {
+    $saved = PropertyOtaCredential::factory()->for($this->property)->create(['ota_channel_id' => $this->agoda->id]);
+
+    ($this->save)([], [$saved->id])->assertSessionHasNoErrors();
+
+    expect(OnboardingSkip::query()->where('property_id', $this->property->id)->exists())->toBeFalse();
 });
 
 test('the check is done with at least one row and not started without one', function () {
@@ -241,7 +241,7 @@ test('a repeat save with the same row adds no source', function () {
     ($this->save)([($this->row)()])->assertSessionHasNoErrors();
     $saved = PropertyOtaCredential::query()->where('property_id', $this->property->id)->sole();
 
-    ($this->save)([($this->row)(['id' => $saved->id, 'password' => ''])])->assertSessionHasNoErrors();
+    ($this->save)([], [$saved->id])->assertSessionHasNoErrors();
 
     expect(BookingSource::query()->where('property_id', $this->property->id)->count())->toBe(1);
 });
@@ -253,17 +253,6 @@ test('removing a row keeps its source', function () {
 
     expect(PropertyOtaCredential::query()->count())->toBe(0)
         ->and(BookingSource::query()->where('property_id', $this->property->id)->where('name', 'Agoda')->exists())->toBeTrue();
-});
-
-test('a channel swap keeps the old channel source and adds the new one', function () {
-    ($this->save)([($this->row)()])->assertSessionHasNoErrors();
-    $saved = PropertyOtaCredential::query()->where('property_id', $this->property->id)->sole();
-
-    ($this->save)([($this->row)(['id' => $saved->id, 'ota_channel_id' => (string) $this->booking->id, 'password' => 'agoda-secret'])])
-        ->assertSessionHasNoErrors();
-
-    expect(BookingSource::query()->where('property_id', $this->property->id)->pluck('name')->sort()->values()->all())
-        ->toBe(['Agoda', 'Booking.com']);
 });
 
 test('a name taken by a direct source gets " (OTA)" on the saved row', function () {

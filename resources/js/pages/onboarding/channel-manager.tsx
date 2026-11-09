@@ -7,7 +7,6 @@ import {
     type OtaListRow,
     type OtaListSavedRow,
     OtaListsTable,
-    otaListRowFromSaved,
     otaListSubmitRows,
 } from '@/components/pms/channels/ota-lists-table';
 import type { OnboardingLayoutProps } from '@/components/pms/onboarding/onboarding-steps';
@@ -31,8 +30,9 @@ export default function ChannelManager({
     locked: boolean;
     blockedBy: { label: string; url: string | null } | null;
 }) {
-    const form = useForm<{ rows: OtaListRow[] }>({
-        rows: savedRows.map(otaListRowFromSaved),
+    const form = useForm<{ saved: OtaListSavedRow[]; rows: OtaListRow[] }>({
+        saved: savedRows,
+        rows: [],
     });
     const guard = useUnsavedChanges(form.isDirty);
     const rows = form.data.rows;
@@ -46,7 +46,10 @@ export default function ChannelManager({
     });
 
     const save = (onSuccess?: () => void) => {
-        form.transform((data) => ({ rows: otaListSubmitRows(data.rows) }));
+        form.transform((data) => ({
+            saved_ids: data.saved.map((row) => row.id),
+            rows: otaListSubmitRows(data.rows),
+        }));
         form.put(ChannelManagerController.update.url(), {
             preserveScroll: true,
             onSuccess,
@@ -58,7 +61,7 @@ export default function ChannelManager({
             <Head title="OTA lists" />
             <Heading
                 title="OTA lists"
-                description="Which online travel agencies (OTAs) do you sell through? Add the login for each one. The estatell team connects them after you go live. Skip this if you don't sell through an OTA."
+                description="Which online travel agencies (OTAs) do you sell through? Add the login for each one. The Estatell team connects them after you go live. Skip this if you don't sell through an OTA."
             />
             <StepForm
                 id={FORM_ID}
@@ -73,19 +76,28 @@ export default function ChannelManager({
                 <Alert>
                     <Info />
                     <AlertDescription>
-                        Only the estatell team reads these. Passwords are stored
-                        encrypted and are never shown again here. The team
-                        connects your channels through our channel manager after
-                        approval. Nothing is connected from this page.
+                        Only the Estatell team can see these logins. They are
+                        stored encrypted and hidden after you save. To change
+                        one, remove it and add it again. The team connects your
+                        channels after approval. Nothing is connected from this
+                        page.
                     </AlertDescription>
                 </Alert>
 
                 <OtaListsTable
+                    savedRows={form.data.saved}
                     rows={rows}
                     channels={channels}
                     maxRows={maxRows}
                     errors={errors}
                     onRowsChange={(next) => form.setData('rows', next)}
+                    onRemoveSavedRow={(id) => {
+                        form.setData(
+                            'saved',
+                            form.data.saved.filter((row) => row.id !== id),
+                        );
+                        form.clearErrors();
+                    }}
                     onRemoveRow={(index) => {
                         form.setData(
                             'rows',

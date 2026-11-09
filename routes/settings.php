@@ -22,7 +22,6 @@ use App\Http\Controllers\Meals\MealPeriodController;
 use App\Http\Controllers\Onboarding\RecommendedItemDismissalController;
 use App\Http\Controllers\Property\AgeGroupController;
 use App\Http\Controllers\Property\NotificationSettingController;
-use App\Http\Controllers\Property\OtaListSettingsController;
 use App\Http\Controllers\Property\PrintSettingsController;
 use App\Http\Controllers\Property\PropertyLogoController;
 use App\Http\Controllers\Property\PropertyPhotoController;
@@ -275,11 +274,6 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::post('test', [AccountingSettingsController::class, 'test'])->name('test');
         Route::post('billing/sync', [AccountingSettingsController::class, 'syncBilling'])->name('billing.sync');
         Route::post('syncs/{accountingSync}/retry', [AccountingSettingsController::class, 'retry'])->name('retry');
-    });
-
-    Route::prefix('ota-lists')->name('ota-lists.')->middleware('can:'.PermissionEnum::SettingsOtaLists->value)->group(function () {
-        Route::get('/', [OtaListSettingsController::class, 'edit'])->name('edit');
-        Route::put('/', [OtaListSettingsController::class, 'update'])->name('update');
     });
 
     Route::prefix('kiosks')->name('kiosks.')->middleware(['kiosks', 'can:'.PermissionEnum::SettingsManage->value])->scopeBindings()->group(function () {

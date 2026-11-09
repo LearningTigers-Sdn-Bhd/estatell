@@ -2,9 +2,13 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\Platform\AddOtaCredential;
 use App\Actions\Platform\MarkOtaCredentialProcessed;
+use App\Actions\Platform\RemoveOtaCredential;
 use App\Actions\Platform\RevealOtaCredential;
+use App\Actions\Platform\UpdateOtaCredential;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\SaveOtaCredentialRequest;
 use App\Models\Property;
 use App\Services\Platform\PropertyOtaLists;
 use Illuminate\Http\JsonResponse;
@@ -14,6 +18,44 @@ use Inertia\Inertia;
 
 class PropertyOtaListController extends Controller
 {
+    /**
+     * Save a login the team received for one channel.
+     */
+    public function store(SaveOtaCredentialRequest $request, Property $property, AddOtaCredential $addOtaCredential): RedirectResponse
+    {
+        $added = $addOtaCredential($request->user(), $property, $request->channel(), $request->channelName(), $request->login());
+
+        Inertia::flash('toast', $added
+            ? ['type' => 'success', 'message' => __('OTA login saved.')]
+            : ['type' => 'error', 'message' => __('This channel is already in the list.')]);
+
+        return back(fallback: route('admin.properties.ota-lists', $property));
+    }
+
+    /**
+     * Change one saved login. The channel stays.
+     */
+    public function update(SaveOtaCredentialRequest $request, Property $property, int $credential, PropertyOtaLists $propertyOtaLists, UpdateOtaCredential $updateOtaCredential): RedirectResponse
+    {
+        $updateOtaCredential($request->user(), $propertyOtaLists->credentialFor($property, $credential), $request->login());
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('OTA login saved.')]);
+
+        return back(fallback: route('admin.properties.ota-lists', $property));
+    }
+
+    /**
+     * Delete one saved login.
+     */
+    public function destroy(Request $request, Property $property, int $credential, PropertyOtaLists $propertyOtaLists, RemoveOtaCredential $removeOtaCredential): RedirectResponse
+    {
+        $removeOtaCredential($request->user(), $propertyOtaLists->credentialFor($property, $credential));
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('OTA login removed.')]);
+
+        return back(fallback: route('admin.properties.ota-lists', $property));
+    }
+
     /**
      * Return one saved password as JSON. The password never goes in page props, and each reveal is logged.
      */
