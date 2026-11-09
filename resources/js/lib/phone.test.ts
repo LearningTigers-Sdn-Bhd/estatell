@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vite-plus/test';
 import {
     formatPhone,
+    formatPhoneAt,
+    isPhoneTooLong,
     phoneCountries,
     phoneError,
     phoneFormValue,
@@ -13,6 +15,42 @@ import {
 describe('phone helpers', () => {
     it('formats a local number as it is typed', () => {
         expect(formatPhone('0123456789', 'MY')).toBe('012-345 6789');
+    });
+
+    it('groups a number typed without its leading 0', () => {
+        expect(formatPhone('1122933232', 'MY')).toBe('11 2293 3232');
+    });
+
+    it('keeps a partial number that starts with 0 as typed', () => {
+        expect(formatPhone('012', 'MY')).toBe('012');
+    });
+
+    it('knows when a number is too long to ever be valid', () => {
+        expect(isPhoneTooLong('11112020333', 'MY')).toBe(true);
+        expect(isPhoneTooLong('1111202033', 'MY')).toBe(false);
+        expect(isPhoneTooLong('012', 'MY')).toBe(false);
+        expect(isPhoneTooLong('+60 11112020333', 'SG')).toBe(true);
+    });
+
+    it('keeps the cursor after a digit typed in the middle', () => {
+        expect(formatPhoneAt('012-3945 678', 6, 'MY')).toEqual({
+            text: '012-394 5678',
+            caret: 6,
+        });
+    });
+
+    it('keeps the cursor after a digit deleted in the middle', () => {
+        expect(formatPhoneAt('012-35 6789', 5, 'MY')).toEqual({
+            text: '012-356 789',
+            caret: 5,
+        });
+    });
+
+    it('moves the cursor past a deleted separator', () => {
+        expect(formatPhoneAt('012345 6789', 3, 'MY')).toEqual({
+            text: '012-345 6789',
+            caret: 3,
+        });
     });
 
     it('converts a valid local number to E.164', () => {
