@@ -8,6 +8,7 @@ use App\Actions\FrontDesk\CancelUnitsResult;
 use App\Actions\FrontDesk\ChangeUnitDates;
 use App\Actions\FrontDesk\CheckInAllUnits;
 use App\Actions\FrontDesk\CheckInAndCollect;
+use App\Actions\FrontDesk\CheckInEndedStay;
 use App\Actions\FrontDesk\CheckOutAndRefund;
 use App\Actions\FrontDesk\CheckOutAsDayUse;
 use App\Actions\FrontDesk\CheckOutOverdueStay;
@@ -135,9 +136,12 @@ class ReservationUnitStayController extends Controller
      * refused payment saves nothing, not even the check-in, and goes back to the Dialog as an error on the method or
      * reference, so the same form can be sent again.
      */
-    public function checkIn(CheckInUnitRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, CheckInAndCollect $checkInAndCollect, ReservationRefusals $refusals, PaymentRefusals $paymentRefusals): RedirectResponse
+    public function checkIn(CheckInUnitRequest $request, Property $property, Reservation $reservation, ReservationUnit $unit, CheckInAndCollect $checkInAndCollect, CheckInEndedStay $checkInEndedStay, ReservationRefusals $refusals, PaymentRefusals $paymentRefusals): RedirectResponse
     {
-        $result = $checkInAndCollect($request->user(), $unit, $request->nationality(), $request->withoutCard(), $request->creditOverrideReason(), $request->collectNow());
+        $choice = $request->endedStayChoice();
+        $result = $choice === null
+            ? $checkInAndCollect($request->user(), $unit, $request->nationality(), $request->withoutCard(), $request->creditOverrideReason(), $request->collectNow())
+            : $checkInEndedStay($request->user(), $unit, $choice, $request->arrivedAt(), $request->nationality(), $request->withoutCard(), $request->creditOverrideReason(), $request->collectNow());
         $page = route('reservations.show', ['property' => $property, 'reservation' => $reservation]);
 
         if ($result->stay->isRefused()) {
@@ -161,7 +165,7 @@ class ReservationUnitStayController extends Controller
      */
     public function checkInAll(CheckInAllRequest $request, Property $property, Reservation $reservation, CheckInAllUnits $checkInAllUnits, ReservationRefusals $refusals): RedirectResponse
     {
-        $results = $checkInAllUnits($request->user(), $reservation, $request->unitIds(), $request->withoutCard());
+        $results = $checkInAllUnits($request->user(), $reservation, $request->unitIds(), $request->withoutCard(), $request->endedStayChoice(), $request->arrivedAt());
         $refused = array_filter($results, fn (?string $refusal): bool => $refusal !== null);
         $done = count($results) - count($refused);
         $page = route('reservations.show', ['property' => $property, 'reservation' => $reservation]);

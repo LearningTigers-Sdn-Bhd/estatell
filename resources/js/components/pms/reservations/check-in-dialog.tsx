@@ -4,12 +4,13 @@ import { CountrySelect } from '@/components/pms/country-select';
 import { DateText } from '@/components/pms/date-text';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
-import { MoneyText } from '@/components/pms/money-text';
+import { formatMoney, MoneyText } from '@/components/pms/money-text';
 import { MyKadScanner } from '@/components/pms/mykad-scanner';
 import {
     AuditPendingNote,
     AuditPendingStrip,
 } from '@/components/pms/reservations/audit-pending';
+import { EndedStayQuestion } from '@/components/pms/reservations/ended-stay-question';
 import { useUnitPreview } from '@/components/pms/reservations/use-unit-preview';
 import {
     KEEP_OPTIONS,
@@ -90,6 +91,8 @@ function CheckInForm({
         (one) => !one.isOldSystem && !one.isOtaCollected,
     );
     const form = useForm({
+        ended_stay_choice: 'arrived_last_night',
+        arrived_at: '',
         nationality_code: '',
         without_card: false,
         credit_override_reason: '',
@@ -103,8 +106,13 @@ function CheckInForm({
     const methodId = data.payment_method_id || String(methods[0]?.id ?? '');
     const method = methods.find((one) => String(one.id) === methodId);
     const collection = preview?.collection ?? null;
+    const endedStay = preview?.endedStay ?? null;
+    const arrivingToday =
+        endedStay !== null && data.ended_stay_choice === 'arriving_today';
     // The full bill is offered unless the company is billed. Ticked, it holds the tax rows, so they drop out.
+    // A move to today changes the bill, so the old total is not offered.
     const billOffered =
+        !arrivingToday &&
         collection !== null &&
         !collection.billHidden &&
         Number(collection.billTotal) > 0;
@@ -134,6 +142,10 @@ function CheckInForm({
     const submit = () => {
         form.transform((values) => ({
             ...values,
+            ended_stay_choice:
+                endedStay !== null ? values.ended_stay_choice : '',
+            arrived_at:
+                endedStay !== null && !arrivingToday ? values.arrived_at : '',
             payment_method_id: collecting ? methodId : '',
             reference: method?.requiresReference ? values.reference : '',
             collect_now: collecting && values.collect_now,
@@ -178,6 +190,9 @@ function CheckInForm({
                 preview === null ||
                 preview.error !== null ||
                 preview.roomState === 'none' ||
+                (endedStay !== null &&
+                    !arrivingToday &&
+                    data.arrived_at === '') ||
                 (data.collect_now && collecting && paymentOptions === undefined)
             }
             loading={preview === null}
@@ -186,6 +201,33 @@ function CheckInForm({
                 <>
                     <AuditPendingStrip pending={preview.auditPending} />
                     <AuditPendingNote pending={preview.auditPending} />
+                    {endedStay !== null && (
+                        <EndedStayQuestion
+                            id="check-in"
+                            intro={
+                                unit.nightCount === 1
+                                    ? `This booking was for last night (${endedStay.lastNight}) and was not checked in.`
+                                    : `This booking's last night was ${endedStay.lastNight} and it was not checked in.`
+                            }
+                            stayedDescription={`Keeps ${endedStay.arrival} → ${endedStay.departure} and charges ${unit.nightCount === 1 ? 'that night' : 'those nights'}. Check them out next, or extend the stay if they are staying on.`}
+                            arrivingDescription={
+                                endedStay.arrivingTodayBlocked ??
+                                `Changes the booking to ${endedStay.today} → ${endedStay.tomorrow}. They leave tomorrow. New total ${formatMoney(endedStay.newTotal ?? '0', currency)}.`
+                            }
+                            arrivingDisabled={
+                                endedStay.arrivingTodayBlocked !== null
+                            }
+                            choice={data.ended_stay_choice}
+                            onChoiceChange={(value) =>
+                                form.setData('ended_stay_choice', value)
+                            }
+                            arrivedAt={data.arrived_at}
+                            onArrivedAtChange={(value) =>
+                                form.setData('arrived_at', value)
+                            }
+                            errors={errors}
+                        />
+                    )}
                     <MyKadScanner
                         onScan={(card) => {
                             if (preview.needsNationality) {
@@ -213,7 +255,9 @@ function CheckInForm({
                                     </span>
                                 ) : (
                                     <span className="text-destructive">
-                                        Not assigned for tonight
+                                        {endedStay !== null
+                                            ? 'Not assigned for this stay'
+                                            : 'Not assigned for tonight'}
                                     </span>
                                 )}
                             </span>

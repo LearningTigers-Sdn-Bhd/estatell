@@ -3623,6 +3623,14 @@ defaultAmount: string | null,
 allowOverride: boolean,
 autoAdd: boolean,
 };
+export type CheckInAllEndedStayData = {
+stayDates: string,
+oneNight: boolean,
+lastNight: string,
+today: string,
+tomorrow: string,
+arrivingTodayBlocked: string | null,
+};
 export type CheckInAllPreviewData = {
 rows: {
 unitId: number,
@@ -3632,9 +3640,12 @@ room: string | null,
 cardsMissing: number,
 ready: boolean,
 note: string | null,
+endedStay: boolean,
+moveTotal: string | null,
 }[],
 canCheckInWithoutCard: boolean,
 error: string | null,
+endedStay: App.Data.Reservations.CheckInAllEndedStayData | null,
 };
 export type CheckInCollectionData = {
 taxes: {
@@ -3721,6 +3732,15 @@ disabledReason: string | null,
 export type DiscountOptionData = {
 id: number,
 name: string,
+};
+export type EndedStayCheckInData = {
+arrival: string,
+departure: string,
+lastNight: string,
+today: string,
+tomorrow: string,
+newTotal: string | null,
+arrivingTodayBlocked: string | null,
 };
 export type FreeUnitData = {
 id: number,
@@ -4156,6 +4176,7 @@ canOverrideCredit: boolean,
 collection: App.Data.Reservations.CheckInCollectionData | null,
 error: string | null,
 auditPending: App.Data.Reservations.UnitAuditPendingData | null,
+endedStay: App.Data.Reservations.EndedStayCheckInData | null,
 };
 export type UnitCheckOutPreviewData = {
 balance: string,
@@ -4641,6 +4662,7 @@ export type DiscountType = 'percent' | 'fixed' | 'open';
 export type DocumentType = 'reservation' | 'folio' | 'invoice' | 'credit_note' | 'receipt' | 'registration_card';
 export type DormStrategy = 'bed_as_unit' | 'native_dorm';
 export type EarlyDeparturePolicy = 'charge_full' | 'charge_used_nights';
+export type EndedStayChoice = 'arrived_last_night' | 'arriving_today';
 export type FieldVisibility = 'hidden' | 'optional' | 'required';
 export type FolioRowTag = 'scheduled' | 'overridden' | 'reversed' | 'reversal' | 'refund' | 'manual';
 export type FolioStatus = 'open' | 'closed' | 'voided';

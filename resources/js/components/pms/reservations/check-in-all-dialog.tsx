@@ -1,6 +1,8 @@
 import { useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import { FormOverlay } from '@/components/pms/form-overlay';
+import { formatMoney } from '@/components/pms/money-text';
+import { EndedStayQuestion } from '@/components/pms/reservations/ended-stay-question';
 import { useUnitPreview } from '@/components/pms/reservations/use-unit-preview';
 import { KEEP_OPTIONS } from '@/components/pms/use-form-options';
 import { useFreshOnOpen } from '@/components/pms/use-fresh-on-open';
@@ -21,16 +23,21 @@ type Props = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     reservation: App.Data.Reservations.ReservationData;
+    currency: App.Data.Property.CurrencyData | null;
 };
 
-function CheckInAllForm({ open, onOpenChange, reservation }: Props) {
+function CheckInAllForm({ open, onOpenChange, reservation, currency }: Props) {
     const key = { reservation: reservation.id };
     const { preview, reload } = useUnitPreview<Preview>(
         checkInAllPreview.url(key),
         open,
     );
     const [picked, setPicked] = useState<number[] | null>(null);
-    const form = useForm({ without_card: false });
+    const form = useForm({
+        without_card: false,
+        ended_stay_choice: 'arrived_last_night',
+        arrived_at: '',
+    });
     const { data, errors } = form;
     const rowErrors = errors as Record<string, string | undefined>;
     const ready = preview?.rows.filter((row) => row.ready) ?? [];
@@ -45,6 +52,18 @@ function CheckInAllForm({ open, onOpenChange, reservation }: Props) {
             (row) => selected.includes(row.unitId) && row.cardsMissing > 0,
         ) ?? false;
 
+    const endedStay = preview?.endedStay ?? null;
+    const endedRows = ready.filter(
+        (row) => row.endedStay && selected.includes(row.unitId),
+    );
+    const isMixed = ready.some((row) => !row.endedStay);
+    const arrivingToday = data.ended_stay_choice === 'arriving_today';
+    // Display only: the server prices each move again.
+    const moveTotal = endedRows.reduce(
+        (sum, row) => sum + Number(row.moveTotal ?? 0),
+        0,
+    );
+
     const toggle = (unitId: number, checked: boolean) =>
         setPicked(
             checked
@@ -53,7 +72,14 @@ function CheckInAllForm({ open, onOpenChange, reservation }: Props) {
         );
 
     const submit = () => {
-        form.transform((values) => ({ ...values, unit_ids: selected }));
+        form.transform((values) => ({
+            ...values,
+            unit_ids: selected,
+            ended_stay_choice:
+                endedRows.length > 0 ? values.ended_stay_choice : '',
+            arrived_at:
+                endedRows.length > 0 && !arrivingToday ? values.arrived_at : '',
+        }));
         form.post(checkInAll.url(key), {
             preserveScroll: true,
             except: KEEP_OPTIONS,
@@ -83,7 +109,12 @@ function CheckInAllForm({ open, onOpenChange, reservation }: Props) {
                       : `Check in ${selected.length} units`
             }
             processing={form.processing}
-            submitDisabled={selected.length === 0}
+            submitDisabled={
+                selected.length === 0 ||
+                (endedRows.length > 0 &&
+                    !arrivingToday &&
+                    data.arrived_at === '')
+            }
             loading={preview === null}
             footer={
                 nothingToCheckIn ? (
@@ -115,6 +146,34 @@ function CheckInAllForm({ open, onOpenChange, reservation }: Props) {
                             reason is under each name.
                         </p>
                     )}
+                    {endedStay !== null && (
+                        <EndedStayQuestion
+                            id="check-in-all"
+                            plural
+                            intro={
+                                endedStay.oneNight
+                                    ? `This booking was for last night (${endedStay.lastNight}) and was not checked in.`
+                                    : `This booking's last night was ${endedStay.lastNight} and it was not checked in.`
+                            }
+                            stayedDescription={`Keeps ${endedStay.stayDates} and charges ${endedStay.oneNight ? 'that night' : 'those nights'} for each room.`}
+                            arrivingDescription={
+                                endedStay.arrivingTodayBlocked ??
+                                `Changes the ticked rooms to ${endedStay.today} → ${endedStay.tomorrow}. They leave tomorrow. New total ${formatMoney(String(moveTotal), currency)}.`
+                            }
+                            arrivingDisabled={
+                                endedStay.arrivingTodayBlocked !== null
+                            }
+                            choice={data.ended_stay_choice}
+                            onChoiceChange={(value) =>
+                                form.setData('ended_stay_choice', value)
+                            }
+                            arrivedAt={data.arrived_at}
+                            onArrivedAtChange={(value) =>
+                                form.setData('arrived_at', value)
+                            }
+                            errors={errors}
+                        />
+                    )}
                     <div className="flex flex-col gap-2">
                         {preview.rows.map((row) => {
                             const error = rowErrors[`units.${row.unitId}`];
@@ -142,6 +201,12 @@ function CheckInAllForm({ open, onOpenChange, reservation }: Props) {
                                             {row.room ? ` · ${row.room}` : ''}
                                             {row.guest ? ` · ${row.guest}` : ''}
                                         </FieldLabel>
+                                        {isMixed && row.endedStay && (
+                                            <FieldDescription>
+                                                Late room: uses the answer
+                                                above.
+                                            </FieldDescription>
+                                        )}
                                         {row.note !== null && (
                                             <FieldDescription>
                                                 {row.note}
