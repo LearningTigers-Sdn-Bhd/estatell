@@ -8,7 +8,7 @@ Give each checked-in stay a PIN for its room door, and take it away when the gue
 
 | Now                                                                        | Later                                                          |
 | -------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| TTLock locks (first test lock: Bastn C13), one TTLock account per property | Fingerprint registration, a staff screen for cards             |
+| TTLock locks (first test lock: Est E13), one TTLock account per property   | Fingerprint registration, a staff screen for cards             |
 | Generated PINs (no gateway needed)                                         | Unlock log import (needs a gateway)                            |
 | Custom PINs chosen by staff (gateway needed, alert shown without one)      | Guest self check-in with a PIN sent by email or WhatsApp       |
 | Remote unlock from the screen (gateway needed, alert shown without one)    | eKey sharing                                                   |
@@ -132,7 +132,7 @@ Source: [TTLock Open Platform](https://euopen.ttlock.com/document/doc?urlName=cl
 | Remote unlock      | `POST /v3/lock/unlock` with `lockId`                                                                                                                                                                                                            |
 | Set the lock clock | `POST /v3/lock/updateDate` with `lockId`                                                                                                                                                                                                        |
 
-Still to check against the real account: the region host (`euapi.ttlock.com` against `api.sciener.com`), and `hasGateway` for the C13 once a gateway is paired.
+Still to check against the real account: the region host (`euapi.ttlock.com` against `api.sciener.com`), and `hasGateway` for the E13 once a gateway is paired.
 
 ## IC cards
 

@@ -265,7 +265,7 @@
         "slug": "smart-locks",
         "name": "Smart Locks",
         "metaTitle": "Hotel Smart Lock Integration with PIN Codes",
-        "description": "Estatell issues a smart lock PIN for each stay at check-in and removes it at check-out. See Bastn hotel and apartment door lock models and ask which come with TTLock Bluetooth.",
+        "description": "Estatell issues a smart lock PIN for each stay at check-in and removes it at check-out. See Est hotel and apartment door lock models and ask which come with TTLock Bluetooth.",
         "headline": ["Smart Locks.", "A PIN for each stay, gone at check-out."],
         "answer": "Estatell connects to TTLock smart locks and issues a PIN for each stay. The PIN is created at check-in and removed at check-out, and it follows the guest if they change rooms. On remote check-in, the PIN goes straight to the guest’s phone.",
         "featuresTitle": "What Estatell does with your locks",
@@ -297,58 +297,50 @@
         ],
         "catalogue": {
             "title": "Door lock models",
-            "intro": "Bastn hotel and apartment door locks, with photos of each model. Ask us which ones come with TTLock Bluetooth, the version Estatell connects to your PMS.",
+            "intro": "Est hotel and apartment door locks, with photos of each model. Ask us which ones come with TTLock Bluetooth, the version Estatell connects to your PMS.",
             "groups": [
                 {
                     "title": "Hotel locks",
                     "models": [
                         {
-                            "name": "Bastn C6",
-                            "image": "c6.jpg"
+                            "name": "Est E6",
+                            "image": "e6.jpg"
                         },
                         {
-                            "name": "Bastn C9",
-                            "image": "c9.jpg"
+                            "name": "Est E9",
+                            "image": "e9.jpg"
                         },
                         {
-                            "name": "Bastn CTA4",
-                            "image": "cta4.jpg"
+                            "name": "Est E4",
+                            "image": "e4.jpg"
                         },
                         {
-                            "name": "Bastn C13",
-                            "image": "c13.jpg"
+                            "name": "Est E13",
+                            "image": "e13.jpg"
                         },
                         {
-                            "name": "Bastn CT4",
-                            "image": "ct4.jpg"
+                            "name": "Est E11",
+                            "image": "e11.jpg"
                         },
                         {
-                            "name": "Bastn C11",
-                            "image": "c11.jpg"
+                            "name": "Est E41",
+                            "image": "e41.jpg"
                         },
                         {
-                            "name": "Bastn CT41",
-                            "image": "ct41.jpg"
+                            "name": "Est E80A",
+                            "image": "e80a.jpg"
                         },
                         {
-                            "name": "Bastn CT80A",
-                            "image": "ct80a.jpg"
+                            "name": "Est E80",
+                            "image": "e80.jpg"
                         },
                         {
-                            "name": "Bastn CT80",
-                            "image": "ct80.jpg"
+                            "name": "Est E83",
+                            "image": "e83.jpg"
                         },
                         {
-                            "name": "Bastn CT83",
-                            "image": "ct83.jpg"
-                        },
-                        {
-                            "name": "Bastn C12",
-                            "image": "c12.jpg"
-                        },
-                        {
-                            "name": "Bastn CT6",
-                            "image": "ct6.png"
+                            "name": "Est E12",
+                            "image": "e12.jpg"
                         }
                     ]
                 },
@@ -356,16 +348,16 @@
                     "title": "Apartment locks",
                     "models": [
                         {
-                            "name": "Bastn C6-M",
-                            "image": "c6-m.png"
+                            "name": "Est E6-M",
+                            "image": "e6-m.png"
                         },
                         {
-                            "name": "Bastn CT41-M",
-                            "image": "ct41-m.png"
+                            "name": "Est E41-M",
+                            "image": "e41-m.png"
                         },
                         {
-                            "name": "Bastn C12-M",
-                            "image": "c12-m.png"
+                            "name": "Est E12-M",
+                            "image": "e12-m.png"
                         }
                     ]
                 }
@@ -374,7 +366,7 @@
         "faqs": [
             {
                 "q": "Which locks work with Estatell?",
-                "a": "Locks on the TTLock platform that have a keypad. Ask us to confirm your lock model before you buy, because not every Bastn model comes with TTLock Bluetooth."
+                "a": "Locks on the TTLock platform that have a keypad. Ask us to confirm your lock model before you buy, because not every Est model comes with TTLock Bluetooth."
             },
             {
                 "q": "Do I need a gateway?",

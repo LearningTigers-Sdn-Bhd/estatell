@@ -312,7 +312,7 @@ export function ServicePage({ service }: { service: Service }) {
                                 </div>
                             </div>
                             <p className="mt-12 max-w-xl text-sm text-foreground/75">
-                                Product photos: Bastn (bastn.cn).
+                                Product photos: Est.
                             </p>
                         </Container>
                     </section>
