@@ -4,6 +4,7 @@ import {
     getCountryCallingCode,
     isSupportedCountry,
     parsePhoneNumberFromString,
+    validatePhoneNumberLength,
 } from 'libphonenumber-js/max';
 import type { CountryCode } from 'libphonenumber-js/max';
 
@@ -66,9 +67,52 @@ export function phoneCountries(
     ];
 }
 
-/** The number as it is typed, such as `012-345 6789`. */
+/**
+ * The number as it is typed, such as `012-345 6789`.
+ * A number typed without its leading 0, such as `11 2293 3232` after +60, gets the international grouping instead.
+ */
 export function formatPhone(text: string, country: CountryCode): string {
-    return new AsYouType(country).input(text);
+    const national = new AsYouType(country).input(text);
+
+    if (!/^\d+$/.test(national)) {
+        return national;
+    }
+
+    const callingCode = `+${getCountryCallingCode(country)} `;
+    const international = new AsYouType().input(
+        `+${getCountryCallingCode(country)}${national}`,
+    );
+
+    return international.startsWith(callingCode)
+        ? international.slice(callingCode.length)
+        : national;
+}
+
+/**
+ * Formats the number and keeps the cursor after the same digit, so an edit in the middle stays in place.
+ * Deleting only a dash or space gives the same number back, so the cursor moves past it.
+ */
+export function formatPhoneAt(
+    text: string,
+    caret: number,
+    country: CountryCode,
+): { text: string; caret: number } {
+    const formatted = formatPhone(text, country);
+    const significantBefore = text
+        .slice(0, caret)
+        .replace(/[^\d+]/g, '').length;
+    let seen = 0;
+    let position = 0;
+
+    while (position < formatted.length && seen < significantBefore) {
+        if (/[\d+]/.test(formatted[position])) {
+            seen++;
+        }
+
+        position++;
+    }
+
+    return { text: formatted, caret: position };
 }
 
 /** The number in E.164, such as `+60123456789`, or `null` if it is not valid. */
@@ -76,6 +120,18 @@ export function toE164(text: string, country: CountryCode): string | null {
     const parsed = parsePhoneNumberFromString(text, country);
 
     return parsed?.isValid() ? parsed.number : null;
+}
+
+/** Whether the number already has too many digits, so typing more cannot make it valid. */
+export function isPhoneTooLong(text: string, country: CountryCode): boolean {
+    const typed = text.trim();
+
+    return (
+        validatePhoneNumberLength(
+            typed,
+            typed.startsWith('+') ? undefined : country,
+        ) === 'TOO_LONG'
+    );
 }
 
 /** The error for a number that is not valid, or `null` if it is valid. */
