@@ -17,6 +17,7 @@ type Row = App.Data.Platform.AdminMailEventRowData;
 type Filters = {
     search: string;
     status: string;
+    property: string;
     from: string;
     to: string;
 };
@@ -27,6 +28,7 @@ type Props = {
     filters: Filters;
     sort: string;
     statuses: EnumOption[];
+    properties: EnumOption[];
 };
 
 const column = dataTableColumns<Row>();
@@ -36,6 +38,20 @@ const columns = [
         id: 'sent_at',
         header: 'Sent',
         cell: (info) => <span className="tabular-nums">{info.getValue()}</span>,
+    }),
+    column.accessor('triggeredByTitle', {
+        header: 'Triggered by',
+        enableSorting: false,
+        cell: (info) => (
+            <span className="flex min-w-0 flex-col">
+                <span className="truncate">{info.getValue() ?? '—'}</span>
+                {info.row.original.triggeredByDetail && (
+                    <span className="truncate text-xs text-muted-foreground">
+                        {info.row.original.triggeredByDetail}
+                    </span>
+                )}
+            </span>
+        ),
     }),
     column.accessor('recipient', {
         header: 'Recipient',
@@ -76,12 +92,13 @@ export default function MailEventsIndex({
     filters,
     sort,
     statuses,
+    properties,
 }: Props) {
     const visit = useCallback(
         (changes: Partial<Filters & { sort: string }>) => {
             const next = { ...filters, sort, ...changes };
             const filter = Object.fromEntries(
-                (['search', 'status', 'from', 'to'] as const)
+                (['search', 'status', 'property', 'from', 'to'] as const)
                     .filter((key) => next[key] !== '')
                     .map((key) => [key, next[key]]),
             );
@@ -103,7 +120,11 @@ export default function MailEventsIndex({
     );
 
     const hasFilters = Boolean(
-        filters.search || filters.status || filters.from || filters.to,
+        filters.search ||
+        filters.status ||
+        filters.property ||
+        filters.from ||
+        filters.to,
     );
     const total = Object.values(counts).reduce((sum, count) => sum + count, 0);
 
@@ -130,6 +151,14 @@ export default function MailEventsIndex({
                         aria-label="Status"
                         className="w-44"
                     />
+                    <EnumSelect
+                        options={properties}
+                        value={filters.property}
+                        onValueChange={(property) => visit({ property })}
+                        allLabel="All properties"
+                        aria-label="Property"
+                        className="w-52"
+                    />
                     <DateRangePicker
                         from={filters.from}
                         to={filters.to}
@@ -137,6 +166,7 @@ export default function MailEventsIndex({
                         onClear={() => visit({ from: '', to: '' })}
                         clearLabel="All dates"
                         placeholder="All dates"
+                        className="w-64"
                     />
                 </FilterBar>
 
@@ -168,6 +198,7 @@ export default function MailEventsIndex({
                                             visit({
                                                 search: '',
                                                 status: '',
+                                                property: '',
                                                 from: '',
                                                 to: '',
                                             })

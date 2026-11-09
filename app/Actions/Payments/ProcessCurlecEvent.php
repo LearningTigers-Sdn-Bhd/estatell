@@ -9,6 +9,8 @@ use App\Models\GatewayEvent;
 use App\Models\GatewayPayment;
 use App\Models\GatewayRefund;
 use App\Notifications\LateOnlinePaymentRefunded;
+use App\Services\Notifications\MailActorResolver;
+use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Notification;
 
 /**
@@ -117,11 +119,11 @@ class ProcessCurlecEvent
         $property = $payment->property()->with('settings')->firstOrFail();
 
         if (filled($hold->guest_email)) {
-            Notification::route('mail', (string) $hold->guest_email)->notify(new LateOnlinePaymentRefunded(
+            Context::scope(fn () => Notification::route('mail', (string) $hold->guest_email)->notify(new LateOnlinePaymentRefunded(
                 $property->name,
                 (string) $hold->guest_name,
                 $property->settings->currency->getCurrencyCode().' '.$payment->amount,
-            ));
+            )), hidden: [MailActorResolver::PROPERTY_CONTEXT_KEY => $property->id]);
         }
     }
 

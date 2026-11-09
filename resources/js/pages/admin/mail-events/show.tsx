@@ -13,6 +13,13 @@ export default function MailEventShow({ event }: Props) {
     const rows: [string, string | null][] = [
         ['Sent', event.sentAt],
         [
+            'Triggered by',
+            event.triggeredByTitle &&
+                [event.triggeredByTitle, event.triggeredByDetail]
+                    .filter(Boolean)
+                    .join(' · '),
+        ],
+        [
             'Recipient',
             event.recipientCount > 1
                 ? `${event.recipient} (+${event.recipientCount - 1} more)`

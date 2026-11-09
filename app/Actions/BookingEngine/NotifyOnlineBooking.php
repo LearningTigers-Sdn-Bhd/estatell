@@ -9,7 +9,9 @@ use App\Models\User;
 use App\Notifications\OnlineBookingConfirmed;
 use App\Notifications\OnlineBookingReceived;
 use App\Services\BookingEngine\BookingManageLink;
+use App\Services\Notifications\MailActorResolver;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Notification;
 
 /**
@@ -29,7 +31,7 @@ class NotifyOnlineBooking
         $guestName = (string) $hold->guest_name;
 
         if ($hold->guest_email !== null && $hold->guest_email !== '') {
-            Notification::route('mail', $hold->guest_email)->notify(new OnlineBookingConfirmed(
+            Context::scope(fn () => Notification::route('mail', $hold->guest_email)->notify(new OnlineBookingConfirmed(
                 $reservation->reference,
                 $reservation->short_code,
                 $property->name,
@@ -39,7 +41,7 @@ class NotifyOnlineBooking
                 array_values($hold->lines->map(fn (BookingHoldLine $line): string => $line->roomType->name)->unique()->all()),
                 $property->settings->currency->getCurrencyCode().' '.number_format((float) $hold->lines->sum('amount'), 2),
                 $this->manageLink->url($hold),
-            ));
+            )), hidden: [MailActorResolver::PROPERTY_CONTEXT_KEY => $property->id]);
         }
 
         $message = new OnlineBookingReceived($reservation->id, $reservation->reference, $property->code, $property->name, $guestName, $hold->arrival_date->toDateString());

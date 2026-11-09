@@ -2,8 +2,10 @@
 
 namespace App\Services\Platform;
 
+use App\Data\Platform\AdminMailEventRowData;
 use App\Enums\MailStatus;
 use App\Models\MailEvent;
+use App\Models\Property;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -27,14 +29,28 @@ class MailLogDirectory
             ->allowedFilters(
                 AllowedFilter::callback('search', fn (Builder $query, string $search) => $this->search($query, $search)),
                 AllowedFilter::exact('status'),
+                AllowedFilter::exact('property', 'property_id'),
                 AllowedFilter::callback('from', fn (Builder $query, string $date) => $query->where('sent_at', '>=', $date.' 00:00:00')),
                 AllowedFilter::callback('to', fn (Builder $query, string $date) => $query->where('sent_at', '<=', $date.' 23:59:59')),
             )
             ->allowedSorts('sent_at')
             ->defaultSort('-sent_at')
-            ->with('property:id,name')
+            ->with(AdminMailEventRowData::RELATIONS)
             ->paginate(self::PER_PAGE)
             ->withQueryString();
+    }
+
+    /**
+     * The properties the property filter offers, by name.
+     *
+     * @return list<array{value: string, label: string}>
+     */
+    public function propertyOptions(): array
+    {
+        return array_map(
+            fn (Property $property): array => ['value' => (string) $property->id, 'label' => $property->name],
+            array_values(Property::query()->orderBy('name')->get(['id', 'name'])->all()),
+        );
     }
 
     /**
