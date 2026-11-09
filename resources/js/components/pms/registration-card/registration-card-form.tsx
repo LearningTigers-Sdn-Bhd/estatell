@@ -65,7 +65,7 @@ export function RegistrationCardForm({
             guest.url({ unitGuest: card.unitGuestId }),
             { locale },
             {
-                only: ['card'],
+                only: ['card', 'countries'],
                 preserveScroll: true,
                 preserveState: true,
                 replace: true,

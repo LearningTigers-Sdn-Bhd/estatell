@@ -1,3 +1,4 @@
+import { CountryFlag } from '@/components/pms/country-flag';
 import type { EnumOption } from '@/components/pms/enum-select';
 import {
     Combobox,
@@ -7,6 +8,7 @@ import {
     ComboboxItem,
     ComboboxList,
 } from '@/components/ui/combobox';
+import { InputGroupAddon } from '@/components/ui/input-group';
 
 type Props = {
     id: string;
@@ -21,10 +23,12 @@ type Props = {
     placeholder?: string;
     /** Text when the search matches nothing. Defaults to "No matching countries." */
     emptyText?: string;
+    /** Shows country flags. Turn this off for a list that is not countries, such as currencies. */
+    showFlags?: boolean;
 };
 
 /**
- * A searchable picker for a short code list such as countries (or currencies, with `placeholder`). Type to filter the list; the clear button unsets the country.
+ * A searchable picker for a short code list such as countries (or currencies, with `placeholder` and no flags). Type to filter the list; the clear button unsets the country.
  * The first match is highlighted as you type, so Enter picks it. Enter never submits the surrounding form.
  */
 export function CountrySelect({
@@ -36,6 +40,7 @@ export function CountrySelect({
     invalid,
     placeholder = 'Search countries',
     emptyText = 'No matching countries.',
+    showFlags = true,
 }: Props) {
     const selected = options.find((option) => option.value === value) ?? null;
 
@@ -62,13 +67,22 @@ export function CountrySelect({
                         event.preventDefault();
                     }
                 }}
-            />
+            >
+                {showFlags && selected && (
+                    <InputGroupAddon>
+                        <CountryFlag code={selected.value} />
+                    </InputGroupAddon>
+                )}
+            </ComboboxInput>
             <ComboboxContent>
                 <ComboboxEmpty>{emptyText}</ComboboxEmpty>
                 <ComboboxList>
                     {(item: EnumOption) => (
                         <ComboboxItem key={item.value} value={item}>
-                            {item.label}
+                            <span className="flex min-w-0 items-center gap-2">
+                                {showFlags && <CountryFlag code={item.value} />}
+                                <span className="truncate">{item.label}</span>
+                            </span>
                         </ComboboxItem>
                     )}
                 </ComboboxList>

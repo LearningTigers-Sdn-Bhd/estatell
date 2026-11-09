@@ -10,7 +10,39 @@ import {
     FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { PhoneInput } from '@/components/pms/phone-input';
 import { Switch } from '@/components/ui/switch';
+
+export function SettingsPhoneInput({
+    name,
+    label,
+    value,
+    error,
+    disabled,
+    placeholder,
+}: {
+    name: string;
+    label: ReactNode;
+    value: string | null;
+    error?: string;
+    disabled?: boolean;
+    placeholder?: string;
+}) {
+    return (
+        <Field>
+            <FieldLabel htmlFor={name}>{label}</FieldLabel>
+            <PhoneInput
+                id={name}
+                name={name}
+                value={value ?? ''}
+                placeholder={placeholder}
+                disabled={disabled}
+                invalid={!!error}
+            />
+            <FieldError>{error}</FieldError>
+        </Field>
+    );
+}
 
 export function SettingsInput({
     name,

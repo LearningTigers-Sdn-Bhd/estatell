@@ -2648,6 +2648,7 @@ code: string,
 name: string,
 status: App.Enums.PropertyStatus,
 logoUrl: string | null,
+countryCode: string | null,
 };
 export type WeekendNightsOptionData = {
 value: string,

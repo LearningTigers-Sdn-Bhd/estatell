@@ -22,6 +22,7 @@ import { TabLinks } from '@/components/pms/tab-links';
 import {
     SettingsSwitch,
     SettingsInput,
+    SettingsPhoneInput,
     SettingsSelect,
 } from '@/components/pms/settings/form-fields';
 import { buttonVariants } from '@/components/ui/button';
@@ -266,10 +267,9 @@ export default function PropertySettings({
                                         <FieldSet>
                                             <FieldLegend>Contact</FieldLegend>
                                             <FieldGroup className="grid md:grid-cols-2">
-                                                <SettingsInput
+                                                <SettingsPhoneInput
                                                     name="contact_phone"
                                                     label="Phone (optional)"
-                                                    type="tel"
                                                     value={profile.contactPhone}
                                                     error={errors.contact_phone}
                                                 />

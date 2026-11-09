@@ -18,9 +18,9 @@ class CountryOptions
     /**
      * @return list<array{value: string, label: string}>
      */
-    public function options(): array
+    public function options(?string $locale = null): array
     {
-        $bundle = ResourceBundle::create(app()->getLocale(), 'ICUDATA-region') ?? ResourceBundle::create('en', 'ICUDATA-region');
+        $bundle = ResourceBundle::create($locale ?? app()->getLocale(), 'ICUDATA-region') ?? ResourceBundle::create('en', 'ICUDATA-region');
         $options = [];
 
         foreach ($bundle['Countries'] as $code => $name) {

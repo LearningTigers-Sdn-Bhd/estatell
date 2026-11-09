@@ -120,7 +120,7 @@ function GuestRow({
                     </FieldLabel>
                     <PhoneInput
                         id={`guest-${index}-phone`}
-                        placeholder="e.g. +60 12-345 6789"
+                        placeholder="e.g. 012-345 6789"
                         value={guest.phone}
                         onChange={(value) => onChange({ phone: value })}
                         invalid={!!error('phone')}
