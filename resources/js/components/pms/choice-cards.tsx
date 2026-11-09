@@ -1,4 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 import {
     Field,
     FieldContent,
@@ -16,6 +17,8 @@ export type Choice = {
     label: string;
     description: string;
     icon: LucideIcon;
+    /** A field that belongs to this choice, shown under its description. */
+    content?: ReactNode;
     /** Disables this choice only. */
     disabled?: boolean;
 };
@@ -47,7 +50,7 @@ export function ChoiceCards({
     error?: string;
     className?: string;
     radioPosition?: 'left' | 'right';
-    columns?: 2 | 3;
+    columns?: 1 | 2 | 3;
 }) {
     return (
         <FieldSet className={className} data-invalid={!!error}>
@@ -59,7 +62,8 @@ export function ChoiceCards({
                 disabled={disabled}
                 className={cn(
                     'grid gap-3',
-                    columns === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2',
+                    columns === 3 && 'sm:grid-cols-3',
+                    columns === 2 && 'sm:grid-cols-2',
                 )}
             >
                 {choices.map((choice) => (
@@ -86,6 +90,7 @@ export function ChoiceCards({
                                 <FieldDescription>
                                     {choice.description}
                                 </FieldDescription>
+                                {choice.content}
                             </FieldContent>
                         </Field>
                     </FieldLabel>

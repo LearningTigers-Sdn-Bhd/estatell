@@ -2194,3 +2194,57 @@ test('the check-out preview breaks the balance into charges, paid and the deposi
         ->assertOk()
         ->assertJson(['charges' => '300.00', 'paid' => '-30.00', 'depositHeld' => '100.00', 'balance' => '170.00']);
 });
+
+/**
+ * @param  array{unit: ReservationUnit, property: Property}  $setup
+ */
+function uaPaidOnFolio(array $setup, string $amount, PaymentPurpose $purpose = PaymentPurpose::Advance): Payment
+{
+    $folio = Folio::query()->where('reservation_unit_id', $setup['unit']->id)->first() ?? Folio::factory()->forUnit($setup['unit'])->create(['property_id' => $setup['property']->id, 'reservation_id' => $setup['unit']->reservation_id]);
+
+    return Payment::factory()->create(['folio_id' => $folio->id, 'amount' => $amount, 'purpose' => $purpose]);
+}
+
+test('the check-in bill offer leaves out what is already paid and is not recorded twice', function () {
+    $setup = uaSetup();
+    $cash = uaCheckInSetup($setup);
+    uaPaidOnFolio($setup, '50.00');
+
+    $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-in-preview'))
+        ->assertJsonPath('collection.billTotal', '166.00')
+        ->assertJsonPath('collection.billPaid', '50.00');
+
+    $this->post(uaUrl($setup, 'check-in'), ['collect_now' => true, 'room_charges' => true, 'collect_deposit' => false, 'payment_method_id' => $cash->id, 'idempotency_key' => fake()->uuid()])
+        ->assertSessionHasNoErrors();
+
+    expect(Payment::query()->where('purpose', PaymentPurpose::Advance)->latest('id')->value('amount'))->toBe('166.00');
+});
+
+test('a fully paid bill has nothing to offer', function () {
+    $setup = uaSetup();
+    uaCheckInSetup($setup);
+    uaPaidOnFolio($setup, '216.00');
+
+    $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-in-preview'))
+        ->assertJsonPath('collection.billTotal', '0.00');
+});
+
+test('a security deposit does not reduce the bill offer', function () {
+    $setup = uaSetup();
+    uaCheckInSetup($setup);
+    uaPaidOnFolio($setup, '100.00', PaymentPurpose::SecurityDeposit);
+
+    $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-in-preview'))
+        ->assertJsonPath('collection.billTotal', '216.00')
+        ->assertJsonPath('collection.billPaid', '0.00');
+});
+
+test('a refunded payment counts as not paid', function () {
+    $setup = uaSetup();
+    uaCheckInSetup($setup);
+    $payment = uaPaidOnFolio($setup, '50.00');
+    Payment::factory()->create(['folio_id' => $payment->folio_id, 'amount' => '50.00', 'purpose' => PaymentPurpose::Advance, 'refund_of_id' => $payment->id, 'receipt_number' => null]);
+
+    $this->actingAs($setup['user'])->postJson(uaUrl($setup, 'check-in-preview'))
+        ->assertJsonPath('collection.billTotal', '216.00');
+});

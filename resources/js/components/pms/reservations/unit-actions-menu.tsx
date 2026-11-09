@@ -93,6 +93,15 @@ export function UnitActionDialogs({
                     (item) => item.key === 'move-room',
                 )}
                 onAssignRoom={() => onChoose('move-room')}
+                onNoShow={
+                    unit.actions.some((item) => item.key === 'no-show')
+                        ? () => {
+                              // Check in fades out first (100 ms), so the wide and the narrow Dialog never overlap.
+                              onClose();
+                              window.setTimeout(() => onChoose('no-show'), 120);
+                          }
+                        : undefined
+                }
             />
             <CheckOutDialog
                 {...common}

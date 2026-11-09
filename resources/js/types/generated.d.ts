@@ -3658,6 +3658,7 @@ taxesHidden: boolean,
 deposit: string | null,
 billTotal: string,
 billHidden: boolean,
+billPaid: string,
 };
 export type CheckOutAsDayUseData = {
 refusal: string | null,

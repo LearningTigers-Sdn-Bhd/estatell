@@ -62,7 +62,7 @@ type Props = Shape & {
 const DIALOG_SIZE = {
     sm: 'md:max-w-100',
     md: 'md:max-w-lg',
-    // 240 = 60rem = 960 px: the check-out Dialog only (two columns from 1024 px).
+    // 240 = 60rem = 960 px: the check-out Dialog and the ended stay check-in (two columns from 1024 px).
     lg: 'md:max-w-240',
 } as const;
 
