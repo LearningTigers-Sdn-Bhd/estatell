@@ -12,6 +12,7 @@ use App\Models\BusinessDate;
 use App\Models\ReservationUnit;
 use App\Models\User;
 use App\Services\FrontDesk\EarlyCheckOutRule;
+use App\Services\FrontDesk\EndedStayCheckIn;
 use App\Services\FrontDesk\StayDay;
 use App\Services\FrontDesk\UndoCheckInRule;
 use App\Services\FrontDesk\UndoCheckOutRule;
@@ -30,6 +31,7 @@ class UnitActionMenu
         private UndoCheckInRule $undoCheckInRule,
         private UndoCheckOutRule $undoCheckOutRule,
         private StayDay $stayDay,
+        private EndedStayCheckIn $endedStayCheckIn,
         private PropertyToday $propertyToday,
     ) {}
 
@@ -80,7 +82,7 @@ class UnitActionMenu
 
     /**
      * The dates each Action accepts, so the menu never offers what it would refuse: check-in from the arrival date
-     * until the departure date, check-out from the departure date (or before it, see `isEarlyCheckOut()`), late check-out on the departure date, reinstate
+     * until the departure date (and on it, see `EndedStayCheckIn`), check-out from the departure date (or before it, see `isEarlyCheckOut()`), late check-out on the departure date, reinstate
      * and move room while the stay is still ahead. A checked-in unit past its departure can still be extended.
      */
     private function isTimely(UnitAction $action, ReservationUnit $unit, ?BusinessDate $current, User $user): bool
@@ -109,7 +111,8 @@ class UnitActionMenu
         $stayDay = $this->stayDay->forCheckOut($unit->property, CarbonImmutable::parse($businessDate))->toDateString();
 
         return match ($action) {
-            UnitAction::CheckIn => $this->checkInDay($unit, $current) >= $arrival && $this->checkInDay($unit, $current) < $departure,
+            UnitAction::CheckIn => ($this->checkInDay($unit, $current) >= $arrival && $this->checkInDay($unit, $current) < $departure)
+                || $this->endedStayCheckIn->isOffered($unit, CarbonImmutable::parse($businessDate)),
             UnitAction::CheckOut => $stayDay >= $departure || $this->isEarlyCheckOut($unit, $businessDate, $user)
                 || $this->earlyCheckOutRule->refusal($unit, $businessDate) === UnitStayResult::REFUSAL_ARRIVED_TODAY,
             UnitAction::CheckOutAsDayUse => $arrival === $businessDate && $departure > $businessDate

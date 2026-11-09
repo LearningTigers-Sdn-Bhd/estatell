@@ -59,12 +59,13 @@ class CheckInUnit
      * The check-in day is the business date, or the calendar date for a unit that arrives on it while the night audit
      * is pending (`StayDay`): it decides the arrival check, `stay_ended`, the room and the `business_date` of the log.
      * `$asOf` is the moment the guest really checked in, for a past stay entered late (`CreatePastStay`): it sets
-     * `checked_in_at`, and the arrival, the end of the stay and the room are checked on that day, not on the business date. Permissions are checked by the route. See docs/18-front-desk/01-check-in-and-check-out.md.
+     * `checked_in_at`, and the arrival, the end of the stay and the room are checked on that day, not on the business date.
+     * `$stayNight` overrides the check-in day alone, for a guest who arrived after midnight and was logged after the night audit (`CheckInEndedStay`): `$asOf` is then the real arrival, which can be the calendar day after the night. Permissions are checked by the route. See docs/18-front-desk/01-check-in-and-check-out.md.
      */
-    public function __invoke(?User $actor, ReservationUnit $unit, bool $withoutCard = false, ?string $creditOverrideReason = null, ?CarbonImmutable $asOf = null): UnitStayResult
+    public function __invoke(?User $actor, ReservationUnit $unit, bool $withoutCard = false, ?string $creditOverrideReason = null, ?CarbonImmutable $asOf = null, ?CarbonImmutable $stayNight = null): UnitStayResult
     {
         try {
-            return DB::transaction(function () use ($actor, $unit, $withoutCard, $creditOverrideReason, $asOf): UnitStayResult {
+            return DB::transaction(function () use ($actor, $unit, $withoutCard, $creditOverrideReason, $asOf, $stayNight): UnitStayResult {
                 $locked = ReservationUnit::query()->lockForUpdate()->findOrFail($unit->id);
 
                 if (! $locked->status->canTransitionTo(UnitStatus::CheckedIn)) {
@@ -79,7 +80,7 @@ class CheckInUnit
                 }
 
                 $today = $businessDate->toDateString();
-                $checkInDay = $asOf?->toDateString() ?? $this->stayDay->forCheckIn($locked, $businessDate)->toDateString();
+                $checkInDay = $stayNight?->toDateString() ?? $asOf?->toDateString() ?? $this->stayDay->forCheckIn($locked, $businessDate)->toDateString();
 
                 if ($checkInDay < $locked->arrival_date->toDateString()) {
                     return UnitStayResult::refused(UnitStayResult::REFUSAL_ARRIVAL_NOT_REACHED);

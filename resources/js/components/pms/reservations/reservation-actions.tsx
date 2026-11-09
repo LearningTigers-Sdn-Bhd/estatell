@@ -275,6 +275,7 @@ export function ReservationActions({
                     open={checkingInAll}
                     onOpenChange={setCheckingInAll}
                     reservation={reservation}
+                    currency={currency}
                 />
             )}
             {canCancelReservation && (

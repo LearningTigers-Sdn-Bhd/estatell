@@ -154,6 +154,7 @@ class ReservationRefusals
             UnitStayResult::REFUSAL_AMOUNT_REQUIRED => ['amount', __('Enter an amount of 0 or more for this day use.')],
             UnitStayResult::REFUSAL_NO_BUSINESS_DATE => [self::FORM, __('This property has no open business date yet.')],
             UnitStayResult::REFUSAL_STAY_ENDED => [self::FORM, __('The stay has ended.')],
+            UnitStayResult::REFUSAL_ARRIVED_AT_IN_FUTURE => ['arrived_at', __('The arrival time cannot be later than now.')],
             UnitStayResult::REFUSAL_ARRIVAL_NOT_REACHED => [self::FORM, __('The guest cannot check in before the arrival date.')],
             UnitStayResult::REFUSAL_NO_ROOM_ASSIGNED => [self::FORM, __('Assign a room or bed for tonight before checking in.')],
             UnitStayResult::REFUSAL_CARD_MISSING => [self::FORM, $canOverrideCard
