@@ -50,7 +50,7 @@ A room has one lock (unique per property and room), so one room is either TTLock
 3. On the stay, staff can also press Make key card, Update dates (rewrite) or Erase. Rewrite and erase name the serial of the last card this stay made. With no such card they are refused.
 4. A job is offered for `keyport.job_minutes` (10). Nobody on the reader in time means `expired`.
 5. Nothing is written until a person puts a card on the reader.
-6. Check-out never erases a card by itself. Erase is a button. A card also ends by itself at the departure time written on it.
+6. Check-out never erases a card by itself. Erase is a button. A card also ends by itself at the departure time written on it, but only on a lock whose clock is right: the lock compares the card with its own clock. A lock that was never set, or lost its time, keeps accepting a card after its departure (seen on a test lock: a card from Friday still opened on Monday). Set each lock's clock once from Keyport (Locks → Lock clock: make a clock card, swipe it at the lock within seconds) and again about every three months. After the clock was set, a card written for 10:50 opened at 10:51 and was refused at 10:52.
 7. When a stay's dates change after a card was written, the stay panel shows "Dates changed" and Update dates becomes the main button. Nothing is queued by itself, because a card job only works while a person is at the reader.
 8. After a room move the old room's card stays on the panel as "Old room" with Erase only. Erase is allowed at a lock outside the current room only when this stay made a card there. Issue and rewrite stay limited to the current room.
 
