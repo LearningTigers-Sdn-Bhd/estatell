@@ -46,7 +46,7 @@ class KeyportJobRowData extends Data
     private static function message(KeyportJob $job): ?string
     {
         return match ($job->status) {
-            KeyportJobStatus::Uncertain => __('The card may be half written. Check it, then make a new card.'),
+            KeyportJobStatus::Uncertain => __('Keyport could not confirm this card. Open Card tools in Keyport and read it. If it is wrong, make another card.'),
             KeyportJobStatus::Failed => $job->result['error_message'] ?? __('The card was not written. Make a new card.'),
             KeyportJobStatus::Expired => __('Nobody put a card on the reader in time. Make a new card.'),
             default => null,
