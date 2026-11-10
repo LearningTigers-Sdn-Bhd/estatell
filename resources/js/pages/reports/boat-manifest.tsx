@@ -28,8 +28,9 @@ type Props = {
     emptyTitle: string;
     emptyDescription: string;
     settingsUrl: string | null;
-    runs: App.Data.Boats.BoatDepartureRunData[];
+    sailings: App.Data.Boats.BoatMainSailingData[];
     boats: App.Data.Boats.BoatData[];
+    crew: App.Data.Boats.BoatCrewMemberData[];
     canSetRuns: boolean;
 };
 
@@ -64,8 +65,9 @@ export default function BoatManifestReport(props: Props) {
             }}
             aside={
                 <BoatsAndCrewPanel
-                    runs={props.runs}
+                    sailings={props.sailings}
                     boats={props.boats}
+                    crew={props.crew}
                     date={props.from}
                     canSet={props.canSetRuns}
                 />

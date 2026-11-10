@@ -16,8 +16,9 @@ use App\Enums\Tone;
 use App\Enums\UnitStatus;
 use App\Features\Boats;
 use App\Models\Boat;
+use App\Models\BoatCrewMember;
 use App\Models\BoatDeparture;
-use App\Models\BoatDepartureRun;
+use App\Models\BoatSailing;
 use App\Models\Company;
 use App\Models\Guest;
 use App\Models\Property;
@@ -403,7 +404,9 @@ test('a printed row names its guest, agent, pax, boat, crew and tick', function 
     [$manager, $property] = manifestSetup();
     $boat = Boat::factory()->create(['property_id' => $property->id, 'name' => 'SA10716']);
     $departure = manifestDeparture($property, BoatDirection::In, '09:00:00', '09:45:00');
-    BoatDepartureRun::query()->forceCreate(['property_id' => $property->id, 'boat_departure_id' => $departure->id, 'date' => '2026-10-20', 'boat_id' => $boat->id, 'crew' => 'Awang / Daus']);
+    $sailing = BoatSailing::factory()->forDeparture($departure)->create(['date' => '2026-10-20', 'boat_id' => $boat->id]);
+    $sailing->crew()->attach(BoatCrewMember::factory()->for($property)->create(['name' => 'Awang'])->id, ['in_charge' => true]);
+    $sailing->crew()->attach(BoatCrewMember::factory()->for($property)->create(['name' => 'Daus'])->id, ['in_charge' => false]);
     $trip = manifestTrip($property, manifestUnit($property), BoatDirection::In, $departure);
     $trip->forceFill(['ticked_at' => now(), 'ticked_by' => $manager->id])->save();
     $captured = manifestPdfView();
@@ -415,7 +418,7 @@ test('a printed row names its guest, agent, pax, boat, crew and tick', function 
     expect($row->lead_guest)->toBe('Lead Guest')
         ->and($row->total)->toBe(3)
         ->and($row->boat)->toBe('SA10716')
-        ->and($row->crew)->toBe('Awang / Daus')
+        ->and($row->crew)->toBe('⚓ Awang · Daus')
         ->and($row->ticked)->toBeTrue()
         ->and($captured->data['sections'][0]['pax'])->toBe(3);
 });

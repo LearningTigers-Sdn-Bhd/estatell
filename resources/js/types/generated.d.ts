@@ -105,7 +105,6 @@ chargeItemId: number | null,
 fare: App.Data.Boats.BoatFareData | null,
 defaultBoatId: number | null,
 defaultBoatName: string | null,
-defaultCrew: string | null,
 inChargeId: number | null,
 assistantIds: number[],
 crewNames: string[],
@@ -120,16 +119,6 @@ leavesAt: string,
 propertyTime: string,
 pickupPoint: string | null,
 seats: number | null,
-};
-export type BoatDepartureRunData = {
-departureId: number,
-label: string,
-direction: string,
-boatId: number | null,
-crew: string | null,
-defaultBoatId: number | null,
-defaultCrew: string | null,
-isOverridden: boolean,
 };
 export type BoatFareAgeGroupData = {
 ageGroupId: number,
@@ -156,6 +145,16 @@ childrenSummary: string,
 taxes: App.Data.Catalogues.ChargeItemTaxData[],
 childPrices: App.Data.Catalogues.ChargeItemChildPriceData[],
 };
+export type BoatMainSailingData = {
+departureId: number,
+label: string,
+direction: string,
+boatId: number | null,
+inChargeId: number | null,
+assistantIds: number[],
+isStored: boolean,
+otherBoats: number,
+};
 export type BoatSetupUnitData = {
 id: number,
 label: string,
@@ -175,6 +174,14 @@ mode: App.Enums.BoatMode,
 boatDepartureId: number | null,
 time: string | null,
 note: string | null,
+};
+export type SailingData = {
+boatId: number | null,
+inChargeId: number | null,
+assistantIds: number[],
+setsTimes: boolean,
+leavesAt: string | null,
+arrivesAt: string | null,
 };
 export type UnitBoatTripData = {
 direction: App.Enums.BoatDirection,
@@ -3125,6 +3132,8 @@ boat: string | null,
 crew: string | null,
 ticked: boolean,
 mode: string | null,
+sailing_key: string | null,
+sailing_title: string | null,
 };
 export type CheckedOutRow = {
 key: number,
@@ -4777,6 +4786,7 @@ export type RoomBlockReason = 'maintenance' | 'owner_use' | 'out_of_order' | 'ot
 export type RoomBlockRefusal = 'unavailable' | 'ended' | 'blocked' | 'has_stay';
 export type RoomDayState = 'arriving' | 'in_house' | 'departing' | 'vacant' | 'blocked';
 export type RoutingRuleSource = 'billing_mode' | 'manual';
+export type SailingKind = 'guests' | 'job';
 export type SellUnit = 'room' | 'bed';
 export type SiteTemplateStatus = 'draft' | 'available' | 'retired';
 export type SiteTemplateType = 'standard' | 'custom';

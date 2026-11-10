@@ -33,7 +33,6 @@ class BoatDepartureRequest extends FormRequest
             'seats' => filled($this->input('seats')) ? $this->input('seats') : null,
             'charge_item_id' => filled($this->input('charge_item_id')) ? $this->input('charge_item_id') : null,
             'default_boat_id' => filled($this->input('default_boat_id')) ? $this->input('default_boat_id') : null,
-            ...($this->has('default_crew') ? ['default_crew' => filled($this->input('default_crew')) ? trim((string) $this->input('default_crew')) : null] : []),
             ...($this->has('in_charge_id') ? ['in_charge_id' => filled($this->input('in_charge_id')) ? $this->input('in_charge_id') : null] : []),
             ...($this->has('assistant_ids') ? ['assistant_ids' => array_values(array_filter((array) $this->input('assistant_ids'), filled(...)))] : []),
             ...($this->has('active') ? ['active' => $this->boolean('active')] : []),
@@ -116,7 +115,6 @@ class BoatDepartureRequest extends FormRequest
                 'nullable', 'integer',
                 Rule::exists('boats', 'id')->where('property_id', $property->id)->where('active', true),
             ],
-            'default_crew' => ['nullable', 'string', 'max:120'],
             'in_charge_id' => ['nullable', 'integer', Rule::in($this->pickableCrewIds($property, $current))],
             'assistant_ids' => [
                 'nullable', 'array',

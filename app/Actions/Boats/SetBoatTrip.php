@@ -112,7 +112,7 @@ class SetBoatTrip
                 'mode' => $data->mode->value,
                 'boat_departure_id' => $boatDepartureId,
                 'note' => $note,
-                ...($otherBoat ? ['ticked_at' => null, 'ticked_by' => null] : []),
+                ...($otherBoat ? ['ticked_at' => null, 'ticked_by' => null, 'boat_sailing_id' => null] : []),
             ],
         );
 

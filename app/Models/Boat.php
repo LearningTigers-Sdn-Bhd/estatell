@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * A boat of the property, picked for a departure on a date (`BoatDepartureRun`). Never deleted; turned off instead.
+ * A boat of the property, picked for a sailing on a date (`BoatSailing`). Never deleted; turned off instead.
  *
  * @property int $id
  * @property int $property_id

@@ -369,7 +369,12 @@ class ReservationBookingController extends Controller
             ->map(intval(...))
             ->all());
 
-        return response()->json(['seats' => (object) $boatSeats->forDate($direction, $request->date('date', 'Y-m-d')->toImmutable(), $departureIds)]);
+        $date = $request->date('date', 'Y-m-d')->toImmutable();
+
+        return response()->json([
+            'seats' => (object) $boatSeats->forDate($direction, $date, $departureIds),
+            'limits' => (object) $boatSeats->limitsForDate($property, $date, $departureIds),
+        ]);
     }
 
     private function form(Request $request, Property $property, ReservationFormOptions $options, CurrentBusinessDate $businessDate, PropertyToday $today, BookingSourceOptions $sourceOptions, bool $walkIn, bool $pastStay = false, bool $migratedStay = false, bool $oldStay = false, bool $readsPrefill = false): Response

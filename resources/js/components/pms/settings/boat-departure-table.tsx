@@ -202,12 +202,9 @@ export function BoatDepartureTable({
                             </TableCell>
                             <TableCell>
                                 {(() => {
-                                    // The crew list shows the one in charge after an anchor, then the assistants. A departure
-                                    // not moved to the crew list yet still shows its old free-text crew.
+                                    // The one in charge shows after an anchor, then the assistants.
                                     const [inCharge, ...assistants] =
-                                        departure.inChargeId === null
-                                            ? [null, ...departure.crewNames]
-                                            : departure.crewNames;
+                                        departure.crewNames;
                                     const crewText = [
                                         inCharge ? `⚓ ${inCharge}` : null,
                                         ...assistants,
@@ -216,7 +213,7 @@ export function BoatDepartureTable({
                                         .join(' · ');
                                     const text = [
                                         departure.defaultBoatName,
-                                        crewText || departure.defaultCrew,
+                                        crewText,
                                     ]
                                         .filter(Boolean)
                                         .join(' · ');

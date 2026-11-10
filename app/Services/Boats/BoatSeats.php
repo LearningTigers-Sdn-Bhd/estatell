@@ -4,15 +4,36 @@ namespace App\Services\Boats;
 
 use App\Enums\BoatDirection;
 use App\Enums\UnitStatus;
+use App\Models\Property;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 
 /**
  * Counts the seats taken on departures for one date. Every guest takes a seat, children and infants included. A unit
- * takes seats while it holds inventory: Confirmed, CheckedIn and CheckedOut. Reads only.
+ * takes seats while it holds inventory: Confirmed, CheckedIn and CheckedOut. Reads only. The limit of a departure on a date
+ * is the total of its sailings' limits ([Seats](docs/24-boats/04-sailings.md#seats)).
  */
 class BoatSeats
 {
+    public function __construct(private DateSailings $dateSailings) {}
+
+    /**
+     * The seat limit of each departure on the date: the sum of its sailings' limits, or null when any sailing has none.
+     *
+     * @param  list<int>  $departureIds
+     * @return array<int, int|null> Limit by departure id.
+     */
+    public function limitsForDate(Property $property, CarbonInterface $date, array $departureIds): array
+    {
+        if ($departureIds === []) {
+            return [];
+        }
+
+        return collect($this->dateSailings->forDate($property, $date, $departureIds))
+            ->map(fn (array $sailings): ?int => $this->dateSailings->totalLimit($sailings))
+            ->all();
+    }
+
     /**
      * Seats taken on each departure for one date. A departure with no trip on that date has 0.
      *

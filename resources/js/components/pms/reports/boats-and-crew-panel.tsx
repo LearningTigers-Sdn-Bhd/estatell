@@ -1,6 +1,8 @@
 import { useForm } from '@inertiajs/react';
 import { RotateCcw, Ship } from 'lucide-react';
 import { EnumSelect } from '@/components/pms/enum-select';
+import type { EnumOption } from '@/components/pms/enum-select';
+import { MultiCombobox } from '@/components/pms/multi-combobox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -9,191 +11,210 @@ import {
     CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { FieldError } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
-import { runs as runsRoute } from '@/routes/reports/boat-manifest';
+import { sailings as sailingsRoute } from '@/routes/reports/boat-manifest';
 
-type Run = App.Data.Boats.BoatDepartureRunData;
+type Sailing = App.Data.Boats.BoatMainSailingData;
 type Boat = App.Data.Boats.BoatData;
+type CrewMember = App.Data.Boats.BoatCrewMemberData;
 
-type RunFormItem = {
+const NO_BOAT = '';
+const NO_IN_CHARGE = '';
+
+type SailingFormItem = {
     boat_departure_id: number;
     boat_id: string;
-    crew: string;
-    reset_to_default?: boolean;
+    in_charge_id: string;
+    assistant_ids: string[];
+    reset_to_default: boolean;
 };
 
 function BoatsAndCrewForm({
-    runs,
+    sailings,
     boats,
+    crew,
     date,
     canSet,
 }: {
-    runs: Run[];
+    sailings: Sailing[];
     boats: Boat[];
+    crew: CrewMember[];
     date: string;
     canSet: boolean;
 }) {
-    const boatOptions = boats.map((boat) => ({
-        value: String(boat.id),
-        label: boat.name,
-    }));
-
-    const form = useForm<{
-        date: string;
-        runs: RunFormItem[];
-    }>({
+    const form = useForm<{ date: string; sailings: SailingFormItem[] }>({
         date,
-        runs: runs.map((run) => ({
-            boat_departure_id: run.departureId,
-            boat_id:
-                run.boatId === null || run.boatId === undefined
-                    ? ''
-                    : String(run.boatId),
-            crew: run.crew ?? '',
+        sailings: sailings.map((sailing) => ({
+            boat_departure_id: sailing.departureId,
+            boat_id: sailing.boatId === null ? '' : String(sailing.boatId),
+            in_charge_id:
+                sailing.inChargeId === null ? '' : String(sailing.inChargeId),
+            assistant_ids: sailing.assistantIds.map(String),
             reset_to_default: false,
         })),
     });
 
-    const updateRun = (
-        index: number,
-        field: 'boat_id' | 'crew',
-        value: string,
-    ) => {
-        const nextRuns = [...form.data.runs];
-        nextRuns[index] = {
-            ...nextRuns[index],
-            [field]: value,
-            reset_to_default: false,
-        };
-        form.setData('runs', nextRuns);
-    };
+    const errors = form.errors as Record<string, string | undefined>;
 
-    const revertRow = (index: number, run: Run) => {
-        const nextRuns = [...form.data.runs];
-        nextRuns[index] = {
-            ...nextRuns[index],
-            boat_id:
-                run.defaultBoatId === null || run.defaultBoatId === undefined
-                    ? ''
-                    : String(run.defaultBoatId),
-            crew: run.defaultCrew ?? '',
-            reset_to_default: true,
-        };
-        form.setData('runs', nextRuns);
+    const update = (index: number, change: Partial<SailingFormItem>) => {
+        const next = [...form.data.sailings];
+        next[index] = { ...next[index], ...change, reset_to_default: false };
+        form.setData('sailings', next);
     };
 
     const save = (event: React.FormEvent) => {
         event.preventDefault();
-        form.transform((data) => ({
-            ...data,
-            runs: data.runs.map((r) => ({
-                ...r,
-                boat_id: r.boat_id === '' ? null : Number(r.boat_id),
-            })),
-        }));
-        form.put(runsRoute.url(), { preserveScroll: true });
+        form.put(sailingsRoute.url(), { preserveScroll: true });
     };
 
     return (
         <form onSubmit={save} className="pt-1">
             <div className="divide-y">
-                {runs.map((run, index) => {
-                    const formRun = form.data.runs[index];
-                    if (!formRun) {
+                {sailings.map((sailing, index) => {
+                    const item = form.data.sailings[index];
+
+                    if (!item) {
                         return null;
                     }
 
+                    const picked = new Set([
+                        ...(sailing.inChargeId ? [sailing.inChargeId] : []),
+                        ...sailing.assistantIds,
+                    ]);
+                    const offered = crew.filter(
+                        (member) => member.active || picked.has(member.id),
+                    );
+                    const label = (member: CrewMember) =>
+                        member.active
+                            ? member.name
+                            : `${member.name} (unavailable)`;
+                    const boatOptions: EnumOption[] = boats
+                        .filter(
+                            (boat) => boat.active || boat.id === sailing.boatId,
+                        )
+                        .map((boat) => ({
+                            value: String(boat.id),
+                            label: boat.name,
+                        }));
+                    const inChargeOptions: EnumOption[] = [
+                        { value: NO_IN_CHARGE, label: 'Nobody' },
+                        ...offered.map((member) => ({
+                            value: String(member.id),
+                            label: label(member),
+                        })),
+                    ];
+                    const assistantOptions = offered
+                        .filter(
+                            (member) => String(member.id) !== item.in_charge_id,
+                        )
+                        .map((member) => ({
+                            value: String(member.id),
+                            label: label(member),
+                        }));
+
                     return (
                         <div
-                            key={`${date}-${run.departureId}`}
-                            className="flex flex-wrap items-center gap-2 py-2 first:pt-0"
+                            key={`${date}-${sailing.departureId}`}
+                            className="flex flex-wrap items-start gap-2 py-2 first:pt-0"
                         >
                             <div className="flex w-52 flex-col">
                                 <span className="text-sm font-medium">
-                                    {run.label}
+                                    {sailing.label}
                                 </span>
-                                {run.isOverridden ? (
-                                    <span className="text-xs font-normal text-amber-600 dark:text-amber-500">
-                                        Custom override
+                                {sailing.isStored ? (
+                                    <span className="text-xs font-normal text-muted-foreground">
+                                        Set for this date
+                                        {sailing.otherBoats > 0
+                                            ? `, ${sailing.otherBoats} more ${sailing.otherBoats === 1 ? 'boat' : 'boats'}`
+                                            : ''}
                                     </span>
-                                ) : run.defaultBoatId !== null ||
-                                  run.defaultCrew ? (
+                                ) : (
                                     <span className="text-xs font-normal text-muted-foreground">
                                         Timetable default
                                     </span>
-                                ) : null}
+                                )}
                             </div>
                             <div className="flex flex-col gap-1">
                                 <EnumSelect
-                                    aria-label={`Boat for ${run.label}`}
+                                    aria-label={`Boat for ${sailing.label}`}
                                     className="w-44"
                                     options={boatOptions}
                                     allLabel="No boat"
-                                    value={formRun.boat_id}
+                                    value={item.boat_id || NO_BOAT}
                                     onValueChange={(value) =>
-                                        updateRun(index, 'boat_id', value)
+                                        update(index, { boat_id: value })
                                     }
                                     disabled={!canSet}
                                 />
                                 <FieldError>
-                                    {
-                                        (
-                                            form.errors as Record<
-                                                string,
-                                                string | undefined
-                                            >
-                                        )[`runs.${index}.boat_id`]
-                                    }
+                                    {errors[`sailings.${index}.boat_id`]}
                                 </FieldError>
                             </div>
                             <div className="flex flex-col gap-1">
-                                <Input
-                                    aria-label={`Crew for ${run.label}`}
-                                    className="w-56"
-                                    placeholder="Crew, e.g. Awang / Daus"
-                                    maxLength={120}
-                                    value={formRun.crew}
-                                    onChange={(event) =>
-                                        updateRun(
-                                            index,
-                                            'crew',
-                                            event.target.value,
-                                        )
+                                <EnumSelect
+                                    aria-label={`In charge for ${sailing.label}`}
+                                    className="w-44"
+                                    options={inChargeOptions}
+                                    placeholder="In charge"
+                                    value={item.in_charge_id || NO_IN_CHARGE}
+                                    onValueChange={(value) =>
+                                        update(index, {
+                                            in_charge_id: value,
+                                            assistant_ids:
+                                                item.assistant_ids.filter(
+                                                    (id) => id !== value,
+                                                ),
+                                        })
                                     }
                                     disabled={!canSet}
                                 />
                                 <FieldError>
-                                    {
-                                        (
-                                            form.errors as Record<
-                                                string,
-                                                string | undefined
-                                            >
-                                        )[`runs.${index}.crew`]
-                                    }
+                                    {errors[`sailings.${index}.in_charge_id`]}
                                 </FieldError>
                             </div>
-                            {canSet &&
-                                (run.isOverridden ||
-                                    formRun.reset_to_default) &&
-                                (run.defaultBoatId !== null ||
-                                    run.defaultCrew) && (
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => revertRow(index, run)}
-                                        title="Revert to timetable default"
-                                        className="text-xs text-muted-foreground hover:text-foreground"
-                                    >
-                                        <RotateCcw
-                                            data-icon="inline-start"
-                                            className="size-3.5"
-                                        />
-                                        Default
-                                    </Button>
-                                )}
+                            <div className="w-64">
+                                <MultiCombobox
+                                    id={`boat-sailing-assistants-${sailing.departureId}`}
+                                    name={`sailings.${index}.assistant_ids`}
+                                    items={assistantOptions}
+                                    value={item.assistant_ids}
+                                    onValueChange={(value) =>
+                                        update(index, { assistant_ids: value })
+                                    }
+                                    placeholder="Assistants"
+                                    emptyLabel={
+                                        crew.length === 0
+                                            ? 'No crew yet. Add one on the Crew tab.'
+                                            : 'No matching crew.'
+                                    }
+                                    disabled={!canSet}
+                                />
+                            </div>
+                            {canSet && sailing.isStored && (
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                        const next = [...form.data.sailings];
+                                        next[index] = {
+                                            ...next[index],
+                                            reset_to_default: true,
+                                        };
+                                        form.setData('sailings', next);
+                                    }}
+                                    title="Go back to the timetable for this date"
+                                    className="text-xs text-muted-foreground hover:text-foreground"
+                                >
+                                    <RotateCcw
+                                        data-icon="inline-start"
+                                        className="size-3.5"
+                                    />
+                                    {item.reset_to_default
+                                        ? 'Default on save'
+                                        : 'Default'}
+                                </Button>
+                            )}
                         </div>
                     );
                 })}
@@ -239,25 +260,32 @@ function BoatsAndCrewForm({
 }
 
 /**
- * The boat and crew of departures on the manifest date. They print in the section title of each departure, for
- * the boat crew. Staff without reservations.manage see them read only.
+ * The boat and crew of the main sailing of each departure on the manifest date. They print in the section title of each
+ * sailing, for the boat crew. Staff without reservations.manage see them read only. The Boats board replaces this panel.
  */
 export function BoatsAndCrewPanel({
-    runs,
+    sailings,
     boats,
+    crew,
     date,
     canSet,
 }: {
-    runs: Run[];
+    sailings: Sailing[];
     boats: Boat[];
+    crew: CrewMember[];
     date: string;
     canSet: boolean;
 }) {
-    if (runs.length === 0) {
+    if (sailings.length === 0) {
         return null;
     }
 
-    const stateKey = `${date}-${runs.map((r) => `${r.departureId}:${r.boatId}:${r.crew}:${r.isOverridden}`).join(',')}`;
+    const stateKey = `${date}-${sailings
+        .map(
+            (s) =>
+                `${s.departureId}:${s.boatId}:${s.inChargeId}:${s.assistantIds.join('.')}:${s.isStored}`,
+        )
+        .join(',')}`;
 
     return (
         <Collapsible className="rounded-lg border px-3 py-2">
@@ -275,16 +303,17 @@ export function BoatsAndCrewPanel({
                     <span>Boats and crew</span>
                 </div>
                 <Badge variant="outline" className="text-xs font-normal">
-                    {runs.length === 1
+                    {sailings.length === 1
                         ? '1 departure'
-                        : `${runs.length} departures`}
+                        : `${sailings.length} departures`}
                 </Badge>
             </CollapsibleTrigger>
             <CollapsibleContent className="pt-1">
                 <BoatsAndCrewForm
                     key={stateKey}
-                    runs={runs}
+                    sailings={sailings}
                     boats={boats}
+                    crew={crew}
                     date={date}
                     canSet={canSet}
                 />

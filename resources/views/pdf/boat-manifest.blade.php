@@ -6,7 +6,7 @@
      * @var string $sheetTitle
      * @var string $sheetDate
      * @var bool $selectedOnly
-     * @var list<array{band: string, kind: string, heading: string, jetty: ?string, boat: ?string, crew: ?string, rows: list<\App\Data\Reports\BoatManifestRow>, pax: int}> $sections
+     * @var list<array{band: string, kind: string, heading: string, jetty: ?string, boat: ?string, crew: list<array{name: string, in_charge: bool}>, rows: list<\App\Data\Reports\BoatManifestRow>, pax: int}> $sections
      */
     $bands = ['out' => '#ea3323', 'in' => '#9dc384', 'not_set' => '#fbbf24'];
     $upper = fn (?string $text): string => mb_strtoupper((string) $text);
@@ -60,9 +60,8 @@
                 @php $rows = $section['rows'] === [] ? [null] : $section['rows']; @endphp
                 @foreach ($rows as $row)
                     @php
-                        $crew = $row === null ? $section['crew'] : ($row->crew ?? $section['crew']);
                         $boat = $row === null ? $section['boat'] : ($row->boat ?? $section['boat']);
-                        $crewNames = $crew === null ? [] : array_values(array_filter(array_map('trim', explode('/', $crew))));
+                        $crewMembers = $section['crew'];
                     @endphp
                     <tr>
                         <td>{{ $loop->iteration }}</td>
@@ -71,8 +70,8 @@
                         <td>{{ $row === null ? '-' : __(':count PAX', ['count' => $row->total]) }}</td>
                         <td>{{ $boat === null ? '-' : $upper($boat) }}</td>
                         <td>
-                            @forelse ($crewNames as $name)
-                                @if (! $loop->first)<strong> / </strong>@endif<span class="{{ $loop->first ? 'crew-first' : 'crew-next' }}">{{ $upper($name) }}</span>
+                            @forelse ($crewMembers as $member)
+                                @if (! $loop->first)<strong> / </strong>@endif<span class="{{ $member['in_charge'] ? 'crew-first' : 'crew-next' }}">{{ $upper($member['name']) }}</span>
                             @empty
                                 -
                             @endforelse

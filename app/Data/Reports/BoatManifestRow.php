@@ -12,9 +12,9 @@ use Spatie\LaravelData\Data;
 /**
  * One trip of the Boat manifest: a unit's Boat in or Boat out on the date. The property names are the column keys of
  * `ReportKey::BoatManifest`. `key` is the trip id, or for a unit with no trip in that direction ("Boat not set") a
- * negative key from `notSetKey()`. `boat_departure_id`, `seats`, `direction` and `not_set` group the row into its
- * section. They are not columns. `agent` is the company, else "Direct booking", else the booking source. `boat` and
- * `crew` come from the day's run or the timetable (Own boat and Charter name the mode). `ticked` says the guests have
+ * negative key from `notSetKey()`. `boat_departure_id`, `sailing_key`, `sailing_title`, `seats`, `direction` and `not_set` group
+ * the row into its section (one per sailing). They are not columns. `agent` is the company, else "Direct booking", else the booking source. `boat` and
+ * `crew` come from the row's sailing (Own boat and Charter name the mode). `ticked` says the guests have
  * arrived or left; a row with no trip (`not_set`) cannot be ticked. `mode` is null there.
  */
 class BoatManifestRow extends Data implements ReportRow
@@ -39,6 +39,8 @@ class BoatManifestRow extends Data implements ReportRow
         public ?string $crew = null,
         public bool $ticked = false,
         public ?string $mode = null,
+        public ?string $sailing_key = null,
+        public ?string $sailing_title = null,
     ) {}
 
     /**
@@ -136,21 +138,21 @@ class BoatManifestRow extends Data implements ReportRow
      * and own boat trips take their time from the unit: its arrival time for Boat in, its departure time for Boat out.
      *
      * @param  string|null  $room  The room number or bed label of the night the direction needs, when one is assigned.
-     * @param  array{boat: ?string, crew: ?string}  $run  The boat and crew of a scheduled departure on the date.
+     * @param  array{key: string, title: string, times: string, boat: ?string, crew: ?string, seats: ?int}|null  $sailing  The sailing of a scheduled trip on the date, named by `SailingLabels`.
      */
-    public static function fromModel(UnitBoatTrip $trip, ReservationUnit $unit, ?string $room, array $run = ['boat' => null, 'crew' => null]): self
+    public static function fromModel(UnitBoatTrip $trip, ReservationUnit $unit, ?string $room, ?array $sailing = null): self
     {
         $reservation = $unit->reservation;
         $occupant = ($unit->guests->firstWhere('is_primary', true) ?? $unit->guests->first())->guest ?? $reservation->booker;
         $departure = $trip->boatDeparture;
-        $isScheduled = $trip->mode === BoatMode::Scheduled && $departure !== null;
+        $isScheduled = $trip->mode === BoatMode::Scheduled && $departure !== null && $sailing !== null;
 
         $time = substr($trip->direction === BoatDirection::In ? $unit->arrival_time : $unit->departure_time, 0, 5);
 
         return new self(
             key: $trip->id,
             departure: $isScheduled
-                ? implode(' ', array_filter([substr($departure->leaves_at, 0, 5), $departure->pickup_point])).' → '.substr($departure->arrives_at, 0, 5)
+                ? $sailing['times']
                 : ($trip->mode === BoatMode::Charter ? __('Charter :time', ['time' => $time]) : __('Own :time', ['time' => $time])),
             unit: $room ?? $unit->roomType->name,
             lead_guest: $occupant->full_name,
@@ -162,12 +164,14 @@ class BoatManifestRow extends Data implements ReportRow
             reservation: $reservation->reference,
             note: $trip->note,
             boat_departure_id: $isScheduled ? $departure->id : null,
-            seats: $isScheduled ? $departure->seats : null,
+            seats: $isScheduled ? $sailing['seats'] : null,
             direction: $trip->direction->value,
-            boat: $isScheduled ? $run['boat'] : $trip->mode->label(),
-            crew: $isScheduled ? $run['crew'] : null,
+            boat: $isScheduled ? $sailing['boat'] : $trip->mode->label(),
+            crew: $isScheduled ? $sailing['crew'] : null,
             ticked: $trip->ticked_at !== null,
             mode: $trip->mode->value,
+            sailing_key: $isScheduled ? $sailing['key'] : null,
+            sailing_title: $isScheduled ? $sailing['title'] : null,
         );
     }
 }
