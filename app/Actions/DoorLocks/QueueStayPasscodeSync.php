@@ -12,7 +12,7 @@ use App\Jobs\SyncStayPasscodesJob;
 use App\Models\Property;
 
 /**
- * Listener for the stay events: queue a PIN sync only when the property has the Door locks feature and an enabled connection.
+ * Listener for the stay events: queue the stay sync when the property has the Door locks feature and a TTLock connection. PINs are only issued while the connection is enabled (the job checks), but cards follow the stay either way.
  */
 class QueueStayPasscodeSync
 {
@@ -20,7 +20,8 @@ class QueueStayPasscodeSync
     {
         $property = Property::query()->with('doorLockConnection')->find($event->propertyId);
 
-        if ($property === null || $property->doorLockConnection?->enabled !== true || ! DoorLocks::allows($property, LockProvider::TTLock)) {
+        // The job decides what to do with a connection that does not issue PINs automatically: cards still follow the stay.
+        if ($property === null || $property->doorLockConnection === null || ! DoorLocks::allows($property, LockProvider::TTLock)) {
             return;
         }
 

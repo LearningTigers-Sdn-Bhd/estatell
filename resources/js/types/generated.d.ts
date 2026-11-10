@@ -983,6 +983,15 @@ total: number,
 };
 }
 namespace DoorLocks {
+export type DoorCardData = {
+id: number,
+lockName: string,
+cardNumber: string,
+status: App.Data.Shared.BadgeData,
+endsAt: string,
+error: string | null,
+canRemove: boolean,
+};
 export type DoorLockConnectionData = {
 ttlockUsername: string,
 signedIn: boolean,
@@ -1042,12 +1051,14 @@ reason: string | null,
 };
 export type UnitDoorPinsData = {
 passcodes: App.Data.DoorLocks.DoorPasscodeData[],
+cards: App.Data.DoorLocks.DoorCardData[],
 locksWithoutPin: App.Data.DoorLocks.LockWithoutPinData[],
 sendNewPin: boolean,
 updating: boolean,
 making: boolean,
 leavingIds: number[],
 syncing: boolean,
+canAddCard: boolean,
 };
 }
 namespace Folio {

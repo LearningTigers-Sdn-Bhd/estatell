@@ -9,6 +9,7 @@ use App\Http\Controllers\Reservations\ReservationBookingController;
 use App\Http\Controllers\Reservations\ReservationCityLedgerController;
 use App\Http\Controllers\Reservations\ReservationCompanyController;
 use App\Http\Controllers\Reservations\ReservationController;
+use App\Http\Controllers\Reservations\ReservationDoorCardController;
 use App\Http\Controllers\Reservations\ReservationDoorPinController;
 use App\Http\Controllers\Reservations\ReservationFolioController;
 use App\Http\Controllers\Reservations\ReservationFolioLineController;
@@ -151,6 +152,8 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                     Route::post('check-in/preview', [ReservationUnitStayController::class, 'checkInPreview'])->name('check-in-preview');
                     Route::post('check-in', [ReservationUnitStayController::class, 'checkIn'])->name('check-in');
                     Route::post('key-cards', [ReservationKeyCardController::class, 'store'])->middleware('door-locks:elock')->name('key-cards.store');
+                    Route::post('door-cards', [ReservationDoorCardController::class, 'store'])->middleware('door-locks:ttlock')->name('door-cards.store');
+                    Route::delete('door-cards/{doorCard}', [ReservationDoorCardController::class, 'destroy'])->middleware('door-locks:ttlock')->name('door-cards.destroy');
                     Route::post('door-pins/{doorPasscode}/replace', [ReservationDoorPinController::class, 'replace'])->middleware('door-locks:ttlock')->name('door-pins.replace');
                 });
 
