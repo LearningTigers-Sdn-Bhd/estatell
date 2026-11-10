@@ -7,6 +7,8 @@ use App\Models\Property;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Propaganistas\LaravelPhone\PhoneNumber;
+use Propaganistas\LaravelPhone\Rules\Phone;
 
 /** Add or change a crew member on the Crew tab. */
 class BoatCrewMemberRequest extends FormRequest
@@ -56,7 +58,7 @@ class BoatCrewMemberRequest extends FormRequest
                     }
                 },
             ],
-            'phone' => ['nullable', 'string', 'max:30'],
+            'phone' => ['nullable', 'string', 'max:30', (new Phone)->country($this->phoneRegion())->international()],
             'active' => ['boolean'],
         ];
     }
@@ -68,8 +70,17 @@ class BoatCrewMemberRequest extends FormRequest
     {
         return [
             'name' => (string) $this->validated('name'),
-            'phone' => $this->validated('phone'),
+            'phone' => filled($this->validated('phone')) ? (new PhoneNumber((string) $this->validated('phone'), $this->phoneRegion()))->formatE164() : null,
             'active' => (bool) $this->validated('active'),
         ];
+    }
+
+    /** A number typed without a country code is read as a number of the property's country. */
+    private function phoneRegion(): string
+    {
+        /** @var Property $property */
+        $property = $this->route('property');
+
+        return $property->country_code ?? 'MY';
     }
 }

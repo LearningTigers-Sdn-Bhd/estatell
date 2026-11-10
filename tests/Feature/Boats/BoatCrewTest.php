@@ -51,8 +51,11 @@ test('owners add and change crew, log it, and turn them off without deleting', f
         ->assertSessionHasNoErrors();
 
     $din = BoatCrewMember::query()->sole();
-    expect($din->name)->toBe('Din')->and($din->phone)->toBe('013-222 1111')->and($din->active)->toBeTrue();
+    expect($din->name)->toBe('Din')->and($din->phone)->toBe('+60132221111')->and($din->active)->toBeTrue();
     expect(Activity::query()->where('event', 'boat_crew_member.created')->count())->toBe(1);
+
+    $this->post(route('settings.boats.crew.store', $code), ['name' => 'Awang', 'phone' => '12'])
+        ->assertSessionHasErrors('phone');
 
     // The Available switch sends the full row with a new active.
     $this->put(route('settings.boats.crew.update', [$code, $din]), ['name' => 'Din', 'phone' => '013-222 1111', 'active' => '0'])

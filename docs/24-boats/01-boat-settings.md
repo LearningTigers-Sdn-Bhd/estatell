@@ -336,6 +336,8 @@ Crew                                                          [+ Add crew]
 ```
 
 - The same table, switch and Dialog as the Boats tab: Name and Phone (optional). Toast: "Din is available." or "… is unavailable."
+- Phone uses the shared phone field with a country picker. A number without a country code is read as a number of the property's country and saved in E.164 form (`+60132221111`).
+- On both tabs, an empty list keeps the table header and shows the empty state in the table.
 - Who is **in charge** is set per departure and per sailing, not on the crew member, because the skipper of one trip can be the assistant on another.
 - `SaveBoatCrewMember` adds or changes a crew member and logs `boat_crew_member.created` or `boat_crew_member.updated`. A crew member is never deleted; turn them off instead, so old sailings keep the name.
 - Empty state: "No crew yet. Add the people who run your boats, then pick who is in charge of each trip."

@@ -3,6 +3,7 @@ import { Head, router, useForm } from '@inertiajs/react';
 import { Pencil, Plus, Users } from 'lucide-react';
 import { useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
+import { PhoneInput } from '@/components/pms/phone-input';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { PageHeader } from '@/components/pms/page-header';
 import { BoatSettingsTabs } from '@/components/pms/settings/boat-settings-tabs';
@@ -84,16 +85,11 @@ function CrewDialog({
             </Field>
             <Field data-invalid={!!form.errors.phone}>
                 <FieldLabel htmlFor="crew-phone">Phone (optional)</FieldLabel>
-                <Input
+                <PhoneInput
                     id="crew-phone"
-                    type="tel"
-                    maxLength={30}
-                    placeholder="e.g. 012-345 6789"
                     value={form.data.phone}
-                    onChange={(event) =>
-                        form.setData('phone', event.target.value)
-                    }
-                    aria-invalid={!!form.errors.phone}
+                    onChange={(value) => form.setData('phone', value)}
+                    invalid={!!form.errors.phone}
                 />
                 <FieldError>{form.errors.phone}</FieldError>
             </Field>
@@ -172,84 +168,85 @@ export default function BoatCrewPage({ crew }: { crew: CrewMember[] }) {
                             </Button>
                         </div>
 
-                        {crew.length === 0 ? (
-                            <EmptyState
-                                icon={Users}
-                                title="No crew yet."
-                                description="Add the people who run your boats, then pick who is in charge of each trip."
-                            />
-                        ) : (
-                            <div className="overflow-auto rounded-lg border">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead className="w-28">
-                                                Available
-                                            </TableHead>
-                                            <TableHead>Name</TableHead>
-                                            <TableHead>Phone</TableHead>
-                                            <TableHead className="w-12">
-                                                <span className="sr-only">
-                                                    Edit
-                                                </span>
-                                            </TableHead>
+                        <div className="overflow-auto rounded-lg border">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="w-28">
+                                            Available
+                                        </TableHead>
+                                        <TableHead>Name</TableHead>
+                                        <TableHead>Phone</TableHead>
+                                        <TableHead className="w-12">
+                                            <span className="sr-only">
+                                                Edit
+                                            </span>
+                                        </TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {crew.length === 0 && (
+                                        <TableRow className="hover:bg-transparent">
+                                            <TableCell colSpan={4}>
+                                                <EmptyState
+                                                    icon={Users}
+                                                    title="No crew yet."
+                                                    description="Add the people who run your boats, then pick who is in charge of each trip."
+                                                />
+                                            </TableCell>
                                         </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {crew.map((member) => (
-                                            <TableRow
-                                                key={member.id}
-                                                className={
-                                                    member.active
-                                                        ? undefined
-                                                        : 'text-muted-foreground'
-                                                }
-                                            >
-                                                <TableCell>
-                                                    <Switch
-                                                        size="sm"
-                                                        checked={member.active}
-                                                        disabled={togglingIds.has(
-                                                            member.id,
-                                                        )}
-                                                        aria-label={`Make ${member.name} ${member.active ? 'unavailable' : 'available'}`}
-                                                        onCheckedChange={(
+                                    )}
+                                    {crew.map((member) => (
+                                        <TableRow
+                                            key={member.id}
+                                            className={
+                                                member.active
+                                                    ? undefined
+                                                    : 'text-muted-foreground'
+                                            }
+                                        >
+                                            <TableCell>
+                                                <Switch
+                                                    size="sm"
+                                                    checked={member.active}
+                                                    disabled={togglingIds.has(
+                                                        member.id,
+                                                    )}
+                                                    aria-label={`Make ${member.name} ${member.active ? 'unavailable' : 'available'}`}
+                                                    onCheckedChange={(active) =>
+                                                        toggleActive(
+                                                            member,
                                                             active,
-                                                        ) =>
-                                                            toggleActive(
-                                                                member,
-                                                                active,
-                                                            )
-                                                        }
-                                                    />
-                                                </TableCell>
-                                                <TableCell className="font-medium">
-                                                    {member.name}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {member.phone ?? '—'}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        aria-label={`Edit ${member.name}`}
-                                                        onClick={() =>
-                                                            setDialog({
-                                                                open: true,
-                                                                member,
-                                                            })
-                                                        }
-                                                    >
-                                                        <Pencil />
-                                                    </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        )}
+                                                        )
+                                                    }
+                                                />
+                                            </TableCell>
+                                            <TableCell className="font-medium">
+                                                {member.name}
+                                            </TableCell>
+                                            <TableCell>
+                                                {member.phone ?? '—'}
+                                            </TableCell>
+                                            <TableCell>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    aria-label={`Edit ${member.name}`}
+                                                    onClick={() =>
+                                                        setDialog({
+                                                            open: true,
+                                                            member,
+                                                        })
+                                                    }
+                                                >
+                                                    <Pencil />
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
                     </section>
                 </BoatSettingsTabs>
             </div>

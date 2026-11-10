@@ -204,90 +204,91 @@ export default function BoatsPage({ boats }: { boats: Boat[] }) {
                             </Button>
                         </div>
 
-                        {boats.length === 0 ? (
-                            <EmptyState
-                                icon={Anchor}
-                                title="No boats yet."
-                                description="Add the boats you run, so the Boats board can name the boat of each sailing."
-                            />
-                        ) : (
-                            <div className="overflow-auto rounded-lg border">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead className="w-28">
-                                                Available
-                                            </TableHead>
-                                            <TableHead>Name</TableHead>
-                                            <TableHead>Registration</TableHead>
-                                            <TableHead className="text-right">
-                                                Seats
-                                            </TableHead>
-                                            <TableHead className="w-12">
-                                                <span className="sr-only">
-                                                    Edit
-                                                </span>
-                                            </TableHead>
+                        <div className="overflow-auto rounded-lg border">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="w-28">
+                                            Available
+                                        </TableHead>
+                                        <TableHead>Name</TableHead>
+                                        <TableHead>Registration</TableHead>
+                                        <TableHead className="text-right">
+                                            Seats
+                                        </TableHead>
+                                        <TableHead className="w-12">
+                                            <span className="sr-only">
+                                                Edit
+                                            </span>
+                                        </TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {boats.length === 0 && (
+                                        <TableRow className="hover:bg-transparent">
+                                            <TableCell colSpan={5}>
+                                                <EmptyState
+                                                    icon={Anchor}
+                                                    title="No boats yet."
+                                                    description="Add the boats you run, so the Boats board can name the boat of each sailing."
+                                                />
+                                            </TableCell>
                                         </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {boats.map((boat) => (
-                                            <TableRow
-                                                key={boat.id}
-                                                className={
-                                                    boat.active
-                                                        ? undefined
-                                                        : 'text-muted-foreground'
-                                                }
-                                            >
-                                                <TableCell>
-                                                    <Switch
-                                                        size="sm"
-                                                        checked={boat.active}
-                                                        disabled={togglingIds.has(
-                                                            boat.id,
-                                                        )}
-                                                        aria-label={`Make ${boat.name} ${boat.active ? 'unavailable' : 'available'}`}
-                                                        onCheckedChange={(
+                                    )}
+                                    {boats.map((boat) => (
+                                        <TableRow
+                                            key={boat.id}
+                                            className={
+                                                boat.active
+                                                    ? undefined
+                                                    : 'text-muted-foreground'
+                                            }
+                                        >
+                                            <TableCell>
+                                                <Switch
+                                                    size="sm"
+                                                    checked={boat.active}
+                                                    disabled={togglingIds.has(
+                                                        boat.id,
+                                                    )}
+                                                    aria-label={`Make ${boat.name} ${boat.active ? 'unavailable' : 'available'}`}
+                                                    onCheckedChange={(active) =>
+                                                        toggleActive(
+                                                            boat,
                                                             active,
-                                                        ) =>
-                                                            toggleActive(
-                                                                boat,
-                                                                active,
-                                                            )
-                                                        }
-                                                    />
-                                                </TableCell>
-                                                <TableCell className="font-medium">
-                                                    {boat.name}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {boat.registration ?? '—'}
-                                                </TableCell>
-                                                <TableCell className="text-right tabular-nums">
-                                                    {boat.seats ?? '—'}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        aria-label={`Edit ${boat.name}`}
-                                                        onClick={() =>
-                                                            setDialog({
-                                                                open: true,
-                                                                boat,
-                                                            })
-                                                        }
-                                                    >
-                                                        <Pencil />
-                                                    </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        )}
+                                                        )
+                                                    }
+                                                />
+                                            </TableCell>
+                                            <TableCell className="font-medium">
+                                                {boat.name}
+                                            </TableCell>
+                                            <TableCell>
+                                                {boat.registration ?? '—'}
+                                            </TableCell>
+                                            <TableCell className="text-right tabular-nums">
+                                                {boat.seats ?? '—'}
+                                            </TableCell>
+                                            <TableCell>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    aria-label={`Edit ${boat.name}`}
+                                                    onClick={() =>
+                                                        setDialog({
+                                                            open: true,
+                                                            boat,
+                                                        })
+                                                    }
+                                                >
+                                                    <Pencil />
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
                     </section>
                 </BoatSettingsTabs>
             </div>
