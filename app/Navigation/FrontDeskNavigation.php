@@ -77,14 +77,14 @@ class FrontDeskNavigation
                     active: request()->routeIs('reservations.*'),
                 ) : null,
             ])),
-            new NavGroupData(label: __('Guests'), items: array_values(array_filter([
+            new NavGroupData(label: __('Guests'), items: array_filter([
                 $user->can(PermissionEnum::GuestsView->value) ? new NavItemData(
                     title: __('Guests'),
                     href: route('guests.index', ['property' => $property->code], absolute: false),
                     icon: 'users',
                     active: request()->routeIs('guests.*'),
                 ) : null,
-            ]))),
+            ])),
             new NavGroupData(label: __('Operations'), items: array_values(array_filter([
                 $user->can(PermissionEnum::RatesView->value) ? new NavItemData(
                     title: __('Rate calendar'),

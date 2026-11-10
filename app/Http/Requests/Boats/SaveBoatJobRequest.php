@@ -71,7 +71,7 @@ class SaveBoatJobRequest extends FormRequest
         return new SailingData(
             boatId: $this->validated('boat_id') === null ? null : (int) $this->validated('boat_id'),
             inChargeId: $this->validated('in_charge_id') === null ? null : (int) $this->validated('in_charge_id'),
-            assistantIds: array_map(intval(...), $this->validated('assistant_ids')),
+            assistantIds: array_values(array_map(intval(...), $this->validated('assistant_ids'))),
         );
     }
 }

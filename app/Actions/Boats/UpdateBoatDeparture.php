@@ -43,7 +43,7 @@ class UpdateBoatDeparture
             $boatDeparture->fill($attributes);
             $after = $this->snapshot($boatDeparture) + [
                 'crew' => $setsCrew
-                    ? ['in_charge' => $inChargeId === null ? null : (int) $inChargeId, 'assistants' => collect($assistantIds)->diff([(int) $inChargeId])->unique()->sort()->values()->all()]
+                    ? ['in_charge' => $inChargeId === null ? null : (int) $inChargeId, 'assistants' => array_values(collect($assistantIds)->diff([(int) $inChargeId])->unique()->sort()->all())]
                     : $before['crew'],
             ];
 
@@ -113,7 +113,7 @@ class UpdateBoatDeparture
 
         return [
             'in_charge' => $crew->first(fn ($member) => (bool) $member->pivot->in_charge)?->id,
-            'assistants' => $crew->reject(fn ($member) => (bool) $member->pivot->in_charge)->pluck('id')->sort()->values()->all(),
+            'assistants' => array_values($crew->reject(fn ($member) => (bool) $member->pivot->in_charge)->map(fn ($member): int => $member->id)->sort()->all()),
         ];
     }
 }

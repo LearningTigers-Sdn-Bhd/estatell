@@ -87,7 +87,7 @@ class DateSailings
             return [];
         }
 
-        return BoatSailing::query()
+        return array_values(BoatSailing::query()
             ->whereIn('boat_departure_id', $departureIds)
             ->whereDate('date', $date->toDateString())
             ->where('kind', SailingKind::Guests->value)
@@ -95,8 +95,7 @@ class DateSailings
             ->distinct()
             ->pluck('boat_departure_id')
             ->map(intval(...))
-            ->values()
-            ->all();
+            ->all());
     }
 
     /**
@@ -146,7 +145,7 @@ class DateSailings
      */
     public function extras(Property $property, CarbonInterface $date): array
     {
-        return BoatSailing::query()
+        return array_values(BoatSailing::query()
             ->where('property_id', $property->id)
             ->whereDate('date', $date->toDateString())
             ->where('kind', SailingKind::Guests->value)
@@ -169,8 +168,7 @@ class DateSailings
                 timeChanged: false,
                 seats: $sailing->boat?->seats,
             ))
-            ->values()
-            ->all();
+            ->all());
     }
 
     /**
@@ -281,6 +279,6 @@ class DateSailings
     {
         $limits = Collection::make($sailings)->map(fn (DateSailing $sailing): ?int => $sailing->seats);
 
-        return $limits->isEmpty() || $limits->contains(null) ? null : (int) $limits->sum();
+        return $sailings === [] || $limits->contains(null) ? null : (int) $limits->sum();
     }
 }

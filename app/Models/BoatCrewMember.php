@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 
 /**
  * A person who runs the boats. A name, not a staff user. Never deleted; turned off instead, so old trips keep the name.
@@ -19,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property bool $active
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
+ * @property-read Pivot&object{in_charge: bool} $pivot The crew row when loaded through BoatDeparture::crew() or BoatSailing::crew().
  */
 #[Fillable(['name', 'phone', 'active'])]
 class BoatCrewMember extends Model

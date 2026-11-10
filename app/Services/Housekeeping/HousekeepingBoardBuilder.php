@@ -166,7 +166,7 @@ class HousekeepingBoardBuilder
         return [
             'view' => [
                 // A unit without a primary guest is the booker's stay, as on the kiosk.
-                'guest' => $guestUnit === null ? null : ($guestUnit->guests->first()?->guest ?? $guestUnit->reservation->booker)?->full_name,
+                'guest' => $guestUnit === null ? null : ($guestUnit->guests->first()->guest ?? $guestUnit->reservation->booker)?->full_name,
                 'adults' => (int) $party->sum('adults'),
                 'children' => (int) $party->sum('children'),
                 'arrivalDate' => $arriving?->arrival_date->toDateString(),

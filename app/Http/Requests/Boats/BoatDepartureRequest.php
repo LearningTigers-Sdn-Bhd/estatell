@@ -161,7 +161,7 @@ class BoatDepartureRequest extends FormRequest
      */
     private function pickableCrewIds(Property $property, ?BoatDeparture $current): array
     {
-        return BoatCrewMember::query()
+        return array_values(BoatCrewMember::query()
             ->where('property_id', $property->id)
             ->where(function (Builder $query) use ($current): void {
                 $query->where('active', true);
@@ -170,9 +170,9 @@ class BoatDepartureRequest extends FormRequest
                     $query->orWhereIn('id', $current->crew()->pluck('boat_crew_members.id'));
                 }
             })
-            ->pluck('id')
-            ->map(fn (mixed $id): int => (int) $id)
-            ->all();
+            ->get(['id'])
+            ->map(fn (BoatCrewMember $member): int => $member->id)
+            ->all());
     }
 
     /** A Transport charge item of the property, or null. Active or not. */

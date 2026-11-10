@@ -46,7 +46,7 @@ final class DateSailing
     /** The id the sailings of a time are ordered by after the time: the row id, else the departure id. */
     public function sortId(): int
     {
-        return $this->sailing?->id ?? (int) $this->departure?->id;
+        return $this->sailing->id ?? (int) $this->departure?->id;
     }
 
     /** The time at the property: the arrival for Boat in, the departure for Boat out. */

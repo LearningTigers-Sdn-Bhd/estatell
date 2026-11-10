@@ -129,7 +129,7 @@ class BoatManifestReport implements HasPrintView, HasSections, HasTotals, Report
             return [];
         }
 
-        return $this->jobs($property, $filters)->map(fn (BoatJobData $job): BoatManifestRow => BoatManifestRow::job($job))->all();
+        return array_values($this->jobs($property, $filters)->map(fn (BoatJobData $job): BoatManifestRow => BoatManifestRow::job($job))->all());
     }
 
     /** @return Collection<int, BoatJobData> */

@@ -4,6 +4,7 @@ namespace App\Actions\Boats;
 
 use App\Data\Boats\SailingData;
 use App\Enums\SailingKind;
+use App\Models\BoatCrewMember;
 use App\Models\BoatDeparture;
 use App\Models\BoatSailing;
 use App\Models\Property;
@@ -70,7 +71,7 @@ class SaveSailing
                 $data->inChargeId,
                 $assistants,
                 $before->boat?->id,
-                $before->crew->modelKeys(),
+                array_values($before->crew->map(fn (BoatCrewMember $member): int => $member->id)->all()),
             );
 
             if ($refusal !== null) {
@@ -166,7 +167,7 @@ class SaveSailing
         return [
             'boat_id' => $sailing->boat?->id,
             'in_charge' => $sailing->inCharge()?->id,
-            'assistants' => $sailing->assistants()->pluck('id')->map(intval(...))->sort()->values()->all(),
+            'assistants' => array_values($sailing->assistants()->map(fn (BoatCrewMember $member): int => $member->id)->sort()->all()),
             'leaves_at' => $sailing->sailing?->leaves_at === null ? null : substr($sailing->sailing->leaves_at, 0, 5).':00',
             'arrives_at' => $sailing->sailing?->arrives_at === null ? null : substr($sailing->sailing->arrives_at, 0, 5).':00',
         ];

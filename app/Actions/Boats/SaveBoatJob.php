@@ -5,6 +5,7 @@ namespace App\Actions\Boats;
 use App\Data\Boats\SailingData;
 use App\Enums\BoatJobType;
 use App\Enums\SailingKind;
+use App\Models\BoatCrewMember;
 use App\Models\BoatSailing;
 use App\Models\Property;
 use App\Models\User;
@@ -30,7 +31,7 @@ class SaveBoatJob
      */
     public function __invoke(User $actor, Property $property, CarbonImmutable $date, BoatJobType $type, string $leavesAt, ?string $note, SailingData $crew, ?BoatSailing $job = null): SailingResult
     {
-        $date = $job?->date ?? $date;
+        $date = $job->date ?? $date;
 
         if ($date->toDateString() < $this->boatTripUsage->businessDate($property)->toDateString()) {
             return SailingResult::refused(SailingResult::REFUSAL_DATE_CLOSED);
@@ -64,7 +65,7 @@ class SaveBoatJob
                 $crew->inChargeId,
                 $assistants,
                 $locked?->boat_id,
-                $locked?->crew->pluck('id')->map(intval(...))->all() ?? [],
+                $locked === null ? [] : array_values($locked->crew->map(fn (BoatCrewMember $member): int => $member->id)->all()),
             );
 
             if ($refusal !== null) {

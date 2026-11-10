@@ -74,7 +74,7 @@ class MoveBoatTrips
         $direction = $toExtra ? $targetSailing->direction : $departure->direction;
 
         $dates = $trips->map(fn (UnitBoatTrip $trip): string => $trip->reservationUnit->{$trip->direction->tripDateColumn()}->toDateString())->unique();
-        $date = $targetSailing?->date ?? CarbonImmutable::parse((string) $dates->first());
+        $date = $targetSailing->date ?? CarbonImmutable::parse((string) $dates->first());
 
         if ($dates->count() !== 1 || $dates->first() !== $date->toDateString()
             || $trips->contains(fn (UnitBoatTrip $trip): bool => $trip->direction !== $direction)
@@ -90,7 +90,7 @@ class MoveBoatTrips
 
         try {
             return DB::transaction(function () use ($actor, $property, $trips, $departure, $direction, $date, $targetSailing, $toExtra, &$failedUnit): SailingResult {
-                $departureIds = $trips->pluck('boat_departure_id')->push($departure?->id)->filter()->unique()->sort()->values()->all();
+                $departureIds = array_values($trips->pluck('boat_departure_id')->push($departure?->id)->filter()->map(intval(...))->unique()->sort()->all());
                 BoatDeparture::query()->where('property_id', $property->id)->whereKey($departureIds)->orderBy('id')->lockForUpdate()->get();
                 BoatSailing::query()->where('property_id', $property->id)->whereIn('boat_departure_id', $departureIds)->whereDate('date', $date->toDateString())->orderBy('id')->lockForUpdate()->get();
                 $units = ReservationUnit::query()->with('reservation')->whereKey($trips->pluck('reservation_unit_id'))->orderBy('id')->lockForUpdate()->get()->keyBy('id');

@@ -45,8 +45,8 @@ class BoatJobData extends Data
             boat: $job->boat?->name,
             inChargeId: $inCharge?->id,
             inCharge: $inCharge?->name,
-            assistantIds: $assistants->pluck('id')->map(intval(...))->all(),
-            assistants: $assistants->pluck('name')->all(),
+            assistantIds: array_values($assistants->map(fn (BoatCrewMember $member): int => $member->id)->all()),
+            assistants: array_values($assistants->map(fn (BoatCrewMember $member): string => $member->name)->all()),
             note: $job->note,
             done: $job->done_at !== null,
         );

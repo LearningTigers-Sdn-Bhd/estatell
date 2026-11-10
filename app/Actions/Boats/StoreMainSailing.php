@@ -32,7 +32,7 @@ class StoreMainSailing
         ($this->syncCrew)(
             $sailing,
             $crew->first(fn ($member): bool => (bool) $member->pivot->in_charge)?->id,
-            $crew->reject(fn ($member): bool => (bool) $member->pivot->in_charge)->pluck('id')->map(intval(...))->values()->all(),
+            array_values($crew->reject(fn ($member): bool => (bool) $member->pivot->in_charge)->map(fn ($member): int => $member->id)->all()),
         );
 
         return $sailing;

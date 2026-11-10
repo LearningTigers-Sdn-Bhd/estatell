@@ -2,6 +2,7 @@
 
 namespace App\Data\Boats;
 
+use App\Models\BoatCrewMember;
 use App\Models\BoatSailing;
 use App\Services\Boats\DateSailing;
 use Spatie\LaravelData\Data;
@@ -29,7 +30,7 @@ class BoatSailingCrewData extends Data
             key: $sailing->key(),
             time: $sailing->leavesAt,
             boatId: $sailing->boat?->id,
-            crewIds: $sailing->crew->pluck('id')->map(intval(...))->values()->all(),
+            crewIds: array_values($sailing->crew->map(fn (BoatCrewMember $member): int => $member->id)->all()),
         );
     }
 
@@ -40,7 +41,7 @@ class BoatSailingCrewData extends Data
             key: 'job-'.$job->id,
             time: substr((string) $job->leaves_at, 0, 5),
             boatId: $job->boat_id,
-            crewIds: $job->crew->pluck('id')->map(intval(...))->values()->all(),
+            crewIds: array_values($job->crew->map(fn (BoatCrewMember $member): int => $member->id)->all()),
         );
     }
 }

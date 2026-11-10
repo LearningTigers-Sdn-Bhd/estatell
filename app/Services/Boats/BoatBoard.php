@@ -10,6 +10,7 @@ use App\Data\Reports\BoatManifestRow;
 use App\Data\Reports\ReportFilters;
 use App\Enums\BoatDirection;
 use App\Enums\BoatMode;
+use App\Models\BoatCrewMember;
 use App\Models\BoatDeparture;
 use App\Models\BoatSailing;
 use App\Models\Property;
@@ -108,7 +109,7 @@ class BoatBoard
         if ($others || ($direction === 'both' && ($groups !== [] || $charter !== [] || $own !== [] || $notSet !== [] || $jobs->isNotEmpty()))) {
             $groups[] = $this->plainGroup('charter', 'charter', BoatMode::Charter->label(), $charter);
             $groups[] = $this->plainGroup('own', 'own', BoatMode::Own->label(), $own);
-            $groups[] = $this->plainGroup('jobs', 'jobs', __('Boat jobs'), [], $jobs->map(fn (BoatSailing $job): BoatJobData => BoatJobData::fromModel($job))->values()->all());
+            $groups[] = $this->plainGroup('jobs', 'jobs', __('Boat jobs'), [], array_values($jobs->map(fn (BoatSailing $job): BoatJobData => BoatJobData::fromModel($job))->all()));
         }
 
         if ($notSet !== []) {
@@ -140,11 +141,10 @@ class BoatBoard
      */
     public function picks(Property $property, CarbonImmutable $date): array
     {
-        return collect($this->groups($property, $date, 'both'))
+        return array_values(collect($this->groups($property, $date, 'both'))
             ->filter(fn (BoatBoardGroupData $group): bool => $group->kind === 'sailing' && ! $group->cancelled && ! $group->isExtra && $group->departureId !== null)
             ->map(fn (BoatBoardGroupData $group): BoatPickData => BoatPickData::fromGroup($group))
-            ->values()
-            ->all();
+            ->all());
     }
 
     /**
@@ -155,14 +155,14 @@ class BoatBoard
      */
     public function sailingCrews(Property $property, CarbonImmutable $date): array
     {
-        return collect($this->dateSailings->forDate($property, $date))
+        $sailings = collect($this->dateSailings->forDate($property, $date))
             ->flatten()
             ->merge($this->dateSailings->extras($property, $date))
             ->reject(fn (DateSailing $sailing): bool => $sailing->cancelled)
-            ->map(fn (DateSailing $sailing): BoatSailingCrewData => BoatSailingCrewData::fromSailing($sailing))
-            ->merge($this->dateSailings->jobs($property, $date)->map(fn (BoatSailing $job): BoatSailingCrewData => BoatSailingCrewData::fromJob($job)))
-            ->values()
-            ->all();
+            ->map(fn (DateSailing $sailing): BoatSailingCrewData => BoatSailingCrewData::fromSailing($sailing));
+        $jobs = $this->dateSailings->jobs($property, $date)->map(fn (BoatSailing $job): BoatSailingCrewData => BoatSailingCrewData::fromJob($job));
+
+        return [...array_values($sailings->all()), ...array_values($jobs->all())];
     }
 
     public function hasDepartures(Property $property): bool
@@ -187,7 +187,7 @@ class BoatBoard
             times: $this->labels->times($sailing),
             boat: $this->labels->boat($sailing),
             inCharge: $sailing->inCharge()?->name,
-            assistants: $sailing->assistants()->pluck('name')->all(),
+            assistants: array_values($sailing->assistants()->map(fn (BoatCrewMember $member): string => $member->name)->all()),
             taken: $taken,
             seats: $sailing->seats,
             departureId: $sailing->departure?->id,
@@ -205,7 +205,7 @@ class BoatBoard
             timeChanged: $sailing->timeChanged,
             boatId: $sailing->boat?->id,
             inChargeId: $sailing->inCharge()?->id,
-            assistantIds: $sailing->assistants()->pluck('id')->map(intval(...))->values()->all(),
+            assistantIds: array_values($sailing->assistants()->map(fn (BoatCrewMember $member): int => $member->id)->all()),
             rows: $rows,
         );
     }

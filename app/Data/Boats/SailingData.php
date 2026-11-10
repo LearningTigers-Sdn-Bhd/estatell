@@ -33,12 +33,11 @@ class SailingData extends Data
      */
     public function assistants(): array
     {
-        return collect($this->assistantIds)
+        return array_values(collect($this->assistantIds)
             ->map(intval(...))
             ->reject(fn (int $id): bool => $id === $this->inChargeId)
             ->unique()
             ->sort()
-            ->values()
-            ->all();
+            ->all());
     }
 }

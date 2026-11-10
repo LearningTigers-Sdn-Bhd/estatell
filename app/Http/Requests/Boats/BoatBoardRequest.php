@@ -29,8 +29,14 @@ class BoatBoardRequest extends FormRequest
         ];
     }
 
+    /** @return 'in'|'out'|'both'|'other' */
     public function direction(): string
     {
-        return $this->input('direction') ?: 'both';
+        return match ($this->input('direction')) {
+            'in' => 'in',
+            'out' => 'out',
+            'other' => 'other',
+            default => 'both',
+        };
     }
 }

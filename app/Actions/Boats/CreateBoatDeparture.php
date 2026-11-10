@@ -31,7 +31,7 @@ class CreateBoatDeparture
                 ...$attributes,
             ]);
 
-            ($this->syncCrew)($boatDeparture, $inChargeId === null ? null : (int) $inChargeId, array_map('intval', $assistantIds));
+            ($this->syncCrew)($boatDeparture, $inChargeId === null ? null : (int) $inChargeId, array_values(array_map('intval', $assistantIds)));
 
             activity()
                 ->performedOn($boatDeparture)
@@ -66,7 +66,7 @@ class CreateBoatDeparture
 
         return [
             'in_charge' => $crew->first(fn ($member) => (bool) $member->pivot->in_charge)?->id,
-            'assistants' => $crew->reject(fn ($member) => (bool) $member->pivot->in_charge)->pluck('id')->sort()->values()->all(),
+            'assistants' => array_values($crew->reject(fn ($member) => (bool) $member->pivot->in_charge)->map(fn ($member): int => $member->id)->sort()->all()),
         ];
     }
 }

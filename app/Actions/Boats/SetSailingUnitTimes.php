@@ -32,6 +32,6 @@ class SetSailingUnitTimes
             ReservationUnit::query()->whereKey($changed->modelKeys())->update([$column => $time.':00', 'updated_at' => now()]);
         }
 
-        return $changed->modelKeys();
+        return array_values($changed->map(fn (ReservationUnit $unit): int => $unit->id)->all());
     }
 }
