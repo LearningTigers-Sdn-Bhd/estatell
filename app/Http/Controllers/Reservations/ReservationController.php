@@ -73,6 +73,7 @@ use App\Services\Reservations\ReservationFormOptions;
 use App\Services\Reservations\ReservationGuestRows;
 use App\Services\Reservations\ReservationOverview;
 use App\Services\Reservations\ReservationRoomBox;
+use App\Services\Reservations\ReservationUnitRows;
 use App\Services\Reservations\UnitActionMenu;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\Request;
@@ -131,10 +132,11 @@ class ReservationController extends Controller
 
     /**
      * Reservation page, Units tab. `?unit=` picks the unit panel, and an unknown unit falls back to the first.
+     * `unitRows` feeds the All view, and `canChangePrice` its tick boxes.
      */
-    public function show(Request $request, Property $property, Reservation $reservation, ReservationActivityLog $activityLog, UnitActionMenu $actionMenu): Response
+    public function show(Request $request, Property $property, Reservation $reservation, ReservationActivityLog $activityLog, UnitActionMenu $actionMenu, ReservationUnitRows $unitRows): Response
     {
-        return $this->renderTab($request->user(), $property, $reservation, 'units', function (array $units, Collection $unitModels) use ($request, $property, $reservation, $activityLog, $actionMenu): array {
+        return $this->renderTab($request->user(), $property, $reservation, 'units', function (array $units, Collection $unitModels) use ($request, $property, $reservation, $activityLog, $actionMenu, $unitRows): array {
             $unitId = $request->integer('unit');
             $selected = $unitModels->firstWhere('id', $unitId) ?? $unitModels->first();
 
@@ -148,6 +150,8 @@ class ReservationController extends Controller
 
             return [
                 'unit' => $data,
+                'unitRows' => $unitRows->rows($unitModels, $units),
+                'canChangePrice' => $request->user()->can(PermissionEnum::ReservationsChangePrice->value),
                 'doorPins' => $this->doorPins($request->user(), $property, $selected),
                 'keyCards' => $this->keyCards($request->user(), $property, $selected),
                 'lockProviders' => $this->lockProviders($request->user(), $property, $selected),

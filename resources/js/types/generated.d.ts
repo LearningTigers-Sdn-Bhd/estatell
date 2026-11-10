@@ -4314,6 +4314,22 @@ arrival: string,
 departure: string,
 occupancy: string,
 };
+export type ReservationUnitRowData = {
+id: number,
+roomType: string,
+assigned: string | null,
+primaryGuest: string | null,
+adults: number,
+children: number,
+arrival: string,
+departure: string,
+nightCount: number,
+stayLabel: string | null,
+ratePlan: string,
+total: string,
+status: App.Data.Shared.BadgeData,
+selectable: boolean,
+};
 export type RoomTypeOptionData = {
 id: number,
 name: string,

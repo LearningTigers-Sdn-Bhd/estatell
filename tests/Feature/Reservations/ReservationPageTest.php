@@ -12,6 +12,7 @@ use App\Models\GuestIdentityDocument;
 use App\Models\Payment;
 use App\Models\Property;
 use App\Models\PropertySetting;
+use App\Models\RatePlan;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\ReservationUnitChild;
@@ -293,6 +294,69 @@ test('the price override reason and who set it come from the log of the unit tha
         ->assertInertia(fn (Assert $page) => $page->where('unit.hasPriceOverride', false)->where('unit.priceOverrideReason', null)->where('unit.priceOverrideBy', null));
 });
 
+test('a blank price override reason is sent as no reason', function () {
+    [$user, $property] = pageOwner();
+    $reservation = pageReservation($property);
+    $unit = pageUnit($reservation);
+    activity()->performedOn($reservation)->event('reservation.unit_added')->withProperties([
+        'reservation_unit_id' => $unit->id,
+        'override_total' => '684.00',
+        'override_reason' => '  ',
+    ])->log('Unit added to reservation');
+
+    $this->actingAs($user)->get(pageUrl($property, $reservation))
+        ->assertInertia(fn (Assert $page) => $page->where('unit.hasPriceOverride', true)->where('unit.priceOverrideReason', null));
+});
+
+test('the All view rows carry each unit with its guests, stay, plan and room total', function () {
+    [$user, $property] = pageOwner();
+    $roomType = RoomType::factory()->for($property)->create(['name' => 'Deluxe Twin']);
+    $room = Room::factory()->for($property)->create(['room_type_id' => $roomType->id, 'number' => 'F1']);
+    $reservation = pageReservation($property);
+    $first = pageUnit($reservation, ['room_type_id' => $roomType->id, 'adults' => 2, 'children' => 1]);
+    UnitNight::query()->where('reservation_unit_id', $first->id)->update(['room_id' => $room->id]);
+    UnitGuest::factory()->primary()->create(['reservation_unit_id' => $first->id, 'guest_id' => Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Huang Shuidi'])->id]);
+    $mixed = pageUnit($reservation, ['room_type_id' => $roomType->id, 'arrival_date' => '2026-10-13', 'departure_date' => '2026-10-15']);
+    $otherPlan = RatePlan::factory()->for($property)->create();
+    $mixed->nights()->orderBy('date')->first()->update(['rate_plan_id' => $otherPlan->id, 'override_amount' => '84.00', 'amount' => '84.00']);
+    pageUnit($reservation, ['room_type_id' => $roomType->id, 'status' => 'cancelled']);
+
+    $this->actingAs($user)->get(pageUrl($property, $reservation))->assertInertia(fn (Assert $page) => $page
+        ->has('unitRows', 3)
+        ->where('canChangePrice', true)
+        ->where('unitRows.0.id', $first->id)
+        ->where('unitRows.0.roomType', 'Deluxe Twin')
+        ->where('unitRows.0.assigned', 'F1')
+        ->where('unitRows.0.primaryGuest', 'Huang Shuidi')
+        ->where('unitRows.0.adults', 2)
+        ->where('unitRows.0.children', 1)
+        ->where('unitRows.0.arrival', '2026-10-12')
+        ->where('unitRows.0.departure', '2026-10-15')
+        ->where('unitRows.0.nightCount', 3)
+        ->where('unitRows.0.ratePlan', $first->ratePlan->name)
+        ->where('unitRows.0.total', '300.00')
+        ->where('unitRows.0.status.label', 'Confirmed')
+        ->where('unitRows.0.selectable', true)
+        ->where('unitRows.1.nightCount', 2)
+        ->where('unitRows.1.ratePlan', 'Several plans')
+        ->where('unitRows.1.total', '184.00')
+        ->where('unitRows.1.primaryGuest', null)
+        ->where('unitRows.2.status.label', 'Cancelled')
+        ->where('unitRows.2.selectable', false));
+});
+
+test('the All view tick boxes follow the change price permission', function () {
+    [$user, $property] = pageStaffWith(['reservations.view']);
+    $reservation = pageReservation($property);
+    pageUnit($reservation);
+    pageUnit($reservation);
+
+    $this->actingAs($user)->get(pageUrl($property, $reservation))->assertInertia(fn (Assert $page) => $page
+        ->has('unitRows', 2)
+        ->where('canChangePrice', false)
+        ->where('canManage', false));
+});
+
 test('the guest rows show the booker, unit guests with roles, and units without a guest', function () {
     [$user, $property] = pageOwner();
     $booker = Guest::factory()->create(['property_id' => $property->id, 'full_name' => 'Tan Wei Ming', 'phone' => '+60111111111']);
@@ -498,7 +562,7 @@ test('the page needs a constant number of queries however many units it has', fu
         $few = $queries(2, $route);
         $many = $queries(7, $route);
 
-        expect($many)->toBe($few, "queries on {$route}")->and($many)->toBeLessThanOrEqual(49); // 26 for the page, 21 more for the summary card (`BookingSummary`), 2 for the booking source
+        expect($many)->toBe($few, "queries on {$route}")->and($many)->toBeLessThanOrEqual(52); // 26 for the page, 21 more for the summary card (`BookingSummary`), 2 for the booking source, 3 for the All view rows (`ReservationUnitRows`, Units tab only)
     }
 });
 

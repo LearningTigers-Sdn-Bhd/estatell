@@ -1,11 +1,5 @@
 import { router } from '@inertiajs/react';
-import {
-    List,
-    ListTree,
-    PanelRightClose,
-    PanelRightOpen,
-    Plus,
-} from 'lucide-react';
+import { PanelRightClose, PanelRightOpen, Plus } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { emptyGuest } from '@/components/pms/reservations/booking-guests';
@@ -22,6 +16,7 @@ import {
 import { MoveGuestDialog } from '@/components/pms/reservations/move-guest-dialog';
 import type { MovingGuest } from '@/components/pms/reservations/move-guest-dialog';
 import type { GuestsView } from '@/components/pms/reservations/use-guests-view';
+import { ViewChoiceToggle } from '@/components/pms/reservations/view-choice-toggle';
 import {
     DraftGuestRow,
     GuestsHeader,
@@ -42,7 +37,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { FieldDescription } from '@/components/ui/field';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
     Tooltip,
     TooltipContent,
@@ -297,36 +291,11 @@ export function GuestsTab({
         <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between gap-3">
                 {units.length > 1 ? (
-                    <ToggleGroup
-                        variant="outline"
-                        spacing={0}
-                        aria-label="View"
-                        value={[view]}
-                        onValueChange={(values) => {
-                            const next = values[0];
-
-                            if (next === 'all' || next === 'grouped') {
-                                onViewChange(next);
-                            }
-                        }}
-                    >
-                        <ToggleGroupItem
-                            value="all"
-                            aria-label="All guests"
-                            title="All guests"
-                        >
-                            <List />
-                            All
-                        </ToggleGroupItem>
-                        <ToggleGroupItem
-                            value="grouped"
-                            aria-label="Grouped by unit"
-                            title="Grouped by unit"
-                        >
-                            <ListTree />
-                            Grouped
-                        </ToggleGroupItem>
-                    </ToggleGroup>
+                    <ViewChoiceToggle
+                        view={view}
+                        onViewChange={onViewChange}
+                        allLabel="All guests"
+                    />
                 ) : (
                     <span />
                 )}
