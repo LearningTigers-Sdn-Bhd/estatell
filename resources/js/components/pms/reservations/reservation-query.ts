@@ -8,7 +8,10 @@ export type StayFilter = {
 
 export type ReservationFilters = {
     search: string;
+    /** The tab: empty for All, `arrivals`, `departures` or `in_house`. */
     status: string;
+    /** The ticked statuses of the Status filter (All tab only). Empty means every status. */
+    statuses: string[];
     source: string;
     stay: StayFilter;
 };
@@ -47,6 +50,7 @@ export function reservationQuery(state: ReservationQueryState): {
         [
             ['search', filters.search],
             ['status', filters.status],
+            ['statuses', filters.statuses.join(',')],
             ['source', filters.source],
             ['stay', stayValue(filters.stay) ?? ''],
         ].filter(([, value]) => value !== ''),
@@ -61,30 +65,33 @@ export function reservationQuery(state: ReservationQueryState): {
     };
 }
 
-/** True when any filter differs from the default list. The status tab counts as a filter. */
+/** True when any filter differs from the default list. The tab counts as a filter. */
 export function hasActiveFilters(filters: ReservationFilters): boolean {
     return (
         filters.search !== '' ||
         filters.status !== '' ||
+        filters.statuses.length > 0 ||
         filters.source !== '' ||
         filters.stay.mode !== 'default'
     );
 }
 
-/** True when Reset would change something: search, source or stay differ from the default. The status tab stays. */
+/** True when Reset would change something: search, Status, source or stay differ from the default. The tab stays. */
 export function canResetFilters(filters: ReservationFilters): boolean {
     return (
         filters.search !== '' ||
+        filters.statuses.length > 0 ||
         filters.source !== '' ||
         filters.stay.mode !== 'default'
     );
 }
 
-/** The state after Reset: search, source and stay return to their defaults, and the tab stays. */
+/** The state after Reset: search, Status, source and stay return to their defaults, and the tab stays. */
 export function resetFilters(filters: ReservationFilters): ReservationFilters {
     return {
         search: '',
         status: filters.status,
+        statuses: [],
         source: '',
         stay: { mode: 'default', from: null, to: null },
     };

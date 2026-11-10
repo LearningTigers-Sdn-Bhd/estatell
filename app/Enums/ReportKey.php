@@ -124,12 +124,12 @@ enum ReportKey: string
 
     /**
      * The sort the page and the exports use when none is given or the sort column is hidden: a column key, with a
-     * leading `-` for descending.
+     * leading `-` for descending. Payments sorts by the date its `dateBasis` filters on.
      */
-    public function defaultSort(?ReportGroup $group = null): string
+    public function defaultSort(?ReportGroup $group = null, PaymentDateBasis $dateBasis = PaymentDateBasis::Posted): string
     {
         return match ($this) {
-            self::Payments => $group === ReportGroup::Staff ? 'staff' : 'date',
+            self::Payments => $group === ReportGroup::Staff ? 'staff' : ($dateBasis === PaymentDateBasis::Received ? 'received_on' : 'date'),
             self::Arrivals => 'arrival',
             self::Departures => 'departure',
             self::InHouse => 'room',
@@ -363,7 +363,7 @@ enum ReportKey: string
                 new ReportColumn('pax', __('Pax'), ColumnAlign::Right, true),
                 new ReportColumn('flags', __('Flags'), ColumnAlign::Left, true),
                 new ReportColumn('remark', __('Remark'), ColumnAlign::Left, true),
-                new ReportColumn('cleaning', __('Housekeeper IN / OUT'), ColumnAlign::Left, true),
+                new ReportColumn('cleaning', __('Housekeeper'), ColumnAlign::Left, true),
             ],
             self::HousekeepingItems => [
                 new ReportColumn('room', __('Room'), ColumnAlign::Left, true),
@@ -379,15 +379,15 @@ enum ReportKey: string
                 new ReportColumn('room', __('Room'), ColumnAlign::Left, true),
                 new ReportColumn('room_type', __('Room type'), ColumnAlign::Left, true),
                 new ReportColumn('housekeeper', __('Housekeeper'), ColumnAlign::Left, true),
-                new ReportColumn('in', __('IN'), ColumnAlign::Left, true),
-                new ReportColumn('out', __('OUT'), ColumnAlign::Left, true),
+                new ReportColumn('in', __('Started'), ColumnAlign::Left, true),
+                new ReportColumn('out', __('Finished'), ColumnAlign::Left, true),
                 new ReportColumn('minutes', __('Minutes'), ColumnAlign::Right, true),
             ],
             self::BoatManifest => [
                 new ReportColumn('departure', __('Departure'), ColumnAlign::Left, true),
                 new ReportColumn('unit', __('Room'), ColumnAlign::Left, true),
                 new ReportColumn('lead_guest', __('Lead guest'), ColumnAlign::Left, true),
-                new ReportColumn('agent', __('Agent'), ColumnAlign::Left, true),
+                new ReportColumn('agent', __('Booking source'), ColumnAlign::Left, true),
                 new ReportColumn('phone', __('Phone'), ColumnAlign::Left, true),
                 new ReportColumn('adults', __('Adults'), ColumnAlign::Right, true),
                 new ReportColumn('children', __('Children'), ColumnAlign::Right, true),
@@ -513,14 +513,21 @@ enum ReportKey: string
                 new ReportColumn('amount', __('Amount'), ColumnAlign::Right, true),
             ],
             self::Payments => [
-                new ReportColumn('date', __('Date'), ColumnAlign::Left, true),
+                new ReportColumn('date', __('Posted on'), ColumnAlign::Left, true),
+                new ReportColumn('received_on', __('Received on'), ColumnAlign::Left, true),
                 new ReportColumn('receipt', __('Receipt no.'), ColumnAlign::Left, true),
+                new ReportColumn('room', __('Room'), ColumnAlign::Left, true),
                 new ReportColumn('payer', __('Reservation / company'), ColumnAlign::Left, true),
+                new ReportColumn('folio', __('Folio no.'), ColumnAlign::Left, true),
+                new ReportColumn('invoice', __('Invoice no.'), ColumnAlign::Left, true),
+                new ReportColumn('guest', __('Guest / company'), ColumnAlign::Left, true),
                 new ReportColumn('method', __('Method'), ColumnAlign::Left, true),
+                new ReportColumn('remarks', __('Reference / notes'), ColumnAlign::Left, true),
+                new ReportColumn('reference', __('Reference'), ColumnAlign::Left, false),
+                new ReportColumn('notes', __('Notes'), ColumnAlign::Left, false),
                 new ReportColumn('status', __('Status'), ColumnAlign::Left, true),
                 new ReportColumn('staff', __('Staff'), ColumnAlign::Left, true),
                 new ReportColumn('amount', __('Amount'), ColumnAlign::Right, true),
-                new ReportColumn('reference', __('Reference'), ColumnAlign::Left, false),
                 new ReportColumn('refund_of', __('Original receipt'), ColumnAlign::Left, false),
             ],
             self::FolioLedger => [
@@ -642,21 +649,25 @@ enum ReportKey: string
                 new ReportColumn('unit', __('Type / room'), ColumnAlign::Left, false),
                 new ReportColumn('room_type', __('Room type'), ColumnAlign::Left, false),
                 new ReportColumn('status', __('Status'), ColumnAlign::Left, true),
-                new ReportColumn('assigned', __('Assigned'), ColumnAlign::Left, true),
                 new ReportColumn('guest', __('Guest'), ColumnAlign::Left, true),
+                new ReportColumn('stay', __('Reservation Status'), ColumnAlign::Left, true),
+                new ReportColumn('pax', __('Pax'), ColumnAlign::Left, true),
+                new ReportColumn('adults', __('Adults'), ColumnAlign::Right, false),
+                new ReportColumn('children', __('Children'), ColumnAlign::Right, false),
                 new ReportColumn('arrival', __('Arrival'), ColumnAlign::Left, true),
                 new ReportColumn('arrival_date', __('Arrival date'), ColumnAlign::Left, false),
                 new ReportColumn('arrival_time', __('Arrival time'), ColumnAlign::Left, false),
                 new ReportColumn('departure', __('Departure'), ColumnAlign::Left, true),
                 new ReportColumn('departure_date', __('Departure date'), ColumnAlign::Left, false),
                 new ReportColumn('departure_time', __('Departure time'), ColumnAlign::Left, false),
-                new ReportColumn('flags', __('Flags'), ColumnAlign::Left, true),
+                new ReportColumn('assigned', __('Housekeeper'), ColumnAlign::Left, true),
+                new ReportColumn('remarks', __('Notes'), ColumnAlign::Left, true),
+                new ReportColumn('remark', __('Remark'), ColumnAlign::Left, false),
+                new ReportColumn('system_reason', __('Reason'), ColumnAlign::Left, false),
+                new ReportColumn('flags', __('Flags'), ColumnAlign::Left, false),
                 new ReportColumn('priority', __('Priority'), ColumnAlign::Left, false),
                 new ReportColumn('do_not_disturb', __('Do not disturb'), ColumnAlign::Left, false),
                 new ReportColumn('needs_maintenance', __('Maintenance'), ColumnAlign::Left, false),
-                new ReportColumn('remarks', __('Remarks'), ColumnAlign::Left, true),
-                new ReportColumn('remark', __('Remark'), ColumnAlign::Left, false),
-                new ReportColumn('system_reason', __('Reason'), ColumnAlign::Left, false),
             ],
         };
     }
@@ -664,7 +675,7 @@ enum ReportKey: string
     /**
      * Whether the report is listed in the Reports sidebar. Housekeeping tasks is the board's print sheet, opened from
      * the Housekeeping page, and has no page of its own. The tabs of a `TabbedReport` are reached through that page,
-     * except Payments, which keeps its own entry. House status and Boat manifest sit in the Front desk sidebar.
+     * except Payments, which keeps its own entry. House status sits in the Front desk sidebar. Boat manifest is the export key of the Boat Trips board and has no page.
      */
     public function listedInReportsMenu(): bool
     {

@@ -173,6 +173,7 @@ class RefundPayment
                 'purpose' => $current->purpose,
                 'status' => PaymentStatus::Completed,
                 'reference' => filled($reference) ? trim((string) $reference) : null,
+                'received_on' => $serviceDate,
                 'refund_of_id' => $current->id,
                 'refund_reason' => $methodId === null ? null : $reason,
                 'voided' => $void,

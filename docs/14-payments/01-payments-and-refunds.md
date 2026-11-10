@@ -9,12 +9,13 @@ Record money received and refunded, and post it to the folio.
 ```
 payments    id, property_id, folio_id, payment_method_id, amount,
             purpose (PaymentPurpose), status (PaymentStatus), reference (nullable),
+            received_on (date), notes (nullable, ≤ 500),
             refund_of_id (nullable), refund_reason (nullable), voided (bool),
             receipt_number (nullable),
             folio_line_id, surcharge_line_id (nullable),
             received_by (nullable: a booking engine payment has none), received_at, timestamps
             checks: amount > 0; a refund has no receipt number;
-            only a refund has a reason or is voided;
+            only a refund has a reason or is voided; notes is trimmed and not empty;
             unique (property_id, receipt_number); unique folio_line_id
 ```
 
@@ -22,6 +23,8 @@ payments    id, property_id, folio_id, payment_method_id, amount,
 - `folio_line_id` is the payment line on the folio (negative for a payment, positive for a refund). `surcharge_line_id` is the surcharge charge line, when there is one.
 - A refund copies the `purpose` of the payment it refunds. It copies the `payment_method_id` too, unless it goes to [another method](#refund-to-another-method). `refund_reason` holds the reason for another method. `voided` marks a [void](#voidpayment).
 - A payment row is never updated after it is created. Its `status` is Completed.
+- `received_on` is the day the money came in, and `received_at` the moment staff recorded it. Staff pick `received_on` in Record payment (default: the business date). A day after the business date is refused (`received_on_in_future`, on the `received_on` field). Without a day, a payment takes its service date: the business date, or the day the old PMS took the money for an Old system payment. A refund takes its service date. It never moves the posting date, so the ledger, the night audit and the cash-up are not changed. The folio row shows "Received {date}" when it differs from the posting date, and the receipt shows **Received on** and **Recorded** then. Existing rows were filled from the service date of their payment line.
+- `notes` is a free remark for staff, for any method (Cash too). It shows under the folio row, on the receipt and in the Payments report. `reference` still shows only for a method that needs one.
 
 ## Enums
 
@@ -36,7 +39,7 @@ payments    id, property_id, folio_id, payment_method_id, amount,
 
 - **A payment before check-in (a deposit):** a payment is a posting, and a folio is created on the first posting. With a unit and no folio, the Action calls `CreateFolio` for that unit, then posts. Nothing creates a folio to display one.
 - **A unit that already has a folio:** the Action locks the unit row, finds the unit's own folio and posts to it. It does not refuse, so two quick clicks on Record payment never make two folios.
-- `NewPaymentData`: `payment_method_id`, `purpose`, `amount` (the amount paid on the bill), `reference`, `idempotency_key` (a UUID sent by the form, as `manual:{uuid}` is for charges).
+- `NewPaymentData`: `payment_method_id`, `purpose`, `amount` (the amount paid on the bill), `reference`, `idempotency_key` (a UUID sent by the form, as `manual:{uuid}` is for charges), `received_on` and `notes` (both optional).
 
 | Check, in order                                                                            | Refusal                                                          |
 | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |

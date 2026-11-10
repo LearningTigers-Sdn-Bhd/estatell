@@ -35,7 +35,7 @@ Add `nativeButton={false}` only when a trigger renders an element that is not a 
     </Button>
     ```
 
-- Loading buttons keep their label and use `Spinner` + `disabled` + `focusableWhenDisabled`.
+- Loading buttons keep their label and use `Spinner` + `disabled` + `focusableWhenDisabled`. With `focusableWhenDisabled`, Base UI sets `aria-disabled`, not the `disabled` attribute, so `Button` dims on both `disabled:` and `aria-disabled:`.
 
     ```tsx
     <Button disabled={processing} focusableWhenDisabled>

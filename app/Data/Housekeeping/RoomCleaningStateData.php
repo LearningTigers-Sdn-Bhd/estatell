@@ -17,5 +17,7 @@ class RoomCleaningStateData extends Data
         public bool $canStart,
         public bool $canFinish,
         public bool $canEdit,
+        /** Start asks who is cleaning: the viewer records for others and the room has no assignee. */
+        public bool $askHousekeeper,
     ) {}
 }

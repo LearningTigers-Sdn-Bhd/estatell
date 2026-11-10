@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Island and jetty properties (Perhentian, Redang, Tioman, Semporna) bring guests in and out by boat. Boat settings hold the **departures** (when each boat leaves and arrives) and the **fares** (the one-way price per guest). Staff then pick a departure for each room on a booking (see [Boat trips](02-boat-trips.md)).
+Island and jetty properties (Perhentian, Redang, Tioman, Semporna) bring guests in and out by boat. Boat settings hold the **departures** (the timetable: when each boat leaves and arrives), the **fares** (the one-way price per guest, and the charter charge), the **boats** and the **crew**. Staff then pick a departure for each room on a booking (see [Boat trips](02-boat-trips.md)), and run each date on the [Boat Trips board](05-boats-board.md).
 
 ## Feature flag
 
@@ -17,13 +17,21 @@ boat_departures  id, property_id, direction (BoatDirection),
                  leaves_at time, arrives_at time,
                  pickup_point text null, seats int null,
                  charge_item_id null → charge_items (the fare, restrict),
+                 default_boat_id null → boats (null on delete),
                  active (default true), timestamps
                  UNIQUE (property_id, direction, leaves_at)
                  CHECK arrives_at > leaves_at
                  CHECK seats IS NULL OR seats > 0
+
+boat_departure_crew  id, boat_departure_id → boat_departures (cascade),
+                     boat_crew_member_id → boat_crew_members (restrict),
+                     in_charge bool (default false), timestamps
+                     UNIQUE (boat_departure_id, boat_crew_member_id)
+                     UNIQUE (boat_departure_id) WHERE in_charge
 ```
 
-- One row is one boat that runs **every day** at that time. Seasonal closures (the east coast monsoon, November to February) use the property's closed dates or room blocks, not boat settings.
+- One row is the **timetable**: a departure that runs every day at that time. A single date can differ (a second boat, another time, a cancelled trip, an extra trip). That lives in [sailings](04-sailings.md), changed on the [Boat Trips board](05-boats-board.md), never on the timetable. Seasonal closures (the east coast monsoon, November to February) use the property's closed dates or room blocks, not boat settings.
+- **Default boat and crew** prefill each date's first sailing. The crew is a list of [crew members](#crew-tab) with one **in charge** (the skipper). `boat_departure_crew` replaces the old free-text `default_crew` column (see [Migration](04-sailings.md#migration)).
 - `leaves_at` and `arrives_at` are times of day in the property time zone. A departure cannot cross midnight.
 - For **Boat in**, `leaves_at` is at the jetty and `arrives_at` is at the property. For **Boat out**, `leaves_at` is at the property and `arrives_at` is at the jetty.
 - A fare is a charge item. There is no fares table (see [Fares](#fares-tab)).
@@ -38,7 +46,7 @@ boat_departures  id, property_id, direction (BoatDirection),
 ## Where it lives
 
 - Settings sidebar, **Property** group, after Printing: **Boats** (icon `ship`). `SettingsNavigation` adds it only when the feature is on and the user has `settings.manage`.
-- One page with two link tabs (`TabLinks`), each with its own URL: **Departures** and **Fares**.
+- One page with four link tabs (`TabLinks`), each with its own URL: **Departures**, **Fares**, **Boats** and **Crew**.
 
 ## Routes
 
@@ -54,25 +62,34 @@ All need `settings.manage` and the `Boats` feature.
 | `GET /p/{code}/settings/boats/fares`                     | `settings.boats.fares.index`        | Fares tab                      |
 | `POST /p/{code}/settings/boats/fares`                    | `settings.boats.fares.store`        | Add a fare                     |
 | `PUT /p/{code}/settings/boats/fares/{chargeItem}`        | `settings.boats.fares.update`       | Edit, and the Available switch |
+| `PUT /p/{code}/settings/boats/charter`                   | `settings.boats.charter`            | Charter charge (Fares tab)     |
+| `GET /p/{code}/settings/boats/boats`                     | `settings.boats.boats.index`        | Boats tab                      |
+| `POST /p/{code}/settings/boats/boats`                    | `settings.boats.boats.store`        | Add a boat                     |
+| `PUT /p/{code}/settings/boats/boats/{boat}`              | `settings.boats.boats.update`       | Edit, and the Available switch |
+| `GET /p/{code}/settings/boats/crew`                      | `settings.boats.crew.index`         | Crew tab                       |
+| `POST /p/{code}/settings/boats/crew`                     | `settings.boats.crew.store`         | Add a crew member              |
+| `PUT /p/{code}/settings/boats/crew/{crewMember}`         | `settings.boats.crew.update`        | Edit, and the Available switch |
 
-`{chargeItem}` on the fare routes must be a Transport charge item of the property, or the route returns 404.
+`{chargeItem}` on the fare routes must be a Transport charge item of the property, or the route returns 404. `{boat}` and `{crewMember}` of another property are a 404.
 
 ## Departures tab
 
 ```
 Settings › Boats
-[ Departures ]  Fares
+[ Departures ]  Fares  Boats  Crew
 
-Boat in                                                                                                         [+ Add departure]
- Available  Leaves  Arrives  Pick-up point       Seats  Default boat & crew          Fare                 Meals ⓘ
- [●  ]      09:00   09:45    Kuala Besut jetty   20     MV Sand Bay 1 · Awang / Daus Speedboat · RM35.00  Breakfast · Lunch · Dinner  ⋯
- [●  ]      13:00   13:45    Kuala Besut jetty   20     MV Sand Bay 2 · Din / Razak  Speedboat · RM35.00  Lunch · Dinner              ⋯
- [  ○]      16:00   16:45    Kuala Besut jetty   —      —                            No fare              Dinner                      ⋯   (muted)
+Boat in                                                                                                            [+ Add departure]
+ Available  Leaves  Arrives  Pick-up point       Seats  Default boat & crew             Fare                 Meals ⓘ
+ [●  ]      09:00   09:45    Kuala Besut jetty   20     MV Sand Bay 1 · Awang (in charge), Daus Speedboat · RM35.00  Breakfast · Lunch · Dinner  ⋯
+ [●  ]      13:00   13:45    Kuala Besut jetty   20     MV Sand Bay 2 · Din (in charge), Razak   Speedboat · RM35.00  Lunch · Dinner              ⋯
+ [  ○]      16:00   16:45    Kuala Besut jetty   —      —                               No fare              Dinner                      ⋯   (muted)
 
-Boat out                                                                                                        [+ Add departure]
- [●  ]      08:00   08:45    Resort jetty        20     MV Sand Bay 1 · Awang / Daus Speedboat · RM35.00  Breakfast                   ⋯
- [●  ]      12:00   12:45    Resort jetty        —      MV Sea Eagle                 Ferry · RM25.00      Breakfast                   ⋯
+Boat out                                                                                                           [+ Add departure]
+ [●  ]      08:00   08:45    Resort jetty        20     MV Sand Bay 1 · Awang (in charge), Daus Speedboat · RM35.00  Breakfast                   ⋯
+ [●  ]      12:00   12:45    Resort jetty        —      MV Sea Eagle                    Ferry · RM25.00      Breakfast                   ⋯
 ```
+
+- **Default boat & crew** shows the boat, then the crew member in charge with "(in charge)", then the assistants: "MV Sand Bay 1 · Awang (in charge), Daus". "—" when none is set.
 
 - Two tables, Boat in then Boat out, each sorted by **Leaves**. There is no manual order, as with meal periods.
 - Unavailable rows stay in place and are muted. There is no separate inactive list.
@@ -127,7 +144,7 @@ Upcoming trips are Scheduled trips on the departure whose unit `SetBoatTrip` wou
 
 ### Add or edit departure
 
-A Sheet (`FormOverlay`, `md`, 6 fields), opened from a section's Add button or from **Edit**.
+A Sheet (`FormOverlay`, `md`, 9 fields), opened from a section's Add button or from **Edit**.
 
 ```
 Add departure                                    ×
@@ -138,10 +155,17 @@ Pick-up point  [Kuala Besut jetty          ]
 Seats          [20]   Leave empty for no limit
 Fare           [Speedboat · RM35.00       ▾]
                No fare · Speedboat · Ferry
-Default boat   [MV Sand Bay 1             ▾]  Prefills on manifest
-Default crew   [Awang / Daus               ]  Prefills on manifest
+Default boat   [MV Sand Bay 1             ▾]
+In charge      [Awang                     ▾]
+Assistants     [Daus ×]                    ▾
+               Prefill each date on the Boat Trips board.
                               [Cancel] [Add departure]
 ```
+
+- **Default boat** lists available boats and **None**. **In charge** and **Assistants** list available crew members. The current values show even when they are now unavailable, so an edit does not drop them.
+- Each crew option shows the crew member's phone as a muted second line under the name, when one is saved. The Boat Trips board's crew pickers do the same.
+- **Assistants** is a multiselect (`Combobox` with chips) and leaves out the person in charge. Assistants without anyone in charge are refused: "Pick who is in charge first."
+- With no boats or no crew yet, the select says "No boats yet. Add one on the Boats tab." (or "Crew tab").
 
 - **Direction** is preset from the section whose Add button was used.
 - A new departure starts available. The Available switch is only on the table, not in the Sheet.
@@ -157,7 +181,7 @@ Default crew   [Awang / Daus               ]  Prefills on manifest
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `CreateBoatDeparture` | Adds the row. Logs `boat_departure.created`.                                                                                                                                                                                                                                                                                                                                                                                    |
 | `UpdateBoatDeparture` | Saves the row. When the property-side time changes, sets `arrival_time` (In) or `departure_time` (Out) on every upcoming trip's unit to the new time, in the same transaction. Locks the departure, then the units in id order. Refuses a direction change (`departure_in_use`) while any trip uses the departure. Logs `boat_departure.updated` with the before and after values and the number of bookings and units changed. |
-| `DeleteBoatDeparture` | Deletes a row with no trips. Refused (`departure_in_use`) when any trip, of any status, uses it.                                                                                                                                                                                                                                                                                                                                |
+| `DeleteBoatDeparture` | Deletes a row with no trips and no sailings. Refused (`departure_in_use`) when any trip, of any status, uses it, and (`departure_has_sailings`) when any date has a stored [sailing](04-sailings.md).                                                                                                                                                                                                                           |
 
 ### Rules
 
@@ -175,7 +199,7 @@ Default crew   [Awang / Daus               ]  Prefills on manifest
 
 ```
 Settings › Boats
- Departures  [ Fares ]
+ Departures  [ Fares ]  Boats  Crew
 
 Fares                                                               [+ Add fare]
  Available  Name       Adult   Children                      Taxes   Used by
@@ -189,6 +213,19 @@ Fares                                                               [+ Add fare]
 - **Used by** counts available departures that use the fare.
 - The **⋯** menu has **Edit** (the fare Sheet) and **More settings**, which opens the [charge item page](../06-catalogues/02-charge-items.md#pages) for the description and other fields.
 - Empty state: the table keeps its header and shows "No fares yet. A fare is the one-way price per guest for a boat." in one row. The Add fare button is always in the section header.
+
+### Charter
+
+A section below the fares table. It moved here from the Boats tab, because it is a price, not a boat.
+
+```
+Charter
+ Charge for a charter   [Charter Boat · RM450.00 ▾]  [Save]
+ Picking Charter as a room's boat adds this charge once.
+```
+
+- **Charge for a charter** (`property_settings.charter_charge_item_id`) lists the property's active charge items with a fixed price, and "Nothing (charge by hand)".
+- `SetCharterChargeItem` saves it (`settings.boats.charter`) and logs `boats.charter_item_set`. How the trip adds it: [Charter charge](02-boat-trips.md#fare).
 
 ### Available switch
 
@@ -252,15 +289,59 @@ Boats never write `charge_items` directly. Both Actions live in `app/Actions/Boa
 
 ## Boats tab
 
-`settings.boats.boats.index|store|update` (`BoatController`, `settings.manage`): the boats the property runs, picked per departure and date on the [manifest](03-boat-manifest.md#boats-and-crew).
+`BoatController` (`settings.manage`): the boats the property runs, picked for each [sailing](04-sailings.md) on the Boat Trips board.
 
 ```
 boats    id, property_id, name (≤ 60, unique per property ignoring case), registration (nullable, ≤ 30),
-         active (default true), timestamps
+         seats int null, active (default true), timestamps
+         CHECK seats IS NULL OR seats > 0
 ```
 
-- A table of Name, Registration and Status (In use, Not in use) with **Add boat** and an edit button per row. The Dialog (`FormOverlay`, `sm`) has Name, Registration (optional) and **In use**. `SaveBoat` adds or changes a boat and logs `boat.created` or `boat.updated`. A boat is never deleted; turn it off instead, so old runs keep its name.
-- **Charter boat** below the table: **Charge for a charter** (`property_settings.charter_charge_item_id`, an active charge item with a fixed price, or "Nothing (charge by hand)"). `SetCharterChargeItem` saves it (`settings.boats.charter`) and logs `boats.charter_item_set`. See [Charter charge](02-boat-trips.md#fare).
+```
+Settings › Boats
+ Departures  Fares  [ Boats ]  Crew
+
+Boats                                                         [+ Add boat]
+ Available  Name            Registration   Seats
+ [●  ]      MV Sand Bay 1   SA10716        20      ✎
+ [●  ]      MV Sand Bay 2   SA10822        12      ✎
+ [  ○]      MV Old Ferry    SA09001        —       ✎   (muted)
+```
+
+- A data table sorted by name. Unavailable rows stay in place and are muted.
+- The first column is the **Available** switch, as on Departures. It sends the row with the new `active` value at once. Toast: "MV Sand Bay 2 is available." or "… is unavailable." An unavailable boat leaves the pickers; sailings that already use it keep it and still show its name.
+- **Seats** is the boat's own limit. It counts on the Boat Trips board when a departure runs more than one boat ([Seats](04-sailings.md#seats)). "—" for no limit.
+- **Add boat** and ✎ open a Dialog (`FormOverlay`, `sm`): Name, Registration (optional), Seats (optional). A new boat starts available. The switch is only on the table.
+- `SaveBoat` adds or changes a boat and logs `boat.created` or `boat.updated`. A boat is never deleted; turn it off instead.
+- Empty state: "No boats yet. Add the boats you run, so the Boat Trips board can name the boat of each sailing."
+
+## Crew tab
+
+`BoatCrewController` (`settings.manage`): the people who run the boats. Crew members are names, not staff users: they do not sign in.
+
+```
+boat_crew_members   id, property_id, name (≤ 60, unique per property ignoring case),
+                    phone (nullable, ≤ 30), active (default true), timestamps
+```
+
+```
+Settings › Boats
+ Departures  Fares  Boats  [ Crew ]
+
+Crew                                                          [+ Add crew]
+ Available  Name     Phone
+ [●  ]      Awang    012-345 6789   ✎
+ [●  ]      Daus     —              ✎
+ [●  ]      Din      013-222 1111   ✎
+ [  ○]      Razak    —              ✎   (muted)
+```
+
+- The same table, switch and Dialog as the Boats tab: Name and Phone (optional). Toast: "Din is available." or "… is unavailable."
+- Phone uses the shared phone field with a country picker. A number without a country code is read as a number of the property's country and saved in E.164 form (`+60132221111`).
+- On both tabs, an empty list keeps the table header and shows the empty state in the table.
+- Who is **in charge** is set per departure and per sailing, not on the crew member, because the skipper of one trip can be the assistant on another.
+- `SaveBoatCrewMember` adds or changes a crew member and logs `boat_crew_member.created` or `boat_crew_member.updated`. A crew member is never deleted; turn them off instead, so old sailings keep the name.
+- Empty state: "No crew yet. Add the people who run your boats, then pick who is in charge of each trip."
 
 ## Build order
 
@@ -269,10 +350,11 @@ boats    id, property_id, name (≤ 60, unique per property ignoring case), regi
 - `add boat trips and set them on units`: the upcoming trip query, moving unit times on Update, the direction lock and the `departure_in_use` refusal on Delete.
 - `show boat trips on the reservation page`: the turn-off AlertDialog with the upcoming booking count and the edit note.
 - `show meals on boat departures`: `MealTimeRule`, `DepartureMeals`, the Meals column with its header popover, and the meals preview in the Sheet.
+- `add the crew list`: the Crew tab, `boat_departure_crew`, the In charge and Assistants fields, the Available switch and Seats on the Boats tab, and the Charter section moved to the Fares tab.
 
 ## Permissions
 
-`settings.manage` for both tabs. No new permission.
+`settings.manage` for every tab. No new permission.
 
 ## Lessons from wastays
 

@@ -11,11 +11,13 @@ use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\Room;
 use App\Models\RoomBlock;
+use App\Models\RoomCleaning;
 use App\Models\RoomType;
 use App\Models\UnitGuest;
 use App\Models\UnitNight;
 use App\Models\User;
 use App\Navigation\ReportsNavigation;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
@@ -97,6 +99,74 @@ test('the board lists every active room with its status, stay and reason, depart
             ->where('can.update', true));
 
     expect($idle->status->status)->toBe(HousekeepingStatus::Inspected);
+});
+
+test('the guest and pax columns show tonight\'s party, or the departing one when nobody arrives', function () {
+    $owner = User::factory()->owner()->create();
+    $property = boardProperty($owner);
+    $turnover = boardRoom($property, '201', HousekeepingStatus::Dirty);
+    $stayOver = boardRoom($property, '202', HousekeepingStatus::Dirty);
+    $leaving = boardRoom($property, '203', HousekeepingStatus::Dirty);
+    boardRoom($property, '204');
+
+    boardUnit($property, $turnover, ['arrival_date' => '2026-10-10', 'departure_date' => '2026-10-12', 'adults' => 1, 'children' => 0], 'Leaving Guest', 'checkedIn');
+    boardUnit($property, $turnover, ['arrival_date' => '2026-10-12', 'departure_date' => '2026-10-14', 'adults' => 2, 'children' => 1], 'Arriving Family');
+    boardUnit($property, $stayOver, ['arrival_date' => '2026-10-11', 'departure_date' => '2026-10-14', 'adults' => 3, 'children' => 0], 'Staying Guest', 'checkedIn');
+    boardUnit($property, $leaving, ['arrival_date' => '2026-10-10', 'departure_date' => '2026-10-12', 'adults' => 2, 'children' => 2], 'Departed Guest', 'checkedOut');
+
+    $rooms = fn (): array => collect(test()->actingAs($owner)->get(route('housekeeping.index', $property->code))->original->getData()['page']['props']['rooms'])
+        ->mapWithKeys(fn (array $room): array => [$room['number'] => [$room['guest'], $room['adults'], $room['children']]])
+        ->all();
+
+    expect($rooms())->toEqual([
+        '203' => ['Departed Guest', 2, 2],
+        '201' => ['Arriving Family', 2, 1],
+        '202' => ['Staying Guest', 3, 0],
+        '204' => [null, null, null],
+    ]);
+});
+
+test('a stay without a primary guest shows the booker, as on the kiosk', function () {
+    $owner = User::factory()->owner()->create();
+    $property = boardProperty($owner);
+    $room = boardRoom($property, '301', HousekeepingStatus::Dirty);
+    $unit = boardUnit($property, $room, ['arrival_date' => '2026-10-10', 'departure_date' => '2026-10-12'], state: 'checkedOut');
+    UnitGuest::query()->where('reservation_unit_id', $unit->id)->delete();
+    $unit->reservation->booker->update(['full_name' => 'Booker Only']);
+
+    $this->actingAs($owner)->get(route('housekeeping.index', $property->code))
+        ->assertInertia(fn (Assert $page) => $page->where('rooms.0.guest', 'Booker Only'));
+});
+
+test('the stay badge says whether the guest is due out, in house, checked out or arriving', function () {
+    $owner = User::factory()->owner()->create();
+    $property = boardProperty($owner);
+    $dueOut = boardRoom($property, '401', HousekeepingStatus::Dirty);
+    $checkedOut = boardRoom($property, '402', HousekeepingStatus::Dirty);
+    $inHouse = boardRoom($property, '403', HousekeepingStatus::Dirty);
+    $arriving = boardRoom($property, '404');
+    $turnedOver = boardRoom($property, '405');
+    boardRoom($property, '406');
+
+    boardUnit($property, $dueOut, ['arrival_date' => '2026-10-10', 'departure_date' => '2026-10-12'], state: 'checkedIn');
+    boardUnit($property, $checkedOut, ['arrival_date' => '2026-10-10', 'departure_date' => '2026-10-12'], state: 'checkedOut');
+    boardUnit($property, $inHouse, ['arrival_date' => '2026-10-11', 'departure_date' => '2026-10-14'], state: 'checkedIn');
+    boardUnit($property, $arriving, ['arrival_date' => '2026-10-12', 'departure_date' => '2026-10-14']);
+    boardUnit($property, $turnedOver, ['arrival_date' => '2026-10-10', 'departure_date' => '2026-10-12'], state: 'checkedOut');
+    boardUnit($property, $turnedOver, ['arrival_date' => '2026-10-12', 'departure_date' => '2026-10-14'], state: 'checkedIn');
+
+    $stays = collect($this->actingAs($owner)->get(route('housekeeping.index', $property->code))->original->getData()['page']['props']['rooms'])
+        ->mapWithKeys(fn (array $room): array => [$room['number'] => $room['stay'] === null ? null : [$room['stay']['value'], $room['stay']['tone']]])
+        ->all();
+
+    expect($stays)->toMatchArray([
+        '401' => ['due_out', 'warning'],
+        '402' => ['checked_out', 'neutral'],
+        '403' => ['in_house', 'success'],
+        '404' => ['arriving', 'info'],
+        '405' => ['in_house', 'success'],
+        '406' => null,
+    ]);
 });
 
 test('the board orders departures by departure time, then arrivals by arrival time, then the rest by room', function () {
@@ -420,7 +490,7 @@ function exportBoardRooms(User $user): Property
     return $property;
 }
 
-test('the board spreadsheet lists the rooms in due order with the saved layout', function () {
+test('the board spreadsheet lists the rooms in due order with the board columns by default', function () {
     $owner = User::factory()->owner()->create();
     $property = exportBoardRooms($owner);
 
@@ -431,10 +501,11 @@ test('the board spreadsheet lists the rooms in due order with the saved layout',
 
     $rows = array_map('str_getcsv', array_values(array_filter(explode("\n", ltrim($response->streamedContent(), "\xEF\xBB\xBF")))));
 
-    expect($rows[0])->toBe(['Room', 'Status', 'Assigned', 'Guest', 'Arrival', 'Departure', 'Flags', 'Remarks'])
+    expect($rows[0])->toBe(['Room', 'Status', 'Guest', 'Reservation Status', 'Pax', 'Arrival', 'Departure', 'Housekeeper', 'Notes'])
         ->and(array_column($rows, 0))->toBe(['Room', '102', '101', '103'])
-        ->and($rows[1])->toBe(['102', 'Dirty', '', 'Departed Guest', '', '12 Oct · 11:00', 'Priority', 'Spill on rug · Checked out today'])
-        ->and($rows[2][4])->toBe('12 Oct · 14:30');
+        ->and($rows[1])->toBe(['102', 'Dirty', 'Departed Guest', 'Checked out', '1A 0C', '', '12 Oct · 11:00', '', 'Priority · Spill on rug'])
+        ->and($rows[2][5])->toBe('12 Oct · 14:30')
+        ->and($rows[3][4])->toBe('');
 });
 
 test('the board export keeps only the selected rooms and drops another property\'s', function () {
@@ -527,4 +598,24 @@ test('the status and do-not-disturb routes go back to the page that sent them', 
         ->from(route('housekeeping.index', $property->code))
         ->put(route('housekeeping.rooms.dnd', [$property->code, $room]), ['dnd' => false])
         ->assertRedirect(route('housekeeping.index', $property->code));
+});
+
+test('the print Housekeeper cell shows the cleaner and times, else the assignee', function () {
+    $owner = User::factory()->owner()->create();
+    $property = boardProperty($owner);
+    $cleaned = boardRoom($property, '501', HousekeepingStatus::Dirty);
+    $planned = boardRoom($property, '502', HousekeepingStatus::Dirty);
+    $planned->status->update(['assigned_to' => $owner->id]);
+    RoomCleaning::factory()->create(['property_id' => $property->id, 'room_id' => $cleaned->id, 'date' => '2026-10-12', 'housekeeper_id' => $owner->id, 'created_by' => $owner->id, 'started_at' => '2026-10-12 01:05:00', 'finished_at' => '2026-10-12 01:40:00']);
+
+    $response = $this->actingAs($owner)->post(route('housekeeping.spreadsheet', $property->code), ['format' => 'csv', 'date' => '2026-10-12']);
+    $rows = collect(array_map('str_getcsv', array_values(array_filter(explode("\n", ltrim($response->streamedContent(), "\xEF\xBB\xBF"))))))
+        ->mapWithKeys(fn (array $row): array => [$row[0] => $row[7]]);
+
+    $timeZone = $property->settings?->time_zone ?? config('app.timezone');
+    $in = CarbonImmutable::parse('2026-10-12 01:05:00', 'UTC')->setTimezone($timeZone)->format('H:i');
+    $out = CarbonImmutable::parse('2026-10-12 01:40:00', 'UTC')->setTimezone($timeZone)->format('H:i');
+
+    expect($rows['501'])->toBe("{$owner->name} {$in}–{$out}")
+        ->and($rows['502'])->toBe($owner->name);
 });

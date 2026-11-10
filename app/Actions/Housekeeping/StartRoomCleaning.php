@@ -13,11 +13,11 @@ use Illuminate\Support\Facades\DB;
 
 class StartRoomCleaning
 {
-    public function __construct(private RoomOutOfService $outOfService, private HousekeepingDate $housekeepingDate) {}
+    public function __construct(private RoomOutOfService $outOfService, private HousekeepingDate $housekeepingDate, private AssignHousekeeper $assign) {}
 
     /**
-     * Record IN: the housekeeper starts cleaning the room now. Refused while the room is blocked or already being
-     * cleaned, which also makes a double tap harmless.
+     * Record Start: the housekeeper starts cleaning the room now and becomes its assignee. Refused while the room is
+     * blocked or already being cleaned, which also makes a double tap harmless.
      */
     public function __invoke(User $actor, Room $room, User $housekeeper): ?HousekeepingRefusal
     {
@@ -48,6 +48,8 @@ class StartRoomCleaning
                 ->event('room_cleaning.started')
                 ->withProperties(['property_id' => $room->property_id, 'room_id' => $room->id, 'housekeeper_id' => $housekeeper->id])
                 ->log('Room cleaning started');
+
+            ($this->assign)($actor, $room, $housekeeper);
 
             return null;
         });

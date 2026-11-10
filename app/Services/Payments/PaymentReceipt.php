@@ -66,6 +66,8 @@ class PaymentReceipt
             surchargeTax: $surchargeTax,
             total: (string) $payment->amount,
             receivedBy: $payment->receiver->name ?? __('Booking Engine'),
+            receivedOn: $payment->received_on->isSameDay($payment->folioLine->posting_date) ? null : $payment->received_on->format('j M Y'),
+            notes: $payment->notes,
         );
     }
 

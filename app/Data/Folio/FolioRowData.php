@@ -17,7 +17,8 @@ use Spatie\LaravelData\Data;
  * `folio.print-voucher`.
  * A live room line of a night carries `correct_price` with its `unitId` and `unitNightId` for a user with
  * `reservations.change-price`. A posted row's `date` is its service date; `postedDate` is its posting date, set only
- * when the line was posted after the day it happened.
+ * when the line was posted after the day it happened. A payment row has `receivedOn` when the money came in on another day
+ * than its posting date, and its staff `notes`.
  */
 class FolioRowData extends Data
 {
@@ -46,5 +47,7 @@ class FolioRowData extends Data
         public ?int $unitNightId = null,
         public ?string $postedDate = null,
         public ?string $methodType = null,
+        public ?string $receivedOn = null,
+        public ?string $notes = null,
     ) {}
 }

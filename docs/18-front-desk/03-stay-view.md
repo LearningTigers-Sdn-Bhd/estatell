@@ -26,7 +26,7 @@ Two sidebar items under **Overview**, below Dashboard. Each is its own route. Th
 | **Room type**  | Multi-select combobox with counts                | Filter. Same rules                                                                        |
 | **Status**     | Multi-select                                     | Filter by housekeeping status                                                             |
 | **Show**       | Multi-select                                     | Room View only: Arriving, In house, Departing, Vacant, Blocked                            |
-| **Group by**   | Select, items from `StayViewGrouping::options()` | None, Room group (default), Room type                                                     |
+| **Group by**   | Select, items from `StayViewGrouping::options()` | None, Room group (default), Room type. Remembered in the browser, shared by both views    |
 | **Show rates** | Toggle                                           | Timeline only: shows or hides the rate row. Remembered in the browser                     |
 | Search         | Text                                             | Guest, reference or room. Placeholder "e.g. Ahmad or 201"                                 |
 
@@ -34,6 +34,7 @@ Two sidebar items under **Overview**, below Dashboard. Each is its own route. Th
 - **Timeline:** only the date controls, **Group by** (a toggle group) and the legend are in the toolbar. Room group, Room type, Status, Search, **Show rates** and the rate plan are in a **Filters** sheet, opened by the **Filters** button in the top-left corner of the date header. The button's badge is the number of filters set: each picked room group, room type and status, plus one for a search with text. Group by and the rate settings are not counted. The sheet has **Clear filters** and **Done**; changes apply as they are made. The rate plan select shows only while Show rates is on.
 - Room group and Room type are multi-select comboboxes with a room count on each item; Status lists the housekeeping statuses. The choices, Group by and search are written to the URL without a request.
 - Group by sets the row or card headers only. Filters decide which rooms appear.
+- Group by is remembered in the browser (`estatell:stay-view:group-by`, `useStayViewGrouping`), one choice for the Timeline and Room View. A `group_by` in the URL wins, then the stored choice, then Room group, so a shared link keeps its grouping. Picking one saves it and writes the URL, with no request. Blocked storage falls back to Room group. The filters are not remembered: they live in the URL only, so a forgotten filter never hides rooms.
 - Beds stay under their dorm in every option. With Room type, dorm beds group under the dorm's room type. With None, beds list under their room's number.
 - Each header shows its row count. On the Timeline a header can collapse, as in the rate calendar.
 

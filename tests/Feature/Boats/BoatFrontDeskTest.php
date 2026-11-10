@@ -159,7 +159,7 @@ test('with boats off the column is out of the layout and no trip is read', funct
     expect(collect(ReportKey::Departures->columnsFor($property))->pluck('key')->contains('boat'))->toBeFalse();
 });
 
-test('a saved layout drops the boat column while boats are off and gets it back at the end when they are on', function () {
+test('a saved layout drops the boat column while boats are off and gets it back in its code place when they are on', function () {
     [$user, $property] = boatDeskSetup(featureOn: false);
     $resolver = app(ReportLayoutResolver::class);
     $draft = fn (Property $property) => array_map(fn ($column): array => ['key' => $column->key, 'visible' => true], ReportKey::Arrivals->columnsFor($property));
@@ -174,7 +174,8 @@ test('a saved layout drops the boat column while boats are off and gets it back 
 
     $keys = array_column($resolver->resolve($property, ReportKey::Arrivals)->columns, 'key');
 
-    expect(end($keys))->toBe('boat');
+    expect($keys)->toContain('boat')
+        ->and($keys)->toBe(array_column(ReportKey::Arrivals->columnsFor($property), 'key'));
 });
 
 /**

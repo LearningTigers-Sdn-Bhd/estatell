@@ -357,7 +357,7 @@ class ReservationBookingController extends Controller
 
     /**
      * The seats taken on each available departure of one direction for one date, for the Boat in and Boat out pickers.
-     * Counts only: a full boat is a warning in the form, never a refusal. Departures of another property do not appear.
+     * Counts only: a full boat is a warning in the form, never a refusal. `cancelled` lists the departures that do not run on the date; the pickers leave them out. Departures of another property do not appear.
      */
     public function boatSeats(BoatSeatsRequest $request, Property $property, BoatSeats $boatSeats): JsonResponse
     {
@@ -369,7 +369,13 @@ class ReservationBookingController extends Controller
             ->map(intval(...))
             ->all());
 
-        return response()->json(['seats' => (object) $boatSeats->forDate($direction, $request->date('date', 'Y-m-d')->toImmutable(), $departureIds)]);
+        $date = $request->date('date', 'Y-m-d')->toImmutable();
+
+        return response()->json([
+            'seats' => (object) $boatSeats->forDate($direction, $date, $departureIds),
+            'limits' => (object) $boatSeats->limitsForDate($property, $date, $departureIds),
+            'cancelled' => $boatSeats->cancelledForDate($departureIds, $date),
+        ]);
     }
 
     private function form(Request $request, Property $property, ReservationFormOptions $options, CurrentBusinessDate $businessDate, PropertyToday $today, BookingSourceOptions $sourceOptions, bool $walkIn, bool $pastStay = false, bool $migratedStay = false, bool $oldStay = false, bool $readsPrefill = false): Response

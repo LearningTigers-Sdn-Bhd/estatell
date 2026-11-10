@@ -10,6 +10,8 @@ class BoatDepartureResult
 {
     public const REFUSAL_DEPARTURE_IN_USE = 'departure_in_use';
 
+    public const REFUSAL_DEPARTURE_HAS_SAILINGS = 'departure_has_sailings';
+
     private function __construct(
         public readonly ?string $refusal,
         public readonly int $bookingsChanged = 0,

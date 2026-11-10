@@ -14,6 +14,7 @@ class BoatTripsResult
         public readonly ?int $unitId = null,
         public readonly ?string $unitLabel = null,
         public readonly bool $postedFareKept = false,
+        public readonly ?string $detail = null,
     ) {}
 
     public static function done(bool $postedFareKept = false): self
@@ -21,9 +22,9 @@ class BoatTripsResult
         return new self(postedFareKept: $postedFareKept);
     }
 
-    public static function refused(string $refusal, int $unitId, string $unitLabel): self
+    public static function refused(string $refusal, int $unitId, string $unitLabel, ?string $detail = null): self
     {
-        return new self($refusal, $unitId, $unitLabel);
+        return new self($refusal, $unitId, $unitLabel, detail: $detail);
     }
 
     public function isRefused(): bool

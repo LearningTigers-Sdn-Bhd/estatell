@@ -1,68 +1,142 @@
 import { router, useForm } from '@inertiajs/react';
 import { Pencil, Trash2 } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useState } from 'react';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuGroup,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { finish, start } from '@/routes/housekeeping/rooms/cleaning';
 import { destroy, store, update } from '@/routes/housekeeping/rooms/cleanings';
 
 type State = App.Data.Housekeeping.RoomCleaningStateData;
 
 /**
- * The housekeeper and the IN and OUT time of a room, on the Housekeeping board and on House status. IN and OUT are one
- * tap and record the time now. Staff who may correct times get a pencil. The server says what the viewer may do.
+ * The housekeeper and the cleaning times of a room, on the Housekeeping board and on House status. Start and Done
+ * are one tap and record the time now. When the viewer records for others and the room has no assignee, Start asks
+ * who is cleaning. Staff who may correct times get a pencil, unless the page puts that in its row menu. The server
+ * says what the viewer may do.
  */
 export function CleaningCell({
     state,
     staffOptions,
+    assignSlot,
+    editInMenu = false,
+    allowRestart = true,
+    startWarning,
 }: {
     state: State;
     staffOptions: EnumOption[];
+    /** Shown before Start while no cleaning runs, for example the assignee picker. */
+    assignSlot?: ReactNode;
+    /** The page opens `CleaningTimesDialog` from its own row menu instead of a pencil here. */
+    editInMenu?: boolean;
+    /** Offer Start again after a finished cleaning. */
+    allowRestart?: boolean;
+    /** Start stays possible but quiet, with this reason in a tooltip. */
+    startWarning?: string;
 }) {
     const [editing, setEditing] = useState(false);
     const { cleaning } = state;
-    const post = (url: string) =>
-        router.post(url, {}, { preserveScroll: true, preserveState: true });
+    const isOpen = cleaning !== null && cleaning.outTime === null;
+    const isFinished = cleaning !== null && cleaning.outTime !== null;
+    const offerNext = !isOpen && (!isFinished || allowRestart);
+    const showStart = state.canStart && offerNext;
+    const startCleaning = (housekeeperId?: string) =>
+        router.post(
+            start.url({ room: state.roomId }),
+            housekeeperId ? { housekeeper_id: Number(housekeeperId) } : {},
+            { preserveScroll: true, preserveState: true },
+        );
+    const startButton = (
+        <Button
+            type="button"
+            size="sm"
+            variant={startWarning ? 'ghost' : 'outline'}
+            onClick={state.askHousekeeper ? undefined : () => startCleaning()}
+        >
+            Start
+        </Button>
+    );
 
     return (
-        <div className="flex min-w-36 flex-wrap items-center gap-1.5">
+        <div className="flex min-w-48 flex-wrap items-center gap-1.5">
             {cleaning && (
                 <span className="flex flex-col text-xs">
                     <span className="font-medium">
                         {cleaning.housekeeperName}
                     </span>
                     <span className="text-muted-foreground tabular-nums">
-                        IN {cleaning.inTime}
-                        {cleaning.outTime && ` · OUT ${cleaning.outTime}`}
+                        {isOpen
+                            ? `since ${cleaning.inTime}`
+                            : `${cleaning.inTime}–${cleaning.outTime}`}
                         {cleaning.minutes !== null &&
                             ` · ${cleaning.minutes} min`}
                     </span>
                 </span>
             )}
+            {offerNext && assignSlot}
             {state.canFinish && (
                 <Button
                     type="button"
                     size="sm"
-                    onClick={() => post(finish.url({ room: state.roomId }))}
+                    onClick={() =>
+                        router.post(
+                            finish.url({ room: state.roomId }),
+                            {},
+                            { preserveScroll: true, preserveState: true },
+                        )
+                    }
                 >
-                    OUT
+                    Done
                 </Button>
             )}
-            {state.canStart && (
-                <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => post(start.url({ room: state.roomId }))}
-                >
-                    IN
-                </Button>
-            )}
-            {state.canEdit && (
+            {showStart &&
+                (state.askHousekeeper ? (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger render={startButton} />
+                        <DropdownMenuContent align="end" className="min-w-48">
+                            <DropdownMenuGroup>
+                                <DropdownMenuLabel>
+                                    Who is cleaning {state.roomNumber}?
+                                </DropdownMenuLabel>
+                                {staffOptions.map((option) => (
+                                    <DropdownMenuItem
+                                        key={option.value}
+                                        onClick={() =>
+                                            startCleaning(option.value)
+                                        }
+                                    >
+                                        {option.label}
+                                    </DropdownMenuItem>
+                                ))}
+                            </DropdownMenuGroup>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                ) : startWarning ? (
+                    <Tooltip>
+                        <TooltipTrigger render={startButton} />
+                        <TooltipContent>{startWarning}</TooltipContent>
+                    </Tooltip>
+                ) : (
+                    startButton
+                ))}
+            {state.canEdit && !editInMenu && (
                 <Button
                     type="button"
                     size="icon-sm"
@@ -74,7 +148,7 @@ export function CleaningCell({
                 </Button>
             )}
             {editing && (
-                <CleaningDialog
+                <CleaningTimesDialog
                     state={state}
                     staffOptions={staffOptions}
                     onClose={() => setEditing(false)}
@@ -84,7 +158,10 @@ export function CleaningCell({
     );
 }
 
-function CleaningDialog({
+/**
+ * Correct, add or remove the cleaning times of a room. For staff with `housekeeping.edit-times`.
+ */
+export function CleaningTimesDialog({
     state,
     staffOptions,
     onClose,
@@ -136,6 +213,27 @@ function CleaningDialog({
             submitDisabled={
                 form.data.housekeeper_id === '' || form.data.in_time === ''
             }
+            footerStart={
+                cleaning && (
+                    <Button
+                        type="button"
+                        variant="destructive"
+                        disabled={form.processing}
+                        onClick={() =>
+                            router.delete(
+                                destroy.url({
+                                    room: state.roomId,
+                                    cleaning: cleaning.id,
+                                }),
+                                done,
+                            )
+                        }
+                    >
+                        <Trash2 data-icon="inline-start" />
+                        Remove
+                    </Button>
+                )
+            }
         >
             <Field data-invalid={!!errors.housekeeper_id}>
                 <FieldLabel htmlFor="cleaning-housekeeper">
@@ -154,7 +252,7 @@ function CleaningDialog({
             </Field>
             <div className="grid grid-cols-2 gap-4">
                 <Field data-invalid={!!errors.in_time}>
-                    <FieldLabel htmlFor="cleaning-in">IN</FieldLabel>
+                    <FieldLabel htmlFor="cleaning-in">Started</FieldLabel>
                     <Input
                         id="cleaning-in"
                         type="time"
@@ -167,7 +265,7 @@ function CleaningDialog({
                     <FieldError>{errors.in_time}</FieldError>
                 </Field>
                 <Field data-invalid={!!errors.out_time}>
-                    <FieldLabel htmlFor="cleaning-out">OUT</FieldLabel>
+                    <FieldLabel htmlFor="cleaning-out">Finished</FieldLabel>
                     <Input
                         id="cleaning-out"
                         type="time"
@@ -180,26 +278,6 @@ function CleaningDialog({
                     <FieldError>{errors.out_time}</FieldError>
                 </Field>
             </div>
-            {cleaning && (
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="justify-self-start text-destructive"
-                    onClick={() =>
-                        router.delete(
-                            destroy.url({
-                                room: state.roomId,
-                                cleaning: cleaning.id,
-                            }),
-                            done,
-                        )
-                    }
-                >
-                    <Trash2 aria-hidden />
-                    Remove this cleaning
-                </Button>
-            )}
         </FormOverlay>
     );
 }

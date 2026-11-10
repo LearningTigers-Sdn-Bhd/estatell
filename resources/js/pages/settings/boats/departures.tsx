@@ -23,6 +23,7 @@ import { destroy, update } from '@/routes/settings/boats/departures';
 type Departure = App.Data.Boats.BoatDepartureData;
 type Fare = App.Data.Boats.BoatFareData;
 type Boat = App.Data.Boats.BoatData;
+type CrewMember = App.Data.Boats.BoatCrewMemberData;
 type Option = { value: string; label: string };
 
 type SheetState = {
@@ -48,7 +49,6 @@ function formValues(departure: Departure) {
             departure.defaultBoatId === undefined
                 ? ''
                 : String(departure.defaultBoatId),
-        default_crew: departure.defaultCrew ?? '',
         active: departure.active,
     };
 }
@@ -58,6 +58,7 @@ export default function BoatDeparturesPage({
     mealPeriods,
     fares,
     boats,
+    crew,
     directions,
     currency,
 }: {
@@ -65,6 +66,7 @@ export default function BoatDeparturesPage({
     mealPeriods: App.Data.Meals.MealPeriodData[];
     fares: Fare[];
     boats: Boat[];
+    crew: CrewMember[];
     directions: Option[];
     currency: App.Data.Property.CurrencyData;
 }) {
@@ -201,6 +203,7 @@ export default function BoatDeparturesPage({
                 directions={directions}
                 fares={fares}
                 boats={boats}
+                crew={crew}
                 mealPeriods={mealPeriods}
                 currency={currency}
             />

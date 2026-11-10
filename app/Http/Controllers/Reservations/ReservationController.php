@@ -28,6 +28,7 @@ use App\Enums\ReservationStatus;
 use App\Enums\SellUnit;
 use App\Enums\StayType;
 use App\Enums\TransactionKind;
+use App\Enums\UnitMovement;
 use App\Enums\UnitStatus;
 use App\Features\Boats;
 use App\Features\DoorLocks;
@@ -94,6 +95,8 @@ class ReservationController extends Controller
         $repeats = array_flip($directory->repeatReservationIds($property, $page));
         $canViewGuest = $request->user()->can(PermissionEnum::GuestsView->value);
         $boats = Feature::for($property)->active(Boats::class) ? $boatSummary->forReservations($page) : [];
+        $counts = $directory->statusCounts($property, $request);
+        $statuses = $directory->statuses($request);
 
         $reservations->setCollection($page->map(fn (Reservation $reservation): ReservationListItemData => ReservationListItemData::fromModel(
             $reservation,
@@ -105,10 +108,13 @@ class ReservationController extends Controller
 
         return Inertia::render('reservations/index', [
             'reservations' => ReservationListItemData::collect($reservations, PaginatedDataCollection::class),
-            'statusCounts' => $this->statusCounts($directory->statusCounts($property, $request)),
+            'statusCounts' => $this->tabCounts($counts, $directory->movementCounts($property, $request), $statuses),
+            'statusOptions' => $this->statusOptions($counts),
+            'movementDate' => $directory->movement($request) === null ? null : $directory->defaultStayFrom($property)->toDateString(),
             'filters' => [
                 'search' => $request->string('filter.search')->toString(),
-                'status' => $request->string('filter.status')->toString(),
+                'status' => $directory->tab($request),
+                'statuses' => array_map(fn (ReservationStatus $status): string => $status->value, $statuses),
                 'source' => $request->string('filter.source')->toString(),
                 'stay' => $directory->stay($property, $request),
             ],
@@ -446,20 +452,42 @@ class ReservationController extends Controller
     }
 
     /**
-     * All, then one tab per status, each with its count.
+     * All, Arrivals, Departures and In house, each with its count. All counts the ticked statuses, or every status when
+     * none is ticked.
      *
-     * @param  array<string, int>  $counts
+     * @param  array<string, int>  $counts  By status value
+     * @param  array<string, int>  $movementCounts  By movement value
+     * @param  list<ReservationStatus>  $statuses  The ticked statuses of the Status filter
      * @return list<ReservationStatusCountData>
      */
-    private function statusCounts(array $counts): array
+    private function tabCounts(array $counts, array $movementCounts, array $statuses): array
     {
+        $all = $statuses === []
+            ? array_sum($counts)
+            : array_sum(array_map(fn (ReservationStatus $status): int => $counts[$status->value] ?? 0, $statuses));
+
         return [
-            new ReservationStatusCountData('', __('All'), array_sum($counts)),
+            new ReservationStatusCountData('', __('All'), $all),
             ...array_map(
-                fn (ReservationStatus $status): ReservationStatusCountData => new ReservationStatusCountData($status->value, $status->label(), $counts[$status->value] ?? 0),
-                ReservationStatus::cases(),
+                fn (UnitMovement $movement): ReservationStatusCountData => new ReservationStatusCountData($movement->value, $movement->label(), $movementCounts[$movement->value] ?? 0),
+                UnitMovement::cases(),
             ),
+            new ReservationStatusCountData(ReservationStatus::InHouse->value, ReservationStatus::InHouse->label(), $counts[ReservationStatus::InHouse->value] ?? 0),
         ];
+    }
+
+    /**
+     * The Status filter: one option per status with its count.
+     *
+     * @param  array<string, int>  $counts  By status value
+     * @return list<ReservationStatusCountData>
+     */
+    private function statusOptions(array $counts): array
+    {
+        return array_map(
+            fn (ReservationStatus $status): ReservationStatusCountData => new ReservationStatusCountData($status->value, $status->label(), $counts[$status->value] ?? 0),
+            ReservationStatus::cases(),
+        );
     }
 
     /**

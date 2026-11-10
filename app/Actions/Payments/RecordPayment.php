@@ -55,6 +55,8 @@ class RecordPayment
      * falls by the amount entered. The key `payment:{uuid}` (or the given `lineKey`) makes a repeat return the existing payment. The route
      * checks the permission and that the folio or unit belongs to the reservation's property. `$actor` is null for a
      * payment no staff member took (the booking engine): `received_by` stays empty and an Old system method is refused.
+     * `received_on` is the day given, else the service date (an Old system payment keeps the day the old PMS took it).
+     * A day after the business date is refused (`received_on_in_future`). It never moves the posting date.
      * See docs/14-payments/01-payments-and-refunds.md.
      */
     public function __invoke(?User $actor, Reservation $reservation, ?Folio $folio, ?ReservationUnit $unit, NewPaymentData $data): PaymentResult
@@ -133,6 +135,13 @@ class RecordPayment
 
             $postingDate = $businessDate->toDateString();
             $serviceDate = $data->serviceDate ?? $postingDate;
+            $receivedOn = $data->receivedOn ?? $serviceDate;
+
+            if ($receivedOn > $postingDate) {
+                return PaymentResult::refused(PaymentResult::REFUSAL_RECEIVED_ON_IN_FUTURE);
+            }
+
+            $notes = filled($data->notes) ? trim((string) $data->notes) : null;
             $target ??= ($this->createFolio)($reservation, $lockedUnit);
             $receiptNumber = $isOldSystem || ! $data->issueReceipt ? null : ($this->nextDocumentNumber)($property, DocumentType::Receipt)->reference;
             $surchargeLines = [];
@@ -167,6 +176,8 @@ class RecordPayment
                 'purpose' => $data->purpose,
                 'status' => PaymentStatus::Completed,
                 'reference' => $reference,
+                'received_on' => $receivedOn,
+                'notes' => $notes,
                 'receipt_number' => $receiptNumber,
                 'folio_line_id' => $line->id,
                 'surcharge_line_id' => $surchargeLines[0]->id ?? null,
@@ -192,6 +203,7 @@ class RecordPayment
                     'receipt_number' => $receiptNumber,
                     'posting_date' => $postingDate,
                     'service_date' => $serviceDate,
+                    'received_on' => $receivedOn,
                     'manual_batch_id' => $data->manualBatchId,
                 ])
                 ->log('Payment recorded');

@@ -15,6 +15,9 @@ use App\Models\ReservationUnit;
 use App\Models\UnitBoatTrip;
 use App\Models\User;
 use App\Services\Boats\BoatTripAccess;
+use App\Services\Boats\DateSailing;
+use App\Services\Boats\DateSailings;
+use App\Services\Boats\SailingTimes;
 use Illuminate\Support\Facades\DB;
 use Laravel\Pennant\Feature;
 
@@ -24,6 +27,8 @@ class SetBoatTrip
         private BoatTripAccess $boatTripAccess,
         private SyncBoatFare $syncBoatFare,
         private AddUnitAddOn $addUnitAddOn,
+        private SailingTimes $sailingTimes,
+        private DateSailings $dateSailings,
     ) {}
 
     /**
@@ -47,13 +52,13 @@ class SetBoatTrip
         }
 
         try {
-            return DB::transaction(fn (): BoatTripResult => $this->save($actor, $unit, $data));
+            return DB::transaction(fn (): BoatTripResult => $this->save($actor, $property, $unit, $data));
         } catch (BoatTripRefused $refused) {
             return BoatTripResult::refused($refused->refusal);
         }
     }
 
-    private function save(?User $actor, ReservationUnit $unit, BoatTripData $data): BoatTripResult
+    private function save(?User $actor, Property $property, ReservationUnit $unit, BoatTripData $data): BoatTripResult
     {
         $departure = $data->mode->needsDeparture()
             ? BoatDeparture::query()
@@ -77,15 +82,41 @@ class SetBoatTrip
             return BoatTripResult::refused(BoatTripResult::REFUSAL_DEPARTURE_NOT_FOUND);
         }
 
+        $tripDate = $locked->{$data->direction->tripDateColumn()};
+
+        if ($departure !== null && $this->dateSailings->cancelledDepartureIds([$departure->id], $tripDate) !== []) {
+            return BoatTripResult::refused(
+                BoatTripResult::REFUSAL_DEPARTURE_CANCELLED,
+                __('The :time boat :direction does not run on :date.', [
+                    'time' => substr($departure->leaves_at, 0, 5),
+                    'direction' => $data->direction->value,
+                    'date' => $tripDate->format('j M'),
+                ]),
+            );
+        }
+
         if (! $data->mode->needsDeparture() && blank($data->time)) {
             return BoatTripResult::refused(BoatTripResult::REFUSAL_TIME_REQUIRED);
         }
 
-        $time = $data->mode->needsDeparture()
-            ? $data->direction->propertyTime($departure)
-            : substr((string) $data->time, 0, 5).':00';
+        $sailing = null;
+
+        if ($departure !== null && $data->pickedSailing) {
+            $sailing = collect($this->dateSailings->forDate($property, $tripDate, [$departure->id])[$departure->id] ?? [])
+                ->first(fn (DateSailing $candidate): bool => $data->boatSailingId === null ? $candidate->isMain : $candidate->sailing?->id === $data->boatSailingId);
+
+            if ($sailing === null) {
+                return BoatTripResult::refused(BoatTripResult::REFUSAL_DEPARTURE_NOT_FOUND);
+            }
+        }
+
+        $time = match (true) {
+            $sailing !== null => $sailing->propertyTime().':00',
+            $data->mode->needsDeparture() => $this->sailingTimes->forTrip($departure, $tripDate),
+            default => substr((string) $data->time, 0, 5).':00',
+        };
         $boatDepartureId = $data->mode->needsDeparture() ? $departure->id : null;
-        $note = filled($data->note) ? trim((string) $data->note) : null;
+        $boatSailingId = $sailing === null || $sailing->isMain ? null : $sailing->sailing?->id;
         $timeColumn = $data->direction === BoatDirection::In ? 'arrival_time' : 'departure_time';
 
         $existing = UnitBoatTrip::query()
@@ -93,9 +124,16 @@ class SetBoatTrip
             ->where('direction', $data->direction->value)
             ->first();
 
+        $note = match (true) {
+            filled($data->note) => trim((string) $data->note),
+            $data->mode->needsDeparture() => $existing?->note,
+            default => null,
+        };
+
         $unchanged = $existing !== null
             && $existing->mode === $data->mode
             && $existing->boat_departure_id === $boatDepartureId
+            && (! $data->pickedSailing || $existing->boat_sailing_id === $boatSailingId)
             && $existing->note === $note
             && substr($locked->{$timeColumn}, 0, 5) === substr($time, 0, 5);
 
@@ -103,7 +141,11 @@ class SetBoatTrip
             return BoatTripResult::done();
         }
 
-        $otherBoat = $existing !== null && ($existing->mode !== $data->mode || $existing->boat_departure_id !== $boatDepartureId);
+        $otherBoat = $existing !== null && (
+            $existing->mode !== $data->mode
+            || $existing->boat_departure_id !== $boatDepartureId
+            || ($data->pickedSailing && $existing->boat_sailing_id !== $boatSailingId)
+        );
 
         $trip = UnitBoatTrip::query()->updateOrCreate(
             ['reservation_unit_id' => $locked->id, 'direction' => $data->direction->value],
@@ -112,7 +154,8 @@ class SetBoatTrip
                 'mode' => $data->mode->value,
                 'boat_departure_id' => $boatDepartureId,
                 'note' => $note,
-                ...($otherBoat ? ['ticked_at' => null, 'ticked_by' => null] : []),
+                ...($otherBoat ? ['ticked_at' => null, 'ticked_by' => null, 'boat_sailing_id' => null] : []),
+                ...($data->pickedSailing ? ['boat_sailing_id' => $boatSailingId] : []),
             ],
         );
 
@@ -138,7 +181,7 @@ class SetBoatTrip
                 'direction' => $data->direction->value,
                 'mode' => $data->mode->value,
                 'boat_departure_id' => $boatDepartureId,
-                'boat_time' => substr($departure->leaves_at ?? $time, 0, 5),
+                'boat_time' => $sailing->leavesAt ?? substr($departure->leaves_at ?? $time, 0, 5),
                 'pickup_point' => $departure?->pickup_point,
                 'unit_time' => substr($time, 0, 5),
                 'note' => $note,

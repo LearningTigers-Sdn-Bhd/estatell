@@ -22,18 +22,29 @@ $setTomorrowsTrips = function (): void {
     $this->setBoatTrip($this->scenario('S3')->units()->firstOrFail(), BoatDirection::In, BoatMode::Scheduled, $this->boats['in1300']);
 };
 
-test('the boat manifest for tomorrow', function () use ($setTomorrowsTrips) {
+test('the boat trips board for tomorrow', function () use ($setTomorrowsTrips) {
     $setTomorrowsTrips->call($this);
 
-    $page = $this->open(route('reports.boat-manifest', [$this->property, 'date' => '2026-10-15', 'direction' => 'in']), height: 1100)
-        ->waitForText('Charter and own boat');
+    $page = $this->open(route('boats.index', [$this->property, 'date' => '2026-10-15', 'direction' => 'in']), height: 1100)
+        ->waitForText('Charter');
 
-    $this->shoot($page, 'boat-manifest', badges: ['Custom date', 'Boat in', '4 / 20 seats', 'Charter and own boat (front desk only)', 'Layout', 'Export']);
+    $this->shoot($page, 'boat-manifest', badges: ['Boat in', '4 / 20 seats', 'Charter', 'Export Boat Manifest']);
 });
 
-test('the boat manifest with no trips', function () {
-    $page = $this->open(route('reports.boat-manifest', [$this->property, 'date' => '2026-10-14', 'direction' => 'in']))
-        ->waitForText('No boat in trips on 14 Oct.');
+test('the export boat manifest menu', function () use ($setTomorrowsTrips) {
+    $setTomorrowsTrips->call($this);
+
+    $page = $this->open(route('boats.index', [$this->property, 'date' => '2026-10-15', 'direction' => 'in']), height: 1100)
+        ->waitForText('Export Boat Manifest')
+        ->click('button:has-text("Export Boat Manifest")')
+        ->waitForText('Columns…');
+
+    $this->shoot($page, 'boat-manifest-export-menu', badges: ['PDF', 'Columns…'], frame: '[role="menu"]');
+});
+
+test('the boat trips board with no trips', function () {
+    $page = $this->open(route('boats.index', [$this->property, 'date' => '2026-10-14', 'direction' => 'in']))
+        ->waitForText('No guests.');
 
     $this->shoot($page, 'boat-manifest-empty');
 });
@@ -45,7 +56,7 @@ test('the boat manifest pdf', function () use ($setTomorrowsTrips) {
 
     $setTomorrowsTrips->call($this);
 
-    $response = $this->post(route('reports.pdf', [$this->property, 'boat-manifest']), ['date' => '2026-10-15', 'direction' => 'in']);
+    $response = $this->post(route('boats.pdf', $this->property), ['date' => '2026-10-15', 'direction' => 'in']);
     expect($response->baseResponse->getStatusCode())->toBe(200);
 
     $folder = base_path('tests/Browser/Screenshots/boats');

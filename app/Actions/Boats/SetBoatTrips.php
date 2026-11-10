@@ -77,7 +77,7 @@ class SetBoatTrips
                     if ($result->isRefused()) {
                         DB::rollBack();
 
-                        return BoatTripsResult::refused((string) $result->refusal, $unit->id, $this->label($unit));
+                        return BoatTripsResult::refused((string) $result->refusal, $unit->id, $this->label($unit), $result->detail);
                     }
 
                     $postedFareKept = $postedFareKept || $result->postedFareKept;

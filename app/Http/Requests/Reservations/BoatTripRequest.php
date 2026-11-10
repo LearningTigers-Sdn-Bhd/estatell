@@ -29,6 +29,7 @@ class BoatTripRequest extends FormRequest
         return [
             'mode' => ['required', Rule::enum(BoatMode::class)],
             'boat_departure_id' => ['required_if:mode,'.BoatMode::Scheduled->value, 'integer'],
+            'boat_sailing_id' => ['nullable', 'integer'],
             'time' => ['nullable', 'date_format:H:i'],
             'note' => ['nullable', 'string', 'max:255'],
         ];
@@ -42,6 +43,7 @@ class BoatTripRequest extends FormRequest
         return BoatTripData::fromInput([
             'mode' => $this->string('mode')->toString(),
             'boat_departure_id' => $this->input('boat_departure_id'),
+            ...($this->has('boat_sailing_id') ? ['boat_sailing_id' => $this->input('boat_sailing_id')] : []),
             'time' => $this->input('time'),
             'note' => $this->input('note'),
         ], $direction);

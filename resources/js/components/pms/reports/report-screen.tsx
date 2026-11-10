@@ -79,6 +79,9 @@ type Props<TRow extends { key: number | string }> = {
     staff?: string | null;
     staffOptions?: EnumOption[];
     refundsOnly?: boolean;
+    /** The date Payments filters folio payments by (`posted` or `received`), with its options for the toggle. */
+    dateBasis?: string | null;
+    dateBasisOptions?: EnumOption[];
     /** The Foreign only filter of the Police report. */
     foreignOnly?: boolean;
     /** The Boat not set filter of Arrivals and Departures; null or missing hides it. */
@@ -145,6 +148,8 @@ export function ReportScreen<TRow extends { key: number | string }>({
     staff = null,
     staffOptions = [],
     refundsOnly,
+    dateBasis,
+    dateBasisOptions = [],
     foreignOnly,
     boatNotSet = null,
     breakdown = null,
@@ -177,6 +182,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
             ...(code ? { code } : {}),
             ...(staff ? { staff } : {}),
             ...(refundsOnly ? { refunds: '1' } : {}),
+            ...(dateBasis === 'received' ? { dates: dateBasis } : {}),
             ...(foreignOnly ? { foreign: '1' } : {}),
             ...(boatNotSet ? { no_boat: '1' } : {}),
             ...(direction ? { direction } : {}),
@@ -191,6 +197,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
             code,
             staff,
             refundsOnly,
+            dateBasis,
             foreignOnly,
             boatNotSet,
             direction,
@@ -345,6 +352,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
             code?: string;
             staff?: string;
             refundsOnly?: boolean;
+            dateBasis?: string;
             foreignOnly?: boolean;
             boatNotSet?: boolean;
             direction?: string;
@@ -359,6 +367,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
                 code: code ?? '',
                 staff: staff ?? '',
                 refundsOnly: refundsOnly ?? false,
+                dateBasis: dateBasis ?? '',
                 foreignOnly: foreignOnly ?? false,
                 boatNotSet: boatNotSet ?? false,
                 direction: direction ?? '',
@@ -374,6 +383,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
                 next.code !== (code ?? '') ||
                 next.staff !== (staff ?? '') ||
                 next.refundsOnly !== (refundsOnly ?? false) ||
+                next.dateBasis !== (dateBasis ?? '') ||
                 next.foreignOnly !== (foreignOnly ?? false) ||
                 next.boatNotSet !== (boatNotSet ?? false) ||
                 next.direction !== (direction ?? '') ||
@@ -393,6 +403,9 @@ export function ReportScreen<TRow extends { key: number | string }>({
                     ...(next.code ? { code: next.code } : {}),
                     ...(next.staff ? { staff: next.staff } : {}),
                     ...(next.refundsOnly ? { refunds: '1' } : {}),
+                    ...(next.dateBasis === 'received'
+                        ? { dates: next.dateBasis }
+                        : {}),
                     ...(next.foreignOnly ? { foreign: '1' } : {}),
                     ...(next.boatNotSet ? { no_boat: '1' } : {}),
                     ...(next.direction ? { direction: next.direction } : {}),
@@ -414,6 +427,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
             code,
             staff,
             refundsOnly,
+            dateBasis,
             foreignOnly,
             boatNotSet,
             direction,
@@ -481,6 +495,28 @@ export function ReportScreen<TRow extends { key: number | string }>({
                             weekStartsOn={1}
                             className="w-auto"
                         />
+                    )}
+                    {dateBasis && dateBasisOptions.length > 0 && (
+                        <ToggleGroup
+                            variant="outline"
+                            spacing={0}
+                            aria-label="Date"
+                            value={[dateBasis]}
+                            onValueChange={(values) => {
+                                if (values[0]) {
+                                    visit({ dateBasis: values[0] });
+                                }
+                            }}
+                        >
+                            {dateBasisOptions.map((option) => (
+                                <ToggleGroupItem
+                                    key={option.value}
+                                    value={option.value}
+                                >
+                                    {option.label}
+                                </ToggleGroupItem>
+                            ))}
+                        </ToggleGroup>
                     )}
                     {group && groupOptions.length > 0 && (
                         <ToggleGroup
@@ -552,13 +588,24 @@ export function ReportScreen<TRow extends { key: number | string }>({
                         </div>
                     )}
                     {direction && directionOptions.length > 0 && (
-                        <EnumSelect
-                            options={directionOptions}
-                            value={direction}
-                            onValueChange={(next) => visit({ direction: next })}
+                        <ToggleGroup
+                            variant="outline"
+                            spacing={0}
+                            value={[direction]}
+                            onValueChange={(next) =>
+                                next[0] && visit({ direction: next[0] })
+                            }
                             aria-label="Direction"
-                            className="w-auto"
-                        />
+                        >
+                            {directionOptions.map((option) => (
+                                <ToggleGroupItem
+                                    key={option.value}
+                                    value={option.value}
+                                >
+                                    {option.label}
+                                </ToggleGroupItem>
+                            ))}
+                        </ToggleGroup>
                     )}
                     {refundsOnly !== undefined ? (
                         <Label className="flex items-center gap-2 text-sm font-normal">

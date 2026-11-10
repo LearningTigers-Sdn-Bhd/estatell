@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Reports;
+namespace App\Http\Controllers\Boats;
 
 use App\Actions\Boats\SetBoatTripTick;
 use App\Http\Controllers\Controller;
@@ -10,7 +10,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 /**
- * The Tick column of the Boat manifest. A trip of another property is a 404.
+ * The single Arrived or Left tick of a Boat Trips row (`boats.trips.set-tick`). A trip of another property is a 404.
  */
 class BoatTripTickController extends Controller
 {
