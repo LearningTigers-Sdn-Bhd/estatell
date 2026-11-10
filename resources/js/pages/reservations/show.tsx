@@ -73,6 +73,8 @@ type Props = {
     lockProviders?: string[];
     guests?: App.Data.Reservations.ReservationGuestData[];
     canManageGuests?: boolean;
+    canViewDocuments?: boolean;
+    identityDocumentTypes?: EnumOption[];
     countries?: EnumOption[];
     genders?: EnumOption[];
     locales?: EnumOption[];
@@ -133,6 +135,8 @@ export default function ReservationShow({
     lockProviders = [],
     guests = [],
     canManageGuests = false,
+    canViewDocuments = false,
+    identityDocumentTypes = [],
     countries = [],
     genders = [],
     locales = [],
@@ -356,6 +360,8 @@ export default function ReservationShow({
                                 units={units}
                                 canManage={canManage}
                                 canManageGuests={canManageGuests}
+                                canViewDocuments={canViewDocuments}
+                                identityDocumentTypes={identityDocumentTypes}
                                 countries={countries}
                                 genders={genders}
                                 locales={locales}

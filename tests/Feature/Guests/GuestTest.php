@@ -3,11 +3,15 @@
 use App\Actions\Guests\UpdateGuest;
 use App\Enums\DefaultRoleEnum;
 use App\Models\Guest;
+use App\Models\GuestIdentityDocument;
 use App\Models\GuestNote;
 use App\Models\Property;
 use App\Models\Tag;
 use App\Models\User;
 use Illuminate\Database\QueryException;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
 
@@ -300,4 +304,88 @@ test('the Guests sidebar item shows only with guests.view', function () {
 
     $this->actingAs($housekeeping)->get(route('dashboard', $housekeeping->property->code))
         ->assertInertia(fn (Assert $page) => $page->where('navigation.contexts.0.groups', fn ($groups) => ! collect($groups)->flatMap(fn ($group) => $group['items'])->pluck('title')->contains('Guests')));
+});
+
+test('saving a scanned MyKad validates, encrypts and audits its document and portrait', function (bool $existing) {
+    Storage::fake('local', ['serve' => true]);
+    $owner = User::factory()->owner()->create();
+    $guest = Guest::factory()->for($owner->property)->create();
+    if ($existing) {
+        GuestIdentityDocument::factory()->for($guest)->create(['type' => 'mykad', 'number' => '880101141234', 'expires_on' => '2030-01-01']);
+    }
+
+    $this->actingAs($owner)->post(route('guests.update', [$owner->property->code, $guest]), guestPayload([
+        '_method' => 'put',
+        'identity_type' => 'mykad',
+        'identity_number' => '900101-14-1234',
+        'identity_country_code' => 'MY',
+        'identity_photo' => UploadedFile::fake()->image('portrait.jpg'),
+    ]))->assertSessionHasNoErrors()->assertInertiaFlash('toast.type', 'success');
+
+    $document = $guest->documents()->sole();
+    expect($document->number)->toBe('900101141234')
+        ->and(DB::table('guest_identity_documents')->where('id', $document->id)->value('number'))->not->toContain('900101141234')
+        ->and($document->hasMedia('id_front'))->toBeTrue()
+        ->and($document->expires_on?->toDateString())->toBe($existing ? '2030-01-01' : null);
+    expect(Activity::query()->where('event', $existing ? 'guest.document_updated' : 'guest.document_added')->sole()->properties->toJson())->not->toContain('900101');
+})->with([false, true]);
+
+test('guest profile ID writes require document permission even when the staff member can edit guests', function () {
+    $staff = User::factory()->withPermissions(['guests.view', 'guests.manage'])->create();
+    $guest = Guest::factory()->for($staff->property)->create(['full_name' => 'Original Name']);
+
+    $this->actingAs($staff)->put(route('guests.update', [$staff->property->code, $guest]), guestPayload([
+        'identity_type' => 'passport', 'identity_number' => 'A1234567',
+    ]))->assertForbidden();
+
+    expect($guest->refresh()->full_name)->toBe('Original Name');
+    $this->assertDatabaseCount('guest_identity_documents', 0);
+});
+
+test('invalid identity data does not change a guest profile', function (array $identity, string $field) {
+    $owner = User::factory()->owner()->create();
+    $guest = Guest::factory()->for($owner->property)->create(['full_name' => 'Original Name']);
+
+    $this->actingAs($owner)->put(route('guests.update', [$owner->property->code, $guest]), guestPayload([
+        'identity_type' => 'mykad', 'identity_number' => '900101141234', ...$identity,
+    ]))->assertSessionHasErrors($field);
+
+    expect($guest->refresh()->full_name)->toBe('Original Name');
+    $this->assertDatabaseCount('guest_identity_documents', 0);
+})->with([
+    'short IC' => [['identity_number' => '1234'], 'identity_number'],
+    'unknown type' => [['identity_type' => 'unknown'], 'identity_type'],
+    'invalid country' => [['identity_country_code' => 'ZZ'], 'identity_country_code'],
+    'unvalidated photo' => [['identity_photo' => 'arbitrary base64'], 'identity_photo'],
+]);
+
+test('saving a scanned ID cannot change an anonymized guest or its documents', function () {
+    $owner = User::factory()->owner()->create();
+    $guest = Guest::factory()->for($owner->property)->create(['anonymized_at' => now()]);
+    $document = GuestIdentityDocument::factory()->for($guest)->create(['number' => '880101141234']);
+
+    $this->actingAs($owner)->put(route('guests.update', [$owner->property->code, $guest]), guestPayload([
+        'identity_type' => 'mykad', 'identity_number' => '900101141234',
+    ]))->assertInertiaFlash('toast.type', 'error');
+
+    expect($document->refresh()->number)->toBe('880101141234');
+    expect(Activity::query()->whereIn('event', ['guest.document_added', 'guest.document_updated'])->count())->toBe(0);
+});
+
+test('guest Details offers masked ID documents and hides them from staff without document access', function () {
+    Storage::fake('local', ['serve' => true]);
+    $owner = User::factory()->owner()->create();
+    $guest = Guest::factory()->for($owner->property)->create();
+    $document = GuestIdentityDocument::factory()->for($guest)->create(['number' => '900101141234']);
+    $document->addMedia(UploadedFile::fake()->image('portrait.jpg'))->toMediaCollection('id_front');
+    $url = route('guests.show', [$owner->property->code, $guest]);
+
+    $this->actingAs($owner)->get($url)->assertInertia(fn (Assert $page) => $page
+        ->where('documents.0.maskedNumber', '•••• 1234')
+        ->where('documents.0.number', null)
+        ->has('documentFormOptions.types'));
+
+    $staff = User::factory()->for($owner->property)->withPermissions(['guests.view', 'guests.manage'])->create();
+    $this->actingAs($staff)->get($url)->assertInertia(fn (Assert $page) => $page
+        ->missing('documents')->missing('documentFormOptions')->where('guest.photoUrl', null));
 });

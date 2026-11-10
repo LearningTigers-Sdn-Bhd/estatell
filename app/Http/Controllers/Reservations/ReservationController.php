@@ -19,6 +19,7 @@ use App\Data\Reservations\ReservationUnitOptionData;
 use App\Enums\BillingMode;
 use App\Enums\BoatDirection;
 use App\Enums\Gender;
+use App\Enums\IdentityDocumentType;
 use App\Enums\Locale;
 use App\Enums\LockProvider;
 use App\Enums\ManualFolioReason;
@@ -202,8 +203,10 @@ class ReservationController extends Controller
         $canManageGuests = $request->user()->can(PermissionEnum::GuestsManage->value);
 
         return $this->renderTab($request->user(), $property, $reservation, 'guests', fn (array $units): array => [
-            'guests' => $guestRows->rows($reservation, $units, $request->user()->can(PermissionEnum::GuestsView->value), $request->user()->can(PermissionEnum::RegistrationCardSign->value), $request->user()->can(PermissionEnum::FolioTransfer->value)),
+            'guests' => $guestRows->rows($reservation, $units, $request->user()->can(PermissionEnum::GuestsView->value), $request->user()->can(PermissionEnum::RegistrationCardSign->value), $request->user()->can(PermissionEnum::FolioTransfer->value), $request->user()->can(PermissionEnum::GuestsViewDocuments->value)),
             'canManageGuests' => $canManageGuests,
+            'canViewDocuments' => $request->user()->can(PermissionEnum::GuestsViewDocuments->value),
+            'identityDocumentTypes' => IdentityDocumentType::options(),
             'countries' => $canManageGuests ? app(CountryOptions::class)->options() : [],
             'genders' => Gender::options(),
             'locales' => Locale::options(),

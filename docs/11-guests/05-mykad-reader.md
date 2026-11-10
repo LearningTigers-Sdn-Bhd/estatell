@@ -16,6 +16,7 @@ Browser (estatell)  ──HTTP──▶  MyKad Reader on 127.0.0.1:9292  ──P
 - It listens only on `127.0.0.1`, answers only allowed origins (Estatell and its demo), and has no pairing and no token.
 - Estatell polls `GET /status` every 2.5 seconds, once for the whole page. When a card appears, it calls `GET /read` once and fills one target.
 - The server still validates and stores everything. MyKad Reader only fills the form.
+- Manual passport/IC entry works without the reader. "MyKad Reader isn't running" describes automatic scanning only; staff can still type the number in the guest identity fields.
 
 API fields, error codes and security: see the reader repo, [HTTP API](https://github.com/LearningTigers-Sdn-Bhd/estatell-mykad-reader/blob/main/docs/02-bridge/01-http-api.md).
 
@@ -46,7 +47,7 @@ New reservation, Walk-in and the reservation Guests tab have many guest rows. Ea
 - One row is on at a time. The first empty row is on by default. A row is empty when it has no name and no linked guest.
 - A fill opens the row, then the toggle moves to the next empty row. With no empty row, it turns off.
 - A saved guest is never on by default, so a card replaces saved details only when staff chose that row.
-- Clear puts the card's fields back to their values before the scan: name, nationality, date of birth, gender and address. Phone, email, Stays in and notes stay. Edits to the card's fields after the scan are lost. There is no confirm, because staff can read the card again.
+- Clear puts the card's fields back to their values before the scan: name, nationality, date of birth, gender and address. On the reservation Guests tab, staff with document permission also get the MyKad type and IC number; Clear restores their previous ID input too. The ID stays unsaved until the guest row is saved. Phone, email, Stays in and notes stay. Edits to the card's fields after the scan are lost. There is no confirm, because staff can read the card again.
 - Taking the card out clears nothing. After a save, or after linking another guest, the row is no longer Filled.
 - Staff without `guests.manage` have no toggle and no chip, because they can only pick existing guests.
 

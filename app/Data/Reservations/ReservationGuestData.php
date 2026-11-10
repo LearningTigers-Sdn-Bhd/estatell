@@ -2,6 +2,7 @@
 
 namespace App\Data\Reservations;
 
+use App\Data\Guests\GuestIdentityDocumentData;
 use App\Data\Guests\GuestOptionData;
 use App\Data\Shared\BadgeData;
 use Spatie\LaravelData\Data;
@@ -16,6 +17,7 @@ use Spatie\LaravelData\Data;
 class ReservationGuestData extends Data
 {
     /**
+     * @param  list<GuestIdentityDocumentData>  $documents
      * @param  list<string>  $roles  "Booker" and "Primary".
      */
     public function __construct(
@@ -30,5 +32,6 @@ class ReservationGuestData extends Data
         public ?string $billing = null,
         public bool $canBill = false,
         public ?GuestOptionData $guest = null,
+        public array $documents = [],
     ) {}
 }

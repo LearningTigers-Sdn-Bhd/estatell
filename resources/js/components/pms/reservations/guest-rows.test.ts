@@ -70,6 +70,7 @@ function row(
         billing: null,
         canBill: false,
         guest: null,
+        documents: [],
     };
 }
 

@@ -8,6 +8,7 @@ use App\Models\Folio;
 use App\Models\FolioLine;
 use App\Models\FolioRoutingRule;
 use App\Models\Guest;
+use App\Models\GuestIdentityDocument;
 use App\Models\Payment;
 use App\Models\Property;
 use App\Models\PropertySetting;
@@ -644,4 +645,29 @@ test('the money figures read credit when paid exceeds the total and zero with no
         ->where('money.total', '0.00')
         ->where('money.stillToPay', '0.00')
         ->where('money.isCredit', false));
+});
+
+test('reservation Guests offers masked ID documents and saves a manually typed passport without leaving the booking', function () {
+    [$user, $property] = pageOwner();
+    $reservation = pageReservation($property);
+    $unit = pageUnit($reservation);
+    $guest = $reservation->booker;
+    UnitGuest::factory()->primary()->create(['reservation_unit_id' => $unit->id, 'guest_id' => $guest->id]);
+    GuestIdentityDocument::factory()->for($guest)->create(['number' => '900101141234']);
+    $url = pageUrl($property, $reservation, 'reservations.guests');
+
+    $this->actingAs($user)->get($url)->assertInertia(fn (Assert $page) => $page
+        ->where('canViewDocuments', true)
+        ->has('identityDocumentTypes', 3)
+        ->where('guests.0.documents.0.maskedNumber', '•••• 1234')
+        ->where('guests.0.documents.0.number', null));
+    $this->from($url)->post(route('guests.documents.store', [$property->code, $guest]), [
+        'type' => 'passport', 'number' => 'a 1234567', 'issuing_country_code' => 'CN',
+    ])->assertRedirect($url)->assertInertiaFlash('toast.type', 'success');
+
+    expect($guest->documents()->where('type', 'passport')->sole()->number)->toBe('A1234567');
+
+    $staff = User::factory()->for($property)->withPermissions(['reservations.view', 'guests.view', 'guests.manage'])->create();
+    $this->actingAs($staff)->get($url)->assertInertia(fn (Assert $page) => $page
+        ->where('canViewDocuments', false)->where('guests.0.documents', []));
 });

@@ -61,6 +61,14 @@ The Documents tab shows only to staff with `guests.view-documents`. An expired d
 | ----------------------- | --------------------------------------------------------------------------- | ----- | ------- | ---------- | ------- | ------------ |
 | `guests.view-documents` | See, reveal and open ID documents. With `guests.manage`: add, edit, remove. | ✓     | ✓       | ✓          | –       | –            |
 
+## Manual entry
+
+The guest's Details tab and an expanded saved guest row on a reservation's Guests tab show one **IC / Passport number** field with its type selector inside. Staff type the number and use the existing guest Save button without opening an overlay. Existing numbers stay masked; **Edit** fetches the full number through the logged reveal request. **Documents** opens the Documents tab for scans, expiry dates and additional IDs. The Documents tab keeps its full editor. A MyKad reader is optional. Saving a document returns to the page it was opened from.
+
+Each entry point requires `guests.view-documents`; adding or editing also requires `guests.manage`. Numbers stay masked until staff reveal them or open the edit sheet, which logs access.
+
+The guest Details form can also save a scanned MyKad with the profile. It validates the number and portrait upload, then calls the existing document Actions inside the profile transaction. A closed guest cannot receive a document, and staff without document permission cannot save one through the profile route.
+
 ## MyKad reader
 
 Staff can fill a document from the chip on a guest's MyKad with a USB reader. When a document is added from a scan, the chip's portrait becomes the `id_front` file. See [MyKad reader](05-mykad-reader.md).

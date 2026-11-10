@@ -32,7 +32,7 @@ class GuestIdentityDocumentController extends Controller
             ? ['type' => 'success', 'message' => __('ID document added.')]
             : ['type' => 'error', 'message' => __(':name cannot be edited.', ['name' => $guest->full_name])]);
 
-        return to_route('guests.documents.index', ['property' => $property, 'guest' => $guest]);
+        return back(fallback: route('guests.documents.index', ['property' => $property, 'guest' => $guest]));
     }
 
     public function update(IdentityDocumentRequest $request, Property $property, Guest $guest, GuestIdentityDocument $document, UpdateIdentityDocument $updateIdentityDocument): RedirectResponse
@@ -41,7 +41,7 @@ class GuestIdentityDocumentController extends Controller
             ? ['type' => 'success', 'message' => __('ID document saved.')]
             : ['type' => 'error', 'message' => __(':name cannot be edited.', ['name' => $guest->full_name])]);
 
-        return to_route('guests.documents.index', ['property' => $property, 'guest' => $guest]);
+        return back(fallback: route('guests.documents.index', ['property' => $property, 'guest' => $guest]));
     }
 
     public function destroy(Request $request, Property $property, Guest $guest, GuestIdentityDocument $document, RemoveIdentityDocument $removeIdentityDocument): RedirectResponse
@@ -50,7 +50,7 @@ class GuestIdentityDocumentController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('ID document removed.')]);
 
-        return to_route('guests.documents.index', ['property' => $property, 'guest' => $guest]);
+        return back(fallback: route('guests.documents.index', ['property' => $property, 'guest' => $guest]));
     }
 
     /**
