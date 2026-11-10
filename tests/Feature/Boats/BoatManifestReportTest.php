@@ -509,6 +509,40 @@ test('ticking needs reservations.manage and keeps to the property', function () 
     expect($trip->fresh()->ticked_at)->toBeNull();
 });
 
+test('the row note saves trimmed, keeps the tick, clears when blank and logs only a change', function () {
+    [$manager, $property] = manifestSetup();
+    $trip = manifestTrip($property, manifestUnit($property), BoatDirection::In, manifestDeparture($property, BoatDirection::In, '09:00:00', '09:45:00'));
+    $trip->forceFill(['ticked_at' => now(), 'ticked_by' => $manager->id])->save();
+    $url = route('boats.trips.note', [$property->code, $trip->id]);
+    $logged = fn (): int => Activity::query()->where('event', 'reservation.boat_trip_note_set')->count();
+
+    $this->actingAs($manager)->put($url, ['note' => '  Late ferry '])->assertSessionHasNoErrors();
+    $this->put($url, ['note' => 'Late ferry'])->assertSessionHasNoErrors();
+
+    expect($trip->fresh()->note)->toBe('Late ferry')
+        ->and($trip->fresh()->ticked_at)->not->toBeNull()
+        ->and($logged())->toBe(1);
+
+    $this->put($url, ['note' => ''])->assertSessionHasNoErrors();
+
+    expect($trip->fresh()->note)->toBeNull()
+        ->and($logged())->toBe(2);
+
+    $this->put($url, ['note' => str_repeat('a', 256)])->assertSessionHasErrors('note');
+});
+
+test('the row note needs reservations.manage and keeps to the property', function () {
+    [, $property] = manifestSetup();
+    $trip = manifestTrip($property, manifestUnit($property), BoatDirection::In, manifestDeparture($property, BoatDirection::In, '09:00:00', '09:45:00'));
+    $viewer = User::factory()->for($property)->withPermissions([PermissionEnum::ReservationsView])->create();
+    [$otherManager, $otherProperty] = manifestSetup();
+
+    $this->actingAs($viewer)->put(route('boats.trips.note', [$property->code, $trip->id]), ['note' => 'Late'])->assertForbidden();
+    $this->actingAs($otherManager)->put(route('boats.trips.note', [$otherProperty->code, $trip->id]), ['note' => 'Late'])->assertNotFound();
+
+    expect($trip->fresh()->note)->toBeNull();
+});
+
 test('moving the trip to another boat clears its tick, and a note change keeps it', function () {
     [$manager, $property] = manifestSetup();
     $first = manifestDeparture($property, BoatDirection::In, '09:00:00', '09:45:00');

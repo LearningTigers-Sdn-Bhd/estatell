@@ -5,6 +5,7 @@ use App\Http\Controllers\Boats\BoatBoardController;
 use App\Http\Controllers\Boats\BoatBoardTripController;
 use App\Http\Controllers\Boats\BoatExportController;
 use App\Http\Controllers\Boats\BoatSailingController;
+use App\Http\Controllers\Boats\BoatTripNoteController;
 use App\Http\Controllers\Boats\BoatTripTickController;
 use Illuminate\Support\Facades\Route;
 
@@ -25,5 +26,6 @@ Route::prefix('boats')->name('boats.')->middleware('boats')->group(function () {
         Route::post('trips/move', [BoatBoardTripController::class, 'move'])->name('trips.move');
         Route::post('trips/tick', [BoatBoardTripController::class, 'tick'])->name('trips.tick');
         Route::put('trips/{trip}/tick', BoatTripTickController::class)->whereNumber('trip')->name('trips.set-tick');
+        Route::put('trips/{trip}/note', BoatTripNoteController::class)->whereNumber('trip')->name('trips.note');
     });
 });

@@ -13,6 +13,7 @@ import {
     TriangleAlert,
 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
+import { BoatNoteField } from '@/components/pms/boats/boat-note-field';
 import { BoatSailingDialog } from '@/components/pms/boats/boat-sailing-dialog';
 import {
     BoatTickDialog,
@@ -967,7 +968,7 @@ function GroupSection({
                                     <TableHead>Phone</TableHead>
                                     {isMixed && <TableHead>Trip</TableHead>}
                                     <TableHead>Pax</TableHead>
-                                    {!isMixed && <TableHead>Note</TableHead>}
+                                    <TableHead>Note</TableHead>
                                     <TableHead className="text-right">
                                         {isNotSet
                                             ? ''
@@ -1021,11 +1022,14 @@ function GroupSection({
                                         <TableCell className="tabular-nums">
                                             {paxText(row)}
                                         </TableCell>
-                                        {!isMixed && (
-                                            <TableCell className="text-muted-foreground">
-                                                {row.note}
-                                            </TableCell>
-                                        )}
+                                        <TableCell className="min-w-48">
+                                            {!row.not_set && (
+                                                <BoatNoteField
+                                                    row={row}
+                                                    canEdit={canTick}
+                                                />
+                                            )}
+                                        </TableCell>
                                         <TableCell className="text-right">
                                             <RowEnd
                                                 row={row}
@@ -1074,11 +1078,17 @@ function GroupSection({
                                             isMixed ? tripText(row) : null,
                                             row.agent,
                                             row.phone,
-                                            isMixed ? null : row.note,
                                         ]
                                             .filter(Boolean)
                                             .join(' · ')}
                                     </span>
+                                    {!row.not_set && (
+                                        <BoatNoteField
+                                            row={row}
+                                            canEdit={canTick}
+                                            className="mt-1 text-xs"
+                                        />
+                                    )}
                                 </div>
                                 <RowEnd
                                     row={row}
@@ -1103,9 +1113,9 @@ function GroupSection({
     );
 }
 
-/** Charter and Own boat rows mix both directions, so the Trip column says which: "In · 10:30 · Wedding party". */
+/** Charter and Own boat rows mix both directions, so the Trip column says which: "In · 10:30". The note has its own column. */
 function tripText(row: Row): string {
-    return [row.direction === 'in' ? 'In' : 'Out', row.unit_time, row.note]
+    return [row.direction === 'in' ? 'In' : 'Out', row.unit_time]
         .filter(Boolean)
         .join(' · ');
 }
