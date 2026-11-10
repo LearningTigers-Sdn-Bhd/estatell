@@ -4,22 +4,22 @@
 
 One list per boat for the jetty and the boat crew: who travels on each sailing of a date, with head counts. The front desk also sees the charter and own-boat trips and the boat jobs of the day.
 
-The manifest is the **read-only report**: for print, export and past dates. Staff do the day's work on the [Boats board](05-boats-board.md), which shows the same rows and prints the same PDF.
+The manifest is **not a page**. It is the rows, the tick and the printed sheet behind the [Boats board](05-boats-board.md), the only boat page. Staff see, tick, print and export the manifest from the board's **Export Boat Manifest ▾** menu ([Export](05-boats-board.md#export-boat-manifest)).
 
 Needs the `Boats` feature.
 
-## Report
+## Report key
 
-A report in the [core reports](../22-reports/01-core-reports.md) registry, so it gets the shared frame: quick dates, column layout, row selection and PDF, CSV and Excel export.
+`ReportKey::BoatManifest` stays in the [core reports](../22-reports/01-core-reports.md) registry, with no page and no menu entry, as `ReportKey::HousekeepingTasks` does for Housekeeping. The shared services need the key: the column layout (`ReportLayoutResolver`), the PDF (`ReportPdf`) and the spreadsheet (`ReportSpreadsheet`).
 
-| Report        | `ReportKey`    | Source                                        | Dates    | Default orientation | Category                     | Icon   |
-| ------------- | -------------- | --------------------------------------------- | -------- | ------------------- | ---------------------------- | ------ |
-| Boat manifest | `BoatManifest` | `BoatManifest` service over `unit_boat_trips` | One date | Landscape           | Front desk (sidebar: Guests) | `ship` |
+| Report        | `ReportKey`    | Source                                        | Dates    | Default orientation | Category   | Icon   |
+| ------------- | -------------- | --------------------------------------------- | -------- | ------------------- | ---------- | ------ |
+| Boat manifest | `BoatManifest` | `BoatManifest` service over `unit_boat_trips` | One date | Landscape           | Front desk | `ship` |
 
-- The report shows in the Front desk sidebar under Guests only when the Boats feature is on. Its page, PDF, spreadsheet and layout routes return 404 when it is off (`ReportKey::feature()`, `EnsureReportIsAvailable`).
-- The rows are not paged and keep their order (sailing time, then sailing id; Charter and Own by unit time, then jobs by time, last). The headers do not sort. Each Charter and Own row's time is the unit's `arrival_time` (In) or `departure_time` (Out).
-- **Filter:** Direction, a toggle group: Boat in, Boat out, Both. Default: Both. **Both** (`direction=both` or no direction, `ReportFilters::$bothDirections`) lists every sailing of the date in time order, as Sand Bay's sheet does (08:00 out, 09:00 in, 14:30 out…), and each section title starts with "Boat out · " or "Boat in · ".
-- **Quick dates:** Today, Tomorrow.
+- There is no `reports.boat-manifest` page and no sidebar entry. `listedInReportsMenu()` stays false. Its old URL is a 404.
+- The board's export routes and the shared layout routes return 404 when the Boats feature is off (`boats` middleware, `ReportKey::feature()`, `EnsureReportIsAvailable`).
+- The rows are not paged and keep their order (sailing time, then sailing id; Charter and Own by unit time, then jobs by time, last). Each Charter and Own row's time is the unit's `arrival_time` (In) or `departure_time` (Out).
+- **Direction:** Boat in, Boat out, Both, from the board's toggle group. **Both** (`direction=both` or no direction, `ReportFilters::$bothDirections`) lists every sailing of the date in time order, as Sand Bay's sheet does (08:00 out, 09:00 in, 14:30 out…), and each section title starts with "Boat out · " or "Boat in · ".
 
 ## Rows
 
@@ -39,7 +39,7 @@ One row per trip: Confirmed, CheckedIn and CheckedOut units whose trip is on the
 | Total       | `total`       | Yes             | Adults + children                                                                                      |
 | Boat        | `boat`        | Yes             | The sailing's boat ([Boats and crew](#boats-and-crew)), or "Own boat", "Charter"                       |
 | Crew        | `crew`        | Yes             | The sailing's crew: ⚓ the person in charge first, then the assistants                                 |
-| Tick        | `tick`        | Yes             | A tick box on the page ([Tick](#tick)); "Yes" in the spreadsheet                                       |
+| Tick        | `tick`        | Yes             | The Arrived or Left box on the board ([Tick](#tick)); "Yes" in the spreadsheet                         |
 | Reservation | `reservation` | No              | Reservation number                                                                                     |
 | Note        | `note`        | No              | The trip note                                                                                          |
 
@@ -54,8 +54,8 @@ Each section is one [sailing](04-sailings.md): one boat on one date. A departure
 
 - The section title reads "Boat in · 09:00 Kuala Besut jetty → 09:45 · MV Sand Bay 2 · ⚓ Din · Razak". A changed time adds "(changed)". With no boat or crew set, the title ends after the times.
 - A cancelled sailing on the date is left out. A sailing with guests cannot be cancelled ([Cancel](04-sailings.md#cancel)).
-- The report has no editing panel. Staff set boats, crew and times on the [Boats board](05-boats-board.md). The old `BoatsAndCrewPanel` and `reports.boat-manifest.runs` are removed.
-- The section labels come from `SailingLabels` (`app/Services/Boats/`), shared with the board, so the page, the PDF and the spreadsheet name them the same way.
+- Staff set boats, crew and times on the [Boats board](05-boats-board.md).
+- The section labels come from `SailingLabels` (`app/Services/Boats/`), so the board, the PDF and the spreadsheet name them the same way.
 
 ## Boat jobs
 
@@ -69,7 +69,7 @@ Staff tick a row when its guests have arrived (Boat in) or left (Boat out).
 unit_boat_trips (adds)   ticked_at (nullable), ticked_by (nullable, FK users, null on delete)
 ```
 
-- `reports.boat-manifest.tick` (`PUT .../reports/boat-manifest/trips/{trip}/tick`, `boats` and `reservations.manage`) runs `SetBoatTripTick`. A trip of another property is a 404. A user without the permission sees the box disabled.
+- `boats.trips.set-tick` (`PUT /p/{code}/boats/trips/{trip}/tick`, `boats` and `reservations.manage`) runs `SetBoatTripTick`. It replaces `reports.boat-manifest.tick`. A trip of another property is a 404. A user without the permission sees the box disabled.
 - The tick records who and when, and logs `reservation.boat_trip_ticked` on the reservation. It does **not** check the guest in or out.
 - A repeated click changes nothing and logs nothing.
 - `SetBoatTrip` and `MoveBoatTrips` clear the tick when the trip moves to another departure, sailing or mode, because the old tick no longer says anything. A note change keeps it.
@@ -85,12 +85,9 @@ unit_boat_trips (adds)   ticked_at (nullable), ticked_by (nullable, FK users, nu
 - A sailing that carries nobody prints with its boat and crew and a "-" row, so the crew still has a sheet.
 - Own boat, then Charter, come next, per direction, with the first departure's jetty. Then a grey **Boat jobs** block (Time, Job, Boat, Crew, Note, Done). An amber **Boat not set** block comes last.
 - A block never splits across pages (`page-break-inside: avoid`). There is no page break between departures, so a normal day fits on one page.
-- Selecting rows prints only the blocks of those rows.
-
-## Empty state
-
-"No boat in trips on 12 Oct." or "No boat out trips on 12 Oct.", following the Direction filter. With no departures at all: "No departures yet" and "Add departures in Settings, Boats.", with an **Open Boats settings** button for users with `settings.manage`.
+- Ticking rows on the board prints only the blocks of those rows.
+- The saved column layout does not change the sheet. It changes Excel and CSV only.
 
 ## Permissions
 
-`reports.view`, as every report.
+Export needs `reservations.view` through the board's routes ([Boats board](05-boats-board.md#routes)). Columns need `settings.manage`.

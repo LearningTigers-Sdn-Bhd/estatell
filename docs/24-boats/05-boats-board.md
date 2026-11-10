@@ -2,9 +2,9 @@
 
 ## Purpose
 
-The front desk's working page for the boats of one date: who goes on which boat, the boat and crew in charge, today's time changes, extra trips and boat jobs, and ticks as guests arrive or leave. It works like the [room status board](../19-housekeeping/01-room-status-board.md): groups, row ticks, a bulk bar and print.
+The front desk's only boat page for one date: who goes on which boat, the boat and crew in charge, today's time changes, extra trips and boat jobs, and ticks as guests arrive or leave. It also prints and exports the manifest for the jetty and the crew. It works like the [room status board](../19-housekeeping/01-room-status-board.md): groups, row ticks, a bulk bar, export and columns.
 
-The [Boat manifest](03-boat-manifest.md) report stays for export and past dates. Both read the same rows (`BoatManifest`) and print the same PDF.
+There is no separate Boat manifest page. The rows, the columns, the tick and the PDF sheet are specified in [Boat manifest](03-boat-manifest.md). The board reads them through `ReportKey::BoatManifest`, as Housekeeping reads `ReportKey::HousekeepingTasks`.
 
 Needs the `Boats` feature.
 
@@ -17,7 +17,7 @@ Needs the `Boats` feature.
 ## Layout
 
 ```
-Boats                                                            [+ Trip or job]  [Print]
+Boats                                         [+ Trip or job]  [Export Boat Manifest ▾]
 [◀] Tue 11 Nov [▶]  [Today] [Tomorrow]     [ Boat in | Boat out | Both ]
 
 [ ] Boat out · 08:00 Resort jetty → 08:45 · MV Sand Bay 1 · ⚓ Awang · Daus     6 / 20  ⋯
@@ -120,13 +120,28 @@ It calls `AddExtraSailing` or `SaveBoatJob`.
 - `POST /p/{code}/boats/trips/tick` (`boats.trips.tick`) takes `trip_ids`. It runs `SetBoatTripTick` for each, skipping trips already ticked.
 - The selection clears after the action works.
 
-## Print
+## Export Boat Manifest
 
-**Print** opens the [manifest PDF](03-boat-manifest.md#pdf) for the shown date and direction. With rows ticked, the bulk bar's Export prints only their blocks. The board has no layout of its own: it uses the Boat manifest's saved layout.
+**Export Boat Manifest ▾** in the page header replaces the old **Print** button. It is a menu for the shown date and direction:
+
+```
+Export Boat Manifest ▾
+  PDF
+  Excel
+  CSV
+  ─────────────
+  Columns…            (settings.manage)
+```
+
+- **PDF** opens the [manifest sheet](03-boat-manifest.md#pdf) in a new tab. **Excel** and **CSV** download the [manifest rows](03-boat-manifest.md#rows) with the saved columns.
+- With rows ticked, the bulk bar's **Export** has the same three formats for the ticked rows only. It reuses the same menu component.
+- **Columns…** opens the shared `ReportLayoutSheet` for `boat-manifest`: order and visibility of the columns. The layout is per property. The PDF is a fixed sheet, so the columns change Excel and CSV only. The Sheet says so in one line.
+- The browser sends the date, the direction and the ticked trip ids, never row data. The server reads the rows again with the saved layout, so an id from another property is dropped.
+- The export routes need `reservations.view`, not `reports.view`, as on Housekeeping. Front desk staff can export without access to Reports.
 
 ## Routes
 
-All need the `boats` middleware. Viewing needs `reservations.view`; everything else needs `reservations.manage`.
+All need the `boats` middleware. Viewing and export need `reservations.view`; everything else needs `reservations.manage`. The Columns Sheet uses the shared `reports.layout.*` routes, which need `settings.manage`.
 
 | Route                                               | Name                      | Action                                              |
 | --------------------------------------------------- | ------------------------- | --------------------------------------------------- |
@@ -142,6 +157,9 @@ All need the `boats` middleware. Viewing needs `reservations.view`; everything e
 | `PUT /p/{code}/boats/jobs/{sailing}/done`           | `boats.jobs.done`         | `SetBoatJobDone`                                    |
 | `POST /p/{code}/boats/trips/move`                   | `boats.trips.move`        | `MoveBoatTrips`                                     |
 | `POST /p/{code}/boats/trips/tick`                   | `boats.trips.tick`        | `SetBoatTripTick` per trip                          |
+| `PUT /p/{code}/boats/trips/{trip}/tick`             | `boats.trips.set-tick`    | `SetBoatTripTick` (`ticked` in the body)            |
+| `POST /p/{code}/boats/pdf`                          | `boats.pdf`               | `ReportPdf` for `ReportKey::BoatManifest`           |
+| `POST /p/{code}/boats/spreadsheet`                  | `boats.spreadsheet`       | `ReportSpreadsheet` for `ReportKey::BoatManifest`   |
 
 A `{sailing}` or `{departure}` of another property is a 404. A `{sailing}` of the wrong kind for the route is a 404.
 
@@ -154,7 +172,8 @@ A `{sailing}` or `{departure}` of another property is a 404. A `{sailing}` of th
 
 | Permission            | Can                                                            |
 | --------------------- | -------------------------------------------------------------- |
-| `reservations.view`   | See the board and print                                        |
+| `reservations.view`   | See the board, export PDF, Excel and CSV                       |
 | `reservations.manage` | Ticks, moves, boats, crew, times, cancel, extra trips and jobs |
+| `settings.manage`     | Columns…                                                       |
 
 No new permission.
