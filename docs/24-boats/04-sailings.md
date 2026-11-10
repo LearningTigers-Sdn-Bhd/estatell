@@ -88,7 +88,7 @@ A fixed list, not types each property defines. Other with a note covers the rest
 
 ## Cancel
 
-- **Cancel trip** cancels a departure on one date: all its sailings get `cancelled_at`. It is refused while any trip is on the departure on that date (`sailing_has_guests`, "Move the 6 guests first."). The board offers Move to for them.
+- **Cancel trip** cancels a departure on one date: all its sailings get `cancelled_at`. The board offers it only on the main sailing's menu, and says "(all boats)" when the departure has more boats that date. An added boat with no guests is removed with **Remove boat** instead. It is refused while any trip is on the departure on that date (`sailing_has_guests`, "Move the 6 guests first."). The board offers Move to for them.
 - A cancelled departure leaves the booking pickers for that date, and `SetBoatTrip` refuses it (`departure_cancelled`).
 - **Undo** clears `cancelled_at`. The board shows the cancelled departure muted, with Undo.
 - An extra trip with no guests is deleted, not cancelled.

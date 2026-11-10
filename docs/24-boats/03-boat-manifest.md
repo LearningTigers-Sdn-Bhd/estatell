@@ -69,11 +69,11 @@ Staff tick a row when its guests have arrived (Boat in) or left (Boat out).
 unit_boat_trips (adds)   ticked_at (nullable), ticked_by (nullable, FK users, null on delete)
 ```
 
-- `boats.trips.set-tick` (`PUT /p/{code}/boats/trips/{trip}/tick`, `boats` and `reservations.manage`) runs `SetBoatTripTick`. It replaces `reports.boat-manifest.tick`. A trip of another property is a 404. A user without the permission sees the box disabled.
+- `boats.trips.set-tick` (`PUT /p/{code}/boats/trips/{trip}/tick`, `boats` and `reservations.manage`) runs `SetBoatTripTick`. It replaces `reports.boat-manifest.tick`. A trip of another property is a 404. A user without the permission sees the state as text only. On the board it is a **Mark arrived** or **Mark left** button with a confirm, and **Undo** once ticked ([Boat Trips board](05-boats-board.md#layout)).
 - The tick records who and when, and logs `reservation.boat_trip_ticked` on the reservation. It does **not** check the guest in or out.
 - A repeated click changes nothing and logs nothing.
 - `SetBoatTrip` and `MoveBoatTrips` clear the tick when the trip moves to another departure, sailing or mode, because the old tick no longer says anything. A note change keeps it.
-- A row with no trip (Boat not set) has no tick box.
+- A row with no trip (Boat not set) has no tick.
 - A printed empty departure has an empty box to tick by hand. It is not saved.
 
 ## PDF

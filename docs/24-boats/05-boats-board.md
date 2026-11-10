@@ -12,44 +12,34 @@ Needs the `Boats` feature.
 
 - Front desk sidebar, after Housekeeping: **Boat Trips** (icon `ship`), when the feature is on and the user has `reservations.view`. The page title and the browser tab say **Boat Trips** too.
 - Only the words staff see say Boat Trips. The URL, the route names and the **Boats** settings tab keep their names.
-- `GET /p/{code}/boats` (`boats.index`). Query: `date` (default the business date) and `direction` (`in`, `out`, `both`; default `both`).
+- `GET /p/{code}/boats` (`boats.index`). Query: `date` (default the business date) and `direction`, the open tab (`both` All, `in` Boat in, `out` Boat out, `other` Others; default `both`).
 - Archetype: Board, with grouped tables as on Housekeeping ([Page archetypes](../design-system/04-page-archetypes.md)).
 
 ## Layout
 
 ```
-Boat Trips                                    [+ Trip or job]  [Export Boat Manifest ▾]
-[◀] Tue 11 Nov [▶]  [Today] [Tomorrow]     [ Boat in | Boat out | Both ]
+Boat Trips                                       [Columns]  [Export Boat Manifest ▾]
+[◀] Tue 11 Nov [▶]  [Today] [Tomorrow]                                [+ Trip or job]
+ All   Boat in   Boat out   Others
+ ───
 
-[ ] Boat out · 08:00 Resort jetty → 08:45 · MV Sand Bay 1 · ⚓ Awang · Daus     6 / 20  ⋯
-     Room  Lead guest     Agent          Phone          Pax     Note            Left
- [ ] 101   Tan Wei Ming   Direct booking 012-111 2222   2A 1C                   [✓]
- [ ] 104   Sarah Lee      Agoda          —              2A 0C   Early ferry     [ ]
+[ ] Boat out · 08:00 Resort jetty → 08:45 · MV Sand Bay 1 · ⚓ Awang · Daus        6 / 20  ⋯
+     Room  Lead guest     Agent          Phone          Pax     Note              Left
+ [ ] 101   Tan Wei Ming   Direct booking 012-111 2222   2A 1C   [             ]   ✓ Left [Undo]
+ [ ] 104   Sarah Lee      Agoda          —              2A 0C   [Early ferry  ]   [Mark left]
 
-[ ] Boat in · 09:00 Kuala Besut jetty → 09:45 · MV Sand Bay 1 · ⚓ Awang · Daus  5 / 20  ⋯
- [ ] 102   Ahmad Faiz     Borneo Tours   013-333 4444   2A 0C                   [ ]
- [ ] 103   Lee Family     Direct booking 016-555 6666   2A 1C                   [ ]
+[ ] Boat in · 09:00 Kuala Besut jetty → 09:45 · MV Sand Bay 1 · ⚓ Awang · Daus     5 / 20  ⋯
+ [ ] 102   Ahmad Faiz     Borneo Tours   013-333 4444   2A 0C   [             ]   [Mark arrived]
+ [ ] 103   Lee Family     Direct booking 016-555 6666   2A 1C   [             ]   [Mark arrived]
 
-[ ] Boat in · 09:00 Kuala Besut jetty → 09:45 · MV Sand Bay 2 · ⚓ Din · Razak   9 / 12  ⋯
- [✓] 205   Ahmad Faiz     Borneo Tours   013-333 4444   4A 2C                   [ ]
- [✓] 206   Lim Family     Borneo Tours   019-777 8888   3A 0C                   [ ]
+[ ] Boat in · 09:00 Kuala Besut jetty → 09:45 · MV Sand Bay 2 · ⚓ Din · Razak      9 / 12  ⋯
+ [✓] 205   Ahmad Faiz     Borneo Tours   013-333 4444   4A 2C   [             ]   [Mark arrived]
+ [✓] 206   Lim Family     Borneo Tours   019-777 8888   3A 0C   [             ]   [Mark arrived]
 
-    Boat out · 14:30 → 15:00 (changed) · MV Sand Bay 2 · ⚓ Din               0 / 12  ⋯
+    Boat out · 14:30 → 15:00 (changed) · MV Sand Bay 2 · ⚓ Din                  0 / 12  ⋯
      No guests.
 
-    Boat in · 16:00 Kuala Besut jetty · Cancelled                             [Undo]   (muted)
-
-[ ] Charter                                                         2 rooms · 4 pax
-     Room  Lead guest     Agent          Trip                           Pax     Done
- [ ] 205   Wong Mei       Agoda          In · 10:30 · Wedding party     2A 0C   [ ]
- [ ] 104   Sarah Lee      Direct booking Out · 15:00                    2A 0C   [ ]
-
-[ ] Own boat                                                        1 room · 3 pax
- [ ] 301   Lim Family     Borneo Tours   Out · 11:30 · Own speedboat    3A 0C   [ ]
-
-    Boat jobs
-     11:00  Diesel   MV Sand Bay 2 · ⚓ Razak   4 drums                          Done [ ]
-     15:30  Linen    MV Sand Bay 1 · ⚓ Daus                                     Done [✓]
+    Boat in · 16:00 Kuala Besut jetty · Cancelled                                [Undo]   (muted)
 
   ⚠ Boat not set: follow up
      302   Ong Siew Lan   Direct booking 012-999 0000   2A 0C   Not set · 15:00  [Set boat]
@@ -57,24 +47,51 @@ Boat Trips                                    [+ Trip or job]  [Export Boat Mani
                 ┌ 2 selected   [Move to ▾]  [Mark arrived]  [Export ▾]  ✕ ┐
 ```
 
+The **Others** tab:
+
+```
+[ ] Charter                                                         2 rooms · 4 pax
+     Room  Lead guest     Agent          Trip            Pax     Note               Done
+ [ ] 205   Wong Mei       Agoda          In · 10:30      2A 0C   [Wedding party ]   [Mark arrived]
+ [ ] 104   Sarah Lee      Direct booking Out · 15:00     2A 0C   [              ]   [Mark left]
+
+[ ] Own boat                                                        1 room · 3 pax
+ [ ] 301   Lim Family     Borneo Tours   Out · 11:30     3A 0C   [Own speedboat ]   [Mark left]
+
+    Boat jobs
+     11:00  Diesel   MV Sand Bay 2 · ⚓ Razak   4 drums                          Done [ ]
+     15:30  Linen    MV Sand Bay 1 · ⚓ Daus                                     Done [✓]
+```
+
 - Groups come in this order, as on the PDF: one group per [sailing](04-sailings.md) in time order across both directions, then **Charter**, then **Own boat**, then Boat jobs, then Boat not set.
-- **Charter** and **Own boat** are two groups. Their header shows the room and pax count, with no seat limit. A **Trip** column shows the direction, the time and the note ("In · 10:30 · Wedding party"), because one group can hold both directions. Their tick column is **Done**, because the rows mix directions. It is the same trip tick. Charter and Own boat always show, even with no rooms: "No charter trips." or "No own boat trips." under the header. Only a date with no group at all shows the page empty state instead.
+- **Tabs** sit on their own row under the date toolbar: **All**, **Boat in**, **Boat out** and **Others**. They are `TabLinks`, so each tab is the `direction` in the URL and a refresh keeps it.
+
+| Tab      | Shows                                                         |
+| -------- | ------------------------------------------------------------- |
+| All      | Every group                                                   |
+| Boat in  | The Boat in sailings, and the Boat in rows with no boat set   |
+| Boat out | The Boat out sailings, and the Boat out rows with no boat set |
+| Others   | Charter, Own boat and Boat jobs                               |
+
+- **Export Boat Manifest** exports what the open tab shows. On Others, the PDF prints only the Charter and Own boat blocks.
+- **Charter** and **Own boat** are two groups. Their header shows the room and pax count, with no seat limit. A **Trip** column shows the direction and the time ("In · 10:30"), because one group can hold both directions. Their tick column is **Done**, because the rows mix directions. It is the same trip tick. Charter and Own boat always show on All and Others, even with no rooms: "No charter trips." or "No own boat trips." under the header. Only a date with no group at all shows the page empty state instead.
 - The group header shows the direction, time, jetty, boat, ⚓ the person in charge, the assistants and the seat count. Over the limit uses the warning tone.
-- The **Arrived** (Boat in) or **Left** (Boat out) column is the [trip tick](03-boat-manifest.md#tick). It saves at once, like the housekeeping status.
+- The **Arrived** (Boat in) or **Left** (Boat out) column is the [trip tick](03-boat-manifest.md#tick). It is a button, not a box: **Mark arrived** or **Mark left** opens an AlertDialog ("Mark 102 · Hanami Saki as arrived?"), then saves. A ticked row shows "✓ Arrived" or "✓ Left" with **Undo**, which asks the same way ("Mark 102 · Hanami Saki as not arrived?"). A user without `reservations.manage` sees the text only.
+- **Note** is a text field in every guest row, as the remark on Housekeeping. It saves when it loses focus or on Enter; Escape puts the old text back. It is the trip's `note` (at most 255 characters), the same note the Change boat Dialog shows for Charter and Own boat. `SetBoatTripNote` saves it and logs `reservation.boat_trip_note_set` on the reservation. It keeps the tick. A user without `reservations.manage` sees the text only.
 - **Set boat** on a Boat not set row opens the reservation page's boat Change Dialog for that unit and direction.
-- At phone width each group becomes a card list: room, guest and pax on the first line, agent and phone on the second, the tick on the right.
-- Past dates are read only except the ticks. Their ⋯ menus and **+ Trip or job** are hidden.
+- At phone width each group becomes a card list: room, guest and pax on the first line, agent, phone and note on the second, the tick on the right.
+- Past dates are read only except the ticks and the notes. Their ⋯ menus and **+ Trip or job** are hidden.
 
 ## Row menu
 
 The **⋯** at the end of each guest row (sailing, Charter and Own boat groups):
 
-| Item             | Shows when                                      | Does                                                                                                                                                                                                               |
-| ---------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Change boat      | `reservations.manage`, and the date is not past | Opens the reservation page's boat **Change** Dialog for that unit and direction ([Reservation page](02-boat-trips.md#reservation-page)): Not set, the departures with seats, Charter, Own boat, then Time and Note |
-| Open reservation | Always                                          | Goes to the reservation page                                                                                                                                                                                       |
+| Item             | Shows when                                      | Does                                                                                                                                                                                                                                                                                                                           |
+| ---------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Change boat      | `reservations.manage`, and the date is not past | Opens the reservation page's boat **Change** Dialog for that unit and direction ([Reservation page](02-boat-trips.md#reservation-page)). On the board it lists each boat of the date instead of each departure: Not set, "06:00 · Boat 1 · 4 / 8 seats", "06:00 · Boat 2 · 0 / 8 seats", Charter, Own boat, then Time and Note |
+| Open reservation | Always                                          | Goes to the reservation page                                                                                                                                                                                                                                                                                                   |
 
-- **Change boat** is how staff set Charter or Own boat from this page. It reuses the Dialog and `SetBoatTrip`, so there is no new logic. After saving, the row moves to its new group.
+- **Change boat** is how staff set Charter or Own boat, or another boat of the same time, from this page. It reuses the Dialog and `SetBoatTrip`, which takes the picked boat as `boat_sailing_id` ([Setting a trip](02-boat-trips.md#setting-a-trip)). Extra trips are not listed: **Move to** puts guests on them. After saving, the row moves to its new group.
 - **+ Trip or job** stays for boats the resort runs. It does not offer Charter or Own boat, because those belong to one room.
 - **Move to** in the bulk bar stays for moving several rooms between scheduled sailings.
 - Boat not set rows keep their **Set boat** button, which opens the same Dialog.
@@ -83,15 +100,15 @@ The **⋯** at the end of each guest row (sailing, Charter and Own boat groups):
 
 The **⋯** on a sailing group header, for users with `reservations.manage`:
 
-| Item                 | Shows when                                    | Does                                                                                                         |
-| -------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| Change boat and crew | Always                                        | The Dialog below (`SaveSailing`)                                                                             |
-| Change time          | Always                                        | A small Dialog with Leaves and Arrives (`SaveSailing`)                                                       |
-| Add boat             | A departure sailing                           | Adds a sailing with the same time (`AddSailingBoat`), then opens Change boat and crew for it                 |
-| Remove boat          | An added boat with no guests                  | `RemoveSailing`                                                                                              |
-| Default              | The departure has stored sailings on the date | Back to the timetable (`ResetDepartureDate`)                                                                 |
-| Cancel trip          | A departure sailing                           | An AlertDialog, then `CancelDepartureDate`. With guests: "Move the 6 guests first." and the item is disabled |
-| Delete               | An extra trip with no guests                  | `RemoveSailing`                                                                                              |
+| Item                 | Shows when                                    | Does                                                                                                                                                                                                                                                  |
+| -------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Change boat and crew | Always                                        | The Dialog below (`SaveSailing`)                                                                                                                                                                                                                      |
+| Change time          | Always                                        | A small Dialog with Leaves and Arrives (`SaveSailing`)                                                                                                                                                                                                |
+| Add boat             | A departure sailing                           | Adds a sailing with the same time (`AddSailingBoat`), then opens Change boat and crew for it                                                                                                                                                          |
+| Remove boat          | An added boat with no guests                  | `RemoveSailing`                                                                                                                                                                                                                                       |
+| Default              | The departure has stored sailings on the date | Back to the timetable (`ResetDepartureDate`)                                                                                                                                                                                                          |
+| Cancel trip          | The main sailing of a departure               | Reads "Cancel the 06:00 trip", or "Cancel the 06:00 trip (all boats)" when the departure has more boats on the date. An AlertDialog, then `CancelDepartureDate`. With guests on any of its boats: "Move the 6 guests first." and the item is disabled |
+| Delete               | An extra trip with no guests                  | `RemoveSailing`                                                                                                                                                                                                                                       |
 
 Boat jobs have **Edit** and **Delete** instead, while not done.
 
@@ -147,21 +164,19 @@ It calls `AddExtraSailing` or `SaveBoatJob`.
 
 ## Export Boat Manifest
 
-**Export Boat Manifest ▾** in the page header replaces the old **Print** button. It is a menu for the shown date and direction:
+**Export Boat Manifest ▾** in the page header replaces the old **Print** button. It is a menu for the shown date and tab:
 
 ```
-Export Boat Manifest ▾
-  PDF
-  Excel
-  CSV
-  ─────────────
-  Columns…            (settings.manage)
+[Columns]   Export Boat Manifest ▾
+              PDF
+              Excel
+              CSV
 ```
 
 - **PDF** opens the [manifest sheet](03-boat-manifest.md#pdf) in a new tab. **Excel** and **CSV** download the [manifest rows](03-boat-manifest.md#rows) with the saved columns.
 - With rows ticked, the bulk bar's **Export** has the same three formats for the ticked rows only. It reuses the same menu component.
-- **Columns…** opens the shared `ReportLayoutSheet` for `boat-manifest`: order and visibility of the columns. The layout is per property. The PDF is a fixed sheet, so the columns change Excel and CSV only. The Sheet says so in one line.
-- The browser sends the date, the direction and the ticked trip ids, never row data. The server reads the rows again with the saved layout, so an id from another property is dropped.
+- **Columns** is its own button before the Export menu, for users with `settings.manage`. It opens the shared `ReportLayoutSheet` for `boat-manifest`: order and visibility of the columns. The layout is per property. The PDF is a fixed sheet, so the columns change Excel and CSV only. The Sheet says so in one line.
+- The browser sends the date, the tab (`direction`, and `boat_group` `scheduled` on Boat in and Boat out or `other` on Others) and the ticked trip ids, never row data. The server reads the rows again with the saved layout, so an id from another property is dropped.
 - The export routes need `reservations.view`, not `reports.view`, as on Housekeeping. Front desk staff can export without access to Reports.
 
 ## Routes
@@ -183,6 +198,7 @@ All need the `boats` middleware. Viewing and export need `reservations.view`; ev
 | `POST /p/{code}/boats/trips/move`                   | `boats.trips.move`        | `MoveBoatTrips`                                     |
 | `POST /p/{code}/boats/trips/tick`                   | `boats.trips.tick`        | `SetBoatTripTick` per trip                          |
 | `PUT /p/{code}/boats/trips/{trip}/tick`             | `boats.trips.set-tick`    | `SetBoatTripTick` (`ticked` in the body)            |
+| `PUT /p/{code}/boats/trips/{trip}/note`             | `boats.trips.note`        | `SetBoatTripNote` (`note` in the body)              |
 | `POST /p/{code}/boats/pdf`                          | `boats.pdf`               | `ReportPdf` for `ReportKey::BoatManifest`           |
 | `POST /p/{code}/boats/spreadsheet`                  | `boats.spreadsheet`       | `ReportSpreadsheet` for `ReportKey::BoatManifest`   |
 
@@ -196,10 +212,10 @@ A `{sailing}` or `{departure}` of another property is a 404. A `{sailing}` of th
 
 ## Permissions
 
-| Permission            | Can                                                            |
-| --------------------- | -------------------------------------------------------------- |
-| `reservations.view`   | See the board, export PDF, Excel and CSV                       |
-| `reservations.manage` | Ticks, moves, boats, crew, times, cancel, extra trips and jobs |
-| `settings.manage`     | Columns…                                                       |
+| Permission            | Can                                                                   |
+| --------------------- | --------------------------------------------------------------------- |
+| `reservations.view`   | See the board, export PDF, Excel and CSV                              |
+| `reservations.manage` | Ticks, notes, moves, boats, crew, times, cancel, extra trips and jobs |
+| `settings.manage`     | Columns                                                               |
 
 No new permission.

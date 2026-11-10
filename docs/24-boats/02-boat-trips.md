@@ -26,7 +26,7 @@ boat_trip_add_ons  id, unit_boat_trip_id → unit_boat_trips (cascade),
 - **No time column.** The time is the unit's `arrival_time` (In) or `departure_time` (Out) ([Expected times](../12-reservations/01-reservation-shape.md#expected-times)). One fact, one place.
 - `boat_trip_add_ons` links a trip to the fare add-on rows it created. A fare with child prices writes several rows (adults, and one per charged age group), so it is a link table, not one column. Boats owns it, so `unit_add_ons` does not change. Like `unit_add_ons`, it has no `property_id`: it is always reached through its trip, which is property scoped (an exception to the models rule).
 - A unit with no trip row means "not set yet".
-- **`boat_departure_id` is what was booked; `boat_sailing_id` is the boat it actually goes on.** Null means the date's main sailing of that departure ([Sailings](04-sailings.md#main-sailing)). Only the [Boat Trips board](05-boats-board.md) sets it. The fare, the activity text and the pickers read the departure; the board, the manifest, seats and the unit time read the sailing.
+- **`boat_departure_id` is what was booked; `boat_sailing_id` is the boat it actually goes on.** Null means the date's main sailing of that departure ([Sailings](04-sailings.md#main-sailing)). Only the [Boat Trips board](05-boats-board.md) sets it (**Move to** and **Change boat**). The fare, the activity text and the pickers read the departure; the board, the manifest, seats and the unit time read the sailing.
 
 ## Enums
 
@@ -36,7 +36,7 @@ boat_trip_add_ons  id, unit_boat_trip_id → unit_boat_trips (cascade),
 
 ## Setting a trip
 
-`SetBoatTrip` (`app/Actions/Boats/`): `(User $actor, ReservationUnit $unit, BoatTripData $data): BoatTripResult`. `BoatTripData`: `direction`, `mode`, `boat_departure_id` (Scheduled), `time` (Charter and Own, `H:i`), `note` (optional). It takes a shared lock on the departure, then locks the unit row (the same order as `UpdateBoatDeparture`, so the two cannot deadlock), and does everything in one transaction:
+`SetBoatTrip` (`app/Actions/Boats/`): `(User $actor, ReservationUnit $unit, BoatTripData $data): BoatTripResult`. `BoatTripData`: `direction`, `mode`, `boat_departure_id` (Scheduled), `boat_sailing_id` (Scheduled, optional: the boat of that departure on the trip date, from the [Boat Trips board](05-boats-board.md#row-menu)), `time` (Charter and Own, `H:i`), `note` (optional). It takes a shared lock on the departure, then locks the unit row (the same order as `UpdateBoatDeparture`, so the two cannot deadlock), and does everything in one transaction:
 
 1. Writes or replaces the trip row.
 2. Sets the unit time:
@@ -47,6 +47,10 @@ boat_trip_add_ons  id, unit_boat_trip_id → unit_boat_trips (cascade),
 | Charter, Own | the time staff typed           | the time staff typed              |
 
 The sailing's time is the timetable time unless the date has a changed time ([Sailing times](04-sailings.md#times)). `SetBoatTrip` reads it with `SailingTimes::forTrip()`. Changing a trip to another departure clears `boat_sailing_id`.
+
+When `boat_sailing_id` is sent, the trip goes on that boat: `boat_sailing_id` is stored (null for the main sailing) and the unit time is that boat's time. A boat that is not a running sailing of the departure on the trip date is refused (`departure_not_found`). Moving to another boat clears the tick, as `MoveBoatTrips` does.
+
+A Scheduled trip sent with no note keeps its note, so a note typed on the board survives a change of departure. Charter and Own save the note as sent.
 
 3. Syncs the fare (see [Fare](#fare)).
 4. Logs `reservation.boat_trip_set` on the reservation: "Boat in: Scheduled boat 09:00 (Kuala Besut jetty)."
