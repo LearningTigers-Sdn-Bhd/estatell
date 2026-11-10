@@ -8,7 +8,7 @@ A departure is the timetable: it runs every day at the same time. A **sailing** 
 - Another time for one date (today's 14:30 leaves at 15:00).
 - A cancelled trip for one date.
 - An extra trip that is not on the timetable.
-- A **boat job** that carries no guests: diesel, linen, supplies, staff.
+- A **boat job** that carries no guests: diesel, linen, supplies, staff, maintenance.
 
 Staff change sailings on the [Boat Trips board](05-boats-board.md). Needs the `Boats` feature.
 
@@ -51,10 +51,10 @@ boat_sailing_crew   id, boat_sailing_id → boat_sailings (cascade),
 
 ## Enums
 
-| Enum          | Cases (label)                                                                               | Notes                        |
-| ------------- | ------------------------------------------------------------------------------------------- | ---------------------------- |
-| `SailingKind` | Guests ("Guest trip"), Job ("Boat job")                                                     |                              |
-| `BoatJobType` | Diesel ("Diesel"), Linen ("Linen"), Supplies ("Supplies"), Staff ("Staff"), Other ("Other") | `needsNote()` true for Other |
+| Enum          | Cases (label)                                                                                                            | Notes                        |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------- |
+| `SailingKind` | Guests ("Guest trip"), Job ("Boat job")                                                                                  |                              |
+| `BoatJobType` | Diesel ("Diesel"), Linen ("Linen"), Supplies ("Supplies"), Staff ("Staff"), Maintenance ("Maintenance"), Other ("Other") | `needsNote()` true for Other |
 
 A fixed list, not types each property defines. Other with a note covers the rest.
 
@@ -112,6 +112,7 @@ A boat job is a sailing of kind Job: a boat and crew going out without guests.
 - **Done** is a tick on the board. It records who and when (`done_at`, `done_by`), like the trip tick.
 - A job can be changed or deleted while it is not done. A done job can only be un-ticked first.
 - A job is not a guest trip: it has no seats, no fare, no direction and no effect on unit times or meals.
+- **Maintenance** is a trip of one date, such as to the workshop and back. A boat out of use for days is not a job: turn off its Available switch on the Boats settings tab.
 
 ## Actions
 

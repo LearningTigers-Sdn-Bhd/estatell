@@ -71,6 +71,7 @@ The **Others** tab:
     Boat jobs
      11:00  Diesel   MV Sand Bay 2 · Razak (in charge)  4 drums                         Done [ ]
      15:30  Linen    MV Sand Bay 1 · Daus (in charge)                                   Done [✓]
+     16:00  Maintenance  MV Sand Bay 2 · Razak (in charge)  Engine service, Semporna    Done [ ]
 ```
 
 - Groups come in this order, as on the PDF: one group per [sailing](04-sailings.md) in time order across both directions, then **Charter**, then **Own boat**, then Boat jobs, then Boat not set.
