@@ -3,6 +3,11 @@ import { Globe } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { EnumSelect } from '@/components/pms/enum-select';
+import {
+    CancellationStepsTable,
+    emptyStep,
+} from '@/components/pms/room-revenue/cancellation-steps-table';
+import type { CancellationStepRow } from '@/components/pms/room-revenue/cancellation-steps-table';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { FormActions } from '@/components/pms/form-actions';
 import { MultiCombobox } from '@/components/pms/multi-combobox';
@@ -72,7 +77,7 @@ type PolicyForm = {
     percent: string;
     percent_basis: App.Enums.PolicyRateBasis;
     applies_to: App.Enums.PolicyScope;
-    free_until_days: string;
+    steps: CancellationStepRow[];
     own_taxes: boolean;
     tax_ids: number[];
     text_en: string;
@@ -112,8 +117,11 @@ function formFrom(policy: Policy): PolicyForm {
         percent: policy.percent ?? '',
         percent_basis: policy.percentBasis ?? 'booked_rate',
         applies_to: policy.appliesTo,
-        free_until_days:
-            policy.freeUntilDays === null ? '' : String(policy.freeUntilDays),
+        steps: policy.steps.map((step) => ({
+            days_before: String(step.daysBefore),
+            amount: step.amount ?? '',
+            percent: step.percent ?? '',
+        })),
         own_taxes: policy.ownTaxes,
         tax_ids: policy.taxIds,
         text_en: policy.textEn,
@@ -407,6 +415,34 @@ export function PolicyEditor({
     }, [key]);
 
     const hasChargeDetails = data.charge_mode !== 'free';
+    const isCancellation = tab === 'cancellation';
+
+    const changeChargeMode = (mode: App.Enums.PolicyChargeMode) => {
+        if (!isCancellation) {
+            http.setData('charge_mode', mode);
+
+            return;
+        }
+
+        // Steps keep their days and lose the charge of the other mode.
+        http.setData((current) => ({
+            ...current,
+            charge_mode: mode,
+            steps:
+                mode === 'free'
+                    ? current.steps
+                    : current.steps.length === 0
+                      ? [emptyStep]
+                      : current.charge_mode === mode ||
+                          current.charge_mode === 'free'
+                        ? current.steps
+                        : current.steps.map((step) => ({
+                              ...step,
+                              amount: '',
+                              percent: '',
+                          })),
+        }));
+    };
 
     const followTaxes = (follow: boolean) => {
         http.setData((current) => ({
@@ -470,8 +506,7 @@ export function PolicyEditor({
                                             className="grid-cols-1 sm:grid-cols-3"
                                             value={data.charge_mode}
                                             onValueChange={(value) =>
-                                                http.setData(
-                                                    'charge_mode',
+                                                changeChargeMode(
                                                     value as App.Enums.PolicyChargeMode,
                                                 )
                                             }
@@ -514,74 +549,83 @@ export function PolicyEditor({
                                     {hasChargeDetails && (
                                         <FieldGroup className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
                                             {data.charge_mode ===
-                                                'fixed_amount' && (
-                                                <Field>
-                                                    <FieldLabel htmlFor="amount">
-                                                        Amount
-                                                    </FieldLabel>
-                                                    <MoneyInput
-                                                        id="amount"
-                                                        value={data.amount}
-                                                        onChange={(value) =>
-                                                            http.setData(
-                                                                'amount',
-                                                                value,
-                                                            )
-                                                        }
-                                                        currency={currency}
-                                                        invalid={
-                                                            !!errors.amount
-                                                        }
-                                                    />
-                                                    <FieldDescription>
-                                                        One charge, whatever the
-                                                        number of nights.
-                                                    </FieldDescription>
-                                                    <FieldError>
-                                                        {errors.amount}
-                                                    </FieldError>
-                                                </Field>
-                                            )}
+                                                'fixed_amount' &&
+                                                !isCancellation && (
+                                                    <Field>
+                                                        <FieldLabel htmlFor="amount">
+                                                            Amount
+                                                        </FieldLabel>
+                                                        <MoneyInput
+                                                            id="amount"
+                                                            value={data.amount}
+                                                            onChange={(value) =>
+                                                                http.setData(
+                                                                    'amount',
+                                                                    value,
+                                                                )
+                                                            }
+                                                            currency={currency}
+                                                            invalid={
+                                                                !!errors.amount
+                                                            }
+                                                        />
+                                                        <FieldDescription>
+                                                            One charge, whatever
+                                                            the number of
+                                                            nights.
+                                                        </FieldDescription>
+                                                        <FieldError>
+                                                            {errors.amount}
+                                                        </FieldError>
+                                                    </Field>
+                                                )}
 
                                             {data.charge_mode ===
                                                 'percentage' && (
                                                 <>
-                                                    <Field>
-                                                        <FieldLabel htmlFor="percent">
-                                                            Percent
-                                                        </FieldLabel>
-                                                        <Input
-                                                            id="percent"
-                                                            name="percent"
-                                                            placeholder="e.g. 50"
-                                                            inputMode="decimal"
-                                                            autoComplete="off"
-                                                            className="tabular-nums"
-                                                            value={data.percent}
-                                                            onChange={(event) =>
-                                                                http.setData(
-                                                                    'percent',
-                                                                    event.target
-                                                                        .value,
-                                                                )
-                                                            }
-                                                            aria-invalid={
-                                                                !!errors.percent
-                                                            }
-                                                        />
-                                                        {scopes.length ===
-                                                            1 && (
-                                                            <FieldDescription>
-                                                                {tab ===
-                                                                'early-departure'
-                                                                    ? 'Applies to unused nights.'
-                                                                    : 'Applies to one night.'}
-                                                            </FieldDescription>
-                                                        )}
-                                                        <FieldError>
-                                                            {errors.percent}
-                                                        </FieldError>
-                                                    </Field>
+                                                    {!isCancellation && (
+                                                        <Field>
+                                                            <FieldLabel htmlFor="percent">
+                                                                Percent
+                                                            </FieldLabel>
+                                                            <Input
+                                                                id="percent"
+                                                                name="percent"
+                                                                placeholder="e.g. 50"
+                                                                inputMode="decimal"
+                                                                autoComplete="off"
+                                                                className="tabular-nums"
+                                                                value={
+                                                                    data.percent
+                                                                }
+                                                                onChange={(
+                                                                    event,
+                                                                ) =>
+                                                                    http.setData(
+                                                                        'percent',
+                                                                        event
+                                                                            .target
+                                                                            .value,
+                                                                    )
+                                                                }
+                                                                aria-invalid={
+                                                                    !!errors.percent
+                                                                }
+                                                            />
+                                                            {scopes.length ===
+                                                                1 && (
+                                                                <FieldDescription>
+                                                                    {tab ===
+                                                                    'early-departure'
+                                                                        ? 'Applies to unused nights.'
+                                                                        : 'Applies to one night.'}
+                                                                </FieldDescription>
+                                                            )}
+                                                            <FieldError>
+                                                                {errors.percent}
+                                                            </FieldError>
+                                                        </Field>
+                                                    )}
                                                     <Field>
                                                         <FieldLabel htmlFor="percent_basis">
                                                             Rate basis
@@ -662,45 +706,28 @@ export function PolicyEditor({
                                                     </Field>
                                                 )}
 
-                                            {tab === 'cancellation' && (
-                                                <Field>
-                                                    <FieldLabel htmlFor="free_until_days">
-                                                        Free cancellation window
-                                                    </FieldLabel>
-                                                    <Input
-                                                        id="free_until_days"
-                                                        name="free_until_days"
-                                                        placeholder="e.g. 2"
-                                                        type="number"
-                                                        min={0}
-                                                        max={365}
-                                                        className="tabular-nums"
-                                                        value={
-                                                            data.free_until_days
-                                                        }
-                                                        onChange={(event) =>
-                                                            http.setData(
-                                                                'free_until_days',
-                                                                event.target
-                                                                    .value,
-                                                            )
-                                                        }
-                                                        aria-invalid={
-                                                            !!errors.free_until_days
-                                                        }
-                                                    />
-                                                    <FieldDescription>
-                                                        A cancellation this many
-                                                        days or more before
-                                                        arrival is free. Leave
-                                                        empty to charge every
-                                                        cancellation.
-                                                    </FieldDescription>
-                                                    <FieldError>
-                                                        {errors.free_until_days}
-                                                    </FieldError>
-                                                </Field>
-                                            )}
+                                            {isCancellation &&
+                                                data.charge_mode !== 'free' && (
+                                                    <Field className="sm:col-span-2 xl:col-span-3">
+                                                        <FieldTitle>
+                                                            Charge steps
+                                                        </FieldTitle>
+                                                        <CancellationStepsTable
+                                                            rows={data.steps}
+                                                            mode={
+                                                                data.charge_mode
+                                                            }
+                                                            currency={currency}
+                                                            errors={errors}
+                                                            onChange={(rows) =>
+                                                                http.setData(
+                                                                    'steps',
+                                                                    rows,
+                                                                )
+                                                            }
+                                                        />
+                                                    </Field>
+                                                )}
                                         </FieldGroup>
                                     )}
                                 </FieldGroup>

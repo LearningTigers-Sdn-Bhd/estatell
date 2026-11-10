@@ -36,7 +36,7 @@ function policyInput(array $overrides = []): array
 {
     return [
         'own_taxes' => false, 'charge_mode' => 'percentage', 'percent' => '50', 'percent_basis' => 'booked_rate', 'applies_to' => 'first_night',
-        'text_en' => 'Half a night.', 'text_ms' => 'Separuh malam.', ...$overrides,
+        'steps' => [['days_before' => 0, 'percent' => '50']], 'text_en' => 'Half a night.', 'text_ms' => 'Separuh malam.', ...$overrides,
     ];
 }
 
@@ -75,14 +75,19 @@ test('the preview charges the sample stay with the code taxes and does not save'
     $property = policyProperty($owner);
     $url = route('settings.room-revenue.policies.preview', [$property->code, 'cancellation']);
 
-    $this->actingAs($owner)->postJson($url, policyInput(['applies_to' => 'whole_stay', 'percent' => '100', 'free_until_days' => 2]))
+    $steps = [['days_before' => 0, 'percent' => '75'], ['days_before' => 30, 'percent' => '0'], ['days_before' => 15, 'percent' => '50']];
+
+    $this->actingAs($owner)->postJson($url, policyInput(['applies_to' => 'whole_stay', 'steps' => $steps]))
         ->assertOk()
+        ->assertJsonCount(3, 'lines')
+        ->assertJsonPath('lines.0.label', 'Cancelled 30 days before arrival')
         ->assertJsonPath('lines.0.free', true)
-        ->assertJsonPath('lines.0.steps.0', 'Within the free cancellation window: MYR 0.00.')
-        ->assertJsonPath('lines.1.free', false)
-        ->assertJsonPath('lines.1.net', '300.00')
-        ->assertJsonPath('lines.1.localTotal', '324.00')
-        ->assertJsonPath('lines.1.foreignTotal', '324.00');
+        ->assertJsonPath('lines.0.steps.0', 'Free at this step: MYR 0.00.')
+        ->assertJsonPath('lines.1.label', 'Cancelled 15 days before arrival')
+        ->assertJsonPath('lines.1.net', '150.00')
+        ->assertJsonPath('lines.2.label', 'Cancelled on the arrival day')
+        ->assertJsonPath('lines.2.net', '225.00')
+        ->assertJsonPath('lines.2.localTotal', '243.00');
 
     expect($property->roomRevenuePolicies()->where('charge_mode', '!=', PolicyChargeMode::Free->value)->count())->toBe(0);
 });
@@ -139,30 +144,53 @@ test('saving a policy stores it, flashes and redirects to its tab', function () 
     $owner = User::factory()->owner()->create();
     $property = policyProperty($owner);
 
-    $this->actingAs($owner)->put(route('settings.room-revenue.policies.update', [$property->code, 'cancellation']), policyInput(['free_until_days' => 3]))
+    $steps = [['days_before' => 30, 'percent' => '30'], ['days_before' => 15, 'percent' => '50'], ['days_before' => 1, 'percent' => '75']];
+
+    $this->actingAs($owner)->put(route('settings.room-revenue.policies.update', [$property->code, 'cancellation']), policyInput(['steps' => $steps]))
         ->assertRedirect(route('settings.room-revenue.policies.show', [$property->code, 'cancellation']))
         ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Cancellation policy saved.']);
 
     $policy = $property->roomRevenuePolicies()->where('code', SystemTransactionCode::CancellationRevenue->value)->sole();
 
     expect($policy->charge_mode)->toBe(PolicyChargeMode::Percentage)
-        ->and($policy->percent)->toBe('50.00')
+        ->and($policy->percent)->toBeNull()
         ->and($policy->applies_to)->toBe(PolicyScope::FirstNight)
-        ->and($policy->free_until_days)->toBe(3)
         ->and($policy->text_ms)->toBe('Separuh malam.');
+
+    $this->get(route('settings.room-revenue.policies.show', [$property->code, 'cancellation']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('policy.steps', [
+                ['daysBefore' => 30, 'amount' => null, 'percent' => '30.00'],
+                ['daysBefore' => 15, 'amount' => null, 'percent' => '50.00'],
+                ['daysBefore' => 1, 'amount' => null, 'percent' => '75.00'],
+            ]));
 });
 
-test('a tab with one scope sets it, and the free window is for cancellation only', function () {
+test('a tab with one scope sets it, and steps are for cancellation only', function () {
     $owner = User::factory()->owner()->create();
     $property = policyProperty($owner);
-    $input = policyInput(['free_until_days' => 5]);
+    $input = policyInput();
     unset($input['applies_to']);
 
     $this->actingAs($owner)->put(route('settings.room-revenue.policies.update', [$property->code, 'late-checkout']), $input)->assertSessionHasNoErrors();
 
     $policy = $property->roomRevenuePolicies()->where('code', SystemTransactionCode::LateCheckoutRevenue->value)->sole();
-    expect($policy->applies_to)->toBe(PolicyScope::OneCharge)->and($policy->free_until_days)->toBeNull();
+    expect($policy->applies_to)->toBe(PolicyScope::OneCharge)->and($policy->percent)->toBe('50.00')->and($policy->steps()->count())->toBe(0);
 });
+
+test('the cancellation steps are validated', function (array $steps, string $field) {
+    $owner = User::factory()->owner()->create();
+    $property = policyProperty($owner);
+
+    $this->actingAs($owner)->put(route('settings.room-revenue.policies.update', [$property->code, 'cancellation']), policyInput(['steps' => $steps]))
+        ->assertSessionHasErrors($field);
+})->with([
+    'no steps' => [[], 'steps'],
+    'the same days twice' => [[['days_before' => 7, 'percent' => '10'], ['days_before' => 7, 'percent' => '20']], 'steps.0.days_before'],
+    'a percent over 100' => [[['days_before' => 0, 'percent' => '101']], 'steps.0.percent'],
+    'days over a year' => [[['days_before' => 366, 'percent' => '10']], 'steps.0.days_before'],
+    'no charge' => [[['days_before' => 3]], 'steps.0.percent'],
+]);
 
 test('the form is validated per charge mode and per tab', function (array $overrides, string $field) {
     $owner = User::factory()->owner()->create();

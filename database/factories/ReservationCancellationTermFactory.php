@@ -27,7 +27,6 @@ class ReservationCancellationTermFactory extends Factory
             'percent' => null,
             'percent_basis' => null,
             'applies_to' => PolicyScope::FirstNight,
-            'free_until_days' => null,
             'text_en' => 'No charge for cancellation.',
             'text_ms' => 'Tiada caj untuk pembatalan.',
         ];

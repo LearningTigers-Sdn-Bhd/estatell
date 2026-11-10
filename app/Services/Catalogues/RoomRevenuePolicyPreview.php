@@ -10,6 +10,7 @@ use App\Enums\PolicyScope;
 use App\Enums\SystemTransactionCode;
 use App\Models\Property;
 use App\Models\RoomRevenuePolicy;
+use App\Models\RoomRevenuePolicyStep;
 use App\Models\Tax;
 use Brick\Money\Money;
 use Illuminate\Support\Collection;
@@ -30,6 +31,7 @@ class RoomRevenuePolicyPreview
         private PolicyChargeCalculator $calculator,
         private TaxCalculator $taxCalculator,
         private RoomRevenueTaxIds $roomRevenueTaxIds,
+        private CancellationSteps $cancellationSteps,
     ) {}
 
     /**
@@ -41,7 +43,7 @@ class RoomRevenuePolicyPreview
         $taxes = $property->taxes()->whereKey($taxIds ?? $this->roomRevenueTaxIds->forPolicy($property, $policy))->get();
 
         $lines = array_map(
-            fn (array $case): RoomRevenuePolicyPreviewLineData => $this->line($property, $policy, $taxes, $case['label'], $case['free'], $case['base']),
+            fn (array $case): RoomRevenuePolicyPreviewLineData => $this->line($property, $case['policy'], $taxes, $case['label'], $case['free'], $case['base']),
             $this->cases($policy, $night),
         );
 
@@ -49,7 +51,7 @@ class RoomRevenuePolicyPreview
     }
 
     /**
-     * @return list<array{label: string, free: bool, base: Money}>
+     * @return list<array{label: string, policy: RoomRevenuePolicy, free: bool, base: Money}>
      */
     private function cases(RoomRevenuePolicy $policy, Money $night): array
     {
@@ -57,31 +59,53 @@ class RoomRevenuePolicyPreview
 
         return match ($policy->code) {
             SystemTransactionCode::CancellationRevenue => $this->cancellationCases($policy, $base),
-            SystemTransactionCode::NoShowRevenue => [['label' => __('Guest does not arrive'), 'free' => false, 'base' => $base]],
-            SystemTransactionCode::EarlyDepartureRevenue => [['label' => __('Guest leaves after 1 of :nights nights', ['nights' => self::SAMPLE_NIGHTS]), 'free' => false, 'base' => $base]],
-            default => [['label' => __('Guest checks out late'), 'free' => false, 'base' => $base]],
+            SystemTransactionCode::NoShowRevenue => [['label' => __('Guest does not arrive'), 'policy' => $policy, 'free' => false, 'base' => $base]],
+            SystemTransactionCode::EarlyDepartureRevenue => [['label' => __('Guest leaves after 1 of :nights nights', ['nights' => self::SAMPLE_NIGHTS]), 'policy' => $policy, 'free' => false, 'base' => $base]],
+            default => [['label' => __('Guest checks out late'), 'policy' => $policy, 'free' => false, 'base' => $base]],
         };
     }
 
     /**
-     * @return list<array{label: string, free: bool, base: Money}>
+     * One case per step, at its days, and one on the arrival day when the last step starts earlier.
+     *
+     * @return list<array{label: string, policy: RoomRevenuePolicy, free: bool, base: Money}>
      */
     private function cancellationCases(RoomRevenuePolicy $policy, Money $base): array
     {
-        if ($policy->free_until_days === null) {
-            return [['label' => __('Cancelled before arrival'), 'free' => false, 'base' => $base]];
+        $steps = $this->cancellationSteps->of($policy);
+
+        if ($steps->isEmpty()) {
+            return [['label' => __('Cancelled before arrival'), 'policy' => $policy, 'free' => false, 'base' => $base]];
         }
 
-        $days = array_values(array_unique(array_filter(
-            [$policy->free_until_days, $policy->free_until_days - 1],
-            fn (int $days): bool => $days >= 0,
-        )));
-
-        return array_map(fn (int $count): array => [
-            'label' => __('Cancelled :days days before arrival', ['days' => $count]),
-            'free' => $this->calculator->isFreeWhenCancelledDaysBefore($policy, $count),
+        $cases = array_values($steps->map(fn (RoomRevenuePolicyStep $step): array => [
+            'label' => $this->daysLabel($step->days_before),
+            'policy' => $this->cancellationSteps->chargedAt($policy, $step),
+            'free' => $this->cancellationSteps->isFree($step),
             'base' => $base,
-        ], $days);
+        ])->all());
+
+        $last = $steps->last();
+
+        if ($last->days_before > 0) {
+            $cases[] = [
+                'label' => $this->daysLabel(0),
+                'policy' => $this->cancellationSteps->chargedAt($policy, $last),
+                'free' => $this->cancellationSteps->isFree($last),
+                'base' => $base,
+            ];
+        }
+
+        return $cases;
+    }
+
+    private function daysLabel(int $days): string
+    {
+        return match ($days) {
+            0 => __('Cancelled on the arrival day'),
+            1 => __('Cancelled 1 day before arrival'),
+            default => __('Cancelled :days days before arrival', ['days' => $days]),
+        };
     }
 
     private function nightsCovered(PolicyScope $scope): int
@@ -130,7 +154,7 @@ class RoomRevenuePolicyPreview
         }
 
         if ($freeWindow) {
-            $steps[] = __('Within the free cancellation window: :currency 0.00.', ['currency' => $currency]);
+            $steps[] = __('Free at this step: :currency 0.00.', ['currency' => $currency]);
         } elseif ($policy->charge_mode === PolicyChargeMode::Free) {
             $steps[] = __('Free policy: :currency 0.00.', ['currency' => $currency]);
         } elseif ($policy->charge_mode === PolicyChargeMode::FixedAmount) {

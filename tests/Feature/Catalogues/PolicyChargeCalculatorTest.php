@@ -36,7 +36,9 @@ function policyFor(Property $property, SystemTransactionCode $code, PolicyScope 
 {
     $factory = RoomRevenuePolicy::factory()->for($property)->forCode($code, $scope);
 
-    return ($percent === null ? $factory : $factory->percentage($percent, $basis))->create(['free_until_days' => $freeUntilDays]);
+    $factory = $percent === null ? $factory : $factory->percentage($percent, $basis);
+
+    return ($freeUntilDays === null ? $factory : $factory->freeUntil($freeUntilDays))->create();
 }
 
 test('a free policy charges nothing', function () {
@@ -131,6 +133,34 @@ test('a cancellation inside the free window is free and outside it follows the c
     'one day before' => ['2026-11-01', false],
     'on arrival' => ['2026-11-02', false],
 ]);
+
+test('a cancellation pays the step it reaches, and the last step closer to arrival', function (string $businessDate, string $fee) {
+    [$property, $unit] = policyUnit();
+    BusinessDate::factory()->create(['property_id' => $property->id, 'date' => $businessDate]);
+    $policy = RoomRevenuePolicy::factory()->for($property)->forCode(SystemTransactionCode::CancellationRevenue, PolicyScope::WholeStay)
+        ->percentage('100.00')->steps([30 => '30.00', 15 => '50.00', 1 => '75.00'])->create();
+
+    $charge = app(PolicyChargeCalculator::class)->calculate($policy, $unit);
+
+    expect((string) $charge->amount->getAmount())->toBe($fee)->and($charge->withinFreeWindow)->toBeFalse();
+})->with([
+    '40 days before' => ['2026-09-23', '108.00'],
+    '30 days before' => ['2026-10-03', '108.00'],
+    '29 days before' => ['2026-10-04', '180.00'],
+    '15 days before' => ['2026-10-18', '180.00'],
+    '14 days before' => ['2026-10-19', '270.00'],
+    '1 day before' => ['2026-11-01', '270.00'],
+    'on arrival' => ['2026-11-02', '270.00'],
+]);
+
+test('a fixed amount cancellation charges the amount of its step', function () {
+    [$property, $unit] = policyUnit();
+    BusinessDate::factory()->create(['property_id' => $property->id, 'date' => '2026-10-25']);
+    $policy = RoomRevenuePolicy::factory()->for($property)->forCode(SystemTransactionCode::CancellationRevenue, PolicyScope::FirstNight)
+        ->fixed()->steps([30 => '0.00', 7 => '100.00', 1 => '200.00'])->create();
+
+    expect((string) app(PolicyChargeCalculator::class)->calculate($policy, $unit)->amount->getAmount())->toBe('100.00');
+});
 
 test('rounding is half up to the cent', function () {
     [$property, $unit] = policyUnit();

@@ -168,7 +168,8 @@ test('a fee posts on the folio the routing rules choose', function () {
 
 test('a cancellation inside the free window posts nothing', function () {
     $setup = cancellationSetup(['arrival_date' => today()->addDays(5)->toDateString(), 'departure_date' => today()->addDays(7)->toDateString()]);
-    RoomRevenuePolicy::query()->where('property_id', $setup['property']->id)->where('code', SystemTransactionCode::CancellationRevenue)->update(['free_until_days' => 2]);
+    $policy = RoomRevenuePolicy::query()->where('property_id', $setup['property']->id)->where('code', SystemTransactionCode::CancellationRevenue)->sole();
+    $policy->steps()->create(['property_id' => $policy->property_id, 'days_before' => 2, 'amount' => '0.00']);
 
     $result = cancelUnit($setup);
 

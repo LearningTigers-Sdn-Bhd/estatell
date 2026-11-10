@@ -135,7 +135,8 @@ test('reinstate is not offered once the stay has ended', function () {
 
 test('the fee previews show the policy fee, the free window and the unposted add-ons', function () {
     $setup = uaSetup(unit: ['arrival_date' => today()->addDays(5)->toDateString(), 'departure_date' => today()->addDays(7)->toDateString()]);
-    RoomRevenuePolicy::query()->where('code', SystemTransactionCode::CancellationRevenue)->update(['free_until_days' => 2]);
+    $policy = RoomRevenuePolicy::query()->where('code', SystemTransactionCode::CancellationRevenue)->sole();
+    $policy->steps()->create(['property_id' => $policy->property_id, 'days_before' => 2, 'amount' => '0.00']);
     UnitAddOn::factory()->count(2)->create(['reservation_unit_id' => $setup['unit']->id]);
     UnitAddOn::factory()->posted()->create(['reservation_unit_id' => $setup['unit']->id]);
 

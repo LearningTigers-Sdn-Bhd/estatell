@@ -411,7 +411,7 @@ amount: string | null,
 percent: string | null,
 percentBasis: App.Enums.PolicyRateBasis | null,
 appliesTo: App.Enums.PolicyScope,
-freeUntilDays: number | null,
+steps: App.Data.Catalogues.RoomRevenuePolicyStepData[],
 ownTaxes: boolean,
 taxIds: number[],
 textEn: string,
@@ -430,6 +430,11 @@ localTotal: string | null,
 foreignTotal: string | null,
 steps: string[],
 taxBreakdown: App.Data.Catalogues.RoomRevenuePreviewData | null,
+};
+export type RoomRevenuePolicyStepData = {
+daysBefore: number,
+amount: string | null,
+percent: string | null,
 };
 export type RoomRevenuePreviewData = {
 sampleAmount: string,
