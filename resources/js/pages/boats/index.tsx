@@ -1,5 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import {
+    Check,
     ChevronLeft,
     ChevronRight,
     Ellipsis,
@@ -13,6 +14,10 @@ import {
 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { BoatSailingDialog } from '@/components/pms/boats/boat-sailing-dialog';
+import {
+    BoatTickDialog,
+    tickWord,
+} from '@/components/pms/boats/boat-tick-dialog';
 import { BoatTimeDialog } from '@/components/pms/boats/boat-time-dialog';
 import { BoatTripDialog } from '@/components/pms/boats/boat-trip-dialog';
 import { BulkActionBar } from '@/components/pms/bulk-action-bar';
@@ -57,7 +62,7 @@ import {
 import { index, pdf, spreadsheet } from '@/routes/boats';
 import { cancel, reset } from '@/routes/boats/departures';
 import { destroy } from '@/routes/boats/sailings';
-import { move, setTick as setTickRoute, tick } from '@/routes/boats/trips';
+import { move, tick } from '@/routes/boats/trips';
 import { show } from '@/routes/reservations';
 
 type Group = App.Data.Boats.BoatBoardGroupData;
@@ -168,6 +173,10 @@ export default function BoatsIndex({
         open: boolean;
     } | null>(null);
     const [busy, setBusy] = useState(false);
+    const [tickAsk, setTickAsk] = useState<{
+        row: Row;
+        ticked: boolean;
+    } | null>(null);
     const [layoutDraft, setLayoutDraft] =
         useState<App.Data.Reports.ReportLayoutData | null>(null);
     const lastView = useRef(`${date}|${direction}`);
@@ -272,12 +281,7 @@ export default function BoatsIndex({
             return next;
         });
 
-    const setTick = (row: Row, ticked: boolean) =>
-        router.put(
-            setTickRoute.url({ trip: row.key }),
-            { ticked },
-            { preserveScroll: true, preserveState: true },
-        );
+    const setTick = (row: Row, ticked: boolean) => setTickAsk({ row, ticked });
 
     const moveTo = (value: string) => {
         if (value === '') {
@@ -620,6 +624,8 @@ export default function BoatsIndex({
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            <BoatTickDialog ask={tickAsk} onClose={() => setTickAsk(null)} />
 
             {can.columns && layoutDraft && (
                 <ReportLayoutSheet
@@ -1181,12 +1187,41 @@ function RowEnd({
         ) : null;
     }
 
-    return (
-        <Checkbox
-            aria-label={`${row.lead_guest}: ${row.direction === 'in' ? 'arrived' : 'left'}`}
-            checked={row.ticked}
-            disabled={!canTick}
-            onCheckedChange={(checked) => onTick(row, checked === true)}
-        />
+    const word = tickWord(row.direction);
+    const done = word === 'left' ? 'Left' : 'Arrived';
+
+    if (row.ticked) {
+        return (
+            <span className="inline-flex items-center justify-end gap-2">
+                <span className="inline-flex items-center gap-1 text-sm text-success">
+                    <Check aria-hidden className="size-4" />
+                    {done}
+                </span>
+                {canTick && (
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        aria-label={`Undo ${word} for ${row.lead_guest}`}
+                        onClick={() => onTick(row, false)}
+                    >
+                        Undo
+                    </Button>
+                )}
+            </span>
+        );
+    }
+
+    return canTick ? (
+        <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => onTick(row, true)}
+        >
+            Mark {word}
+        </Button>
+    ) : (
+        <span className="text-sm text-muted-foreground">—</span>
     );
 }
