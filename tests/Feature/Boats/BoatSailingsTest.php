@@ -5,112 +5,30 @@ use App\Actions\Boats\MoveBoatTrips;
 use App\Actions\Boats\RemoveSailing;
 use App\Actions\Boats\ResetDepartureDate;
 use App\Actions\Boats\SaveSailing;
-use App\Actions\Boats\SetBoatTrip;
 use App\Actions\Boats\UpdateBoatDeparture;
-use App\Data\Boats\BoatTripData;
 use App\Data\Boats\SailingData;
 use App\Data\Reports\ReportFilters;
 use App\Enums\BoatDirection;
-use App\Enums\BoatMode;
-use App\Enums\ChargingUnit;
-use App\Enums\TransactionCategory;
-use App\Enums\UnitStatus;
 use App\Features\Boats;
 use App\Models\Boat;
 use App\Models\BoatCrewMember;
 use App\Models\BoatDeparture;
 use App\Models\BoatSailing;
-use App\Models\BusinessDate;
-use App\Models\ChargeItem;
-use App\Models\Property;
-use App\Models\PropertySetting;
-use App\Models\Reservation;
-use App\Models\ReservationUnit;
 use App\Models\UnitAddOn;
-use App\Models\UnitBoatTrip;
-use App\Models\User;
 use App\Services\Boats\BoatSeats;
-use App\Services\Boats\DateSailing;
 use App\Services\Boats\DateSailings;
 use App\Services\Boats\SailingLabels;
 use App\Services\Reports\BoatManifestReport;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Inertia\Testing\AssertableInertia as Assert;
-use Laravel\Pennant\Feature;
 use Spatie\Activitylog\Models\Activity;
+
+require_once __DIR__.'/../Support/BoatSailingHelpers.php';
 
 beforeEach(function () {
     $this->travelTo(now()->setDate(2026, 10, 10)->setTime(12, 0));
 });
-
-/**
- * An owner, a property with the Boats feature on and a business date of 10 Oct 2026, a Boat in departure at 09:00 (arrives
- * 09:45) with MV Sand Bay 1 (12 seats) and the crew Din (in charge) and Razak, and a second Boat in departure at 11:00.
- *
- * @return array{owner: User, property: Property, departure: BoatDeparture, other: BoatDeparture, boat: Boat, spare: Boat, din: BoatCrewMember, razak: BoatCrewMember, date: CarbonImmutable}
- */
-function sailingSetup(): array
-{
-    $owner = User::factory()->owner()->create();
-    $property = $owner->property;
-    PropertySetting::factory()->for($property)->create(['currency' => 'MYR']);
-    BusinessDate::factory()->for($property)->create(['date' => '2026-10-10']);
-    Feature::for($property)->activate(Boats::class);
-
-    $boat = Boat::factory()->for($property)->create(['name' => 'MV Sand Bay 1', 'seats' => 12]);
-    $spare = Boat::factory()->for($property)->create(['name' => 'MV Sand Bay 2', 'seats' => 8]);
-    $din = BoatCrewMember::factory()->for($property)->create(['name' => 'Din']);
-    $razak = BoatCrewMember::factory()->for($property)->create(['name' => 'Razak']);
-    $departure = BoatDeparture::factory()->for($property)->create(['direction' => BoatDirection::In, 'leaves_at' => '09:00', 'arrives_at' => '09:45', 'pickup_point' => 'Kuala Besut jetty', 'seats' => 20, 'default_boat_id' => $boat->id]);
-    $departure->crew()->attach($din->id, ['in_charge' => true]);
-    $departure->crew()->attach($razak->id, ['in_charge' => false]);
-    $other = BoatDeparture::factory()->for($property)->create(['direction' => BoatDirection::In, 'leaves_at' => '11:00', 'arrives_at' => '11:45', 'pickup_point' => 'Kuala Besut jetty', 'seats' => 20]);
-
-    return compact('owner', 'property', 'departure', 'other', 'boat', 'spare', 'din', 'razak') + ['date' => CarbonImmutable::parse('2026-10-20')];
-}
-
-/** A Confirmed unit arriving 20 Oct and leaving 23 Oct, with 2 adults, at 15:00 in and 11:00 out. */
-function sailingUnit(Property $property, array $attributes = []): ReservationUnit
-{
-    $reservation = Reservation::factory()->create(['property_id' => $property->id]);
-
-    return ReservationUnit::factory()->for($reservation)->create([
-        'property_id' => $property->id,
-        'arrival_date' => '2026-10-20',
-        'departure_date' => '2026-10-23',
-        'arrival_time' => '15:00:00',
-        'departure_time' => '11:00:00',
-        'adults' => 2,
-        'children' => 0,
-        'status' => UnitStatus::Confirmed,
-        ...$attributes,
-    ]);
-}
-
-function sailingFare(Property $property, string $amount): ChargeItem
-{
-    $item = ChargeItem::factory()->for($property)->create(['default_amount' => $amount, 'charging_unit' => ChargingUnit::PerGuest, 'active' => true]);
-    $item->transactionCode->update(['category' => TransactionCategory::Transport]);
-
-    return $item->refresh();
-}
-
-/** A unit with a Boat in trip on the departure, set through SetBoatTrip so the fare rows exist. */
-function sailingTrip(array $setup, BoatDeparture $departure, array $unit = []): UnitBoatTrip
-{
-    $unit = sailingUnit($setup['property'], $unit);
-    $result = app(SetBoatTrip::class)($setup['owner'], $unit, new BoatTripData(BoatDirection::In, BoatMode::Scheduled, $departure->id));
-    expect($result->isRefused())->toBeFalse();
-
-    return UnitBoatTrip::query()->where('reservation_unit_id', $unit->id)->sole();
-}
-
-function sailingMain(array $setup): DateSailing
-{
-    return app(DateSailings::class)->forDate($setup['property'], $setup['date'], [$setup['departure']->id])[$setup['departure']->id][0];
-}
 
 test('a date with no rows runs as the timetable: the in-memory main sailing has the default boat and crew', function () {
     $setup = sailingSetup();
@@ -445,54 +363,6 @@ test('the manifest has a section per sailing, with its own seats', function () {
         ])
         ->and(collect($rows)->pluck('boat')->all())->toBe(['MV Sand Bay 1', 'MV Sand Bay 2', null])
         ->and(collect($rows)->pluck('crew')->all())->toBe(['⚓ Din · Razak', '⚓ Razak', null]);
-});
-
-test('the Boats and crew panel saves the main sailing of each departure through SaveSailing', function () {
-    $setup = sailingSetup();
-    $url = route('reports.boat-manifest.sailings', $setup['property']->code);
-    $body = ['date' => '2026-10-20', 'sailings' => [
-        ['boat_departure_id' => $setup['departure']->id, 'boat_id' => $setup['spare']->id, 'in_charge_id' => $setup['razak']->id, 'assistant_ids' => [$setup['din']->id]],
-        ['boat_departure_id' => $setup['other']->id, 'boat_id' => $setup['boat']->id, 'in_charge_id' => '', 'assistant_ids' => []],
-    ]];
-
-    $this->actingAs($setup['owner'])->put($url, $body)->assertSessionHasNoErrors();
-    $sailing = BoatSailing::query()->where('boat_departure_id', $setup['departure']->id)->sole();
-
-    expect($sailing->boat_id)->toBe($setup['spare']->id)
-        ->and($sailing->crew->pluck('name')->all())->toBe(['Razak', 'Din'])
-        ->and(BoatSailing::query()->where('boat_departure_id', $setup['other']->id)->sole()->boat_id)->toBe($setup['boat']->id);
-
-    $this->get(route('reports.boat-manifest', [$setup['property']->code, 'date' => '2026-10-20']))
-        ->assertInertia(fn (Assert $page) => $page
-            ->component('reports/boat-manifest')
-            ->where('sailings.0.boatId', $setup['spare']->id)
-            ->where('sailings.0.inChargeId', $setup['razak']->id)
-            ->where('sailings.0.assistantIds', [$setup['din']->id])
-            ->where('sailings.0.isStored', true)
-            ->has('crew', 2));
-
-    $this->put($url, ['date' => '2026-10-20', 'sailings' => [['boat_departure_id' => $setup['departure']->id, 'reset_to_default' => true, 'assistant_ids' => []]]])->assertSessionHasNoErrors();
-
-    expect(BoatSailing::query()->where('boat_departure_id', $setup['departure']->id)->count())->toBe(0);
-});
-
-test('the panel reports a refused save as a field error and saves nothing, and needs reservations.manage', function () {
-    $setup = sailingSetup();
-    $url = route('reports.boat-manifest.sailings', $setup['property']->code);
-    $viewer = User::factory()->for($setup['property'])->withPermissions(['reports.view'])->create();
-    $off = Boat::factory()->for($setup['property'])->create(['active' => false]);
-
-    $this->actingAs($setup['owner'])->put($url, ['date' => '2026-10-20', 'sailings' => [
-        ['boat_departure_id' => $setup['departure']->id, 'boat_id' => $setup['spare']->id, 'assistant_ids' => []],
-        ['boat_departure_id' => $setup['other']->id, 'boat_id' => $off->id, 'assistant_ids' => []],
-    ]])->assertSessionHasErrors('sailings.1.boat_id');
-
-    $this->put($url, ['date' => '2026-10-20', 'sailings' => [['boat_departure_id' => $setup['departure']->id, 'assistant_ids' => [$setup['din']->id]]]])->assertSessionHasErrors('sailings.0.in_charge_id');
-    $this->put($url, ['date' => '2026-10-09', 'sailings' => [['boat_departure_id' => $setup['departure']->id, 'boat_id' => $setup['spare']->id, 'assistant_ids' => []]]])->assertSessionHasErrors('sailings.0.boat_id');
-    $this->put($url, ['date' => '2026-10-20', 'sailings' => [['boat_departure_id' => BoatDeparture::factory()->create()->id, 'assistant_ids' => []]]])->assertSessionHasErrors('sailings.0.boat_departure_id');
-    $this->actingAs($viewer)->put($url, ['date' => '2026-10-20', 'sailings' => [['boat_departure_id' => $setup['departure']->id, 'assistant_ids' => []]]])->assertForbidden();
-
-    expect(BoatSailing::query()->count())->toBe(0);
 });
 
 test('the database refuses a job with a departure, a guest sailing with no direction and a second one in charge', function () {

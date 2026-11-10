@@ -15,7 +15,8 @@ use Spatie\LaravelData\Data;
  * negative key from `notSetKey()`. `boat_departure_id`, `sailing_key`, `sailing_title`, `seats`, `direction` and `not_set` group
  * the row into its section (one per sailing). They are not columns. `agent` is the company, else "Direct booking", else the booking source. `boat` and
  * `crew` come from the row's sailing (Own boat and Charter name the mode). `ticked` says the guests have
- * arrived or left; a row with no trip (`not_set`) cannot be ticked. `mode` is null there.
+ * arrived or left; a row with no trip (`not_set`) cannot be ticked. `mode` is null there. `reservation_id`, `reservation_unit_id`
+ * and `unit_time` let the Boats board open the boat Change Dialog of a row; they are not columns.
  */
 class BoatManifestRow extends Data implements ReportRow
 {
@@ -41,6 +42,9 @@ class BoatManifestRow extends Data implements ReportRow
         public ?string $mode = null,
         public ?string $sailing_key = null,
         public ?string $sailing_title = null,
+        public ?int $reservation_id = null,
+        public ?int $reservation_unit_id = null,
+        public ?string $unit_time = null,
     ) {}
 
     /**
@@ -76,6 +80,9 @@ class BoatManifestRow extends Data implements ReportRow
             seats: null,
             direction: $direction->value,
             not_set: true,
+            reservation_id: $unit->reservation_id,
+            reservation_unit_id: $unit->id,
+            unit_time: substr($direction === BoatDirection::In ? $unit->arrival_time : $unit->departure_time, 0, 5),
         );
     }
 
@@ -172,6 +179,9 @@ class BoatManifestRow extends Data implements ReportRow
             mode: $trip->mode->value,
             sailing_key: $isScheduled ? $sailing['key'] : null,
             sailing_title: $isScheduled ? $sailing['title'] : null,
+            reservation_id: $unit->reservation_id,
+            reservation_unit_id: $unit->id,
+            unit_time: $time,
         );
     }
 }

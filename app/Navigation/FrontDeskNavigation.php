@@ -56,6 +56,12 @@ class FrontDeskNavigation
                     icon: 'spray-can',
                     active: request()->routeIs('housekeeping.*'),
                 ) : null,
+                $user->can(PermissionEnum::ReservationsView->value) && Feature::for($property)->active(Boats::class) ? new NavItemData(
+                    title: __('Boats'),
+                    href: route('boats.index', ['property' => $property->code], absolute: false),
+                    icon: 'ship',
+                    active: request()->routeIs('boats.*'),
+                ) : null,
                 $user->can(PermissionEnum::ReportsView->value) ? new NavItemData(
                     title: __('House status'),
                     href: route('reports.house-status', ['property' => $property->code], absolute: false),

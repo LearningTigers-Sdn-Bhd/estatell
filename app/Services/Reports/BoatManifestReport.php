@@ -2,7 +2,6 @@
 
 namespace App\Services\Reports;
 
-use App\Data\Boats\BoatMainSailingData;
 use App\Data\Reports\BoatManifestRow;
 use App\Data\Reports\ReportFilters;
 use App\Data\Reports\ReportSection;
@@ -185,39 +184,6 @@ class BoatManifestReport implements HasPrintView, HasSections, HasTotals, Report
             'crew' => $this->labels->crew($sailing),
             'seats' => $sailing->seats,
         ];
-    }
-
-    /**
-     * The main sailing of each departure on the date in the shown direction (or both), for the Boats and crew panel:
-     * active departures, and any departure with stored sailings that day.
-     *
-     * @return list<BoatMainSailingData>
-     */
-    public function mainSailings(Property $property, ReportFilters $filters): array
-    {
-        $directions = $filters->bothDirections ? [BoatDirection::Out, BoatDirection::In] : [$filters->direction ?? BoatDirection::In];
-        $sailings = $this->dateSailings->forDate($property, CarbonImmutable::parse($filters->from));
-
-        return collect($sailings)
-            ->filter(fn (array $list): bool => $list !== [] && in_array($list[0]->departure->direction, $directions, true))
-            ->filter(fn (array $list): bool => $list[0]->departure->active || $list[0]->sailing !== null)
-            ->sortBy(fn (array $list): array => [$list[0]->leavesAt, $list[0]->departure->id])
-            ->map(function (array $list) use ($filters): BoatMainSailingData {
-                $main = $list[0];
-
-                return new BoatMainSailingData(
-                    departureId: $main->departure->id,
-                    label: trim(($filters->bothDirections ? $main->departure->direction->label().' · ' : '').$main->leavesAt.' '.($main->departure->pickup_point ?? '')),
-                    direction: $main->departure->direction->value,
-                    boatId: $main->boat?->id,
-                    inChargeId: $main->inCharge()?->id,
-                    assistantIds: $main->assistants()->pluck('id')->map(intval(...))->values()->all(),
-                    isStored: $main->sailing !== null,
-                    otherBoats: count($list) - 1,
-                );
-            })
-            ->values()
-            ->all();
     }
 
     /**

@@ -22,7 +22,19 @@ import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { set, clear } from '@/routes/reservations/units/boat-trips';
 
-type Unit = App.Data.Reservations.ReservationUnitData;
+/** What the Dialog reads of a unit, so the Boats board can open it for a row that has no unit data. */
+type Unit = Pick<
+    App.Data.Reservations.ReservationUnitData,
+    | 'id'
+    | 'roomType'
+    | 'primaryGuest'
+    | 'boatIn'
+    | 'boatOut'
+    | 'arrival'
+    | 'departure'
+    | 'arrivalTime'
+    | 'departureTime'
+>;
 
 type Props = {
     open: boolean;

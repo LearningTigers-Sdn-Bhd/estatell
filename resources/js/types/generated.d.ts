@@ -81,6 +81,28 @@ idleTimeoutSeconds: number,
 };
 }
 namespace Boats {
+export type BoatBoardGroupData = {
+key: string,
+kind: string,
+direction: string | null,
+directionLabel: string | null,
+time: string | null,
+title: string | null,
+times: string | null,
+boat: string | null,
+inCharge: string | null,
+assistants: string[],
+taken: number,
+seats: number | null,
+departureId: number | null,
+sailingId: number | null,
+hasStored: boolean,
+canRemove: boolean,
+boatId: number | null,
+inChargeId: number | null,
+assistantIds: number[],
+rows: App.Data.Reports.BoatManifestRow[],
+};
 export type BoatCrewMemberData = {
 id: number,
 name: string,
@@ -144,16 +166,6 @@ usedBy: number,
 childrenSummary: string,
 taxes: App.Data.Catalogues.ChargeItemTaxData[],
 childPrices: App.Data.Catalogues.ChargeItemChildPriceData[],
-};
-export type BoatMainSailingData = {
-departureId: number,
-label: string,
-direction: string,
-boatId: number | null,
-inChargeId: number | null,
-assistantIds: number[],
-isStored: boolean,
-otherBoats: number,
 };
 export type BoatSetupUnitData = {
 id: number,
@@ -3134,6 +3146,9 @@ ticked: boolean,
 mode: string | null,
 sailing_key: string | null,
 sailing_title: string | null,
+reservation_id: number | null,
+reservation_unit_id: number | null,
+unit_time: string | null,
 };
 export type CheckedOutRow = {
 key: number,

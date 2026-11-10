@@ -1,7 +1,6 @@
 import { Link, router } from '@inertiajs/react';
 import { Ship } from 'lucide-react';
 import type { EnumOption } from '@/components/pms/enum-select';
-import { BoatsAndCrewPanel } from '@/components/pms/reports/boats-and-crew-panel';
 import { ReportScreen } from '@/components/pms/reports/report-screen';
 import { buttonVariants } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -28,9 +27,6 @@ type Props = {
     emptyTitle: string;
     emptyDescription: string;
     settingsUrl: string | null;
-    sailings: App.Data.Boats.BoatMainSailingData[];
-    boats: App.Data.Boats.BoatData[];
-    crew: App.Data.Boats.BoatCrewMemberData[];
     canSetRuns: boolean;
 };
 
@@ -63,15 +59,6 @@ export default function BoatManifestReport(props: Props) {
                         />
                     ),
             }}
-            aside={
-                <BoatsAndCrewPanel
-                    sailings={props.sailings}
-                    boats={props.boats}
-                    crew={props.crew}
-                    date={props.from}
-                    canSet={props.canSetRuns}
-                />
-            }
             emptyIcon={Ship}
             emptyTitle={props.emptyTitle}
             emptyDescription={props.emptyDescription}
