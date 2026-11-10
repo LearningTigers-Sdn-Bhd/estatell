@@ -349,6 +349,7 @@ export function PolicyEditor({
     roomTaxIds,
 }: PolicyEditorProps) {
     const http = useHttp<PolicyForm, Preview>(formFrom(policy));
+    const previewHttp = useHttp<PolicyForm, Preview>(formFrom(policy));
     const guard = useUnsavedChanges(http.isDirty);
     const [preview, setPreview] = useState(savedPreview);
     const [saving, setSaving] = useState(false);
@@ -376,27 +377,31 @@ export function PolicyEditor({
         }
 
         let active = true;
+        const payload = data;
         const timer = window.setTimeout(() => {
-            http.post(previewRoute.url({ tab }), {
-                onSuccess: (response) => {
+            previewHttp.transform(() => payload);
+            previewHttp
+                .post(previewRoute.url({ tab }), {
+                    onSuccess: (response) => {
+                        if (active) {
+                            previewedKey.current = key;
+                            setPreview(response);
+                            setResolvedKey(key);
+                            setFailedKey(null);
+                        }
+                    },
+                })
+                .catch(() => {
                     if (active) {
-                        previewedKey.current = key;
-                        setPreview(response);
-                        setResolvedKey(key);
-                        setFailedKey(null);
+                        setFailedKey(key);
                     }
-                },
-            }).catch(() => {
-                if (active) {
-                    setFailedKey(key);
-                }
-            });
+                });
         }, 250);
 
         return () => {
             active = false;
             window.clearTimeout(timer);
-            http.cancel();
+            previewHttp.cancel();
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [key]);
