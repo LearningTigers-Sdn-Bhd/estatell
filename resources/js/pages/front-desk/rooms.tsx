@@ -17,6 +17,7 @@ import {
 } from '@/components/pms/stay-view/room-day';
 import { RoomsBoard } from '@/components/pms/stay-view/rooms-board';
 import { StayPeekSheet } from '@/components/pms/stay-view/stay-peek-sheet';
+import { useStayViewGrouping } from '@/components/pms/stay-view/use-stay-view-grouping';
 import { StayViewFilters } from '@/components/pms/stay-view/stay-view-filters';
 import { StayViewToolbar } from '@/components/pms/stay-view/stay-view-toolbar';
 import {
@@ -78,7 +79,7 @@ export default function Rooms({
     canUpdateHousekeeping: boolean;
     housekeepingDate: string;
 }) {
-    const [filters, setFilters] = useState(initialFilters);
+    const [filters, setFilters] = useStayViewGrouping(initialFilters);
     const [peekUnitId, setPeekUnitId] = useState<number | null>(null);
     const [blockCell, setBlockCell] = useState<BlockCell | null>(null);
     const date = stayWindow.from;
