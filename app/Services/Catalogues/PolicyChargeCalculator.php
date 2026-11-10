@@ -6,7 +6,6 @@ use App\Enums\PolicyChargeMode;
 use App\Enums\PolicyRateBasis;
 use App\Enums\PolicyScope;
 use App\Enums\StayType;
-use App\Enums\SystemTransactionCode;
 use App\Models\ReservationUnit;
 use App\Models\RoomRevenuePolicy;
 use App\Models\UnitNight;
@@ -22,6 +21,7 @@ use InvalidArgumentException;
 
 /**
  * Works out what a no-show, cancellation, early departure or late check-out policy charges for a unit, before tax.
+ * A paid cancellation charges the step that matches the days from the business date to arrival (`CancellationSteps`).
  * It reads only. The front desk Actions post the amount through `PostFolioCharge`. The policy applies as it is now, unless
  * an online booking saved its own terms (`CancellationPolicy`). A day use unit has no nights: its block counts as one night priced at
  * `unit_day_uses.amount`, so First night, Whole stay and One charge all give the block price and Unused nights gives
@@ -33,6 +33,7 @@ class PolicyChargeCalculator
     public function __construct(
         private RateQuoteService $rateQuoteService,
         private CurrentBusinessDate $currentBusinessDate,
+        private CancellationSteps $cancellationSteps,
     ) {}
 
     /**
@@ -43,8 +44,18 @@ class PolicyChargeCalculator
         $currency = $unit->property()->firstOrFail()->settings->currency->getCurrencyCode();
         $zero = Money::zero($currency);
 
-        if ($this->isInsideFreeWindow($policy, $unit)) {
-            return new PolicyCharge($zero, withinFreeWindow: true);
+        if ($this->cancellationSteps->usesSteps($policy)) {
+            $step = $this->cancellationSteps->stepFor($this->cancellationSteps->of($policy), $this->daysBeforeArrival($unit));
+
+            if ($step === null) {
+                return new PolicyCharge($zero);
+            }
+
+            if ($this->cancellationSteps->isFree($step)) {
+                return new PolicyCharge($zero, withinFreeWindow: true);
+            }
+
+            $policy = $this->cancellationSteps->chargedAt($policy, $step);
         }
 
         if ($policy->charge_mode === PolicyChargeMode::Free) {
@@ -95,31 +106,14 @@ class PolicyChargeCalculator
     }
 
     /**
-     * A cancellation made this many days or more before arrival is free.
+     * Days from the business date to the arrival date. With no business date the cancellation counts as on the arrival
+     * day, so the last step applies.
      */
-    public function isFreeWhenCancelledDaysBefore(RoomRevenuePolicy $policy, int $daysBeforeArrival): bool
+    private function daysBeforeArrival(ReservationUnit $unit): int
     {
-        return $policy->code === SystemTransactionCode::CancellationRevenue
-            && $policy->free_until_days !== null
-            && $daysBeforeArrival >= $policy->free_until_days;
-    }
-
-    /**
-     * A cancellation made this many days or more before arrival is free, counted from the business date.
-     */
-    private function isInsideFreeWindow(RoomRevenuePolicy $policy, ReservationUnit $unit): bool
-    {
-        if ($policy->code !== SystemTransactionCode::CancellationRevenue || $policy->free_until_days === null) {
-            return false;
-        }
-
         $businessDate = $this->currentBusinessDate->date($unit->property()->firstOrFail());
 
-        if ($businessDate === null) {
-            return false;
-        }
-
-        return $this->isFreeWhenCancelledDaysBefore($policy, (int) $businessDate->diffInDays($unit->arrival_date->toImmutable()->startOfDay(), false));
+        return $businessDate === null ? 0 : (int) $businessDate->diffInDays($unit->arrival_date->toImmutable()->startOfDay(), false);
     }
 
     /**

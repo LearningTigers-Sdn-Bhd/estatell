@@ -13,14 +13,17 @@ class UnitDoorPinsData extends Data
      * @param  list<DoorPasscodeData>  $passcodes
      * @param  list<LockWithoutPinData>  $locksWithoutPin
      * @param  list<int>  $leavingIds
+     * @param  list<DoorCardData>  $cards  The stay's cards that are Pending, Active or Failed.
      */
     public function __construct(
         public array $passcodes,
+        public array $cards,
         public array $locksWithoutPin,
         public bool $sendNewPin,
         public bool $updating,
         public bool $making,
         public array $leavingIds,
         public bool $syncing,
+        public bool $canAddCard,
     ) {}
 }

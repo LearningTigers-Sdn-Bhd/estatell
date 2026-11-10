@@ -2,9 +2,12 @@
 
 namespace App\Http\Resources\Booking\V1;
 
+use App\Models\RoomRevenuePolicy;
+use App\Models\RoomRevenuePolicyStep;
 use App\Services\BookingEngine\BookingOffer;
 use App\Services\BookingEngine\OnlinePrice;
 use App\Services\BookingEngine\OnlineTaxLine;
+use App\Services\Catalogues\CancellationSteps;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -43,20 +46,40 @@ class BookingOfferResource extends JsonResource
                 'taxes' => $this->taxes($price->deskTaxes),
                 'total' => (string) $price->deskTotal?->getAmount(),
             ],
-            'cancellation_terms' => $policy === null ? null : [
-                'charge_mode' => $policy->charge_mode->value,
-                'amount' => $policy->amount,
-                'percent' => $policy->percent,
-                'percent_basis' => $policy->percent_basis?->value,
-                'applies_to' => $policy->applies_to->value,
-                'free_until_days' => $policy->free_until_days,
-                'text_en' => $policy->text_en,
-                'text_ms' => $policy->text_ms,
-            ],
+            'cancellation_terms' => $policy === null ? null : $this->cancellationTerms($policy),
             'blocked' => $offer->blockedCode === null ? null : [
                 'code' => $offer->blockedCode,
                 'message' => $offer->blockedMessage,
             ],
+        ];
+    }
+
+    /**
+     * The live cancellation policy. `steps` hold a paid cancellation's charge; `amount`, `percent` and `free_until_days`
+     * stay for older clients and are filled from the steps.
+     *
+     * @return array<string, mixed>
+     */
+    private function cancellationTerms(RoomRevenuePolicy $policy): array
+    {
+        $cancellationSteps = app(CancellationSteps::class);
+        $steps = $cancellationSteps->of($policy);
+        $charging = $cancellationSteps->firstCharging($steps);
+
+        return [
+            'charge_mode' => $policy->charge_mode->value,
+            'amount' => $steps->isEmpty() ? $policy->amount : $charging?->amount,
+            'percent' => $steps->isEmpty() ? $policy->percent : $charging?->percent,
+            'percent_basis' => $policy->percent_basis?->value,
+            'applies_to' => $policy->applies_to->value,
+            'free_until_days' => $cancellationSteps->freeUntilDays($steps),
+            'steps' => array_values($steps->map(fn (RoomRevenuePolicyStep $step): array => [
+                'days_before' => $step->days_before,
+                'amount' => $step->amount,
+                'percent' => $step->percent,
+            ])->all()),
+            'text_en' => $policy->text_en,
+            'text_ms' => $policy->text_ms,
         ];
     }
 

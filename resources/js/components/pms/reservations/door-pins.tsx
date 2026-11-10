@@ -17,7 +17,8 @@ const TIME: Intl.DateTimeFormatOptions = {
     minute: '2-digit',
 };
 
-const when = (iso: string) => new Date(iso).toLocaleString('en-GB', TIME);
+export const when = (iso: string) =>
+    new Date(iso).toLocaleString('en-GB', TIME);
 
 /**
  * The PINs staff should look at now: every Active or Pending PIN, and the newest Failed one of a lock that has no working PIN.

@@ -484,7 +484,7 @@ amount: string | null,
 percent: string | null,
 percentBasis: App.Enums.PolicyRateBasis | null,
 appliesTo: App.Enums.PolicyScope,
-freeUntilDays: number | null,
+steps: App.Data.Catalogues.RoomRevenuePolicyStepData[],
 ownTaxes: boolean,
 taxIds: number[],
 textEn: string,
@@ -503,6 +503,11 @@ localTotal: string | null,
 foreignTotal: string | null,
 steps: string[],
 taxBreakdown: App.Data.Catalogues.RoomRevenuePreviewData | null,
+};
+export type RoomRevenuePolicyStepData = {
+daysBefore: number,
+amount: string | null,
+percent: string | null,
 };
 export type RoomRevenuePreviewData = {
 sampleAmount: string,
@@ -1056,6 +1061,15 @@ total: number,
 };
 }
 namespace DoorLocks {
+export type DoorCardData = {
+id: number,
+lockName: string,
+cardNumber: string,
+status: App.Data.Shared.BadgeData,
+endsAt: string,
+error: string | null,
+canRemove: boolean,
+};
 export type DoorLockConnectionData = {
 ttlockUsername: string,
 signedIn: boolean,
@@ -1068,6 +1082,8 @@ lastError: string | null,
 export type DoorLockData = {
 id: number,
 name: string,
+provider: string,
+lockNo: string | null,
 batteryPercent: number | null,
 hasGateway: boolean,
 roomId: number | null,
@@ -1093,18 +1109,34 @@ canRevoke: boolean,
 canRetry: boolean,
 canReplace: boolean,
 };
+export type KeyportJobData = {
+id: string,
+type: string,
+created_at: string,
+expires_at: string,
+payload: Record<string, any>,
+};
+export type KeyportPairingData = {
+device_id: string,
+device_token: string,
+property_code: string,
+property_name: string,
+poll_seconds: number,
+};
 export type LockWithoutPinData = {
 name: string,
 reason: string | null,
 };
 export type UnitDoorPinsData = {
 passcodes: App.Data.DoorLocks.DoorPasscodeData[],
+cards: App.Data.DoorLocks.DoorCardData[],
 locksWithoutPin: App.Data.DoorLocks.LockWithoutPinData[],
 sendNewPin: boolean,
 updating: boolean,
 making: boolean,
 leavingIds: number[],
 syncing: boolean,
+canAddCard: boolean,
 };
 }
 namespace Folio {
@@ -1683,6 +1715,42 @@ canStart: boolean,
 canFinish: boolean,
 canEdit: boolean,
 askHousekeeper: boolean,
+};
+}
+namespace Keyport {
+export type KeyportDeviceData = {
+id: number,
+name: string,
+platform: string | null,
+status: App.Data.Shared.BadgeData,
+lastSeenAt: string | null,
+readerNote: string | null,
+canRevoke: boolean,
+};
+export type KeyportJobRowData = {
+id: number,
+typeLabel: string,
+status: App.Data.Shared.BadgeData,
+lockName: string | null,
+guest: string | null,
+message: string | null,
+createdAt: string,
+canCancel: boolean,
+open: boolean,
+};
+export type UnitKeyCardsData = {
+locks: {
+id: number,
+name: string,
+hasCard: boolean,
+stale: boolean,
+previous: boolean,
+}[],
+deskOnline: boolean,
+hasDesk: boolean,
+canMake: boolean,
+jobs: App.Data.Keyport.KeyportJobRowData[],
+syncing: boolean,
 };
 }
 namespace Kiosk {
@@ -2382,6 +2450,11 @@ feature: App.Enums.PlatformFeature,
 label: string,
 description: string,
 active: boolean,
+providers: string[] | null,
+providerOptions: {
+value: string,
+label: string,
+}[] | null,
 };
 export type ViewAsStaffData = {
 id: number,
@@ -4782,9 +4855,14 @@ export type IdentityDocumentType = 'mykad' | 'passport' | 'other';
 export type ImpersonationReason = 'onboarding_help' | 'support' | 'setup_check';
 export type InclusionEnd = 'departure_day' | 'night_before_departure';
 export type InclusionStart = 'arrival_day' | 'day_after_arrival';
+export type KeyportApiError = 'invalid_pairing_code' | 'pairing_code_expired' | 'pairing_code_used' | 'unauthorized' | 'door_locks_disabled' | 'upgrade_required' | 'job_not_found' | 'job_already_finished' | 'invalid_request';
+export type KeyportDeviceStatus = 'online' | 'offline' | 'revoked';
+export type KeyportJobStatus = 'pending' | 'claimed' | 'succeeded' | 'failed' | 'uncertain' | 'cancelled' | 'expired';
+export type KeyportJobType = 'guest_card.issue' | 'guest_card.rewrite' | 'guest_card.erase' | 'guest_card.read';
 export type KioskKeyMode = 'pin' | 'card' | 'both';
 export type KioskStatus = 'awaiting_pairing' | 'paired' | 'code_expired' | 'revoked';
 export type Locale = 'en' | 'ms';
+export type LockProvider = 'ttlock' | 'elock';
 export type MailActorType = 'system' | 'property' | 'partner' | 'admin' | 'guest' | 'company';
 export type MailStatus = 'sent' | 'delivered' | 'bounced' | 'complained' | 'failed' | 'suppressed';
 export type ManualFolioReason = 'paper_folio' | 'missed_charge' | 'missed_payment' | 'old_system' | 'fix_mistake' | 'other';

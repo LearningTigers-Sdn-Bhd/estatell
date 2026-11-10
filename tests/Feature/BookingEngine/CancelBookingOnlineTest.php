@@ -38,16 +38,18 @@ use Spatie\Activitylog\Models\Activity;
  */
 function cancellableBooking(array $policy = [], int $rooms = 1): array
 {
+    $freeUntil = array_key_exists('free_until_days', $policy) ? $policy['free_until_days'] : 3;
+    unset($policy['free_until_days']);
     $setup = curlecSetup();
     $property = $setup['property'];
     $code = TransactionCode::factory()->for($property)->system(SystemTransactionCode::CancellationRevenue)->create();
     $sst = Tax::factory()->for($property)->create(['name' => 'SST 8%', 'rate' => '8.00']);
     $sst->applicableTransactionCodes()->attach($code);
     RoomRevenuePolicy::query()->where('property_id', $property->id)->where('code', SystemTransactionCode::CancellationRevenue)->delete();
-    RoomRevenuePolicy::factory()->percentage('50.00', PolicyRateBasis::BookedRate)->create([
+    $factory = RoomRevenuePolicy::factory()->percentage('50.00', PolicyRateBasis::BookedRate);
+    ($freeUntil === null ? $factory : $factory->freeUntil($freeUntil))->create([
         'property_id' => $property->id,
         'applies_to' => 'whole_stay',
-        'free_until_days' => 3,
         ...$policy,
     ]);
 
@@ -74,9 +76,12 @@ test('confirming a booking saves the terms, and a later policy change does not t
     $booking = cancellableBooking(['free_until_days' => 10]);
 
     $terms = ReservationCancellationTerm::query()->where('reservation_id', $booking['reservation']->id)->sole();
-    expect($terms->percent)->toBe('50.00')->and($terms->free_until_days)->toBe(10);
+    expect($terms->percent)->toBeNull()
+        ->and($terms->steps()->get()->map(fn ($step) => [$step->days_before, $step->percent])->all())->toBe([[10, '0.00'], [0, '50.00']]);
 
-    RoomRevenuePolicy::query()->where('property_id', $booking['property']->id)->where('code', SystemTransactionCode::CancellationRevenue)->update(['percent' => '100.00', 'free_until_days' => null]);
+    $policy = RoomRevenuePolicy::query()->where('property_id', $booking['property']->id)->where('code', SystemTransactionCode::CancellationRevenue)->sole();
+    $policy->steps()->delete();
+    $policy->steps()->create(['property_id' => $policy->property_id, 'days_before' => 0, 'percent' => '100.00']);
 
     bookingApiGet('bookings/'.$booking['hold']->token.'/cancellation')
         ->assertOk()
@@ -226,7 +231,10 @@ test('a guest reads their booking with its terms and refund', function () {
             'currency' => 'MYR',
             'amount_paid' => '200.00',
             'refund' => ['status' => 'pending', 'amount' => '200.00'],
-            'cancellation_terms' => ['free_until_days' => 3],
+            'cancellation_terms' => ['free_until_days' => 3, 'steps' => [
+                ['days_before' => 3, 'amount' => null, 'percent' => '0.00'],
+                ['days_before' => 0, 'amount' => null, 'percent' => '50.00'],
+            ]],
         ]);
 });
 

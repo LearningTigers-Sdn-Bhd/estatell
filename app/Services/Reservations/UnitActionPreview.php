@@ -44,6 +44,7 @@ use App\Models\User;
 use App\Services\Availability\DayUseAvailability;
 use App\Services\Availability\FreeUnits;
 use App\Services\Catalogues\CancellationPolicy;
+use App\Services\Catalogues\CancellationSteps;
 use App\Services\Catalogues\PolicyCharge;
 use App\Services\Catalogues\PolicyChargeCalculator;
 use App\Services\Catalogues\TaxCalculator;
@@ -105,6 +106,7 @@ class UnitActionPreview
         private AuditPendingNotice $auditPendingNotice,
         private DamageChargeItem $damageChargeItem,
         private CancellationPolicy $cancellationPolicy,
+        private CancellationSteps $cancellationSteps,
         private CancelledUnitRefund $cancelledUnitRefund,
     ) {}
 
@@ -724,7 +726,7 @@ class UnitActionPreview
             ];
         }
 
-        return new CancelAllPreviewData($rows, $policy->free_until_days, (string) BigDecimal::of((string) ($paid ?: 0))->toScale(2), $request, null);
+        return new CancelAllPreviewData($rows, $this->cancellationSteps->freeUntilDays($this->cancellationSteps->of($policy)), (string) BigDecimal::of((string) ($paid ?: 0))->toScale(2), $request, null);
     }
 
     /**
@@ -751,7 +753,7 @@ class UnitActionPreview
         return new UnitFeePreviewData(
             fee: (string) $charge->amount->getAmount(),
             withinFreeWindow: $charge->withinFreeWindow,
-            freeUntilDays: $isCancellation ? $policy->free_until_days : null,
+            freeUntilDays: $isCancellation ? $this->cancellationSteps->freeUntilDays($this->cancellationSteps->of($policy)) : null,
             daysBeforeArrival: $isCancellation ? (int) $businessDate->diffInDays($unit->arrival_date->toImmutable()->startOfDay(), false) : null,
             unpostedAddOns: $unit->addOns()->whereNull('folio_line_id')->count(),
             error: null,

@@ -6,6 +6,7 @@ use App\Actions\DoorLocks\RemoveDoorCard;
 use App\Actions\FrontDesk\CheckOutUnit;
 use App\Actions\FrontDesk\UnitStayRefused;
 use App\Actions\FrontDesk\UnitStayResult;
+use App\Enums\LockProvider;
 use App\Enums\UnitStatus;
 use App\Features\DoorLocks;
 use App\Models\Kiosk;
@@ -14,7 +15,6 @@ use App\Services\Kiosk\KioskCheckOut;
 use App\Services\Kiosk\KioskStays;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Laravel\Pennant\Feature;
 
 class CheckOutStay
 {
@@ -74,7 +74,7 @@ class CheckOutStay
 
         // Commit each removal separately: a retry must keep remote deletions that already succeeded.
         foreach ($this->checkOut->cards($stay) as $card) {
-            if ($card->ttlock_card_id !== null && (! Feature::for($kiosk->property)->active(DoorLocks::class)
+            if ($card->ttlock_card_id !== null && (! DoorLocks::allows($kiosk->property, LockProvider::TTLock)
                 || ! $card->doorLock->has_gateway || $card->doorLock->property->doorLockConnection?->enabled !== true)) {
                 return UnitStayResult::refused('lock_unavailable');
             }

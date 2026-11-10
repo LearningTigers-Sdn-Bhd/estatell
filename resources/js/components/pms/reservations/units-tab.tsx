@@ -18,7 +18,9 @@ import { MoneyText } from '@/components/pms/money-text';
 import { ChangeBoatTripDialog } from '@/components/pms/reservations/change-boat-trip-dialog';
 import { ChangeGuestsDialog } from '@/components/pms/reservations/change-guests-dialog';
 import { ChangeNightPriceDialog } from '@/components/pms/reservations/change-night-price-dialog';
+import { DoorCards } from '@/components/pms/reservations/door-cards';
 import { DoorPins } from '@/components/pms/reservations/door-pins';
+import { KeyCards } from '@/components/pms/reservations/key-cards';
 import { UnitActionsMenu } from '@/components/pms/reservations/unit-actions-menu';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Button } from '@/components/ui/button';
@@ -179,6 +181,8 @@ export function UnitsTab({
     reservationId,
     unit,
     doorPins,
+    keyCards,
+    lockProviders = [],
     autoAssignRooms,
     canWaiveFees,
     canOverrideRestrictions,
@@ -190,6 +194,8 @@ export function UnitsTab({
     reservationId: number;
     unit: Unit | null;
     doorPins: App.Data.DoorLocks.UnitDoorPinsData | null;
+    keyCards: App.Data.Keyport.UnitKeyCardsData | null;
+    lockProviders?: string[];
     autoAssignRooms: boolean;
     canWaiveFees: boolean;
     canOverrideRestrictions: boolean;
@@ -311,7 +317,14 @@ export function UnitsTab({
                 )}
                 <div className="flex flex-wrap gap-x-6 gap-y-2">
                     <Detail icon={BedDouble} label="Room">
-                        {roomText(unit, autoAssignRooms)}
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <span>{roomText(unit, autoAssignRooms)}</span>
+                            {lockProviders.map((provider) => (
+                                <Badge key={provider} variant="outline">
+                                    {provider}
+                                </Badge>
+                            ))}
+                        </div>
                     </Detail>
                     <Detail icon={Users} label="Guests">
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -331,6 +344,21 @@ export function UnitsTab({
                 {doorPins !== null && (
                     <DoorPins
                         pins={doorPins}
+                        reservationId={reservationId}
+                        unitId={unit.id}
+                    />
+                )}
+                {doorPins !== null &&
+                    (doorPins.canAddCard || doorPins.cards.length > 0) && (
+                        <DoorCards
+                            cards={doorPins.cards}
+                            reservationId={reservationId}
+                            unitId={unit.id}
+                        />
+                    )}
+                {keyCards !== null && (
+                    <KeyCards
+                        cards={keyCards}
                         reservationId={reservationId}
                         unitId={unit.id}
                     />
