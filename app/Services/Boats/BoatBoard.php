@@ -14,7 +14,8 @@ use Carbon\CarbonImmutable;
 
 /**
  * The groups of the Boats board for one date and direction: one per sailing in time order, then the charter trips, the own boat
- * trips, then the units with no boat set. It reads the same rows as the Boat manifest (`BoatManifestReport`) and the same
+ * trips, then the units with no boat set. Charter and Own boat always show, even empty, unless the date has no group at all
+ * (the page then shows its empty state). Boat not set shows only with rows. It reads the same rows as the Boat manifest (`BoatManifestReport`) and the same
  * sailings (`DateSailings`). Reads only. See docs/24-boats/05-boats-board.md.
  */
 class BoatBoard
@@ -83,11 +84,8 @@ class BoatBoard
             $groups[] = $this->sailingGroup($sailing, $group, $sailing->departure === null ? false : ($stored[$sailing->departure->id] ?? false), $guestsByDeparture[$sailing->departure?->id] ?? 0);
         }
 
-        if ($charter !== []) {
+        if ($groups !== [] || $charter !== [] || $own !== [] || $notSet !== []) {
             $groups[] = $this->plainGroup('charter', 'charter', BoatMode::Charter->label(), $charter);
-        }
-
-        if ($own !== []) {
             $groups[] = $this->plainGroup('own', 'own', BoatMode::Own->label(), $own);
         }
 

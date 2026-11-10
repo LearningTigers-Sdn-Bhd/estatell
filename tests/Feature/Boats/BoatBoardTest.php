@@ -80,7 +80,11 @@ test('the board lists the sailings in time order across both directions, then ch
         ->assertInertia(fn (Assert $page) => $page
             ->where('groups.0.directionLabel', 'Boat out')
             ->where('groups.0.rows.0.direction', 'out')
-            ->has('groups', 1));
+            ->where('groups.1.kind', 'charter')
+            ->where('groups.1.rows', [])
+            ->where('groups.2.kind', 'own')
+            ->where('groups.2.rows', [])
+            ->has('groups', 3));
 });
 
 test('a sailing with no guests still shows, an added boat has its own group, and the date defaults to the business date', function () {
@@ -358,14 +362,18 @@ test('the board sends the crew phone for the pickers, the manifest layout for Co
         ->assertInertia(fn (Assert $page) => $page->where('can.columns', false)->where('can.manage', false));
 });
 
-test('departures with no guests show their groups, and the Charter, Own boat and Boat not set groups stay hidden', function () {
+test('departures with no guests show their groups and empty Charter and Own boat groups, and Boat not set stays hidden', function () {
     $setup = sailingSetup();
 
     $this->actingAs($setup['owner'])->get(boardUrl($setup, ['direction' => 'in']))
         ->assertInertia(fn (Assert $page) => $page
-            ->has('groups', 2)
+            ->has('groups', 4)
             ->where('groups.0.kind', 'sailing')
             ->where('groups.0.rows', [])
             ->where('groups.1.kind', 'sailing')
-            ->where('groups.1.rows', []));
+            ->where('groups.1.rows', [])
+            ->where('groups.2.kind', 'charter')
+            ->where('groups.2.rows', [])
+            ->where('groups.3.kind', 'own')
+            ->where('groups.3.rows', []));
 });

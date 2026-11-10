@@ -622,5 +622,5 @@ test('Boat in and out together lists every departure of the date in time order',
         ->and($filters->query(true)['direction'])->toBe('both');
 
     $this->actingAs($manager)->get(manifestUrl($property, '?date=2026-10-20&direction=both'))
-        ->assertInertia(fn (Assert $page) => $page->where('direction', 'both')->has('groups', 2));
+        ->assertInertia(fn (Assert $page) => $page->where('direction', 'both')->has('groups', 4)->where('groups.2.kind', 'charter')->where('groups.3.kind', 'own'));
 });

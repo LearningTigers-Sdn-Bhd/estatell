@@ -895,7 +895,11 @@ function GroupSection({
 
             {group.rows.length === 0 ? (
                 <p className="px-3 py-3 text-sm text-muted-foreground">
-                    No guests.
+                    {group.kind === 'charter'
+                        ? 'No charter trips.'
+                        : group.kind === 'own'
+                          ? 'No own boat trips.'
+                          : 'No guests.'}
                 </p>
             ) : (
                 <>

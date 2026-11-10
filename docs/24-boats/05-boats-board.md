@@ -58,7 +58,7 @@ Boat Trips                                    [+ Trip or job]  [Export Boat Mani
 ```
 
 - Groups come in this order, as on the PDF: one group per [sailing](04-sailings.md) in time order across both directions, then **Charter**, then **Own boat**, then Boat jobs, then Boat not set.
-- **Charter** and **Own boat** are two groups. Their header shows the room and pax count, with no seat limit. A **Trip** column shows the direction, the time and the note ("In · 10:30 · Wedding party"), because one group can hold both directions. Their tick column is **Done**, because the rows mix directions. It is the same trip tick. An empty Charter or Own boat group is hidden.
+- **Charter** and **Own boat** are two groups. Their header shows the room and pax count, with no seat limit. A **Trip** column shows the direction, the time and the note ("In · 10:30 · Wedding party"), because one group can hold both directions. Their tick column is **Done**, because the rows mix directions. It is the same trip tick. Charter and Own boat always show, even with no rooms: "No charter trips." or "No own boat trips." under the header. Only a date with no group at all shows the page empty state instead.
 - The group header shows the direction, time, jetty, boat, ⚓ the person in charge, the assistants and the seat count. Over the limit uses the warning tone.
 - The **Arrived** (Boat in) or **Left** (Boat out) column is the [trip tick](03-boat-manifest.md#tick). It saves at once, like the housekeeping status.
 - **Set boat** on a Boat not set row opens the reservation page's boat Change Dialog for that unit and direction.
@@ -190,7 +190,7 @@ A `{sailing}` or `{departure}` of another property is a 404. A `{sailing}` of th
 
 ## Empty states
 
-- Departures on the timetable but no guests: each sailing group shows "No guests.". Staff can still set the boat and crew and export the sheet for the crew. Charter, Own boat and Boat not set are hidden.
+- Departures on the timetable but no guests: each sailing group shows "No guests.". Staff can still set the boat and crew and export the sheet for the crew. Charter and Own boat show with "No charter trips." and "No own boat trips.". Boat not set is hidden.
 - No sailings, jobs or trips on the date: "No boats on 11 Nov." with **+ Trip or job**.
 - No departures at all: "No departures yet" and "Add departures in Settings, Boats.", with **Open Boats settings** for users with `settings.manage`.
 
