@@ -1,16 +1,22 @@
 import { Head, Link, router } from '@inertiajs/react';
 import {
+    ArrowUpRight,
+    Ban,
     Check,
     ChevronLeft,
     ChevronRight,
+    Clock,
     Ellipsis,
     LogIn,
     LogOut,
     Plus,
+    RotateCcw,
     Sailboat,
     Settings2,
     Ship,
+    Trash2,
     TriangleAlert,
+    Undo2,
 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { BoatNoteField } from '@/components/pms/boats/boat-note-field';
@@ -784,12 +790,15 @@ function GroupMenu({
                 {!group.isExtra && (
                     <>
                         <DropdownMenuItem onClick={onChange}>
+                            <Ship />
                             Change boat and crew
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={onTime}>
+                            <Clock />
                             Change time
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={onAdd}>
+                            <Plus />
                             Add boat
                         </DropdownMenuItem>
                     </>
@@ -804,6 +813,7 @@ function GroupMenu({
                             )
                         }
                     >
+                        <Trash2 />
                         {group.isExtra ? 'Delete' : 'Remove boat'}
                     </DropdownMenuItem>
                 )}
@@ -817,7 +827,8 @@ function GroupMenu({
                             )
                         }
                     >
-                        Default
+                        <RotateCcw />
+                        Reset to timetable
                     </DropdownMenuItem>
                 )}
                 {group.isMain && !group.isExtra && (
@@ -826,6 +837,7 @@ function GroupMenu({
                         disabled={group.departureGuests > 0}
                         onClick={onCancel}
                     >
+                        <Ban className="mt-0.5 self-start" />
                         <span className="flex flex-col">
                             {cancelLabel(group)}
                             {group.departureGuests > 0 && (
@@ -1195,6 +1207,7 @@ function RowMenu({
             <DropdownMenuContent align="end" className="min-w-44">
                 {canChangeBoat && (
                     <DropdownMenuItem onClick={() => onChangeBoat(row)}>
+                        <Ship />
                         Change boat
                     </DropdownMenuItem>
                 )}
@@ -1208,6 +1221,7 @@ function RowMenu({
                             />
                         }
                     >
+                        <ArrowUpRight />
                         Open reservation
                     </DropdownMenuItem>
                 )}
@@ -1260,6 +1274,7 @@ function RowEnd({
                         aria-label={`Undo ${word} for ${row.lead_guest}`}
                         onClick={() => onTick(row, false)}
                     >
+                        <Undo2 data-icon="inline-start" />
                         Undo
                     </Button>
                 )}
@@ -1274,6 +1289,7 @@ function RowEnd({
             size="sm"
             onClick={() => onTick(row, true)}
         >
+            <Check data-icon="inline-start" />
             Mark {word}
         </Button>
     ) : (

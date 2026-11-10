@@ -9,7 +9,7 @@ use Spatie\LaravelData\Data;
  * One group of the Boats board: a sailing (`kind` sailing), the charter trips (`charter`), the own boat trips (`own`) or the units with
  * no boat set (`not_set`). A sailing group names its boat, crew, time and seats, and carries what the group menu needs:
  * `departureId` and `sailingId` (null for the main sailing that is not stored yet), `hasStored` (the departure has stored
- * sailings on the date, so Default shows) and `canRemove` (an added boat or an extra trip with no guests). `cancelled` shows the
+ * sailings on the date, so Reset to timetable shows) and `canRemove` (an added boat or an extra trip with no guests). `cancelled` shows the
  * departure muted with Undo; `departureGuests` is every guest booked on the departure that date (Cancel trip is refused while
  * any); `isExtra` marks an extra trip; `isMain` marks the main sailing of a departure, the only group with Cancel trip;
  * `departureBoats` counts the departure's running boats that date, so Cancel trip says "(all boats)"; `leavesAt` and `arrivesAt` fill the Change time Dialog and the header, with

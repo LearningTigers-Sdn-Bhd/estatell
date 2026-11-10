@@ -64,7 +64,7 @@ A fixed list, not types each property defines. Other with a note covers the rest
 - The first change on a date for a departure (boat, crew, time, a second boat, cancel) stores that sailing first, copying the departure's default boat and crew. This is the **main sailing**: the departure's sailing on that date with the lowest id.
 - Trips of that departure and date with no `boat_sailing_id` are on the main sailing. A trip is on another sailing only when staff move it there ([Move](#move-guests)).
 - A later change to the departure's default boat or crew changes dates with no rows only. Stored sailings keep what they copied.
-- **Default** on the board deletes a departure's stored sailings for the date and goes back to the timetable. It is refused while an added boat or an extra trip has guests (`sailing_has_guests`).
+- **Reset to timetable** on the board deletes a departure's stored sailings for the date and goes back to the timetable. It is refused while an added boat or an extra trip has guests (`sailing_has_guests`).
 
 ## Times
 
@@ -122,7 +122,7 @@ All in `app/Actions/Boats/`. Each locks the date's sailings of the departure (or
 | `SaveSailing`         | Sets the boat, crew and time of a sailing. Stores the main sailing first when needed. Moves unit times. | `boat_sailing.saved`                              |
 | `AddSailingBoat`      | Adds another boat to a departure on a date                                                              | `boat_sailing.boat_added`                         |
 | `RemoveSailing`       | Deletes an added boat or an extra trip with no guests                                                   | `boat_sailing.removed`                            |
-| `ResetDepartureDate`  | **Default**: deletes the departure's stored sailings for the date                                       | `boat_sailing.reset`                              |
+| `ResetDepartureDate`  | **Reset to timetable**: deletes the departure's stored sailings for the date                            | `boat_sailing.reset`                              |
 | `CancelDepartureDate` | Cancels a departure on a date, or undoes it                                                             | `boat_sailing.cancelled`, `.restored`             |
 | `AddExtraSailing`     | Adds an extra guest trip                                                                                | `boat_sailing.extra_added`                        |
 | `SaveBoatJob`         | Adds or changes a boat job                                                                              | `boat_job.saved`                                  |
