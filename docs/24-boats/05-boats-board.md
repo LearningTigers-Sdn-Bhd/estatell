@@ -41,11 +41,13 @@ Boat Trips                                       [Columns]  [Export Boat Manifes
 
 [-] Boat out · 14:30 → 15:00 (changed)                                          0 / 12 seats  ⋯
     MV Sand Bay 2 · In charge: Din
-     No guests.
+     Room  Lead guest  Agent  Phone  Pax  Note  Left
+          (no guests) No guests on this boat.
 
 [-] Boat in · 16:00 → 16:45   Kuala Besut jetty                                  0 / 20 seats  ⋯
     No boat or crew set
-     No guests.
+     Room  Lead guest  Agent  Phone  Pax  Note  Arrived
+          (no guests) No guests on this boat.
 
     Boat in · 16:00 Kuala Besut jetty · Cancelled                             [Undo]   (muted)
 
@@ -82,7 +84,7 @@ The **Others** tab:
 | Others   | Charter, Own boat and Boat jobs                               |
 
 - **Export Boat Manifest** exports what the open tab shows. On Others, the PDF prints only the Charter and Own boat blocks.
-- **Charter** and **Own boat** are two groups. Their header shows the room and pax count, with no seat limit. A **Trip** column shows the direction and the time ("In · 10:30"), because one group can hold both directions. Their tick column is **Done**, because the rows mix directions. It is the same trip tick. Charter and Own boat always show on All and Others, even with no rooms: "No charter trips." or "No own boat trips." under the header. Only a date with no group at all shows the page empty state instead.
+- **Charter** and **Own boat** are two groups. Their header shows the room and pax count, with no seat limit. A **Trip** column shows the direction and the time ("In · 10:30"), because one group can hold both directions. Their tick column is **Done**, because the rows mix directions. It is the same trip tick. Charter and Own boat always show on All and Others, even with no rooms: the table header stays, with an `EmptyState` inside ("No charter trips." or "No own boat trips."). Only a date with no group at all shows the page empty state instead.
 - The group header has two lines. The first: the direction, the leave and arrive times ("(changed)" when the date has its own time), the jetty, then the seat count and ⋯ on the right. Over the limit uses the warning tone. The second, muted: the boat, "In charge:" and "Crew:" in plain words ("MV Sand Bay 1 · In charge: Awang · Crew: Daus"), or "No boat or crew set". An extra trip starts it with "Extra trip ·".
 - Every group keeps the tick box space, so the titles line up. A group with no guests shows the box disabled ([-] above). Boat not set shows its warning icon there.
 - The **Arrived** (Boat in) or **Left** (Boat out) column is the [trip tick](03-boat-manifest.md#tick). It is a button, not a box: **Mark arrived** or **Mark left** opens an AlertDialog ("Mark 102 · Hanami Saki as arrived?"), then saves. A ticked row shows "✓ Arrived" or "✓ Left" with **Undo**, which asks the same way ("Mark 102 · Hanami Saki as not arrived?"). A user without `reservations.manage` sees the text only.
@@ -217,7 +219,7 @@ A `{sailing}` or `{departure}` of another property is a 404. A `{sailing}` of th
 
 ## Empty states
 
-- Departures on the timetable but no guests: each sailing group shows "No guests.". Staff can still set the boat and crew and export the sheet for the crew. Charter and Own boat show with "No charter trips." and "No own boat trips.". Boat not set is hidden.
+- Departures on the timetable but no guests: each sailing group keeps its table header, with an `EmptyState` inside ("No guests on this boat.", "Move guests here with Move to, or pick this boat in Change boat."), as the Settings tables do. Staff can still set the boat and crew and export the sheet for the crew. Charter and Own boat show the same way, with "No charter trips." and "No own boat trips.". Boat not set is hidden.
 - No sailings, jobs or trips on the date: "No boats on 11 Nov." with **+ Trip or job**.
 - No departures at all: "No departures yet" and "Add departures in Settings, Boats.", with **Open Boats settings** for users with `settings.manage`.
 

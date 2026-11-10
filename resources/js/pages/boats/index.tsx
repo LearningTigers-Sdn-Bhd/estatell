@@ -17,6 +17,7 @@ import {
     Trash2,
     TriangleAlert,
     Undo2,
+    Users,
 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { BoatNoteField } from '@/components/pms/boats/boat-note-field';
@@ -722,6 +723,33 @@ function tripOf(
 }
 
 /**
+ * The empty body of a group that keeps its table header: a boat with no guests, or no charter or own boat trips.
+ */
+function GroupEmpty({ group }: { group: Group }) {
+    if (group.kind === 'charter' || group.kind === 'own') {
+        return (
+            <EmptyState
+                icon={Sailboat}
+                title={
+                    group.kind === 'charter'
+                        ? 'No charter trips.'
+                        : 'No own boat trips.'
+                }
+                description="Set Charter or Own boat on a guest with Change boat in the row menu."
+            />
+        );
+    }
+
+    return (
+        <EmptyState
+            icon={Users}
+            title="No guests on this boat."
+            description="Move guests here with Move to, or pick this boat in Change boat."
+        />
+    );
+}
+
+/**
  * The second line of a sailing header: "Boat 1 · In charge: Din · Crew: Razak". Plain words, so staff need not guess
  * a symbol. "No boat or crew set" when neither is.
  */
@@ -903,6 +931,8 @@ function GroupSection({
         .map((row) => row.key);
     const pickedCount = selectable.filter((key) => selected.has(key)).length;
     const over = group.seats !== null && group.taken > group.seats;
+    const columnCount =
+        (canSelect ? 1 : 0) + 7 + (isMixed ? 1 : 0) + (hasMenu ? 1 : 0);
     const crewLine = crewText(group);
 
     if (group.cancelled) {
@@ -1007,168 +1037,163 @@ function GroupSection({
                 )}
             </div>
 
-            {group.rows.length === 0 ? (
-                <p className="px-3 py-3 text-sm text-muted-foreground">
-                    {group.kind === 'charter'
-                        ? 'No charter trips.'
-                        : group.kind === 'own'
-                          ? 'No own boat trips.'
-                          : 'No guests.'}
-                </p>
-            ) : (
-                <>
-                    <div className="hidden md:block">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    {canSelect && <TableHead className="w-8" />}
-                                    <TableHead>Room</TableHead>
-                                    <TableHead>Lead guest</TableHead>
-                                    <TableHead>Agent</TableHead>
-                                    <TableHead>Phone</TableHead>
-                                    {isMixed && <TableHead>Trip</TableHead>}
-                                    <TableHead>Pax</TableHead>
-                                    <TableHead>Note</TableHead>
-                                    <TableHead className="text-right">
-                                        {isNotSet
-                                            ? ''
-                                            : isMixed
-                                              ? 'Done'
-                                              : tickLabel(group.direction)}
+            <>
+                <div className="hidden md:block">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                {canSelect && <TableHead className="w-8" />}
+                                <TableHead>Room</TableHead>
+                                <TableHead>Lead guest</TableHead>
+                                <TableHead>Agent</TableHead>
+                                <TableHead>Phone</TableHead>
+                                {isMixed && <TableHead>Trip</TableHead>}
+                                <TableHead>Pax</TableHead>
+                                <TableHead>Note</TableHead>
+                                <TableHead className="text-right">
+                                    {isNotSet
+                                        ? ''
+                                        : isMixed
+                                          ? 'Done'
+                                          : tickLabel(group.direction)}
+                                </TableHead>
+                                {hasMenu && (
+                                    <TableHead className="w-10">
+                                        <span className="sr-only">Actions</span>
                                     </TableHead>
-                                    {hasMenu && (
-                                        <TableHead className="w-10">
-                                            <span className="sr-only">
-                                                Actions
-                                            </span>
-                                        </TableHead>
-                                    )}
+                                )}
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {group.rows.length === 0 && (
+                                <TableRow className="hover:bg-transparent">
+                                    <TableCell colSpan={columnCount}>
+                                        <GroupEmpty group={group} />
+                                    </TableCell>
                                 </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {group.rows.map((row) => (
-                                    <TableRow key={row.key}>
-                                        {canSelect && (
-                                            <TableCell>
-                                                {!row.not_set && (
-                                                    <Checkbox
-                                                        aria-label={`Select ${row.lead_guest}`}
-                                                        checked={selected.has(
-                                                            row.key,
-                                                        )}
-                                                        onCheckedChange={(on) =>
-                                                            onSelect(
-                                                                [row.key],
-                                                                on,
-                                                            )
-                                                        }
-                                                    />
-                                                )}
-                                            </TableCell>
-                                        )}
-                                        <TableCell className="font-medium tabular-nums">
-                                            {row.unit}
-                                        </TableCell>
-                                        <TableCell>{row.lead_guest}</TableCell>
-                                        <TableCell>{row.agent}</TableCell>
-                                        <TableCell className="tabular-nums">
-                                            {row.phone ?? '—'}
-                                        </TableCell>
-                                        {isMixed && (
-                                            <TableCell>
-                                                {tripText(row)}
-                                            </TableCell>
-                                        )}
-                                        <TableCell className="tabular-nums">
-                                            {paxText(row)}
-                                        </TableCell>
-                                        <TableCell className="min-w-48">
+                            )}
+                            {group.rows.map((row) => (
+                                <TableRow key={row.key}>
+                                    {canSelect && (
+                                        <TableCell>
                                             {!row.not_set && (
-                                                <BoatNoteField
-                                                    row={row}
-                                                    canEdit={canTick}
+                                                <Checkbox
+                                                    aria-label={`Select ${row.lead_guest}`}
+                                                    checked={selected.has(
+                                                        row.key,
+                                                    )}
+                                                    onCheckedChange={(on) =>
+                                                        onSelect([row.key], on)
+                                                    }
                                                 />
                                             )}
                                         </TableCell>
-                                        <TableCell className="text-right">
-                                            <RowEnd
+                                    )}
+                                    <TableCell className="font-medium tabular-nums">
+                                        {row.unit}
+                                    </TableCell>
+                                    <TableCell>{row.lead_guest}</TableCell>
+                                    <TableCell>{row.agent}</TableCell>
+                                    <TableCell className="tabular-nums">
+                                        {row.phone ?? '—'}
+                                    </TableCell>
+                                    {isMixed && (
+                                        <TableCell>{tripText(row)}</TableCell>
+                                    )}
+                                    <TableCell className="tabular-nums">
+                                        {paxText(row)}
+                                    </TableCell>
+                                    <TableCell className="min-w-48">
+                                        {!row.not_set && (
+                                            <BoatNoteField
                                                 row={row}
-                                                canTick={canTick}
-                                                canSetBoat={canSetBoat}
-                                                onTick={onTick}
-                                                onSetBoat={onSetBoat}
+                                                canEdit={canTick}
+                                            />
+                                        )}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <RowEnd
+                                            row={row}
+                                            canTick={canTick}
+                                            canSetBoat={canSetBoat}
+                                            onTick={onTick}
+                                            onSetBoat={onSetBoat}
+                                        />
+                                    </TableCell>
+                                    {hasMenu && (
+                                        <TableCell>
+                                            <RowMenu
+                                                row={row}
+                                                canChangeBoat={menu}
+                                                onChangeBoat={onSetBoat}
                                             />
                                         </TableCell>
-                                        {hasMenu && (
-                                            <TableCell>
-                                                <RowMenu
-                                                    row={row}
-                                                    canChangeBoat={menu}
-                                                    onChangeBoat={onSetBoat}
-                                                />
-                                            </TableCell>
-                                        )}
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
-                    <ul className="flex flex-col divide-y md:hidden">
-                        {group.rows.map((row) => (
-                            <li
-                                key={row.key}
-                                className="flex items-center gap-3 px-3 py-2"
-                            >
-                                {canSelect && !row.not_set && (
-                                    <Checkbox
-                                        aria-label={`Select ${row.lead_guest}`}
-                                        checked={selected.has(row.key)}
-                                        onCheckedChange={(on) =>
-                                            onSelect([row.key], on)
-                                        }
-                                    />
-                                )}
-                                <div className="flex min-w-0 flex-1 flex-col">
-                                    <span className="truncate text-sm font-medium">
-                                        {row.unit} · {row.lead_guest} ·{' '}
-                                        {paxText(row)}
-                                    </span>
-                                    <span className="truncate text-xs text-muted-foreground">
-                                        {[
-                                            isMixed ? tripText(row) : null,
-                                            row.agent,
-                                            row.phone,
-                                        ]
-                                            .filter(Boolean)
-                                            .join(' · ')}
-                                    </span>
-                                    {!row.not_set && (
-                                        <BoatNoteField
-                                            row={row}
-                                            canEdit={canTick}
-                                            className="mt-1 text-xs"
-                                        />
                                     )}
-                                </div>
-                                <RowEnd
-                                    row={row}
-                                    canTick={canTick}
-                                    canSetBoat={canSetBoat}
-                                    onTick={onTick}
-                                    onSetBoat={onSetBoat}
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+                {group.rows.length === 0 && (
+                    <div className="md:hidden">
+                        <GroupEmpty group={group} />
+                    </div>
+                )}
+                <ul className="flex flex-col divide-y md:hidden">
+                    {group.rows.map((row) => (
+                        <li
+                            key={row.key}
+                            className="flex items-center gap-3 px-3 py-2"
+                        >
+                            {canSelect && !row.not_set && (
+                                <Checkbox
+                                    aria-label={`Select ${row.lead_guest}`}
+                                    checked={selected.has(row.key)}
+                                    onCheckedChange={(on) =>
+                                        onSelect([row.key], on)
+                                    }
                                 />
-                                {hasMenu && (
-                                    <RowMenu
+                            )}
+                            <div className="flex min-w-0 flex-1 flex-col">
+                                <span className="truncate text-sm font-medium">
+                                    {row.unit} · {row.lead_guest} ·{' '}
+                                    {paxText(row)}
+                                </span>
+                                <span className="truncate text-xs text-muted-foreground">
+                                    {[
+                                        isMixed ? tripText(row) : null,
+                                        row.agent,
+                                        row.phone,
+                                    ]
+                                        .filter(Boolean)
+                                        .join(' · ')}
+                                </span>
+                                {!row.not_set && (
+                                    <BoatNoteField
                                         row={row}
-                                        canChangeBoat={menu}
-                                        onChangeBoat={onSetBoat}
+                                        canEdit={canTick}
+                                        className="mt-1 text-xs"
                                     />
                                 )}
-                            </li>
-                        ))}
-                    </ul>
-                </>
-            )}
+                            </div>
+                            <RowEnd
+                                row={row}
+                                canTick={canTick}
+                                canSetBoat={canSetBoat}
+                                onTick={onTick}
+                                onSetBoat={onSetBoat}
+                            />
+                            {hasMenu && (
+                                <RowMenu
+                                    row={row}
+                                    canChangeBoat={menu}
+                                    onChangeBoat={onSetBoat}
+                                />
+                            )}
+                        </li>
+                    ))}
+                </ul>
+            </>
         </section>
     );
 }
